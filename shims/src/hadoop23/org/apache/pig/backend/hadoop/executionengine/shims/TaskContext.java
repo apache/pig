@@ -20,8 +20,6 @@ package org.apache.pig.backend.hadoop.executionengine.shims;
 import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.TaskInputOutputContext;
 import org.apache.pig.backend.hadoop.executionengine.fetch.FetchContext;
-import org.apache.tez.common.counters.TezCounter;
-import org.apache.tez.runtime.api.TezProcessorContext;
 
 public class TaskContext<T> {
     private T context;
@@ -78,11 +76,6 @@ public class TaskContext<T> {
             Counter counter = fetchContext.getCounter(name);
             counter.increment(delta);
             return true;
-        } else if (context instanceof TezProcessorContext) {
-            TezProcessorContext tezContext = (TezProcessorContext) context;
-            TezCounter counter = tezContext.getCounters().findCounter(name);
-            counter.increment(delta);
-            return true;
         }
         return false;
     }
@@ -99,11 +92,6 @@ public class TaskContext<T> {
         } else if (context instanceof FetchContext) {
             FetchContext fetchContext = (FetchContext) context;
             Counter counter = fetchContext.getCounter(group, name);
-            counter.increment(delta);
-            return true;
-        } else if (context instanceof TezProcessorContext) {
-            TezProcessorContext tezContext = (TezProcessorContext) context;
-            TezCounter counter = tezContext.getCounters().getGroup(group).findCounter(name);
             counter.increment(delta);
             return true;
         }
