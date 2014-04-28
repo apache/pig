@@ -32,6 +32,8 @@ PIG-2207: Support custom counters for aggregating warnings from different udfs (
 
 IMPROVEMENTS
 
+PIG-3860: Refactor PigStatusReporter and PigLogger for non-MR execution engine (cheolsoo)
+
 PIG-3865: Remodel the XMLLoader to work to be faster and more maintainable (aseldawy via daijy)
 
 PIG-3737: Bundle dependent jars in distribution in %PIG_HOME%/lib folder (daijy)

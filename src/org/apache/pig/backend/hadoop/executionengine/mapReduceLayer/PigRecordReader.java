@@ -56,7 +56,7 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
     private static final Log LOG = LogFactory.getLog(PigRecordReader.class);
 
     private final static String TIMING_COUNTER = "approx_microsecs";
-    private final static int TIMING_FREQ = 100;
+    private final static long TIMING_FREQ = 100;
 
     transient private String counterGroup = "";
     private boolean doTiming = false;
@@ -214,8 +214,8 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
             }
         }
         if (timeThis) {
-            PigStatusReporter.getInstance().getCounter(counterGroup, TIMING_COUNTER).increment(
-                    ( Math.round((System.nanoTime() - startNanos) / 1000)) * TIMING_FREQ);
+            PigStatusReporter.getInstance().incrCounter(counterGroup, TIMING_COUNTER,
+                    Math.round((System.nanoTime() - startNanos) / 1000) * TIMING_FREQ);
         }
         recordCount++;
         return true;

@@ -36,6 +36,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
+import org.apache.pig.backend.hadoop.executionengine.shims.TaskContext;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.SchemaTupleBackend;
 import org.apache.pig.impl.PigContext;
@@ -116,7 +117,6 @@ public class FetchLauncher {
     }
 
     private void init(PhysicalPlan pp, POStore poStore) throws IOException {
-
         poStore.setStoreImpl(new FetchPOStoreImpl(pigContext));
         poStore.setUp();
 
@@ -147,10 +147,11 @@ public class FetchLauncher {
         }
 
         boolean aggregateWarning = "true".equalsIgnoreCase(conf.get("aggregate.warning"));
+        PigStatusReporter pigStatusReporter = PigStatusReporter.getInstance();
+        pigStatusReporter.setContext(new TaskContext<FetchContext>(new FetchContext()));
         PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
+        pigHadoopLogger.setReporter(pigStatusReporter);
         pigHadoopLogger.setAggregate(aggregateWarning);
-        PigStatusReporter.getInstance().setFetchContext(new FetchContext());
-        pigHadoopLogger.setReporter(PigStatusReporter.getInstance());
         PhysicalOperator.setPigLogger(pigHadoopLogger);
     }
 

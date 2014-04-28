@@ -18,7 +18,6 @@
 package org.apache.pig;
 
 import com.google.common.collect.Maps;
-import org.apache.hadoop.mapreduce.Counter;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
 
@@ -161,9 +160,6 @@ public abstract class TypedOutputEvalFunc<OUT> extends EvalFunc<OUT> {
     }
 
     protected static void safeIncrCounter(String group, String name, Long increment) {
-        Counter counter = PigStatusReporter.getInstance().getCounter(group, name);
-        if (counter != null) {
-            counter.increment(increment);
-        }
+        PigStatusReporter.getInstance().incrCounter(group, name, increment);
     }
 }

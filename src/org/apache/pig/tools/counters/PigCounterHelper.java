@@ -20,7 +20,6 @@ package org.apache.pig.tools.counters;
 
 import java.util.Map;
 
-import org.apache.hadoop.mapreduce.Counter;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
 
@@ -33,53 +32,51 @@ import com.google.common.collect.Maps;
  * stored counters each time it does.
  */
 public class PigCounterHelper {
-  private final Map<Pair<String, String>, Long> counterStringMap_ = Maps.newHashMap();
-  private final Map<Enum<?>, Long> counterEnumMap_ = Maps.newHashMap();
+    private final Map<Pair<String, String>, Long> counterStringMap_ = Maps.newHashMap();
+    private final Map<Enum<?>, Long> counterEnumMap_ = Maps.newHashMap();
 
-  /**
-   * Mocks the Reporter.incrCounter, but adds buffering.
-   * See org.apache.hadoop.mapred.Reporter's incrCounter.
-   */
-  public void incrCounter(String group, String counterName, long incr) {
-    PigStatusReporter reporter = PigStatusReporter.getInstance();
-    if (reporter != null) { // common case
-      Counter counter = reporter.getCounter(group, counterName);
-      if (counter != null) {
-        counter.increment(incr);
-
-        if (counterStringMap_.size() > 0) {
-          for (Map.Entry<Pair<String, String>, Long> entry : counterStringMap_.entrySet()) {
-            reporter.getCounter(entry.getKey().first, entry.getKey().second).increment(entry.getValue());
-          }
-          counterStringMap_.clear();
+    /**
+    * Mocks the Reporter.incrCounter, but adds buffering.
+    * See org.apache.hadoop.mapred.Reporter's incrCounter.
+    */
+    public void incrCounter(String group, String counterName, long incr) {
+        PigStatusReporter reporter = PigStatusReporter.getInstance();
+        if (reporter != null && reporter.incrCounter(group, counterName, incr)) { // common case
+            if (counterStringMap_.size() > 0) {
+                for (Map.Entry<Pair<String, String>, Long> entry : counterStringMap_.entrySet()) {
+                    reporter.incrCounter(entry.getKey().first, entry.getKey().second, entry.getValue());
+                }
+                counterStringMap_.clear();
+            }
+            return;
         }
-        return;
-      }
-    }
-    // In the case when reporter is not available, or we can't get the Counter,
-    // store in the local map.
-    Pair<String, String> key = new Pair<String, String>(group, counterName);
-    Long currentValue = counterStringMap_.get(key);
-    counterStringMap_.put(key, (currentValue == null ? 0 : currentValue) + incr);
-  }
 
-  /**
-   * Mocks the Reporter.incrCounter, but adds buffering.
-   * See org.apache.hadoop.mapred.Reporter's incrCounter.
-   */
-  public void incrCounter(Enum<?> key, long incr) {
-    PigStatusReporter reporter = PigStatusReporter.getInstance();
-    if (reporter != null && reporter.getCounter(key) != null) {
-      reporter.getCounter(key).increment(incr);
-      if (counterEnumMap_.size() > 0) {
-        for (Map.Entry<Enum<?>, Long> entry : counterEnumMap_.entrySet()) {
-          reporter.getCounter(entry.getKey()).increment(entry.getValue());
-        }
-        counterEnumMap_.clear();
-      }
-    } else { // buffer the increments
-      Long currentValue = counterEnumMap_.get(key);
-      counterEnumMap_.put(key, (currentValue == null ? 0 : currentValue) + incr);
+        // In the case when reporter is not available, or we can't get the
+        // Counter, store in the local map.
+        Pair<String, String> key = new Pair<String, String>(group, counterName);
+        Long currentValue = counterStringMap_.get(key);
+        counterStringMap_.put(key, (currentValue == null ? 0 : currentValue) + incr);
     }
-  }
+
+    /**
+    * Mocks the Reporter.incrCounter, but adds buffering.
+    * See org.apache.hadoop.mapred.Reporter's incrCounter.
+    */
+    public void incrCounter(Enum<?> key, long incr) {
+        PigStatusReporter reporter = PigStatusReporter.getInstance();
+        if (reporter != null && reporter.incrCounter(key, incr)) { // common case
+            if (counterEnumMap_.size() > 0) {
+                for (Map.Entry<Enum<?>, Long> entry : counterEnumMap_.entrySet()) {
+                    reporter.getCounter(entry.getKey()).increment(entry.getValue());
+                }
+                counterEnumMap_.clear();
+            }
+            return;
+        }
+
+        // In the case when reporter is not available, or we can't get the
+        // Counter, store in the local map.
+        Long currentValue = counterEnumMap_.get(key);
+        counterEnumMap_.put(key, (currentValue == null ? 0 : currentValue) + incr);
+    }
 }
