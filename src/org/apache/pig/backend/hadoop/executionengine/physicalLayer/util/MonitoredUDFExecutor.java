@@ -28,7 +28,6 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.hadoop.mapreduce.StatusReporter;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.builtin.MonitoredUDF;
 import org.apache.pig.data.Tuple;
@@ -136,20 +135,18 @@ public class MonitoredUDFExecutor implements Serializable {
         @SuppressWarnings("unchecked")
         public static void handleError(EvalFunc evalFunc, Exception e) {
             evalFunc.getLogger().error(e);
-            StatusReporter reporter = PigStatusReporter.getInstance();
-            if (reporter != null &&
-                    reporter.getCounter(evalFunc.getClass().getName(), e.toString()) != null) {
-                reporter.getCounter(evalFunc.getClass().getName(), e.toString()).increment(1L);
+            PigStatusReporter reporter = PigStatusReporter.getInstance();
+            if (reporter != null) {
+                reporter.incrCounter(evalFunc.getClass().getName(), e.toString(), 1);
             }
         }
 
         @SuppressWarnings("unchecked")
         public static void handleTimeout(EvalFunc evalFunc, Exception e) {
             evalFunc.getLogger().error(e);
-            StatusReporter reporter = PigStatusReporter.getInstance();
-            if (reporter != null &&
-                    reporter.getCounter(evalFunc.getClass().getName(), "MonitoredUDF Timeout") != null) {
-                reporter.getCounter(evalFunc.getClass().getName(), "MonitoredUDF Timeout").increment(1L);
+            PigStatusReporter reporter = PigStatusReporter.getInstance();
+            if (reporter != null) {
+                reporter.incrCounter(evalFunc.getClass().getName(), "MonitoredUDF Timeout", 1);
             }
         }
     }

@@ -61,7 +61,7 @@ public class POUserFunc extends ExpressionOperator {
     private static final Log LOG = LogFactory.getLog(POUserFunc.class);
     private final static String TIMING_COUNTER = "approx_microsecs";
     private final static String INVOCATION_COUNTER = "approx_invocations";
-    private final static int TIMING_FREQ = 100;
+    private final static long TIMING_FREQ = 100;
     private final static TupleFactory tf = TupleFactory.getInstance();
 
     private transient String counterGroup;
@@ -229,8 +229,8 @@ public class POUserFunc extends ExpressionOperator {
                             if (knownSize) {
                                 rslt.set(knownIndex++, trslt.get(i));
                             } else {
-                            rslt.append(trslt.get(i));
-                        }
+                                rslt.append(trslt.get(i));
+                            }
                         }
                         continue;
                     }
@@ -238,8 +238,8 @@ public class POUserFunc extends ExpressionOperator {
                 if (knownSize) {
                     ((Tuple)res.result).set(knownIndex++, temp.result);
                 } else {
-                ((Tuple)res.result).append(temp.result);
-            }
+                    ((Tuple)res.result).append(temp.result);
+                }
             }
             res.returnStatus = temp.returnStatus;
 
@@ -273,8 +273,7 @@ public class POUserFunc extends ExpressionOperator {
         boolean timeThis = doTiming && (numInvocations++ % TIMING_FREQ == 0);
         if (timeThis) {
             startNanos = System.nanoTime();
-            PigStatusReporter.getInstance().getCounter(counterGroup, INVOCATION_COUNTER).increment(TIMING_FREQ);
-
+            PigStatusReporter.getInstance().incrCounter(counterGroup, INVOCATION_COUNTER, TIMING_FREQ);
         }
         try {
             if(result.returnStatus == POStatus.STATUS_OK) {
@@ -355,8 +354,8 @@ public class POUserFunc extends ExpressionOperator {
                 }
             }
             if (timeThis) {
-                PigStatusReporter.getInstance().getCounter(counterGroup, TIMING_COUNTER).increment(
-                        ( Math.round((System.nanoTime() - startNanos) / 1000)) * TIMING_FREQ);
+                PigStatusReporter.getInstance().incrCounter(counterGroup, TIMING_COUNTER,
+                        Math.round((System.nanoTime() - startNanos) / 1000) * TIMING_FREQ);
             }
             return result;
         } catch (ExecException ee) {
@@ -404,13 +403,11 @@ public class POUserFunc extends ExpressionOperator {
 
     @Override
     public Result getNextBoolean() throws ExecException {
-
         return getNext();
     }
 
     @Override
     public Result getNextDataByteArray() throws ExecException {
-
         return getNext();
     }
 

@@ -27,9 +27,8 @@ import org.apache.pig.classification.InterfaceStability;
 @InterfaceAudience.Private
 @InterfaceStability.Evolving
 public interface PigLogger {
-    
-	/**
-	 * If you have warning messages that need aggregation 
-	 */
-    public void warn(Object o, String msg, Enum warningEnum);
+    /**
+     * If you have warning messages that need aggregation 
+     */
+    public void warn(Object o, String msg, Enum<?> warningEnum);
 }
