@@ -30,6 +30,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigHadoopLogger;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -39,11 +40,13 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
+import org.apache.pig.backend.hadoop.executionengine.shims.TaskContext;
 import org.apache.pig.data.SchemaTupleBackend;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.tools.pigstats.PigStatusReporter;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.runtime.api.Event;
@@ -67,7 +70,7 @@ public class PigProcessor implements LogicalIOProcessor {
     private PhysicalOperator leaf;
 
     private Configuration conf;
-    private PigTezLogger pigTezLogger;
+    private PigHadoopLogger pigHadoopLogger;
 
     public static String sampleVertex;
     public static Map<String, Object> sampleMap;
@@ -102,9 +105,12 @@ public class PigProcessor implements LogicalIOProcessor {
         PigMapReduce.sJobConfInternal.set(conf);
 
         boolean aggregateWarning = "true".equalsIgnoreCase(pc.getProperties().getProperty("aggregate.warning"));
-
-        pigTezLogger = new PigTezLogger(new TezStatusReporter(processorContext), aggregateWarning);
-        PhysicalOperator.setPigLogger(pigTezLogger);
+        PigStatusReporter pigStatusReporter = PigStatusReporter.getInstance();
+        pigStatusReporter.setContext(new TaskContext<TezProcessorContext>(processorContext));
+        pigHadoopLogger = PigHadoopLogger.getInstance();
+        pigHadoopLogger.setReporter(pigStatusReporter);
+        pigHadoopLogger.setAggregate(aggregateWarning);
+        PhysicalOperator.setPigLogger(pigHadoopLogger);
 
         LinkedList<TezTaskConfigurable> tezTCs = PlanHelper.getPhysicalOperators(execPlan, TezTaskConfigurable.class);
         for (TezTaskConfigurable tezTC : tezTCs){
@@ -132,9 +138,9 @@ public class PigProcessor implements LogicalIOProcessor {
         conf = null;
         sampleMap = null;
         sampleVertex = null;
-        if (pigTezLogger != null) {
-            pigTezLogger.destroy();
-            pigTezLogger = null;
+        if (pigHadoopLogger != null) {
+            pigHadoopLogger.destory();
+            pigHadoopLogger = null;
         }
     }
 

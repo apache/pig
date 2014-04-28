@@ -72,10 +72,9 @@ public class PigMapReduceCounter {
             try {
                 PigStatusReporter reporter = PigStatusReporter.getInstance();
                 if (reporter != null) {
-                    reporter.getCounter(
+                    reporter.incrCounter(
                             JobControlCompiler.PIG_MAP_RANK_NAME
-                            + context.getJobID().toString(), taskID)
-                            .increment(1);
+                            + context.getJobID().toString(), taskID, 1);
                 }
             } catch (Exception ex) {
                 log.error("Error on incrementer of PigMapCounter");
@@ -133,10 +132,9 @@ public class PigMapReduceCounter {
                 if (reporter != null) {
 
                     if(leaf instanceof POCounter){
-                        reporter.getCounter(
+                        reporter.incrCounter(
                                 JobControlCompiler.PIG_MAP_RANK_NAME
-                                + context.getJobID().toString(), taskID).increment(increment);
-
+                                + context.getJobID().toString(), taskID, increment);
                     }
 
                 }

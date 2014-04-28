@@ -30,6 +30,7 @@ import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.TaskInputOutputContext;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
@@ -42,6 +43,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
+import org.apache.pig.backend.hadoop.executionengine.shims.TaskContext;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
@@ -344,6 +346,7 @@ public class PigGenericMapReduce {
                 String msg = "Problem while configuring reduce plan.";
                 throw new RuntimeException(msg, ioe);
             }
+
             log.info("Aliases being processed per job phase (AliasName[line,offset]): " + jConf.get("pig.alias.location"));
 
             String dtzStr = PigMapReduce.sJobConfInternal.get().get("pig.datetime.default.tz");
@@ -373,12 +376,11 @@ public class PigGenericMapReduce {
                 PhysicalOperator.setReporter(pigReporter);
 
                 boolean aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
-
+                PigStatusReporter pigStatusReporter = PigStatusReporter.getInstance();
+                pigStatusReporter.setContext(new TaskContext<TaskInputOutputContext<?,?,?,?>>(context));
                 PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
+                pigHadoopLogger.setReporter(pigStatusReporter);
                 pigHadoopLogger.setAggregate(aggregateWarning);
-                PigStatusReporter.setContext(context);
-                pigHadoopLogger.setReporter(PigStatusReporter.getInstance());
-
                 PhysicalOperator.setPigLogger(pigHadoopLogger);
 
                 if (!inIllustrator)
@@ -605,12 +607,11 @@ public class PigGenericMapReduce {
                 PhysicalOperator.setReporter(pigReporter);
 
                 boolean aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
-
+                PigStatusReporter pigStatusReporter = PigStatusReporter.getInstance();
+                pigStatusReporter.setContext(new TaskContext<TaskInputOutputContext<?,?,?,?>>(context));
                 PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
+                pigHadoopLogger.setReporter(pigStatusReporter);
                 pigHadoopLogger.setAggregate(aggregateWarning);
-                PigStatusReporter.setContext(context);
-                pigHadoopLogger.setReporter(PigStatusReporter.getInstance());
-
                 PhysicalOperator.setPigLogger(pigHadoopLogger);
 
                 for (POStore store: stores) {

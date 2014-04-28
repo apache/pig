@@ -35,23 +35,36 @@ import org.apache.pig.tools.pigstats.PigStatusReporter;
  * warning messages
  */
 public final class PigHadoopLogger implements PigLogger {
-    private static class PigHadoopLoggerHelper {
-        private static PigHadoopLogger instance = new PigHadoopLogger();
-    }
-
-    public static PigHadoopLogger getInstance() {
-        return PigHadoopLoggerHelper.instance;
-    }
 
     private static Log log = LogFactory.getLog(PigHadoopLogger.class);
+    private static PigHadoopLogger logger = null;
 
     private PigStatusReporter reporter = null;
-
     private boolean aggregate = false;
-
     private Map<Object, String> msgMap = new WeakHashMap<Object, String>();
 
     private PigHadoopLogger() {
+    }
+
+    /**
+     * Get singleton instance of the context
+     */
+    public static PigHadoopLogger getInstance() {
+        if (logger == null) {
+            logger = new PigHadoopLogger();
+        }
+        return logger;
+    }
+
+    public void destory() {
+        if (reporter != null) {
+            reporter.destory();
+        }
+        reporter = null;
+    }
+
+    public void setReporter(PigStatusReporter reporter) {
+        this.reporter = reporter;
     }
 
     @SuppressWarnings("rawtypes")
@@ -61,15 +74,15 @@ public final class PigHadoopLogger implements PigLogger {
 
         if (getAggregate()) {
             if (reporter != null) {
-                // log atleast once
+                // log at least once
                 if (msgMap.get(o) == null || !msgMap.get(o).equals(displayMessage)) {
                     log.warn(displayMessage);
                     msgMap.put(o, displayMessage);
                 }
                 if (o instanceof EvalFunc || o instanceof LoadFunc || o instanceof StoreFunc) {
-                    reporter.getCounter(className, warningEnum.name()).increment(1);
+                    reporter.incrCounter(className, warningEnum.name(), 1);
                 } else {
-                    reporter.getCounter(warningEnum).increment(1);
+                    reporter.incrCounter(warningEnum, 1);
                 }
             } else {
                 //TODO:
@@ -87,10 +100,6 @@ public final class PigHadoopLogger implements PigLogger {
         }
     }
 
-    public synchronized void setReporter(PigStatusReporter rep) {
-        this.reporter = rep;
-    }
-
     public synchronized boolean getAggregate() {
         return aggregate;
     }
@@ -98,5 +107,4 @@ public final class PigHadoopLogger implements PigLogger {
     public synchronized void setAggregate(boolean aggregate) {
         this.aggregate = aggregate;
     }
-
 }
