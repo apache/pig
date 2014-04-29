@@ -578,7 +578,7 @@ public class JobControlCompiler{
                     // override with the default conf to run in local mode
                     for (Entry<String, String> entry : defaultConf) {
                         String key = entry.getKey();
-                        if (key.equals("mapred.reduce.tasks")) {
+                        if (key.equals("mapred.reduce.tasks") || key.equals("mapreduce.job.reduces")) {
                             // this must not be set back to the default in case it has been set to 0 for example.
                             continue;
                         }
