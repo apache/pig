@@ -986,13 +986,23 @@
         </copy>
 
         <copy todir="${tar.dist.dir}/lib">
-            <fileset dir="${ivy.lib.dir}" includes="jython*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="jruby*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="jython-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="jruby-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="groovy-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="js-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="hbase-*.jar" excludes="hbase-*tests.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="protobuf-java-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="zookeeper-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="accumulo-*.jar" excludes="accumulo-minicluster*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="avro-*.jar" excludes="avro-*tests.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="json-simple-*.jar"/>
         </copy>
 
         <copy file="${output.jarfile.backcompat.withouthadoop}" tofile="${tar.dist.dir}/${final.name}-withouthadoop.jar" />
 
         <copy file="${output.jarfile.backcompat}" tofile="${tar.dist.dir}/${final.name}.jar" />
+
+        <copy todir="${tar.dist.dir}/lib" file="contrib/piggybank/java/piggybank.jar"/>
 
         <copy todir="${tar.dist.dir}/" file="ivy.xml" />
 
@@ -1558,7 +1568,7 @@
 
      <target name="ivy-resolve" depends="ivy-init" unless="ivy.resolved" description="Resolve Ivy dependencies">
        <property name="ivy.resolved" value="true"/>
-       <ivy:resolve settingsRef="${ant.project.name}.ivy.settings"/>
+       <ivy:resolve settingsRef="${ant.project.name}.ivy.settings" conf="compile"/>
      </target>
 
      <target name="ivy-compile" depends="ivy-resolve" description="Retrieve Ivy-managed artifacts for compile configuration">

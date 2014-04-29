@@ -22,6 +22,8 @@ Trunk (unreleased changes)
  
 INCOMPATIBLE CHANGES
 
+PIG-3898: Refactor PPNL for non-MR execution engine (cheolsoo)
+
 PIG-3485: Remove CastUtils.bytesToMap(byte[] b) method from LoadCaster interface (cheolsoo) 
 
 PIG-3419: Pluggable Execution Engine (achalsoni81 via cheolsoo)
@@ -29,6 +31,16 @@ PIG-3419: Pluggable Execution Engine (achalsoni81 via cheolsoo)
 PIG-2207: Support custom counters for aggregating warnings from different udfs (aniket486)
 
 IMPROVEMENTS
+
+PIG-3860: Refactor PigStatusReporter and PigLogger for non-MR execution engine (cheolsoo)
+
+PIG-3865: Remodel the XMLLoader to work to be faster and more maintainable (aseldawy via daijy)
+
+PIG-3737: Bundle dependent jars in distribution in %PIG_HOME%/lib folder (daijy)
+
+PIG-3771: Piggybank Avrostorage makes a lot of namenode calls in the backend (rohini)
+
+PIG-3851: Upgrade jline to 2.11 (daijy)
 
 PIG-3884: Move multi store counters to PigStatsUtil from MRPigStatsUtil (rohini)
 
@@ -104,6 +116,24 @@ OPTIMIZATIONS
 PIG-3882: Multiquery off mode execution is not done in batch and very inefficient (rohini)
  
 BUG FIXES
+
+PIG-3909: Type Casting issue (daijy)
+
+PIG-3905: 0.12.1 release can't be build for Hadoop2 (daijy)
+
+PIG-3894: Datetime function AddDuration, SubtractDuration and all Between functions don't check for null values in the input tuple (jennythompson via cheolsoo)
+
+PIG-3772: Syntax error when casting an inner schema of a bag and line break involved (ssvinarchukhorton via daijy)
+
+PIG-3889: Direct fetch doesn't set job submission timestamps (cheolsoo)
+
+PIG-3895: Pigmix run script has compilation error (rohini)
+
+PIG-3885: AccumuloStorage incompatible with Accumulo 1.6.0 (elserj via daijy)
+
+PIG-3888: Direct fetch doesn't differentiate between frontend and backend sides (lbendig via daijy)
+
+PIG-3887: TestMRJobStats is broken in trunk (cheolsoo)
 
 PIG-3868: Fix Iterator_1 e2e test on windows (ssvinarchukhorton via rohini)
 

@@ -542,7 +542,6 @@ public abstract class AbstractAccumuloStorage extends LoadFunc implements
                 org.apache.accumulo.trace.instrument.Tracer.class,
                 org.apache.accumulo.core.client.Instance.class,
                 org.apache.accumulo.fate.Fate.class,
-                org.apache.accumulo.server.tabletserver.TabletServer.class,
                 org.apache.zookeeper.ZooKeeper.class,
                 org.apache.thrift.TServiceClient.class);
     }

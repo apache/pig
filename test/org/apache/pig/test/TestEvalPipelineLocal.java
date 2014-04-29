@@ -1216,4 +1216,19 @@ public class TestEvalPipelineLocal {
         Schema s = pigServer.dumpSchema("final");
         Assert.assertEquals(s.toString(), "{n1::x3: int}");
     }
+    
+    // see PIG-3909
+    @Test
+    public void testCastSchemaShare() throws Exception{
+        File f1 = createFile(new String[]{"{([fieldkey1#polisan,fieldkey2#lily])}"});
+        
+        pigServer.registerQuery("A = load '" + Util.encodeEscape(Util.generateURI(f1.toString(), pigServer.getPigContext()))
+                + "' as (bagofmap:{});");
+        pigServer.registerQuery("B = foreach A generate FLATTEN((IsEmpty(bagofmap) ? null : bagofmap)) AS bagofmap;");
+        pigServer.registerQuery("C = filter B by (chararray)bagofmap#'fieldkey1' matches 'po.*';");
+        pigServer.registerQuery("D = foreach C generate (chararray)bagofmap#'fieldkey2';");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("D");
+        Assert.assertEquals(iter.next().toString(), "(lily)");
+    }
 }

@@ -18,14 +18,18 @@
 
 package org.apache.pig.test;
 
+import static org.apache.pig.builtin.mock.Storage.resetData;
+import static org.apache.pig.builtin.mock.Storage.tuple;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.PrintStream;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 
@@ -39,16 +43,20 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLimit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.parser.ParserTestingUtils;
 import org.apache.pig.test.utils.GenPhyOp;
+import org.joda.time.DateTime;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.google.common.collect.Lists;
 
 public class TestFetch {
 
@@ -87,6 +95,8 @@ public class TestFetch {
     @Before
     public void setUp() throws Exception{
         pigServer = new PigServer(ExecType.LOCAL, new Properties());
+        // force direct fetch mode
+        pigServer.getPigContext().getProperties().setProperty(PigConfiguration.OPT_FETCH, "true");
     }
 
     @Test
@@ -277,6 +287,26 @@ public class TestFetch {
         new FetchLauncher(pc).explain(pp, pc, ps, "xml");
         assertTrue(baos.toString().matches("(?si).*No MR jobs. Fetch only.*"));
 
+    }
+
+    /**
+     * Tests whether 'pig.job.submitted.timestamp' has been set by FetchLauncher
+     * @throws Exception
+     */
+    @Test
+    public void test7() throws Exception {
+        Data data = resetData(pigServer);
+
+        List<Tuple> justSomeRows = Lists.newArrayListWithCapacity(1);
+        justSomeRows.add(tuple(1));
+        data.set("justSomeRows", justSomeRows);
+
+        pigServer.registerQuery("A = load 'justSomeRows' using mock.Storage();");
+        pigServer.registerQuery("B = foreach A generate CurrentTime();");
+        Iterator<Tuple> it = pigServer.openIterator("B");
+        DateTime received = (DateTime) it.next().get(0);
+        // any returned result indicates that the property was set correctly
+        assertNotNull(received);
     }
 
     @AfterClass
