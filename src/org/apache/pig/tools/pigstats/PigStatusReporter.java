@@ -46,7 +46,7 @@ public class PigStatusReporter extends StatusReporter implements Progressable {
         return reporter;
     }
 
-    public void destory() {
+    public void destroy() {
         context = null;
     }
 
