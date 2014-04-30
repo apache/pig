@@ -56,9 +56,9 @@ public final class PigHadoopLogger implements PigLogger {
         return logger;
     }
 
-    public void destory() {
+    public void destroy() {
         if (reporter != null) {
-            reporter.destory();
+            reporter.destroy();
         }
         reporter = null;
     }
