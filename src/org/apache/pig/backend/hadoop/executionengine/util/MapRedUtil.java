@@ -46,6 +46,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -67,7 +68,7 @@ import org.apache.pig.impl.util.Utils;
 public class MapRedUtil {
 
     private static Log log = LogFactory.getLog(MapRedUtil.class);
-         
+
     public static final String FILE_SYSTEM_NAME = "fs.default.name";
 
     /**
@@ -85,8 +86,8 @@ public class MapRedUtil {
         Map<E, Pair<Integer, Integer>> reducerMap = new HashMap<E, Pair<Integer, Integer>>();
 
         // use local file system to get the keyDistFile
-        Configuration conf = new Configuration(false);            
-        
+        Configuration conf = new Configuration(false);
+
         if (mapConf.get("yarn.resourcemanager.principal")!=null) {
             conf.set("yarn.resourcemanager.principal", mapConf.get("yarn.resourcemanager.principal"));
         }
@@ -121,7 +122,7 @@ public class MapRedUtil {
             Integer minIndex = (Integer) idxTuple.get(idxTuple.size() - 2);
             // Used to replace the maxIndex with the number of reducers
             if (maxIndex < minIndex) {
-                maxIndex = totalReducers[0] + maxIndex; 
+                maxIndex = totalReducers[0] + maxIndex;
             }
             E keyT;
 
@@ -131,7 +132,7 @@ public class MapRedUtil {
                 // it in the reducer map
                 Tuple keyTuple = TupleFactory.getInstance().newTuple();
                 for (int i=0; i < idxTuple.size() - 2; i++) {
-                    keyTuple.append(idxTuple.get(i));	
+                    keyTuple.append(idxTuple.get(i));
                 }
                 keyT = (E) keyTuple;
             } else {
@@ -169,12 +170,12 @@ public class MapRedUtil {
     public static void setupUDFContext(Configuration job) throws IOException {
         UDFContext udfc = UDFContext.getUDFContext();
         udfc.addJobConf(job);
-        // don't deserialize in front-end 
+        // don't deserialize in front-end
         if (udfc.isUDFConfEmpty()) {
             udfc.deserialize();
         }
     }
-    
+
     /**
      * Sets up output and log dir paths for a single-store streaming job
      *
@@ -187,7 +188,7 @@ public class MapRedUtil {
             Configuration conf) throws IOException {
         // set out filespecs
         String outputPathString = st.getSFile().getFileName();
-        if (!outputPathString.contains("://") || outputPathString.startsWith("hdfs://")) {
+        if (HadoopShims.hasFileSystemImpl(new Path(outputPathString), conf)) {
             conf.set("pig.streaming.log.dir",
                     new Path(outputPathString, JobControlCompiler.LOG_DIR).toString());
         }
@@ -245,11 +246,11 @@ public class MapRedUtil {
 
     /**
      * Get all files recursively from the given list of files
-     * 
+     *
      * @param files a list of FileStatus
      * @param conf the configuration object
      * @return the list of fileStatus that contains all the files in the given
-     *         list and, recursively, all the files inside the directories in 
+     *         list and, recursively, all the files inside the directories in
      *         the given list
      * @throws IOException
      */
@@ -267,12 +268,12 @@ public class MapRedUtil {
                 result.add(file);
             }
         }
-        log.info("Total input paths to process : " + result.size()); 
+        log.info("Total input paths to process : " + result.size());
         return result;
     }
-    
+
     private static void addInputPathRecursively(List<FileStatus> result,
-            FileSystem fs, Path path, PathFilter inputFilter) 
+            FileSystem fs, Path path, PathFilter inputFilter)
             throws IOException {
         for (FileStatus stat: fs.listStatus(path, inputFilter)) {
             if (stat.isDir()) {
@@ -284,6 +285,7 @@ public class MapRedUtil {
     }
 
     private static final PathFilter hiddenFileFilter = new PathFilter(){
+        @Override
         public boolean accept(Path p){
             String name = p.getName();
             return !name.startsWith("_") && !name.startsWith(".");
@@ -319,7 +321,7 @@ public class MapRedUtil {
             return cmp == 0 ? 0 : cmp < 0 ? -1 : 1;
         }
     };
-    
+
     private static final class ComparableSplit implements Comparable<ComparableSplit> {
         private InputSplit rawInputSplit;
         private HashSet<Node> nodes;
@@ -330,32 +332,32 @@ public class MapRedUtil {
             nodes = new HashSet<Node>();
             this.id = id;
         }
-        
+
         void add(Node node) {
             nodes.add(node);
         }
-        
+
         void removeFromNodes() {
             for (Node node : nodes)
                 node.remove(this);
         }
-        
+
         public InputSplit getSplit() {
             return rawInputSplit;
         }
-  
+
         @Override
         public boolean equals(Object other) {
             if (other == null || !(other instanceof ComparableSplit))
                 return false;
             return (compareTo((ComparableSplit) other) == 0);
         }
-        
+
         @Override
         public int hashCode() {
             return 41;
         }
-        
+
         @Override
         public int compareTo(ComparableSplit other) {
             try {
@@ -369,41 +371,41 @@ public class MapRedUtil {
             }
         }
     }
-      
+
     private static class DummySplit extends InputSplit {
         private long length;
-        
+
         @Override
         public String[] getLocations() {
             return null;
         }
-        
+
         @Override
         public long getLength() {
             return length;
         }
-        
+
         public void setLength(long length) {
             this.length = length;
         }
     }
-    
+
     private static class Node {
         private long length = 0;
         private ArrayList<ComparableSplit> splits;
         private boolean sorted;
-        
+
         Node() throws IOException, InterruptedException {
             length = 0;
             splits = new ArrayList<ComparableSplit>();
             sorted = false;
         }
-        
+
         void add(ComparableSplit split) throws IOException, InterruptedException {
             splits.add(split);
             length++;
         }
-        
+
         void remove(ComparableSplit split) {
             if (!sorted)
                 sort();
@@ -413,23 +415,23 @@ public class MapRedUtil {
                 length--;
             }
         }
-        
+
         void sort() {
             if (!sorted) {
                 Collections.sort(splits);
                 sorted = true;
             }
         }
-        
+
         ArrayList<ComparableSplit> getSplits() {
             return splits;
         }
-  
+
         public long getLength() {
             return length;
         }
     }
-  
+
     public static List<List<InputSplit>> getCombinePigSplits(List<InputSplit>
         oneInputSplits, long maxCombinedSplitSize, Configuration conf)
           throws IOException, InterruptedException {
@@ -438,13 +440,13 @@ public class MapRedUtil {
         List<List<InputSplit>> result = new ArrayList<List<InputSplit>>();
         List<Long> resultLengths = new ArrayList<Long>();
         long comparableSplitId = 0;
-        
+
         int size = 0, nSplits = oneInputSplits.size();
         InputSplit lastSplit = null;
         int emptyCnt = 0;
         for (InputSplit split : oneInputSplits) {
             if (split.getLength() == 0) {
-                emptyCnt++; 
+                emptyCnt++;
                 continue;
             }
             if (split.getLength() >= maxCombinedSplitSize) {
@@ -461,7 +463,7 @@ public class MapRedUtil {
                 HashSet<String> locationSeen = new HashSet<String>();
                 for (String location : locations)
                 {
-                    if (!locationSeen.contains(location)) 
+                    if (!locationSeen.contains(location))
                     {
                         Node node = nodeMap.get(location);
                         if (node == null) {
@@ -488,7 +490,7 @@ public class MapRedUtil {
               ArrayList<ComparableSplit> splits = node.getSplits();
               for (ComparableSplit split : splits) {
                 if (!seen.contains(split.getSplit())) {
-                  // remove duplicates. The set has to be on the raw input split not the 
+                  // remove duplicates. The set has to be on the raw input split not the
                   // comparable input split as the latter overrides the compareTo method
                   // so its equality semantics is changed and not we want here
                   seen.add(split.getSplit());
@@ -497,7 +499,7 @@ public class MapRedUtil {
               }
             }
           }
-          
+
           int combinedSplitLen = 0;
           for (PigSplit split : result)
             combinedSplitLen += split.getNumPaths();
@@ -581,7 +583,7 @@ public class MapRedUtil {
             for (Node node : nodes) {
                 for (ComparableSplit split : node.getSplits()) {
                     if (!seen.contains(split.getSplit())) {
-                        // remove duplicates. The set has to be on the raw input split not the 
+                        // remove duplicates. The set has to be on the raw input split not the
                         // comparable input split as the latter overrides the compareTo method
                         // so its equality semantics is changed and not we want here
                         seen.add(split.getSplit());
@@ -589,7 +591,7 @@ public class MapRedUtil {
                     }
                 }
             }
-            
+
             /* verification code
             int combinedSplitLen = 0;
             for (PigSplit split : result)
@@ -602,7 +604,7 @@ public class MapRedUtil {
                 long totalSize = 0;
                 ArrayList<InputSplit> combinedSplits = new ArrayList<InputSplit>();
                 ArrayList<ComparableSplit> combinedComparableSplits = new ArrayList<ComparableSplit>();
-                
+
                 int splitLen = leftoverSplits.size();
                 for (int i = 0; i < splitLen; i++)
                 {
@@ -649,26 +651,26 @@ public class MapRedUtil {
           combinedSplitLen += split.getNumPaths();
         if (combinedSplitLen != nSplits-emptyCnt)
           throw new AssertionError("number of combined splits ["+combinedSplitLen+"] does not match the number of original splits ["+nSplits+"].");
-        
+
         long totalLen = 0;
         for (PigSplit split : result)
           totalLen += split.getLength();
-        
+
         long origTotalLen = 0;
         for (InputSplit split : oneInputSplits)
           origTotalLen += split.getLength();
         if (totalLen != origTotalLen)
           throw new AssertionError("The total length ["+totalLen+"] does not match the original ["+origTotalLen+"]");
-        */ 
+        */
         log.info("Total input paths (combined) to process : " + result.size());
         return result;
     }
-    
+
     private static void removeSplits(List<ComparableSplit> splits) {
         for (ComparableSplit split: splits)
             split.removeFromNodes();
     }
-    
+
     public String inputSplitToString(InputSplit[] splits) throws IOException, InterruptedException {
         // debugging purpose only
         StringBuilder st = new StringBuilder();
@@ -681,11 +683,11 @@ public class MapRedUtil {
             st.append("Input split["+i+"]:\n   Length = "+ splits[i].getLength()+"\n  Locations:\n");
             for (String location :  splits[i].getLocations())
                 st.append("    "+location+"\n");
-            st.append("\n-----------------------\n"); 
+            st.append("\n-----------------------\n");
         }
         return st.toString();
     }
-    
+
     /* verification code: debug purpose only
     public String inputSplitToString(ArrayList<ComparableSplit> splits) throws IOException, InterruptedException {
       StringBuilder st = new StringBuilder();
@@ -698,7 +700,7 @@ public class MapRedUtil {
         st.append("Input split["+i+"]:\n   Length = "+ splits.get(i).getSplit().getLength()+"\n  Locations:\n");
         for (String location :  splits.get(i).getSplit().getLocations())
           st.append("    "+location+"\n");
-        st.append("\n-----------------------\n"); 
+        st.append("\n-----------------------\n");
       }
       return st.toString();
     }

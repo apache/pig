@@ -25,7 +25,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Properties;
 
@@ -190,7 +189,7 @@ public class TestMRJobStats {
          * @param sto POStore
          */
         @Override
-        public boolean supports(POStore sto) {
+        public boolean supports(POStore sto, Configuration conf) {
             return true;
         }
 
