@@ -96,6 +96,7 @@ public class MapReduceLauncher extends Launcher{
 
     private boolean aggregateWarning = false;
 
+    @Override
     public void kill() {
         try {
             log.debug("Receive kill signal");
@@ -112,6 +113,7 @@ public class MapReduceLauncher extends Launcher{
         }
     }
 
+    @Override
     public void killJob(String jobID, Configuration conf) throws BackendException {
         try {
             if (conf != null) {
@@ -440,7 +442,7 @@ public class MapReduceLauncher extends Launcher{
             // Clean up all the intermediate data
             for (String path : intermediateVisitor.getIntermediate()) {
                 // Skip non-file system paths such as hbase, see PIG-3617
-                if (Utils.hasFileSystemImpl(new Path(path), conf)) {
+                if (HadoopShims.hasFileSystemImpl(new Path(path), conf)) {
                     FileLocalizer.delete(path, pc);
                 }
             }
@@ -728,7 +730,7 @@ public class MapReduceLauncher extends Launcher{
         if(shouldMarkOutputDir(job)) {
             Path outputPath = new Path(store.getSFile().getFileName());
             String scheme = outputPath.toUri().getScheme();
-            if (Utils.hasFileSystemImpl(outputPath, job.getJobConf())) {
+            if (HadoopShims.hasFileSystemImpl(outputPath, job.getJobConf())) {
                 FileSystem fs = outputPath.getFileSystem(job.getJobConf());
                 if (fs.exists(outputPath)) {
                     // create a file in the folder to mark it

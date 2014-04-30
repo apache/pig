@@ -31,6 +31,7 @@ import org.antlr.runtime.CommonTokenStream;
 import org.antlr.runtime.RecognitionException;
 import org.antlr.runtime.tree.CommonTree;
 import org.antlr.runtime.tree.Tree;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigConfiguration;
@@ -38,6 +39,8 @@ import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
@@ -56,13 +59,13 @@ public class QueryParserUtils {
             return str;
     }
 
-    public static void attachStorePlan(String scope, LogicalPlan lp, String fileName, String func, 
+    public static void attachStorePlan(String scope, LogicalPlan lp, String fileName, String func,
             Operator input, String alias, PigContext pigContext) throws FrontendException {
         func = func == null ? pigContext.getProperties().getProperty(PigConfiguration.PIG_DEFAULT_STORE_FUNC, PigStorage.class.getName()) : func;
 
         FuncSpec funcSpec = new FuncSpec( func );
         StoreFuncInterface stoFunc = (StoreFuncInterface)PigContext.instantiateFuncFromSpec( funcSpec );
-        
+
         fileName = removeQuotes( fileName );
         FileSpec fileSpec = new FileSpec( fileName, funcSpec );
         String sig = alias + "_" + LogicalPlanBuilder.newOperatorKey(scope);
@@ -87,25 +90,23 @@ public class QueryParserUtils {
         ElementDescriptor el = dfs.asElement(desc);
         return new Path(el.toString());
     }
-    
+
     static void setHdfsServers(String absolutePath, PigContext pigContext) throws URISyntaxException {
         // Get native host
         String defaultFS = (String)pigContext.getProperties().get("fs.default.name");
         if (defaultFS==null)
             defaultFS = (String)pigContext.getProperties().get("fs.defaultFS");
-        
+
         URI defaultFSURI = new URI(defaultFS);
-        String defaultHost = defaultFSURI.getHost();
-        if (defaultHost == null) defaultHost = "";
-                
-        defaultHost = defaultHost.toLowerCase();
-    
-        Set<String> remoteHosts = getRemoteHosts(absolutePath, defaultHost);
-                    
+
+        Configuration conf = new Configuration(true);
+        ConfigurationUtil.mergeConf(conf, ConfigurationUtil.toConfiguration(pigContext.getProperties()));
+        Set<String> remoteHosts = getRemoteHosts(absolutePath, defaultFSURI, conf);
+
         String hdfsServersString = (String)pigContext.getProperties().get("mapreduce.job.hdfs-servers");
         if (hdfsServersString == null) hdfsServersString = "";
         String hdfsServers[] = hdfsServersString.split(",");
-                    
+
         for (String remoteHost : remoteHosts) {
             boolean existing = false;
             for (String hdfsServer : hdfsServers) {
@@ -120,43 +121,50 @@ public class QueryParserUtils {
                 hdfsServersString = hdfsServersString + remoteHost;
             }
         }
-    
+
         if (!hdfsServersString.isEmpty()) {
             pigContext.getProperties().setProperty("mapreduce.job.hdfs-servers", hdfsServersString);
         }
     }
 
-     static Set<String> getRemoteHosts(String absolutePath, String defaultHost) {
-         String HAR_PREFIX = "hdfs-";
-         Set<String> result = new HashSet<String>();
-         String[] fnames = absolutePath.split(",");
-         for (String fname: fnames) {
-             // remove leading/trailing whitespace(s)
-             fname = fname.trim();
-             Path p = new Path(fname);
-             URI uri = p.toUri();
-             if(uri.isAbsolute()) {
-                 String scheme = uri.getScheme();
-                 if (scheme!=null && scheme.toLowerCase().equals("hdfs")||scheme.toLowerCase().equals("har")) {
-                     if (uri.getHost()==null)
-                         continue;
-                     String thisHost = uri.getHost().toLowerCase();
-                     if (scheme.toLowerCase().equals("har")) {
-                         if (thisHost.startsWith(HAR_PREFIX)) {
-                             thisHost = thisHost.substring(HAR_PREFIX.length());
-                         }
-                     }
-                     if (!uri.getHost().isEmpty() && 
-                             !thisHost.equals(defaultHost)) {
-                         if (uri.getPort()!=-1)
-                             result.add("hdfs://"+thisHost+":"+uri.getPort());
-                         else
-                             result.add("hdfs://"+thisHost);
-                     }
-                 }
-             }
-         }
-         return result;
+    static Set<String> getRemoteHosts(String absolutePath, URI defaultFSURI, Configuration conf) {
+        String defaultHost = defaultFSURI.getHost() ==  null ? "" : defaultFSURI.getHost().toLowerCase();
+        String defaultScheme = defaultFSURI.getScheme() == null ? "" : defaultFSURI.getScheme().toLowerCase();
+
+        Set<String> result = new HashSet<String>();
+        String[] fnames = absolutePath.split(",");
+        for (String fname : fnames) {
+            // remove leading/trailing whitespace(s)
+            Path path = new Path(fname.trim());
+            URI uri = path.toUri();
+            if (uri.isAbsolute()) { // If it has scheme
+                String thisHost = uri.getHost() == null ? "" : uri.getHost().toLowerCase();
+                String scheme = uri.getScheme().toLowerCase();
+                // If host and scheme are same continue
+                if (scheme.equals(defaultScheme) && (thisHost.equals(defaultHost) || thisHost.isEmpty())) {
+                    continue;
+                }
+                String authority = uri.getAuthority() == null ? "" : uri.getAuthority()
+                        .toLowerCase();
+                if (scheme.equals("har")) {
+                    String[] parts = authority.split("-", 2);
+                    scheme = parts[0];
+                    if (parts.length < 2) {
+                        authority = "";
+                    } else {
+                        authority = parts[1];
+                    }
+                    if (scheme.isEmpty() || (scheme.equals(defaultScheme) &&
+                            authority.equals(defaultFSURI.getAuthority()))) {
+                        continue;
+                    }
+                } else if (!HadoopShims.hasFileSystemImpl(path, conf)) {
+                    continue;
+                }
+                result.add(scheme + "://" + authority);
+            }
+        }
+        return result;
      }
 
      static String constructFileNameSignature(String fileName, FuncSpec funcSpec) {
@@ -218,11 +226,11 @@ public class QueryParserUtils {
 
         return null;
     }
-    
+
     static QueryParser createParser(CommonTokenStream tokens) {
         return createParser(tokens, 0);
     }
-    
+
     static QueryParser createParser(CommonTokenStream tokens, int lineOffset) {
         QueryParser parser = new QueryParser(tokens);
         PigParserNodeAdaptor adaptor = new PigParserNodeAdaptor(

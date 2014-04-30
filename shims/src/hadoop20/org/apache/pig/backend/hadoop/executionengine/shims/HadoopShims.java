@@ -119,14 +119,33 @@ public class HadoopShims {
     public static void unsetConf(Configuration conf, String key) {
         // Not supported in Hadoop 0.20/1.x
     }
-    
+
     /**
-     * Fetch mode needs to explicitly set the task id which is otherwise done by Hadoop 
+     * Fetch mode needs to explicitly set the task id which is otherwise done by Hadoop
      * @param conf
      * @param taskAttemptID
      */
     public static void setTaskAttemptId(Configuration conf, TaskAttemptID taskAttemptID) {
         conf.set("mapred.task.id", taskAttemptID.toString());
     }
-    
+
+    /**
+     * Returns whether the give path has a FileSystem implementation.
+     *
+     * @param path path
+     * @param conf configuration
+     * @return true if the give path's scheme has a FileSystem implementation,
+     *         false otherwise
+     */
+    public static boolean hasFileSystemImpl(Path path, Configuration conf) {
+        String scheme = path.toUri().getScheme();
+        if (scheme != null) {
+            String fsImpl = conf.get("fs." + scheme + ".impl");
+            if (fsImpl == null) {
+                return false;
+            }
+        }
+        return true;
+    }
+
 }

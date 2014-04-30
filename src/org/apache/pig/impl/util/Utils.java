@@ -525,27 +525,6 @@ public class Utils {
         return baos.toString();
     }
 
-    /**
-     * Returns whether the give path has a FileSystem implementation.
-     *
-     * @param path path
-     * @param conf configuration
-     * @return true if the give path's scheme has a FileSystem implementation,
-     *         false otherwise
-     */
-    public static boolean hasFileSystemImpl(Path path, Configuration conf) {
-        String scheme = path.toUri().getScheme();
-        if (scheme != null) {
-            String fsImpl = conf.get("fs." + scheme + ".impl");
-            if (fsImpl == null) {
-                return false;
-            }
-        }
-        return true;
-    }
-    
-
-
     public static boolean isLocal(PigContext pigContext, Configuration conf) {
         return pigContext.getExecType().isLocal() || conf.getBoolean(PigImplConstants.CONVERTED_TO_LOCAL, false);
     }

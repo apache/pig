@@ -18,7 +18,10 @@
 package org.apache.pig.backend.hadoop.executionengine.shims;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -41,6 +44,10 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop23.PigJobControl;
 
 public class HadoopShims {
+
+    private static Log LOG = LogFactory.getLog(HadoopShims.class);
+    private static Method getFileSystemClass;
+
     static public JobContext cloneJobContext(JobContext original) throws IOException, InterruptedException {
         JobContext newContext = ContextFactory.cloneContext(original,
                 new JobConf(original.getConfiguration()));
@@ -103,7 +110,7 @@ public class HadoopShims {
     public static JobControl newJobControl(String groupName, int timeToSleep) {
       return new PigJobControl(groupName, timeToSleep);
     }
-    
+
     public static long getDefaultBlockSize(FileSystem fs, Path path) {
         return fs.getDefaultBlockSize(path);
     }
@@ -111,22 +118,63 @@ public class HadoopShims {
     public static Counters getCounters(Job job) throws IOException, InterruptedException {
         return new Counters(job.getJob().getCounters());
     }
-    
+
     public static boolean isJobFailed(TaskReport report) {
         return report.getCurrentStatus()==TIPStatus.FAILED;
     }
-    
+
     public static void unsetConf(Configuration conf, String key) {
         conf.unset(key);
     }
-    
+
     /**
-     * Fetch mode needs to explicitly set the task id which is otherwise done by Hadoop 
+     * Fetch mode needs to explicitly set the task id which is otherwise done by Hadoop
      * @param conf
      * @param taskAttemptID
      */
     public static void setTaskAttemptId(Configuration conf, TaskAttemptID taskAttemptID) {
         conf.setInt("mapreduce.job.application.attempt.id", taskAttemptID.getId());
     }
-    
+
+    /**
+     * Returns whether the give path has a FileSystem implementation.
+     *
+     * @param path path
+     * @param conf configuration
+     * @return true if the give path's scheme has a FileSystem implementation,
+     *         false otherwise
+     */
+    public static boolean hasFileSystemImpl(Path path, Configuration conf) {
+        String scheme = path.toUri().getScheme();
+        if (scheme != null) {
+            // Hadoop 0.23
+            if (conf.get("fs.file.impl") != null) {
+                String fsImpl = conf.get("fs." + scheme + ".impl");
+                if (fsImpl == null) {
+                    return false;
+                }
+            } else {
+                // Hadoop 2.x HADOOP-7549
+                if (getFileSystemClass == null) {
+                    try {
+                        getFileSystemClass = FileSystem.class.getDeclaredMethod(
+                                "getFileSystemClass", String.class, Configuration.class);
+                    } catch (NoSuchMethodException e) {
+                        LOG.warn("Error while trying to determine if path " + path +
+                                " has a filesystem implementation");
+                        // Assume has implementation to be safe
+                        return true;
+                    }
+                }
+                try {
+                    Object fs = getFileSystemClass.invoke(null, scheme, conf);
+                    return fs == null ? false : true;
+                } catch (Exception e) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
 }
