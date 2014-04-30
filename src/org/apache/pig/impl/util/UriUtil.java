@@ -17,24 +17,25 @@
  */
 package org.apache.pig.impl.util;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
+
 public class UriUtil {
     public static boolean isHDFSFile(String uri){
         if(uri == null)
             return false;
-        if(uri.startsWith("/") || uri.startsWith("hdfs:") || uri.startsWith("viewfs:")) {
+        if (uri.startsWith("/") || uri.startsWith("hdfs:") || uri.startsWith("viewfs:") ||
+                uri.startsWith("hftp:") || uri.startsWith("webhdfs:")) {
             return true;
         }
         return false;
     }
 
-    public static boolean isHDFSFileOrLocalOrS3N(String uri){
+    public static boolean isHDFSFileOrLocalOrS3N(String uri, Configuration conf){
         if(uri == null)
             return false;
-        if(uri.startsWith("/") || uri.matches("[A-Za-z]:.*") || uri.startsWith("hdfs:")
-                || uri.startsWith("viewfs:") || uri.startsWith("file:") || uri.startsWith("s3n:")) {
-            return true;
-        }
-        return false;
+        return HadoopShims.hasFileSystemImpl(new Path(uri), conf);
     }
-    
+
 }

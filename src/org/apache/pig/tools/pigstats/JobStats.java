@@ -346,7 +346,7 @@ public abstract class JobStats extends Operator {
 
         for (String className : readerNames.split(",")) {
             reader = (PigStatsOutputSizeReader) PigContext.instantiateFuncFromSpec(className);
-            if (reader.supports(sto)) {
+            if (reader.supports(sto, conf)) {
                 LOG.info("using output size reader: " + className);
                 try {
                     return reader.getOutputSize(sto, conf);

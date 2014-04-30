@@ -109,7 +109,7 @@ public class InputSizeReducerEstimator implements PigReducerEstimator {
                 // the input file location might be a list of comma separated files,
                 // separate them out
                 for (String location : LoadFunc.getPathStrings(ld.getLFile().getFileName())) {
-                    if (UriUtil.isHDFSFileOrLocalOrS3N(location)) {
+                    if (UriUtil.isHDFSFileOrLocalOrS3N(location, conf)) {
                         Path path = new Path(location);
                         FileSystem fs = path.getFileSystem(conf);
                         FileStatus[] status = fs.globStatus(path);

@@ -1831,7 +1831,7 @@ public class PigServer {
             Set<String> uniqueStoreLoc = new HashSet<String>();
             for(LOStore store : storeOps) {
                 String fileName = store.getFileSpec().getFileName();
-                if(!uniqueStoreLoc.add(fileName) && UriUtil.isHDFSFileOrLocalOrS3N(fileName)) {
+                if(!uniqueStoreLoc.add(fileName) && UriUtil.isHDFSFileOrLocalOrS3N(fileName, new Configuration(true))) {
                     throw new RuntimeException("Script contains 2 or more STORE statements writing to same location : "+ fileName);
                 }
             }

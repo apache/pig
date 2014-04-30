@@ -139,7 +139,7 @@ public class PigProcessor implements LogicalIOProcessor {
         sampleMap = null;
         sampleVertex = null;
         if (pigHadoopLogger != null) {
-            pigHadoopLogger.destory();
+            pigHadoopLogger.destroy();
             pigHadoopLogger = null;
         }
     }

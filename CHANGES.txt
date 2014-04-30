@@ -32,6 +32,8 @@ PIG-2207: Support custom counters for aggregating warnings from different udfs (
 
 IMPROVEMENTS
 
+PIG-3672: Pig should not check for hardcoded file system implementations (rohini)
+
 PIG-3860: Refactor PigStatusReporter and PigLogger for non-MR execution engine (cheolsoo)
 
 PIG-3865: Remodel the XMLLoader to work to be faster and more maintainable (aseldawy via daijy)
@@ -116,6 +118,8 @@ OPTIMIZATIONS
 PIG-3882: Multiquery off mode execution is not done in batch and very inefficient (rohini)
  
 BUG FIXES
+
+PIG-3859: auto local mode should not modify reducer configuration (aniket486)
 
 PIG-3909: Type Casting issue (daijy)
 
