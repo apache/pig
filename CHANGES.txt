@@ -121,6 +121,8 @@ PIG-3882: Multiquery off mode execution is not done in batch and very inefficien
  
 BUG FIXES
 
+PIG-3916: isEmpty should not be early terminating (rohini)
+
 PIG-3859: auto local mode should not modify reducer configuration (aniket486)
 
 PIG-3909: Type Casting issue (daijy)
