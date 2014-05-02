@@ -20,7 +20,6 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOp
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.hadoop.mapreduce.Counter;
 import org.apache.pig.PigException;
 import org.apache.pig.SortInfo;
 import org.apache.pig.StoreFuncInterface;
@@ -38,6 +37,7 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.pen.util.ExampleTuple;
 import org.apache.pig.pen.util.LineageTracer;
+import org.apache.pig.tools.pigstats.PigStatsUtil;
 
 /**
  * The store operator which is used in two ways:
@@ -53,10 +53,9 @@ public class POStore extends PhysicalOperator {
     protected static Result empty = new Result(POStatus.STATUS_NULL, null);
     transient private StoreFuncInterface storer;
     transient private POStoreImpl impl;
+    transient private String counterName = null;
     private FileSpec sFile;
     private Schema schema;
-
-    transient protected Counter outputRecordCounter = null;
 
     // flag to distinguish user stores from MRCompiler stores.
     private boolean isTmpStore;
@@ -116,8 +115,13 @@ public class POStore extends PhysicalOperator {
             try{
                 storer = impl.createStoreFunc(this);
                 if (!isTmpStore && !disableCounter && impl instanceof MapReducePOStoreImpl) {
-                    outputRecordCounter =
-                        ((MapReducePOStoreImpl) impl).createRecordCounter(this);
+                    counterName = PigStatsUtil.getMultiStoreCounterName(this);
+                    if (counterName != null) {
+                        // Create the counter. This is needed because
+                        // incrCounter() may never be called in case of empty
+                        // file.
+                        ((MapReducePOStoreImpl) impl).incrRecordCounter(counterName, 0);
+                    }
                 }
             }catch (IOException ioe) {
                 int errCode = 2081;
@@ -159,8 +163,8 @@ public class POStore extends PhysicalOperator {
                     illustratorMarkup(res.result, res.result, 0);
                 res = empty;
 
-                if (outputRecordCounter != null) {
-                    outputRecordCounter.increment(1);
+                if (counterName != null) {
+                    ((MapReducePOStoreImpl) impl).incrRecordCounter(counterName, 1);
                 }
                 break;
             case POStatus.STATUS_EOP:

@@ -40,7 +40,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
-import org.apache.pig.backend.hadoop.executionengine.shims.TaskContext;
 import org.apache.pig.data.SchemaTupleBackend;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
@@ -106,7 +105,7 @@ public class PigProcessor implements LogicalIOProcessor {
 
         boolean aggregateWarning = "true".equalsIgnoreCase(pc.getProperties().getProperty("aggregate.warning"));
         PigStatusReporter pigStatusReporter = PigStatusReporter.getInstance();
-        pigStatusReporter.setContext(new TaskContext<TezProcessorContext>(processorContext));
+        pigStatusReporter.setContext(new TezTaskContext(processorContext));
         pigHadoopLogger = PigHadoopLogger.getInstance();
         pigHadoopLogger.setReporter(pigStatusReporter);
         pigHadoopLogger.setAggregate(aggregateWarning);
