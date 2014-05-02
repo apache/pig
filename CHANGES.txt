@@ -18,6 +18,13 @@
 
 Pig Change Log
 
+Release 0.12.2 (unreleased changes)
+
+BUG FIXES
+
+PIG-3916: isEmpty should not be early terminating (rohini)
+
+
 Release 0.12.1
 
 INCOMPATIBLE CHANGES
