@@ -19,9 +19,7 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOp
 
 import java.io.IOException;
 import java.util.List;
-import java.util.LinkedList;
 
-import org.apache.hadoop.mapreduce.Counter;
 import org.apache.pig.PigException;
 import org.apache.pig.SortInfo;
 import org.apache.pig.StoreFuncInterface;
@@ -37,9 +35,9 @@ import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.util.IdentityHashSet;
 import org.apache.pig.pen.util.ExampleTuple;
 import org.apache.pig.pen.util.LineageTracer;
+import org.apache.pig.tools.pigstats.PigStatsUtil;
 
 /**
  * The store operator which is used in two ways:
@@ -53,37 +51,36 @@ public class POStore extends PhysicalOperator {
 
     private static final long serialVersionUID = 1L;
     private static Result empty = new Result(POStatus.STATUS_NULL, null);
-    transient private StoreFuncInterface storer;    
+    transient private StoreFuncInterface storer;
     transient private POStoreImpl impl;
+    transient private String counterName = null;
     private FileSpec sFile;
     private Schema schema;
-    
-    transient private Counter outputRecordCounter = null;
 
     // flag to distinguish user stores from MRCompiler stores.
     private boolean isTmpStore;
-    
+
     // flag to distinguish single store from multiquery store.
     private boolean isMultiStore;
-    
+
     // flag to indicate if the custom counter should be disabled.
     private boolean disableCounter = false;
-    
+
     // the index of multiquery store to track counters
     private int index;
-    
+
     // If we know how to reload the store, here's how. The lFile
     // FileSpec is set in PigServer.postProcess. It can be used to
     // reload this store, if the optimizer has the need.
     private FileSpec lFile;
-    
+
     // if the predecessor of store is Sort (order by)
-    // then sortInfo will have information of the sort 
+    // then sortInfo will have information of the sort
     // column names and the asc/dsc info
     private SortInfo sortInfo;
-    
+
     private String signature;
-    
+
     public POStore(OperatorKey k) {
         this(k, -1, null);
     }
@@ -91,11 +88,11 @@ public class POStore extends PhysicalOperator {
     public POStore(OperatorKey k, int rp) {
         this(k, rp, null);
     }
-    
+
     public POStore(OperatorKey k, int rp, List<PhysicalOperator> inp) {
         super(k, rp, inp);
     }
-    
+
     /**
      * Set up the storer
      * @throws IOException
@@ -105,17 +102,22 @@ public class POStore extends PhysicalOperator {
             try{
                 storer = impl.createStoreFunc(this);
                 if (!isTmpStore && !disableCounter && impl instanceof MapReducePOStoreImpl) {
-                    outputRecordCounter = 
-                        ((MapReducePOStoreImpl) impl).createRecordCounter(this);
+                    counterName = PigStatsUtil.getMultiStoreCounterName(this);
+                    if (counterName != null) {
+                        // Create the counter. This is needed because
+                        // incrCounter() may never be called in case of empty
+                        // file.
+                        ((MapReducePOStoreImpl) impl).incrRecordCounter(counterName, 0);
+                    }
                 }
             }catch (IOException ioe) {
                 int errCode = 2081;
-                String msg = "Unable to setup the store function.";            
+                String msg = "Unable to setup the store function.";
                 throw new ExecException(msg, errCode, PigException.BUG, ioe);
             }
         }
     }
-    
+
     /**
      * Called at the end of processing for clean up.
      * @throws IOException
@@ -125,7 +127,7 @@ public class POStore extends PhysicalOperator {
             impl.tearDown();
         }
    }
-    
+
     /**
      * To perform cleanup when there is an error.
      * @throws IOException
@@ -135,7 +137,7 @@ public class POStore extends PhysicalOperator {
             impl.cleanUp();
         }
     }
-    
+
     @Override
     public Result getNextTuple() throws ExecException {
         Result res = processInput();
@@ -148,8 +150,8 @@ public class POStore extends PhysicalOperator {
                     illustratorMarkup(res.result, res.result, 0);
                 res = empty;
 
-                if (outputRecordCounter != null) {
-                    outputRecordCounter.increment(1);
+                if (counterName != null) {
+                    ((MapReducePOStoreImpl) impl).incrRecordCounter(counterName, 1);
                 }
                 break;
             case POStatus.STATUS_EOP:
@@ -206,11 +208,11 @@ public class POStore extends PhysicalOperator {
     public FileSpec getInputSpec() {
         return lFile;
     }
-    
+
     public void setIsTmpStore(boolean tmp) {
         isTmpStore = tmp;
     }
-    
+
     public boolean isTmpStore() {
         return isTmpStore;
     }
@@ -222,12 +224,12 @@ public class POStore extends PhysicalOperator {
     public void setSchema(Schema schema) {
         this.schema = schema;
     }
-    
+
     public Schema getSchema() {
         return schema;
     }
-    
-    
+
+
     public StoreFuncInterface getStoreFunc() {
         if(storer == null){
             storer = (StoreFuncInterface)PigContext.instantiateFuncFromSpec(sFile.getFuncSpec());
@@ -235,7 +237,7 @@ public class POStore extends PhysicalOperator {
         }
         return storer;
     }
-    
+
     /**
      * @param sortInfo the sortInfo to set
      */
@@ -249,11 +251,11 @@ public class POStore extends PhysicalOperator {
     public SortInfo getSortInfo() {
         return sortInfo;
     }
-    
+
     public String getSignature() {
         return signature;
     }
-    
+
     public void setSignature(String signature) {
         this.signature = signature;
     }
@@ -265,7 +267,7 @@ public class POStore extends PhysicalOperator {
     public boolean isMultiStore() {
         return isMultiStore;
     }
-    
+
     @Override
     public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
         if(illustrator != null) {
