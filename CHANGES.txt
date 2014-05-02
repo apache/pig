@@ -32,6 +32,8 @@ PIG-2207: Support custom counters for aggregating warnings from different udfs (
 
 IMPROVEMENTS
 
+PIG-3914: Change TaskContext to abstract class (cheolsoo)
+
 PIG-3672: Pig should not check for hardcoded file system implementations (rohini)
 
 PIG-3860: Refactor PigStatusReporter and PigLogger for non-MR execution engine (cheolsoo)

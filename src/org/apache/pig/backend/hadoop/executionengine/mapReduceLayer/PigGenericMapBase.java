@@ -31,7 +31,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.TaskInputOutputContext;
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -42,7 +41,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
-import org.apache.pig.backend.hadoop.executionengine.shims.TaskContext;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.SchemaTupleBackend;
@@ -159,7 +157,7 @@ public abstract class PigGenericMapBase extends Mapper<Text, Tuple, PigNullableW
      */
     @SuppressWarnings("unchecked")
     @Override
-    public void setup(Context context) throws IOException, InterruptedException {       	
+    public void setup(Context context) throws IOException, InterruptedException {
         super.setup(context);
 
         Configuration job = context.getConfiguration();
@@ -212,7 +210,7 @@ public abstract class PigGenericMapBase extends Mapper<Text, Tuple, PigNullableW
         }
 
         PigStatusReporter pigStatusReporter = PigStatusReporter.getInstance();
-        pigStatusReporter.setContext(new TaskContext<TaskInputOutputContext<?,?,?,?>>(context));
+        pigStatusReporter.setContext(new MRTaskContext(context));
 
         log.info("Aliases being processed per job phase (AliasName[line,offset]): " + job.get("pig.alias.location"));
 
@@ -244,7 +242,7 @@ public abstract class PigGenericMapBase extends Mapper<Text, Tuple, PigNullableW
 
             boolean aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
             PigStatusReporter pigStatusReporter = PigStatusReporter.getInstance();
-            pigStatusReporter.setContext(new TaskContext<TaskInputOutputContext<?,?,?,?>>(context));
+            pigStatusReporter.setContext(new MRTaskContext(context));
             PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
             pigHadoopLogger.setReporter(pigStatusReporter);
             pigHadoopLogger.setAggregate(aggregateWarning);
