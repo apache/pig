@@ -19,9 +19,8 @@
 package org.apache.pig.test;
 
 
-import static org.junit.Assert.assertEquals;
-
 import java.util.Iterator;
+import java.util.List;
 import java.util.Properties;
 
 import org.apache.pig.PigServer;
@@ -71,13 +70,12 @@ public class TestBinaryExpressionOps {
                 + "(SUM(A.val) * SUM(B.val)), (SUM(A.val) / SUM(B.val)), "
                 + "(SUM(A.val) % SUM(B.val)), (SUM(A.val) < 0 ? SUM(A.val) : SUM(B.val));");
 
-        String[] expectedResults = new String[] {"(id1,2,,,,,,,)", "(id2,2,10,8,12,20,5,0,2)"};
+        List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
+                new String[] {
+                        "('id1',2L,null,null,null,null,null,null,null)",
+                        "('id2',2L,10L,8L,12L,20L,5L,0L,2L)" });
         Iterator<Tuple> iter = pig.openIterator("D");
-        int counter = 0;
-        while (iter.hasNext()) { 
-            assertEquals(expectedResults[counter++], iter.next().toString());
-        }
-        assertEquals(expectedResults.length, counter);
+        Util.checkQueryOutputsAfterSort(iter, expectedResults);
     }
 
 }

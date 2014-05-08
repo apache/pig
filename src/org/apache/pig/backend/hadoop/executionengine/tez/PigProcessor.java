@@ -32,6 +32,7 @@ import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigHadoopLogger;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.UDFFinishVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigProgressable;
@@ -43,6 +44,8 @@ import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.data.SchemaTupleBackend;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.plan.DependencyOrderWalker;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
@@ -162,6 +165,18 @@ public class PigProcessor implements LogicalIOProcessor {
             }
 
             runPipeline(leaf);
+
+            // Calling EvalFunc.finish()
+            UDFFinishVisitor finisher = new UDFFinishVisitor(execPlan,
+                    new DependencyOrderWalker<PhysicalOperator, PhysicalPlan>(
+                            execPlan));
+            try {
+                finisher.visit();
+            } catch (VisitorException e) {
+                int errCode = 2121;
+                String msg = "Error while calling finish method on UDFs.";
+                throw new VisitorException(msg, errCode, PigException.BUG, e);
+            }
 
             for (MROutput fileOutput : fileOutputs){
                 fileOutput.commit();

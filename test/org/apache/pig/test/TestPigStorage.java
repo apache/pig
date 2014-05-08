@@ -19,7 +19,11 @@
 package org.apache.pig.test;
 
 import static org.apache.pig.builtin.mock.Storage.tuple;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -48,8 +52,6 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.test.utils.TypeCheckingTestUtil;
-import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.pig.tools.pigstats.ScriptState;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -70,9 +72,9 @@ public class TestPigStorage  {
     @Before
     public void setup() throws IOException {
         // some tests are in map-reduce mode and some in local - so before
-        // each test, we will de-initialize FileLocalizer so that temp files
+        // each test, we will re-initialize FileLocalizer so that temp files
         // are created correctly depending on the ExecType in the test.
-        FileLocalizer.setInitialized(false);
+        Util.resetStateForExecModeSwitch();
 
         // If needed, a test can change that. Most tests are local so we save a bit
         // of typing here.
@@ -268,12 +270,12 @@ public class TestPigStorage  {
 
         // Verify that loaded data has the correct data type after the prune
         pig.registerQuery("b = LOAD '" + datadir + "aout' using PigStorage('\\t'); c = FOREACH b GENERATE f2;");
-        
+
         Iterator<Tuple> it = pig.openIterator("c");
         Assert.assertTrue("results were produced", it.hasNext());
-        
+
         Tuple t = it.next();
-        
+
         Assert.assertTrue("data is correct type", t.get(0) instanceof Integer);
     }
 
@@ -357,7 +359,7 @@ public class TestPigStorage  {
     @Test
     public void testSchemaDataNotMatchWITHCast() throws Exception {
         pig.registerQuery("A = LOAD '" + datadir + "originput' using PigStorage(',') as (x:chararray);");
-        
+
         List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
                 new String[] {
                         "('A')",
@@ -378,7 +380,7 @@ public class TestPigStorage  {
     @Test
     public void testSchemaDataNotMatchNOCast() throws Exception {
         pig.registerQuery("A = LOAD '" + datadir + "originput' using PigStorage(',') as (x:bytearray);");
-        
+
         List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
                 new String[] {
                         "('A')",
@@ -399,7 +401,7 @@ public class TestPigStorage  {
     @Test
     public void testSchemaDataNotMatchAsEXTRACoumns() throws Exception {
         pig.registerQuery("A = LOAD '" + datadir + "originput' using PigStorage(',') as (x,y,z);");
-        
+
         List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
                 new String[] {
                         "('A',1,NULL)",
@@ -507,6 +509,7 @@ public class TestPigStorage  {
         new ObjectMapper().writeValue(new File(schemaFilename), testSchema);
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void testPigStorageSchemaSearch() throws Exception {
         String globtestdir = "build/test/tmpglobbingdata/";
@@ -664,7 +667,7 @@ public class TestPigStorage  {
         assertTrue(it.hasNext());
         assertEquals(tuple(1,null,null), it.next());
         assertFalse(it.hasNext());
-        
+
         // Now, test with prune
         pig.registerQuery("a = load '"+Util.encodeEscape(inputDir.getAbsolutePath())+"'; b = foreach a generate y, z;");
         it = pig.openIterator("b");
@@ -713,5 +716,5 @@ public class TestPigStorage  {
         pig.store("a", datadir + "aout", "PigStorage(',')");
         pig.store("a", datadir + "aout", "PigStorage(',')");
     }
-    
+
 }

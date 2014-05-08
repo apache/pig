@@ -72,8 +72,6 @@ import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.tools.grunt.GruntParser;
-import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.pig.tools.pigstats.ScriptState;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -93,7 +91,7 @@ public class TestPigServer {
 
     @Before
     public void setUp() throws Exception{
-        FileLocalizer.setInitialized(false);
+        Util.resetStateForExecModeSwitch();
         tempDir = Files.createTempDir();
         tempDir.deleteOnExit();
         registerNewResource(tempDir.getAbsolutePath());
@@ -102,10 +100,6 @@ public class TestPigServer {
     @After
     public void tearDown() throws Exception{
         tempDir.delete();
-        // TODO: once we have Tez local mode, we can get rid of this. For now,
-        // if we run this test suite in Tez mode, we need to set ScriptState to
-        // null to force ScriptState gets initialized every time.
-        ScriptState.start(null);
     }
 
     @BeforeClass

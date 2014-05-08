@@ -45,8 +45,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import junit.framework.Assert;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -105,6 +103,8 @@ import org.apache.pig.newplan.logical.visitor.UnionOnSchemaSetter;
 import org.apache.pig.parser.ParserException;
 import org.apache.pig.parser.QueryParserDriver;
 import org.apache.pig.tools.grunt.GruntParser;
+import org.apache.pig.tools.pigstats.ScriptState;
+import org.junit.Assert;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -486,10 +486,8 @@ public class Util {
     */
     static public void checkQueryOutputs(Iterator<Tuple> actualResults,
                                     Tuple[] expectedResults) {
-        for (Tuple expected : expectedResults) {
-            Tuple actual = actualResults.next();
-            Assert.assertEquals(expected.toString(), actual.toString());
-        }
+        checkQueryOutputs(actualResults, Arrays.asList(expectedResults));
+
     }
 
     /**
@@ -501,8 +499,13 @@ public class Util {
      */
      static public void checkQueryOutputs(Iterator<Tuple> actualResults,
                                      List<Tuple> expectedResults) {
-
-         checkQueryOutputs(actualResults,expectedResults.toArray(new Tuple[expectedResults.size()]));
+         int count = 0;
+         for (Tuple expected : expectedResults) {
+             Tuple actual = actualResults.next();
+             count++;
+             Assert.assertEquals(expected.toString(), actual.toString());
+         }
+         Assert.assertEquals(expectedResults.size(), count);
      }
 
     /**
@@ -1288,7 +1291,7 @@ public class Util {
     }
 
     /**
-     * 
+     *
      * @param expected
      *            Exception class that is expected to be thrown
      * @param found
@@ -1300,5 +1303,19 @@ public class Util {
             Exception found, String message) {
         assertEquals(expected, found.getClass());
         assertEquals(found.getMessage(), message);
+    }
+
+    /**
+     * Called to reset ThreadLocal or static states that PigServer depends on
+     * when a test suite has testcases switching between LOCAL and MAPREDUCE/TEZ
+     * execution modes
+     */
+    public static void resetStateForExecModeSwitch() {
+        FileLocalizer.setInitialized(false);
+        // TODO: once we have Tez local mode, we can get rid of this. For now,
+        // if we run this test suite in Tez mode and there are some tests
+        // in LOCAL mode, we need to set ScriptState to
+        // null to force ScriptState gets initialized every time.
+        ScriptState.start(null);
     }
 }

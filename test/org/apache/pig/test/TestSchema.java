@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.data.DataType;
@@ -613,6 +612,7 @@ public class TestSchema {
         assertFalse(Schema.equals(bagSchema1, bagSchema2, false, false));
     }
 
+    @Test
     public void testCharArray2Numeric(){
     	byte[] numbericTypes=new byte[]{DataType.DOUBLE,DataType.FLOAT,DataType.LONG,DataType.INTEGER};
     	Schema.FieldSchema inputFieldSchema=new Schema.FieldSchema("",DataType.CHARARRAY);
@@ -622,9 +622,10 @@ public class TestSchema {
     	}
     }
 
+    @Test
     public void testSchemaSerialization() throws IOException {
-        MiniCluster cluster = MiniCluster.buildCluster();
-        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
+        PigServer pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
         String inputFileName = "testSchemaSerialization-input.txt";
         String[] inputData = new String[] { "foo\t1", "hello\t2" };
         Util.createInputFile(cluster, inputFileName, inputData);

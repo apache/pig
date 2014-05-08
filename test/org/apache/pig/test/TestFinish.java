@@ -34,7 +34,6 @@ import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.io.FileLocalizer;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
@@ -46,7 +45,7 @@ public class TestFinish {
     BagFactory mBf = BagFactory.getInstance();
     File f1;
 
-    static MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
 
     static public class MyEvalFunction extends EvalFunc<Tuple> {
         String execType;
@@ -78,10 +77,8 @@ public class TestFinish {
 
     @Before
     public void setUp() throws Exception {
-        // re initialize FileLocalizer so that each test runs correctly without
-        // any side effect of other tests - this is needed here since some
-        // tests are in mapred and some in local mode
-        FileLocalizer.setInitialized(false);
+        // Reset state since some tests are in mapred and some in local mode
+        Util.resetStateForExecModeSwitch();
     }
 
     @AfterClass
@@ -102,7 +99,7 @@ public class TestFinish {
             }
             ps.close();
         } else {
-            pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+            pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
             f1 = File.createTempFile("test", "txt");
             f1.delete();
             inputFileName = Util.removeColon(f1.getAbsolutePath());
@@ -118,7 +115,7 @@ public class TestFinish {
 
     private void checkAndCleanup(ExecType execType, String expectedFileName,
             String inputFileName) throws IOException {
-        if (execType == ExecType.MAPREDUCE) {
+        if (execType == cluster.getExecType()) {
             FileSystem fs = FileSystem.get(ConfigurationUtil.toConfiguration(
                     cluster.getProperties()));
             assertTrue(fs.exists(new Path(expectedFileName)));
@@ -136,7 +133,7 @@ public class TestFinish {
 
     @Test
     public void testFinishInMapMR() throws Exception {
-        String inputFileName = setUp(ExecType.MAPREDUCE);
+        String inputFileName = setUp(cluster.getExecType());
         // this file will be created on the cluster if finish() is called
         String expectedFileName = "testFinishInMapMR-finish.txt";
         pigServer.registerQuery("define MYUDF " + MyEvalFunction.class.getName() + "('MAPREDUCE','"
@@ -149,13 +146,13 @@ public class TestFinish {
             iter.next();
         }
 
-        checkAndCleanup(ExecType.MAPREDUCE, expectedFileName, inputFileName);
+        checkAndCleanup(cluster.getExecType(), expectedFileName, inputFileName);
 
     }
 
     @Test
     public void testFinishInReduceMR() throws Exception {
-        String inputFileName = setUp(ExecType.MAPREDUCE);
+        String inputFileName = setUp(cluster.getExecType());
         // this file will be created on the cluster if finish() is called
         String expectedFileName = "testFinishInReduceMR-finish.txt";
         pigServer.registerQuery("define MYUDF " + MyEvalFunction.class.getName() + "('MAPREDUCE','"
@@ -169,7 +166,7 @@ public class TestFinish {
             iter.next();
         }
 
-        checkAndCleanup(ExecType.MAPREDUCE, expectedFileName, inputFileName);
+        checkAndCleanup(cluster.getExecType(), expectedFileName, inputFileName);
     }
 
     @Test

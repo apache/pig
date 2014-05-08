@@ -66,13 +66,13 @@ public class TestLoad {
     PigContext pc;
     PigServer[] servers;
 
-    static MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
 
     @Before
     public void setUp() throws Exception {
         FileLocalizer.deleteTempFiles();
         servers = new PigServer[] {
-                    new PigServer(ExecType.MAPREDUCE, cluster.getProperties()),
+                    new PigServer(cluster.getExecType(), cluster.getProperties()),
                     new PigServer(ExecType.LOCAL, new Properties())
         };
     }
@@ -327,7 +327,7 @@ public class TestLoad {
             if(noConversionExpected) {
                 assertEquals(expected, p);
             } else  {
-                String protocol = pc.getExecType() == ExecType.MAPREDUCE ? "hdfs" : "file";
+                String protocol = pc.getExecType() == cluster.getExecType() ? "hdfs" : "file";
                 // regex : A word character, i.e. [a-zA-Z_0-9] or '-' followed by ':' then any characters
                 String regex = "[\\-\\w:\\.]";
                 assertTrue(p.matches(".*" + protocol + "://" + regex + "*.*"));
