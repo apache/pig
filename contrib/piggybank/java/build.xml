@@ -142,9 +142,6 @@
                author="true">
         <fileset dir="${src.dir}/evaluation" includes="**/*.java"/>
         <fileset dir="${src.dir}/storage" includes="**/*.java"/>
-        <fileset dir="${src.dir}/filtering" includes="**/*.java"/>
-        <fileset dir="${src.dir}/grouping" includes="**/*.java"/>
-        <fileset dir="${src.dir}/comparison" includes="**/*.java"/>
         <classpath refid="pigudf.classpath"/>
       </javadoc>
     </target>
