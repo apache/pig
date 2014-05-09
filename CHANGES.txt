@@ -125,6 +125,8 @@ PIG-3882: Multiquery off mode execution is not done in batch and very inefficien
  
 BUG FIXES
 
+PIG-3923: Gitignore file should ignore all generated artifacts (mrflip via cheolsoo)
+
 PIG-3922: Increase Forrest heap size to avoid OutOfMemoryError building docs (mrflip via cheolsoo)
 
 PIG-3916: isEmpty should not be early terminating (rohini)
