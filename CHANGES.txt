@@ -125,6 +125,8 @@ PIG-3882: Multiquery off mode execution is not done in batch and very inefficien
  
 BUG FIXES
 
+PIG-3922: Increase Forrest heap size to avoid OutOfMemoryError building docs (mrflip via cheolsoo)
+
 PIG-3916: isEmpty should not be early terminating (rohini)
 
 PIG-3859: auto local mode should not modify reducer configuration (aniket486)
