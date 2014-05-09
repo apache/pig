@@ -766,7 +766,7 @@
         <attribute name="includedJars"/>
         <sequential>
             <echo>svnString @{svnString}</echo>
-            <jar jarfile="@{outputFile}" basedir="${build.classes}">
+            <jar jarfile="@{outputFile}" basedir="${build.classes}" duplicate="preserve">
                 <manifest>
                     <attribute name="Main-Class" value="org.apache.pig.Main" />
                     <section name="org/apache/pig">
