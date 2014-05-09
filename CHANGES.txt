@@ -32,6 +32,8 @@ PIG-2207: Support custom counters for aggregating warnings from different udfs (
 
 IMPROVEMENTS
 
+PIG-3901: Organize the Pig properties file and document all properties (mrflip via cheolsoo)
+
 PIG-3867: Added hadoop home to build classpath for build pig with unit test on windows (Sergey Svinarchuk via gates)
 
 PIG-3914: Change TaskContext to abstract class (cheolsoo)
