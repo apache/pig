@@ -32,6 +32,8 @@ PIG-2207: Support custom counters for aggregating warnings from different udfs (
 
 IMPROVEMENTS
 
+PIG-3926: ROUND_TO function: rounds double/float to fixed number of decimal places (mrflip via cheolsoo)
+
 PIG-3901: Organize the Pig properties file and document all properties (mrflip via cheolsoo)
 
 PIG-3867: Added hadoop home to build classpath for build pig with unit test on windows (Sergey Svinarchuk via gates)
