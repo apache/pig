@@ -83,6 +83,8 @@ import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.builtin.REGEX_EXTRACT;
 import org.apache.pig.builtin.REGEX_EXTRACT_ALL;
 import org.apache.pig.builtin.REPLACE;
+import org.apache.pig.builtin.ROUND;
+import org.apache.pig.builtin.ROUND_TO;
 import org.apache.pig.builtin.RTRIM;
 import org.apache.pig.builtin.SIZE;
 import org.apache.pig.builtin.STRSPLIT;
@@ -1698,6 +1700,40 @@ public class TestBuiltin {
             msg = "[Testing " + func + " on input: " + input + " ( (actual) " + actual + " == " + expected + " (expected) )]";
             assertEquals(msg, actual, expected, delta);
         }
+    }
+
+    @Test
+    public void testROUND() throws Exception {
+        Double         dbl     = 0.987654321d;
+        Float          flt     = 0.987654321f;
+        EvalFunc<Long> rounder = new ROUND();
+        Tuple          tup     = TupleFactory.getInstance().newTuple(1);
+        long           expected, output;
+
+        tup.set(0, dbl);
+        expected = Math.round(dbl);
+        output   = rounder.exec(tup);
+        assertTrue(output == expected);
+
+        tup.set(0, flt);
+        expected = Math.round(flt);
+        output   = rounder.exec(tup);
+        assertTrue(output == expected);
+    }
+
+    @Test
+    public void testROUND_TO() throws Exception {
+        Double           dbl     = 3.1415925000d, dbl_out;
+        EvalFunc<Double> rounder = new ROUND_TO();
+        Tuple            tup     = TupleFactory.getInstance().newTuple(2);
+        String           expected;
+
+        // Returns double given double
+        tup.set(0, dbl);
+        expected = "3.141593"; tup.set(1, 6); dbl_out = rounder.exec(tup);  assertEquals(expected, dbl_out.toString());
+        expected = "3.1416";   tup.set(1, 4); dbl_out = rounder.exec(tup);  assertEquals(expected, dbl_out.toString());
+        expected = "3.1";      tup.set(1, 1); dbl_out = rounder.exec(tup);  assertEquals(expected, dbl_out.toString());
+        expected = "3.0";      tup.set(1, 0); dbl_out = rounder.exec(tup);  assertEquals(expected, dbl_out.toString());
     }
 
     @Test
