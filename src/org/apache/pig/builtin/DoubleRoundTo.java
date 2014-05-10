@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.ArrayList;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
@@ -36,15 +37,22 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
  * BigDecimal. The too-often seen trick of doing (1000.0 * ROUND(x/1000)) is not
  * only hard to read but also fails to produce numerically accurate results.
  *
- * Given a single data atom and precision it Returns a double extending to the
- * given number of decimal places. ROUND_TO(0.9876543, 3) is 0.988;
- * ROUND_TO(0.9876543, 0) is 1.0.
+ * Given a single data atom and number of digits, it returns a double extending to the
+ * given number of decimal places.
+ *
+ * The result is a multiple of ten to the power given by the digits argument: a
+ * negative value zeros out correspondingly many places to the left of the
+ * decimal point: ROUND_TO(0.9876543, 3) is 0.988; ROUND_TO(0.9876543, 0) is
+ * 1.0; and ROUND_TO(1234.56, -2) is 1200.0.
+ *
+ * The optional mode argument specifies the {@link java.math.RoundingMode rounding mode};
+ * by default, {@link java.math.RoundingMode#HALF_EVEN 'HALF_EVEN'} is used.
  *
  */
 public class DoubleRoundTo extends EvalFunc<Double>{
     /**
      * java level API
-     * @param input expects a numeric value to round and a number of digits to keep
+     * @param input expects a numeric value to round, a number of digits to keep, and an optional rounding mode.
      * @return output returns a single numeric value, the number with only those digits retained
      */
     @Override
@@ -53,11 +61,14 @@ public class DoubleRoundTo extends EvalFunc<Double>{
             return null;
 
         try {
-            Double     num    = (Double)input.get(0);
-            Integer    digits = (Integer)input.get(1);
-            BigDecimal bdnum  = BigDecimal.valueOf(num);
+            Double       num    = (Double)input.get(0);
+            Integer      digits = (Integer)input.get(1);
+            RoundingMode mode   = (input.size() >= 3) ?
+                RoundingMode.valueOf(DataType.toInteger(input.get(2))) : RoundingMode.HALF_EVEN;
+            if (num == null) return null;
 
-            bdnum = bdnum.setScale(digits, BigDecimal.ROUND_HALF_UP);
+            BigDecimal bdnum  = BigDecimal.valueOf(num);
+            bdnum = bdnum.setScale(digits, mode);
             return bdnum.doubleValue();
         } catch (Exception e){
             throw new IOException("Caught exception processing input row ", e);
@@ -71,11 +82,17 @@ public class DoubleRoundTo extends EvalFunc<Double>{
     public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
         List<FuncSpec> funcList = new ArrayList<FuncSpec>();
 
-        Schema s_dbl = new Schema();
-        s_dbl.add(new Schema.FieldSchema(null, DataType.DOUBLE));
-        s_dbl.add(new Schema.FieldSchema(null, DataType.INTEGER));
+        Schema s_dbl_2 = new Schema();
+        s_dbl_2.add(new Schema.FieldSchema(null, DataType.DOUBLE));
+        s_dbl_2.add(new Schema.FieldSchema(null, DataType.INTEGER));
 
-        funcList.add(new FuncSpec(this.getClass().getName(), s_dbl));
+        Schema s_dbl_3 = new Schema();
+        s_dbl_3.add(new Schema.FieldSchema(null, DataType.DOUBLE));
+        s_dbl_3.add(new Schema.FieldSchema(null, DataType.INTEGER));
+        s_dbl_3.add(new Schema.FieldSchema(null, DataType.INTEGER));
+
+        funcList.add(new FuncSpec(this.getClass().getName(), s_dbl_2));
+        funcList.add(new FuncSpec(this.getClass().getName(), s_dbl_3));
 
         return funcList;
     }
