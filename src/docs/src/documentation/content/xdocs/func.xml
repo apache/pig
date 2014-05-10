@@ -3065,7 +3065,12 @@ Use the RANDOM function to return a pseudo random number (type double) greater t
 <section>
      <title>Usage</title>
      <p>
-Use the ROUND function to return the value of an expression rounded to an integer (if the result type is float) or rounded to a long (if the result type is double).
+       Use the ROUND function to return the value of an expression rounded to an
+       integer (if the result type is float) or rounded to a long (if the result
+       type is double).
+     </p>
+     <p>
+       Values are rounded towards positive infinity: <code>round(x) = floor(x + 0.5)</code>.
      </p>
         <table>
        <tr>
@@ -3152,7 +3157,120 @@ Use the ROUND function to return the value of an expression rounded to an intege
    </table>
    </section>
 </section>       
+
+<!-- ======================================================== -->
+
+<section id="round_to">
+  <title>ROUND_TO</title>
+  <p>Returns the value of an expression rounded to a fixed number of decimal digits.</p>
+
+  <section>
+    <title>Syntax</title>
+    <table>
+      <tr>
+        <td>
+          <p>ROUND_TO(val, digits [, mode])</p>
+        </td>
+      </tr>
+  </table></section>
+
+  <section>
+    <title>Terms</title>
+    <table>
+      <tr>
+        <td>
+          <p>val</p>
+        </td>
+        <td>
+          <p>An expression whose result is type float or double: the value to round.</p>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <p>digits</p>
+        </td>
+        <td>
+          <p>An expression whose result is type int: the number of digits to preserve.</p>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <p>mode</p>
+        </td>
+        <td>
+          <p>
+            An optional int specifying the
+            <a href="https://en.wikipedia.org/wiki/Rounding#Tie-breaking">rounding mode</a>,
+            according to the <a href="http://docs.oracle.com/javase/7/docs/api/constant-values.html#java.math">constants Java provides</a>.
+          </p>
+        </td>
+      </tr>
+    </table>
+  </section>
   
+  <section>
+    <title>Usage</title>
+    <p>
+      Use the ROUND function to return the value of an expression rounded to a
+      fixed number of digits. Given a float, its result is a float; given a
+      double its result is a double.
+    </p>
+    <p>
+      The result is a multiple of the <code>digits</code>-th power of ten: 0
+      leads to no fractional digits; a negative value zeros out correspondingly
+      many places to the left of the decimal point.
+    </p>
+    <p>
+      When <code>mode</code> is omitted or has the value 6 (<a href="http://docs.oracle.com/javase/7/docs/api/java/math/RoundingMode.html#HALF_EVEN"><code>RoundingMode.HALF_EVEN</code></a>),
+      the result is rounded towards the nearest neighbor, and ties are
+      <a href="https://en.wikipedia.org/wiki/Rounding#Round_half_to_even">rounded to the nearest even digit</a>.
+      This mode minimizes cumulative error and tends to preserve the average of a set of values.
+    </p>
+    <p>
+      When <code>mode</code> has the value 4 (<a href="http://docs.oracle.com/javase/7/docs/api/java/math/RoundingMode.html#HALF_UP"><code>RoundingMode.HALF_UP</code></a>), the result is
+      rounded towards the nearest neighbor, and ties are
+      <a href="https://en.wikipedia.org/wiki/Rounding#Round_half_away_from_zero">rounded
+      away from zero</a>.  This mode matches the behavior of most SQL systems.
+    </p>
+    <p>
+      For other rounding modes, consult
+      <a href="http://docs.oracle.com/javase/7/docs/api/java/math/RoundingMode.html">Java's
+      documentation</a>. There is no rounding mode that matches
+      <code>Math.round</code>'s behavior (i.e. round towards positive infinity)
+      -- blame Java, not Pig.
+    </p>
+    <table>
+
+      <tr><th><p>val</p></th> <th><p>digits</p></th> <th><p>mode</p></th> <th><p>ROUND(val, digits)</p></th></tr>
+
+      <tr><td><p>  1234.1789</p> </td> <td><p> 8</p></td> <td><p></p></td> <td><p> 1234.1789</p> </td> </tr>
+      <tr><td><p>  1234.1789</p> </td> <td><p> 4</p></td> <td><p></p></td> <td><p> 1234.1789</p> </td> </tr>
+      <tr><td><p>  1234.1789</p> </td> <td><p> 1</p></td> <td><p></p></td> <td><p> 1234.2</p>    </td> </tr>
+      <tr><td><p>  1234.1789</p> </td> <td><p> 0</p></td> <td><p></p></td> <td><p> 1234.0</p>    </td> </tr>
+      <tr><td><p>  1234.1789</p> </td> <td><p>-1</p></td> <td><p></p></td> <td><p> 1230.0</p>    </td> </tr>
+      <tr><td><p>  1234.1789</p> </td> <td><p>-3</p></td> <td><p></p></td> <td><p> 1000.0</p>    </td> </tr>
+      <tr><td><p>  1234.1789</p> </td> <td><p>-4</p></td> <td><p></p></td> <td><p> 0.0</p>       </td> </tr>
+
+      <tr><td><p>     3.25000001</p></td> <td><p> 1</p></td> <td><p></p></td> <td><p> 3.3</p>    </td> </tr>
+      <tr><td><p>     3.25</p>   </td> <td><p> 1</p></td> <td><p></p></td> <td><p> 3.2</p>       </td> </tr>
+      <tr><td><p>    -3.25</p>   </td> <td><p> 1</p></td> <td><p></p></td> <td><p> -3.2</p>      </td> </tr>
+      <tr><td><p>     3.15</p>   </td> <td><p> 1</p></td> <td><p></p></td> <td><p> 3.2</p>       </td> </tr>
+      <tr><td><p>    -3.15</p>   </td> <td><p> 1</p></td> <td><p></p></td> <td><p> -3.2</p>      </td> </tr>
+      <tr><td><p>     3.25</p>   </td> <td><p> 1</p></td> <td><p>4</p></td> <td><p> 3.3</p>       </td> </tr>
+      <tr><td><p>    -3.25</p>   </td> <td><p> 1</p></td> <td><p>4</p></td> <td><p> -3.3</p>      </td> </tr>
+      
+      <tr><td><p>     3.5</p>    </td> <td><p> 0</p></td> <td><p></p></td> <td><p> 4.0</p>       </td> </tr>
+      <tr><td><p>    -3.5</p>    </td> <td><p> 0</p></td> <td><p></p></td> <td><p> -4.0</p>      </td> </tr>
+      <tr><td><p>     2.5</p>    </td> <td><p> 0</p></td> <td><p></p></td> <td><p> 2.0</p>       </td> </tr>
+      <tr><td><p>    -2.5</p>    </td> <td><p> 0</p></td> <td><p></p></td> <td><p> -2.0</p>      </td> </tr>
+      <tr><td><p>     3.5</p>    </td> <td><p> 0</p></td> <td><p>4</p></td> <td><p> 4.0</p>       </td> </tr>
+      <tr><td><p>    -3.5</p>    </td> <td><p> 0</p></td> <td><p>4</p></td> <td><p> -4.0</p>      </td> </tr>
+      <tr><td><p>     2.5</p>    </td> <td><p> 0</p></td> <td><p>4</p></td> <td><p> 3.0</p>       </td> </tr>
+      <tr><td><p>    -2.5</p>    </td> <td><p> 0</p></td> <td><p>4</p></td> <td><p> -3.0</p>      </td> </tr>
+    </table>
+  </section>
+</section>
+
 <!-- ======================================================== -->  
  <section id="sin">
    <title>SIN</title>
