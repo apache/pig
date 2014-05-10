@@ -127,6 +127,8 @@ PIG-3882: Multiquery off mode execution is not done in batch and very inefficien
  
 BUG FIXES
 
+PIG-3902: PigServer creates cycle (thedatachef via cheolsoo)
+
 PIG-3930: "java.io.IOException: Cannot initialize Cluster" in local mode with hadoopversion=23 dependencies (jira.shegalov via cheolsoo)
 
 PIG-3921: Obsolete entries in piggybank javadoc build script (mrflip via cheolsoo)
