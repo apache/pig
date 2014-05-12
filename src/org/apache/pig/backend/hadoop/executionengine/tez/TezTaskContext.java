@@ -20,6 +20,7 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 import org.apache.hadoop.mapreduce.Counter;
 import org.apache.pig.backend.hadoop.executionengine.TaskContext;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.mapreduce.hadoop.mapred.MRCounters.MRCounter;
 import org.apache.tez.runtime.api.TezProcessorContext;
 
 public class TezTaskContext extends TaskContext<TezProcessorContext> {
@@ -36,12 +37,20 @@ public class TezTaskContext extends TaskContext<TezProcessorContext> {
 
     @Override
     public Counter getCounter(Enum<?> name) {
-        throw new UnsupportedOperationException();
+        if (context == null) {
+            return null;
+        }
+        TezCounter tezCounter = context.getCounters().findCounter(name);
+        return new MRCounter(tezCounter);
     }
 
     @Override
     public Counter getCounter(String group, String name) {
-        throw new UnsupportedOperationException();
+        if (context == null) {
+            return null;
+        }
+        TezCounter tezCounter = context.getCounters().getGroup(group).findCounter(name);
+        return new MRCounter(tezCounter);
     }
 
     @Override
