@@ -143,6 +143,21 @@
     <!-- rats properties -->
     <property name="rat.reporting.classname" value="rat.Report"/>
 
+    <!-- env properties -->
+    <property environment="env"/>
+    <property name="windows" value="false"/>
+    <condition property="isWindows">
+      <equals arg1="${windows}" arg2="true" />
+    </condition>
+
+    <target name="setWindowsPath" if="${isWindows}">
+      <property name="build.path" value="${env.Path};${hadoop.root}\bin" />
+    </target>
+
+    <target name="setLinuxPath" unless="${isWindows}">
+      <property name="build.path" value="${env.PATH};" />
+    </target>
+
     <!-- javadoc properties  -->
     <property name="javadoc.link.java" value="http://download.oracle.com/javase/1.5.0/docs/api/" />
 
@@ -762,7 +777,7 @@
         <attribute name="includedJars"/>
         <sequential>
             <echo>svnString @{svnString}</echo>
-            <jar jarfile="@{outputFile}" basedir="${build.classes}">
+            <jar jarfile="@{outputFile}" basedir="${build.classes}" duplicate="preserve">
                 <manifest>
                     <attribute name="Main-Class" value="org.apache.pig.Main" />
                     <section name="org/apache/pig">
@@ -819,23 +834,23 @@
     <!-- ================================================================== -->
     <!-- Run unit tests                                                     -->
     <!-- ================================================================== -->
-    <target name="test-core" depends="compile-test,jar-withouthadoop,debugger.check,jackson-pig-3039-test-download" description="Run full set of unit tests">
+    <target name="test-core" depends="setWindowsPath,setLinuxPath,compile-test,jar-withouthadoop,debugger.check,jackson-pig-3039-test-download" description="Run full set of unit tests">
         <macro-test-runner test.file="${test.all.file}" />
     </target>
 
-    <target name="test-commit" depends="compile-test,jar-withouthadoop,debugger.check" description="Run approximate 10-minute set of unit tests prior to commiting">
+    <target name="test-commit" depends="setWindowsPath,setLinuxPath,compile-test,jar-withouthadoop,debugger.check" description="Run approximate 10-minute set of unit tests prior to commiting">
         <macro-test-runner test.file="${test.commit.file}" />
     </target>
 
-    <target name="test-unit" depends="compile-test,jar-withouthadoop,debugger.check" description="Run all true unit tests">
+    <target name="test-unit" depends="setWindowsPath,setLinuxPath,compile-test,jar-withouthadoop,debugger.check" description="Run all true unit tests">
         <macro-test-runner test.file="${test.unit.file}" />
     </target>
 
-    <target name="test-smoke" depends="compile-test,jar-withouthadoop,debugger.check" description="Run 30 min smoke tests">
+    <target name="test-smoke" depends="setWindowsPath,setLinuxPath,compile-test,jar-withouthadoop,debugger.check" description="Run 30 min smoke tests">
         <macro-test-runner test.file="${test.smoke.file}" />
     </target>
 
-    <target name="test-tez" depends="compile-test,jar-withouthadoop,debugger.check" description="Run tez unit tests">
+    <target name="test-tez" depends="setWindowsPath,setLinuxPath,compile-test,jar-withouthadoop,debugger.check" description="Run tez unit tests">
         <macro-test-runner test.file="${test.tez.file}" />
     </target>
 
@@ -866,6 +881,7 @@
             <sysproperty key="java.security.krb5.kdc" value="" />
             <sysproperty key="log4j.configuration" value="file:${basedir}/conf/test-log4j.properties"/>
             <env key="MALLOC_ARENA_MAX" value="4"/>
+            <env key="PATH" path="${build.path}"/>
             <classpath>
                 <pathelement location="${output.jarfile.withouthadoop}" />
                 <pathelement location="${test.build.classes}" />
@@ -964,7 +980,7 @@
         </jar>
     </target>
 
-    <target name="test-pigunit" depends="compile-test,jar-withouthadoop, pigunit-jar" description="Run tests that test PigUnit">
+    <target name="test-pigunit" depends="setWindowsPath,setLinuxPath,compile-test,jar-withouthadoop, pigunit-jar" description="Run tests that test PigUnit">
         <macro-test-runner test.file="${test.pigunit.file}" />
     </target>
 

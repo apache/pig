@@ -38,6 +38,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.apache.pig.builtin.mock.Storage;
 
 @RunWith(JUnit4.class)
 public class TestMultiQuery {
@@ -157,8 +158,8 @@ public class TestMultiQuery {
 
         myPig.registerQuery("A = load '" + INPUT_FILE + "' as (col1, col2, col3);");
         myPig.registerQuery("B = foreach A generate (chararray) col1, " +
-        		"(chararray) ((col2 is not null) ?  " +
-        		"col2 : (col3 < 6 ? col3 : '')) as splitcond;");
+                "(chararray) ((col2 is not null) ?  " +
+                "col2 : (col3 < 6 ? col3 : '')) as splitcond;");
         myPig.registerQuery("split B into C if splitcond !=  '', D if splitcond == '';");
         myPig.registerQuery("E = group C by splitcond;");
         myPig.registerQuery("F = foreach E { orderedData = order C by $1, $0; generate flatten(orderedData); };");
@@ -767,6 +768,41 @@ public class TestMultiQuery {
         myPig.registerQuery("f = group d by c::gid;");
         myPig.registerQuery("f1 = foreach f generate group, SUM(d.c::uid);");
         myPig.registerQuery("store f1 into 'output2';");
+
+        List<ExecJob> jobs = myPig.executeBatch();
+
+        assertTrue(jobs.size() == 2);
+
+        for (ExecJob job : jobs) {
+            assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
+        }
+    }
+
+    /**
+       This test will fail indeterministically without the PIG-3902 patch. Sometimes
+       the loads will get attached as dependencies to the appropriate stores (during
+       the postProcess() method on PigServer.Graph) and the dag will successfully
+       run, while other times it will fail (if the loads get attached as dependencies
+       of the incorrect stores).
+     */
+    @Test
+    public void testMultiQueryJiraPig3902() throws Exception {
+
+        // test case: Pig Server creates implicit cycle when
+        // loading and storing from same location with an
+        // intermediate store.
+
+        Storage.Data data = Storage.resetData(myPig);
+        data.set("inputLocation", Storage.tuple(1,2,3));
+
+        myPig.setBatchOn();
+        myPig.registerQuery("A = load 'inputLocation' using mock.Storage() as (a:int, b, c);");
+        myPig.registerQuery("A1 = order A by a desc parallel 3;");
+        myPig.registerQuery("A2 = limit A1 2;");
+        myPig.registerQuery("store A1 into 'output1' using mock.Storage();");
+        myPig.registerQuery("A3 = load 'output1' using mock.Storage()as (a:int, b, c);");
+        myPig.registerQuery("A4 = filter A3 by a > 2;");
+        myPig.registerQuery("store A4 into 'inputLocation' using mock.Storage();");
 
         List<ExecJob> jobs = myPig.executeBatch();
 

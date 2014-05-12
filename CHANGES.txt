@@ -32,6 +32,16 @@ PIG-2207: Support custom counters for aggregating warnings from different udfs (
 
 IMPROVEMENTS
 
+PIG-3932: Document ROUND_TO builtin UDF (mrflip via cheolsoo)
+
+PIG-3926: ROUND_TO function: rounds double/float to fixed number of decimal places (mrflip via cheolsoo)
+
+PIG-3901: Organize the Pig properties file and document all properties (mrflip via cheolsoo)
+
+PIG-3867: Added hadoop home to build classpath for build pig with unit test on windows (Sergey Svinarchuk via gates)
+
+PIG-3914: Change TaskContext to abstract class (cheolsoo)
+
 PIG-3672: Pig should not check for hardcoded file system implementations (rohini)
 
 PIG-3860: Refactor PigStatusReporter and PigLogger for non-MR execution engine (cheolsoo)
@@ -118,6 +128,18 @@ OPTIMIZATIONS
 PIG-3882: Multiquery off mode execution is not done in batch and very inefficient (rohini)
  
 BUG FIXES
+
+PIG-3902: PigServer creates cycle (thedatachef via cheolsoo)
+
+PIG-3930: "java.io.IOException: Cannot initialize Cluster" in local mode with hadoopversion=23 dependencies (jira.shegalov via cheolsoo)
+
+PIG-3921: Obsolete entries in piggybank javadoc build script (mrflip via cheolsoo)
+
+PIG-3923: Gitignore file should ignore all generated artifacts (mrflip via cheolsoo)
+
+PIG-3922: Increase Forrest heap size to avoid OutOfMemoryError building docs (mrflip via cheolsoo)
+
+PIG-3916: isEmpty should not be early terminating (rohini)
 
 PIG-3859: auto local mode should not modify reducer configuration (aniket486)
 

@@ -73,6 +73,7 @@ import org.apache.pig.impl.util.UriUtil;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.DependencyOrderWalker;
 import org.apache.pig.newplan.Operator;
+import org.apache.pig.newplan.logical.Util;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionVisitor;
 import org.apache.pig.newplan.logical.expression.ScalarExpression;
@@ -1021,6 +1022,7 @@ public class PigServer {
             alias = getLastRel();
         }
         currDAG.parseQuery();
+        currDAG.skipStores(); // skip the stores that have already been processed
         currDAG.buildPlan( alias );
 
         try {
@@ -1284,6 +1286,7 @@ public class PigServer {
                 execute();
             }
             currDAG.parseQuery();
+            currDAG.skipStores();
             currDAG.buildPlan( alias );
             currDAG.compile();
         } catch (IOException e) {
@@ -1466,12 +1469,9 @@ public class PigServer {
         /**
          * Call back method for counting executed stores.
          */
-        private void countExecutedStores() {
-            for( Operator sink : lp.getSinks() ) {
-                if( sink instanceof LOStore ) {
-                    processedStores++;
-                }
-            }
+        private void countExecutedStores() throws FrontendException {
+            List<LOStore> sinks = Util.getLogicalRelationalOperators(lp, LOStore.class);
+            processedStores += sinks.size();
         }
 
         Map<LogicalRelationalOperator, LogicalPlan> getAliases() {
@@ -1543,11 +1543,21 @@ public class PigServer {
                 }
                 queue.add( op );
             } else {
-                List<Operator> sinks = lp.getSinks();
-                if( sinks != null ) {
-                    for( Operator sink : sinks ) {
-                        if( sink instanceof LOStore )
-                            queue.add( sink );
+                List<LOStore> stores = Util.getLogicalRelationalOperators(lp, LOStore.class);
+                for (LOStore op : stores) {
+                    boolean addSink = true;
+                    // Only add if all the successors are loads
+                    List<Operator> succs = lp.getSuccessors(op);
+                    if (succs != null && succs.size() > 0) {
+                        for (Operator succ : succs) {
+                            if (!(succ instanceof LOLoad)) {
+                                addSink = false;
+                                break;
+                            }
+                        }
+                    }
+                    if (addSink) {
+                        queue.add(op);
                     }
                 }
             }
@@ -1595,24 +1605,42 @@ public class PigServer {
          *  Remove stores that have been executed previously from the overall plan.
          */
         private void skipStores() throws IOException {
-            List<Operator> sinks = lp.getSinks();
+            // Get stores specifically
+            List<LOStore> sinks = Util.getLogicalRelationalOperators(lp, LOStore.class);
             List<Operator> sinksToRemove = new ArrayList<Operator>();
             int skipCount = processedStores;
             if( skipCount > 0 ) {
-                for( Operator sink : sinks ) {
-                    if( sink instanceof LOStore ) {
-                        sinksToRemove.add( sink );
-                        skipCount--;
-                        if( skipCount == 0 )
-                            break;
-                    }
+                for( LOStore sink : sinks ) {
+                    sinksToRemove.add( sink );
+                    skipCount--;
+                    if( skipCount == 0 )
+                        break;
                 }
             }
 
             for( Operator op : sinksToRemove ) {
+                // It's fully possible in the multiquery case that
+                // a store that is not a leaf (sink) and therefor has
+                // successors that need to be removed.
+                removeToLoad(op);
                 Operator pred = lp.getPredecessors( op ).get(0);
                 lp.disconnect( pred, op );
                 lp.remove( op );
+            }
+        }
+
+        private void removeToLoad(Operator toRemove) throws IOException {
+            List<Operator> successors = lp.getSuccessors(toRemove);
+            List<Operator> succToRemove = new ArrayList<Operator>();
+            if (successors != null && successors.size() > 0) {
+                succToRemove.addAll(successors);
+                for (Operator succ : succToRemove) {
+                    lp.disconnect( toRemove, succ );
+                    if (!(succ instanceof LOLoad)) {
+                        removeToLoad(succ);
+                        lp.remove(succ);
+                    }
+                }
             }
         }
 
@@ -1807,7 +1835,7 @@ public class PigServer {
                 for (LOStore store : storeOps) {
                     String ifile = load.getFileSpec().getFileName();
                     String ofile = store.getFileSpec().getFileName();
-                    if (ofile.compareTo(ifile) == 0) {
+                    if (ofile.equals(ifile)) {
                         // if there is no path from the load to the store,
                         // then connect the store to the load to create the
                         // dependency of the store on the load. If there is

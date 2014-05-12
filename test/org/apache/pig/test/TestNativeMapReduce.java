@@ -162,10 +162,6 @@ public class TestNativeMapReduce  {
 
             assertFalse(iter.hasNext());
 
-            // We have to manually delete intermediate mapreduce files
-            Util.deleteFile(cluster,"table_testNativeMRJobSimple_input");
-            Util.deleteFile(cluster,"table_testNativeMRJobSimple_output");
-
             // check in interactive mode
             iter = pigServer.openIterator("B");
 
@@ -258,9 +254,6 @@ public class TestNativeMapReduce  {
             assertTrue(exp_msg_prefix + t, results.contains(t.toString()));
 
             assertFalse(iter.hasNext());
-
-            Util.deleteFile(cluster,"table_testNativeMRJobMultiStoreOnPred_input");
-            Util.deleteFile(cluster,"table_testNativeMRJobMultiStoreOnPred_output");
 
             // check in interactive mode
             iter = pigServer.openIterator("B");

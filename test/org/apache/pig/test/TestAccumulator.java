@@ -17,6 +17,7 @@
  */
 package org.apache.pig.test;
 
+import static org.apache.pig.builtin.mock.Storage.tuple;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
@@ -25,6 +26,8 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -56,7 +59,6 @@ public class TestAccumulator {
         cluster = MiniGenericCluster.buildCluster();
         properties = cluster.getProperties();
         properties.setProperty("pig.accumulative.batchsize", "2");
-        properties.setProperty("pig.exec.batchsize", "2");
         properties.setProperty("pig.exec.nocombiner", "true");
         // Reducing the number of retry attempts to speed up test completion
         properties.setProperty("mapred.map.max.attempts","1");
@@ -416,6 +418,33 @@ public class TestAccumulator {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testAccumWithIsEmpty() throws IOException{
+        pigServer.getPigContext().getProperties().setProperty("pig.accumulative.batchsize", "1");
+        pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (id:int, fruit);");
+        pigServer.registerQuery("B = load '" + INPUT_FILE2 + "' as (id:int, fruit);");
+        pigServer.registerQuery("C = cogroup A by id outer, B by id outer;");
+        pigServer.registerQuery("D = foreach C generate group," +
+                "(int)(IsEmpty(A) ? 0 : SUM(A.id)) as suma," +
+                "(int)(IsEmpty(B) ? 0 : SUM(B.id)) as sumb;");
+
+        List<Tuple> expected = new ArrayList<Tuple>();
+        expected.add(tuple(100, 200, 200));
+        expected.add(tuple(200, 200, 400));
+        expected.add(tuple(300, 900, 300));
+        expected.add(tuple(400, 400, 0));
+
+        Iterator<Tuple> iter = pigServer.openIterator("D");
+        List<Tuple> actual = new ArrayList<Tuple>();
+
+        while(iter.hasNext()) {
+            actual.add(iter.next());
+        }
+        Collections.sort(actual);
+        assertEquals(expected, actual);
+    }
+
     @Test
     public void testAccumWithDistinct() throws IOException{
         pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (id:int, f);");
@@ -611,6 +640,7 @@ public class TestAccumulator {
         checkAccumulatorOff("C");
         pigServer.getPigContext().getProperties().setProperty(
                 PigConfiguration.OPT_ACCUMULATOR, "true");
+
     }
 
     private void checkAccumulatorOff(String alias) {
@@ -708,4 +738,6 @@ public class TestAccumulator {
                     });
         Util.checkQueryOutputsAfterSort(iter, expectedRes);
     }
+
+
 }

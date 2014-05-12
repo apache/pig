@@ -83,6 +83,8 @@ import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.builtin.REGEX_EXTRACT;
 import org.apache.pig.builtin.REGEX_EXTRACT_ALL;
 import org.apache.pig.builtin.REPLACE;
+import org.apache.pig.builtin.ROUND;
+import org.apache.pig.builtin.ROUND_TO;
 import org.apache.pig.builtin.RTRIM;
 import org.apache.pig.builtin.SIZE;
 import org.apache.pig.builtin.STRSPLIT;
@@ -1700,6 +1702,96 @@ public class TestBuiltin {
             msg = "[Testing " + func + " on input: " + input + " ( (actual) " + actual + " == " + expected + " (expected) )]";
             assertEquals(msg, actual, expected, delta);
         }
+    }
+
+    @Test
+    public void testROUND() throws Exception {
+        Double         dbl     = 0.987654321d;
+        Float          flt     = 0.987654321f;
+        EvalFunc<Long> rounder = new ROUND();
+        Tuple          tup     = TupleFactory.getInstance().newTuple(1);
+        long           expected, lng_out;
+
+        tup.set(0, dbl);
+        expected = Math.round(dbl);
+        lng_out   = rounder.exec(tup);
+        assertEquals(expected, lng_out);
+
+        tup.set(0, flt);
+        expected = Math.round(flt);
+        lng_out   = rounder.exec(tup);
+        assertEquals(expected, lng_out);
+
+        tup.set(0,  4.6d); assertEquals( 5l, lng_out = rounder.exec(tup));
+        tup.set(0,  2.4d); assertEquals( 2l, lng_out = rounder.exec(tup));
+        tup.set(0,  1.0d); assertEquals( 1l, lng_out = rounder.exec(tup));
+        tup.set(0, -1.0d); assertEquals(-1l, lng_out = rounder.exec(tup));
+        tup.set(0, -2.4d); assertEquals(-2l, lng_out = rounder.exec(tup));
+        tup.set(0, -4.6d); assertEquals(-5l, lng_out = rounder.exec(tup));
+
+        // Rounds towards positive infinity: round(x) = floor(x + 0.5)
+        tup.set(0,  3.5d); assertEquals( 4l, lng_out = rounder.exec(tup));
+        tup.set(0, -3.5d); assertEquals(-3l, lng_out = rounder.exec(tup));
+        tup.set(0,  2.5d); assertEquals( 3l, lng_out = rounder.exec(tup));
+        tup.set(0, -2.5d); assertEquals(-2l, lng_out = rounder.exec(tup));
+
+        // we don't need to test null input because of SKIP_UDF_CALL_FOR_NULL behavior
+    }
+
+    @Test
+    public void testROUND_TO() throws Exception {
+        Double           dbl_out;
+        EvalFunc<Double> rounder = new ROUND_TO();
+        Tuple            tup;
+        String           expected;
+
+        // Returns double given double
+        tup = TupleFactory.getInstance().newTuple(2);
+        tup.set(0,1234.1789d); tup.set(1, 8); expected = "1234.1789"; dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,1234.1789d); tup.set(1, 4); expected = "1234.1789"; dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,1234.1789d); tup.set(1, 2); expected = "1234.18";   dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,1234.1789d); tup.set(1, 1); expected = "1234.2";    dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,1234.1789d); tup.set(1, 0); expected = "1234.0";    dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,1234.1789d); tup.set(1,-1); expected = "1230.0";    dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,1234.1789d); tup.set(1,-3); expected = "1000.0";    dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,1234.1789d); tup.set(1,-4); expected = "0.0";       dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,1234.1789d); tup.set(1,-5); expected = "0.0";       dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+
+        // default rounding mode is round-half-to-even
+        tup.set(0,   3.25000001d); tup.set(1, 1); expected =  "3.3";  dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,   3.25d);   tup.set(1, 1); expected =  "3.2";      dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,  -3.25d);   tup.set(1, 1); expected = "-3.2";      dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,   3.15d);   tup.set(1, 1); expected =  "3.2";      dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,  -3.15d);   tup.set(1, 1); expected = "-3.2";      dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,   3.5d);    tup.set(1, 0); expected =  "4.0";      dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,  -3.5d);    tup.set(1, 0); expected = "-4.0";      dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,   2.5d);    tup.set(1, 0); expected =  "2.0";      dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,  -2.5d);    tup.set(1, 0); expected = "-2.0";      dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+
+        // Returns double given double; rounding mode is round-half-to-even (but explicitly now)
+        tup = TupleFactory.getInstance().newTuple(3);
+        tup.set(2, 6); // java.math.RoundingMode.HALF_EVEN
+        tup.set(0,   3.25d);   tup.set(1, 1); expected =  "3.2";      dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,  -3.25d);   tup.set(1, 1); expected = "-3.2";      dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,   3.15d);   tup.set(1, 1); expected =  "3.2";      dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,  -3.15d);   tup.set(1, 1); expected = "-3.2";      dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,   3.5d);    tup.set(1, 0); expected =  "4.0";      dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,  -3.5d);    tup.set(1, 0); expected = "-4.0";      dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,   2.5d);    tup.set(1, 0); expected =  "2.0";      dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,  -2.5d);    tup.set(1, 0); expected = "-2.0";      dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+
+        // Returns double given double; rounding mode is round-half-away-from-zero
+        tup = TupleFactory.getInstance().newTuple(3);
+        tup.set(2, 4); // java.math.RoundingMode.HALF_UP
+        tup.set(0,   3.25000001d); tup.set(1, 1); expected =  "3.3";  dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,   3.25d);   tup.set(1, 1); expected =  "3.3";      dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,  -3.25d);   tup.set(1, 1); expected = "-3.3";      dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,   3.15d);   tup.set(1, 1); expected =  "3.2";      dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,  -3.15d);   tup.set(1, 1); expected = "-3.2";      dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,   3.5d);    tup.set(1, 0); expected =  "4.0";      dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,  -3.5d);    tup.set(1, 0); expected = "-4.0";      dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,   2.5d);    tup.set(1, 0); expected =  "3.0";      dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
+        tup.set(0,  -2.5d);    tup.set(1, 0); expected = "-3.0";      dbl_out = rounder.exec(tup); assertEquals(expected, dbl_out.toString());
     }
 
     @Test
