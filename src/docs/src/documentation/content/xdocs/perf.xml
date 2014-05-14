@@ -1075,6 +1075,24 @@ Direct fetch is turned on by default. To turn it off set the property opt.fetch 
 </p>
 
 </section>
+
+<!-- +++++++++++++++++++++++++++++++ -->
+<section id="auto-local-mode">
+<title>Auto Local Mode</title>
+<p>Processing small mapreduce jobs on hadoop cluster could be slow as it has overhead of job startup and job scheduling. For jobs with small input data, pig can convert them to run them as in-process mapreduce with hadoop's local mode. If pig.auto.local.enabled flag is set to true, pig will convert mapreduce jobs with input data less than pig.auto.local.input.maxbytes (100MB by default) to run in local mode, provided the number of reducers required by the job are less than or equal to 1. Note, jobs converted to run in local mode load and store data from HDFS, so any job in the pig workflow(dag) could be converted to run in local mode without affecting its downstream jobs.</p>
+
+<p>You can set the values for these properties in order to configure the behavior:</p>
+
+<ul>
+<li>pig.auto.local.enabled - Turns on/off auto local mode feature (false by default).</li>
+<li>pig.auto.local.input.maxbytes - Controls the max threshold size (in bytes) to convert jobs to run in local mode (100MB by default).</li>
+</ul>
+<p></p>
+<p>
+Sometimes, you may want change job configuration for jobs that are converted to run in local mode (eg- change io.sort.mb for small jobs). To do so, you can use pig.local. prefix to any configuration and configuration will be set on converted jobs. For example, set pig.local.io.sort.mb 100 will change io.sort.mb value to 100 for jobs converted to run in local mode.
+</p>
+
+</section>
 </section>
   
 <!-- ==================================================================== -->
