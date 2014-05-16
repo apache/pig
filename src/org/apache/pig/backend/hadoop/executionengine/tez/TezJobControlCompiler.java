@@ -40,6 +40,7 @@ import org.apache.tez.dag.api.TezConfiguration;
  */
 public class TezJobControlCompiler {
     private static final Log log = LogFactory.getLog(TezJobControlCompiler.class);
+    private static int dagIdentifier = 0;
 
     private PigContext pigContext;
     private TezConfiguration tezConf;
@@ -52,7 +53,8 @@ public class TezJobControlCompiler {
     public DAG buildDAG(TezOperPlan tezPlan, Map<String, LocalResource> localResources)
             throws IOException, YarnException {
         String jobName = pigContext.getProperties().getProperty(PigContext.JOB_NAME, "pig");
-        DAG tezDag = new DAG(jobName);
+        DAG tezDag = new DAG(jobName + "-" + dagIdentifier);
+        dagIdentifier++;
         tezDag.setCredentials(new Credentials());
         TezDagBuilder dagBuilder = new TezDagBuilder(pigContext, tezPlan, tezDag, localResources);
         dagBuilder.visit();

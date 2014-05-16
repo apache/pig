@@ -614,7 +614,7 @@ public class Util {
             localFileName = localFileName.replace('\\','/');
             fileNameOnCluster = fileNameOnCluster.replace('\\','/');
         }
-        PigServer ps = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer ps = new PigServer(cluster.getExecType(), cluster.getProperties());
         String script = getMkDirCommandForHadoop2_0(fileNameOnCluster) + "fs -put " + localFileName + " " + fileNameOnCluster;
         GruntParser parser = new GruntParser(new StringReader(script), ps);
         parser.setInteractive(false);
@@ -1318,4 +1318,9 @@ public class Util {
         // null to force ScriptState gets initialized every time.
         ScriptState.start(null);
     }
+
+    public static boolean isMapredExecType(ExecType execType) {
+        return execType == ExecType.MAPREDUCE;
+    }
+
 }

@@ -91,6 +91,8 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
         int n = pigSplit.getTotalSplits();
         context.getConfiguration().setInt("pig.mapsplits.count", n);
         Configuration conf = context.getConfiguration();
+        PigContext.setPackageImportList((ArrayList<String>) ObjectSerializer
+                .deserialize(conf.get("udf.import.list")));
         LoadFunc loadFunc = getLoadFunc(pigSplit.getInputIndex(), conf);
         // Pass loader signature to LoadFunc and to InputFormat through
         // the conf

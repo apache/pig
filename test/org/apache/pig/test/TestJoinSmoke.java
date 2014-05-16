@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Iterator;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
@@ -43,11 +42,10 @@ public class TestJoinSmoke {
     private static final String SKEW_INPUT_FILE5 = "SkewedJoinInput5.txt";
 
     private PigServer pigServer;
-    private static MiniCluster cluster = MiniCluster.buildCluster();
-    private File tmpFile;
+    private static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
 
     public TestJoinSmoke() throws ExecException, IOException {
-        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
     }
 
     @Before

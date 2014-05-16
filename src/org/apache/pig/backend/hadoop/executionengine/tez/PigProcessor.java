@@ -18,6 +18,7 @@
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -77,6 +78,7 @@ public class PigProcessor implements LogicalIOProcessor {
     public static String sampleVertex;
     public static Map<String, Object> sampleMap;
 
+    @SuppressWarnings("unchecked")
     @Override
     public void initialize(TezProcessorContext processorContext)
             throws Exception {
@@ -92,8 +94,12 @@ public class PigProcessor implements LogicalIOProcessor {
 
         byte[] payload = processorContext.getUserPayload();
         conf = TezUtils.createConfFromUserPayload(payload);
+        PigContext.setPackageImportList((ArrayList<String>) ObjectSerializer
+                .deserialize(conf.get("udf.import.list")));
         PigContext pc = (PigContext) ObjectSerializer.deserialize(conf.get("pig.pigContext"));
 
+        // To determine front-end in UDFContext
+        conf.set("mapreduce.job.application.attempt.id", processorContext.getUniqueIdentifier());
         UDFContext.getUDFContext().addJobConf(conf);
         UDFContext.getUDFContext().deserialize();
 
@@ -134,6 +140,8 @@ public class PigProcessor implements LogicalIOProcessor {
         PhysicalOperator.reporter = new ThreadLocal<PigProgressable>();
         PigMapReduce.sJobConfInternal = new ThreadLocal<Configuration>();
         PigMapReduce.sJobContext = null;
+        PigContext.setPackageImportList(null);
+        UDFContext.destroy();
         execPlan = null;
         fileOutputs = null;
         leaf = null;
@@ -179,11 +187,24 @@ public class PigProcessor implements LogicalIOProcessor {
             }
 
             for (MROutput fileOutput : fileOutputs){
-                fileOutput.commit();
+                if (fileOutput.isCommitRequired()) {
+                    fileOutput.commit();
+                }
             }
         } catch (Exception e) {
+            abortOutput();
             LOG.error("Encountered exception while processing: ", e);
             throw e;
+        }
+    }
+
+    private void abortOutput() {
+        for (MROutput fileOutput : fileOutputs){
+            try {
+                fileOutput.abort();
+            } catch (IOException e) {
+                LOG.error("Encountered exception while aborting output", e);
+            }
         }
     }
 

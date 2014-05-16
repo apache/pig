@@ -128,6 +128,7 @@ public class TestPigStorage  {
             props.put(entry.getKey(), entry.getValue());
         }
         props.setProperty("mapred.max.split.size", "20");
+        Util.resetStateForExecModeSwitch();
         PigServer pigServer = new PigServer(cluster.getExecType(), props);
         String[] inputs = {
                 "abcdefgh1", "abcdefgh2", "abcdefgh3",

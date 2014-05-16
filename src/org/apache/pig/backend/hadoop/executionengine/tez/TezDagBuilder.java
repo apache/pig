@@ -36,7 +36,6 @@ import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.filecache.ClientDistributedCacheManager;
 import org.apache.hadoop.mapreduce.v2.util.MRApps;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -49,7 +48,18 @@ import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingBigDecimalWritableComparator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingBigIntegerWritableComparator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingBooleanWritableComparator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingCharArrayWritableComparator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingDBAWritableComparator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingDateTimeWritableComparator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingDoubleWritableComparator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingFloatWritableComparator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingIntWritableComparator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingLongWritableComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingPartitionWritableComparator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingTupleWritableComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigSecondaryKeyGroupComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PhyPlanSetter;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigBigDecimalRawComparator;
@@ -292,6 +302,8 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         conf.setBoolean("mapred.mapper.new-api", true);
         conf.set("pig.pigContext", ObjectSerializer.serialize(pc));
+        conf.set("udf.import.list",
+                ObjectSerializer.serialize(PigContext.getPackageImportList()));
 
         if(to.isGlobalSort() || to.isLimitAfterSort()){
             conf.set("pig.sortOrder",
@@ -314,12 +326,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS,
                     PigSecondaryKeyComparator.class.getName());
             conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS, NullableTuple.class.getName());
-            // In MR - job.setGroupingComparatorClass() or MRJobConfig.GROUP_COMPARATOR_CLASS
-            // TODO: Check why tez-mapreduce ReduceProcessor use two different tez
-            // settings for the same MRJobConfig.GROUP_COMPARATOR_CLASS and use only one
-            conf.set(TezJobConfig.TEZ_RUNTIME_GROUP_COMPARATOR_CLASS, PigSecondaryKeyGroupComparator.class.getName());
-            conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_SECONDARY_COMPARATOR_CLASS,
-                    PigSecondaryKeyGroupComparator.class.getName());
+            setGroupingComparator(conf, PigSecondaryKeyGroupComparator.class.getName());
         }
 
         if (edge.partitionerClass != null) {
@@ -359,6 +366,8 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 PigCombiner.Combine.class.getName());
         conf.setBoolean("mapred.mapper.new-api", true);
         conf.set("pig.pigContext", ObjectSerializer.serialize(pc));
+        conf.set("udf.import.list",
+                ObjectSerializer.serialize(PigContext.getPackageImportList()));
         conf.set("pig.combinePlan", ObjectSerializer.serialize(combinePlan));
         conf.set("pig.combine.package", ObjectSerializer.serialize(combPack));
         conf.set("pig.map.keytype", ObjectSerializer
@@ -404,7 +413,6 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         LinkedList<POStore> stores = processStores(tezOp, payloadConf, job);
 
         payloadConf.set("pig.pigContext", ObjectSerializer.serialize(pc));
-
         payloadConf.set("udf.import.list",
                 ObjectSerializer.serialize(PigContext.getPackageImportList()));
         payloadConf.set("exectype", "TEZ");
@@ -493,8 +501,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             TezOperator pred = mPlan.getPredecessors(tezOp).get(0);
             valueInput.setInputKey(pred.getOperatorKey().toString());
         }
-        payloadConf.setClass("mapreduce.outputformat.class",
-                PigOutputFormat.class, OutputFormat.class);
+        JobControlCompiler.setOutputFormat(payloadConf);
 
         // set parent plan in all operators. currently the parent plan is really
         // used only when POStream, POSplit are present in the plan
@@ -636,6 +643,8 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             new PigOutputFormat().checkOutputSpecs(job);
         }
 
+        // Reset udfcontext jobconf. It is not supposed to be set in the front end
+        UDFContext.getUDFContext().addJobConf(null);
         return vertex;
     }
 
@@ -817,9 +826,8 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         selectOutputComparator(keyType, conf, tezOp);
     }
 
-    static Class<? extends WritableComparator> comparatorForKeyType(byte keyType)
+    private static Class<? extends WritableComparator> comparatorForKeyType(byte keyType, boolean hasOrderBy)
             throws JobCreationException {
-        // TODO: Handle sorting like in JobControlCompiler
 
         switch (keyType) {
         case DataType.BOOLEAN:
@@ -850,7 +858,11 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             return PigTextRawComparator.class;
 
         case DataType.BYTEARRAY:
-            return PigBytesRawComparator.class;
+            //if (hasOrderBy) {
+                return PigBytesRawComparator.class;
+            //} else {
+            //    return PigDBAWritableComparator.class;
+            //}
 
         case DataType.MAP:
             int errCode = 1068;
@@ -858,7 +870,68 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             throw new JobCreationException(msg, errCode, PigException.INPUT);
 
         case DataType.TUPLE:
-            return PigTupleSortComparator.class;
+            //TODO: PigTupleWritableComparator gives wrong results with cogroup in
+            //Checkin_2 and few other e2e tests. But MR has PigTupleWritableComparator
+            //Investigate the difference later
+            //if (hasOrderBy) {
+                return PigTupleSortComparator.class;
+            //} else {
+            //    return PigTupleWritableComparator.class;
+            //}
+
+        case DataType.BAG:
+            errCode = 1068;
+            msg = "Using Bag as key not supported.";
+            throw new JobCreationException(msg, errCode, PigException.INPUT);
+
+        default:
+            errCode = 2036;
+            msg = "Unhandled key type " + DataType.findTypeName(keyType);
+            throw new JobCreationException(msg, errCode, PigException.BUG);
+        }
+    }
+
+    private static Class<? extends WritableComparator> getGroupingComparatorForKeyType(byte keyType)
+            throws JobCreationException {
+
+        switch (keyType) {
+        case DataType.BOOLEAN:
+            return PigGroupingBooleanWritableComparator.class;
+
+        case DataType.INTEGER:
+            return PigGroupingIntWritableComparator.class;
+
+        case DataType.BIGINTEGER:
+            return PigGroupingBigIntegerWritableComparator.class;
+
+        case DataType.BIGDECIMAL:
+            return PigGroupingBigDecimalWritableComparator.class;
+
+        case DataType.LONG:
+            return PigGroupingLongWritableComparator.class;
+
+        case DataType.FLOAT:
+            return PigGroupingFloatWritableComparator.class;
+
+        case DataType.DOUBLE:
+            return PigGroupingDoubleWritableComparator.class;
+
+        case DataType.DATETIME:
+            return PigGroupingDateTimeWritableComparator.class;
+
+        case DataType.CHARARRAY:
+            return PigGroupingCharArrayWritableComparator.class;
+
+        case DataType.BYTEARRAY:
+            return PigGroupingDBAWritableComparator.class;
+
+        case DataType.MAP:
+            int errCode = 1068;
+            String msg = "Using Map as key not supported.";
+            throw new JobCreationException(msg, errCode, PigException.INPUT);
+
+        case DataType.TUPLE:
+            return PigGroupingTupleWritableComparator.class;
 
         case DataType.BAG:
             errCode = 1068;
@@ -879,24 +952,22 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         if (tezOp != null && tezOp.isUseSecondaryKey()) {
             conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS,
                     PigSecondaryKeyComparator.class.getName());
-            conf.set(TezJobConfig.TEZ_RUNTIME_GROUP_COMPARATOR_CLASS,
-                    PigSecondaryKeyGroupComparator.class.getName());
-            conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_SECONDARY_COMPARATOR_CLASS,
-                    PigSecondaryKeyGroupComparator.class.getName());
+            setGroupingComparator(conf, PigSecondaryKeyGroupComparator.class.getName());
         } else {
             if (tezOp != null && tezOp.isSkewedJoin()) {
                 // TODO: PigGroupingPartitionWritableComparator only used as Group comparator in MR.
                 // What should be TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS if same as MR?
                 conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS,
                         PigGroupingPartitionWritableComparator.class.getName());
-                conf.set(TezJobConfig.TEZ_RUNTIME_GROUP_COMPARATOR_CLASS,
-                        PigGroupingPartitionWritableComparator.class.getName());
-                conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_SECONDARY_COMPARATOR_CLASS,
-                        PigGroupingPartitionWritableComparator.class.getName());
+                setGroupingComparator(conf, PigGroupingPartitionWritableComparator.class.getName());
             } else {
+                boolean hasOrderby = hasOrderby(tezOp);
                 conf.setClass(
                         TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS,
-                        comparatorForKeyType(keyType), RawComparator.class);
+                        comparatorForKeyType(keyType, hasOrderby), RawComparator.class);
+                if (!hasOrderby) {
+                    setGroupingComparator(conf, getGroupingComparatorForKeyType(keyType).getName());
+                }
             }
         }
     }
@@ -912,8 +983,32 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         } else {
             conf.setClass(
                     TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS,
-                    comparatorForKeyType(keyType), RawComparator.class);
+                    comparatorForKeyType(keyType, hasOrderby(tezOp)), RawComparator.class);
         }
+    }
+
+    private boolean hasOrderby(TezOperator tezOp) {
+        boolean hasOrderBy = tezOp.isGlobalSort() || tezOp.isLimitAfterSort();
+        if (!hasOrderBy) {
+            // Check if it is a Orderby sampler job
+            List<TezOperator> succs = getPlan().getSuccessors(tezOp);
+            if (succs != null && succs.size() == 1) {
+                if (succs.get(0).isGlobalSort()) {
+                    hasOrderBy = true;
+                }
+            }
+        }
+        return hasOrderBy;
+    }
+
+    private void setGroupingComparator(Configuration conf, String comparatorClass) {
+        // In MR - job.setGroupingComparatorClass() or MRJobConfig.GROUP_COMPARATOR_CLASS
+        // TODO: Check why tez-mapreduce ReduceProcessor use two different tez
+        // settings for the same MRJobConfig.GROUP_COMPARATOR_CLASS and use only one
+        conf.set(TezJobConfig.TEZ_RUNTIME_GROUP_COMPARATOR_CLASS,
+                comparatorClass);
+        conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_SECONDARY_COMPARATOR_CLASS,
+                comparatorClass);
     }
 
 }

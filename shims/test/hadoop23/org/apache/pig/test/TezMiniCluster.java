@@ -88,8 +88,7 @@ public class TezMiniCluster extends MiniGenericCluster {
             m_mr_conf.set("mapreduce.framework.name", "yarn-tez");
             m_mr_conf.set(YarnConfiguration.YARN_APPLICATION_CLASSPATH,
                     System.getProperty("java.class.path"));
-            // TODO PIG-3659 - Remove this once memory management is fixed
-            // m_mr_conf.set(MRJobConfig.MAP_JAVA_OPTS, "-Xmx384M");// -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8005 -Xnoagent -Djava.compiler=NONE");
+
             m_mr_conf.writeXml(new FileOutputStream(MAPRED_CONF_FILE));
             m_fileSys.copyFromLocalFile(
                     new Path(MAPRED_CONF_FILE.getAbsoluteFile().toString()),
@@ -132,6 +131,9 @@ public class TezMiniCluster extends MiniGenericCluster {
                             new Path("/tez/lib"));
                 }
             }
+
+            // Turn FetchOptimizer off so that we can actually test Tez
+            m_conf.set(PigConfiguration.OPT_FETCH, System.getProperty("test.opt.fetch", "false"));
 
             System.setProperty("junit.hadoop.conf", CONF_DIR.getPath());
             System.setProperty("hadoop.log.dir", "build/test/logs");

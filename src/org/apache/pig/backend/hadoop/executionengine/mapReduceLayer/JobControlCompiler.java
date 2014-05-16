@@ -690,26 +690,7 @@ public class JobControlCompiler{
                 }
             }
 
-            // the OutputFormat we report to Hadoop is always PigOutputFormat which
-            // can be wrapped with LazyOutputFormat provided if it is supported by
-            // the Hadoop version and PigConfiguration.PIG_OUTPUT_LAZY is set
-            if ("true".equalsIgnoreCase(conf.get(PigConfiguration.PIG_OUTPUT_LAZY))) {
-                try {
-                    Class<?> clazz = PigContext.resolveClassName(
-                            "org.apache.hadoop.mapreduce.lib.output.LazyOutputFormat");
-                    Method method = clazz.getMethod("setOutputFormatClass", nwJob.getClass(),
-                            Class.class);
-                    method.invoke(null, nwJob, PigOutputFormat.class);
-                }
-                catch (Exception e) {
-                    nwJob.setOutputFormatClass(PigOutputFormat.class);
-                    log.warn(PigConfiguration.PIG_OUTPUT_LAZY
-                            + " is set but LazyOutputFormat couldn't be loaded. Default PigOutputFormat will be used");
-                }
-            }
-            else {
-                nwJob.setOutputFormatClass(PigOutputFormat.class);
-            }
+            setOutputFormat((JobConf) nwJob.getConfiguration());
 
             if (mapStores.size() + reduceStores.size() == 1) { // single store case
                 log.info("Setting up single store job");
@@ -1886,6 +1867,27 @@ public class JobControlCompiler{
                     replaced = true;
                 }
             }
+        }
+    }
+
+    public static void setOutputFormat(JobConf conf) {
+        // the OutputFormat we report to Hadoop is always PigOutputFormat which
+        // can be wrapped with LazyOutputFormat provided if it is supported by
+        // the Hadoop version and PigConfiguration.PIG_OUTPUT_LAZY is set
+        if ("true".equalsIgnoreCase(conf.get(PigConfiguration.PIG_OUTPUT_LAZY))) {
+            try {
+                Class<?> clazz = PigContext
+                        .resolveClassName("org.apache.hadoop.mapreduce.lib.output.LazyOutputFormat");
+                Method method = clazz.getMethod("setOutputFormatClass",
+                        JobConf.class, Class.class);
+                method.invoke(null, conf, PigOutputFormat.class);
+            } catch (Exception e) {
+                conf.set("mapreduce.outputformat.class", PigOutputFormat.class.getName());
+                log.warn(PigConfiguration.PIG_OUTPUT_LAZY
+                        + " is set but LazyOutputFormat couldn't be loaded. Default PigOutputFormat will be used");
+            }
+        } else {
+            conf.set("mapreduce.outputformat.class", PigOutputFormat.class.getName());
         }
     }
 

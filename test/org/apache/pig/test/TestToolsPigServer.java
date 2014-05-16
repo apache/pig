@@ -27,7 +27,6 @@ import java.io.File;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
 import org.apache.pig.builtin.PigStorage;
@@ -40,12 +39,12 @@ import org.junit.Test;
 
 public class TestToolsPigServer {
     private ToolsPigServer pig = null;
-    static MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
     private File stdOutRedirectedFile;
 
     @Before
     public void setUp() throws Exception{
-        pig = new ToolsPigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pig = new ToolsPigServer(cluster.getExecType(), cluster.getProperties());
         stdOutRedirectedFile = new File("stdout.redirected");
         // Create file if it does not exist
         if(!stdOutRedirectedFile.createNewFile())

@@ -140,27 +140,27 @@ public class POFRJoinTez extends POFRJoin implements TezInput {
         long time1 = System.currentTimeMillis();
 
         replicates[fragment] = null;
-        int currIdx = 0;
-        while (currIdx < replInputs.size()) {
-            // We need to adjust the index because the number of replInputs is
-            // one less than the number of inputSchemas. The inputSchemas
-            // includes the fragmented table.
-            int adjustedIdx = currIdx == fragment ? currIdx + 1 : currIdx;
-            SchemaTupleFactory inputSchemaTupleFactory = inputSchemaTupleFactories[adjustedIdx];
-            SchemaTupleFactory keySchemaTupleFactory = keySchemaTupleFactories[adjustedIdx];
+        int inputIdx = 0;
+        // We need to adjust the index because the number of replInputs is
+        // one less than the number of inputSchemas. The inputSchemas
+        // includes the fragmented table.
+        int schemaIdx = 1;
+        while (inputIdx < replInputs.size()) {
+            SchemaTupleFactory inputSchemaTupleFactory = inputSchemaTupleFactories[schemaIdx];
+            SchemaTupleFactory keySchemaTupleFactory = keySchemaTupleFactories[schemaIdx];
 
             TupleToMapKey replicate = new TupleToMapKey(4000, keySchemaTupleFactory);
-            POLocalRearrange lr = LRs[adjustedIdx];
+            POLocalRearrange lr = LRs[schemaIdx];
 
             try {
-                while (replReaders.get(currIdx).next()) {
+                while (replReaders.get(inputIdx).next()) {
                     if (getReporter() != null) {
                         getReporter().progress();
                     }
 
-                    PigNullableWritable key = (PigNullableWritable) replReaders.get(currIdx).getCurrentKey();
+                    PigNullableWritable key = (PigNullableWritable) replReaders.get(inputIdx).getCurrentKey();
                     if (isKeyNull(key.getValueAsPigType())) continue;
-                    NullableTuple val = (NullableTuple) replReaders.get(currIdx).getCurrentValue();
+                    NullableTuple val = (NullableTuple) replReaders.get(inputIdx).getCurrentValue();
 
                     // POFRJoin#getValueTuple() is reused to construct valTuple,
                     // and it takes an indexed Tuple as parameter. So we need to
@@ -181,8 +181,9 @@ public class POFRJoinTez extends POFRJoin implements TezInput {
             } catch (IOException e) {
                 throw new ExecException(e);
             }
-            replicates[adjustedIdx] = replicate;
-            currIdx++;
+            replicates[schemaIdx] = replicate;
+            inputIdx++;
+            schemaIdx++;
         }
 
         long time2 = System.currentTimeMillis();

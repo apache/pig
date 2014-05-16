@@ -115,8 +115,7 @@ public class POStoreTez extends POStore implements TezOutput, TezTaskConfigurabl
             switch (res.returnStatus) {
             case POStatus.STATUS_OK:
                 if (illustrator == null) {
-                    // TODO: What if the storeFunc.putNext does not write null
-                    // for the key? But this seems to be the behaviour in MR also
+                    // PigOutputFormat.PigRecordWriter will call storeFunc.putNext
                     writer.write(null, res.result);
                 } else
                     illustratorMarkup(res.result, res.result, 0);

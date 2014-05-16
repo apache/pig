@@ -221,6 +221,7 @@ public class CombinerOptimizerUtil {
                 CombinerPackager pkgr = new CombinerPackager(pack.getPkgr(), bags);
                 POPackage combinePack = pack.clone();
                 combinePack.setPkgr(pkgr);
+                combinePack.setParentPlan(null);
 
                 combinePlan.add(combinePack);
                 combinePlan.add(cfe);
@@ -251,7 +252,7 @@ public class CombinerOptimizerUtil {
                 // and combine plan to contain just the project of the key).
                 patchUpMap(mapPlan, getPreCombinerLR(rearrange), mfe, mapAgg, mlr);
                 POLocalRearrange clr = getNewRearrange(rearrange);
-
+                clr.setParentPlan(null);
                 combinePlan.add(clr);
                 combinePlan.connect(cfe, clr);
 

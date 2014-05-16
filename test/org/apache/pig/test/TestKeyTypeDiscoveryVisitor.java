@@ -22,7 +22,6 @@ import static org.junit.Assert.assertFalse;
 
 import java.util.Iterator;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.Tuple;
@@ -38,7 +37,7 @@ import org.junit.Test;
  */
 public class TestKeyTypeDiscoveryVisitor {
 
-    static MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
     private PigServer pigServer;
 
     TupleFactory mTf = TupleFactory.getInstance();
@@ -46,7 +45,7 @@ public class TestKeyTypeDiscoveryVisitor {
 
     @Before
     public void setUp() throws Exception{
-        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties()); //TODO this doesn't need to be M/R mode
+        pigServer = new PigServer(cluster.getExecType(), cluster.getProperties()); //TODO this doesn't need to be M/R mode
     }
 
     @AfterClass

@@ -34,9 +34,6 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.util.JavaCompilerHelper;
-import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.pig.tools.pigstats.ScriptState;
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -61,6 +58,7 @@ public class TestPigContext {
 
     @Before
     public void setUp() throws Exception {
+        Util.resetStateForExecModeSwitch();
         pigContext = new PigContext(ExecType.LOCAL, getProperties());
         input = File.createTempFile("PigContextTest-", ".txt");
     }
@@ -152,6 +150,7 @@ public class TestPigContext {
         int status = Util.executeJavaCommand("jar -cf " + jarFile +
                 " -C " + tmpDir.getAbsolutePath() + " " + "com");
         assertEquals(0, status);
+        Util.resetStateForExecModeSwitch();
         PigContext localPigContext = new PigContext(cluster.getExecType(), properties);
 
         // register jar using properties

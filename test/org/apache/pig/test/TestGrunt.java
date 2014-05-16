@@ -54,12 +54,13 @@ import org.apache.pig.test.Util.ProcessReturnInfo;
 import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestGrunt {
 
-    static MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
     private String basedir = "test/org/apache/pig/test/data";
 
     @BeforeClass
@@ -72,10 +73,15 @@ public class TestGrunt {
         cluster.shutDown();
     }
 
+    @Before
+    public void setup() {
+        Util.resetStateForExecModeSwitch();
+    }
+
 
     @Test
     public void testCopyFromLocal() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "copyFromLocal README.txt sh_copy ;";
@@ -91,7 +97,7 @@ public class TestGrunt {
 
     @Test
     public void testDefine() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "define myudf org.apache.pig.builtin.AVG();\n";
@@ -111,7 +117,7 @@ public class TestGrunt {
 
     @Test
     public void testBagSchema() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "a = load 'input1' as (b: bag{t:(i: int, c:chararray, f: float)});\n";
@@ -126,7 +132,7 @@ public class TestGrunt {
 
     @Test
     public void testBagSchemaFail() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "a = load 'input1'as (b: bag{t:(i: int, c:chararray, f: float)});\n";
@@ -147,7 +153,7 @@ public class TestGrunt {
 
     @Test
     public void testBagConstant() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "a = load 'input1'; b = foreach a generate {(1, '1', 0.4f),(2, '2', 0.45)};\n";
@@ -162,7 +168,7 @@ public class TestGrunt {
 
     @Test
     public void testBagConstantWithSchema() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "a = load 'input1'; b = foreach a generate "
@@ -179,7 +185,7 @@ public class TestGrunt {
 
     @Test
     public void testBagConstantInForeachBlock() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "a = load 'input1'; "
@@ -195,7 +201,7 @@ public class TestGrunt {
 
     @Test
     public void testBagConstantWithSchemaInForeachBlock() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "a = load 'input1'; "
@@ -212,7 +218,7 @@ public class TestGrunt {
 
     @Test
     public void testParsingAsInForeachBlock() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "a = load 'foo' as (foo, fast); "
@@ -229,7 +235,7 @@ public class TestGrunt {
 
     @Test
     public void testParsingAsInForeachWithOutBlock() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "a = load 'foo' as (foo, fast); "
@@ -245,7 +251,7 @@ public class TestGrunt {
 
     @Test
     public void testParsingWordWithAsInForeachBlock() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "a = load 'foo' as (foo, fast); "
@@ -261,7 +267,7 @@ public class TestGrunt {
 
     @Test
     public void testParsingWordWithAsInForeachWithOutBlock() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "a = load 'foo' as (foo, fast); "
@@ -277,7 +283,7 @@ public class TestGrunt {
 
     @Test
     public void testParsingWordWithAsInForeachWithOutBlock2() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "cash = load 'foo' as (foo, fast); "
@@ -294,7 +300,7 @@ public class TestGrunt {
 
     @Test
     public void testParsingGenerateInForeachBlock() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "a = load 'foo' as (foo, fast, regenerate); "
@@ -310,7 +316,7 @@ public class TestGrunt {
 
     @Test
     public void testParsingGenerateInForeachWithOutBlock() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "a = load 'foo' as (foo, fast, regenerate); "
@@ -326,7 +332,7 @@ public class TestGrunt {
 
     @Test
     public void testParsingAsGenerateInForeachBlock() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "a = load 'foo' as (foo, fast, regenerate); "
@@ -345,7 +351,7 @@ public class TestGrunt {
 
     @Test
     public void testParsingAsGenerateInForeachWithOutBlock() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "a = load 'foo' as (foo, fast, regenerate); "
@@ -364,7 +370,7 @@ public class TestGrunt {
 
     @Test
     public void testRunStatment() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "a = load 'foo' as (foo, fast, regenerate);"
@@ -381,7 +387,7 @@ public class TestGrunt {
 
     @Test
     public void testExecStatment() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
         boolean caught = false;
 
@@ -405,7 +411,7 @@ public class TestGrunt {
 
     @Test
     public void testRunStatmentNested() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "a = load 'foo' as (foo, fast, regenerate); run "
@@ -421,7 +427,7 @@ public class TestGrunt {
 
     @Test
     public void testExecStatmentNested() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
         boolean caught = false;
 
@@ -444,7 +450,7 @@ public class TestGrunt {
 
     @Test
     public void testErrorLineNumber() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "A = load 'x' as ( u:int, v:chararray );\n" +
@@ -469,7 +475,7 @@ public class TestGrunt {
 
     @Test
     public void testExplainEmpty() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "a = load 'foo' as (foo, fast, regenerate); run "
@@ -485,7 +491,7 @@ public class TestGrunt {
 
     @Test
     public void testExplainScript() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "a = load 'foo' as (foo, fast, regenerate); explain -script "
@@ -510,7 +516,7 @@ public class TestGrunt {
      */
     @Test
     public void testExplainScriptIsEachStatementValidated() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "a = load 'foo' as (foo, fast, regenerate);" +
@@ -648,7 +654,7 @@ public class TestGrunt {
     @Test
     public void testExplainScript2() throws Throwable {
 
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "explain -script "
@@ -693,7 +699,7 @@ public class TestGrunt {
 
     @Test
     public void testExplainBrief() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "a = load 'foo' as (foo, fast, regenerate); explain -brief -script "
@@ -709,7 +715,7 @@ public class TestGrunt {
 
     @Test
     public void testExplainDot() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "a = load 'foo' as (foo, fast, regenerate); explain -dot -script "
@@ -725,7 +731,7 @@ public class TestGrunt {
 
     @Test
     public void testExplainOut() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "a = load 'foo' as (foo, fast, regenerate); explain -out /tmp -script "
@@ -741,7 +747,7 @@ public class TestGrunt {
 
     @Test
     public void testPartialExecution() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
         FileLocalizer.setInitialized(false);
 
@@ -762,7 +768,7 @@ public class TestGrunt {
 
     @Test
     public void testFileCmds() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd =
@@ -793,7 +799,7 @@ public class TestGrunt {
 
     @Test
     public void testCD() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd =
@@ -818,7 +824,7 @@ public class TestGrunt {
 
     @Test
     public void testDump() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd =
@@ -842,7 +848,8 @@ public class TestGrunt {
 
     @Test
     public void testIllustrate() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        if (!Util.isMapredExecType(cluster.getExecType())) return;
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd =
@@ -866,7 +873,8 @@ public class TestGrunt {
 
     @Test
     public void testKeepGoing() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        if (!Util.isMapredExecType(cluster.getExecType())) return;
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
 
         PigContext context = server.getPigContext();
 
@@ -896,7 +904,7 @@ public class TestGrunt {
 
     @Test
     public void testKeepGoigFailed() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
         Util.copyFromLocalToCluster(cluster, "test/org/apache/pig/test/data/passwd", "passwd");
         String strCmd =
@@ -953,7 +961,8 @@ public class TestGrunt {
 
     @Test
     public void testStopOnFailure() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        if (!Util.isMapredExecType(cluster.getExecType())) return;
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
         context.getProperties().setProperty("stop.on.failure", ""+true);
 
@@ -990,7 +999,7 @@ public class TestGrunt {
     @Test
     public void testFsCommand() throws Throwable {
 
-        PigServer server = new PigServer(ExecType.MAPREDUCE,cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(),cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd =
@@ -1018,7 +1027,7 @@ public class TestGrunt {
     public void testShellCommand(){
 
         try {
-            PigServer server = new PigServer(ExecType.MAPREDUCE,cluster.getProperties());
+            PigServer server = new PigServer(cluster.getExecType(),cluster.getProperties());
             PigContext context = server.getPigContext();
 
             String strRemoveFile = "rm";
@@ -1143,7 +1152,7 @@ public class TestGrunt {
 
     @Test
     public void testSetPriority() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "set job.priority high\n";
@@ -1159,7 +1168,7 @@ public class TestGrunt {
 
     @Test
     public void testSetWithQuotes() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "set job.priority 'high'\n";
@@ -1175,7 +1184,7 @@ public class TestGrunt {
 
     @Test
     public void testRegisterWithQuotes() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "register 'pig-withouthadoop.jar'\n";
@@ -1192,7 +1201,7 @@ public class TestGrunt {
 
     @Test
     public void testRegisterWithoutQuotes() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "register pig-withouthadoop.jar\n";
@@ -1218,7 +1227,7 @@ public class TestGrunt {
 
         Util.createLocalInputFile( "testRegisterScripts.py", script);
 
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String strCmd = "register testRegisterScripts.py using jython as pig\n";
@@ -1256,7 +1265,7 @@ public class TestGrunt {
     // than an unrelated EOF error message
     @Test
     public void testBlockErrMessage() throws Throwable {
-        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
         String script = "A = load 'inputdata' using PigStorage() as ( curr_searchQuery );\n" +

@@ -55,10 +55,10 @@ public class TestFRJoin {
     private static final String INPUT_FILE = "testFrJoinInput.txt";
     private static final String INPUT_FILE2 = "testFrJoinInput2.txt";
     private PigServer pigServer;
-    private static MiniCluster cluster = MiniCluster.buildCluster();
+    private static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
 
     public TestFRJoin() throws ExecException, IOException {
-        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
     }
 
     @Before
@@ -126,11 +126,10 @@ public class TestFRJoin {
             pc.connect();
 
             ld.setPc(pc);
-            Tuple dummyTuple = null;
             for (Result res = ld.getNextTuple(); res.returnStatus != POStatus.STATUS_EOP; res = ld
                     .getNextTuple()) {
                 Tuple tup = (Tuple)res.result;
-                LoadFunc lf = ((LoadFunc)pc.instantiateFuncFromSpec(ld.getLFile().getFuncSpec()));
+                LoadFunc lf = ((LoadFunc)PigContext.instantiateFuncFromSpec(ld.getLFile().getFuncSpec()));
                 String key = lf.getLoadCaster().bytesToCharArray(
                         ((DataByteArray)tup.get(keyField)).get());
                 Tuple csttup = TupleFactory.getInstance().newTuple(2);
@@ -530,6 +529,7 @@ public class TestFRJoin {
         Schema frjSch = null, shjSch = null;
         pigServer.registerQuery("C = join A by $0, B by $0 using 'repl';");
         frjSch = pigServer.dumpSchema("C");
+        assertNull(frjSch);
         pigServer.registerQuery("C = join A by $0, B by $0;");
         shjSch = pigServer.dumpSchema("C");
         assertNull(shjSch);
@@ -556,6 +556,7 @@ public class TestFRJoin {
         Schema frjSch = null, shjSch = null;
         pigServer.registerQuery("D = join A by $0, B by $0, C by $0 using 'repl';");
         frjSch = pigServer.dumpSchema("D");
+        assertNull(frjSch);
         pigServer.registerQuery("D = join A by $0, B by $0, C by $0;");
         shjSch = pigServer.dumpSchema("D");
         assertNull(shjSch);
@@ -580,6 +581,7 @@ public class TestFRJoin {
         Schema frjSch = null, shjSch = null;
         pigServer.registerQuery("C = join A by ($0,$1), B by ($0,$1) using 'repl';");
         frjSch = pigServer.dumpSchema("C");
+        assertNull(frjSch);
         pigServer.registerQuery("C = join A by ($0,$1), B by ($0,$1);");
         shjSch = pigServer.dumpSchema("C");
         assertNull(shjSch);
