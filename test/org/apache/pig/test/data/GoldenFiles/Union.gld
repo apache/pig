@@ -1,4 +1,4 @@
-test-22: Store()
+A: Store()
 |
 |---A: Union[bag] - scope-153
     |

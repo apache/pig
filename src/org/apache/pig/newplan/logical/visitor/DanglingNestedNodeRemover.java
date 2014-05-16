@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.pig.newplan.logical.optimizer;
+package org.apache.pig.newplan.logical.visitor;
 
 import java.util.ArrayList;
 import java.util.Iterator;

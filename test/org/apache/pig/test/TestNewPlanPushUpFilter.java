@@ -17,6 +17,7 @@
  */
 package org.apache.pig.test;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -52,6 +53,7 @@ import org.apache.pig.newplan.optimizer.PlanTransformListener;
 import org.apache.pig.newplan.optimizer.Rule;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
@@ -59,6 +61,11 @@ import org.junit.Test;
  */
 public class TestNewPlanPushUpFilter {
     PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
+
+    @BeforeClass
+    public static void oneTimeSetup() throws Exception {
+        new File("dummy").delete();
+    }
 
     @Before
     public void tearDown() {

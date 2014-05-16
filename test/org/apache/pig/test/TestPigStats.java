@@ -166,6 +166,7 @@ public class TestPigStats  {
             pig.registerQuery("store E into 'alias_output';");
             
             LogicalPlan lp = getLogicalPlan(pig);
+            lp.optimize(pig.getPigContext());
             PhysicalPlan pp = ((MRExecutionEngine)pig.getPigContext().getExecutionEngine()).compile(lp,
                     null);
             MROperPlan mp = getMRPlan(pp, pig.getPigContext());

@@ -22,7 +22,6 @@ import java.io.IOException;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigOutputFormat;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
-import org.apache.pig.newplan.logical.rules.InputOutputFileValidator;
 
 /**
  * A {@link StoreFunc} should implement this interface to enable overwriting its

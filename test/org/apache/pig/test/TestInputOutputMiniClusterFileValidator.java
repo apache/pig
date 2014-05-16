@@ -49,7 +49,7 @@ import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
-import org.apache.pig.newplan.logical.rules.InputOutputFileValidator;
+import org.apache.pig.newplan.logical.visitor.InputOutputFileValidatorVisitor;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
@@ -78,8 +78,8 @@ public class TestInputOutputMiniClusterFileValidator {
 
         LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getDfs()) ;
 
-        InputOutputFileValidator executor = new InputOutputFileValidator(plan, ctx) ;
-        executor.validate() ;
+        InputOutputFileValidatorVisitor executor = new InputOutputFileValidatorVisitor(plan, ctx) ;
+        executor.visit() ;
     }
 
     @Test
@@ -89,9 +89,9 @@ public class TestInputOutputMiniClusterFileValidator {
 
         LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getDfs()) ;
 
-        InputOutputFileValidator executor = new InputOutputFileValidator(plan, ctx) ;
+        InputOutputFileValidatorVisitor executor = new InputOutputFileValidatorVisitor(plan, ctx) ;
         try {
-            executor.validate() ;
+            executor.visit() ;
             fail("Excepted to fail.");
         } catch(Exception e) {
             //good

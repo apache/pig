@@ -784,13 +784,7 @@ public class TestProjectRange  {
     private LogicalPlan createAndProcessLPlan(String query) throws FrontendException {
         //TODO: create a common util function for logical plan tests
         LogicalPlan lp = generateLogicalPlan(query);
-        new ColumnAliasConversionVisitor( lp ).visit();
-        new SchemaAliasVisitor( lp ).visit();
-
-        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-        new TypeCheckingRelVisitor( lp, collector).visit();
-        new UnionOnSchemaSetter( lp ).visit();
-        new CastLineageSetter(lp, collector).visit();
+        lp.validate(pigServer.getPigContext(), "test");
 
         return lp;
 

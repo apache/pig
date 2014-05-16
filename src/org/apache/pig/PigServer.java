@@ -63,8 +63,6 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileLocalizer.FetchFileRet;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.plan.CompilationMessageCollector;
-import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.PropertiesUtil;
@@ -78,7 +76,6 @@ import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionVisitor;
 import org.apache.pig.newplan.logical.expression.ScalarExpression;
 import org.apache.pig.newplan.logical.optimizer.AllExpressionVisitor;
-import org.apache.pig.newplan.logical.optimizer.DanglingNestedNodeRemover;
 import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LOStore;
@@ -86,15 +83,6 @@ import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalPlanData;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
-import org.apache.pig.newplan.logical.visitor.CastLineageSetter;
-import org.apache.pig.newplan.logical.visitor.ColumnAliasConversionVisitor;
-import org.apache.pig.newplan.logical.visitor.DuplicateForEachColumnRewriteVisitor;
-import org.apache.pig.newplan.logical.visitor.ImplicitSplitInsertVisitor;
-import org.apache.pig.newplan.logical.visitor.ScalarVariableValidator;
-import org.apache.pig.newplan.logical.visitor.ScalarVisitor;
-import org.apache.pig.newplan.logical.visitor.SchemaAliasVisitor;
-import org.apache.pig.newplan.logical.visitor.TypeCheckingRelVisitor;
-import org.apache.pig.newplan.logical.visitor.UnionOnSchemaSetter;
 import org.apache.pig.parser.QueryParserDriver;
 import org.apache.pig.parser.QueryParserUtils;
 import org.apache.pig.pen.ExampleGenerator;
@@ -107,7 +95,6 @@ import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.apache.pig.tools.pigstats.ScriptState;
 import org.apache.pig.validator.BlackAndWhitelistFilter;
-import org.apache.pig.validator.BlackAndWhitelistValidator;
 import org.apache.pig.validator.PigCommandFilter;
 
 /**
@@ -152,8 +139,6 @@ public class PigServer {
     private final static AtomicInteger scopeCounter = new AtomicInteger(0);
 
     protected final String scope = constructScope();
-
-    private boolean aggregateWarning = true;
 
     private boolean validateEachStatement = false;
     private boolean skipParseInRegisterForBatch = false;
@@ -221,8 +206,6 @@ public class PigServer {
     public PigServer(PigContext context, boolean connect) throws ExecException {
         this.pigContext = context;
         currDAG = new Graph(false);
-
-        aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
 
         jobName = pigContext.getProperties().getProperty(
                 PigContext.JOB_NAME,
@@ -793,6 +776,7 @@ public class PigServer {
      */
     public Schema dumpSchema(String alias) throws IOException {
         try {
+            pigContext.inDumpSchema = true;
             if ("@".equals(alias)) {
                 alias = getLastRel();
             }
@@ -814,6 +798,8 @@ public class PigServer {
             int errCode = 1001;
             String msg = "Unable to describe schema for alias " + alias;
             throw new FrontendException (msg, errCode, PigException.INPUT, false, null, fee);
+        } finally {
+            pigContext.inDumpSchema = false;
         }
     }
 
@@ -827,26 +813,31 @@ public class PigServer {
      * @throws IOException
      */
     public Schema dumpSchemaNested(String alias, String nestedAlias) throws IOException {
-        if ("@".equals(alias)) {
-            alias = getLastRel();
-        }
-        Operator op = getOperatorForAlias( alias );
-        if( op instanceof LOForEach ) {
-            LogicalSchema nestedSc = ((LOForEach)op).dumpNestedSchema(alias, nestedAlias);
-            if (nestedSc!=null) {
-                Schema s = org.apache.pig.newplan.logical.Util.translateSchema(nestedSc);
-                System.out.println(alias+ "::" + nestedAlias + ": " + s.toString());
-                return s;
+        try {
+            pigContext.inDumpSchema = true;
+            if ("@".equals(alias)) {
+                alias = getLastRel();
+            }
+            Operator op = getOperatorForAlias( alias );
+            if( op instanceof LOForEach ) {
+                LogicalSchema nestedSc = ((LOForEach)op).dumpNestedSchema(alias, nestedAlias);
+                if (nestedSc!=null) {
+                    Schema s = org.apache.pig.newplan.logical.Util.translateSchema(nestedSc);
+                    System.out.println(alias+ "::" + nestedAlias + ": " + s.toString());
+                    return s;
+                }
+                else {
+                    System.out.println("Schema for "+ alias+ "::" + nestedAlias + " unknown.");
+                    return null;
+                }
             }
             else {
-                System.out.println("Schema for "+ alias+ "::" + nestedAlias + " unknown.");
-                return null;
+                int errCode = 1001;
+                String msg = "Unable to describe schema for " + alias + "::" + nestedAlias;
+                throw new FrontendException (msg, errCode, PigException.INPUT, false, null);
             }
-        }
-        else {
-            int errCode = 1001;
-            String msg = "Unable to describe schema for " + alias + "::" + nestedAlias;
-            throw new FrontendException (msg, errCode, PigException.INPUT, false, null);
+        } finally {
+            pigContext.inDumpSchema = false;
         }
     }
 
@@ -1065,6 +1056,7 @@ public class PigServer {
         try {
             pigContext.inExplain = true;
             buildStorePlan( alias );
+            currDAG.lp.optimize(pigContext);
 
             //Only add root xml node if all plans are being written to same stream.
             if (format == "xml" && lps == eps) {
@@ -1355,9 +1347,7 @@ public class PigServer {
             FrontendException {
         // discover pig features used in this script
         ScriptState.get().setScriptFeatures(currDAG.lp);
-
-        BlackAndWhitelistValidator validator = new BlackAndWhitelistValidator(getPigContext(), currDAG.lp);
-        validator.validate();
+        currDAG.lp.optimize(pigContext);
 
         return launchPlan(currDAG.lp, "job_pigexec_");
     }
@@ -1692,7 +1682,7 @@ public class PigServer {
             QueryParserDriver parserDriver = new QueryParserDriver( pigContext, scope, fileNameMap );
             try {
                 LogicalPlan plan = parserDriver.parse( query );
-                compile( plan );
+                plan.validate(pigContext, scope);
             } catch(FrontendException ex) {
                 scriptCache.remove( scriptCache.size() -1 );
                 throw ex;
@@ -1751,41 +1741,8 @@ public class PigServer {
         }
 
         private void compile() throws IOException {
-            compile( lp );
+            lp.validate(pigContext, scope);
             currDAG.postProcess();
-        }
-
-        private void compile(LogicalPlan lp) throws FrontendException  {
-            DanglingNestedNodeRemover DanglingNestedNodeRemover = new DanglingNestedNodeRemover( lp );
-            DanglingNestedNodeRemover.visit();
-
-            new ColumnAliasConversionVisitor(lp).visit();
-            new SchemaAliasVisitor(lp).visit();
-            new ScalarVisitor(lp, pigContext, scope).visit();
-
-            // ImplicitSplitInsertVisitor has to be called before
-            // DuplicateForEachColumnRewriteVisitor.  Detail at pig-1766
-            new ImplicitSplitInsertVisitor(lp).visit();
-
-            // DuplicateForEachColumnRewriteVisitor should be before
-            // TypeCheckingRelVisitor which does resetSchema/getSchema
-            // heavily
-            new DuplicateForEachColumnRewriteVisitor(lp).visit();
-
-            CompilationMessageCollector collector = new CompilationMessageCollector() ;
-
-            new TypeCheckingRelVisitor( lp, collector).visit();
-            new UnionOnSchemaSetter( lp ).visit();
-            new CastLineageSetter(lp, collector).visit();
-            new ScalarVariableValidator(lp).visit();
-            if(aggregateWarning) {
-                CompilationMessageCollector.logMessages(collector, MessageType.Warning, aggregateWarning, log);
-            } else {
-                for(Enum type: MessageType.values()) {
-                    CompilationMessageCollector.logAllMessages(collector, log);
-                }
-            }
-
         }
 
         private void postProcess() throws IOException {
