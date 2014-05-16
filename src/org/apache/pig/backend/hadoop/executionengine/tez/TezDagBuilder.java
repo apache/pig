@@ -690,8 +690,9 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 // Now add the input handling operator for the Tez backend
                 // TODO: Move this upstream to the PhysicalPlan generation
                 POSimpleTezLoad tezLoad = new POSimpleTezLoad(new OperatorKey(
-                        scope, nig.getNextNodeId(scope)));
+                        scope, nig.getNextNodeId(scope)), ld.getLFile());
                 tezLoad.setInputKey(ld.getOperatorKey().toString());
+                tezLoad.setAlias(ld.getAlias());
                 tezOp.plan.add(tezLoad);
                 for (PhysicalOperator sucs : ldSucs) {
                     tezOp.plan.connect(tezLoad, sucs);

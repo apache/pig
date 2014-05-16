@@ -190,6 +190,9 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
                         int fromPos,
                         Operator to,
                         int toPos) {
+        if( isConnected( from, to ) || from == null || to == null) {
+            return;
+        }
         markDirty();
         fromEdges.put(from, to, fromPos);
         toEdges.put(to, from, toPos);
@@ -211,9 +214,9 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
      * @param to Operator edge will go to
      */
     public void connect(Operator from, Operator to) {
-    	if( isConnected( from, to ) )
-    		return;
-    	
+        if( isConnected( from, to ) || from == null || to == null) {
+            return;
+        }
         markDirty();
         fromEdges.put(from, to);
         toEdges.put(to, from);

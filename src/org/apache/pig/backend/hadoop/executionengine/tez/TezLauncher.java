@@ -42,6 +42,10 @@ import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.tez.TezStats;
+import org.apache.pig.tools.pigstats.tez.TezTaskStats;
+import org.apache.pig.tools.pigstats.tez.TezScriptState;
+import org.apache.tez.common.TezUtils;
+import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.TezConfiguration;
 
 /**
@@ -51,6 +55,8 @@ public class TezLauncher extends Launcher {
 
     private static final Log log = LogFactory.getLog(TezLauncher.class);
     private boolean aggregateWarning = false;
+    private TezScriptState tezScriptState;
+    private TezStats tezStats;
 
     @Override
     public PigStats launchPig(PhysicalPlan php, String grpName, PigContext pc) throws Exception {
@@ -66,7 +72,8 @@ public class TezLauncher extends Launcher {
 
         List<TezOperPlan> processedPlans = new ArrayList<TezOperPlan>();
 
-        TezStats tezStats = new TezStats(pc);
+        tezScriptState = TezScriptState.get();
+        tezStats = new TezStats(pc);
         PigStats.start(tezStats);
 
         TezJobControlCompiler jcc = new TezJobControlCompiler(pc, conf);
@@ -85,15 +92,13 @@ public class TezLauncher extends Launcher {
             jc = jcc.compile(tezPlan, grpName, tezPlanContainer);
             TezJobNotifier notifier = new TezJobNotifier(tezPlanContainer, tezPlan);
             ((TezJobControl)jc).setJobNotifier(notifier);
-            ((TezJobControl)jc).setTezStats(tezStats);
 
             // Initially, all jobs are in wait state.
             List<ControlledJob> jobsWithoutIds = jc.getWaitingJobList();
             log.info(jobsWithoutIds.size() + " tez job(s) waiting for submission.");
 
-            // TODO: MapReduceLauncher does a couple of things here. For example,
-            // notify PPNL of job submission, update PigStas, etc. We will worry
-            // about them later.
+            tezScriptState.emitInitialPlanNotification(tezPlan);
+            tezScriptState.emitLaunchStartedNotification(tezPlan.size());
 
             // Set the thread UDFContext so registered classes are available.
             final UDFContext udfContext = UDFContext.getUDFContext();
@@ -109,25 +114,90 @@ public class TezLauncher extends Launcher {
             jcThread.setUncaughtExceptionHandler(jctExceptionHandler);
             jcThread.setContextClassLoader(PigContext.getClassLoader());
 
+            // TezJobControl always holds a single TezJob. We use JobControl
+            // only because it is convenient to launch the job via
+            // ControlledJob.submit().
+            TezJob job = (TezJob)jobsWithoutIds.get(0);
+            tezStats.setTezJob(job);
+
             // Mark the times that the jobs were submitted so it's reflected in job
             // history props
             long scriptSubmittedTimestamp = System.currentTimeMillis();
-            for (ControlledJob job : jobsWithoutIds) {
-                // Job.getConfiguration returns the shared configuration object
-                Configuration jobConf = job.getJob().getConfiguration();
-                jobConf.set("pig.script.submitted.timestamp",
-                        Long.toString(scriptSubmittedTimestamp));
-                jobConf.set("pig.job.submitted.timestamp",
-                        Long.toString(System.currentTimeMillis()));
-            }
+            // Job.getConfiguration returns the shared configuration object
+            Configuration jobConf = job.getJob().getConfiguration();
+            jobConf.set("pig.script.submitted.timestamp",
+                    Long.toString(scriptSubmittedTimestamp));
+            jobConf.set("pig.job.submitted.timestamp",
+                    Long.toString(System.currentTimeMillis()));
+
+            // Inform ppnl of jobs submission
+            tezScriptState.emitJobsSubmittedNotification(jobsWithoutIds.size());
 
             // All the setup done, now lets launch the jobs. DAG is submitted to
             // YARN cluster by TezJob.submit().
             jcThread.start();
+
+            Double prevProgress = 0.0;
+            while(!jc.allFinished()) {
+                List<ControlledJob> jobsAssignedIdInThisRun = new ArrayList<ControlledJob>();
+                if (job.getApplicationId() != null) {
+                    jobsAssignedIdInThisRun.add(job);
+                }
+                notifyStarted(job);
+                jobsWithoutIds.removeAll(jobsAssignedIdInThisRun);
+                prevProgress = notifyProgress(job, prevProgress);
+            }
+
+            notifyFinishedOrFailed(job);
+            tezStats.accumulateStats(job);
+            tezScriptState.emitProgressUpdatedNotification(100);
         }
 
         tezStats.finish();
+        tezScriptState.emitLaunchCompletedNotification(tezStats.getNumberSuccessfulJobs());
+
         return tezStats;
+    }
+
+    private void notifyStarted(TezJob job) throws IOException {
+        for (Vertex v : job.getDAG().getVertices()) {
+            TezTaskStats tts = tezStats.getVertexStats(v.getVertexName());
+            byte[] bb = v.getProcessorDescriptor().getUserPayload();
+            Configuration conf = TezUtils.createConfFromUserPayload(bb);
+            tts.setConf(conf);
+            tts.setId(v.getVertexName());
+            tezScriptState.emitJobStartedNotification(v.getVertexName());
+        }
+    }
+
+    private Double notifyProgress(TezJob job, Double prevProgress) {
+        int numberOfJobs = tezStats.getNumberJobs();
+        Double perCom = 0.0;
+        if (job.getJobState() == ControlledJob.State.RUNNING) {
+            Double fractionComplete = job.getDAGProgress();
+            perCom += fractionComplete;
+        }
+        perCom = (perCom/(double)numberOfJobs)*100;
+        if (perCom >= (prevProgress + 4.0)) {
+            tezScriptState.emitProgressUpdatedNotification( perCom.intValue() );
+            return perCom;
+        } else {
+            return prevProgress;
+        }
+    }
+
+    private void notifyFinishedOrFailed(TezJob job) {
+        if (job.getJobState() == ControlledJob.State.SUCCESS) {
+            for (Vertex v : job.getDAG().getVertices()) {
+                TezTaskStats tts = tezStats.getVertexStats(v.getVertexName());
+                tezScriptState.emitjobFinishedNotification(tts);
+            }
+        } else if (job.getJobState() == ControlledJob.State.FAILED) {
+            for (Vertex v : ((TezJob)job).getDAG().getVertices()) {
+                TezTaskStats tts = tezStats.getVertexStats(v.getVertexName());
+                tezScriptState.emitJobFailedNotification(tts);
+            }
+        }
     }
 
     @Override

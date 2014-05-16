@@ -74,6 +74,7 @@ public class TestAccumulator {
 
     @Before
     public void setUp() throws Exception {
+        Util.resetStateForExecModeSwitch();
         // Drop stale configuration from previous test run
         properties.remove(PigConfiguration.OPT_ACCUMULATOR);
         pigServer = new PigServer(cluster.getExecType(), properties);

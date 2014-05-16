@@ -29,6 +29,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.runtime.api.LogicalInput;
@@ -45,8 +46,8 @@ public class POSimpleTezLoad extends POLoad implements TezInput {
     private KeyValueReader reader;
     private transient Configuration conf;
 
-    public POSimpleTezLoad(OperatorKey k) {
-        super(k);
+    public POSimpleTezLoad(OperatorKey k, FileSpec lfile) {
+        super(k, lfile);
     }
 
     @Override

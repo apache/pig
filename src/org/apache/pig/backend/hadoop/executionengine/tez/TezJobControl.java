@@ -20,13 +20,11 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.hadoop23.PigJobControl;
-import org.apache.pig.tools.pigstats.tez.TezStats;
 
 public class TezJobControl extends PigJobControl {
 
     private static final Log LOG = LogFactory.getLog(TezJobControl.class);
     private TezJobNotifier notifier = null;
-    private TezStats stats = null;
 
     public TezJobControl(String groupName, int timeToSleep) {
         super(groupName, timeToSleep);
@@ -34,10 +32,6 @@ public class TezJobControl extends PigJobControl {
 
     public void setJobNotifier(TezJobNotifier notifier) {
         this.notifier = notifier;
-    }
-
-    public void setTezStats(TezStats stats) {
-        this.stats = stats;
     }
 
     @Override
@@ -57,9 +51,6 @@ public class TezJobControl extends PigJobControl {
                 throw e;
             } finally {
                 stop();
-                if (stats!=null) {
-                    stats.accumulateStats(this);
-                }
                 if (notifier != null) {
                     notifier.complete(this);
                     notifier = null;

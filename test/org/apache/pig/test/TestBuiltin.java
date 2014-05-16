@@ -121,7 +121,6 @@ import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -202,10 +201,7 @@ public class TestBuiltin {
 
     @Before
     public void setUp() throws Exception {
-        // re initialize FileLocalizer so that each test will run correctly
-        // without any side effect of other tests - this is needed since some
-        // tests are in mapred and some in local mode.
-        FileLocalizer.setInitialized(false);
+        Util.resetStateForExecModeSwitch();
 
         pigServer = new PigServer(ExecType.LOCAL, new Properties());
         pigServer.setValidateEachStatement(true);
@@ -2634,6 +2630,7 @@ public class TestBuiltin {
 
     @Test
     public void testSFPig() throws Exception {
+        Util.resetStateForExecModeSwitch();
         PigServer mrPigServer = new PigServer(cluster.getExecType(), properties);
         String inputStr = "amy\tbob\tcharlene\tdavid\terin\tfrank";
         Util.createInputFile(cluster, "testSFPig-input.txt", new String[]

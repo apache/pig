@@ -38,7 +38,6 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.lib.input.InvalidInputException;
-import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -47,7 +46,6 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.builtin.PartitionSkewedKeys;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.util.Utils;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -72,6 +70,7 @@ public class TestSkewedJoin {
 
     @Before
     public void setUp() throws Exception {
+        Util.resetStateForExecModeSwitch();
         pigServer = new PigServer(cluster.getExecType(), properties);
     }
 
@@ -213,8 +212,6 @@ public class TestSkewedJoin {
 
     @Test
     public void testSkewedJoinWithNoProperties() throws IOException{
-        pigServer = new PigServer(cluster.getExecType(), properties);
-
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE1 + "' as (id, name, n);");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE2 + "' as (id, name);");
         DataBag dbfrj = BagFactory.getInstance().newDefaultBag();

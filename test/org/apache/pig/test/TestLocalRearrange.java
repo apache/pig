@@ -209,6 +209,7 @@ public class TestLocalRearrange  {
             w.close();
             Util.copyFromLocalToCluster(cluster, INPUT_FILE, INPUT_FILE);
 
+            Util.resetStateForExecModeSwitch();
             PigServer myPig = new PigServer(cluster.getExecType(), cluster.getProperties());
 
             myPig.registerQuery("data = load '" + INPUT_FILE + "' as (a0, a1, a2);");

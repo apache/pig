@@ -28,6 +28,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.lib.jobcontrol.ControlledJob;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.pig.PigConfiguration;
 import org.apache.tez.client.TezSession;
@@ -38,6 +39,7 @@ import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
+import org.apache.tez.dag.api.client.Progress;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.StatusGetOpts;
@@ -74,15 +76,19 @@ public class TezJob extends ControlledJob {
         this.vertexCounters = Maps.newHashMap();
     }
 
-    public DAG getDag() {
+    public DAG getDAG() {
         return dag;
     }
 
-    public DAGStatus getDagStatus() {
+    public ApplicationId getApplicationId() {
+        return dagClient == null ? null : dagClient.getApplicationId();
+    }
+
+    public DAGStatus getDAGStatus() {
         return dagStatus;
     }
 
-    public TezCounters getDagCounters() {
+    public TezCounters getDAGCounters() {
         return dagCounters;
     }
 
@@ -92,6 +98,21 @@ public class TezJob extends ControlledJob {
 
     public Map<String, Long> getVertexCounters(String group, String name) {
         return vertexCounters.get(group).get(name);
+    }
+
+    public Double getDAGProgress() {
+        Progress p = dagStatus.getDAGProgress();
+        return (double)p.getSucceededTaskCount()/(double)p.getTotalTaskCount();
+    }
+
+    public Map<String, Double> getVertexProgress() {
+        Map<String, Double> vertexProgress = Maps.newHashMap();
+        for (Map.Entry<String, Progress> entry : dagStatus.getVertexProgress().entrySet()) {
+            Progress p = entry.getValue();
+            Double progress = (double)p.getSucceededTaskCount()/(double)p.getTotalTaskCount();
+            vertexProgress.put(entry.getKey(), progress);
+        }
+        return vertexProgress;
     }
 
     @Override
@@ -232,4 +253,3 @@ public class TezJob extends ControlledJob {
         return "";
     }
 }
-

@@ -29,7 +29,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapreduce.lib.jobcontrol.ControlledJob;
-import org.apache.hadoop.mapreduce.lib.jobcontrol.JobControl;
 import org.apache.pig.PigRunner.ReturnCode;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezExecType;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezJob;
@@ -63,6 +62,7 @@ public class TezStats extends PigStats {
     public static final String FS_COUNTER_GROUP = FileSystemCounter.class.getName();
     public static final String TASK_COUNTER_GROUP = TaskCounter.class.getName();
 
+    private TezJob tezJob;
     private List<String> dagStatsStrings;
     private Map<String, TezTaskStats> tezOpVertexMap;
     private List<TezTaskStats> taskStatsToBeRemoved;
@@ -178,24 +178,27 @@ public class TezStats extends PigStats {
         LOG.info("Script Statistics:\n" + sb.toString());
     }
 
+    public TezTaskStats getVertexStats(String vertexName) {
+        return tezOpVertexMap.get(vertexName);
+    }
+
     /**
      * Updates the statistics after DAG is finished.
      *
      * @param jc the job control
      */
-    public void accumulateStats(JobControl jc) throws IOException {
-        for (ControlledJob job : jc.getSuccessfulJobList()) {
-            addVertexStats((TezJob)job, true);
-            dagStatsStrings.add(getDisplayString((TezJob)job));
-        }
-        for (ControlledJob job : jc.getFailedJobList()) {
-            addVertexStats((TezJob)job, false);
-            dagStatsStrings.add(getDisplayString((TezJob)job));
+    public void accumulateStats(TezJob tezJob) throws IOException {
+        if (tezJob.getJobState() == ControlledJob.State.SUCCESS) {
+            addVertexStats(tezJob, true);
+            dagStatsStrings.add(getDisplayString(tezJob));
+        } else if (tezJob.getJobState() == ControlledJob.State.FAILED) {
+            addVertexStats(tezJob, false);
+            dagStatsStrings.add(getDisplayString(tezJob));
         }
     }
 
     private void addVertexStats(TezJob tezJob, boolean succeeded) throws IOException {
-        DAG dag = tezJob.getDag();
+        DAG dag = tezJob.getDAG();
         for (String name : tezOpVertexMap.keySet()) {
             Vertex v = dag.getVertex(name);
             if (v != null) {
@@ -227,7 +230,7 @@ public class TezStats extends PigStats {
 
     private static String getDisplayString(TezJob tezJob) {
         StringBuilder sb = new StringBuilder();
-        TezCounters cnt = tezJob.getDagCounters();
+        TezCounters cnt = tezJob.getDAGCounters();
         if (cnt == null) {
             return "";
         }
@@ -256,6 +259,14 @@ public class TezStats extends PigStats {
                 hdfsBytesWritten.getValue()));
 
         return sb.toString();
+    }
+
+    public void setTezJob(TezJob tezJob) {
+        this.tezJob = tezJob;
+    }
+
+    public TezJob getTezJob() {
+        return tezJob;
     }
 
     @Override
