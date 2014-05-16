@@ -10,7 +10,7 @@ y: Filter[bag] - scope-170
     |
     |---test-26: Load()
 
-test-28: Store()
+x: Store()
 |
 |---x: Filter[bag] - scope-174
     |   |

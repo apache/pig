@@ -32,6 +32,8 @@ PIG-2207: Support custom counters for aggregating warnings from different udfs (
 
 IMPROVEMENTS
 
+PIG-3545: Seperate validation rules from optimizer (daijy)
+
 PIG-3745: Document auto local mode for pig (aniket486)
 
 PIG-3932: Document ROUND_TO builtin UDF (mrflip via cheolsoo)

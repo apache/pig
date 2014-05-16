@@ -1,4 +1,4 @@
-test-10: Store()
+A: Store()
 |
 |---A: Package(Packager)[tuple]{tuple} - scope-19
     |

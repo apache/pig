@@ -1,4 +1,4 @@
-test-18: Store()
+A: Store()
 |
 |---A: New For Each(false,false,false,false,false,false)[bag] - scope-148
     |   |

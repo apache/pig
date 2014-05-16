@@ -17,7 +17,7 @@
  */
 package org.apache.pig.test;
 
-
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -49,6 +49,7 @@ import org.apache.pig.newplan.optimizer.PlanOptimizer;
 import org.apache.pig.newplan.optimizer.Rule;
 import org.apache.pig.test.utils.Identity;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
@@ -56,6 +57,11 @@ import org.junit.Test;
  */
 public class TestNewPlanPushDownForeachFlatten {
     PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
+
+    @BeforeClass
+    public static void oneTimeSetup() throws Exception {
+        new File("dummy").delete();
+    }
 
     /**
      * 

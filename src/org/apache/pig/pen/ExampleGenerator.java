@@ -230,8 +230,9 @@ public class ExampleGenerator {
     }
 
     PhysicalPlan compilePlan(LogicalPlan plan) throws ExecException, FrontendException {
+        newPlan = new LogicalPlan(plan);
+        plan.optimize(pigContext);
         PhysicalPlan result = execEngine.compile(plan, null);
-        newPlan = execEngine.getNewPlan();
         return result;
     }
     
