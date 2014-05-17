@@ -26,6 +26,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -78,7 +79,7 @@ import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
-import org.apache.pig.newplan.logical.rules.InputOutputFileValidator;
+import org.apache.pig.newplan.logical.visitor.InputOutputFileValidatorVisitor;
 import org.apache.pig.parser.ParserException;
 import org.apache.pig.parser.QueryParserDriver;
 import org.apache.pig.test.utils.GenRandomData;
@@ -149,7 +150,6 @@ public class TestStore {
                            "i:int,d:double);" +
                            "store a into '" + outputFileName + "' using " + "PigStorage();";
             org.apache.pig.newplan.logical.relational.LogicalPlan lp = Util.buildLp( pig, query );
-            new InputOutputFileValidator(lp, pig.getPigContext()).validate();
         } catch (PlanValidationException e){
                 // Since output file is not present, validation should pass
                 // and not throw this exception.
@@ -169,9 +169,9 @@ public class TestStore {
             String query = "a = load '" + inputFileName + "' as (c:chararray, " +
                            "i:int,d:double);" +
                            "store a into '" + outputFileName + "' using PigStorage();";
-            org.apache.pig.newplan.logical.relational.LogicalPlan lp = Util.buildLp( pig, query );
-            new InputOutputFileValidator(lp, pig.getPigContext()).validate();
-        } catch (FrontendException pve){
+            Util.buildLp( pig, query );
+        } catch (InvocationTargetException e){
+            FrontendException pve = (FrontendException)e.getCause();
             // Since output file is present, validation should fail
             // and throw this exception
             assertEquals(6000,pve.getErrorCode());

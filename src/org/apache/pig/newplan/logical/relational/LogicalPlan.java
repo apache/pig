@@ -18,19 +18,48 @@
 
 package org.apache.pig.newplan.logical.relational;
 
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.pig.PigConstants;
+import org.apache.pig.PigException;
+import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.plan.CompilationMessageCollector;
+import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.util.HashOutputStream;
+import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.newplan.BaseOperatorPlan;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.logical.DotLOPrinter;
+import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanPrinter;
+import org.apache.pig.newplan.logical.optimizer.SchemaResetter;
+import org.apache.pig.newplan.logical.optimizer.UidResetter;
+import org.apache.pig.newplan.logical.visitor.CastLineageSetter;
+import org.apache.pig.newplan.logical.visitor.ColumnAliasConversionVisitor;
+import org.apache.pig.newplan.logical.visitor.DanglingNestedNodeRemover;
+import org.apache.pig.newplan.logical.visitor.DuplicateForEachColumnRewriteVisitor;
+import org.apache.pig.newplan.logical.visitor.ImplicitSplitInsertVisitor;
+import org.apache.pig.newplan.logical.visitor.InputOutputFileValidatorVisitor;
+import org.apache.pig.newplan.logical.visitor.ScalarVariableValidator;
+import org.apache.pig.newplan.logical.visitor.ScalarVisitor;
+import org.apache.pig.newplan.logical.visitor.SchemaAliasVisitor;
+import org.apache.pig.newplan.logical.visitor.SortInfoSetter;
+import org.apache.pig.newplan.logical.visitor.StoreAliasSetter;
+import org.apache.pig.newplan.logical.visitor.TypeCheckingRelVisitor;
+import org.apache.pig.newplan.logical.visitor.UnionOnSchemaSetter;
+import org.apache.pig.pen.POOptimizeDisabler;
+import org.apache.pig.validator.BlackAndWhitelistValidator;
 
+import com.google.common.base.Splitter;
+import com.google.common.collect.Lists;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 
@@ -135,5 +164,107 @@ public class LogicalPlan extends BaseOperatorPlan {
         printer.visit();
 
         return Integer.toString(hos.getHashCode().asInt());
+    }
+    
+    public void validate(PigContext pigContext, String scope) throws FrontendException {
+
+        new DanglingNestedNodeRemover(this).visit();
+        new ColumnAliasConversionVisitor(this).visit();
+        new SchemaAliasVisitor(this).visit();
+        new ScalarVisitor(this, pigContext, scope).visit();
+
+        // ImplicitSplitInsertVisitor has to be called before
+        // DuplicateForEachColumnRewriteVisitor.  Detail at pig-1766
+        new ImplicitSplitInsertVisitor(this).visit();
+
+        // DuplicateForEachColumnRewriteVisitor should be before
+        // TypeCheckingRelVisitor which does resetSchema/getSchema
+        // heavily
+        new DuplicateForEachColumnRewriteVisitor(this).visit();
+
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+
+        new TypeCheckingRelVisitor( this, collector).visit();
+
+        boolean aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
+
+        if(aggregateWarning) {
+            CompilationMessageCollector.logMessages(collector, MessageType.Warning, aggregateWarning, log);
+        } else {
+            for(Enum type: MessageType.values()) {
+                CompilationMessageCollector.logAllMessages(collector, log);
+            }
+        }
+
+        new UnionOnSchemaSetter(this).visit();
+        new CastLineageSetter(this, collector).visit();
+        new ScalarVariableValidator(this).visit();
+        new StoreAliasSetter(this).visit();
+
+        // compute whether output data is sorted or not
+        new SortInfoSetter(this).visit();
+
+        if (!(pigContext.inExplain || pigContext.inDumpSchema)) {
+            // Validate input/output file
+            new InputOutputFileValidatorVisitor(this, pigContext).visit();
+        }
+
+        BlackAndWhitelistValidator validator = new BlackAndWhitelistValidator(pigContext, this);
+        validator.validate();
+
+        // Now make sure the plan is consistent
+        UidResetter uidResetter = new UidResetter(this);
+        uidResetter.visit();
+
+        SchemaResetter schemaResetter = new SchemaResetter(this,
+                true /* skip duplicate uid check*/);
+        schemaResetter.visit();
+    }
+    
+    public void optimize(PigContext pigContext) throws FrontendException {
+        if (pigContext.inIllustrator) {
+            // disable all PO-specific optimizations
+            POOptimizeDisabler pod = new POOptimizeDisabler(this);
+            pod.visit();
+        }
+
+        HashSet<String> disabledOptimizerRules;
+        try {
+            disabledOptimizerRules = (HashSet<String>) ObjectSerializer
+                    .deserialize(pigContext.getProperties().getProperty(
+                            PigImplConstants.PIG_OPTIMIZER_RULES_KEY));
+        } catch (IOException ioe) {
+            int errCode = 2110;
+            String msg = "Unable to deserialize optimizer rules.";
+            throw new FrontendException(msg, errCode, PigException.BUG, ioe);
+        }
+        if (disabledOptimizerRules == null) {
+            disabledOptimizerRules = new HashSet<String>();
+        }
+
+        String pigOptimizerRulesDisabled = pigContext.getProperties()
+                .getProperty(PigConstants.PIG_OPTIMIZER_RULES_DISABLED_KEY);
+        if (pigOptimizerRulesDisabled != null) {
+            disabledOptimizerRules.addAll(Lists.newArrayList((Splitter.on(",")
+                    .split(pigOptimizerRulesDisabled))));
+        }
+
+        if (pigContext.inIllustrator) {
+            disabledOptimizerRules.add("MergeForEach");
+            disabledOptimizerRules.add("PartitionFilterOptimizer");
+            disabledOptimizerRules.add("LimitOptimizer");
+            disabledOptimizerRules.add("SplitFilter");
+            disabledOptimizerRules.add("PushUpFilter");
+            disabledOptimizerRules.add("MergeFilter");
+            disabledOptimizerRules.add("PushDownForEachFlatten");
+            disabledOptimizerRules.add("ColumnMapKeyPrune");
+            disabledOptimizerRules.add("AddForEach");
+            disabledOptimizerRules.add("GroupByConstParallelSetter");
+        }
+
+        // run optimizer
+        LogicalPlanOptimizer optimizer = new LogicalPlanOptimizer(this, 100,
+                disabledOptimizerRules);
+        optimizer.optimize();
     }
 }

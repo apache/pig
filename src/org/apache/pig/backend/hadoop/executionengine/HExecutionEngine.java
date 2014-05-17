@@ -22,7 +22,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URL;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
@@ -32,7 +31,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.mapred.JobConf;
-import org.apache.pig.PigConstants;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.BackendException;
 import org.apache.pig.backend.datastorage.DataStorage;
@@ -47,32 +45,19 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.backend.hadoop.streaming.HadoopExecutableManager;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.streaming.ExecutableManager;
-import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.Operator;
-import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
-import org.apache.pig.newplan.logical.optimizer.SchemaResetter;
-import org.apache.pig.newplan.logical.optimizer.UidResetter;
 import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LogToPhyTranslationVisitor;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
-import org.apache.pig.newplan.logical.rules.InputOutputFileValidator;
-import org.apache.pig.newplan.logical.rules.LogicalRelationalNodeValidator;
-import org.apache.pig.newplan.logical.visitor.SortInfoSetter;
-import org.apache.pig.newplan.logical.visitor.StoreAliasSetter;
-import org.apache.pig.pen.POOptimizeDisabler;
 import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.pig.validator.BlackAndWhitelistValidator;
 
-import com.google.common.base.Splitter;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 public abstract class HExecutionEngine implements ExecutionEngine {
@@ -100,7 +85,6 @@ public abstract class HExecutionEngine implements ExecutionEngine {
     // val: the operator key for the root of the phyisical plan
     protected Map<OperatorKey, OperatorKey> logicalToPhysicalKeys;
     protected Map<Operator, PhysicalOperator> newLogToPhyMap;
-    private LogicalPlan newPreoptimizedPlan;
 
     public HExecutionEngine(PigContext pigContext) {
         this.pigContext = pigContext;
@@ -245,82 +229,6 @@ public abstract class HExecutionEngine implements ExecutionEngine {
             throw new FrontendException(msg, errCode, PigException.BUG);
         }
 
-        newPreoptimizedPlan = new LogicalPlan(plan);
-
-        if (pigContext.inIllustrator) {
-            // disable all PO-specific optimizations
-            POOptimizeDisabler pod = new POOptimizeDisabler(plan);
-            pod.visit();
-        }
-
-        UidResetter uidResetter = new UidResetter(plan);
-        uidResetter.visit();
-
-        SchemaResetter schemaResetter = new SchemaResetter(plan,
-                true /* skip duplicate uid check*/);
-        schemaResetter.visit();
-
-        HashSet<String> disabledOptimizerRules;
-        try {
-            disabledOptimizerRules = (HashSet<String>) ObjectSerializer
-                    .deserialize(pigContext.getProperties().getProperty(
-                            PigImplConstants.PIG_OPTIMIZER_RULES_KEY));
-        } catch (IOException ioe) {
-            int errCode = 2110;
-            String msg = "Unable to deserialize optimizer rules.";
-            throw new FrontendException(msg, errCode, PigException.BUG, ioe);
-        }
-        if (disabledOptimizerRules == null) {
-            disabledOptimizerRules = new HashSet<String>();
-        }
-
-        String pigOptimizerRulesDisabled = this.pigContext.getProperties()
-                .getProperty(PigConstants.PIG_OPTIMIZER_RULES_DISABLED_KEY);
-        if (pigOptimizerRulesDisabled != null) {
-            disabledOptimizerRules.addAll(Lists.newArrayList((Splitter.on(",")
-                    .split(pigOptimizerRulesDisabled))));
-        }
-
-        if (pigContext.inIllustrator) {
-            disabledOptimizerRules.add("MergeForEach");
-            disabledOptimizerRules.add("PartitionFilterOptimizer");
-            disabledOptimizerRules.add("LimitOptimizer");
-            disabledOptimizerRules.add("SplitFilter");
-            disabledOptimizerRules.add("PushUpFilter");
-            disabledOptimizerRules.add("MergeFilter");
-            disabledOptimizerRules.add("PushDownForEachFlatten");
-            disabledOptimizerRules.add("ColumnMapKeyPrune");
-            disabledOptimizerRules.add("AddForEach");
-            disabledOptimizerRules.add("GroupByConstParallelSetter");
-        }
-
-        StoreAliasSetter storeAliasSetter = new StoreAliasSetter(plan);
-        storeAliasSetter.visit();
-
-        // run optimizer
-        LogicalPlanOptimizer optimizer = new LogicalPlanOptimizer(plan, 100,
-                disabledOptimizerRules);
-        optimizer.optimize();
-
-        // compute whether output data is sorted or not
-        SortInfoSetter sortInfoSetter = new SortInfoSetter(plan);
-        sortInfoSetter.visit();
-
-        if (!pigContext.inExplain) {
-            // Validate input/output file. Currently no validation framework in
-            // new logical plan, put this validator here first.
-            // We might decide to move it out to a validator framework in future
-            LogicalRelationalNodeValidator validator = new InputOutputFileValidator(
-                    plan, pigContext);
-            validator.validate();
-
-            // Check for blacklist and whitelist properties and disable
-            // commands/operators accordingly. Note if a user does not
-            // specify these, Pig will work without any filters or validations
-            validator = new BlackAndWhitelistValidator(pigContext, plan);
-            validator.validate();
-        }
-
         // translate new logical plan to physical plan
         LogToPhyTranslationVisitor translator = new LogToPhyTranslationVisitor(plan);
 
@@ -354,11 +262,7 @@ public abstract class HExecutionEngine implements ExecutionEngine {
         }
         return result;
     }
-
-    public LogicalPlan getNewPlan() {
-        return newPreoptimizedPlan;
-    }
-
+    
     public PigStats launchPig(LogicalPlan lp, String grpName, PigContext pc)
             throws FrontendException, ExecException {
 

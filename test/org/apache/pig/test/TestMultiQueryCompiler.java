@@ -1525,6 +1525,7 @@ public class TestMultiQueryCompiler {
     private PhysicalPlan checkPhysicalPlan(LogicalPlan lp, int expectedRoots,
             int expectedLeaves, int expectedSize) throws IOException {
 
+        lp.optimize(myPig.getPigContext());
         System.out.println("===== check physical plan =====");
 
         PhysicalPlan pp = ((MRExecutionEngine)myPig.getPigContext().getExecutionEngine()).compile(

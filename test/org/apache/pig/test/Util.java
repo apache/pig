@@ -65,6 +65,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -84,7 +85,6 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.util.LogUtils;
-import org.apache.pig.newplan.logical.optimizer.DanglingNestedNodeRemover;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanPrinter;
 import org.apache.pig.newplan.logical.optimizer.SchemaResetter;
 import org.apache.pig.newplan.logical.optimizer.UidResetter;
@@ -94,6 +94,7 @@ import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
 import org.apache.pig.newplan.logical.visitor.CastLineageSetter;
 import org.apache.pig.newplan.logical.visitor.ColumnAliasConversionVisitor;
+import org.apache.pig.newplan.logical.visitor.DanglingNestedNodeRemover;
 import org.apache.pig.newplan.logical.visitor.ScalarVisitor;
 import org.apache.pig.newplan.logical.visitor.SchemaAliasVisitor;
 import org.apache.pig.newplan.logical.visitor.SortInfoSetter;
@@ -1066,7 +1067,8 @@ public class Util {
     public static PhysicalPlan buildPp(PigServer pigServer, String query)
     throws Exception {
         LogicalPlan lp = buildLp( pigServer, query );
-        return ((HExecutionEngine)pigServer.getPigContext().getExecutionEngine()).compile(lp,
+        lp.optimize(pigServer.getPigContext());
+        return ((MRExecutionEngine)pigServer.getPigContext().getExecutionEngine()).compile(lp, 
                 pigServer.getPigContext().getProperties());
     }
 
@@ -1075,16 +1077,7 @@ public class Util {
         QueryParserDriver parserDriver = new QueryParserDriver( pc, "test", fileNameMap );
         org.apache.pig.newplan.logical.relational.LogicalPlan lp = parserDriver.parse( query );
 
-        new ColumnAliasConversionVisitor(lp).visit();
-        new SchemaAliasVisitor(lp).visit();
-        new ScalarVisitor(lp, pc, "test").visit();
-
-        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-
-        new TypeCheckingRelVisitor( lp, collector).visit();
-
-        new UnionOnSchemaSetter( lp ).visit();
-        new CastLineageSetter(lp, collector).visit();
+        lp.validate(pc, "test");
         return lp;
     }
 
@@ -1093,16 +1086,7 @@ public class Util {
         QueryParserDriver parserDriver = new QueryParserDriver( pc, "test", fileNameMap );
         org.apache.pig.newplan.logical.relational.LogicalPlan lp = parserDriver.parse( query );
 
-        new ColumnAliasConversionVisitor( lp ).visit();
-        new SchemaAliasVisitor( lp ).visit();
-        new ScalarVisitor(lp, pc, "test").visit();
-
-        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-
-        new TypeCheckingRelVisitor( lp, collector).visit();
-
-        new UnionOnSchemaSetter( lp ).visit();
-        new CastLineageSetter(lp, collector).visit();
+        lp.validate(pc, "test");
         return lp;
     }
 

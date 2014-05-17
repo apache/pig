@@ -162,6 +162,9 @@ public class PigContext implements Serializable {
     // existence checks, etc).
     public boolean inExplain = false;
 
+    // Where we are processing a dump schema right now
+    public boolean inDumpSchema = false;
+
     // whether we're processing an ILLUSTRATE right now.
     public boolean inIllustrator = false;
 

@@ -1,4 +1,4 @@
-test-14: Store()
+A: Store()
 |
 |---A: Filter[bag] - scope-67
     |   |

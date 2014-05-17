@@ -47,7 +47,7 @@ import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
-import org.apache.pig.newplan.logical.rules.InputOutputFileValidator;
+import org.apache.pig.newplan.logical.visitor.InputOutputFileValidatorVisitor;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -68,8 +68,8 @@ public class TestInputOutputFileValidator {
         String outputfile = generateNonExistenceTempFile().getAbsolutePath() ;
 
         LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getFs()) ;
-        InputOutputFileValidator executor = new InputOutputFileValidator(plan, ctx) ;
-        executor.validate() ;
+        InputOutputFileValidatorVisitor visitor = new InputOutputFileValidatorVisitor(plan, ctx) ;
+        visitor.visit();
     }
 
     @Test(expected = VisitorException.class) //should expect an exception
@@ -79,8 +79,8 @@ public class TestInputOutputFileValidator {
 
         LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getDfs()) ;
 
-        InputOutputFileValidator executor = new InputOutputFileValidator(plan, ctx) ;
-        executor.validate() ;
+        InputOutputFileValidatorVisitor visitor = new InputOutputFileValidatorVisitor(plan, ctx) ;
+        visitor.visit() ;
     }
 
     /**
