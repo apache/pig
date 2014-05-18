@@ -66,7 +66,6 @@ import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -1059,7 +1058,7 @@ public class Util {
     throws Exception {
         LogicalPlan lp = buildLp( pigServer, query );
         lp.optimize(pigServer.getPigContext());
-        return ((MRExecutionEngine)pigServer.getPigContext().getExecutionEngine()).compile(lp, 
+        return ((HExecutionEngine)pigServer.getPigContext().getExecutionEngine()).compile(lp, 
                 pigServer.getPigContext().getProperties());
     }
 
