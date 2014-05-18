@@ -221,7 +221,6 @@ public abstract class HExecutionEngine implements ExecutionEngine {
         }
     }
 
-    @SuppressWarnings("unchecked")
     public PhysicalPlan compile(LogicalPlan plan, Properties properties) throws FrontendException {
         if (plan == null) {
             int errCode = 2041;
