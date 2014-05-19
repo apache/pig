@@ -41,7 +41,7 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.tez.runtime.api.LogicalInput;
-import org.apache.tez.runtime.library.api.KeyValuesReader;
+import org.apache.tez.runtime.library.api.KeyValueReader;
 
 /**
  * POShuffledValueInputTez is used read tuples from a Tez Intermediate output from a shuffle edge
@@ -54,9 +54,8 @@ public class POShuffledValueInputTez extends PhysicalOperator implements TezInpu
     private static final Log LOG = LogFactory.getLog(POShuffledValueInputTez.class);
     private Set<String> inputKeys = new HashSet<String>();
     private transient boolean finished = false;
-    private transient Iterator<KeyValuesReader> readers;
-    private transient KeyValuesReader currentReader;
-    private transient boolean hasNext;
+    private transient Iterator<KeyValueReader> readers;
+    private transient KeyValueReader currentReader;
     protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
     private transient Configuration conf;
 
@@ -84,7 +83,7 @@ public class POShuffledValueInputTez extends PhysicalOperator implements TezInpu
     public void attachInputs(Map<String, LogicalInput> inputs,
             Configuration conf) throws ExecException {
         this.conf = conf;
-        List<KeyValuesReader> readersList = new ArrayList<KeyValuesReader>();
+        List<KeyValueReader> readersList = new ArrayList<KeyValueReader>();
         try {
             for (String inputKey : inputKeys) {
                 LogicalInput input = inputs.get(inputKey);
@@ -93,14 +92,13 @@ public class POShuffledValueInputTez extends PhysicalOperator implements TezInpu
                             + " is missing");
                 }
 
-                KeyValuesReader reader = (KeyValuesReader) input.getReader();
+                KeyValueReader reader = (KeyValueReader) input.getReader();
                 readersList.add(reader);
                 LOG.info("Attached input from vertex " + inputKey + " : input="
                         + input + ", reader=" + reader);
             }
             readers = readersList.iterator();
             currentReader = readers.next();
-            hasNext = currentReader.next();
         } catch (Exception e) {
             throw new ExecException(e);
         }
@@ -112,23 +110,16 @@ public class POShuffledValueInputTez extends PhysicalOperator implements TezInpu
             if (finished) {
                 return RESULT_EOP;
             }
-            while (hasNext) {
-                if (currentReader.getCurrentValues().iterator().hasNext()) {
-                    Tuple origTuple = (Tuple)currentReader.getCurrentValues().iterator().next();
+
+            do {
+                if (currentReader.next()) {
+                    Tuple origTuple = (Tuple) currentReader.getCurrentValue();
                     Tuple copy = mTupleFactory.newTuple(origTuple.getAll());
                     return new Result(POStatus.STATUS_OK, copy);
                 }
-                hasNext = currentReader.next();
-            }
-            if (readers.hasNext()) {
-                currentReader = readers.next();
-                hasNext = currentReader.next();
-                if (hasNext) {
-                    Tuple origTuple = (Tuple)currentReader.getCurrentValues().iterator().next();
-                    Tuple copy = mTupleFactory.newTuple(origTuple.getAll());
-                    return new Result(POStatus.STATUS_OK, copy);
-                }
-            }
+                currentReader = readers.hasNext() ? readers.next() : null;
+            } while (currentReader != null);
+
             finished = true;
             // For certain operators (such as STREAM), we could still have some work
             // to do even after seeing the last input. These operators set a flag that

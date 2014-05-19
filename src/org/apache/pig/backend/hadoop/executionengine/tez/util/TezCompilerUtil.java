@@ -28,6 +28,7 @@ import org.apache.pig.impl.plan.PlanException;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
 import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
+import org.apache.tez.runtime.library.output.OnFileUnorderedPartitionedKVOutput;
 
 import com.google.common.collect.Lists;
 
@@ -159,9 +160,9 @@ public class TezCompilerUtil {
             edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
             edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
         } else if (dataMovementType == DataMovementType.SCATTER_GATHER) {
-            //Use unsorted shuffle with TEZ-661 and PIG-3775.
+            edge.outputClassName = OnFileUnorderedPartitionedKVOutput.class.getName();
+            edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
             edge.partitionerClass = RoundRobinPartitioner.class;
-            edge.setIntermediateOutputKeyComparatorClass(POValueOutputTez.EmptyWritableComparator.class.getName());
         }
         edge.setIntermediateOutputKeyClass(POValueOutputTez.EmptyWritable.class.getName());
         edge.setIntermediateOutputValueClass(TUPLE_CLASS);
