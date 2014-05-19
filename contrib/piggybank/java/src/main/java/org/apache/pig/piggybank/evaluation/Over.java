@@ -131,29 +131,50 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  *
  * <p>Example Usage:
  * <p>To do a cumulative sum:
- * <p><pre> A = load 'T';
- * B = group A by si
- * C = foreach B {
- *     C1 = order A by d;
- *     generate flatten(Stitch(C1, Over(C1.f, 'sum(float)')));
+ * <p><pre> A = load 'T' AS (si:chararray, i:int, d:long, f:float, s:chararray);
+ * C = foreach (group A by si) {
+ *     Aord = order A by d;
+ *     generate flatten(Stitch(Aord, Over(Aord.f, 'sum(float)')));
  * }
- * D = foreach C generate s, $9;</pre>
+ * D = foreach C generate s, $5;</pre>
  * <p> This is equivalent to the SQL statement
  * <p><tt>select s, sum(f) over (partition by si order by d) from T;</tt>
  *
  * <p>To find the record 3 ahead of the current record, using a window between
  * the current row and 3 records ahead and a default value of 0.
- * <p><pre> A = load 'T';
- * B = group A by si;
- * C = foreach B {
- *     C1 = order A by i;
- *     generate flatten(Stitch(C1, Over(C1.i, 'lead', 0, 3, 3, 0)));
+ * <p><pre> A = load 'T' AS (si:chararray, i:int, d:long, f:float, s:chararray);
+ * C = foreach (group A by si) {
+ *     Aord = order A by i;
+ *     generate flatten(Stitch(Aord, Over(Aord.i, 'lead', 0, 3, 3, 0)));
  * }
  * D = foreach C generate s, $9;</pre>
  * <p> This is equivalent to the SQL statement
  * <p><tt>select s, lead(i, 3, 0) over (partition by si order by i rows between
-         * current row and 3 following) over T;</tt>
+ * current row and 3 following) over T;</tt>
  *
+ * <p>Over accepts a constructor argument specifying the name and type,
+ * colon-separated, of its return schema.</p>
+ *
+ * <p><pre>
+ * DEFINE IOver org.apache.pig.piggybank.evaluation.Over('state_rk:int');
+ * cities = LOAD 'cities' AS (city:chararray, state:chararray, pop:int);
+ * -- Decorate each city with its population rank within the state it belongs to:
+ * ranked = FOREACH(GROUP cities BY state) {
+ *   c_ord = ORDER cities BY pop DESC;
+ *   GENERATE FLATTEN(Stitch(c_ord,
+ *     IOver(c_ord, 'rank', -1, -1, 2))); -- beginning (-1) to end (-1) on third field (2)
+ * };
+ * DESCRIBE ranked;
+ * -- ranked: {stitched::city: chararray,stitched::state: chararray,stitched::pop: int,stitched::state_rk: int}
+ * DUMP ranked;
+ * -- ...
+ * -- (Nashville,Tennessee,609644,2)
+ * -- (Houston,Texas,2145146,1)
+ * -- (San Antonio,Texas,1359758,2)
+ * -- (Dallas,Texas,1223229,3)
+ * -- (Austin,Texas,820611,4)
+ * -- ...
+ * </pre></p>
  */
 public class Over extends EvalFunc<DataBag> {
 
@@ -165,7 +186,8 @@ public class Over extends EvalFunc<DataBag> {
     private boolean initialized;
     private EvalFunc<? extends Object> func;
     private Object[] udfArgs;
-    private byte returnType;
+    private byte   returnType;
+    private String returnName;
 
     public Over() {
         initialized = false;
@@ -174,9 +196,16 @@ public class Over extends EvalFunc<DataBag> {
         returnType = DataType.UNKNOWN;
     }
 
-    public Over(String returnType) {
+    public Over(String typespec) {
         this();
-        this.returnType = DataType.findTypeByName(returnType);
+        if (typespec.contains(":")) {
+            String[] fn_tn = typespec.split(":", 2);
+            this.returnName = fn_tn[0];
+            this.returnType = DataType.findTypeByName(fn_tn[1]);
+        } else {
+            this.returnName = "result";
+            this.returnType = DataType.findTypeByName(typespec);
+        }
     }
 
     @Override
@@ -229,7 +258,11 @@ public class Over extends EvalFunc<DataBag> {
             if (returnType == DataType.UNKNOWN) {
                 return Schema.generateNestedSchema(DataType.BAG, DataType.NULL);
             } else {
-                return Schema.generateNestedSchema(DataType.BAG, returnType);
+                Schema outputTupleSchema = new Schema(new Schema.FieldSchema(returnName, returnType));
+                return new Schema(new Schema.FieldSchema(
+                        getSchemaName(this.getClass().getName().toLowerCase(), inputSch),
+                            outputTupleSchema, 
+                            DataType.BAG));
             }
         } catch (FrontendException fe) {
             throw new RuntimeException("Unable to create nested schema", fe);
