@@ -17,7 +17,13 @@
  */
 package org.apache.pig.piggybank.storage;
 
-import org.joda.time.DateTime;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -28,14 +34,16 @@ import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.pig.ResourceSchema;
+import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-
-import java.io.IOException;
-import java.sql.*;
+import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.impl.util.Utils;
+import org.joda.time.DateTime;
 
 public class DBStorage extends StoreFunc {
   private final Log log = LogFactory.getLog(getClass());
@@ -48,6 +56,11 @@ public class DBStorage extends StoreFunc {
   private int batchSize;
   private int count = 0;
   private String insertQuery;
+
+  //We want to store the schema if possible so that we can try to deal with nulls.
+  protected ResourceSchema schema = null;
+  private String udfcSignature = null;
+  private static final String SCHEMA_SIGNATURE = "pig.dbstorage.schema";
 
   public DBStorage(String driver, String jdbcURL, String insertQuery) {
     this(driver, jdbcURL, null, null, insertQuery, "100");
@@ -85,10 +98,15 @@ public class DBStorage extends StoreFunc {
       for (int i = 0; i < size; i++) {
         try {
           Object field = tuple.get(i);
-
           switch (DataType.findType(field)) {
           case DataType.NULL:
-            ps.setNull(sqlPos, java.sql.Types.VARCHAR);
+            //Default to varchar
+            int nullSqlType = java.sql.Types.VARCHAR;
+            if (schema != null) {
+                ResourceFieldSchema fs = schema.getFields()[i];
+                nullSqlType = sqlDataTypeFromPigDataType(fs.getType());
+            }
+            ps.setNull(sqlPos, nullSqlType);
             sqlPos++;
             break;
 
@@ -164,9 +182,7 @@ public class DBStorage extends StoreFunc {
       }
     } catch (SQLException e) {
       try {
-        log
-            .error("Unable to insert record:" + tuple.toDelimitedString("\t"),
-                e);
+        log.error("Unable to insert record:" + tuple.toDelimitedString("\t"), e);
       } catch (ExecException ee) {
         // do nothing
       }
@@ -178,6 +194,30 @@ public class DBStorage extends StoreFunc {
         throw new RuntimeException("JDBC error", e);
       }
     }
+  }
+
+  protected int sqlDataTypeFromPigDataType(byte pigDataType) {
+      switch(pigDataType) {
+      case DataType.INTEGER:
+          return java.sql.Types.INTEGER;
+      case DataType.LONG:
+          return java.sql.Types.BIGINT;
+      case DataType.FLOAT:
+          return java.sql.Types.FLOAT;
+      case DataType.DOUBLE:
+          return java.sql.Types.DOUBLE;
+      case DataType.BOOLEAN:
+          return java.sql.Types.BOOLEAN;
+      case DataType.DATETIME:
+          return java.sql.Types.DATE;
+      case DataType.BYTEARRAY:
+      case DataType.CHARARRAY:
+      case DataType.BYTE:
+          return java.sql.Types.VARCHAR;
+      default:
+          log.warn("Can not find SQL data type for " + pigDataType + " returning VARCHAR");
+          return java.sql.Types.VARCHAR;
+      }
   }
 
   class MyDBOutputFormat extends OutputFormat<NullWritable, NullWritable> {
@@ -250,18 +290,18 @@ public class DBStorage extends StoreFunc {
 
     @Override
     public RecordWriter<NullWritable, NullWritable> getRecordWriter(
-        TaskAttemptContext context) throws IOException, InterruptedException {
+      TaskAttemptContext context) throws IOException, InterruptedException {
       // We don't use a record writer to write to database
-    	return new RecordWriter<NullWritable, NullWritable>() {
-    		   	  @Override
-    		   	  public void close(TaskAttemptContext context) {
-    		   		  // Noop
-    		    	  }
-    		    	  @Override
-    		    	  public void write(NullWritable k, NullWritable v) {
-    		    		  // Noop
-    		    	  }
-    		      };
+      return new RecordWriter<NullWritable, NullWritable>() {
+          @Override
+          public void close(TaskAttemptContext context) {
+              // Noop
+          }
+          @Override
+          public void write(NullWritable k, NullWritable v) {
+              // Noop
+          }
+      };
     }
 
   }
@@ -298,10 +338,39 @@ public class DBStorage extends StoreFunc {
       throw new IOException("JDBC Error", e);
     }
     count = 0;
+
+    // Try to get the schema from the UDFContext object.
+    UDFContext udfc = UDFContext.getUDFContext();
+    Properties p =
+        udfc.getUDFProperties(this.getClass(), new String[]{udfcSignature});
+    String strSchema = p.getProperty(SCHEMA_SIGNATURE);
+    if (strSchema != null) {
+        // Parse the schema from the string stored in the properties object.
+        schema = new ResourceSchema(Utils.getSchemaFromString(strSchema));
+    }
   }
 
   @Override
   public void setStoreLocation(String location, Job job) throws IOException {
     // IGNORE since we are writing records to DB.
   }
+
+  @Override
+  public void setStoreFuncUDFContextSignature(String signature) {
+      // store the signature so we can use it later
+      udfcSignature = signature;
+  }
+
+  @Override
+  public void checkSchema(ResourceSchema s) throws IOException {
+      // We won't really check the schema here, we'll store it in our
+      // UDFContext properties object so we have it when we need it on the
+      // backend
+
+      UDFContext udfc = UDFContext.getUDFContext();
+      Properties p =
+          udfc.getUDFProperties(this.getClass(), new String[]{udfcSignature});
+      p.setProperty(SCHEMA_SIGNATURE, s.toString());
+  }
+
 }
