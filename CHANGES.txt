@@ -133,6 +133,8 @@ PIG-3882: Multiquery off mode execution is not done in batch and very inefficien
  
 BUG FIXES
 
+PIG-3944: PigNullableWritable toString method throws NPE on null value (mauzhang via cheolsoo)
+
 PIG-3936: DBStorage fails on storing nulls for non varchar columns (jeremykarn via cheolsoo) 
 
 PIG-3945: Ant not sending hadoopversion to piggybank sub-ant (mrflip via cheolsoo)
