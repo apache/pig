@@ -133,6 +133,8 @@ PIG-3882: Multiquery off mode execution is not done in batch and very inefficien
  
 BUG FIXES
 
+PIG-3945: Ant not sending hadoopversion to piggybank sub-ant (mrflip via cheolsoo)
+
 PIG-3942: Util.buildPp() is incompatible with Non-MR execution engine (cheolsoo)
 
 PIG-3902: PigServer creates cycle (thedatachef via cheolsoo)
