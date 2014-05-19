@@ -181,6 +181,6 @@ public abstract class PigNullableWritable implements WritableComparable {
 
     @Override
     public String toString() {
-        return "Null: " + mNull + " index: " + mIndex + " " + mValue.toString();
+        return "Null: " + mNull + " index: " + mIndex + (mNull ? "" : " " + mValue.toString());
     }
 }
