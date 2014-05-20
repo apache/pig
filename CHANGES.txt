@@ -32,6 +32,8 @@ PIG-2207: Support custom counters for aggregating warnings from different udfs (
 
 IMPROVEMENTS
 
+PIG-3913: Pig should use job's jobClient wherever possible (fixes local mode counters) (aniket486)
+
 PIG-3941: Piggybank's Over UDF returns an output schema with named fields (mrflip via cheolsoo)
 
 PIG-3545: Seperate validation rules from optimizer (daijy)

@@ -41,6 +41,7 @@ import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.mapred.TaskReport;
 import org.apache.hadoop.mapred.jobcontrol.Job;
+import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.PigRunner.ReturnCode;
@@ -102,9 +103,7 @@ public class MapReduceLauncher extends Launcher{
             log.debug("Receive kill signal");
             if (jc!=null) {
                 for (Job job : jc.getRunningJobs()) {
-                    RunningJob runningJob = job.getJobClient().getJob(job.getAssignedJobID());
-                    if (runningJob!=null)
-                        runningJob.killJob();
+                    HadoopShims.killJob(job);
                     log.info("Job " + job.getAssignedJobID() + " killed");
                 }
             }
@@ -342,7 +341,7 @@ public class MapReduceLauncher extends Launcher{
                     }
                     jobsWithoutIds.removeAll(jobsAssignedIdInThisRun);
 
-                    double prog = (numMRJobsCompl+calculateProgress(jc, statsJobClient))/totalMRJobs;
+                    double prog = (numMRJobsCompl+calculateProgress(jc))/totalMRJobs;
                     if (notifyProgress(prog, lastProg)) {
                         List<Job> runnJobs = jc.getRunningJobs();
                         if (runnJobs != null) {
@@ -454,7 +453,7 @@ public class MapReduceLauncher extends Launcher{
             Exception backendException = null;
             for (Job fj : failedJobs) {
                 try {
-                    getStats(fj, statsJobClient, true, pc);
+                    getStats(fj, true, pc);
                 } catch (Exception e) {
                     backendException = e;
                 }
@@ -494,9 +493,9 @@ public class MapReduceLauncher extends Launcher{
                     }
                 }
 
-                getStats(job, statsJobClient, false, pc);
+                getStats(job, false, pc);
                 if (aggregateWarning) {
-                    computeWarningAggregate(job, statsJobClient, warningAggMap);
+                    computeWarningAggregate(job, warningAggMap);
                 }
             }
 
@@ -639,8 +638,8 @@ public class MapReduceLauncher extends Launcher{
         comp.getMessageCollector().logMessages(MessageType.Warning, aggregateWarning, log);
 
         String lastInputChunkSize =
-            pc.getProperties().getProperty(
-                "last.input.chunksize", JoinPackager.DEFAULT_CHUNK_SIZE);
+                pc.getProperties().getProperty(
+                        "last.input.chunksize", JoinPackager.DEFAULT_CHUNK_SIZE);
 
         String prop = pc.getProperties().getProperty(PigConfiguration.PROP_NO_COMBINER);
         if (!pc.inIllustrator && !("true".equals(prop)))  {
@@ -746,47 +745,41 @@ public class MapReduceLauncher extends Launcher{
     }
 
     @SuppressWarnings("deprecation")
-    void computeWarningAggregate(Job job, JobClient jobClient, Map<Enum, Long> aggMap) {
-        JobID mapRedJobID = job.getAssignedJobID();
-        RunningJob runningJob = null;
+    void computeWarningAggregate(Job job, Map<Enum, Long> aggMap) {
         try {
-            runningJob = jobClient.getJob(mapRedJobID);
-            if(runningJob != null) {
-                Counters counters = runningJob.getCounters();
-                if (counters==null)
-                {
-                    long nullCounterCount = aggMap.get(PigWarning.NULL_COUNTER_COUNT)==null?0 : aggMap.get(PigWarning.NULL_COUNTER_COUNT);
-                    nullCounterCount++;
-                    aggMap.put(PigWarning.NULL_COUNTER_COUNT, nullCounterCount);
-                }
-                try {
-                    for (Enum e : PigWarning.values()) {
-                        if (e != PigWarning.NULL_COUNTER_COUNT) {
-                            Long currentCount = aggMap.get(e);
-                            currentCount = (currentCount == null ? 0 : currentCount);
-                            // This code checks if the counters is null, if it is,
-                            // we need to report to the user that the number
-                            // of warning aggregations may not be correct. In fact,
-                            // Counters should not be null, it is
-                            // a hadoop bug, once this bug is fixed in hadoop, the
-                            // null handling code should never be hit.
-                            // See Pig-943
-                            if (counters != null)
-                                currentCount += counters.getCounter(e);
-                            aggMap.put(e, currentCount);
-                        }
-                    }
-                } catch (Exception e) {
-                    log.warn("Exception getting counters.", e);
+            Counters counters = HadoopShims.getCounters(job);
+            if (counters==null)
+            {
+                long nullCounterCount =
+                        (aggMap.get(PigWarning.NULL_COUNTER_COUNT) == null)
+                          ? 0
+                          : aggMap.get(PigWarning.NULL_COUNTER_COUNT);
+                nullCounterCount++;
+                aggMap.put(PigWarning.NULL_COUNTER_COUNT, nullCounterCount);
+            }
+            for (Enum e : PigWarning.values()) {
+                if (e != PigWarning.NULL_COUNTER_COUNT) {
+                    Long currentCount = aggMap.get(e);
+                    currentCount = (currentCount == null ? 0 : currentCount);
+                    // This code checks if the counters is null, if it is,
+                    // we need to report to the user that the number
+                    // of warning aggregations may not be correct. In fact,
+                    // Counters should not be null, it is
+                    // a hadoop bug, once this bug is fixed in hadoop, the
+                    // null handling code should never be hit.
+                    // See Pig-943
+                    if (counters != null)
+                        currentCount += counters.getCounter(e);
+                    aggMap.put(e, currentCount);
                 }
             }
-        } catch (IOException ioe) {
+        } catch (Exception e) {
             String msg = "Unable to retrieve job to compute warning aggregation.";
             log.warn(msg);
         }
     }
 
-    private void getStats(Job job, JobClient jobClient, boolean errNotDbg,
+    private void getStats(Job job, boolean errNotDbg,
             PigContext pigContext) throws ExecException {
         JobID MRJobID = job.getAssignedJobID();
         String jobMessage = job.getMessage();
@@ -808,11 +801,11 @@ public class MapReduceLauncher extends Launcher{
             throw new ExecException(backendException);
         }
         try {
-            TaskReport[] mapRep = jobClient.getMapTaskReports(MRJobID);
+            TaskReport[] mapRep = HadoopShims.getTaskReports(job, TaskType.MAP);
             getErrorMessages(mapRep, "map", errNotDbg, pigContext);
             totalHadoopTimeSpent += computeTimeSpent(mapRep);
             mapRep = null;
-            TaskReport[] redRep = jobClient.getReduceTaskReports(MRJobID);
+            TaskReport[] redRep = HadoopShims.getTaskReports(job, TaskType.REDUCE);
             getErrorMessages(redRep, "reduce", errNotDbg, pigContext);
             totalHadoopTimeSpent += computeTimeSpent(redRep);
             redRep = null;

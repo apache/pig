@@ -174,7 +174,7 @@ public abstract class JobStats extends Operator {
         exception = e;
     }
 
-    public abstract String getDisplayString(boolean isLocal);
+    public abstract String getDisplayString();
 
 
     /**

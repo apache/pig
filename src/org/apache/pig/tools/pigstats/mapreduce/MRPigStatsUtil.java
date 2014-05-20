@@ -230,21 +230,9 @@ public class MRPigStatsUtil extends PigStatsUtil {
         } else {
             js.setSuccessful(true);
 
-            js.addMapReduceStatistics(ps.getJobClient(), job.getJobConf());
+            js.addMapReduceStatistics(job);
 
-            JobClient client = ps.getJobClient();
-            RunningJob rjob = null;
-            try {
-                rjob = client.getJob(job.getAssignedJobID());
-            } catch (IOException e) {
-                LOG.warn("Failed to get running job", e);
-            }
-            if (rjob == null) {
-                LOG.warn("Failed to get RunningJob for job "
-                        + job.getAssignedJobID());
-            } else {
-                js.addCounters(rjob);
-            }
+            js.addCounters(job);
 
             js.addOutputStatistics();
 
