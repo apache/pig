@@ -105,12 +105,12 @@ public final class OutputStats {
     public Configuration getConf() {
         return conf;
     }
-    
-    public String getDisplayString(boolean local) {
+
+    public String getDisplayString() {
         StringBuilder sb = new StringBuilder();
         if (success) {
             sb.append("Successfully stored ");
-            if (!local && records >= 0) {
+            if (records >= 0) {
                 sb.append(records).append(" records ");
             } else {
                 sb.append("records ");

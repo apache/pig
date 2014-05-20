@@ -172,6 +172,7 @@ public final class SimplePigStats extends PigStats {
         return startTime > 0;
     }
 
+    @Deprecated
     @Override
     public JobClient getJobClient() {
         return jobClient;
@@ -215,20 +216,14 @@ public final class SimplePigStats extends PigStats {
             return;
         }
 
-        // currently counters are not working in local mode - see PIG-1286
-        ExecType execType = pigContext.getExecType();
-        if (execType.isLocal()) {
-            LOG.info("Detected Local mode. Stats reported below may be incomplete");
-        }
-
         SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT);
         StringBuilder sb = new StringBuilder();
         sb.append("\nHadoopVersion\tPigVersion\tUserId\tStartedAt\tFinishedAt\tFeatures\n");
         sb.append(getHadoopVersion()).append("\t").append(getPigVersion()).append("\t")
-            .append(userId).append("\t")
-            .append(sdf.format(new Date(startTime))).append("\t")
-            .append(sdf.format(new Date(endTime))).append("\t")
-            .append(getFeatures()).append("\n");
+        .append(userId).append("\t")
+        .append(sdf.format(new Date(startTime))).append("\t")
+        .append(sdf.format(new Date(endTime))).append("\t")
+        .append(getFeatures()).append("\n");
         sb.append("\n");
         if (returnCode == ReturnCode.SUCCESS) {
             sb.append("Success!\n");
@@ -242,14 +237,10 @@ public final class SimplePigStats extends PigStats {
         if (returnCode == ReturnCode.SUCCESS
                 || returnCode == ReturnCode.PARTIAL_FAILURE) {
             sb.append("Job Stats (time in seconds):\n");
-            if (execType.isLocal()) {
-                sb.append(MRJobStats.SUCCESS_HEADER_LOCAL).append("\n");
-            } else {
-                sb.append(MRJobStats.SUCCESS_HEADER).append("\n");
-            }
+            sb.append(MRJobStats.SUCCESS_HEADER).append("\n");
             List<JobStats> arr = jobPlan.getSuccessfulJobs();
             for (JobStats js : arr) {
-                sb.append(js.getDisplayString(execType.isLocal()));
+                sb.append(js.getDisplayString());
             }
             sb.append("\n");
         }
@@ -259,31 +250,29 @@ public final class SimplePigStats extends PigStats {
             sb.append(MRJobStats.FAILURE_HEADER).append("\n");
             List<JobStats> arr = jobPlan.getFailedJobs();
             for (JobStats js : arr) {
-                sb.append(js.getDisplayString(execType.isLocal()));
+                sb.append(js.getDisplayString());
             }
             sb.append("\n");
         }
         sb.append("Input(s):\n");
         for (InputStats is : getInputStats()) {
-            sb.append(is.getDisplayString(execType.isLocal()));
+            sb.append(is.getDisplayString());
         }
         sb.append("\n");
         sb.append("Output(s):\n");
         for (OutputStats ds : getOutputStats()) {
-            sb.append(ds.getDisplayString(execType.isLocal()));
+            sb.append(ds.getDisplayString());
         }
 
-        if (!(execType.isLocal())) {
-            sb.append("\nCounters:\n");
-            sb.append("Total records written : " + getRecordWritten()).append("\n");
-            sb.append("Total bytes written : " + getBytesWritten()).append("\n");
-            sb.append("Spillable Memory Manager spill count : "
-                    + getSMMSpillCount()).append("\n");
-            sb.append("Total bags proactively spilled: "
-                    + getProactiveSpillCountObjects()).append("\n");
-            sb.append("Total records proactively spilled: "
-                    + getProactiveSpillCountRecords()).append("\n");
-        }
+        sb.append("\nCounters:\n");
+        sb.append("Total records written : " + getRecordWritten()).append("\n");
+        sb.append("Total bytes written : " + getBytesWritten()).append("\n");
+        sb.append("Spillable Memory Manager spill count : "
+                + getSMMSpillCount()).append("\n");
+        sb.append("Total bags proactively spilled: "
+                + getProactiveSpillCountObjects()).append("\n");
+        sb.append("Total records proactively spilled: "
+                + getProactiveSpillCountRecords()).append("\n");
 
         sb.append("\nJob DAG:\n").append(jobPlan.toString());
 

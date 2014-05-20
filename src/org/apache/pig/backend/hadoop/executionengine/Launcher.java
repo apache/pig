@@ -254,44 +254,16 @@ public abstract class Launcher {
      * @return The progress as a precentage in double format
      * @throws IOException
      */
-    protected double calculateProgress(JobControl jc, JobClient jobClient)
+    protected double calculateProgress(JobControl jc)
             throws IOException {
         double prog = 0.0;
         prog += jc.getSuccessfulJobs().size();
 
         List<Job> runnJobs = jc.getRunningJobs();
-        for (Object object : runnJobs) {
-            Job j = (Job) object;
-            prog += progressOfRunningJob(j, jobClient);
+        for (Job j : runnJobs) {
+            prog += HadoopShims.progressOfRunningJob(j);
         }
         return prog;
-    }
-
-    /**
-     * Returns the progress of a Job j which is part of a submitted JobControl
-     * object. The progress is for this Job. So it has to be scaled down by the
-     * num of jobs that are present in the JobControl.
-     *
-     * @param j
-     *            - The Job for which progress is required
-     * @param jobClient
-     *            - the JobClient to which it has been submitted
-     * @return Returns the percentage progress of this Job
-     * @throws IOException
-     */
-    protected double progressOfRunningJob(Job j, JobClient jobClient)
-            throws IOException {
-        JobID mrJobID = j.getAssignedJobID();
-        RunningJob rj = jobClient.getJob(mrJobID);
-        if (rj == null && j.getState() == Job.SUCCESS)
-            return 1;
-        else if (rj == null)
-            return 0;
-        else {
-            double mapProg = rj.mapProgress();
-            double redProg = rj.reduceProgress();
-            return (mapProg + redProg) / 2;
-        }
     }
 
     public long getTotalHadoopTimeSpent() {
@@ -320,7 +292,7 @@ public abstract class Launcher {
 
     /**
      *
-     * @param stackTraceLine
+     * @param stackTrace
      *            The string representation of
      *            {@link Throwable#printStackTrace() printStackTrace} Handles
      *            internal PigException and its subclasses that override the
@@ -357,7 +329,7 @@ public abstract class Launcher {
 
     /**
      *
-     * @param stackTraceLine
+     * @param stackTraceLines
      *            An array of strings that represent
      *            {@link Throwable#printStackTrace() printStackTrace} output,
      *            split by newline

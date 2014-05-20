@@ -84,7 +84,7 @@ public final class InputStats {
         return type;
     }
 
-    public String getDisplayString(boolean local) {
+    public String getDisplayString() {
         StringBuilder sb = new StringBuilder();
         if (success) {
             sb.append("Successfully ");
@@ -96,7 +96,7 @@ public final class InputStats {
                 sb.append("read ");
             }
 
-            if (!local && records >= 0) {
+            if (records >= 0) {
                 sb.append(records).append(" records ");
             } else {
                 sb.append("records ");
