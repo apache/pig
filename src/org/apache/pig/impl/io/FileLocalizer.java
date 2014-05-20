@@ -58,6 +58,7 @@ import org.apache.pig.backend.hadoop.datastorage.HDirectory;
 import org.apache.pig.backend.hadoop.datastorage.HPath;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.util.Utils;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -462,7 +463,7 @@ public class FileLocalizer {
             throws DataStorageException {
 
         if (relativeRoot.get() == null) {
-            String tdir= pigContext.getProperties().getProperty(PigConfiguration.PIG_TEMP_DIR, "/tmp");
+            String tdir= Utils.substituteVars(pigContext.getProperties().getProperty(PigConfiguration.PIG_TEMP_DIR, "/tmp"));
             ContainerDescriptor relative = pigContext.getDfs().asContainer(tdir + "/temp" + r.nextInt());
             relativeRoot.set(relative);
             try {
