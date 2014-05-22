@@ -149,6 +149,8 @@ PIG-3882: Multiquery off mode execution is not done in batch and very inefficien
  
 BUG FIXES
 
+PIG-3956: UDF profile is often misleading (cheolsoo)
+
 PIG-3950: Removing empty file PColFilterExtractor.java speeds up rebuilds (mrflip via cheolsoo)
 
 PIG-3940: NullPointerException writing .pig_header for field with null name in JsonMetadata.java (mrflip via cheolsoo)
