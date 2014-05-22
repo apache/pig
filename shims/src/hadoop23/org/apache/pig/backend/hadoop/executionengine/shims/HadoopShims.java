@@ -119,7 +119,7 @@ public class HadoopShims {
     public static Counters getCounters(Job job) throws IOException {
         try {
             return new Counters(job.getJob().getCounters());
-        } catch (InterruptedException ir) {
+        } catch (Exception ir) {
             throw new IOException(ir);
         }
     }
@@ -196,7 +196,7 @@ public class HadoopShims {
         org.apache.hadoop.mapreduce.Job mrJob = j.getJob();
         try {
             return (mrJob.mapProgress() + mrJob.reduceProgress()) / 2;
-        } catch (InterruptedException ir) {
+        } catch (Exception ir) {
             return 0;
         }
     }
@@ -207,7 +207,7 @@ public class HadoopShims {
             if (mrJob != null) {
                 mrJob.killJob();
             }
-        } catch (InterruptedException ir) {
+        } catch (Exception ir) {
             throw new IOException(ir);
         }
     }
