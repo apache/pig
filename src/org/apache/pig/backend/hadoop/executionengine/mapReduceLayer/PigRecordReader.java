@@ -17,7 +17,9 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
-import static org.apache.pig.PigConfiguration.TIME_UDFS_PROP;
+import static org.apache.pig.PigConfiguration.TIME_UDFS;
+import static org.apache.pig.PigConfiguration.TIME_UDFS_FREQUENCY;
+import static org.apache.pig.PigConstants.TIME_UDFS_ELAPSED_TIME_COUNTER;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -54,10 +56,8 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
 
     private static final Log LOG = LogFactory.getLog(PigRecordReader.class);
 
-    private final static String TIMING_COUNTER = "approx_microsecs";
-    private final static long TIMING_FREQ = 100;
-
     transient private String counterGroup = "";
+    private long timingFrequency = 100L;
     private boolean doTiming = false;
 
     /**
@@ -119,8 +119,11 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
         idx = 0;
         this.limit = limit;
         initNextRecordReader();
-        counterGroup = loadFunc.toString();
-        doTiming = context.getConfiguration().getBoolean(TIME_UDFS_PROP, false);
+        doTiming = inputSpecificConf.getBoolean(TIME_UDFS, false);
+        if (doTiming) {
+            counterGroup = loadFunc.toString();
+            timingFrequency = inputSpecificConf.getLong(TIME_UDFS_FREQUENCY, 100L);
+        }
     }
 
     @Override
@@ -193,7 +196,7 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
 
         if (limit != -1 && recordCount >= limit)
             return false;
-        boolean timeThis = doTiming && ( (recordCount + 1) % TIMING_FREQ == 0);
+        boolean timeThis = doTiming && ( (recordCount + 1) % timingFrequency == 0);
         long startNanos = 0;
         if (timeThis) {
             startNanos = System.nanoTime();
@@ -204,8 +207,8 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
             }
         }
         if (timeThis) {
-            reporter.incrCounter(counterGroup, TIMING_COUNTER,
-                    Math.round((System.nanoTime() - startNanos) / 1000) * TIMING_FREQ);
+            reporter.incrCounter(counterGroup, TIME_UDFS_ELAPSED_TIME_COUNTER,
+                    Math.round((System.nanoTime() - startNanos) / 1000) * timingFrequency);
         }
         recordCount++;
         return true;
