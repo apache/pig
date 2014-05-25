@@ -194,6 +194,106 @@ DUMP C;
    </table>
    <p>* Average values for datatypes bigdecimal and biginteger have precision setting <a href="http://docs.oracle.com/javase/7/docs/api/java/math/MathContext.html#DECIMAL128">java.math.MathContext.DECIMAL128</a>.</p>
    </section></section>
+
+<!-- ======================================================== -->
+
+<section id="bagtostring">
+  <title>BagToString</title>
+  <p>Concatenate the elements of a Bag into a chararray string, placing an optional delimiter between each value.</p>
+
+  <section>
+    <title>Syntax</title>
+    <table>
+      <tr>
+        <td>
+          <p>BagToString(vals:bag [, delimiter:chararray])</p>
+        </td>
+      </tr>
+  </table></section>
+
+  <section>
+    <title>Terms</title>
+    <table>
+      <tr>
+	<td><p>vals</p></td>
+        <td><p>A bag of arbitrary values. They will each be cast to chararray if they are not already.</p></td>
+      </tr>
+      <tr>
+	<td><p>delimiter</p></td>
+        <td><p>A chararray value to place between elements of the bag; defaults to underscore <code>'_'</code>.</p></td>
+      </tr>
+    </table>
+  </section>
+
+  <section>
+    <title>Usage</title>
+    <p>BagToString creates a single string from the elements of a bag, similar to SQL's <code>GROUP_CONCAT</code> function. Keep in mind the following:</p>
+    <ul>
+      <li>Bags can be of arbitrary size, while strings in Java cannot: you will either exhaust available memory or exceed the maximum number of characters (about 2 billion). One of the worst features a production job can have is thresholding behavior: everything will seem nearly fine until the data size of your largest bag grows from nearly-too-big to just-barely-too-big.</li>
+      <li>Bags are disordered unless you explicitly apply a nested <code>ORDER BY</code> operation as demonstrated below. A nested <code>FOREACH</code> will preserve ordering, letting you order by one combination of fields then project out just the values you'd like to concatenate.</li>
+      <li>The default string conversion is applied to each element. If the bags contents are not atoms (tuple, map, etc), this may be not be what you want. Use a nested <code>FOREACH</code> to format values and then compose them with BagToString as shown below</li>
+    </ul>
+    <p>Examples:</p>
+    <table>
+      <tr><th>vals</th> <th>delimiter</th> <th>BagToString(vals, delimiter)</th> <th>Notes</th> </tr>
+      <tr> <td><code>{('BOS'),('NYA'),('BAL')}</code></td> <td><code></code></td> <td><code>BOS_NYA_BAL</code></td> <td>If only one argument is given, the field is delimited with underscore characters</td></tr>
+      <tr> <td><code>{('BOS'),('NYA'),('BAL')}</code></td> <td><code>'|'</code></td> <td><code>BOS|NYA|BAL</code></td> <td>But you can supply your own delimiter</td></tr>
+      <tr> <td><code>{('BOS'),('NYA'),('BAL')}</code></td> <td><code>''</code></td> <td><code>BOSNYABAL</code></td> <td>Use an explicit empty string to just smush everything together</td></tr>
+      <tr> <td><code>{(1),(2),(3)}</code></td> <td><code>'|'</code></td> <td><code>1|2|3</code></td> <td>Elements are type-converted for you (but see examples below)</td></tr>
+    </table>
+  </section>
+  <section>
+    <title>Examples</title>
+    <p>Simple delimited strings are simple:</p>
+<source>
+team_parks = LOAD 'team_parks' AS (team_id:chararray, park_id:chararray, years:bag{(year_id:int)});
+
+-- BOS     BOS07   {(1995),(1997),(1996),(1998),(1999)}
+-- NYA     NYC16   {(1995),(1999),(1998),(1997),(1996)}
+-- NYA     NYC17   {(1998)}
+-- SDN     HON01   {(1997)}
+-- SDN     MNT01   {(1996),(1999)}
+-- SDN     SAN01   {(1999),(1997),(1998),(1995),(1996)}
+
+team_parkslist = FOREACH (GROUP team_parks BY team_id) GENERATE
+  group AS team_id, BagToString(team_parks.park_id, ';');
+
+-- BOS     BOS07
+-- NYA     NYC17;NYC16
+-- SDN     SAN01;MNT01;HON01
+</source>
+
+<p>The default handling of complex elements works, but probably isn't what you want.</p>
+<source>
+team_parkyearsugly = FOREACH (GROUP team_parks BY team_id) GENERATE
+  group AS team_id,
+  BagToString(team_parks.(park_id, years));
+
+-- BOS     BOS07_{(1995),(1997),(1996),(1998),(1999)}
+-- NYA     NYC17_{(1998)}_NYC16_{(1995),(1999),(1998),(1997),(1996)}
+-- SDN     SAN01_{(1999),(1997),(1998),(1995),(1996)}_MNT01_{(1996),(1999)}_HON01_{(1997)}
+</source>
+
+<p>Instead, assemble it in pieces. In step 2, we sort on one field but process another; it remains in the sorted order.</p>
+<source>
+team_park_yearslist = FOREACH team_parks {
+  years_o = ORDER years BY year_id;
+  GENERATE team_id, park_id, SIZE(years_o) AS n_years, BagToString(years_o, '/') AS yearslist;
+};
+team_parkyearslist = FOREACH (GROUP team_park_yearslist BY team_id) {
+  tpy_o = ORDER team_park_yearslist BY n_years DESC, park_id ASC;
+  tpy_f = FOREACH tpy_o GENERATE CONCAT(park_id, ':', yearslist);
+  GENERATE group AS team_id, BagToString(tpy_f, ';');
+  };
+
+-- BOS     BOS07:1995/1996/1997/1998/1999
+-- NYA     NYC16:1995/1996/1997/1998/1999;NYC17:1998
+-- SDN     SAN01:1995/1996/1997/1998/1999;MNT01:1996/1999;HON01:1997
+</source>
+
+  </section>
+</section>
+
    
    <!-- ++++++++++++++++++++++++++++++++++++++++++++++ --> 
    <section id="concat">

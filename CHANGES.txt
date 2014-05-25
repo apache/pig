@@ -42,6 +42,8 @@ PIG-2207: Support custom counters for aggregating warnings from different udfs (
 
 IMPROVEMENTS
 
+PIG-3963: Documentation for BagToString UDF (mrflip via daijy)
+
 PIG-3929: pig.temp.dir should allow to substitute vars as hadoop configuration does (aniket486)
 
 PIG-3913: Pig should use job's jobClient wherever possible (fixes local mode counters) (aniket486)
