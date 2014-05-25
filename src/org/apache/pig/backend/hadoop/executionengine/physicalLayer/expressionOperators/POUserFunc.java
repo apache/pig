@@ -18,7 +18,10 @@
 
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators;
 
-import static org.apache.pig.PigConfiguration.TIME_UDFS_PROP;
+import static org.apache.pig.PigConfiguration.TIME_UDFS;
+import static org.apache.pig.PigConfiguration.TIME_UDFS_FREQUENCY;
+import static org.apache.pig.PigConstants.TIME_UDFS_INVOCATION_COUNTER;
+import static org.apache.pig.PigConstants.TIME_UDFS_ELAPSED_TIME_COUNTER;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -58,19 +61,13 @@ import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
 
 public class POUserFunc extends ExpressionOperator {
+    private static final long serialVersionUID = 1L;
     private static final Log LOG = LogFactory.getLog(POUserFunc.class);
-    private final static String TIMING_COUNTER = "approx_microsecs";
-    private final static String INVOCATION_COUNTER = "approx_invocations";
-    private final static long TIMING_FREQ = 100;
-    private final static TupleFactory tf = TupleFactory.getInstance();
+    private static final TupleFactory tf = TupleFactory.getInstance();
 
     private transient String counterGroup;
-    /**
-     *
-     */
-    private static final long serialVersionUID = 1L;
-    transient EvalFunc func;
-    transient private String[] cacheFiles = null;
+    private transient EvalFunc func;
+    private transient String[] cacheFiles = null;
 
     FuncSpec funcSpec;
     FuncSpec origFSpec;
@@ -86,6 +83,7 @@ public class POUserFunc extends ExpressionOperator {
     private boolean haveCheckedIfTerminatingAccumulator;
 
     private long numInvocations = 0L;
+    private long timingFrequency = 100L;
     private boolean doTiming = false;
 
     public PhysicalOperator getReferencedOperator() {
@@ -97,9 +95,7 @@ public class POUserFunc extends ExpressionOperator {
     }
 
     public POUserFunc(OperatorKey k, int rp, List<PhysicalOperator> inp) {
-        super(k, rp);
-        inputs = inp;
-
+        this(k, rp, inp, null);
     }
 
     public POUserFunc(
@@ -157,8 +153,11 @@ public class POUserFunc extends ExpressionOperator {
             func.setPigLogger(pigLogger);
             Configuration jobConf = UDFContext.getUDFContext().getJobConf();
             if (jobConf != null) {
-                doTiming = "true".equalsIgnoreCase(jobConf.get(TIME_UDFS_PROP, "false"));
-                counterGroup = funcSpec.toString();
+                doTiming = jobConf.getBoolean(TIME_UDFS, false);
+                if (doTiming) {
+                    counterGroup = funcSpec.toString();
+                    timingFrequency = jobConf.getLong(TIME_UDFS_FREQUENCY, 100L);
+                }
             }
             // We initialize here instead of instantiateFunc because this is called
             // when actual processing has begun, whereas a function can be instantiated
@@ -270,10 +269,10 @@ public class POUserFunc extends ExpressionOperator {
     private Result getNext() throws ExecException {
         Result result = processInput();
         long startNanos = 0;
-        boolean timeThis = doTiming && (numInvocations++ % TIMING_FREQ == 0);
+        boolean timeThis = doTiming && (numInvocations++ % timingFrequency == 0);
         if (timeThis) {
             startNanos = System.nanoTime();
-            PigStatusReporter.getInstance().incrCounter(counterGroup, INVOCATION_COUNTER, TIMING_FREQ);
+            PigStatusReporter.getInstance().incrCounter(counterGroup, TIME_UDFS_INVOCATION_COUNTER, timingFrequency);
         }
         try {
             if(result.returnStatus == POStatus.STATUS_OK) {
@@ -354,8 +353,8 @@ public class POUserFunc extends ExpressionOperator {
                 }
             }
             if (timeThis) {
-                PigStatusReporter.getInstance().incrCounter(counterGroup, TIMING_COUNTER,
-                        Math.round((System.nanoTime() - startNanos) / 1000) * TIMING_FREQ);
+                PigStatusReporter.getInstance().incrCounter(counterGroup, TIME_UDFS_ELAPSED_TIME_COUNTER,
+                        Math.round((System.nanoTime() - startNanos) / 1000) * timingFrequency);
             }
             return result;
         } catch (ExecException ee) {

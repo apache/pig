@@ -21,6 +21,16 @@ Pig Change Log
 Trunk (unreleased changes)
  
 INCOMPATIBLE CHANGES
+ 
+IMPROVEMENTS
+ 
+OPTIMIZATIONS
+ 
+BUG FIXES
+
+Release 0.13.0 - Unreleased
+ 
+INCOMPATIBLE CHANGES
 
 PIG-3898: Refactor PPNL for non-MR execution engine (cheolsoo)
 
@@ -31,6 +41,12 @@ PIG-3419: Pluggable Execution Engine (achalsoni81 via cheolsoo)
 PIG-2207: Support custom counters for aggregating warnings from different udfs (aniket486)
 
 IMPROVEMENTS
+
+PIG-3929: pig.temp.dir should allow to substitute vars as hadoop configuration does (aniket486)
+
+PIG-3913: Pig should use job's jobClient wherever possible (fixes local mode counters) (aniket486)
+
+PIG-3941: Piggybank's Over UDF returns an output schema with named fields (mrflip via cheolsoo)
 
 PIG-3545: Seperate validation rules from optimizer (daijy)
 
@@ -152,8 +168,6 @@ PIG-3909: Type Casting issue (daijy)
 PIG-3905: 0.12.1 release can't be build for Hadoop2 (daijy)
 
 PIG-3894: Datetime function AddDuration, SubtractDuration and all Between functions don't check for null values in the input tuple (jennythompson via cheolsoo)
-
-PIG-3772: Syntax error when casting an inner schema of a bag and line break involved (ssvinarchukhorton via daijy)
 
 PIG-3889: Direct fetch doesn't set job submission timestamps (cheolsoo)
 

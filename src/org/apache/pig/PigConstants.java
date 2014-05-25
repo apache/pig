@@ -52,4 +52,9 @@ public class PigConstants {
      */
     public static final String PIG_LOCAL_CONF_PREFIX = "pig.local.";
 
+    /**
+     * Counter names used by pig.udf.profile
+     */
+    public static final String TIME_UDFS_INVOCATION_COUNTER = "approx_invocations";
+    public static final String TIME_UDFS_ELAPSED_TIME_COUNTER = "approx_microsecs";
 }

@@ -122,9 +122,7 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
 
                     if (descriptor instanceof HFile) {
                         Path descriptorPath = ((HPath) descriptor).getPath();
-                        String fileName = descriptorPath.getName();
                         Path parent = descriptorPath.getParent();
-                        String parentName = parent.toString();
                         container = new HDirectory((HDataStorage)storage,parent);
                     } else { // descriptor instanceof HDirectory
                         container = (HDirectory)descriptor;
@@ -314,10 +312,11 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
                 OutputStream os = headerFilePath.create();
                 try {
                     String[] names = schema.fieldNames();
-
+                    String fn;
                     for (int i=0; i < names.length; i++) {
-                        os.write(names[i].getBytes("UTF-8"));
-                        if (i <names.length-1) {
+                        fn = ( (names[i] == null) ? ("$"+i) : names[i] );
+                        os.write(fn.getBytes("UTF-8"));
+                        if (i < names.length-1) {
                             os.write(fieldDel);
                         } else {
                             os.write(recordDel);

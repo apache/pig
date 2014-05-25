@@ -443,9 +443,7 @@ public class TestPigStorage  {
         Iterator<Tuple> sessions = pig.openIterator("Sessions");
         while (sessions.hasNext()) {
             System.out.println(sessions.next());
-}
-
-
+        }
     }
 
     // See PIG-1993
@@ -474,6 +472,24 @@ public class TestPigStorage  {
         sessions.next().toString().equals("(1)");
         sessions.next().toString().equals("()");
         Assert.assertFalse(sessions.hasNext());
+    }
+
+    @Test
+    public void testPigStorageSchemaHeader() throws Exception {
+        pigContext.connect();
+        String query = "a = LOAD '" + datadir + "originput' using PigStorage(',') " +
+                "as (foo:chararray, bar:int);";
+        pig.registerQuery(query);
+        pig.registerQuery("a2 = FOREACH a GENERATE *, 1;"); // adds a field with a null schema name
+        pig.registerQuery("STORE a2 into '" + datadir + "nout' using PigStorage('\\t', '-schema');");
+
+        String outPath = FileLocalizer.fullPath(datadir + "nout/.pig_header",
+                pig.getPigContext());
+        Assert.assertTrue(FileLocalizer.fileExists(outPath,
+                pig.getPigContext()));
+
+        String[] header = Util.readOutput(pig.getPigContext(), outPath);
+        Assert.assertArrayEquals("Headers are not the same.", new String[] {"foo\tbar\t$2"}, header);
     }
 
     @Test

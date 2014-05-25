@@ -35,10 +35,13 @@ import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.mapred.TaskReport;
+import org.apache.hadoop.mapred.jobcontrol.Job;
+import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.pig.PigCounters;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.impl.io.FileSpec;
@@ -70,9 +73,6 @@ public final class MRJobStats extends JobStats {
             "MinReduceTime\tAvgReduceTime\tMedianReducetime\tAlias\tFeature\tOutputs";
 
     public static final String FAILURE_HEADER = "JobId\tAlias\tFeature\tMessage\tOutputs";
-
-    // currently counters are not working in local mode - see PIG-1286
-    public static final String SUCCESS_HEADER_LOCAL = "JobId\tAlias\tFeature\tOutputs";
 
     private static final Log LOG = LogFactory.getLog(MRJobStats.class);
 
@@ -237,11 +237,20 @@ public final class MRJobStats extends JobStats {
         medianReduceTime = median;
     }
 
+    private static void appendStat(long stat, StringBuilder sb) {
+        if(stat != -1) {
+            sb.append(stat/1000);
+        } else {
+            sb.append("n/a");
+        }
+        sb.append("\t");
+    }
+
     @Override
-    public String getDisplayString(boolean local) {
+    public String getDisplayString() {
         StringBuilder sb = new StringBuilder();
         String id = (jobId == null) ? "N/A" : jobId.toString();
-        if (state == JobState.FAILED || local) {
+        if (state == JobState.FAILED) {
             sb.append(id).append("\t")
                 .append(getAlias()).append("\t")
                 .append(getFeature()).append("\t");
@@ -252,22 +261,15 @@ public final class MRJobStats extends JobStats {
             sb.append(id).append("\t")
                 .append(numberMaps).append("\t")
                 .append(numberReduces).append("\t");
-            if (numberMaps == 0) {
-                sb.append("n/a\t").append("n/a\t").append("n/a\t").append("n/a\t");
-            } else {
-                sb.append(maxMapTime/1000).append("\t")
-                    .append(minMapTime/1000).append("\t")
-                    .append(avgMapTime/1000).append("\t")
-                    .append(medianMapTime/1000).append("\t");
-            }
-            if (numberReduces == 0) {
-                sb.append("n/a\t").append("n/a\t").append("n/a\t").append("n/a\t");
-            } else {
-                sb.append(maxReduceTime/1000).append("\t")
-                    .append(minReduceTime/1000).append("\t")
-                    .append(avgReduceTime/1000).append("\t")
-                    .append(medianReduceTime/1000).append("\t");
-            }
+            appendStat(maxMapTime, sb);
+            appendStat(minMapTime, sb);
+            appendStat(avgMapTime, sb);
+            appendStat(medianMapTime, sb);
+            appendStat(maxReduceTime, sb);
+            appendStat(minReduceTime, sb);
+            appendStat(avgReduceTime, sb);
+            appendStat(medianReduceTime, sb);
+
             sb.append(getAlias()).append("\t")
                 .append(getFeature()).append("\t");
         }
@@ -278,13 +280,11 @@ public final class MRJobStats extends JobStats {
         return sb.toString();
     }
 
-    void addCounters(RunningJob rjob) {
-        if (rjob != null) {
-            try {
-                counters = rjob.getCounters();
-            } catch (IOException e) {
-                LOG.warn("Unable to get job counters", e);
-            }
+    void addCounters(Job job) {
+        try {
+            counters = HadoopShims.getCounters(job);
+        } catch (IOException e) {
+            LOG.warn("Unable to get job counters", e);
         }
         if (counters != null) {
             Counters.Group taskgroup = counters
@@ -331,10 +331,10 @@ public final class MRJobStats extends JobStats {
         }
     }
 
-    void addMapReduceStatistics(JobClient client, Configuration conf) {
+    void addMapReduceStatistics(Job job) {
         TaskReport[] maps = null;
         try {
-            maps = client.getMapTaskReports(jobId);
+            maps = HadoopShims.getTaskReports(job, TaskType.MAP);
         } catch (IOException e) {
             LOG.warn("Failed to get map task report", e);
         }
@@ -367,7 +367,7 @@ public final class MRJobStats extends JobStats {
 
         TaskReport[] reduces = null;
         try {
-            reduces = client.getReduceTaskReports(jobId);
+            reduces = HadoopShims.getTaskReports(job, TaskType.REDUCE);
         } catch (IOException e) {
             LOG.warn("Failed to get reduce task report", e);
         }

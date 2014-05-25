@@ -35,6 +35,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -583,4 +585,33 @@ public class Utils {
         return pigContext.getExecType().isLocal() || conf.getBoolean(PigImplConstants.CONVERTED_TO_LOCAL, false);
     }
 
+    // PIG-3929 use parameter substitution for pig properties similar to Hadoop Configuration
+    // Following code has been borrowed from Hadoop's Configuration#substituteVars
+    private static Pattern varPat = Pattern.compile("\\$\\{[^\\}\\$\u0020]+\\}");
+    private static int MAX_SUBST = 20;
+
+    public static String substituteVars(String expr) {
+        if (expr == null) {
+            return null;
+        }
+        Matcher match = varPat.matcher("");
+        String eval = expr;
+        for(int s=0; s<MAX_SUBST; s++) {
+            match.reset(eval);
+            if (!match.find()) {
+                return eval;
+            }
+            String var = match.group();
+            var = var.substring(2, var.length()-1); // remove ${ .. }
+            String val = null;
+            val = System.getProperty(var);
+            if (val == null) {
+                return eval; // return literal ${var}: var is unbound
+            }
+            // substitute
+            eval = eval.substring(0, match.start())+val+eval.substring(match.end());
+        }
+        throw new IllegalStateException("Variable substitution depth too large: " 
+                + MAX_SUBST + " " + expr);
+    }
 }

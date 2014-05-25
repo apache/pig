@@ -109,6 +109,7 @@ public abstract class PigStats {
         return errorThrowable;
     }
 
+    @Deprecated
     public abstract JobClient getJobClient();
 
     public abstract boolean isEmbedded();

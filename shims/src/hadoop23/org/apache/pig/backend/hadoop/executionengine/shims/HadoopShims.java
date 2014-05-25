@@ -26,6 +26,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.Counters;
+import org.apache.hadoop.mapred.DowngradeHelper;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.TIPStatus;
 import org.apache.hadoop.mapred.TaskReport;
@@ -55,7 +56,7 @@ public class HadoopShims {
     }
 
     static public TaskAttemptContext createTaskAttemptContext(Configuration conf,
-                                TaskAttemptID taskId) {
+            TaskAttemptID taskId) {
         if (conf instanceof JobConf) {
             return new TaskAttemptContextImpl(new JobConf(conf), taskId);
         } else {
@@ -115,8 +116,12 @@ public class HadoopShims {
         return fs.getDefaultBlockSize(path);
     }
 
-    public static Counters getCounters(Job job) throws IOException, InterruptedException {
-        return new Counters(job.getJob().getCounters());
+    public static Counters getCounters(Job job) throws IOException {
+        try {
+            return new Counters(job.getJob().getCounters());
+        } catch (Exception ir) {
+            throw new IOException(ir);
+        }
     }
 
     public static boolean isJobFailed(TaskReport report) {
@@ -177,4 +182,43 @@ public class HadoopShims {
         return true;
     }
 
+    /**
+     * Returns the progress of a Job j which is part of a submitted JobControl
+     * object. The progress is for this Job. So it has to be scaled down by the
+     * num of jobs that are present in the JobControl.
+     *
+     * @param j The Job for which progress is required
+     * @return Returns the percentage progress of this Job
+     * @throws IOException
+     */
+    public static double progressOfRunningJob(Job j)
+            throws IOException {
+        org.apache.hadoop.mapreduce.Job mrJob = j.getJob();
+        try {
+            return (mrJob.mapProgress() + mrJob.reduceProgress()) / 2;
+        } catch (Exception ir) {
+            return 0;
+        }
+    }
+
+    public static void killJob(Job job) throws IOException {
+        org.apache.hadoop.mapreduce.Job mrJob = job.getJob();
+        try {
+            if (mrJob != null) {
+                mrJob.killJob();
+            }
+        } catch (Exception ir) {
+            throw new IOException(ir);
+        }
+    }
+
+    public static TaskReport[] getTaskReports(Job job, TaskType type) throws IOException {
+        org.apache.hadoop.mapreduce.Job mrJob = job.getJob();
+        try {
+            org.apache.hadoop.mapreduce.TaskReport[] reports = mrJob.getTaskReports(type);
+            return DowngradeHelper.downgradeTaskReports(reports);
+        } catch (InterruptedException ir) {
+            throw new IOException(ir);
+        }
+    }
 }

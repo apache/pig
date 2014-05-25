@@ -52,19 +52,25 @@ public class TestOver {
         func = new Over("chararray");
         in = Schema.generateNestedSchema(DataType.BAG, DataType.INTEGER);
         out = func.outputSchema(in);
-        assertEquals("{{chararray}}", out.toString());
+        assertEquals("{org.apache.pig.piggybank.evaluation.over_1: {result: chararray}}", out.toString());
 
         // int
         func = new Over("Int");
         in = Schema.generateNestedSchema(DataType.BAG, DataType.INTEGER);
         out = func.outputSchema(in);
-        assertEquals("{{int}}", out.toString());
+        assertEquals("{org.apache.pig.piggybank.evaluation.over_2: {result: int}}", out.toString());
 
         // double
         func = new Over("DOUBLE");
         in = Schema.generateNestedSchema(DataType.BAG, DataType.INTEGER);
         out = func.outputSchema(in);
-        assertEquals("{{double}}", out.toString());
+        assertEquals("{org.apache.pig.piggybank.evaluation.over_3: {result: double}}", out.toString());
+
+        // named 
+        func = new Over("bob:chararray");
+        in = Schema.generateNestedSchema(DataType.BAG, DataType.INTEGER);
+        out = func.outputSchema(in);
+        assertEquals("{org.apache.pig.piggybank.evaluation.over_4: {bob: chararray}}", out.toString());
     }
 
     @Test

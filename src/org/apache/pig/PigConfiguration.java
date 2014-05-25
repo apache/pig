@@ -51,7 +51,8 @@ public class PigConfiguration {
      * Controls whether execution time of Pig UDFs should be tracked.
      * This feature uses counters; use judiciously.
      */
-    public static final String TIME_UDFS_PROP = "pig.udf.profile";
+    public static final String TIME_UDFS = "pig.udf.profile";
+    public static final String TIME_UDFS_FREQUENCY = "pig.udf.profile.frequency";
 
     /**
      * This key must be set to true by the user for code generation to be used.
