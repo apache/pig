@@ -103,8 +103,8 @@ public class HiveColumnarStorage extends PigStorage {
         for (int i = 0; i < sz && i < numColumns; i++) {
 
             putField(byteStream, t.get(i));
-            colValRefs[i].set(byteStream.getData(), startPos, byteStream.getCount() - startPos);
-            startPos = byteStream.getCount();
+            colValRefs[i].set(byteStream.getData(), startPos, byteStream.getLength() - startPos);
+            startPos = byteStream.getLength();
         }
 
         try {

@@ -141,6 +141,8 @@ PIG-3882: Multiquery off mode execution is not done in batch and very inefficien
  
 BUG FIXES
 
+PIG-3949: HiveColumnarStorage compile failure with Hive 0.14.0 (daijy)
+
 PIG-3960: Compile fail against Hadoop 2.4.0 after PIG-3913 (daijy)
 
 PIG-3950: Removing empty file PColFilterExtractor.java speeds up rebuilds (mrflip via cheolsoo)
