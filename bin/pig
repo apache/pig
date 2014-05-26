@@ -156,10 +156,10 @@ if [ "$includeHCatalog" == "true" ]; then
 
   # hcatalog jar name for 0.4 and earlier
   hcatJarOld=hcatalog-*.jar
-  # hcatalog jar name for 0.5
-  hcatJar=hcatalog-core-*.jar
-  hbaseHCatJar=hbase-storage-handler-*.jar
-  pigHCatJar=hcatalog-pig-adapter-*.jar
+  # hcatalog jar name for 0.5 and newer
+  hcatJar=*hcatalog-core-*.jar
+  hbaseHCatJar=*hbase-storage-handler-*.jar
+  pigHCatJar=*hcatalog-pig-adapter-*.jar
   if [ "$HCAT_HOME" == "" ]; then
     if [ -d "/usr/lib/hcatalog" ]; then
       HCAT_HOME=/usr/lib/hcatalog

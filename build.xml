@@ -1700,7 +1700,9 @@
      <target name="published" depends="ivy-publish-local, maven-artifacts"/>
 
      <target name="piggybank" depends="jar">
-         <ant antfile="contrib/piggybank/java/build.xml" inheritAll="false"/>
+         <ant antfile="contrib/piggybank/java/build.xml" inheritAll="false">
+             <propertyset id="hadoop"> <propertyref name="hadoopversion"/> </propertyset>
+         </ant>
      </target>
 
      <target name="zebra" depends="jar">

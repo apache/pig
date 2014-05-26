@@ -54,7 +54,7 @@ public class TezTaskStats extends JobStats {
     }
 
     @Override
-    public String getDisplayString(boolean isLocal) {
+    public String getDisplayString() {
         StringBuilder sb = new StringBuilder();
         sb.append(String.format("%1$20s: %2$-100s%n", "VertexName", vertexName));
         if (getAlias() != null && !getAlias().isEmpty()) {

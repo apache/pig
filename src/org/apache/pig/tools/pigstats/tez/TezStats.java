@@ -146,7 +146,6 @@ public class TezStats extends PigStats {
         sb.append("\n");
 
         // Print diagnostic info in case of failure
-        boolean isLocal = pigContext.getExecType().isLocal();
         if (returnCode == ReturnCode.FAILURE
                 || returnCode == ReturnCode.PARTIAL_FAILURE) {
             if (errorMessage != null) {
@@ -168,12 +167,12 @@ public class TezStats extends PigStats {
 
         sb.append("Input(s):\n");
         for (InputStats is : getInputStats()) {
-            sb.append(is.getDisplayString(isLocal).trim()).append("\n");
+            sb.append(is.getDisplayString().trim()).append("\n");
         }
         sb.append("\n");
         sb.append("Output(s):\n");
         for (OutputStats os : getOutputStats()) {
-            sb.append(os.getDisplayString(isLocal).trim()).append("\n");
+            sb.append(os.getDisplayString().trim()).append("\n");
         }
         LOG.info("Script Statistics:\n" + sb.toString());
     }
