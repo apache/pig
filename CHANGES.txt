@@ -153,6 +153,8 @@ PIG-3882: Multiquery off mode execution is not done in batch and very inefficien
  
 BUG FIXES
 
+PIG-3958: TestMRJobStats is broken in 0.13 and trunk (aniket486)
+
 PIG-3949: HiveColumnarStorage compile failure with Hive 0.14.0 (daijy)
 
 PIG-3960: Compile fail against Hadoop 2.4.0 after PIG-3913 (daijy)
