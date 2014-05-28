@@ -42,6 +42,8 @@ PIG-2207: Support custom counters for aggregating warnings from different udfs (
 
 IMPROVEMENTS
 
+PIG-3752: Fix e2e Parallel test for Windows (daijy)
+
 PIG-3966: Document variable input arguments of UDFs (lbendig via aniket486)
 
 PIG-3963: Documentation for BagToString UDF (mrflip via daijy)
