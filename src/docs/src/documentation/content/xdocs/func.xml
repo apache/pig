@@ -298,14 +298,14 @@ team_parkyearslist = FOREACH (GROUP team_park_yearslist BY team_id) {
    <!-- ++++++++++++++++++++++++++++++++++++++++++++++ --> 
    <section id="concat">
    <title>CONCAT</title>
-   <p>Concatenates two expressions of identical type.</p>
+   <p>Concatenates two or more expressions of identical type.</p>
    
    <section>
    <title>Syntax</title>
    <table>
        <tr>
             <td>
-               <p>CONCAT (expression, expression)</p>
+               <p>CONCAT (expression, expression, [...expression])</p>
             </td>
          </tr> 
    </table>
@@ -327,14 +327,14 @@ team_parkyearslist = FOREACH (GROUP team_park_yearslist BY team_id) {
    
    <section>
    <title>Usage</title>
-   <p>Use the CONCAT function to concatenate two expressions. The result values of the two expressions must have identical types.</p>
-   <p>If either subexpression is null, the resulting expression is null.</p>
+   <p>Use the CONCAT function to concatenate two or more expressions. The result values of the expressions must have identical types.</p>
+   <p>If any subexpression is null, the resulting expression is null.</p>
    </section>
 
    
    <section>
    <title>Example</title>
-   <p>In this example fields f2 and f3 are concatenated.</p>
+   <p>In this example, fields f1, an underscore string literal, f2 and f3 are concatenated.</p>
 <source>
 A = LOAD 'data' as (f1:chararray, f2:chararray, f3:chararray);
 
@@ -343,12 +343,12 @@ DUMP A;
 (hadoop,map,reduce)
 (pig,pig,latin)
 
-X = FOREACH A GENERATE CONCAT(f2,f3);
+X = FOREACH A GENERATE CONCAT(f1, '_', f2,f3);
 
 DUMP X;
-(opensource)
-(mapreduce)
-(piglatin)
+(apache_opensource)
+(hadoop_mapreduce)
+(pig_piglatin)
 </source>
 </section>
 </section>
