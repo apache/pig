@@ -466,4 +466,15 @@ sub isWindows
         return 0;
     }
 }
+
+sub isCygwin
+{
+    if($^O =~ /cygwin/i) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
+}
+
 1;
