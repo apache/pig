@@ -1093,6 +1093,24 @@ Sometimes, you may want change job configuration for jobs that are converted to 
 </p>
 
 </section>
+
+<!-- +++++++++++++++++++++++++++++++ -->
+<section id="user-jar-cache">
+<title>User Jar Cache</title>
+<p>Jars required for user defined functions (UDFs) are copied to distributed cache by pig to make them available on task nodes. To put these jars on distributed cache, pig clients copy these jars to HDFS under a temporary location. For scheduled jobs, these jars do not change frequently. Also, creating a lot of small jar files on HDFS is not HDFS friendly. To avoid copying these small jar files to HDFS again and again, pig allows users to configure a user level jar cache (readable only to the user for security reasons). If pig.user.cache.enabled flag is set to true, UDF jars are copied to jar cache location (configurable) under a directory named with the hash (SHA) of the jar. Hash of the jar is used to identify the existence of the jar in subsequent uses of the jar by the user. If a jar with same hash and filename is found in the cache, it is used avoiding copy of the jar to hdfs.</p>
+
+<p>You can set the values for these properties in order to configure the jar cache:</p>
+
+<ul>
+<li>pig.user.cache.enabled - Turn on/off user jar cache feature (false by default).</li>
+<li>pig.user.cache.location - Path on HDFS that will be used a staging directory for the user jar cache (defaults to pig.temp.dir or /tmp).</li>
+</ul>
+<p></p>
+<p>
+User jar cache feature is fail safe. If jars cannot be copied to jar cache due to any permission/configuration problems, pig will default old behavior.
+</p>
+
+</section>
 </section>
   
 <!-- ==================================================================== -->
