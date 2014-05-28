@@ -30,7 +30,6 @@ import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobClient;
-import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.TaskReport;
 import org.apache.hadoop.mapreduce.Job;
@@ -111,8 +110,6 @@ public class TestMRJobStats {
 
     @Test
     public void testMedianMapReduceTime() throws Exception {
-
-        JobConf jobConf = new JobConf();
         JobClient jobClient = Mockito.mock(JobClient.class);
 
         // mock methods to return the predefined map and reduce task reports
@@ -124,10 +121,10 @@ public class TestMRJobStats {
         getJobStatsMethod("setId", JobID.class).invoke(jobStats, jobID);
         jobStats.setSuccessful(true);
 
-        getJobStatsMethod("addMapReduceStatistics", JobClient.class, Configuration.class)
-            .invoke(jobStats, jobClient, jobConf);
-        String msg = (String)getJobStatsMethod("getDisplayString", boolean.class)
-            .invoke(jobStats, false);
+        getJobStatsMethod("addMapReduceStatistics", TaskReport[].class, TaskReport[].class)
+            .invoke(jobStats, mapTaskReports, reduceTaskReports);
+        String msg = (String)getJobStatsMethod("getDisplayString")
+            .invoke(jobStats);
 
         System.out.println(JobStats.SUCCESS_HEADER);
         System.out.println(msg);
@@ -149,21 +146,15 @@ public class TestMRJobStats {
         Mockito.when(reduceTaskReports[0].getStartTime()).thenReturn(500L * ONE_THOUSAND);
         Mockito.when(reduceTaskReports[0].getFinishTime()).thenReturn(700L * ONE_THOUSAND);
 
-        JobConf jobConf = new JobConf();
-        JobClient jobClient = Mockito.mock(JobClient.class);
-
-        Mockito.when(jobClient.getMapTaskReports(jobID)).thenReturn(mapTaskReports);
-        Mockito.when(jobClient.getReduceTaskReports(jobID)).thenReturn(reduceTaskReports);
-
         PigStats.JobGraph jobGraph = new PigStats.JobGraph();
         MRJobStats jobStats = createJobStats("JobStatsTest", jobGraph);
         getJobStatsMethod("setId", JobID.class).invoke(jobStats, jobID);
         jobStats.setSuccessful(true);
 
-        getJobStatsMethod("addMapReduceStatistics", JobClient.class, Configuration.class)
-            .invoke(jobStats, jobClient, jobConf);
-        String msg = (String)getJobStatsMethod("getDisplayString", boolean.class)
-            .invoke(jobStats, false);
+        getJobStatsMethod("addMapReduceStatistics", TaskReport[].class, TaskReport[].class)
+            .invoke(jobStats, mapTaskReports, reduceTaskReports);
+        String msg = (String)getJobStatsMethod("getDisplayString")
+            .invoke(jobStats);
         System.out.println(JobStats.SUCCESS_HEADER);
         System.out.println(msg);
 
