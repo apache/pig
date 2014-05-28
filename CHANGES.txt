@@ -145,6 +145,8 @@ PIG-3882: Multiquery off mode execution is not done in batch and very inefficien
  
 BUG FIXES
 
+PIG-3955: Remove url.openStream() file descriptor leak from JCC (aniket486)
+
 PIG-3958: TestMRJobStats is broken in 0.13 and trunk (aniket486)
 
 PIG-3949: HiveColumnarStorage compile failure with Hive 0.14.0 (daijy)
