@@ -22,6 +22,8 @@ use TestDeployer;
 use strict;
 use English;
 
+use Util;
+
 our @ISA = "TestDeployer";
 
 ###########################################################################
@@ -354,11 +356,18 @@ sub runPigCmd($$$$)
 
     my @pigCmd = "";
 
+	my $pigbin = "";
     if ($cfg->{'usePython'} eq "true") {
-      @pigCmd = ("$cfg->{'pigpath'}/bin/pig.py");
+      $pigbin = "$cfg->{'pigpath'}/bin/pig.py";
+    } elsif (Util::isCygwin()) {
+      $pigbin = "$cfg->{'pigpath'}/bin/pig.cmd";
+      $pigbin =~ s/\\/\//g;
+      $pigbin = `cygpath -u $pigbin`;
+      chomp($pigbin);
     } else {
-      @pigCmd = ("$cfg->{'pigpath'}/bin/pig");
+      $pigbin = "$cfg->{'pigpath'}/bin/pig";
     }
+	@pigCmd = ($pigbin);
     push(@pigCmd, '-e');
     push(@pigCmd, split(' ', $c));
 

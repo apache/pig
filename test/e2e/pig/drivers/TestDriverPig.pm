@@ -113,7 +113,7 @@ sub globalSetup
 
     # Setup the output path
     my $me = `whoami`;
-    chomp $me;
+    $me =~ s/[^a-zA-Z0-9]*//g;
     my $jobId = $globalHash->{'job-id'};
     my $timeId = time;
     $globalHash->{'runid'} = $me . "-" . $timeId . "-" . $jobId;
@@ -202,7 +202,7 @@ sub runTest
     if ( $testCmd->{'pig'} && $self->hasCommandLineVerifications( $testCmd, $log) ) {
        my $oldpig;
 
-       if ( Util::isWindows() && $testCmd->{'pig_win'}) {
+       if ((Util::isWindows() || Util::isCygwin()) && $testCmd->{'pig_win'}) {
            $oldpig = $testCmd->{'pig'};
            $testCmd->{'pig'} = $testCmd->{'pig_win'};
        }
@@ -222,7 +222,7 @@ sub runTest
     } elsif( $testCmd->{'pig'} ){
        my $oldpig;
 
-       if ( Util::isWindows() && $testCmd->{'pig_win'}) {
+       if ((Util::isWindows() || Util::isCygwin()) && $testCmd->{'pig_win'}) {
            $oldpig = $testCmd->{'pig'};
            $testCmd->{'pig'} = $testCmd->{'pig_win'};
        }
@@ -308,7 +308,9 @@ sub runPigCmdLine
     $result{'rc'} = $? >> 8;
     $result{'output'} = $outfile;
     $result{'stdout'} = `cat $stdoutfile`;
+    $result{'stdout'} =~ s/\r\n/\n/g;
     $result{'stderr'} = `cat $stderrfile`;
+    $result{'stderr'} =~ s/\r\n/\n/g;
     $result{'stderr_file'} = $stderrfile;
 
     print $log "STD ERROR CONTAINS:\n$result{'stderr'}\n";
@@ -387,7 +389,7 @@ sub getPigCmd($$$)
 
     # set the PIG_CLASSPATH environment variable
 	my $separator = ":";
-	if(Util::isWindows()) {
+	if(Util::isWindows()||Util::isCygwin()) {
 	    $separator = ";";
 	}
 	my $pcp .= $testCmd->{'jythonjar'} if (defined($testCmd->{'jythonjar'}));
@@ -403,12 +405,19 @@ sub getPigCmd($$$)
         push(@pigCmd, "$testCmd->{'pigpath'}/bin/pig.py");
         # print ("Using pig too\n");
     } else {
+        my $pigbin = "";
         if(Util::isWindows()) {
-            @pigCmd = ("$testCmd->{'pigpath'}/bin/pig.cmd");
+            $pigbin = "$testCmd->{'pigpath'}/bin/pig.cmd";
         }
-        else {
-           @pigCmd = ("$testCmd->{'pigpath'}/bin/pig");
+        elsif (Util::isCygwin()) {
+            $pigbin = "$testCmd->{'pigpath'}/bin/pig.cmd";
+            $pigbin =~ s/\\/\//g;
+            $pigbin = `cygpath -u $pigbin`;
+            chomp($pigbin);
+        } else {
+            $pigbin = "$testCmd->{'pigpath'}/bin/pig";
         }
+        @pigCmd = ($pigbin);
     }
 
     if (defined($testCmd->{'additionaljars'})) {
@@ -646,7 +655,7 @@ sub generateBenchmark
 		$modifiedTestCmd{'pig'} = $testCmd->{'verify_pig_script'};
 	}
     else {
-        if ( Util::isWindows() && $testCmd->{'pig_win'}) {
+        if ((Util::isWindows()||Util::isCygwin()) && $testCmd->{'pig_win'}) {
            $modifiedTestCmd{'pig'} = $testCmd->{'pig_win'};
        }
 		# Change so we're looking at the old version of Pig
