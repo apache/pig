@@ -33,8 +33,8 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 
 /**
- * Generates the concatenation of the first two arguments.  It can be
- * used with two bytearrays or two chararrays (but not a mixture of the two).
+ * Generates the concatenation of two or more arguments.  It can be
+ * used with two or more bytearrays or two or more chararrays (but not a mixture of the two).
  */
 public class CONCAT extends EvalFunc<DataByteArray> {
 
