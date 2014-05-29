@@ -67,6 +67,7 @@ import org.apache.pig.impl.util.MultiMap;
 // Suppress "unchecked" warnings for all logical plan related classes. Will revisit in logical plan rework
 @SuppressWarnings("unchecked")
 public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, Serializable, Cloneable {
+    private static final long serialVersionUID = 1L;
     protected Map<E, OperatorKey> mOps;
     protected Map<OperatorKey, E> mKeys;
     protected MultiMap<E, E> mFromEdges;
