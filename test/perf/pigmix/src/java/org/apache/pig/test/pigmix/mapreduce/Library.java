@@ -39,7 +39,7 @@ public class Library {
             }
         }
         // Grab the last one.
-        if (start != s.length() - 1) cols.add(new Text(s.substring(start)));
+        if (start != s.length()) cols.add(new Text(s.substring(start)));
 
         return cols;
     }

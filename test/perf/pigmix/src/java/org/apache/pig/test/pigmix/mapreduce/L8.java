@@ -41,7 +41,6 @@ import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.hadoop.mapred.lib.IdentityMapper;
-
 import org.apache.pig.test.pigmix.mapreduce.Library;
 
 public class L8 {
@@ -78,7 +77,7 @@ public class L8 {
             int tsSum = 0, erCnt = 0;
             double erSum = 0.0;
             while (iter.hasNext()) {
-                List<Text> vals = Library.splitLine(iter.next(), '');
+            	 List<Text> vals = Library.splitLine(iter.next(), '');
                 try {
                     tsSum += Integer.valueOf(vals.get(0).toString());
                     erSum += Double.valueOf(vals.get(1).toString());
@@ -109,9 +108,10 @@ public class L8 {
             while (iter.hasNext()) {
                 List<Text> vals = Library.splitLine(iter.next(), '');
                 try {
-                    tsSum += Integer.valueOf(vals.get(0).toString());
-                    erSum += Double.valueOf(vals.get(1).toString());
-                    erCnt++;
+                        tsSum += Integer.valueOf(vals.get(0).toString());
+	                    erSum += Double.valueOf(vals.get(1).toString());
+	                    erCnt += Integer.valueOf(vals.get(2).toString());
+                	                    
                 } catch (NumberFormatException nfe) {
                 }
             }
