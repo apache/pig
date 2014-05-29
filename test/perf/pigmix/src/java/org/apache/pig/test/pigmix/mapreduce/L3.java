@@ -127,7 +127,6 @@ public class L3 {
         String inputDir = args[0];
         String outputDir = args[1];
         String parallel = args[2];
-        String user = System.getProperty("user.name");
         JobConf lp = new JobConf(L3.class);
         lp.setJobName("L3 Load Page Views");
         lp.setInputFormat(TextInputFormat.class);

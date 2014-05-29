@@ -19,6 +19,7 @@ package org.apache.pig.test.pigmix.mapreduce;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -41,7 +42,6 @@ import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.hadoop.mapred.lib.IdentityMapper;
-
 import org.apache.pig.test.pigmix.mapreduce.Library;
 
 public class L15 {
@@ -81,8 +81,10 @@ public class L15 {
             HashSet<Text> hash1 = new HashSet<Text>();
             HashSet<Text> hash2 = new HashSet<Text>();
             HashSet<Text> hash3 = new HashSet<Text>();
+            int cnt_per_combiner = 0;
             while (iter.hasNext()) {
                 List<Text> vals = Library.splitLine(iter.next(), '');
+                cnt_per_combiner++;
                 try {
 					hash1.add(vals.get(0));
 					hash2.add(vals.get(1));
@@ -104,6 +106,8 @@ public class L15 {
             sb.append("");
             sb.append(ts.toString());
             sb.append("");
+            sb.append(cnt_per_combiner);
+            sb.append("");
             oc.collect(key, new Text(sb.toString()));
             reporter.setStatus("OK");
         }
@@ -120,27 +124,33 @@ public class L15 {
             HashSet<Text> hash2 = new HashSet<Text>();
             HashSet<Text> hash3 = new HashSet<Text>();
             while (iter.hasNext()) {
-                List<Text> vals = Library.splitLine(iter.next(), '');
-                try {
+				Text line = iter.next();
+				List<Text> vals = Library.splitLine(line, '');
+				try {
 					hash1.add(vals.get(0));
 					hash2.add(vals.get(1));
 					hash3.add(vals.get(2));
 				}catch(NumberFormatException nfe) {
 				}
 			}
-			Integer ts=0;
-			Double rev=new Double(0.0);
-            for (Text t : hash2) rev += Double.valueOf(t.toString());
-            for (Text t : hash3) ts += Integer.valueOf(t.toString());
-            StringBuffer sb = new StringBuffer();
+
+			Integer ts = 0;
+			Double rev = new Double(0.0);
+			Integer overall_cnt_per_group = new Integer(0);
+			for (Text t : hash2)
+				rev += Double.valueOf(t.toString());
+			for (Text t : hash3)
+				ts += Integer.valueOf(t.toString());
+			StringBuffer sb = new StringBuffer();
 			sb.append((new Integer(hash1.size())).toString());
-            sb.append("");
-            sb.append(rev.toString());
-            sb.append("");
-            sb.append(ts.toString());
-            oc.collect(key, new Text(sb.toString()));
-            reporter.setStatus("OK");
-        }
+			sb.append("");
+			sb.append(rev.toString());
+			sb.append("");
+			Double avg = (double) ((Integer.valueOf(ts.toString())) / hash3.size());
+			sb.append(avg);
+			oc.collect(key, new Text(sb.toString()));
+			reporter.setStatus("OK");
+		}
     }
 
     public static void main(String[] args) throws IOException {

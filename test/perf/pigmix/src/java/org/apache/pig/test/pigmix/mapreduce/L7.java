@@ -81,7 +81,7 @@ public class L7 {
             }
             StringBuffer sb = new StringBuffer();
             sb.append((new Integer(morning)).toString());
-            sb.append("");
+            sb.append('');
             sb.append((new Integer(afternoon)).toString());
             oc.collect(key, new Text(sb.toString()));
             reporter.setStatus("OK");
@@ -98,11 +98,14 @@ public class L7 {
                 Reporter reporter) throws IOException {
             int morning = 0, afternoon = 0;
             while (iter.hasNext()) {
-                List<Text> vals = Library.splitLine(iter.next(), '');
+            	List<Text> vals = Library.splitLine(iter.next(), '');
                 try {
                     morning += Integer.valueOf(vals.get(0).toString());
-                    if (vals.size() > 1) afternoon += Integer.valueOf(vals.get(1).toString());
+                    if (vals.size() > 1) {
+                    	afternoon += Integer.valueOf(vals.get(1).toString());
+                    }
                 } catch (NumberFormatException nfe) {
+                	System.out.println(nfe);
                 }
             }
             StringBuffer sb = new StringBuffer();

@@ -92,12 +92,14 @@ public class L5 {
             int cnt = 0;
 
             while (iter.hasNext()) {
-                if (iter.next().toString().charAt(0) == '2') cnt++;
-                reporter.setStatus("OK");
+		//As soon as a value for that name appears in the 'users' table, exclude the tuple by a return
+                if (iter.next().toString().charAt(0) == '2') return;
+		reporter.setStatus("OK");
             }
 
-            oc.collect(null, key);
-            reporter.setStatus("OK");
+	    oc.collect(null, key);
+	    reporter.setStatus("OK");
+	   
         }
     }
 

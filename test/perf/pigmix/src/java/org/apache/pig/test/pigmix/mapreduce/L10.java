@@ -45,7 +45,6 @@ import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.hadoop.mapred.lib.IdentityMapper;
-
 import org.apache.pig.test.pigmix.mapreduce.Library;
 
 public class L10 {
@@ -127,9 +126,8 @@ public class L10 {
 
         public int getPartition(MyType key, Text value, int numPartitions) {
             int rc = 0;
-            if (key.query_term == null || key.query_term.length() < 2) return 39;
-            if (key.query_term.charAt(0) > ']') rc += 20;
-            rc += map.get(key.query_term.charAt(1));
+            if (key==null || key.query_term == null ||  key.query_term.length() < 1 ) return 0;
+            rc += map.get(key.query_term.charAt(0));
             return rc;
         }
 
@@ -137,65 +135,65 @@ public class L10 {
             // Don't actually do any configuration, do the setup of the hash
             // because this call is guaranteed to be made each time we set up
             // MyPartitioner
-            map = new HashMap<Character, Integer>(57);
-            map.put('A', 0);
+            map = new HashMap<Character, Integer>(59);
+            map.put('A', 1);
             map.put('B', 1);
             map.put('C', 2);
-            map.put('D', 3);
-            map.put('E', 4);
-            map.put('F', 5);
-            map.put('G', 6);
-            map.put('I', 7);
-            map.put('H', 8);
-            map.put('J', 9);
-            map.put('K', 10);
-            map.put('L', 11);
-            map.put('M', 12);
-            map.put('N', 13);
-            map.put('O', 14);
-            map.put('P', 15);
-            map.put('Q', 16);
-            map.put('R', 17);
-            map.put('S', 18);
-            map.put('T', 19);
-            map.put('U', 0);
-            map.put('V', 1);
-            map.put('W', 2);
-            map.put('X', 3);
-            map.put('Y', 4);
-            map.put('Z', 5);
-            map.put('[', 6);
-            map.put('\\', 7);
-            map.put(']', 8);
-            map.put('^', 9);
-            map.put('_', 10);
-            map.put('`', 11);
-            map.put('a', 12);
-            map.put('b', 13);
-            map.put('c', 14);
-            map.put('d', 15);
-            map.put('e', 16);
-            map.put('f', 17);
-            map.put('g', 18);
-            map.put('h', 19);
-            map.put('i', 0);
-            map.put('j', 1);
-            map.put('k', 2);
-            map.put('l', 3);
-            map.put('m', 4);
-            map.put('n', 5);
-            map.put('o', 6);
-            map.put('p', 7);
-            map.put('q', 8);
-            map.put('r', 9);
-            map.put('s', 10);
-            map.put('t', 11);
-            map.put('u', 12);
-            map.put('v', 13);
-            map.put('w', 14);
-            map.put('x', 15);
-            map.put('y', 16);
-            map.put('z', 17);
+            map.put('D', 2);
+            map.put('E', 3);
+            map.put('F', 3);
+            map.put('G', 4);
+            map.put('H', 4);
+            map.put('I', 5);
+            map.put('J', 5);
+            map.put('K', 6);
+            map.put('L', 6);
+            map.put('M', 7);
+            map.put('N', 7);
+            map.put('O', 8);
+            map.put('P', 8);
+            map.put('Q', 9);
+            map.put('R', 9);
+            map.put('S', 10);
+            map.put('T', 10);
+            map.put('U', 11);
+            map.put('V', 11);
+            map.put('W', 12);
+            map.put('X', 12);
+            map.put('Y', 13);
+            map.put('Z', 13);
+            map.put('[', 14);
+            map.put('\\', 14);
+            map.put(']', 15);
+            map.put('^', 15);
+            map.put('_', 16);
+            map.put('`', 16);
+            map.put('a', 17);
+            map.put('b', 17);
+            map.put('c', 18);
+            map.put('d', 18);
+            map.put('e', 19);
+            map.put('f', 20);
+            map.put('g', 20);
+            map.put('h', 21);
+            map.put('i', 22);
+            map.put('j', 23);
+            map.put('k', 24);
+            map.put('l', 25);
+            map.put('m', 26);
+            map.put('n', 27);
+            map.put('o', 28);
+            map.put('p', 29);
+            map.put('q', 30);
+            map.put('r', 31);
+            map.put('s', 32);
+            map.put('t', 33);
+            map.put('u', 34);
+            map.put('v', 35);
+            map.put('w', 36);
+            map.put('x', 37);
+            map.put('y', 38);
+            map.put('z', 39);
         }
     }
 
