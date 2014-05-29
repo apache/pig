@@ -38,6 +38,11 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.lib.input.InvalidInputException;
+import org.apache.log4j.FileAppender;
+import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+import org.apache.log4j.SimpleLayout;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -46,6 +51,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.builtin.PartitionSkewedKeys;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.newplan.logical.rules.ColumnPruneVisitor;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -545,8 +551,12 @@ public class TestSkewedJoin {
           "joined = JOIN exists BY a, missing BY a USING 'skewed';";
 
         String logFile = Util.createTempFileDelOnExit("tmp", ".log").getAbsolutePath();
-        String oldValue = (String) properties.setProperty("pig.logfile", logFile);
-
+        Logger logger = Logger.getLogger("org.apache.pig");
+        logger.setLevel(Level.INFO);
+        SimpleLayout layout = new SimpleLayout();
+        FileAppender appender = new FileAppender(layout, logFile.toString(), false, false, 0);
+        logger.addAppender(appender);
+        
         try {
             pigServer.registerScript(new ByteArrayInputStream(script.getBytes("UTF-8")));
             pigServer.openIterator("joined");
@@ -584,9 +594,7 @@ public class TestSkewedJoin {
             assertTrue("This exception was not caused by InvalidInputException: " + e,
                     foundInvalidInputException);
         } finally {
-            if (oldValue != null) {
-                properties.setProperty("pig.logfile", oldValue);
-            }
+            LogManager.resetConfiguration();
         }
     }
 

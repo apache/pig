@@ -173,6 +173,7 @@ public class TestCombiner {
         properties.setProperty("io.sort.mb", "1");
 
         PigServer pigServer = new PigServer(cluster.getExecType(), properties);
+        pigServer.getPigContext().getProperties().setProperty("mapred.child.java.opts", "-Xmx1024m");
         pigServer.registerQuery("a = load 'MultiCombinerUseInput.txt' as (x:int);");
         pigServer.registerQuery("b = group a all;");
         pigServer.registerQuery("c = foreach b generate COUNT(a), SUM(a.$0), " +

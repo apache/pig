@@ -60,7 +60,7 @@ public class TestTezLauncher {
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        cluster = MiniGenericCluster.buildCluster();
+        cluster = MiniGenericCluster.buildCluster(MiniGenericCluster.EXECTYPE_TEZ);
         pc = new PigContext(new TezExecType(), cluster.getProperties());
         Util.createInputFile(cluster, INPUT_FILE, INPUT_RECORDS);
     }

@@ -48,6 +48,10 @@ public class SecondaryKeyOptimizerMR extends MROpPlanVisitor implements Secondar
         if (mr.isGlobalSort())
             return;
 
+        // Don't optimize when we already have a custom partitioner
+        if (mr.getCustomPartitioner()!=null)
+            return;
+
         info = SecondaryKeyOptimizerUtil.applySecondaryKeySort(mr.mapPlan, mr.reducePlan);
         if (info != null && info.isUseSecondaryKey()) {
             mr.setUseSecondaryKey(true);

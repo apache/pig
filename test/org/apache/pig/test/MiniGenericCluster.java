@@ -41,7 +41,6 @@ abstract public class MiniGenericCluster {
     protected MiniDFSCluster m_dfs = null;
     protected FileSystem m_fileSys = null;
     protected Configuration m_conf = null;
-    protected Properties m_props = null;
 
     protected static MiniGenericCluster INSTANCE = null;
     protected static boolean isSetup = false;
@@ -102,7 +101,6 @@ abstract public class MiniGenericCluster {
         shutdownMiniDfsClusters();
         shutdownMiniMrClusters();
         m_conf = null;
-        m_props = null;
     }
 
     protected void shutdownMiniDfsClusters() {
@@ -120,10 +118,7 @@ abstract public class MiniGenericCluster {
 
     public Properties getProperties() {
         errorIfNotSetup();
-        if (m_props == null) {
-            m_props = ConfigurationUtil.toProperties(m_conf);
-        }
-        return m_props;
+        return ConfigurationUtil.toProperties(m_conf);
     }
 
     public Configuration getConfiguration() {
