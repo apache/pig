@@ -19,39 +19,31 @@ package org.apache.pig.test.pigmix.mapreduce;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
-import java.io.InputStreamReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
-import java.util.Properties;
 import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.mapred.FileInputFormat;
 import org.apache.hadoop.mapred.FileOutputFormat;
 import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.KeyValueTextInputFormat;
-import org.apache.hadoop.mapred.Mapper;
 import org.apache.hadoop.mapred.MapReduceBase;
+import org.apache.hadoop.mapred.Mapper;
 import org.apache.hadoop.mapred.OutputCollector;
-import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
-import org.apache.hadoop.mapred.lib.IdentityMapper;
-
-import org.apache.pig.test.pigmix.mapreduce.Library;
 
 public class L2 {
 
@@ -78,6 +70,7 @@ public class L2 {
                     String[] fields = line.split("");
                     hash.add(fields[0]);
                 }
+                reader.close();
             } catch (IOException ioe) {
                 throw new RuntimeException(ioe);
             }
@@ -92,7 +85,6 @@ public class L2 {
             List<Text> fields = Library.splitLine(val, '');
             String name = fields.get(0).toString();
 
-            String v;
             if (hash.contains(name)) {
                 StringBuffer sb = new StringBuffer();
                 sb.append(name);
@@ -112,7 +104,6 @@ public class L2 {
         }
         String inputDir = args[0];
         String outputDir = args[1];
-        String parallel = args[2];
         JobConf lp = new JobConf(L2.class);
         lp.setJobName("L2 Load Page Views");
         lp.setInputFormat(TextInputFormat.class);
@@ -123,8 +114,7 @@ public class L2 {
         for (Map.Entry<Object,Object> entry : props.entrySet()) {
             lp.set((String)entry.getKey(), (String)entry.getValue());
         }
-        DistributedCache.addCacheFile(
-            new URI(inputDir + "/power_users"), lp);
+        DistributedCache.addCacheFile(new URI(inputDir + "/power_users"), lp);
         FileInputFormat.addInputPath(lp, new Path(inputDir + "/page_views"));
         FileOutputFormat.setOutputPath(lp, new Path(outputDir + "/L2out"));
         lp.setNumReduceTasks(0);
