@@ -18,9 +18,9 @@
 package org.apache.pig.builtin;
 
 import java.io.IOException;
+
 import org.apache.pig.EvalFunc;
 import org.apache.pig.PigException;
-import org.apache.pig.EvalFunc.SchemaType;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;

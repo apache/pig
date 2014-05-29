@@ -68,10 +68,8 @@ public class L6 {
             sb.append("");
             sb.append(fields.get(5).toString());
             Text key = new Text(sb.toString());
-
             try {
-                oc.collect(fields.get(0),
-                    new IntWritable(Integer.valueOf(fields.get(3).toString())));
+                oc.collect(key,new IntWritable(Integer.valueOf(fields.get(2).toString())));
             } catch (NumberFormatException nfe) {
             }
         }
@@ -91,6 +89,7 @@ public class L6 {
             }
             oc.collect(key, new IntWritable(sum));
             reporter.setStatus("OK");
+           
         }
     }
 

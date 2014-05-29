@@ -28,6 +28,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3968: OperatorPlan.serialVersionUID is not defined (daijy)
+
 Release 0.13.0 - Unreleased
  
 INCOMPATIBLE CHANGES
@@ -41,6 +43,14 @@ PIG-3419: Pluggable Execution Engine (achalsoni81 via cheolsoo)
 PIG-2207: Support custom counters for aggregating warnings from different udfs (aniket486)
 
 IMPROVEMENTS
+
+PIG-3954: Document use of user level jar cache (aniket486)
+
+PIG-3752: Fix e2e Parallel test for Windows (daijy)
+
+PIG-3966: Document variable input arguments of UDFs (lbendig via aniket486)
+
+PIG-3963: Documentation for BagToString UDF (mrflip via daijy)
 
 PIG-3929: pig.temp.dir should allow to substitute vars as hadoop configuration does (aniket486)
 
@@ -148,6 +158,30 @@ OPTIMIZATIONS
 PIG-3882: Multiquery off mode execution is not done in batch and very inefficient (rohini)
  
 BUG FIXES
+
+PIG-3915: MapReduce queries in Pigmix outputs different results than Pig's (keren3000 via daijy)
+
+PIG-3955: Remove url.openStream() file descriptor leak from JCC (aniket486)
+
+PIG-3958: TestMRJobStats is broken in 0.13 and trunk (aniket486)
+
+PIG-3949: HiveColumnarStorage compile failure with Hive 0.14.0 (daijy)
+
+PIG-3960: Compile fail against Hadoop 2.4.0 after PIG-3913 (daijy)
+
+PIG-3956: UDF profile is often misleading (cheolsoo)
+
+PIG-3950: Removing empty file PColFilterExtractor.java speeds up rebuilds (mrflip via cheolsoo)
+
+PIG-3940: NullPointerException writing .pig_header for field with null name in JsonMetadata.java (mrflip via cheolsoo)
+
+PIG-3944: PigNullableWritable toString method throws NPE on null value (mauzhang via cheolsoo)
+
+PIG-3936: DBStorage fails on storing nulls for non varchar columns (jeremykarn via cheolsoo) 
+
+PIG-3945: Ant not sending hadoopversion to piggybank sub-ant (mrflip via cheolsoo)
+
+PIG-3942: Util.buildPp() is incompatible with Non-MR execution engine (cheolsoo)
 
 PIG-3902: PigServer creates cycle (thedatachef via cheolsoo)
 

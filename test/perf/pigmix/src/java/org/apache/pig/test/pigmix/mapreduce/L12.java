@@ -58,8 +58,8 @@ public class L12 {
 
             List<Text> fields = Library.splitLine(val, '');
 
-            // Filter out null users and query terms.
-            if (fields.get(0).getLength() == 0 &&
+            // Filter out null users or query terms.
+            if (fields.get(0).getLength() == 0 ||
                     fields.get(3).getLength() == 0) return;
             try {
                 oc.collect(fields.get(0),
@@ -74,13 +74,12 @@ public class L12 {
                 Iterator<DoubleWritable> iter, 
                 OutputCollector<Text, DoubleWritable> oc,
                 Reporter reporter) throws IOException {
-            double max = Double.MIN_VALUE;
+            double max = Double.NEGATIVE_INFINITY;
 
             while (iter.hasNext()) {
                 double d = iter.next().get();
-                max = max > d ? max : d;
+            	if (max < d) max=d;
             }
-
             oc.collect(key, new DoubleWritable(max));
         }
     }
@@ -129,24 +128,22 @@ public class L12 {
                 OutputCollector<Text, LongWritable> oc,
                 Reporter reporter) throws IOException {
             List<Text> fields = Library.splitLine(val, '');
-
+            
             // Filter out non-null users and non-null queries
-            if (fields.get(0).getLength() != 0 ||
-                    fields.get(3).getLength() != 0) return;
+            if (fields.get(0).getLength() == 0 || fields.get(3).getLength() != 0) return;
             oc.collect(fields.get(1), new LongWritable(1));
-
-        }
+       }
 
         public void reduce(
                 Text key,
                 Iterator<LongWritable> iter, 
                 OutputCollector<Text, LongWritable> oc,
                 Reporter reporter) throws IOException {
-            long cnt = 0;
-
+  
+        	long cnt = 0;
             while (iter.hasNext()) {
-                iter.next();
-                cnt++;
+                LongWritable l = iter.next();
+            	cnt += l.get();
             }
             oc.collect(key, new LongWritable(cnt));
         }

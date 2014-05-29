@@ -331,6 +331,22 @@ public final class MRJobStats extends JobStats {
         }
     }
 
+    private class TaskStat {
+        int size;
+        long max;
+        long min;
+        long avg;
+        long median;
+
+        public TaskStat(int size, long max, long min, long avg, long median) {
+            this.size = size;
+            this.max = max;
+            this.min = min;
+            this.avg = avg;
+            this.median = median;
+        }
+    }
+
     void addMapReduceStatistics(Job job) {
         TaskReport[] maps = null;
         try {
@@ -338,26 +354,42 @@ public final class MRJobStats extends JobStats {
         } catch (IOException e) {
             LOG.warn("Failed to get map task report", e);
         }
+        TaskReport[] reduces = null;
+        try {
+            reduces = HadoopShims.getTaskReports(job, TaskType.REDUCE);
+        } catch (IOException e) {
+            LOG.warn("Failed to get reduce task report", e);
+        }
+        addMapReduceStatistics(maps, reduces);
+    }
+
+    private TaskStat getTaskStat(TaskReport[] tasks) {
+        int size = tasks.length;
+        long max = 0;
+        long min = Long.MAX_VALUE;
+        long median = 0;
+        long total = 0;
+        long durations[] = new long[size];
+
+        for (int i = 0; i < tasks.length; i++) {
+            TaskReport rpt = tasks[i];
+            long duration = rpt.getFinishTime() - rpt.getStartTime();
+            durations[i] = duration;
+            max = (duration > max) ? duration : max;
+            min = (duration < min) ? duration : min;
+            total += duration;
+        }
+        long avg = total / size;
+
+        median = calculateMedianValue(durations);
+
+        return new TaskStat(size, max, min, avg, median);
+    }
+
+    private void addMapReduceStatistics(TaskReport[] maps, TaskReport[] reduces) {
         if (maps != null && maps.length > 0) {
-            int size = maps.length;
-            long max = 0;
-            long min = Long.MAX_VALUE;
-            long median = 0;
-            long total = 0;
-            long durations[] = new long[size];
-
-            for (int i = 0; i < maps.length; i++) {
-                TaskReport rpt = maps[i];
-                long duration = rpt.getFinishTime() - rpt.getStartTime();
-                durations[i] = duration;
-                max = (duration > max) ? duration : max;
-                min = (duration < min) ? duration : min;
-                total += duration;
-            }
-            long avg = total / size;
-
-            median = calculateMedianValue(durations);
-            setMapStat(size, max, min, avg, median);
+            TaskStat st = getTaskStat(maps);
+            setMapStat(st.size, st.max, st.min, st.avg, st.median);
         } else {
             int m = conf.getInt("mapred.map.tasks", 1);
             if (m > 0) {
@@ -365,31 +397,9 @@ public final class MRJobStats extends JobStats {
             }
         }
 
-        TaskReport[] reduces = null;
-        try {
-            reduces = HadoopShims.getTaskReports(job, TaskType.REDUCE);
-        } catch (IOException e) {
-            LOG.warn("Failed to get reduce task report", e);
-        }
         if (reduces != null && reduces.length > 0) {
-            int size = reduces.length;
-            long max = 0;
-            long min = Long.MAX_VALUE;
-            long median = 0;
-            long total = 0;
-            long durations[] = new long[size];
-
-            for (int i = 0; i < reduces.length; i++) {
-                TaskReport rpt = reduces[i];
-                long duration = rpt.getFinishTime() - rpt.getStartTime();
-                durations[i] = duration;
-                max = (duration > max) ? duration : max;
-                min = (duration < min) ? duration : min;
-                total += duration;
-            }
-            long avg = total / size;
-            median = calculateMedianValue(durations);
-            setReduceStat(size, max, min, avg, median);
+            TaskStat st = getTaskStat(reduces);
+            setReduceStat(st.size, st.max, st.min, st.avg, st.median);
         } else {
             int m = conf.getInt("mapred.reduce.tasks", 1);
             if (m > 0) {

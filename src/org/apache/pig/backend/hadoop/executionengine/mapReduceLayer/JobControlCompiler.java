@@ -1612,39 +1612,44 @@ public class JobControlCompiler{
     private static Path getFromCache(PigContext pigContext,
             Configuration conf,
             URL url) throws IOException {
+        InputStream is1 = null;
+        InputStream is2 = null;
+        OutputStream os = null;
+
         try {
             Path stagingDir = getCacheStagingDir(conf);
             String filename = FilenameUtils.getName(url.getPath());
 
-            String checksum = DigestUtils.shaHex(url.openStream());
+            is1 = url.openStream();
+            String checksum = DigestUtils.shaHex(is1);
             FileSystem fs = FileSystem.get(conf);
             Path cacheDir = new Path(stagingDir, checksum);
             Path cacheFile = new Path(cacheDir, filename);
             if (fs.exists(cacheFile)) {
-               log.info("Found " + url + " in jar cache at "+ stagingDir);
-               long curTime = System.currentTimeMillis();
-               fs.setTimes(cacheFile, -1, curTime);
-               return cacheFile;
+                log.debug("Found " + url + " in jar cache at "+ cacheDir);
+                long curTime = System.currentTimeMillis();
+                fs.setTimes(cacheFile, -1, curTime);
+                return cacheFile;
             }
-            log.info("Url "+ url + " was not found in jarcache at "+ stagingDir);
+            log.info("Url "+ url + " was not found in jarcache at "+ cacheDir);
             // attempt to copy to cache else return null
             fs.mkdirs(cacheDir, FileLocalizer.OWNER_ONLY_PERMS);
-            OutputStream os = null;
-            InputStream is = null;
-            try {
-                os = FileSystem.create(fs, cacheFile, FileLocalizer.OWNER_ONLY_PERMS);
-                is = url.openStream();
-                IOUtils.copyBytes(is, os, 4096, true);
-            } finally {
-                org.apache.commons.io.IOUtils.closeQuietly(is);
-                // IOUtils should not close stream to HDFS quietly
-                os.close();
-            }
+            is2 = url.openStream();
+            os = FileSystem.create(fs, cacheFile, FileLocalizer.OWNER_ONLY_PERMS);
+            IOUtils.copyBytes(is2, os, 4096, true);
+
             return cacheFile;
 
         } catch (IOException ioe) {
             log.info("Unable to retrieve jar from jar cache ", ioe);
             return null;
+        } finally {
+            org.apache.commons.io.IOUtils.closeQuietly(is1);
+            org.apache.commons.io.IOUtils.closeQuietly(is2);
+            // IOUtils should not close stream to HDFS quietly
+            if (os != null) {
+                os.close();
+            }
         }
     }
 

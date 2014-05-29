@@ -807,7 +807,17 @@ A = LOAD 'student_data' AS (name, age, gpa);
 B = FOREACH A GENERATE myudfs.UPPER(name);
 DUMP B;
 </source>
-
+<p>Variable-length arguments: </p>
+<p>The last input schema field in <code>getArgToFuncMapping()</code> can be marked as vararg, which enables UDF writers to create UDFs that take variable length arguments. This is done by overriding
+the <code>getSchemaType()</code> method:
+</p>
+<source>
+@Override
+public SchemaType getSchemaType() {
+    return SchemaType.VARARG;
+}
+</source>
+<p>For an example see <a href="http://svn.apache.org/viewvc/pig/trunk/src/org/apache/pig/builtin/CONCAT.java?view=markup">CONCAT</a>.</p>
 </section>
 
 <!-- +++++++++++++++++++++++++++++++++++++++++++++++++ -->
