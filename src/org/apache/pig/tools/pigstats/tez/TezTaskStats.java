@@ -91,14 +91,16 @@ public class TezTaskStats extends JobStats {
             long records = -1;
             long hdfsBytesRead = -1;
             String filename = fs.getFileName();
-            Map<String, Long> taskCounter = map.get(TASK_COUNTER_GROUP);
-            if (taskCounter != null
-                    && taskCounter.get(TaskCounter.INPUT_RECORDS_PROCESSED.name()) != null) {
-                records = taskCounter.get(TaskCounter.INPUT_RECORDS_PROCESSED.name());
-            }
-            if (map.get(FS_COUNTER_GROUP) !=null &&
-                    map.get(FS_COUNTER_GROUP).get(PigStatsUtil.HDFS_BYTES_READ) != null) {
-                hdfsBytesRead = map.get(FS_COUNTER_GROUP).get(PigStatsUtil.HDFS_BYTES_READ);
+            if (map != null) {
+                Map<String, Long> taskCounter = map.get(TASK_COUNTER_GROUP);
+                if (taskCounter != null
+                        && taskCounter.get(TaskCounter.INPUT_RECORDS_PROCESSED.name()) != null) {
+                    records = taskCounter.get(TaskCounter.INPUT_RECORDS_PROCESSED.name());
+                }
+                if (map.get(FS_COUNTER_GROUP) !=null &&
+                        map.get(FS_COUNTER_GROUP).get(PigStatsUtil.HDFS_BYTES_READ) != null) {
+                    hdfsBytesRead = map.get(FS_COUNTER_GROUP).get(PigStatsUtil.HDFS_BYTES_READ);
+                }
             }
             InputStats is = new InputStats(filename, hdfsBytesRead,
                     records, (state == JobState.SUCCESS));
@@ -116,12 +118,15 @@ public class TezTaskStats extends JobStats {
             long records = -1;
             long hdfsBytesWritten = JobStats.getOutputSize(sto, conf);
             String filename = sto.getSFile().getFileName();
-            if (sto.isMultiStore()) {
-                Long n = map.get(PigStatsUtil.MULTI_STORE_COUNTER_GROUP).get(PigStatsUtil.getMultiStoreCounterName(sto));
-                if (n != null) records = n;
-            } else if (map.get(TASK_COUNTER_GROUP) != null
-                    && map.get(TASK_COUNTER_GROUP).get(TaskCounter.OUTPUT_RECORDS.name()) != null) {
-                records = map.get(TASK_COUNTER_GROUP).get(TaskCounter.OUTPUT_RECORDS.name());
+            if (map != null) {
+                if (sto.isMultiStore()) {
+                    Long n = map.get(PigStatsUtil.MULTI_STORE_COUNTER_GROUP)
+                            .get(PigStatsUtil.getMultiStoreCounterName(sto));
+                    if (n != null) records = n;
+                } else if (map.get(TASK_COUNTER_GROUP) != null
+                        && map.get(TASK_COUNTER_GROUP).get(TaskCounter.OUTPUT_RECORDS.name()) != null) {
+                    records = map.get(TASK_COUNTER_GROUP).get(TaskCounter.OUTPUT_RECORDS.name());
+                }
             }
             /*
             if (map.get(FS_COUNTER_GROUP)!= null &&
@@ -181,7 +186,7 @@ public class TezTaskStats extends JobStats {
 
     @Override
     @Deprecated
-    public long getAvgReduceTime() {
+    public long getAvgREduceTime() {
         throw new UnsupportedOperationException();
     }
 
