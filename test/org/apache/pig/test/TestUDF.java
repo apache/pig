@@ -55,11 +55,11 @@ public class TestUDF {
 
     static File TempScriptFile = null;
 
-    static MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
 
     @Before
     public void setUp() throws Exception {
-        FileLocalizer.setInitialized(false);
+        Util.resetStateForExecModeSwitch();
         TempScriptFile = File.createTempFile("temp_jira_851", ".pig");
         FileWriter writer = new FileWriter(TempScriptFile);
         for (String line : ScriptStatement) {
@@ -82,6 +82,7 @@ public class TestUDF {
         Iterator<Tuple> iterator = pig.openIterator("B");
         while (iterator.hasNext()) {
             Tuple tuple = iterator.next();
+            @SuppressWarnings("unchecked")
             Map<Object, Object> result = (Map<Object, Object>) tuple.get(0);
             assertEquals(result, MyUDFReturnMap.map);
         }
@@ -92,7 +93,7 @@ public class TestUDF {
         Util.createInputFile(cluster, "a.txt", new String[] { "dummy",
                 "dummy" });
         FileLocalizer.deleteTempFiles();
-        PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster
+        PigServer pig = new PigServer(cluster.getExecType(), cluster
                 .getProperties());
         pig.registerQuery("A = LOAD 'a.txt';");
         pig.registerQuery("B = FOREACH A GENERATE org.apache.pig.test.utils.MyUDFReturnMap();");
@@ -100,6 +101,7 @@ public class TestUDF {
         Iterator<Tuple> iterator = pig.openIterator("B");
         while (iterator.hasNext()) {
             Tuple tuple = iterator.next();
+            @SuppressWarnings("unchecked")
             Map<Object, Object> result = (Map<Object, Object>) tuple.get(0);
             assertEquals(result, MyUDFReturnMap.map);
         }
@@ -107,7 +109,7 @@ public class TestUDF {
 
     @Test
     public void testUDFMultiLevelOutputSchema() throws Exception {
-        PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer pig = new PigServer(cluster.getExecType(), cluster.getProperties());
         pig.registerQuery("A = LOAD 'a.txt';");
         pig.registerQuery("B = FOREACH A GENERATE org.apache.pig.test.utils.MultiLevelDerivedUDF1();");
         pig.registerQuery("C = FOREACH A GENERATE org.apache.pig.test.utils.MultiLevelDerivedUDF2();");
@@ -211,7 +213,7 @@ public class TestUDF {
         pig.dumpSchema("c");
         pig.dumpSchema("d");
     }
-    
+
     @Test
     public void testEvalFuncGetVarArgToFunc() throws Exception {
         String input = "udf_test_jira_3444.txt";
@@ -254,6 +256,7 @@ public class TestUDF {
             return schemaString;
         }
 
+        @Override
         public Schema outputSchema(Schema input) {
             return schema;
         }
@@ -287,7 +290,7 @@ public class TestUDF {
             return l;
         }
     }
-    
+
     public static class UdfWithFuncSpecWithVarArgs extends EvalFunc<Integer> {
         public UdfWithFuncSpecWithVarArgs() {}
 
@@ -302,7 +305,7 @@ public class TestUDF {
             }
             return res;
         }
-        
+
         @Override
         public SchemaType getSchemaType() {
             return SchemaType.VARARG;

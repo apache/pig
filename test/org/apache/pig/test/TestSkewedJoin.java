@@ -23,15 +23,26 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Properties;
 
-import org.apache.pig.ExecType;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.lib.input.InvalidInputException;
+import org.apache.log4j.FileAppender;
+import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+import org.apache.log4j.SimpleLayout;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -40,10 +51,11 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.builtin.PartitionSkewedKeys;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.newplan.logical.rules.ColumnPruneVisitor;
 import org.apache.pig.test.utils.TestHelper;
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestSkewedJoin {
@@ -54,29 +66,45 @@ public class TestSkewedJoin {
     private static final String INPUT_FILE5 = "SkewedJoinInput5.txt";
     private static final String INPUT_FILE6 = "SkewedJoinInput6.txt";
     private static final String INPUT_FILE7 = "SkewedJoinInput7.txt";
+    private static final String INPUT_DIR = "build/test/data";
+    private static final String OUTPUT_DIR = "build/test/output";
 
-    private PigServer pigServer;
-    private static MiniCluster cluster = MiniCluster.buildCluster();
+    private static FileSystem fs;
+    private static PigServer pigServer;
+    private static Properties properties;
+    private static MiniGenericCluster cluster;
 
     @Before
     public void setUp() throws Exception {
-        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-        pigServer.getPigContext().getProperties().setProperty("pig.skewedjoin.reduce.maxtuple", "5");
-        pigServer.getPigContext().getProperties().setProperty("pig.skewedjoin.reduce.memusage", "0.01");
+        Util.resetStateForExecModeSwitch();
+        pigServer = new PigServer(cluster.getExecType(), properties);
+    }
+
+    @BeforeClass
+    public static void oneTimeSetUp() throws Exception {
+        cluster = MiniGenericCluster.buildCluster();
+        properties = cluster.getProperties();
+        properties.setProperty("pig.skewedjoin.reduce.maxtuple", "5");
+        properties.setProperty("pig.skewedjoin.reduce.memusage", "0.01");
+        fs = cluster.getFileSystem();
         createFiles();
     }
 
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
+        deleteFiles();
         cluster.shutDown();
     }
 
-    private void createFiles() throws IOException {
-        PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE1));
+    private static void createFiles() throws IOException {
+        new File(INPUT_DIR).mkdir();
+        new File(OUTPUT_DIR).mkdir();
+
+        PrintWriter w = new PrintWriter(new FileWriter(INPUT_DIR + "/" + INPUT_FILE1));
 
         int k = 0;
         for(int j=0; j<120; j++) {
-               w.println("100\tapple1\taaa" + k);
+            w.println("100\tapple1\taaa" + k);
             k++;
             w.println("200\torange1\tbbb" + k);
             k++;
@@ -86,7 +114,7 @@ public class TestSkewedJoin {
 
         w.close();
 
-        PrintWriter w2 = new PrintWriter(new FileWriter(INPUT_FILE2));
+        PrintWriter w2 = new PrintWriter(new FileWriter(INPUT_DIR + "/" + INPUT_FILE2));
         w2.println("100\tapple1");
         w2.println("100\tapple2");
         w2.println("100\tapple2");
@@ -97,7 +125,7 @@ public class TestSkewedJoin {
 
         w2.close();
 
-        PrintWriter w3 = new PrintWriter(new FileWriter(INPUT_FILE3));
+        PrintWriter w3 = new PrintWriter(new FileWriter(INPUT_DIR + "/" + INPUT_FILE3));
         w3.println("100\tapple1");
         w3.println("100\tapple2");
         w3.println("200\torange1");
@@ -108,14 +136,14 @@ public class TestSkewedJoin {
 
         w3.close();
 
-        PrintWriter w4 = new PrintWriter(new FileWriter(INPUT_FILE4));
+        PrintWriter w4 = new PrintWriter(new FileWriter(INPUT_DIR + "/" + INPUT_FILE4));
         for(int i=0; i < 100; i++) {
             w4.println("[a100#apple1,a100#apple2,a200#orange1,a200#orange2,a300#strawberry,a300#strawberry2,a400#pear]");
         }
         w4.close();
 
         // Create a file with null keys
-        PrintWriter w5 = new PrintWriter(new FileWriter(INPUT_FILE5));
+        PrintWriter w5 = new PrintWriter(new FileWriter(INPUT_DIR + "/" + INPUT_FILE5));
         for(int i=0; i < 10; i++) {
             w5.println("\tapple1");
         }
@@ -127,7 +155,7 @@ public class TestSkewedJoin {
         w5.println("100\t");
         w5.close();
 
-        PrintWriter w6 = new PrintWriter(new FileWriter(INPUT_FILE6));
+        PrintWriter w6 = new PrintWriter(new FileWriter(INPUT_DIR + "/" + INPUT_FILE6));
 
         for(int i=0; i<300; i++) {
             for(int j=0; j<5; j++) {
@@ -136,7 +164,7 @@ public class TestSkewedJoin {
         }
         w6.close();
 
-        PrintWriter w7 = new PrintWriter(new FileWriter(INPUT_FILE7));
+        PrintWriter w7 = new PrintWriter(new FileWriter(INPUT_DIR + "/" + INPUT_FILE7));
 
         for(int i=0; i<300; i = i+3) {
             for(int j=0; j<2; j++) {
@@ -145,33 +173,18 @@ public class TestSkewedJoin {
         }
         w7.close();
 
-        Util.copyFromLocalToCluster(cluster, INPUT_FILE1, INPUT_FILE1);
-        Util.copyFromLocalToCluster(cluster, INPUT_FILE2, INPUT_FILE2);
-        Util.copyFromLocalToCluster(cluster, INPUT_FILE3, INPUT_FILE3);
-        Util.copyFromLocalToCluster(cluster, INPUT_FILE4, INPUT_FILE4);
-        Util.copyFromLocalToCluster(cluster, INPUT_FILE5, INPUT_FILE5);
-        Util.copyFromLocalToCluster(cluster, INPUT_FILE6, INPUT_FILE6);
-        Util.copyFromLocalToCluster(cluster, INPUT_FILE7, INPUT_FILE7);
+        Util.copyFromLocalToCluster(cluster, INPUT_DIR + "/" + INPUT_FILE1, INPUT_FILE1);
+        Util.copyFromLocalToCluster(cluster, INPUT_DIR + "/" + INPUT_FILE2, INPUT_FILE2);
+        Util.copyFromLocalToCluster(cluster, INPUT_DIR + "/" + INPUT_FILE3, INPUT_FILE3);
+        Util.copyFromLocalToCluster(cluster, INPUT_DIR + "/" + INPUT_FILE4, INPUT_FILE4);
+        Util.copyFromLocalToCluster(cluster, INPUT_DIR + "/" + INPUT_FILE5, INPUT_FILE5);
+        Util.copyFromLocalToCluster(cluster, INPUT_DIR + "/" + INPUT_FILE6, INPUT_FILE6);
+        Util.copyFromLocalToCluster(cluster, INPUT_DIR + "/" + INPUT_FILE7, INPUT_FILE7);
     }
 
-    @After
-    public void tearDown() throws Exception {
-        new File(INPUT_FILE1).delete();
-        new File(INPUT_FILE2).delete();
-        new File(INPUT_FILE3).delete();
-        new File(INPUT_FILE4).delete();
-        new File(INPUT_FILE5).delete();
-        new File(INPUT_FILE6).delete();
-        new File(INPUT_FILE7).delete();
-        Util.deleteDirectory(new File("skewedjoin"));
-
-        Util.deleteFile(cluster, INPUT_FILE1);
-        Util.deleteFile(cluster, INPUT_FILE2);
-        Util.deleteFile(cluster, INPUT_FILE3);
-        Util.deleteFile(cluster, INPUT_FILE4);
-        Util.deleteFile(cluster, INPUT_FILE5);
-        Util.deleteFile(cluster, INPUT_FILE6);
-        Util.deleteFile(cluster, INPUT_FILE7);
+    private static void deleteFiles() throws IOException {
+        Util.deleteDirectory(new File(INPUT_DIR));
+        Util.deleteDirectory(new File(OUTPUT_DIR));
     }
 
     @Test
@@ -205,8 +218,6 @@ public class TestSkewedJoin {
 
     @Test
     public void testSkewedJoinWithNoProperties() throws IOException{
-        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE1 + "' as (id, name, n);");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE2 + "' as (id, name);");
         DataBag dbfrj = BagFactory.getInstance().newDefaultBag();
@@ -271,36 +282,35 @@ public class TestSkewedJoin {
         }
     }
 
-
     @Test
     public void testSkewedJoinKeyPartition() throws IOException {
+        String outputDir = "testSkewedJoinKeyPartition";
         try{
-             Util.deleteFile(cluster, "skewedjoin");
+             Util.deleteFile(cluster, outputDir);
         }catch(Exception e){
             // it is ok if directory not exist
         }
 
          pigServer.registerQuery("A = LOAD '" + INPUT_FILE1 + "' as (id, name, n);");
          pigServer.registerQuery("B = LOAD '" + INPUT_FILE2 + "' as (id, name);");
-
-
          pigServer.registerQuery("E = join A by id, B by id using 'skewed' parallel 7;");
-         pigServer.store("E", "skewedjoin");
+         pigServer.store("E", outputDir);
 
          int[][] lineCount = new int[3][7];
 
-         new File("skewedjoin").mkdir();
+         FileStatus[] outputFiles = fs.listStatus(new Path(outputDir), Util.getSuccessMarkerPathFilter());
          // check how many times a key appear in each part- file
-         for(int i=0; i<7; i++) {
-             Util.copyFromClusterToLocal(cluster, "skewedjoin/part-r-0000"+i, "skewedjoin/part-r-0000"+i);
-
-             BufferedReader reader = new BufferedReader(new FileReader("skewedjoin/part-r-0000"+i));
-               String line = null;
-               while((line = reader.readLine()) != null) {
-                  String[] cols = line.split("\t");
-                  int key = Integer.parseInt(cols[0])/100 -1;
-                  lineCount[key][i] ++;
-              }
+         for (int i=0; i<7; i++) {
+             String filename = outputFiles[i].getPath().toString();
+             Util.copyFromClusterToLocal(cluster, filename, OUTPUT_DIR + "/" + i);
+             BufferedReader reader = new BufferedReader(new FileReader(OUTPUT_DIR + "/" + i));
+             String line = null;
+             while((line = reader.readLine()) != null) {
+                 String[] cols = line.split("\t");
+                 int key = Integer.parseInt(cols[0])/100 -1;
+                 lineCount[key][i] ++;
+             }
+             reader.close();
          }
 
          int fc = 0;
@@ -529,4 +539,63 @@ public class TestSkewedJoin {
             }
         }
     }
+
+    // PIG-3469
+    // This query should fail with nothing else but InvalidInputException
+    @Test
+    public void testNonExistingInputPathInSkewJoin() throws Exception {
+        String script =
+          "exists = LOAD '" + INPUT_FILE2 + "' AS (a:long, x:chararray);" +
+          "missing = LOAD '/non/existing/directory' AS (a:long);" +
+          "missing = FOREACH ( GROUP missing BY a ) GENERATE $0 AS a, COUNT_STAR($1);" +
+          "joined = JOIN exists BY a, missing BY a USING 'skewed';";
+
+        String logFile = Util.createTempFileDelOnExit("tmp", ".log").getAbsolutePath();
+        Logger logger = Logger.getLogger("org.apache.pig");
+        logger.setLevel(Level.INFO);
+        SimpleLayout layout = new SimpleLayout();
+        FileAppender appender = new FileAppender(layout, logFile.toString(), false, false, 0);
+        logger.addAppender(appender);
+        
+        try {
+            pigServer.registerScript(new ByteArrayInputStream(script.getBytes("UTF-8")));
+            pigServer.openIterator("joined");
+        } catch (Exception e) {
+            boolean foundInvalidInputException = false;
+
+            // Search through chained exceptions for InvalidInputException. If
+            // input splits are calculated on the front-end, we will see this
+            // exception in the stack trace.
+            Throwable cause = e.getCause();
+            while (cause != null) {
+                if (cause instanceof InvalidInputException) {
+                    foundInvalidInputException = true;
+                    break;
+                }
+                cause = cause.getCause();
+            }
+
+            // InvalidInputException was not found in the stack trace. But it's
+            // possible that the exception was thrown in the back-end, and Pig
+            // couldn't retrieve it in the front-end. To be safe, search the log
+            // file before declaring a failure.
+            if (!foundInvalidInputException) {
+                FileInputStream fis = new FileInputStream(new File(logFile));
+                int bytes = fis.available();
+                byte[] buffer = new byte[bytes];
+                fis.read(buffer);
+                String str = new String(buffer, "UTF-8");
+                if (str.contains(InvalidInputException.class.getName())) {
+                    foundInvalidInputException = true;
+                }
+                fis.close();
+            }
+
+            assertTrue("This exception was not caused by InvalidInputException: " + e,
+                    foundInvalidInputException);
+        } finally {
+            LogManager.resetConfiguration();
+        }
+    }
+
 }

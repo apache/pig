@@ -148,7 +148,7 @@ public class PigContext implements Serializable {
     private static ThreadLocal<ArrayList<String>> packageImportList =
         new ThreadLocal<ArrayList<String>>();
 
-    private static ThreadLocal<Map<String,Class<?>>> classCache = 
+    private static ThreadLocal<Map<String,Class<?>>> classCache =
         new ThreadLocal<Map<String,Class<?>>>();
 
     private Properties log4jProperties = new Properties();
@@ -242,14 +242,14 @@ public class PigContext implements Serializable {
         this(ExecType.MAPREDUCE, new Properties());
     }
 
-        public PigContext(Configuration conf) throws PigException {
-            this(ConfigurationUtil.toProperties(conf));
-        }
-        
-        public PigContext(Properties properties) throws PigException {
-            this(ExecTypeProvider.selectExecType(properties), properties);
-        }
-    
+    public PigContext(Configuration conf) throws PigException {
+        this(ConfigurationUtil.toProperties(conf));
+    }
+
+    public PigContext(Properties properties) throws PigException {
+        this(ExecTypeProvider.selectExecType(properties), properties);
+    }
+
     public PigContext(ExecType execType, Configuration conf) {
         this(execType, ConfigurationUtil.toProperties(conf));
     }
@@ -276,7 +276,7 @@ public class PigContext implements Serializable {
         skippedShipPaths.add("/sbin");
         skippedShipPaths.add("/usr/sbin");
         skippedShipPaths.add("/usr/local/sbin");
-        
+
         macros = new HashMap<String, Tree>();
         scriptingUDFs = new HashMap<String, String>();
 
@@ -376,10 +376,10 @@ public class PigContext implements Serializable {
     }
 
     /**
-     * Adds the specified path to the predeployed jars list. These jars will 
+     * Adds the specified path to the predeployed jars list. These jars will
      * never be included in generated job jar.
      * <p>
-     * This can be called for jars that are pre-installed on the Hadoop 
+     * This can be called for jars that are pre-installed on the Hadoop
      * cluster to reduce the size of the job jar.
      */
     public void markJarAsPredeployed(String path) {
@@ -644,24 +644,24 @@ public class PigContext implements Serializable {
             c = new HashMap<String,Class<?>>();
             classCache.set(c);
         }
-             
+
         return c;
     }
-    
+
     @SuppressWarnings("rawtypes")
     public static Class resolveClassName(String name) throws IOException{
-        Map<String,Class<?>> cache = getClassCache(); 
-        
+        Map<String,Class<?>> cache = getClassCache();
+
         Class c = cache.get(name);
         if (c != null) {
             return c;
         }
-        
+
         for(String prefix: getPackageImportList()) {
             try {
                 c = Class.forName(prefix+name,true, PigContext.classloader);
                 cache.put(name, c);
-                
+
                 return c;
             }
             catch (ClassNotFoundException e) {
@@ -868,11 +868,7 @@ public class PigContext implements Serializable {
      * @return error source
      */
     public byte getErrorSource() {
-        if(execType == ExecType.LOCAL || execType == ExecType.MAPREDUCE) {
-            return PigException.REMOTE_ENVIRONMENT;
-        } else {
-            return PigException.BUG;
-        }
+        return PigException.REMOTE_ENVIRONMENT;
     }
 
     public static ArrayList<String> getPackageImportList() {

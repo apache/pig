@@ -128,6 +128,43 @@ public class JarManager {
             return pkgClass;
         }
     }
+    
+    public static void createBootStrapJar(OutputStream os, PigContext pigContext) throws IOException {
+        JarOutputStream jarFile = new JarOutputStream(os);
+        HashMap<String, String> contents = new HashMap<String, String>();
+        Vector<JarListEntry> jarList = new Vector<JarListEntry>();
+
+        for (DefaultPigPackages pkgToSend : DefaultPigPackages.values()) {
+            addContainingJar(jarList, pkgToSend.getPkgClass(), pkgToSend.getPkgPrefix(), pigContext);
+        }
+
+        Iterator<JarListEntry> it = jarList.iterator();
+        while (it.hasNext()) {
+            JarListEntry jarEntry = it.next();
+            mergeJar(jarFile, jarEntry.jar, jarEntry.prefix, contents);
+        }
+
+        // Just like in MR Pig, we'll add the script files to Job.jar. For Jython, MR Pig packages
+        // all the dependencies in Job.jar. For JRuby, we need the resource pigudf.rb, which is in
+        // the pig jar. JavaScript files could be packaged either in the Job.jar or as Tez local
+        // resources; MR Pig adds them to the Job.jar so that's what we will do also. Groovy files
+        // must be added as Tez local resources in the TezPlanContainer (in MR Pig Groovy UDF's
+        // are actually broken since they cannot be found by the GroovyScriptEngine).
+        for (Map.Entry<String, File> entry : pigContext.getScriptFiles().entrySet()) {
+            InputStream stream = null;
+            if (entry.getValue().exists()) {
+                stream = new FileInputStream(entry.getValue());
+            } else {
+                stream = PigContext.getClassLoader().getResourceAsStream(entry.getValue().getPath());
+            }
+            if (stream == null) {
+                throw new IOException("Cannot find " + entry.getValue().getPath());
+            }
+            addStream(jarFile, entry.getKey(), stream, contents);
+        }
+
+        jarFile.close();
+    }
 
     /**
      * Create a jarfile in a temporary path, that is a merge of all the jarfiles containing the

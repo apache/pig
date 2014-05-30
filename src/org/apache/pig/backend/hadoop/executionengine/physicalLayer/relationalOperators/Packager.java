@@ -26,9 +26,6 @@ import org.apache.pig.pen.util.LineageTracer;
 
 public class Packager implements Illustrable, Serializable, Cloneable {
 
-    /**
-     * 
-     */
     private static final long serialVersionUID = 1L;
 
     protected boolean[] readOnce;
@@ -84,8 +81,7 @@ public class Packager implements Illustrable, Serializable, Cloneable {
     protected POPackage parent = null;
 
     protected static final BagFactory mBagFactory = BagFactory.getInstance();
-    protected static final TupleFactory mTupleFactory = TupleFactory
-            .getInstance();
+    protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     public Object getKey(PigNullableWritable key) throws ExecException {
         Object keyObject = key.getValueAsPigType();
@@ -210,7 +206,7 @@ public class Packager implements Illustrable, Serializable, Cloneable {
             int finalValueSize = keyLookupSize + val.size();
             copy = mTupleFactory.newTuple(finalValueSize);
             int valIndex = 0; // an index for accessing elements from
-            // the value (val) that we have currently
+                              // the value (val) that we have currently
             for (int i = 0; i < finalValueSize; i++) {
                 Integer keyIndex = keyLookup.get(i);
                 if (keyIndex == null) {
@@ -285,8 +281,7 @@ public class Packager implements Illustrable, Serializable, Cloneable {
     }
 
     /**
-     * @param keyInfo
-     *            the keyInfo to set
+     * @param keyInfo the keyInfo to set
      */
     public void setKeyInfo(
             Map<Integer, Pair<Boolean, Map<Integer, Integer>>> keyInfo) {
@@ -294,16 +289,14 @@ public class Packager implements Illustrable, Serializable, Cloneable {
     }
 
     /**
-     * @param keyTuple
-     *            the keyTuple to set
+     * @param keyTuple the keyTuple to set
      */
     public void setKeyTuple(boolean keyTuple) {
         this.isKeyTuple = keyTuple;
     }
 
     /**
-     * @param keyCompound
-     *            the keyCompound to set
+     * @param keyCompound the keyCompound to set
      */
     public void setKeyCompound(boolean keyCompound) {
         this.isKeyCompound = keyCompound;
@@ -333,8 +326,7 @@ public class Packager implements Illustrable, Serializable, Cloneable {
     }
 
     /**
-     * @param distinct
-     *            the distinct to set
+     * @param distinct the distinct to set
      */
     public void setDistinct(boolean distinct) {
         this.distinct = distinct;

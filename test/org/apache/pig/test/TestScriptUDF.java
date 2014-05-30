@@ -20,35 +20,33 @@ package org.apache.pig.test;
 import java.io.File;
 import java.util.Iterator;
 
-import junit.framework.Assert;
-
 import org.apache.hadoop.util.Shell;
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 public class TestScriptUDF{
-    static MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
     private PigServer pigServer;
 
     TupleFactory mTf = TupleFactory.getInstance();
     BagFactory mBf = BagFactory.getInstance();
-    
+
     @Before
     public void setUp() throws Exception{
-        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
     }
-    
+
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
+
     // See PIG-928
     @Test
     public void testJavascriptExampleScript() throws Exception{
@@ -132,7 +130,7 @@ public class TestScriptUDF{
         t = iter.next();
 
         Assert.assertTrue(t.toString().equals("(9)"));
-        
+
         Assert.assertFalse(iter.hasNext());
     }
 
@@ -143,7 +141,7 @@ public class TestScriptUDF{
      * to use a jython install, the Lib dir must be in the jython search path
      * via env variable JYTHON_HOME=jy_home or JYTHONPATH=jy_home/Lib:... or
      * jython-standalone.jar should be in the classpath
-     * 
+     *
      * Left in for now as we don't have paths to include other scripts in a
      * script in the e2e harness.
      *
@@ -156,7 +154,7 @@ public class TestScriptUDF{
 
     @Test
     public void testPythonNestedImportClassPath() throws Exception {
-        // Use different names for the script as PythonInterpreter is static in JythonScriptEngine 
+        // Use different names for the script as PythonInterpreter is static in JythonScriptEngine
         testPythonNestedImport("build/classes", "scriptC.py", "scriptD.py");
     }
 

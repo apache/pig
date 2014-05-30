@@ -65,6 +65,8 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     private static final Log log = LogFactory.getLog(PhysicalOperator.class);
 
     protected static final long serialVersionUID = 1L;
+    protected static final Result RESULT_EMPTY = new Result(POStatus.STATUS_NULL, null);
+    protected static final Result RESULT_EOP = new Result(POStatus.STATUS_EOP, null);
 
     // The degree of parallelism requested
     protected int requestedParallelism;
@@ -98,7 +100,7 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     // Will be used by operators to report status or transmit heartbeat
     // Should be set by the backends to appropriate implementations that
     // wrap their own version of a reporter.
-    private static ThreadLocal<PigProgressable> reporter = new ThreadLocal<PigProgressable>();
+    public static ThreadLocal<PigProgressable> reporter = new ThreadLocal<PigProgressable>();
 
     // Will be used by operators to aggregate warning messages
     // Should be set by the backends to appropriate implementations that
@@ -137,6 +139,21 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
         res = new Result();
     }
 
+    public PhysicalOperator(PhysicalOperator copy) {
+        super (copy.getOperatorKey());
+        this.res = new Result();
+        this.requestedParallelism = copy.requestedParallelism;
+        this.inputs = copy.inputs;
+        this.outputs = copy.outputs;
+        this.resultType = copy.resultType;
+        this.parentPlan = copy.parentPlan;
+        this.inputAttached = copy.inputAttached;
+        this.alias = copy.alias;
+        this.lineageTracer = copy.lineageTracer;
+        this.accum = copy.accum;
+        this.originalLocations = copy.originalLocations;
+    }
+
     @Override
     public void setIllustrator(Illustrator illustrator) {
 	      this.illustrator = illustrator;
@@ -164,6 +181,10 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
 
     protected String getAliasString() {
         return (alias == null) ? "" : (alias + ": ");
+    }
+
+    public void setAlias(String alias) {
+        this.alias = alias;
     }
 
     public void addOriginalLocation(String alias, SourceLocation sourceLocation) {
@@ -265,11 +286,9 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
      */
     public Result processInput() throws ExecException {
         try {
-            Result res = new Result();
             if (input == null && (inputs == null || inputs.size() == 0)) {
                 // log.warn("No inputs found. Signaling End of Processing.");
-                res.returnStatus = POStatus.STATUS_EOP;
-                return res;
+                return new Result(POStatus.STATUS_EOP, null);
             }
 
             // Should be removed once the model is clear
@@ -280,6 +299,7 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
             if (!isInputAttached()) {
                 return inputs.get(0).getNextTuple();
             } else {
+                Result res = new Result();
                 res.result = input;
                 res.returnStatus = POStatus.STATUS_OK;
                 detachInput();

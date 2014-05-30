@@ -13,4 +13,6 @@
 #
 org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.LocalExecType
 org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRExecType
+org.apache.pig.backend.hadoop.executionengine.tez.TezLocalExecType
+org.apache.pig.backend.hadoop.executionengine.tez.TezExecType
 

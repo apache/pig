@@ -24,14 +24,26 @@ import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.mapred.MiniMRCluster;
+import org.apache.pig.ExecType;
 
 public class MiniCluster extends MiniGenericCluster {
     private static final File CONF_DIR = new File("build/classes");
     private static final File CONF_FILE = new File(CONF_DIR, "hadoop-site.xml");
-    
+
     private MiniMRCluster m_mr = null;
-    public MiniCluster() {
-        super();
+
+    /**
+     * @deprecated use {@link org.apache.pig.test.MiniGenericCluster.buildCluster() instead.
+     */
+    @Deprecated
+    public static MiniCluster buildCluster() {
+        System.setProperty("test.exec.type", "mr");
+        return (MiniCluster)MiniGenericCluster.buildCluster();
+    }
+
+    @Override
+    protected ExecType getExecType() {
+        return ExecType.MAPREDUCE;
     }
 
     @Override

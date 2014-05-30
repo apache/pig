@@ -26,7 +26,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.tools.pigstats.PigStats;
@@ -38,7 +37,7 @@ import org.junit.Test;
 
 public class TestScriptLanguageJavaScript {
 
-    static MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
     private PigServer pigServer;
 
     @BeforeClass
@@ -53,8 +52,7 @@ public class TestScriptLanguageJavaScript {
 
     @Before
     public void setUp() throws Exception {
-        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-//        pigServer = new PigServer(ExecType.LOCAL);
+        pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
     }
 
     @After

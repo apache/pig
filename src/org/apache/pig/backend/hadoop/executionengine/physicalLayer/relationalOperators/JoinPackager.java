@@ -25,7 +25,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.InternalCachedBag;
 import org.apache.pig.data.NonSpillableDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -34,6 +33,7 @@ import org.apache.pig.pen.Illustrator;
 
 public class JoinPackager extends Packager {
 
+    private static final long serialVersionUID = 1L;
     private POOptimizedForEach forEach;
     private boolean newKey = true;
     private Tuple res = null;

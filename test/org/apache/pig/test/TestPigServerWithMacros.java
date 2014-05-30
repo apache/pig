@@ -39,10 +39,16 @@ import org.apache.pig.PigServer;
 import org.apache.pig.builtin.mock.Storage;
 import org.apache.pig.data.Tuple;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.Test;
 
 public class TestPigServerWithMacros {
-    private static MiniCluster cluster = MiniCluster.buildCluster();
+    private static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
+
+    @Before
+    public void setup() throws Exception {
+        Util.resetStateForExecModeSwitch();
+    }
 
     @AfterClass
     public static void tearDown() throws Exception {
@@ -51,7 +57,7 @@ public class TestPigServerWithMacros {
 
     @Test
     public void testRegisterRemoteMacro() throws Throwable {
-        PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer pig = new PigServer(cluster.getExecType(), cluster.getProperties());
 
         String macroName = "util.pig";
         File macroFile = File.createTempFile("tmp", "");
@@ -94,42 +100,42 @@ public class TestPigServerWithMacros {
 
         pig.shutdown();
     }
-    
+
     @Test
     public void testRegisterResourceMacro() throws Throwable {
         PigServer pig = new PigServer(ExecType.LOCAL);
 
         String macrosFile = "test/pig/macros.pig";
         File macrosJarFile = File.createTempFile("macros", ".jar");
-        
+
         System.out.println("Creating macros jar " + macrosJarFile);
-        
+
         Manifest manifest = new Manifest();
         manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
-        
+
         JarOutputStream jarStream = new JarOutputStream(new FileOutputStream(macrosJarFile), manifest);
-        
+
         JarEntry jarEntry = new JarEntry(macrosFile);
         jarEntry.setTime(System.currentTimeMillis());
-        jarStream.putNextEntry(jarEntry);        
-        
+        jarStream.putNextEntry(jarEntry);
+
         PrintWriter pw = new PrintWriter(jarStream);
         pw.println("DEFINE row_count_in_jar(X) RETURNS Z { Y = group $X all; $Z = foreach Y generate COUNT($X); };");
-        pw.close();        
-        
+        pw.close();
+
         jarStream.close();
-        
+
         Storage.Data data = resetData(pig);
         data.set("some_path", "(l:int)", tuple(tuple("1")), tuple(tuple("2")), tuple(tuple("3")), tuple(tuple("10")), tuple(tuple("11")));
-                
+
         System.out.println("Registering macros jar " + macrosJarFile);
         pig.registerJar(macrosJarFile.toString());
-        
+
         pig.registerQuery("import '" + macrosFile + "';");
         pig.registerQuery("a = load 'some_path' USING mock.Storage();");
         pig.registerQuery("b = row_count_in_jar(a);");
         Iterator<Tuple> iter = pig.openIterator("b");
-        
+
         assertTrue(((Long)iter.next().get(0))==5);
 
         pig.shutdown();

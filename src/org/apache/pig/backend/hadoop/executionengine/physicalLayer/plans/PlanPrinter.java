@@ -64,7 +64,7 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
     String TABMore = "|   ";
 
     String LSep = "|\n|---";
-    
+
     String USep = "|   |\n|   ";
 
     int levelCntr = -1;
@@ -76,7 +76,7 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
     public PlanPrinter(P plan) {
         super(plan, new DepthFirstWalker<O, P>(plan));
     }
-    
+
     public PlanPrinter(P plan, PrintStream stream) {
         super(plan, new DepthFirstWalker<O, P>(plan));
         this.stream = stream;
@@ -142,7 +142,7 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
         sb.delete(sb.length() - "\n".length(), sb.length());
         return sb.toString();
     }
-    
+
     private String planString(PhysicalPlan pp){
         StringBuilder sb = new StringBuilder();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -154,7 +154,7 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
         sb.append(shiftStringByTabs(baos.toString(), 2));
         return sb.toString();
     }
-    
+
     private String planString(List<PhysicalPlan> lep){
         StringBuilder sb = new StringBuilder();
         if(lep!=null)
@@ -214,13 +214,13 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
               POSkewedJoin skewed = (POSkewedJoin)node;
               MultiMap<PhysicalOperator, PhysicalPlan> joinPlans = skewed.getJoinPlans();
               if(joinPlans!=null) {
-            	  List<PhysicalPlan> inner_plans = new ArrayList<PhysicalPlan>();
-            	  inner_plans.addAll(joinPlans.values());                
-                  sb.append(planString(inner_plans));                
+                  List<PhysicalPlan> inner_plans = new ArrayList<PhysicalPlan>();
+                  inner_plans.addAll(joinPlans.values());
+                  sb.append(planString(inner_plans));
               }
             }
         }
-        
+
         if (node instanceof POSplit) {
             sb.append(planString(((POSplit)node).getPlans()));
         }
@@ -231,13 +231,13 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
             plans.addAll(pl);
             sb.append(planString(plans));
         }
-        
+
         List<O> originalPredecessors = mPlan.getPredecessors(node);
         if (originalPredecessors == null)
             return sb.toString();
-        
+
         List<O> predecessors =  new ArrayList<O>(originalPredecessors);
-        
+
         Collections.sort(predecessors);
         int i = 0;
         for (O pred : predecessors) {
@@ -301,5 +301,5 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
     public void visitStartMap(POUnion op) {
         stream.print(op.name() + "   ");
     }
-    
+
 }

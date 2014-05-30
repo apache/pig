@@ -18,15 +18,10 @@
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapOnly.Map;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCounter;
 import org.apache.pig.data.Tuple;
@@ -47,16 +42,18 @@ public class PigMapReduceCounter {
         /**
          * Here is set up the task id, in order to be attached to each tuple
          **/
+        @Override
         public void setup(Context context) throws IOException, InterruptedException {
             super.setup(context);
 
-            taskID = String.valueOf(context.getTaskAttemptID().getTaskID().getId());
+            int taskIDInt = context.getTaskAttemptID().getTaskID().getId();
+            taskID = String.valueOf(taskIDInt);
 
             pOperator = mp.getLeaves().get(0);
 
             while(true) {
                 if(pOperator instanceof POCounter){
-                    ((POCounter) pOperator).setTaskId(taskID);
+                    ((POCounter) pOperator).setTaskId(taskIDInt);
                     ((POCounter) pOperator).resetLocalCounter();
                     break;
                 } else {
@@ -103,13 +100,14 @@ public class PigMapReduceCounter {
         protected void setup(Context context) throws IOException, InterruptedException {
             super.setup(context);
 
-            taskID = String.valueOf(context.getTaskAttemptID().getTaskID().getId());
+            int taskIDInt = context.getTaskAttemptID().getTaskID().getId();
+            taskID = String.valueOf(taskIDInt);
 
             leaf = rp.getLeaves().get(0);
 
             while(true) {
                 if(leaf instanceof POCounter){
-                    ((POCounter) leaf).setTaskId(taskID);
+                    ((POCounter) leaf).setTaskId(taskIDInt);
                     ((POCounter) leaf).resetLocalCounter();
                     break;
                 } else {

@@ -68,6 +68,7 @@ import org.apache.pig.impl.util.Utils;
 public class MapRedUtil {
 
     private static Log log = LogFactory.getLog(MapRedUtil.class);
+    private static final TupleFactory tf = TupleFactory.getInstance();
 
     public static final String FILE_SYSTEM_NAME = "fs.default.name";
 
@@ -130,14 +131,14 @@ public class MapRedUtil {
             if (idxTuple.size() > 3) {
                 // remove the last 2 fields of the tuple, i.e: minIndex and maxIndex and store
                 // it in the reducer map
-                Tuple keyTuple = TupleFactory.getInstance().newTuple();
+                Tuple keyTuple = tf.newTuple();
                 for (int i=0; i < idxTuple.size() - 2; i++) {
                     keyTuple.append(idxTuple.get(i));
                 }
                 keyT = (E) keyTuple;
             } else {
                 if (keyType == DataType.TUPLE) {
-                    keyT = (E)TupleFactory.getInstance().newTuple(1);
+                    keyT = (E)tf.newTuple(1);
                     ((Tuple)keyT).set(0,idxTuple.get(0));
                 } else {
                     keyT = (E) idxTuple.get(0);

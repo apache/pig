@@ -98,7 +98,7 @@ public class PigGenericMapReduce {
     @Deprecated
     public static Configuration sJobConf = null;
 
-    public static final ThreadLocal<Configuration> sJobConfInternal = new ThreadLocal<Configuration>();
+    public static ThreadLocal<Configuration> sJobConfInternal = new ThreadLocal<Configuration>();
 
     public static class Map extends PigMapBase {
 
@@ -172,16 +172,16 @@ public class PigGenericMapReduce {
             Byte tupleValIdx = 3;
 
             Byte index = (Byte)tuple.get(0);
-			Integer partitionIndex = -1;
-        	// for partitioning table, the partition index isn't present
-			if (tuple.size() == 3) {
-				//super.collect(oc, tuple);
-				//return;
-				tupleKeyIdx--;
-				tupleValIdx--;
-			} else {
-				partitionIndex = (Integer)tuple.get(1);
-			}
+            Integer partitionIndex = -1;
+            // for partitioning table, the partition index isn't present
+            if (tuple.size() == 3) {
+                //super.collect(oc, tuple);
+                //return;
+                tupleKeyIdx--;
+                tupleValIdx--;
+            } else {
+                partitionIndex = (Integer)tuple.get(1);
+            }
 
             PigNullableWritable key =
                 HDataType.getWritableComparableTypes(tuple.get(tupleKeyIdx), keyType);
@@ -338,7 +338,7 @@ public class PigGenericMapReduce {
                 }
 
                 // Get the UDF specific context
-            	MapRedUtil.setupUDFContext(jConf);
+                MapRedUtil.setupUDFContext(jConf);
 
             } catch (IOException ioe) {
                 String msg = "Problem while configuring reduce plan.";

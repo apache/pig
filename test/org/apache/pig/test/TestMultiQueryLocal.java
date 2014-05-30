@@ -66,7 +66,7 @@ public class TestMultiQueryLocal {
     @Before
     public void setUp() throws Exception {
         PigContext context = new PigContext(ExecType.LOCAL, new Properties());
-        context.getProperties().setProperty("opt.multiquery", ""+true);
+        context.getProperties().setProperty(PigConfiguration.OPT_MULTIQUERY, ""+true);
         myPig = new PigServer(context);
         myPig.getPigContext().getProperties().setProperty("pig.usenewlogicalplan", "false");
         myPig.getPigContext().getProperties().setProperty(PigConfiguration.PIG_TEMP_DIR, "build/test/tmp/");
@@ -113,7 +113,7 @@ public class TestMultiQueryLocal {
     @Test
     public void testEmptyExecute() {
         System.out.println("=== test empty execute ===");
-        
+
         try {
             myPig.setBatchOn();
             myPig.executeBatch();
@@ -155,7 +155,7 @@ public class TestMultiQueryLocal {
     public void testMultiQueryWithTwoStores2Execs() {
 
         System.out.println("===== test multi-query with 2 stores (2) =====");
-        
+
         try {
             myPig.setBatchOn();
 
@@ -316,10 +316,10 @@ public class TestMultiQueryLocal {
             myPig.registerQuery("group b by gid;");
 
             LogicalPlan lp = checkLogicalPlan(0, 0, 0);
-            
+
             // XXX Physical plan has one less node in the local case
             PhysicalPlan pp = checkPhysicalPlan(lp, 0, 0, 0);
-            
+
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
@@ -532,7 +532,7 @@ public class TestMultiQueryLocal {
     @Test
     public void testStoreOrder() {
         System.out.println("===== multi-query store order =====");
-        
+
         try {
             myPig.setBatchOn();
             myPig.registerQuery("a = load 'test/org/apache/pig/test/data/passwd';");
@@ -552,7 +552,7 @@ public class TestMultiQueryLocal {
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 15);
 
             myPig.executeBatch();
-            myPig.discardBatch(); 
+            myPig.discardBatch();
 
             Assert.assertTrue(new File(TMP_DIR + "/Pig-TestMultiQueryLocal1").exists());
             Assert.assertTrue(new File(TMP_DIR + "/Pig-TestMultiQueryLocal2").exists());
@@ -560,7 +560,7 @@ public class TestMultiQueryLocal {
             Assert.assertTrue(new File(TMP_DIR + "/Pig-TestMultiQueryLocal4").exists());
             Assert.assertTrue(new File(TMP_DIR + "/Pig-TestMultiQueryLocal5").exists());
 
-            
+
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
@@ -572,7 +572,7 @@ public class TestMultiQueryLocal {
     // --------------------------------------------------------------------------
     // Helper methods
 
-    private <T extends OperatorPlan<? extends Operator<?>>> 
+    private <T extends OperatorPlan<? extends Operator<?>>>
     void showPlanOperators(T p) {
         System.out.println("Operators:");
 
@@ -590,7 +590,7 @@ public class TestMultiQueryLocal {
             ParseException {
 
         System.out.println("===== check logical plan =====");
-    
+
         LogicalPlan lp = null;
 
         try {
@@ -671,14 +671,14 @@ public class TestMultiQueryLocal {
                     deleteDir( new File( outputFile ) );
                 } else {
                     FileLocalizer.delete(outputFile, myPig.getPigContext());
-                }    
-            }            
+                }
+            }
         } catch (IOException e) {
             e.printStackTrace();
             Assert.fail();
         }
     }
-    
+
     private void deleteDir( File file ) {
         if( file.isDirectory() && file.listFiles().length != 0 ) {
             for( File innerFile : file.listFiles() ) {
@@ -687,7 +687,7 @@ public class TestMultiQueryLocal {
         }
         file.delete();
     }
-    
+
     private boolean isDirectory( String filepath ) {
         File file = new File( filepath );
         return file.isDirectory();

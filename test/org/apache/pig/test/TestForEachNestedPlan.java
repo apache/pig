@@ -18,7 +18,7 @@
 
 package org.apache.pig.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -29,9 +29,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
-import junit.framework.Assert;
-
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -39,32 +36,33 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.parser.ParserException;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class TestForEachNestedPlan {
 
-    static MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
 
     private PigServer pig ;
 
     public TestForEachNestedPlan() throws Throwable {
-        pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties()) ;
+        pig = new PigServer(cluster.getExecType(), cluster.getProperties()) ;
     }
 
     Boolean[] nullFlags = new Boolean[]{ false, true };
-    
+
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
+
     @Test
     public void testInnerOrderBy() throws Exception {
         for (int i = 0; i < nullFlags.length; i++) {
             System.err.println("Running testInnerOrderBy with nullFlags set to :"
                             + nullFlags[i]);
             File tmpFile = genDataSetFile1(nullFlags[i]);
-            pig.registerQuery("a = load '" 
+            pig.registerQuery("a = load '"
                     + Util.generateURI(tmpFile.toString(), pig.getPigContext()) + "'; ");
             pig.registerQuery("b = group a by $0; ");
             pig.registerQuery("c = foreach b { " + "     c1 = order $1 by *; "
@@ -82,9 +80,9 @@ public class TestForEachNestedPlan {
     }
 
     @Test
-    public void testInnerOrderByStarWithSchema() throws Exception {        
+    public void testInnerOrderByStarWithSchema() throws Exception {
         File tmpFile = genDataSetFile1(false);
-        pig.registerQuery("a = load '" + Util.generateURI(tmpFile.toString(), 
+        pig.registerQuery("a = load '" + Util.generateURI(tmpFile.toString(),
                 pig.getPigContext()) + "' as (a0, a1);");
         pig.registerQuery("b = group a by a0; ");
         pig.registerQuery("c = foreach b { d = order a by *; "
@@ -99,23 +97,23 @@ public class TestForEachNestedPlan {
         }
         Assert.assertEquals(count, 10);
     }
-   
+
     @Test
-    public void testMultiColInAlias() throws Exception {    
+    public void testMultiColInAlias() throws Exception {
     	pig.getPigContext().getProperties().setProperty("pig.exec.nosecondarykey", "true");
     	String INPUT_FILE = "test-multi-alias.txt";
         PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE));
         w.println("10\tnrai01\t01");
         w.println("20\tnrai02\t02");
         w.close();
-        
+
         try {
-          
+
             Util.copyFromLocalToCluster(cluster, INPUT_FILE, INPUT_FILE);
             pig.registerQuery("A = load '" + INPUT_FILE + "' "
                     + "as (a:int, b:chararray, c:int);");
             pig.registerQuery("B = GROUP A BY (a, b);") ;
-           
+
             DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
             {
                 pig.registerQuery("C = FOREACH B { bg = A.($1,$2); GENERATE group, bg; } ;") ;
@@ -132,7 +130,7 @@ public class TestForEachNestedPlan {
                 }
             }
             Assert.assertEquals(dbfrj.size(), dbshj.size());
-            Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj)); 
+            Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));
 
         } finally{
             new File(INPUT_FILE).delete();
@@ -144,9 +142,9 @@ public class TestForEachNestedPlan {
             }
         }
     }
-   
+
     @Test
-    public void testAlgebricFuncWithoutGroupBy() 
+    public void testAlgebricFuncWithoutGroupBy()
     throws IOException, ParserException {
         String INPUT_FILE = "test-sum.txt";
 
@@ -194,7 +192,7 @@ public class TestForEachNestedPlan {
     }
 
     @Test
-    public void testInnerDistinct() 
+    public void testInnerDistinct()
     throws IOException, ParserException {
         String INPUT_FILE = "test-distinct.txt";
 
@@ -208,13 +206,13 @@ public class TestForEachNestedPlan {
 
         try {
             Util.copyFromLocalToCluster(cluster, INPUT_FILE, INPUT_FILE);
-        
+
             pig.registerQuery("A = load '" + INPUT_FILE
                     + "' as (age:int, gpa:int);");
             pig.registerQuery("B = group A by age;");
             pig.registerQuery("C = foreach B { D = A.gpa; E = distinct D; " +
             		"generate group, MIN(E); };");
-    
+
             Iterator<Tuple> iter = pig.openIterator("C");
 
             List<Tuple> expectedResults =
@@ -224,9 +222,9 @@ public class TestForEachNestedPlan {
             int counter = 0;
             while (iter.hasNext()) {
                assertEquals(expectedResults.get(counter++).toString(),
-                        iter.next().toString());                
+                        iter.next().toString());
             }
-    
+
             assertEquals(expectedResults.size(), counter);
         } finally{
             new File(INPUT_FILE).delete();
@@ -240,7 +238,7 @@ public class TestForEachNestedPlan {
     }
 
     @Test
-    public void testInnerOrderByAliasReuse() 
+    public void testInnerOrderByAliasReuse()
     throws IOException, ParserException {
         String INPUT_FILE = "test-innerorderbyaliasreuse.txt";
 
@@ -253,13 +251,13 @@ public class TestForEachNestedPlan {
 
         try {
             Util.copyFromLocalToCluster(cluster, INPUT_FILE, INPUT_FILE);
-        
+
             pig.registerQuery("A = load '" + INPUT_FILE
                     + "' as (v1:int, v2:int);");
             pig.registerQuery("B = group A by v1;");
             pig.registerQuery("C = foreach B { X = A; X = order X by v2 asc; " +
             		"generate flatten(X); };");
-    
+
             Iterator<Tuple> iter = pig.openIterator("C");
 
             List<Tuple> expectedResults =
@@ -269,9 +267,9 @@ public class TestForEachNestedPlan {
             int counter = 0;
             while (iter.hasNext()) {
                 assertEquals(expectedResults.get(counter++).toString(),
-                        iter.next().toString());                
+                        iter.next().toString());
             }
-    
+
             assertEquals(expectedResults.size(), counter);
         } finally{
             new File(INPUT_FILE).delete();
@@ -283,8 +281,8 @@ public class TestForEachNestedPlan {
             }
         }
     }
-    
-    
+
+
     /***
      * For generating a sample dataset
      */
@@ -296,7 +294,7 @@ public class TestForEachNestedPlan {
         DecimalFormat formatter = new DecimalFormat("0000000");
 
         Random r = new Random();
-        
+
         for (int i = 0; i < dataLength; i++) {
             data[i] = new String[2] ;
             // inject nulls randomly

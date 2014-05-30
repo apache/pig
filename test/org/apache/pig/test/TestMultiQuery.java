@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Properties;
 
 import org.apache.pig.ExecType;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.data.Tuple;
@@ -51,7 +52,7 @@ public class TestMultiQuery {
         Util.copyFromLocalToLocal(
                 "test/org/apache/pig/test/data/passwd2", "passwd2");
         Properties props = new Properties();
-        props.setProperty("opt.multiquery", ""+true);
+        props.setProperty(PigConfiguration.OPT_MULTIQUERY, ""+true);
         myPig = new PigServer(ExecType.LOCAL, props);
     }
 

@@ -24,6 +24,8 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeCogroup;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPartialAgg;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPoissonSample;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POReservoirSample;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCollectedGroup;
 import org.apache.pig.impl.plan.DepthFirstWalker;
@@ -32,9 +34,9 @@ import org.apache.pig.impl.plan.VisitorException;
 /**
  * This visitor visits the MRPlan and does the following
  * for each MROper: If the map plan or the reduce plan of the MROper has
- *  an end of all input flag present in it, this marks in the MROper whether the map 
+ *  an end of all input flag present in it, this marks in the MROper whether the map
  * has an end of all input flag set or if the reduce has an end of all input flag set.
- *  
+ *
  */
 public class EndOfAllInputSetter extends MROpPlanVisitor {
 
@@ -47,43 +49,40 @@ public class EndOfAllInputSetter extends MROpPlanVisitor {
 
     @Override
     public void visitMROp(MapReduceOper mr) throws VisitorException {
-        
+
         EndOfAllInputChecker checker = new EndOfAllInputChecker(mr.mapPlan);
         checker.visit();
         if(checker.isEndOfAllInputPresent()) {
-            mr.setEndOfAllInputInMap(true);            
+            mr.setEndOfAllInputInMap(true);
         }
-        
+
         checker = new EndOfAllInputChecker(mr.reducePlan);
         checker.visit();
         if(checker.isEndOfAllInputPresent()) {
-            mr.setEndOfAllInputInReduce(true);            
-        }      
-        
+            mr.setEndOfAllInputInReduce(true);
+        }
+
     }
 
-    static class EndOfAllInputChecker extends PhyPlanVisitor {
-        
+    public static class EndOfAllInputChecker extends PhyPlanVisitor {
+
         private boolean endOfAllInputFlag = false;
         public EndOfAllInputChecker(PhysicalPlan plan) {
             super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(plan));
         }
-        
-        /* (non-Javadoc)
-         * @see org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor#visitStream(org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStream)
-         */
+
         @Override
         public void visitStream(POStream stream) throws VisitorException {
             // stream present
             endOfAllInputFlag = true;
         }
-        
+
         @Override
         public void visitMergeJoin(POMergeJoin join) throws VisitorException {
             // merge join present
             endOfAllInputFlag = true;
         }
-       
+
         @Override
         public void visitCollectedGroup(POCollectedGroup mg) throws VisitorException {
             // map side group present
@@ -97,7 +96,17 @@ public class EndOfAllInputSetter extends MROpPlanVisitor {
         }
 
         @Override
-        public void visitPartialAgg(POPartialAgg partAgg){
+        public void visitPartialAgg(POPartialAgg partAgg) throws VisitorException {
+            endOfAllInputFlag = true;
+        }
+
+        @Override
+        public void visitReservoirSample(POReservoirSample reservoirSample) throws VisitorException {
+            endOfAllInputFlag = true;
+        }
+        
+        @Override
+        public void visitPoissonSample(POPoissonSample poissonSample) throws VisitorException {
             endOfAllInputFlag = true;
         }
 
@@ -109,4 +118,3 @@ public class EndOfAllInputSetter extends MROpPlanVisitor {
         }
     }
 }
-

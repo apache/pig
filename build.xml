@@ -90,6 +90,10 @@
     <property name="output.jarfile.backcompat.withouthadoop" value="${basedir}/${name}-withouthadoop.jar" />
 
     <!-- test properties -->
+    <condition property="test.exec.type" value="${exectype}" else="mr">
+        <!-- By default, test.exec.type is mr -->
+        <isset property="exectype"/>
+    </condition>
     <property name="test.src.dir" value="${basedir}/test" />
     <property name="test.build.dir" value="${build.dir}/test" />
     <property name="test.build.classes" value="${test.build.dir}/classes" />
@@ -100,6 +104,7 @@
     <property name="test.unit.file" value="${test.src.dir}/unit-tests"/>
     <property name="test.smoke.file" value="${test.src.dir}/smoke-tests"/>
     <property name="test.all.file" value="${test.src.dir}/all-tests"/>
+    <property name="test.tez.file" value="${test.src.dir}/tez-tests"/>
     <property name="test.exclude.file" value="${test.src.dir}/excluded-tests"/>
     <property name="test.exclude.file.23" value="${test.src.dir}/excluded-tests-23"/>
     <property name="pigunit.jarfile" value="pigunit.jar" />
@@ -185,10 +190,6 @@
     <property name="ivy.dir" location="ivy" />
     <loadproperties srcfile="${ivy.dir}/libraries.properties"/>
 
-    <!--propertyregex property="hadoopversion"
-           input="${hadoop-core.version}"
-           regexp="\d+\.(\d+)\.\d+"
-           select="\1" /-->
     <property name="hadoopversion" value="20" />
 
     <condition property="isHadoop23">
@@ -205,6 +206,13 @@
       at the moment.
     -->
     <property name="hbaseversion" value="94" />
+
+    <!-- exclude tez code if not hadoop20 -->
+    <condition property="src.exclude.dir" value="**/tez/**" else="">
+        <not>
+            <equals arg1="${hadoopversion}" arg2="23"/>
+        </not>
+    </condition>
 
     <property name="src.shims.dir" value="${basedir}/shims/src/hadoop${hadoopversion}" />
     <property name="src.shims.test.dir" value="${basedir}/shims/test/hadoop${hadoopversion}" />
@@ -357,9 +365,9 @@
             <include name="guava-${guava.version}.jar"/>
             <include name="automaton-${automaton.version}.jar"/>
             <include name="jansi-${jansi.version}.jar"/>
-            <include name="avro-${avro.version}.jar"/>     
-            <include name="avro-mapred-${avro.version}.jar"/>     
-            <include name="trevni-core-${avro.version}.jar"/>     
+            <include name="avro-${avro.version}.jar"/>
+            <include name="avro-mapred-${avro.version}.jar"/>
+            <include name="trevni-core-${avro.version}.jar"/>
             <include name="trevni-avro-${avro.version}.jar"/>
             <include name="snappy-java-${snappy.version}.jar"/>
             <include name="asm*.jar"/>
@@ -379,11 +387,12 @@
             <include name="slf4j*.jar"/>
             <include name="jsp-api*.jar"/>
             <include name="avro-${avro.version}.jar"/>
-            <include name="avro-mapred-${avro.version}.jar"/>    
-            <include name="trevni-core-${avro.version}.jar"/>    
+            <include name="avro-mapred-${avro.version}.jar"/>
+            <include name="trevni-core-${avro.version}.jar"/>
             <include name="trevni-avro-${avro.version}.jar"/>
             <include name="snappy-java-${snappy.version}.jar"/>
             <include name="asm*.jar"/>
+            <include name="tez-*-${tez.version}.jar" if="isHadoop23"/>
         </patternset>
     </fileset>
 
@@ -551,7 +560,7 @@
         <echo>*** To compile with all warnings enabled, supply -Dall.warnings=1 on command line ***</echo>
         <echo>*** Else, you will only be warned about deprecations ***</echo>
         <compileSources sources="${src.dir};${src.gen.dir};${src.lib.dir}/bzip2;${src.shims.dir}"
-            excludes="" dist="${build.classes}" cp="classpath" warnings="${javac.args.warnings}" />
+            excludes="${src.exclude.dir}" dist="${build.classes}" cp="classpath" warnings="${javac.args.warnings}" />
         <copy todir="${build.classes}/META-INF">
             <fileset dir="${src.dir}/META-INF" includes="**"/>
         </copy>
@@ -562,7 +571,8 @@
         <echo>*** To compile with all warnings enabled, supply -Dall.warnings=1 on command line ***</echo>
         <echo>*** Else, you will only be warned about deprecations ***</echo>
         <compileSources sources="${test.src.dir};${src.shims.test.dir}"
-            excludes="**/PigTestLoader.java **/resources/** perf/**" dist="${test.build.classes}" cp="test.classpath" warnings="${javac.args.warnings}" />
+            excludes="**/PigTestLoader.java **/resources/** perf/** ${src.exclude.dir}"
+            dist="${test.build.classes}" cp="test.classpath" warnings="${javac.args.warnings}" />
         <copy file="${basedir}/test/hbase-site.xml" tofile="${test.build.classes}/hbase-site.xml"/>
         <ivy:cachepath pathid="mr-apps-test-ivy.classpath" conf="test" />
         <path id="mr-apps-test.classpath">
@@ -839,6 +849,10 @@
         <macro-test-runner test.file="${test.smoke.file}" />
     </target>
 
+    <target name="test-tez" depends="setWindowsPath,setLinuxPath,compile-test,jar-withouthadoop,debugger.check" description="Run tez unit tests">
+        <macro-test-runner test.file="${test.tez.file}" />
+    </target>
+
     <target name="debugger.check" depends="debugger.set,debugger.unset"/>
     <target name="debugger.set" if="debugPort">
         <property name="debugArgs" value="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=${debugPort}"/>
@@ -855,12 +869,13 @@
         <mkdir dir="${test.log.dir}"/>
         <tempfile property="junit.tmp.dir" prefix="pig_junit_tmp" destDir="${java.io.tmpdir}" />
         <mkdir dir="${junit.tmp.dir}/"/>
-        <junit showoutput="${test.output}" printsummary="yes" haltonfailure="no" fork="yes" maxmemory="1024m" dir="${basedir}" timeout="${test.timeout}" errorProperty="tests.failed" failureProperty="tests.failed">
+        <junit showoutput="${test.output}" printsummary="yes" haltonfailure="no" fork="yes" maxmemory="2048m" dir="${basedir}" timeout="${test.timeout}" errorProperty="tests.failed" failureProperty="tests.failed">
+            <sysproperty key="test.exec.type" value="${test.exec.type}" />
             <sysproperty key="ssh.gateway" value="${ssh.gateway}" />
             <sysproperty key="hod.server" value="${hod.server}" />
             <sysproperty key="java.io.tmpdir" value="${junit.tmp.dir}" />
             <sysproperty key="hadoop.log.dir" value="${test.log.dir}"/>
-            <jvmarg line="${debugArgs}"/>
+            <jvmarg line="-XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=128M ${debugArgs}"/>
             <sysproperty key="java.security.krb5.realm" value="" />
             <sysproperty key="java.security.krb5.kdc" value="" />
             <sysproperty key="log4j.configuration" value="file:${basedir}/conf/test-log4j.properties"/>
@@ -919,6 +934,10 @@
 
     <target name="test-e2e" depends="jar, jar-withouthadoop, piggybank" description="run end-to-end tests">
         <ant dir="${test.e2e.dir}"/>
+    </target>
+
+    <target name="test-e2e-tez" depends="jar, jar-withouthadoop, piggybank" description="run end-to-end tests in tez mode">
+        <ant dir="${test.e2e.dir}" target="test-tez"/>
     </target>
 
     <target name="test-e2e-deploy" depends="jar, jar-withouthadoop" description="deploy end-to-end tests to existing cluster">

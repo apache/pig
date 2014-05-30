@@ -166,6 +166,8 @@
       rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
     <dependency org="org.apache.hadoop" name="hadoop-yarn-client" 
       rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
+    <dependency org="org.apache.hadoop" name="hadoop-yarn-server-applicationhistoryservice" 
+      rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
     <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-hs" 
       rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
     <dependency org="org.mortbay.jetty" name="jetty" rev="${jetty.version}"
@@ -403,8 +405,28 @@
     </dependency>
 
     <dependency org="org.mockito" name="mockito-all" rev="${mockito.version}" conf="compile->default"/>
-       
+
     <dependency org="com.twitter" name="parquet-pig-bundle" rev="${parquet-pig-bundle.version}" conf="compile->master"/>
+
+    <!-- for Tez integration -->
+    <dependency org="org.apache.tez" name="tez" rev="${tez.version}"
+       conf="hadoop23->master"/>
+    <dependency org="org.apache.tez" name="tez-common" rev="${tez.version}"
+       conf="hadoop23->master"/>
+    <dependency org="org.apache.tez" name="tez-api" rev="${tez.version}"
+       conf="hadoop23->master"/>
+    <dependency org="org.apache.tez" name="tez-dag" rev="${tez.version}"
+       conf="hadoop23->master"/>
+    <dependency org="org.apache.tez" name="tez-runtime-internals" rev="${tez.version}"
+       conf="hadoop23->master"/>
+    <dependency org="org.apache.tez" name="tez-runtime-library" rev="${tez.version}"
+       conf="hadoop23->master"/>
+    <dependency org="org.apache.tez" name="tez-mapreduce" rev="${tez.version}"
+       conf="hadoop23->master"/>
+    <dependency org="org.apache.commons" name="commons-collections4" rev="${commons-collections4.version}"
+      conf="hadoop23->master"/>
+    <dependency org="org.codehaus.jettison" name="jettison" rev="${jettison.version}"
+      conf="hadoop23->master"/>
 
   </dependencies>
 </ivy-module>

@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.Iterator;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.test.utils.TestHelper;
@@ -34,12 +33,12 @@ import org.junit.Test;
 
 public class TestMapReduce2 {
 
-    static MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
 
     private PigServer pig ;
 
     public TestMapReduce2() throws Throwable {
-        pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties()) ;
+        pig = new PigServer(cluster.getExecType(), cluster.getProperties()) ;
     }
 
     @AfterClass

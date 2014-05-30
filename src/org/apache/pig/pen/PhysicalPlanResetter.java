@@ -28,11 +28,11 @@ import org.apache.pig.impl.plan.VisitorException;
  * This visitor visits the physical plan and resets it for next MRCompilation
  */
 public class PhysicalPlanResetter extends PhyPlanVisitor {
-    
+
     public PhysicalPlanResetter(PhysicalPlan plan) {
         super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(plan));
     }
-    
+
     @Override
     public void visitPackage(POPackage pkg) throws VisitorException {
         pkg.getPkgr().setKeyInfo(null);

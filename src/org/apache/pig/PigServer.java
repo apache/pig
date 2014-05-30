@@ -97,6 +97,8 @@ import org.apache.pig.tools.pigstats.ScriptState;
 import org.apache.pig.validator.BlackAndWhitelistFilter;
 import org.apache.pig.validator.PigCommandFilter;
 
+import com.google.common.annotations.VisibleForTesting;
+
 /**
  *
  * A class for Java programs to connect to Pig. Typically a program will create a PigServer
@@ -159,6 +161,11 @@ public class PigServer {
         return "" + scopeCounter.incrementAndGet();
     }
 
+    @VisibleForTesting
+    public static void resetScope() {
+        scopeCounter.set(0);
+    }
+
     /**
      * @param execTypeString can be 'mapreduce' or 'local'.  Local mode will
      * use Hadoop's local job runner to execute the job on the local machine.
@@ -170,6 +177,10 @@ public class PigServer {
      */
     public PigServer(String execTypeString) throws ExecException, IOException {
         this(addExecTypeProperty(PropertiesUtil.loadDefaultProperties(), execTypeString));
+    }
+
+    public PigServer(String execTypeString, Properties properties) throws ExecException, IOException {
+        this(addExecTypeProperty(properties, execTypeString));
     }
 
     public PigServer(Properties properties) throws ExecException, IOException {
@@ -750,7 +761,7 @@ public class PigServer {
             registerScript(fis, params, paramsFiles);
         }catch (FileNotFoundException e){
             log.error(e.getLocalizedMessage());
-            throw new IOException(e.getCause());
+            throw new IOException(e);
         } finally {
             if (fis != null) {
                 fis.close();
@@ -1366,9 +1377,9 @@ public class PigServer {
         try {
             stats = pigContext.getExecutionEngine().launchPig(lp, jobName, pigContext);
         } catch (ExecException e) {
-            throw (ExecException) e;
+            throw e;
         } catch (FrontendException e) {
-            throw (FrontendException) e;
+            throw e;
         } catch (Exception e) {
             // There are a lot of exceptions thrown by the launcher.  If this
             // is an ExecException, just let it through.  Else wrap it.

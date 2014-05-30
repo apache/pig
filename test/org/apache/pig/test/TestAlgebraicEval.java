@@ -23,26 +23,35 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.Iterator;
+import java.util.Properties;
 import java.util.Random;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestAlgebraicEval {
+    private static PigServer pig;
+    private static Properties properties;
+    private static MiniGenericCluster cluster;
 
     private int LOOP_COUNT = 1024;
-
-    private PigServer pig;
+    private Boolean[] nullFlags = new Boolean[]{ false, true};
 
     @Before
     public void setUp() throws Exception {
-        pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pig = new PigServer(cluster.getExecType(), properties);
+    }
+
+    @BeforeClass
+    public static void oneTimeSetUp() throws Exception {
+        cluster = MiniGenericCluster.buildCluster();
+        properties = cluster.getProperties();
     }
 
     @AfterClass
@@ -50,9 +59,6 @@ public class TestAlgebraicEval {
         cluster.shutDown();
     }
 
-    Boolean[] nullFlags = new Boolean[]{ false, true};
-
-    static MiniCluster cluster = MiniCluster.buildCluster();
     @Test
     public void testGroupCountWithMultipleFields() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");

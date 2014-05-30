@@ -51,36 +51,36 @@ import org.apache.pig.impl.plan.optimizer.OptimizerException;
 import org.apache.pig.impl.util.Pair;
 
 
-/** 
- * An optimizer that merges all or part splittee MapReduceOpers into 
- * splitter MapReduceOper. 
+/**
+ * An optimizer that merges all or part splittee MapReduceOpers into
+ * splitter MapReduceOper.
  * <p>
- * The merge can produce a MROperPlan that has 
+ * The merge can produce a MROperPlan that has
  * fewer MapReduceOpers than MapReduceOpers in the original MROperPlan.
  * <p>
- * The MRCompler generates multiple MapReduceOpers whenever it encounters 
- * a split operator and connects the single splitter MapReduceOper to 
- * one or more splittee MapReduceOpers using store/load operators:  
+ * The MRCompler generates multiple MapReduceOpers whenever it encounters
+ * a split operator and connects the single splitter MapReduceOper to
+ * one or more splittee MapReduceOpers using store/load operators:
  * <p>
  *     ---- POStore (in splitter) -... ----
  *     |        |    ...    |
  *     |        |    ...    |
  *    POLoad  POLoad ...  POLoad (in splittees)
  *      |        |           |
- * <p>   
- *  This optimizer merges those MapReduceOpers by replacing POLoad/POStore 
- *  combination with POSplit operator.    
+ * <p>
+ *  This optimizer merges those MapReduceOpers by replacing POLoad/POStore
+ *  combination with POSplit operator.
  */
 class MultiQueryOptimizer extends MROpPlanVisitor {
-    
+
     private Log log = LogFactory.getLog(getClass());
-    
+
     private NodeIdGenerator nig;
-    
+
     private String scope;
-    
+
     private boolean inIllustrator = false;
-    
+
     MultiQueryOptimizer(MROperPlan plan, boolean inIllustrator) {
         super(plan, new ReverseDependencyOrderWalker<MapReduceOper, MROperPlan>(plan));
         nig = NodeIdGenerator.getGenerator();
@@ -93,22 +93,22 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
     @Override
     public void visit() throws VisitorException {
         super.visit();
-        
+
         log.info("MR plan size after optimization: " + mPlan.size());
     }
-    
+
     @Override
     public void visitMROp(MapReduceOper mr) throws VisitorException {
-        
+
         if (!mr.isSplitter()) {
             return;
-        }       
-        
+        }
+
         // first classify all the splittees
         List<MapReduceOper> mappers = new ArrayList<MapReduceOper>();
         List<MapReduceOper> multiLoadMROpers = new ArrayList<MapReduceOper>();
         List<MapReduceOper> mapReducers = new ArrayList<MapReduceOper>();
-                    
+
         List<MapReduceOper> successors = getPlan().getSuccessors(mr);
         for (MapReduceOper successor : successors) {
             if (successor.getUseSecondaryKey()) {
@@ -123,90 +123,76 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             }
             if (isMapOnly(successor)) {
                 if (isSingleLoadMapperPlan(successor.mapPlan)
-                        && isSinglePredecessor(successor)) {                    
-                    mappers.add(successor);                
-                } else {                    
+                        && isSinglePredecessor(successor)) {
+                    mappers.add(successor);
+                } else {
                     multiLoadMROpers.add(successor);
                 }
             } else {
                 if (isSingleLoadMapperPlan(successor.mapPlan)
-                        && isSinglePredecessor(successor)) {                     
-                    mapReducers.add(successor);                  
-                } else {                    
-                    multiLoadMROpers.add(successor);                      
+                        && isSinglePredecessor(successor)) {
+                    mapReducers.add(successor);
+                } else {
+                    multiLoadMROpers.add(successor);
                 }
-            }                
+            }
         }
-                  
+
         int numSplittees = successors.size();
-        
+
         // case 1: exactly one splittee and it's map-only
-        if (mappers.size() == 1 && numSplittees == 1) {    
+        if (mappers.size() == 1 && numSplittees == 1) {
             mergeOnlyMapperSplittee(mappers.get(0), mr);
-            
             log.info("Merged the only map-only splittee.");
-            
-            return;              
-        }
-        
-        // case 2: exactly one splittee and it has reducer
-        if (isMapOnly(mr) && mapReducers.size() == 1 && numSplittees == 1) {            
-            mergeOnlyMapReduceSplittee(mapReducers.get(0), mr);
-            
-            log.info("Merged the only map-reduce splittee.");
-            
             return;
-        } 
-                
+        }
+
+        // case 2: exactly one splittee and it has reducer
+        if (isMapOnly(mr) && mapReducers.size() == 1 && numSplittees == 1) {
+            mergeOnlyMapReduceSplittee(mapReducers.get(0), mr);
+            log.info("Merged the only map-reduce splittee.");
+            return;
+        }
+
         int numMerges = 0;
-        
-        PhysicalPlan splitterPl = isMapOnly(mr) ? mr.mapPlan : mr.reducePlan;                            
-        POStore storeOp = (POStore)splitterPl.getLeaves().get(0); 
-        
+
+        PhysicalPlan splitterPl = isMapOnly(mr) ? mr.mapPlan : mr.reducePlan;
+        POStore storeOp = (POStore)splitterPl.getLeaves().get(0);
         POSplit splitOp = null;
-        
+
         // case 3: multiple splittees and at least one of them is map-only
-        if (mappers.size() > 0) {                
-            splitOp = getSplit();  
-            int n = mergeAllMapOnlySplittees(mappers, mr, splitOp);            
-            
+        if (mappers.size() > 0) {
+            splitOp = getSplit();
+            int n = mergeAllMapOnlySplittees(mappers, mr, splitOp);
             log.info("Merged " + n + " map-only splittees.");
-            
-            numMerges += n;   
-        }            
-        
+            numMerges += n;
+        }
+
         if (mapReducers.size() > 0) {
-            
             boolean isMapOnly = isMapOnly(mr);
             int merged = 0;
-            
-            // case 4: multiple splittees and at least one of them has reducer  
-            //         and the splitter is map-only   
+
+            // case 4: multiple splittees and at least one of them has reducer
+            //         and the splitter is map-only
             if (isMapOnly) {
-                         
                 PhysicalOperator leaf = splitterPl.getLeaves().get(0);
-                                                            
                 splitOp = (leaf instanceof POStore) ? getSplit() : (POSplit)leaf;
-                    
-                merged = mergeMapReduceSplittees(mapReducers, mr, splitOp);  
+                merged = mergeMapReduceSplittees(mapReducers, mr, splitOp);
             }
-            
+
             // case 5: multiple splittees and at least one of them has reducer
             //         and splitter has reducer
             else {
-                
-                merged = mergeMapReduceSplittees(mapReducers, mr);  
-                
+                merged = mergeMapReduceSplittees(mapReducers, mr);
             }
-            
+
             log.info("Merged " + merged + " map-reduce splittees.");
-            
-            numMerges += merged;      
+            numMerges += merged;
         }
-        
-        // Finally, add original store to the split operator 
+
+        // Finally, add original store to the split operator
         // if there is splittee that hasn't been merged into the splitter
-        if (splitOp != null 
+        if (splitOp != null
                 && (numMerges < numSplittees)) {
 
             PhysicalPlan storePlan = new PhysicalPlan();
@@ -217,36 +203,36 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                 int errCode = 2129;
                 String msg = "Internal Error. Unable to add store to the split plan for optimization.";
                 throw new OptimizerException(msg, errCode, PigException.BUG, e);
-            }    
+            }
         }
 
         // case 6: special diamond case with trivial MR operator at the head
         if (numMerges == 0 && isDiamondMROper(mr)) {
             int merged = mergeDiamondMROper(mr, getPlan().getSuccessors(mr));
             log.info("Merged " + merged + " diamond splitter.");
-            numMerges += merged;    
+            numMerges += merged;
         }
-        
-        log.info("Merged " + numMerges + " out of total " 
+
+        log.info("Merged " + numMerges + " out of total "
                 + (numSplittees +1) + " MR operators.");
-    }                
-    
+    }
+
     private boolean isDiamondMROper(MapReduceOper mr) {
-        
+
         // We'll remove this mr as part of diamond query optimization
         // only if this mr is a trivial one, that is, it's plan
-        // has either two operators (load followed by store) or three operators 
+        // has either two operators (load followed by store) or three operators
         // (the operator between the load and store must be a foreach,
         // introduced by casting operation).
-        // 
+        //
         // We won't optimize in other cases where there're more operators
-        // in the plan. Otherwise those operators world run multiple times 
+        // in the plan. Otherwise those operators world run multiple times
         // in the successor MR operators which may not give better
         // performance.
         boolean rtn = false;
         if (isMapOnly(mr)) {
             PhysicalPlan pl = mr.mapPlan;
-            if (pl.size() == 2 || pl.size() == 3) {               
+            if (pl.size() == 2 || pl.size() == 3) {
                 PhysicalOperator root = pl.getRoots().get(0);
                 PhysicalOperator leaf = pl.getLeaves().get(0);
                 if (root instanceof POLoad && leaf instanceof POStore) {
@@ -254,7 +240,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                         PhysicalOperator mid = pl.getSuccessors(root).get(0);
                         if (mid instanceof POForEach) {
                             rtn = true;
-                        }                      
+                        }
                     } else {
                         rtn = true;
                     }
@@ -263,11 +249,11 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         }
         return rtn;
     }
-    
-    private int mergeDiamondMROper(MapReduceOper mr, List<MapReduceOper> succs) 
+
+    private int mergeDiamondMROper(MapReduceOper mr, List<MapReduceOper> succs)
         throws VisitorException {
-       
-        // Only consider the cases where all inputs of the splittees are 
+
+        // Only consider the cases where all inputs of the splittees are
         // from the splitter
         for (MapReduceOper succ : succs) {
             List<MapReduceOper> preds = getPlan().getPredecessors(succ);
@@ -275,20 +261,20 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                 return 0;
             }
         }
-        
+
         // first, remove the store operator from the splitter
         PhysicalPlan pl = mr.mapPlan;
         PhysicalOperator leaf = mr.mapPlan.getLeaves().get(0);
         pl.remove(leaf);
-        
+
         POStore store = (POStore)leaf;
         String ofile = store.getSFile().getFileName();
-        
+
         // then connect the remaining map plan to the successor of
         // each root (load) operator of the splittee
         for (MapReduceOper succ : succs) {
             List<PhysicalOperator> roots = succ.mapPlan.getRoots();
-            ArrayList<PhysicalOperator> rootsCopy = 
+            ArrayList<PhysicalOperator> rootsCopy =
                 new ArrayList<PhysicalOperator>(roots);
             for (PhysicalOperator op : rootsCopy) {
                 POLoad load = (POLoad)op;
@@ -310,7 +296,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                     throw new OptimizerException(msg, errCode, PigException.BUG, e);
                 }
                 succ.mapPlan.remove(op);
-                
+
                 if (inIllustrator) {
                     // need to remove the LOAD since data from load on temporary files can't be handled by illustrator
                     for (Iterator<PhysicalOperator> it = pl.iterator(); it.hasNext(); )
@@ -320,7 +306,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                             succ.phyToMRMap.removeKey(po);
                     }
                 }
-                
+
                 while (!clone.isEmpty()) {
                     PhysicalOperator oper = clone.getLeaves().get(0);
                     clone.remove(oper);
@@ -332,16 +318,16 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                         int errCode = 2131;
                         String msg = "Internal Error. Unable to connect split plan for optimization.";
                         throw new OptimizerException(msg, errCode, PigException.BUG, e);
-                    }                
+                    }
                 }
             }
-            
+
             // PIG-2069: LoadFunc jar does not ship to backend in MultiQuery case
             if (!mr.UDFs.isEmpty()) {
                 succ.UDFs.addAll(mr.UDFs);
             }
         }
-        
+
         // finally, remove the splitter from the MR plan
         List<MapReduceOper> mrPreds = getPlan().getPredecessors(mr);
         if (mrPreds != null) {
@@ -357,36 +343,36 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                 }
             }
         }
-        
+
         getPlan().remove(mr);
-        
+
         return 1;
     }
-    
+
     private void mergeOneMapPart(MapReduceOper mapper, MapReduceOper splitter)
     throws VisitorException {
-        PhysicalPlan splitterPl = isMapOnly(splitter) ? 
+        PhysicalPlan splitterPl = isMapOnly(splitter) ?
                 splitter.mapPlan : splitter.reducePlan;
         POStore storeOp = (POStore)splitterPl.getLeaves().get(0);
-        List<PhysicalOperator> storePreds = splitterPl.getPredecessors(storeOp);           
-        
+        List<PhysicalOperator> storePreds = splitterPl.getPredecessors(storeOp);
+
         PhysicalPlan pl = mapper.mapPlan;
-        PhysicalOperator load = pl.getRoots().get(0);               
+        PhysicalOperator load = pl.getRoots().get(0);
         pl.remove(load);
-                        
+
         // make a copy before removing the store operator
         List<PhysicalOperator> predsCopy = new ArrayList<PhysicalOperator>(storePreds);
-        splitterPl.remove(storeOp);                
-        
+        splitterPl.remove(storeOp);
+
         try {
             splitterPl.merge(pl);
         } catch (PlanException e) {
             int errCode = 2130;
             String msg = "Internal Error. Unable to merge split plans for optimization.";
             throw new OptimizerException(msg, errCode, PigException.BUG, e);
-        }                
-        
-        // connect two plans   
+        }
+
+        // connect two plans
         List<PhysicalOperator> roots = pl.getRoots();
         for (PhysicalOperator pred : predsCopy) {
             for (PhysicalOperator root : roots) {
@@ -402,13 +388,13 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         }
     }
 
-    private void mergeOnlyMapperSplittee(MapReduceOper mapper, 
+    private void mergeOnlyMapperSplittee(MapReduceOper mapper,
             MapReduceOper splitter) throws VisitorException {
-        mergeOneMapPart(mapper, splitter);       
+        mergeOneMapPart(mapper, splitter);
         removeAndReconnect(mapper, splitter);
     }
-    
-    private void mergeOnlyMapReduceSplittee(MapReduceOper mapReducer, 
+
+    private void mergeOnlyMapReduceSplittee(MapReduceOper mapReducer,
             MapReduceOper splitter) throws VisitorException {
         mergeOneMapPart(mapReducer, splitter);
 
@@ -416,108 +402,108 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         splitter.reducePlan = mapReducer.reducePlan;
         splitter.setReduceDone(true);
 
-        removeAndReconnect(mapReducer, splitter);          
+        removeAndReconnect(mapReducer, splitter);
     }
-    
-    private int mergeAllMapOnlySplittees(List<MapReduceOper> mappers, 
-            MapReduceOper splitter, POSplit splitOp) throws VisitorException {
-        
-        PhysicalPlan splitterPl = isMapOnly(splitter) ? 
-                splitter.mapPlan : splitter.reducePlan;                            
-        PhysicalOperator storeOp = splitterPl.getLeaves().get(0);
-        List<PhysicalOperator> storePreds = splitterPl.getPredecessors(storeOp);  
 
-        // merge splitee's map plans into nested plan of 
+    private int mergeAllMapOnlySplittees(List<MapReduceOper> mappers,
+            MapReduceOper splitter, POSplit splitOp) throws VisitorException {
+
+        PhysicalPlan splitterPl = isMapOnly(splitter) ?
+                splitter.mapPlan : splitter.reducePlan;
+        PhysicalOperator storeOp = splitterPl.getLeaves().get(0);
+        List<PhysicalOperator> storePreds = splitterPl.getPredecessors(storeOp);
+
+        // merge splitee's map plans into nested plan of
         // the split operator
-        for (MapReduceOper mapper : mappers) {                                
+        for (MapReduceOper mapper : mappers) {
             PhysicalPlan pl = mapper.mapPlan;
             PhysicalOperator load = pl.getRoots().get(0);
-            pl.remove(load);                   
+            pl.remove(load);
             splitOp.addPlan(pl);
         }
-                           
+
         // replace store operator in the splitter with split operator
-        splitOp.setInputs(storePreds);    
+        splitOp.setInputs(storePreds);
         try {
             splitterPl.replace(storeOp, splitOp);;
         } catch (PlanException e) {
             int errCode = 2132;
             String msg = "Internal Error. Unable to replace store with split operator for optimization.";
             throw new OptimizerException(msg, errCode, PigException.BUG, e);
-        }    
-        
+        }
+
         // remove all the map-only splittees from the MROperPlan
         for (MapReduceOper mapper : mappers) {
-            removeAndReconnect(mapper, splitter);                  
+            removeAndReconnect(mapper, splitter);
         }
-        
+
         return mappers.size();
     }
-    
+
     private boolean isSplitteeMergeable(MapReduceOper splittee) {
-        
-        // cannot be global sort or limit after sort, they are 
+
+        // cannot be global sort or limit after sort, they are
         // using a different partitioner
         if (splittee.isGlobalSort() || splittee.isLimitAfterSort()) {
             log.info("Cannot merge this splittee: " +
-            		"it is global sort or limit after sort");
+                    "it is global sort or limit after sort");
             return false;
         }
-        
+
         // check the plan leaf: only merge local rearrange or split
         PhysicalOperator leaf = splittee.mapPlan.getLeaves().get(0);
-        if (!(leaf instanceof POLocalRearrange) && 
+        if (!(leaf instanceof POLocalRearrange) &&
                 ! (leaf instanceof POSplit)) {
             log.info("Cannot merge this splittee: " +
-            		"its map plan doesn't end with LR or Split operator: " 
+                    "its map plan doesn't end with LR or Split operator: "
                     + leaf.getClass().getName());
             return false;
         }
-           
+
         // cannot have distinct combiner, it uses a different combiner
         if (splittee.needsDistinctCombiner()) {
             log.info("Cannot merge this splittee: " +
-            		"it has distinct combiner.");
-            return false;           
+                    "it has distinct combiner.");
+            return false;
         }
-        
+
         return true;
     }
-       
+
     private List<MapReduceOper> getMergeList(MapReduceOper splitter,
             List<MapReduceOper> mapReducers) {
         List<MapReduceOper> mergeNoCmbList = new ArrayList<MapReduceOper>();
         List<MapReduceOper> mergeCmbList = new ArrayList<MapReduceOper>();
         List<MapReduceOper> mergeDistList = new ArrayList<MapReduceOper>();
-       
+
         for (MapReduceOper mrOp : mapReducers) {
             if (isSplitteeMergeable(mrOp)) {
                 if (mrOp.combinePlan.isEmpty()) {
                     mergeNoCmbList.add(mrOp);
                 } else {
                     mergeCmbList.add(mrOp);
-                } 
+                }
             } else if (splitter.reducePlan.isEmpty()
-                    || splitter.needsDistinctCombiner()) {                
-                if (mrOp.needsDistinctCombiner()) {                    
+                    || splitter.needsDistinctCombiner()) {
+                if (mrOp.needsDistinctCombiner()) {
                     mergeDistList.add(mrOp);
                 }
             }
-        }    
-        
+        }
+
         int max = Math.max(mergeNoCmbList.size(), mergeCmbList.size());
         max = Math.max(max, mergeDistList.size());
-        
+
         if (max == mergeDistList.size()) return mergeDistList;
         else if (max == mergeNoCmbList.size()) return mergeNoCmbList;
-        else return mergeCmbList;                        
+        else return mergeCmbList;
     }
-    
-    private int mergeMapReduceSplittees(List<MapReduceOper> mapReducers, 
+
+    private int mergeMapReduceSplittees(List<MapReduceOper> mapReducers,
             MapReduceOper splitter, POSplit splitOp) throws VisitorException {
-                
+
         List<MapReduceOper> mergeList = getMergeList(splitter, mapReducers);
-    
+
         if (mergeList.size() <= 1) {
 
             // chose one to merge, prefer the one with a combiner
@@ -530,43 +516,43 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             }
             mergeList.clear();
             mergeList.add(mapReducer);
-        } 
-                         
+        }
+
         if (mergeList.size() == 1) {
             mergeSingleMapReduceSplittee(mergeList.get(0), splitter, splitOp);
-        } else {                                   
+        } else {
             mergeAllMapReduceSplittees(mergeList, splitter, splitOp);
         }
-        
+
         return mergeList.size();
     }
 
-    private int mergeMapReduceSplittees(List<MapReduceOper> mapReducers, 
+    private int mergeMapReduceSplittees(List<MapReduceOper> mapReducers,
             MapReduceOper splitter) throws VisitorException {
 
-        // In this case the splitter has non-empty reducer so we can't merge 
-        // MR splittees into the splitter. What we'll do is to merge multiple 
+        // In this case the splitter has non-empty reducer so we can't merge
+        // MR splittees into the splitter. What we'll do is to merge multiple
         // splittees (if exists) into a new MR operator and connect it to the splitter.
-        
+
         List<MapReduceOper> mergeList = getMergeList(splitter, mapReducers);
-    
+
         if (mergeList.size() <= 1) {
             // nothing to merge, just return
             return  0;
-        } 
-                         
+        }
+
         MapReduceOper mrOper = getMROper();
 
         MapReduceOper splittee = mergeList.get(0);
         PhysicalPlan pl = splittee.mapPlan;
         POLoad load = (POLoad)pl.getRoots().get(0);
-        
+
         mrOper.mapPlan.add(load);
-       
+
         // add a dummy store operator, it'll be replaced by the split operator later.
         try {
             mrOper.mapPlan.addAsLeaf(getStore());
-        } catch (PlanException e) {                   
+        } catch (PlanException e) {
             int errCode = 2137;
             String msg = "Internal Error. Unable to add store to the plan as leaf for optimization.";
             throw new OptimizerException(msg, errCode, PigException.BUG, e);
@@ -584,10 +570,10 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
 
         // merger the splittees into the new MR operator
         mergeAllMapReduceSplittees(mergeList, mrOper, getSplit());
-        
+
         return (mergeList.size() - 1);
     }
-    
+
     private boolean hasSameMapKeyType(List<MapReduceOper> splittees) {
         boolean sameKeyType = true;
         for (MapReduceOper outer : splittees) {
@@ -598,29 +584,29 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                 }
             }
             if (!sameKeyType) break;
-        }      
- 
+        }
+
         return sameKeyType;
     }
-    
+
     private int setIndexOnLRInSplit(int initial, POSplit splitOp, boolean sameKeyType)
             throws VisitorException {
         int index = initial;
-        
+
         List<PhysicalPlan> pls = splitOp.getPlans();
         for (PhysicalPlan pl : pls) {
             PhysicalOperator leaf = pl.getLeaves().get(0);
             if (leaf instanceof POLocalRearrange) {
                 POLocalRearrange lr = (POLocalRearrange)leaf;
                 try {
-                    lr.setMultiQueryIndex(index++); 
-                } catch (ExecException e) {                    
+                    lr.setMultiQueryIndex(index++);
+                } catch (ExecException e) {
                     int errCode = 2136;
                     String msg = "Internal Error. Unable to set multi-query index for optimization.";
-                    throw new OptimizerException(msg, errCode, PigException.BUG, e);                   
+                    throw new OptimizerException(msg, errCode, PigException.BUG, e);
                 }
-                
-                // change the map key type to tuple when 
+
+                // change the map key type to tuple when
                 // multiple splittees have different map key types
                 if (!sameKeyType) {
                     lr.setKeyType(DataType.TUPLE);
@@ -633,26 +619,26 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
 
         return index;
     }
-    
-    private int mergeOneMapPlanWithIndex(PhysicalPlan pl, POSplit splitOp, 
-            int index, boolean sameKeyType) throws VisitorException {        
+
+    private int mergeOneMapPlanWithIndex(PhysicalPlan pl, POSplit splitOp,
+            int index, boolean sameKeyType) throws VisitorException {
         PhysicalOperator load = pl.getRoots().get(0);
         pl.remove(load);
-                
+
         int curIndex = index;
-        
+
         PhysicalOperator leaf = pl.getLeaves().get(0);
         if (leaf instanceof POLocalRearrange) {
             POLocalRearrange lr = (POLocalRearrange)leaf;
             try {
-                lr.setMultiQueryIndex(curIndex++);  
-            } catch (ExecException e) {                                      
+                lr.setMultiQueryIndex(curIndex++);
+            } catch (ExecException e) {
                 int errCode = 2136;
                 String msg = "Internal Error. Unable to set multi-query index for optimization.";
                 throw new OptimizerException(msg, errCode, PigException.BUG, e);
             }
-            
-            // change the map key type to tuple when 
+
+            // change the map key type to tuple when
             // multiple splittees have different map key types
             if (!sameKeyType) {
                 lr.setKeyType(DataType.TUPLE);
@@ -674,30 +660,30 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             POSplit spl = (POSplit)leaf;
             curIndex = setIndexOnLRInSplit(index, spl, sameKeyType);
         }
-                    
+
         splitOp.addPlan(pl);
-        
+
         // return the updated index after setting index
         // on all POLocalRearranges including ones
         // in inner plans of any POSplit operators
         return curIndex;
     }
-        
-    private void mergeOneReducePlanWithIndex(PhysicalPlan from, 
-            PhysicalPlan to, int initial, int current, byte mapKeyType) throws VisitorException {                    
+
+    private void mergeOneReducePlanWithIndex(PhysicalPlan from,
+            PhysicalPlan to, int initial, int current, byte mapKeyType) throws VisitorException {
         POPackage pk = (POPackage)from.getRoots().get(0);
         from.remove(pk);
         Packager fromPkgr = pk.getPkgr();
- 
+
         if (!(fromPkgr instanceof MultiQueryPackager)) {
             // XXX the index of the original keyInfo map is always 0,
             // we need to shift the index so that the lookups works
             // with the new indexed key
             addShiftedKeyInfoIndex(initial, fromPkgr);
         }
-         
+
         int total = current - initial;
-        
+
         MultiQueryPackager toPkgr = (MultiQueryPackager) ((POPackage) to
                 .getRoots().get(0)).getPkgr();
         int pkCount = 0;
@@ -716,13 +702,13 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             toPkgr.addPackager(fromPkgr, mapKeyType);
             pkCount = 1;
         }
-        
+
         if (pkCount != total) {
             int errCode = 2146;
             String msg = "Internal Error. Inconsistency in key index found during optimization.";
             throw new OptimizerException(msg, errCode, PigException.BUG);
         }
-        
+
         PODemux demux = (PODemux)to.getLeaves().get(0);
         int plCount = 0;
         PhysicalOperator root = from.getRoots().get(0);
@@ -739,7 +725,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             demux.addPlan(from);
             plCount = 1;
         }
-        
+
         if (plCount != total) {
             int errCode = 2146;
             String msg = "Internal Error. Inconsistency in key index found during optimization.";
@@ -750,9 +736,9 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             toPkgr.setKeyType(fromPkgr.getKeyType());
         } else {
             toPkgr.setKeyType(DataType.TUPLE);
-        }            
+        }
     }
-    
+
     private void addShiftedKeyInfoIndex(int index, Packager pkg)
             throws OptimizerException {
         /**
@@ -771,7 +757,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         Map<Integer, Pair<Boolean, Map<Integer, Integer>>> keyInfo = pkg
                 .getKeyInfo();
         byte newIndex = (byte)(index | PigNullableWritable.mqFlag);
-        
+
         Set<Integer> existingIndices = keyInfo.keySet();
         if(existingIndices.size() != 1) {
             // we always maintain one entry in the keyinfo
@@ -783,7 +769,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         }
         int existingIndex = existingIndices.iterator().next();
         keyInfo.put(Integer.valueOf(newIndex), keyInfo.get(existingIndex));
-        
+
         // clean up the old entry so we only keep
         // the valid entry around - if we did something wrong while
         // setting this up, we will fail at runtime which is better
@@ -792,16 +778,16 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             keyInfo.remove(existingIndex);
         }
     }
-    
+
     /**
      * @param initialIndex
      * @param onePastEndIndex
      * @param mpkg
-     * @throws OptimizerException 
+     * @throws OptimizerException
      */
     private int addShiftedKeyInfoIndex(int initialIndex, int onePastEndIndex,
             MultiQueryPackager mpkgr) throws OptimizerException {
-        
+
         List<Packager> pkgs = mpkgr.getPackagers();
         // if we have lesser pkgs than (onePastEndIndex - initialIndex)
         // its because one or more of the pkgs is a POMultiQueryPackage which
@@ -824,7 +810,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             i++;
         }
         return curIndex; // could be used in a caller who recursively called this function
-        
+
     }
 
     private void mergeOneCombinePlanWithIndex(PhysicalPlan from,
@@ -832,24 +818,24 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         POPackage cpk = (POPackage)from.getRoots().get(0);
         from.remove(cpk);
         Packager cpkgr = cpk.getPkgr();
-        
+
         PODemux demux = (PODemux)to.getLeaves().get(0);
-                
+
         MultiQueryPackager toPkgr = (MultiQueryPackager) ((POPackage) to
                 .getRoots().get(0)).getPkgr();
-        
+
         boolean isSameKeyType = toPkgr.isSameMapKeyType();
-        
+
         // if current > initial + 1, it means we had
         // a split in the map of the MROper we are trying to
         // merge. In that case we would have changed the indices
         // of the POLocalRearranges in the split to be in the
         // range initial to current. To handle key, value pairs
         // coming out of those POLocalRearranges, we add
-        // the Packages in the 'from' POMultiQueryPackage (in this case, 
+        // the Packages in the 'from' POMultiQueryPackage (in this case,
         // it has to be a POMultiQueryPackage since we had
-        // a POSplit in the map) to the 'to' POMultiQueryPackage. 
-        // These Packages would have correct positions in the package 
+        // a POSplit in the map) to the 'to' POMultiQueryPackage.
+        // These Packages would have correct positions in the package
         // list and would be able to handle the outputs from the different
         // POLocalRearranges.
         int total = current - initial;
@@ -869,7 +855,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         }
 
         toPkgr.setSameMapKeyType(isSameKeyType);
-        
+
         if (pkCount != total) {
             int errCode = 2146;
             String msg = "Internal Error. Inconsistency in key index found during optimization.";
@@ -879,10 +865,10 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         // all packages should have the same key type
         if (!isSameKeyType) {
             cpk.getPkgr().setKeyType(DataType.TUPLE);
-        } 
-        
+        }
+
         toPkgr.setKeyType(cpk.getPkgr().getKeyType());
-        
+
         // See comment above for why we flatten the Packages
         // in the from plan - for the same reason, we flatten
         // the inner plans of Demux operator now.
@@ -894,14 +880,14 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                 demux.addPlan(pl);
                 POLocalRearrange lr = (POLocalRearrange)pl.getLeaves().get(0);
                 try {
-                    lr.setMultiQueryIndex(initial + plCount++);            
-                } catch (ExecException e) {                                        
+                    lr.setMultiQueryIndex(initial + plCount++);
+                } catch (ExecException e) {
                     int errCode = 2136;
                     String msg = "Internal Error. Unable to set multi-query index for optimization.";
                     throw new OptimizerException(msg, errCode, PigException.BUG, e);
                 }
-                
-                // change the map key type to tuple when 
+
+                // change the map key type to tuple when
                 // multiple splittees have different map key types
                 if (!isSameKeyType) {
                     lr.setKeyType(DataType.TUPLE);
@@ -911,27 +897,27 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             demux.addPlan(from);
             POLocalRearrange lr = (POLocalRearrange)from.getLeaves().get(0);
             try {
-                lr.setMultiQueryIndex(initial + plCount++);            
-            } catch (ExecException e) {                                        
+                lr.setMultiQueryIndex(initial + plCount++);
+            } catch (ExecException e) {
                 int errCode = 2136;
                 String msg = "Internal Error. Unable to set multi-query index for optimization.";
                 throw new OptimizerException(msg, errCode, PigException.BUG, e);
             }
-                
-            // change the map key type to tuple when 
+
+            // change the map key type to tuple when
             // multiple splittees have different map key types
             if (!isSameKeyType) {
                 lr.setKeyType(DataType.TUPLE);
             }
         }
-        
+
         if (plCount != total) {
             int errCode = 2146;
             String msg = "Internal Error. Inconsistency in key index found during optimization.";
             throw new OptimizerException(msg, errCode, PigException.BUG);
         }
     }
-    
+
     private boolean needCombiner(List<MapReduceOper> mapReducers) {
         boolean needCombiner = false;
         for (MapReduceOper mrOp : mapReducers) {
@@ -942,17 +928,17 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         }
         return needCombiner;
     }
-       
-    private PhysicalPlan createDemuxPlan(boolean sameKeyType, boolean isCombiner) 
+
+    private PhysicalPlan createDemuxPlan(boolean sameKeyType, boolean isCombiner)
         throws VisitorException {
         PODemux demux = getDemux(isCombiner);
         POPackage pkg = getMultiQueryPackage(sameKeyType, isCombiner);
-        
+
         PhysicalPlan pl = new PhysicalPlan();
         pl.add(pkg);
         try {
             pl.addAsLeaf(demux);
-        } catch (PlanException e) {                   
+        } catch (PlanException e) {
             int errCode = 2137;
             String msg = "Internal Error. Unable to add demux to the plan as leaf for optimization.";
             throw new OptimizerException(msg, errCode, PigException.BUG, e);
@@ -960,26 +946,26 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         return pl;
     }
 
-    private void mergeAllMapReduceSplittees(List<MapReduceOper> mergeList, 
+    private void mergeAllMapReduceSplittees(List<MapReduceOper> mergeList,
             MapReduceOper splitter, POSplit splitOp) throws VisitorException {
-       
+
         boolean sameKeyType = hasSameMapKeyType(mergeList);
-        
+
         log.debug("Splittees have the same key type: " + sameKeyType);
-        
+
         // create a new reduce plan that will be the container
         // for the multiple reducer plans of the MROpers in the mergeList
         PhysicalPlan redPl = createDemuxPlan(sameKeyType, false);
-        
+
         // create a new combine plan that will be the container
-        // for the multiple combiner plans of the MROpers in the mergeList                
-        PhysicalPlan comPl = needCombiner(mergeList) ? 
+        // for the multiple combiner plans of the MROpers in the mergeList
+        PhysicalPlan comPl = needCombiner(mergeList) ?
                 createDemuxPlan(sameKeyType, true) : null;
 
         log.debug("Splittees have combiner: " + (comPl != null));
-                
-        int index = 0;             
-        
+
+        int index = 0;
+
         for (MapReduceOper mrOp : mergeList) {
 
             // merge the map plan - this will recursively
@@ -989,87 +975,36 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             // > index + 1
             int incIndex = mergeOneMapPlanWithIndex(
                     mrOp.mapPlan, splitOp, index, sameKeyType);
-                        
+
             // merge the combiner plan
             if (comPl != null) {
-                if (!mrOp.combinePlan.isEmpty()) {                    
+                if (!mrOp.combinePlan.isEmpty()) {
                     mergeOneCombinePlanWithIndex(
                             mrOp.combinePlan, comPl, index, incIndex, mrOp.mapKeyType);
-                } else {         
+                } else {
                     int errCode = 2141;
                     String msg = "Internal Error. Cannot merge non-combiner with combiners for optimization.";
                     throw new OptimizerException(msg, errCode, PigException.BUG);
                 }
             }
-            
+
             // merge the reducer plan
             mergeOneReducePlanWithIndex(
                     mrOp.reducePlan, redPl, index, incIndex, mrOp.mapKeyType);
-           
+
             index = incIndex;
-            
-            log.info("Merged MR job " + mrOp.getOperatorKey().getId() 
+
+            log.info("Merged MR job " + mrOp.getOperatorKey().getId()
                     + " into MR job " + splitter.getOperatorKey().getId());
         }
 
         PhysicalPlan splitterPl = splitter.mapPlan;
         PhysicalOperator leaf = splitterPl.getLeaves().get(0);
         PhysicalOperator storeOp = splitterPl.getLeaves().get(0);
-        List<PhysicalOperator> storePreds = splitterPl.getPredecessors(storeOp);  
- 
+        List<PhysicalOperator> storePreds = splitterPl.getPredecessors(storeOp);
+
         // replace store operator in the splitter with split operator
-        if (leaf instanceof POStore) {                            
-            splitOp.setInputs(storePreds);
-            try {
-                splitterPl.replace(storeOp, splitOp);;
-            } catch (PlanException e) {                   
-                int errCode = 2132;
-                String msg = "Internal Error. Unable to replace store with split operator for optimization.";
-                throw new OptimizerException(msg, errCode, PigException.BUG, e);
-            }
-        }     
-        
-        splitter.setMapDone(true);
-        splitter.reducePlan = redPl;
-        splitter.setReduceDone(true);
-           
-        if (comPl != null) {
-            splitter.combinePlan = comPl;        
-        }
-        
-        for (MapReduceOper mrOp : mergeList) {
-            removeAndReconnect(mrOp, splitter);
-        }
-       
-        splitter.mapKeyType = sameKeyType ?
-                mergeList.get(0).mapKeyType : DataType.TUPLE;         
-                
-        log.info("Requested parallelism of splitter: " 
-                + splitter.getRequestedParallelism());               
-    }
-    
-    private void mergeSingleMapReduceSplittee(MapReduceOper mapReduce, 
-            MapReduceOper splitter, POSplit splitOp) throws VisitorException {
-        
-        PhysicalPlan splitterPl = splitter.mapPlan;
-        PhysicalOperator leaf = splitterPl.getLeaves().get(0);
-        PhysicalOperator storeOp = splitterPl.getLeaves().get(0);
-        List<PhysicalOperator> storePreds = splitterPl.getPredecessors(storeOp);  
-                        
-        PhysicalPlan pl = mapReduce.mapPlan;
-        PhysicalOperator load = pl.getRoots().get(0);
-        pl.remove(load);
-        
-        splitOp.addPlan(pl);
-                              
-        splitter.setMapDone(true);
-        splitter.reducePlan = mapReduce.reducePlan;
-        splitter.setReduceDone(true);
-        splitter.combinePlan = mapReduce.combinePlan;
-        splitter.customPartitioner = mapReduce.customPartitioner;
-                
-        // replace store operator in the splitter with split operator
-        if (leaf instanceof POStore) {                            
+        if (leaf instanceof POStore) {
             splitOp.setInputs(storePreds);
             try {
                 splitterPl.replace(storeOp, splitOp);;
@@ -1077,25 +1012,76 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                 int errCode = 2132;
                 String msg = "Internal Error. Unable to replace store with split operator for optimization.";
                 throw new OptimizerException(msg, errCode, PigException.BUG, e);
-            }  
+            }
         }
-        
-        removeAndReconnect(mapReduce, splitter);           
+
+        splitter.setMapDone(true);
+        splitter.reducePlan = redPl;
+        splitter.setReduceDone(true);
+
+        if (comPl != null) {
+            splitter.combinePlan = comPl;
+        }
+
+        for (MapReduceOper mrOp : mergeList) {
+            removeAndReconnect(mrOp, splitter);
+        }
+
+        splitter.mapKeyType = sameKeyType ?
+                mergeList.get(0).mapKeyType : DataType.TUPLE;
+
+        log.info("Requested parallelism of splitter: "
+                + splitter.getRequestedParallelism());
     }
-    
+
+    private void mergeSingleMapReduceSplittee(MapReduceOper mapReduce,
+            MapReduceOper splitter, POSplit splitOp) throws VisitorException {
+
+        PhysicalPlan splitterPl = splitter.mapPlan;
+        PhysicalOperator leaf = splitterPl.getLeaves().get(0);
+        PhysicalOperator storeOp = splitterPl.getLeaves().get(0);
+        List<PhysicalOperator> storePreds = splitterPl.getPredecessors(storeOp);
+
+        PhysicalPlan pl = mapReduce.mapPlan;
+        PhysicalOperator load = pl.getRoots().get(0);
+        pl.remove(load);
+
+        splitOp.addPlan(pl);
+
+        splitter.setMapDone(true);
+        splitter.reducePlan = mapReduce.reducePlan;
+        splitter.setReduceDone(true);
+        splitter.combinePlan = mapReduce.combinePlan;
+        splitter.customPartitioner = mapReduce.customPartitioner;
+
+        // replace store operator in the splitter with split operator
+        if (leaf instanceof POStore) {
+            splitOp.setInputs(storePreds);
+            try {
+                splitterPl.replace(storeOp, splitOp);;
+            } catch (PlanException e) {
+                int errCode = 2132;
+                String msg = "Internal Error. Unable to replace store with split operator for optimization.";
+                throw new OptimizerException(msg, errCode, PigException.BUG, e);
+            }
+        }
+
+        removeAndReconnect(mapReduce, splitter);
+    }
+
     /**
-     * Removes the specified MR operator from the plan after the merge. 
+     * Removes the specified MR operator from the plan after the merge.
      * Connects its predecessors and successors to the merged MR operator
-     * 
+     *
      * @param mr the MR operator to remove
-     * @param newMR the MR operator to be connected to the predecessors and 
+     * @param newMR the MR operator to be connected to the predecessors and
      *              the successors of the removed operator
      * @throws VisitorException if connect operation fails
      */
     private void removeAndReconnect(MapReduceOper mr, MapReduceOper newMR) throws VisitorException {
         List<MapReduceOper> mapperSuccs = getPlan().getSuccessors(mr);
         List<MapReduceOper> mapperPreds = getPlan().getPredecessors(mr);
-        
+
         // make a copy before removing operator
         ArrayList<MapReduceOper> succsCopy = null;
         ArrayList<MapReduceOper> predsCopy = null;
@@ -1105,12 +1091,12 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         if (mapperPreds != null) {
             predsCopy = new ArrayList<MapReduceOper>(mapperPreds);
         }
-        getPlan().remove(mr);   
-        
+        getPlan().remove(mr);
+
         // reconnect the mapper's successors
         if (succsCopy != null) {
             for (MapReduceOper succ : succsCopy) {
-                try {                   
+                try {
                     getPlan().connect(newMR, succ);
                 } catch (PlanException e) {
                     int errCode = 2133;
@@ -1119,14 +1105,14 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                 }
             }
         }
-        
+
         // reconnect the mapper's predecessors
         if (predsCopy != null) {
             for (MapReduceOper pred : predsCopy) {
                 if (newMR.getOperatorKey().equals(pred.getOperatorKey())) {
                     continue;
                 }
-                try {                    
+                try {
                     getPlan().connect(pred, newMR);
                 } catch (PlanException e) {
                     int errCode = 2134;
@@ -1134,11 +1120,11 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                     throw new OptimizerException(msg, errCode, PigException.BUG, e);
                 }
             }
-        }     
-        
+        }
+
         mergeMROperProperties(mr, newMR);
     }
-    
+
     private void mergeMROperProperties(MapReduceOper from, MapReduceOper to) {
 
         if (from.isEndOfAllInputSetInMap()) {
@@ -1148,7 +1134,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         if (from.isEndOfAllInputSetInReduce()) {
             to.setEndOfAllInputInReduce(true);
         }
-        
+
         if (from.getRequestedParallelism() > to.getRequestedParallelism()) {
             to.requestedParallelism = from.requestedParallelism;
         }
@@ -1169,33 +1155,33 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
     private boolean isMapOnly(MapReduceOper mr) {
         return mr.reducePlan.isEmpty();
     }
-    
+
     private boolean isSingleLoadMapperPlan(PhysicalPlan pl) {
         return (pl.getRoots().size() == 1);
     }
-    
+
     private boolean isSinglePredecessor(MapReduceOper mr) {
         return (getPlan().getPredecessors(mr).size() == 1);
     }
-    
+
     private POSplit getSplit(){
         return new POSplit(new OperatorKey(scope, nig.getNextNodeId(scope)));
-    } 
- 
+    }
+
     private MapReduceOper getMROper(){
         return new MapReduceOper(new OperatorKey(scope, nig.getNextNodeId(scope)));
-    } 
-   
+    }
+
     private POStore getStore(){
         return new POStore(new OperatorKey(scope, nig.getNextNodeId(scope)));
-    } 
-     
+    }
+
     private PODemux getDemux(boolean inCombiner){
         PODemux demux = new PODemux(new OperatorKey(scope, nig.getNextNodeId(scope)));
         demux.setInCombiner(inCombiner);
         return demux;
-    } 
-    
+    }
+
     private POPackage getMultiQueryPackage(boolean sameMapKeyType,
             boolean inCombiner) {
         POPackage pkg = new POPackage(new OperatorKey(scope,
@@ -1205,5 +1191,5 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         pkgr.setSameMapKeyType(sameMapKeyType);
         pkg.setPkgr(pkgr);
         return pkg;
-    }   
+    }
 }

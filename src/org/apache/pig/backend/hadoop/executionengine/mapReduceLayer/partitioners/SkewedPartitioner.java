@@ -18,7 +18,6 @@
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners;
 
 
-import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configurable;
@@ -36,31 +35,41 @@ import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.util.Pair;
 
+import com.google.common.collect.Maps;
+
 
 /**
   * This class is used by skewed join. For the partitioned table, the skewedpartitioner reads the key
   * distribution data from the sampler file and returns the reducer index in a round robin fashion.
-  * For ex: if the key distribution file contains (k1, 5, 3) as an entry, reducers from 5 to 3 are returned 
+  * For ex: if the key distribution file contains (k1, 5, 3) as an entry, reducers from 5 to 3 are returned
   * in a round robin manner.
-  */ 
+  */
 public class SkewedPartitioner extends Partitioner<PigNullableWritable, Writable> implements Configurable {
-    Map<Tuple, Pair<Integer, Integer> > reducerMap = new HashMap<Tuple, Pair<Integer, Integer> >();
-    static Map<Tuple, Integer> currentIndexMap = new HashMap<Tuple, Integer> ();
-    Integer totalReducers;
-    Configuration conf;
+    protected static final TupleFactory tf = TupleFactory.getInstance();
+
+    protected Map<Tuple, Pair<Integer, Integer>> reducerMap = Maps.newHashMap();
+    protected Integer totalReducers = -1;
+    protected boolean inited = false;
+
+    private Map<Tuple, Integer> currentIndexMap = Maps.newHashMap();
+    private Configuration conf;
 
     @Override
-    public int getPartition(PigNullableWritable wrappedKey, Writable value,
-            int numPartitions) {
-		// for streaming tables, return the partition index blindly
-		if (wrappedKey instanceof NullablePartitionWritable && (((NullablePartitionWritable)wrappedKey).getPartition()) != -1) {
-			return ((NullablePartitionWritable)wrappedKey).getPartition();
-		}
+    public int getPartition(PigNullableWritable wrappedKey, Writable value, int numPartitions) {
+        if (!inited) {
+            init();
+        }
+
+        // for streaming tables, return the partition index blindly
+        if (wrappedKey instanceof NullablePartitionWritable &&
+                (((NullablePartitionWritable)wrappedKey).getPartition()) != -1) {
+            return ((NullablePartitionWritable)wrappedKey).getPartition();
+        }
 
         // for partition table, compute the index based on the sampler output
         Pair <Integer, Integer> indexes;
         Integer curIndex = -1;
-        Tuple keyTuple = TupleFactory.getInstance().newTuple(1);
+        Tuple keyTuple = tf.newTuple(1);
 
         // extract the key from nullablepartitionwritable
         PigNullableWritable key = ((NullablePartitionWritable) wrappedKey).getKey();
@@ -78,7 +87,7 @@ public class SkewedPartitioner extends Partitioner<PigNullableWritable, Writable
 
         // if the partition file is empty, use numPartitions
         totalReducers = (totalReducers > 0) ? totalReducers : numPartitions;
-        
+
         indexes = reducerMap.get(keyTuple);
         // if the reducerMap does not contain the key, do the default hash based partitioning
         if (indexes == null) {
@@ -105,19 +114,6 @@ public class SkewedPartitioner extends Partitioner<PigNullableWritable, Writable
         conf = job;
         PigMapReduce.sJobConfInternal.set(conf);
         PigMapReduce.sJobConf = conf;
-        String keyDistFile = job.get("pig.keyDistFile", "");
-        if (keyDistFile.length() == 0)
-            throw new RuntimeException(this.getClass().getSimpleName() + " used but no key distribution found");
-
-        try {
-            Integer [] redCnt = new Integer[1]; 
-            reducerMap = MapRedUtil.loadPartitionFileFromLocalCache(
-                    keyDistFile, redCnt, DataType.TUPLE, job);
-            // check if the partition file is empty
-            totalReducers = (redCnt[0] == null) ? -1 : redCnt[0];
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 
     @Override
@@ -125,4 +121,22 @@ public class SkewedPartitioner extends Partitioner<PigNullableWritable, Writable
         return conf;
     }
 
+    protected void init() {
+        String keyDistFile = conf.get("pig.keyDistFile", "");
+        if (keyDistFile.length() == 0) {
+            throw new RuntimeException(this.getClass().getSimpleName() +
+                    " used but no key distribution found");
+        }
+
+        try {
+            Integer [] redCnt = new Integer[1]; 
+            reducerMap = MapRedUtil.loadPartitionFileFromLocalCache(
+                    keyDistFile, redCnt, DataType.TUPLE, conf);
+            // check if the partition file is empty
+            totalReducers = (redCnt[0] == null) ? -1 : redCnt[0];
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        inited = true;
+    }
 }

@@ -21,7 +21,7 @@ import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 
 /**
- * 
+ *
  * An interface to allow aggregation of messages
  */
 @InterfaceAudience.Private

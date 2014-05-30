@@ -25,9 +25,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Random;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -40,13 +40,14 @@ import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestCharArrayToNumeric {
-    private Double dummyDouble = null;
-    private Float dummyFloat = null;
-    private Long dummyLong = null;
-    private Integer dummyInteger = null;
+    private static PigServer pig;
+    private static Properties properties;
+    private static MiniGenericCluster cluster;
+
     private Double MaxDouble = Double.MIN_VALUE;
     private Double MinDouble = Double.MIN_VALUE;
     private Float MaxFloat = Float.MAX_VALUE;
@@ -56,12 +57,15 @@ public class TestCharArrayToNumeric {
     private Integer MaxInteger = Integer.MAX_VALUE;
     private Integer MinInteger = Integer.MIN_VALUE;
 
-    static MiniCluster cluster = MiniCluster.buildCluster();
-    PigServer pig;
-
     @Before
     public void setUp() throws Exception {
-        pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pig = new PigServer(cluster.getExecType(), properties);
+    }
+
+    @BeforeClass
+    public static void oneTimeSetUp() throws Exception {
+        cluster = MiniGenericCluster.buildCluster();
+        properties = cluster.getProperties();
     }
 
     @AfterClass

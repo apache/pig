@@ -19,6 +19,7 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.util;
 
 import java.net.URI;
 import java.util.LinkedList;
+import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -68,7 +69,9 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPartialAgg;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPartitionRearrange;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPoissonSample;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPreCombinerLocalRearrange;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POReservoirSample;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSkewedJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
@@ -76,6 +79,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 
 import com.google.common.collect.Lists;
@@ -121,14 +125,33 @@ public class PlanHelper {
      * @return a LinkedList of operators contained within the plan which implement the supplied class; empty if no such ops exist.
      * @throws VisitorException
      */
-    public static <C extends PhysicalOperator> LinkedList<C> getPhysicalOperators(PhysicalPlan plan,
+    public static <C> LinkedList<C> getPhysicalOperators(PhysicalPlan plan,
             Class<C> opClass) throws VisitorException {
         OpFinder<C> finder = new OpFinder<C>(plan, opClass);
         finder.visit();
         return finder.getFoundOps();
     }
 
-    private static class OpFinder<C extends PhysicalOperator> extends PhyPlanVisitor {
+    /**
+     * Finds POLocalRearrange from POSplit sub-plan
+     * @param plan physical plan
+     * @param rearrangeKey operator key of the POLocalRearrange
+     * @return POLocalRearrange with the specified operator key which is in a sub-plan of POSplit
+     * @throws VisitorException
+     */
+    public static PhysicalPlan getLocalRearrangePlanFromSplit(PhysicalPlan plan, OperatorKey rearrangeKey) throws VisitorException {
+        List<POSplit> splits = PlanHelper.getPhysicalOperators(plan, POSplit.class);
+        for (POSplit split : splits) {
+            for (PhysicalPlan subPlan : split.getPlans()) {
+                if (subPlan.getOperator(rearrangeKey) != null) {
+                    return subPlan;
+                }
+            }
+        }
+        return plan;
+    }
+
+    private static class OpFinder<C> extends PhyPlanVisitor {
 
         final Class<C> opClass;
         private LinkedList<C> foundOps = Lists.newLinkedList();
@@ -147,8 +170,9 @@ public class PlanHelper {
             return !foundOps.isEmpty();
         }
 
+        @Override
         @SuppressWarnings("unchecked")
-        private void visit(PhysicalOperator op) {
+        public void visit(PhysicalOperator op) {
             if (opClass.isAssignableFrom(op.getClass())) {
                 foundOps.add((C) op);
             }
@@ -425,6 +449,7 @@ public class PlanHelper {
             visit(stream);
         }
 
+        @Override
         public void visitSkewedJoin(POSkewedJoin sk) throws VisitorException {
             super.visitSkewedJoin(sk);
             visit(sk);
@@ -446,15 +471,27 @@ public class PlanHelper {
 
         @Override
         public void visitPreCombinerLocalRearrange(
-                POPreCombinerLocalRearrange preCombinerLocalRearrange) {
+                POPreCombinerLocalRearrange preCombinerLocalRearrange) throws VisitorException {
             super.visitPreCombinerLocalRearrange(preCombinerLocalRearrange);
             visit(preCombinerLocalRearrange);
         }
 
         @Override
-        public void visitPartialAgg(POPartialAgg poPartialAgg) {
+        public void visitPartialAgg(POPartialAgg poPartialAgg) throws VisitorException {
             super.visitPartialAgg(poPartialAgg);
             visit(poPartialAgg);
+        }
+
+        @Override
+        public void visitReservoirSample(POReservoirSample reservoirSample) throws VisitorException {
+            super.visitReservoirSample(reservoirSample);
+            visit(reservoirSample);
+        }
+        
+        @Override
+        public void visitPoissonSample(POPoissonSample poissonSample) throws VisitorException {
+            super.visitPoissonSample(poissonSample);
+            visit(poissonSample);
         }
     }
 

@@ -1,0 +1,33 @@
+#--------------------------------------------------
+# There are 1 DAGs in the session
+#--------------------------------------------------
+#--------------------------------------------------
+# TEZ DAG plan: scope-15
+#--------------------------------------------------
+Tez vertex scope-11	->	Tez vertex scope-14,Tez vertex scope-12,
+Tez vertex scope-12	->	Tez vertex scope-14,
+Tez vertex scope-14
+
+Tez vertex scope-11
+# Plan on vertex
+POCounterTez - scope-8	->	 scope-14,scope-12
+|
+|---a: New For Each(false,false)[bag] - scope-7
+    |   |
+    |   Cast[int] - scope-2
+    |   |
+    |   |---Project[bytearray][0] - scope-1
+    |   |
+    |   Cast[int] - scope-5
+    |   |
+    |   |---Project[bytearray][1] - scope-4
+    |
+    |---a: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-0
+Tez vertex scope-12
+# Plan on vertex
+PORankStatsTez - scope-13	<-	 scope-11	->	 scope-14
+Tez vertex scope-14
+# Plan on vertex
+b: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-10
+|
+|---PORankTez - scope-9	<-	 scope-11,scope-12

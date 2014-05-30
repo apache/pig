@@ -1,0 +1,61 @@
+#--------------------------------------------------
+# There are 1 DAGs in the session
+#--------------------------------------------------
+#--------------------------------------------------
+# TEZ DAG plan: scope-59
+#--------------------------------------------------
+Tez vertex scope-43	->	Tez vertex scope-44,
+Tez vertex scope-44
+
+Tez vertex scope-43
+# Plan on vertex
+b: Local Rearrange[tuple]{int}(false) - scope-10	->	 scope-44
+|   |
+|   Project[int][0] - scope-11
+|
+|---a: New For Each(false,false)[bag] - scope-7
+    |   |
+    |   Cast[int] - scope-2
+    |   |
+    |   |---Project[bytearray][0] - scope-1
+    |   |
+    |   Cast[int] - scope-5
+    |   |
+    |   |---Project[bytearray][1] - scope-4
+    |
+    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
+Tez vertex scope-44
+# Plan on vertex
+b: Split - scope-58
+|   |
+|   b: Store(file:///tmp/output/b:org.apache.pig.builtin.PigStorage) - scope-15
+|   |
+|   c: Store(file:///tmp/output/c:org.apache.pig.builtin.PigStorage) - scope-25
+|   |
+|   |---c: New For Each(false,false)[bag] - scope-24
+|       |   |
+|       |   Project[bag][0] - scope-19
+|       |   |
+|       |   |---Project[bag][1] - scope-18
+|       |   |
+|       |   Project[bag][1] - scope-22
+|       |   |
+|       |   |---Project[bag][1] - scope-21
+|   |
+|   d: Split - scope-57
+|   |   |
+|   |   d: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-34
+|   |   |
+|   |   e: Store(file:///tmp/output/e:org.apache.pig.builtin.PigStorage) - scope-42
+|   |   |
+|   |   |---e: New For Each(false,false)[bag] - scope-41
+|   |       |   |
+|   |       |   Project[int][0] - scope-37
+|   |       |   |
+|   |       |   Project[int][1] - scope-39
+|   |
+|   |---d: New For Each(true)[bag] - scope-30
+|       |   |
+|       |   Project[bag][1] - scope-28
+|
+|---b: Package(Packager)[tuple]{int} - scope-9

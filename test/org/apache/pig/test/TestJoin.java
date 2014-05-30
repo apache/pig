@@ -40,7 +40,6 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.Utils;
@@ -60,12 +59,12 @@ import com.google.common.collect.Sets;
 
 public class TestJoin {
 
-    static MiniCluster cluster;
+    private static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
     private PigServer pigServer;
 
     TupleFactory mTf = TupleFactory.getInstance();
     BagFactory mBf = BagFactory.getInstance();
-    ExecType[] execTypes = new ExecType[] {ExecType.LOCAL, ExecType.MAPREDUCE};
+    private static ExecType[] execTypes = new ExecType[] {ExecType.LOCAL, cluster.getExecType()};
 
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
@@ -73,12 +72,9 @@ public class TestJoin {
     }
 
     private void setUp(ExecType execType) throws ExecException {
-        // cause a reinitialization of FileLocalizer's
-        // internal state
-        FileLocalizer.setInitialized(false);
-        if(execType == ExecType.MAPREDUCE) {
-            cluster =  MiniCluster.buildCluster();
-            pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        Util.resetStateForExecModeSwitch();
+        if(execType == cluster.getExecType()) {
+            pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
         } else if(execType == ExecType.LOCAL) {
             pigServer = new PigServer(ExecType.LOCAL);
         }
@@ -86,7 +82,7 @@ public class TestJoin {
 
     private String createInputFile(ExecType execType, String fileNameHint, String[] data) throws IOException {
         String fileName = "";
-        if(execType == ExecType.MAPREDUCE) {
+        if(execType == cluster.getExecType()) {
             Util.createInputFile(cluster, fileNameHint, data);
             fileName = fileNameHint;
         } else if (execType == ExecType.LOCAL) {
@@ -97,7 +93,7 @@ public class TestJoin {
     }
 
     private void deleteInputFile(ExecType execType, String fileName) throws IOException {
-        if(execType == ExecType.MAPREDUCE) {
+        if(execType == cluster.getExecType()) {
             Util.deleteFile(cluster, fileName);
         } else if(execType == ExecType.LOCAL){
             fileName = fileName.replace("file://", "");
@@ -107,7 +103,7 @@ public class TestJoin {
 
     @Test
     public void testJoinWithMissingFieldsInTuples() throws IOException{
-        setUp(ExecType.MAPREDUCE);
+        setUp(cluster.getExecType());
         String[] input1 = {
                 "ff ff ff",
                 "",
@@ -126,16 +122,16 @@ public class TestJoin {
                 ""
                 };
 
-        String firstInput = createInputFile(ExecType.MAPREDUCE, "a.txt", input1);
-        String secondInput = createInputFile(ExecType.MAPREDUCE, "b.txt", input2);
+        String firstInput = createInputFile(cluster.getExecType(), "a.txt", input1);
+        String secondInput = createInputFile(cluster.getExecType(), "b.txt", input2);
         String script = "a = load 'a.txt'  using PigStorage(' ');" +
         "b = load 'b.txt'  using PigStorage('\u0001');" +
         "c = join a by $0, b by $0;";
         Util.registerMultiLineQuery(pigServer, script);
         Iterator<Tuple> it = pigServer.openIterator("c");
         assertFalse(it.hasNext());
-        deleteInputFile(ExecType.MAPREDUCE, firstInput);
-        deleteInputFile(ExecType.MAPREDUCE, secondInput);
+        deleteInputFile(cluster.getExecType(), firstInput);
+        deleteInputFile(cluster.getExecType(), secondInput);
     }
 
     @Test
@@ -582,13 +578,12 @@ public class TestJoin {
             Util.registerMultiLineQuery(pigServer, script);
             Iterator<Tuple> it = pigServer.openIterator("c");
 
-            assertTrue(it.hasNext());
-            Tuple t = it.next();
-            assertEquals("((1,a),(1,b))", t.toString());
-
-            assertTrue(it.hasNext());
-            t = it.next();
-            assertEquals("((2,aa),(2,bb))", t.toString());
+            List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
+                    new String[] {
+                            "((1,'a'),(1,'b'))",
+                            "((2,'aa'),(2,'bb'))"
+                            });
+            Util.checkQueryOutputsAfterSort(it, expectedResults);
 
             deleteInputFile(execType, firstInput);
             deleteInputFile(execType, secondInput);
@@ -617,11 +612,9 @@ public class TestJoin {
             Util.registerMultiLineQuery(pigServer, script);
             Iterator<Tuple> it = pigServer.openIterator("c");
 
-            assertTrue(it.hasNext());
-            Tuple t = it.next();
-            assertEquals("(2,aa,2,aa)", t.toString());
-
-            assertFalse(it.hasNext());
+            List<Tuple> expectedResults = Util
+                    .getTuplesFromConstantTupleStrings(new String[] { "(2,'aa',2,'aa')" });
+            Util.checkQueryOutputs(it, expectedResults);
 
             deleteInputFile(execType, firstInput);
             deleteInputFile(execType, secondInput);

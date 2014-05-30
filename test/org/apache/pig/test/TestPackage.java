@@ -202,7 +202,6 @@ public class TestPackage {
                 continue;
             }
             System.out.println("Type " + DataType.findTypeName(b));
-            boolean succ = true;
             int NUM_TRIALS = 10;
             boolean[] inner1 = { false, false };
             for (int i = 0; i < NUM_TRIALS; i++)

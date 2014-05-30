@@ -75,7 +75,7 @@ import org.apache.pig.pen.util.LineageTracer;
 
 /**
  * The class used to (re)attach illustrators to physical operators
- * 
+ *
  *
  */
 public class IllustratorAttacher extends PhyPlanVisitor {
@@ -245,14 +245,14 @@ public class IllustratorAttacher extends PhyPlanVisitor {
     }
 
     @Override
-	public void visitDistinct(PODistinct distinct) throws VisitorException {
+    public void visitDistinct(PODistinct distinct) throws VisitorException {
         setIllustrator(distinct, 1);
-	}
+    }
 
     @Override
-	public void visitSort(POSort sort) throws VisitorException {
+    public void visitSort(POSort sort) throws VisitorException {
         setIllustrator(sort, 1);
-	}
+    }
 
     @Override
     public void visitRank(PORank rank) throws VisitorException {

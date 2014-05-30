@@ -85,6 +85,13 @@ public class PORank extends PhysicalOperator {
         super(k, rp, inp);
     }
 
+    public PORank(PORank copy) {
+        super(copy);
+        this.rankPlans = copy.rankPlans;
+        this.mAscCols = copy.mAscCols;
+        this.ExprOutputTypes = copy.ExprOutputTypes;
+    }
+
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public PORank(OperatorKey operatorKey, int requestedParallelism, List inp,
             List<PhysicalPlan> rankPlans, List<Boolean> ascendingCol) {
@@ -142,20 +149,32 @@ public class PORank extends PhysicalOperator {
      * Here is read the task identifier in order to get the corresponding cumulative sum,
      * and the local counter at the tuple. These values are summed and prepended to the tuple.
      * @param input processed by POCounter
-     * @return input as Result. The input.result tuple owns the prepend rank value 
+     * @return input as Result. The input.result tuple owns the prepend rank value
      **/
     public Result addRank(Result input) throws ExecException {
-        int i = 1;
         Tuple in = (Tuple) input.result;
-        Tuple out = mTupleFactory.newTuple(in.getAll().size() - 1);
 
-        Long taskId = Long.valueOf(in.get(0).toString());
-        Long localCounter = (Long) in.get(1);
+        Long localCounter = (Long) in.get(0);
+        Integer taskId = (Integer) in.getAll().remove(in.getAll().size() - 1);
 
+        Long rank = getRankCounterOffset(taskId);
+
+        in.set(0, rank + localCounter);
+
+        if(localCountIllustrator > 2)
+            localCountIllustrator = 0;
+
+        input.result = illustratorMarkup(in, in, localCountIllustrator);
+
+        localCountIllustrator++;
+
+        return input;
+    }
+
+    protected Long getRankCounterOffset(Integer taskId) {
         String nameCounter = JobControlCompiler.PIG_MAP_COUNTER + getOperationID() + JobControlCompiler.PIG_MAP_SEPARATOR + String.valueOf(taskId);
-
         Long rank = PigMapReduce.sJobConfInternal.get().getLong( nameCounter , -1L );
-        
+
         if(illustrator != null) {
             rank = 0L;
         }
@@ -164,23 +183,7 @@ public class PORank extends PhysicalOperator {
             log.error("Error on reading counter "+ nameCounter);
             throw new RuntimeException("Unable to read counter "+ nameCounter);
         }
-
-        out.set(0, rank + localCounter);
-
-        //Add the content of the tuple
-        List<Object> sub = in.getAll().subList(2, in.getAll().size());
-
-        for (Object o : sub)
-            out.set(i++, o);
-
-        if(localCountIllustrator > 2)
-            localCountIllustrator = 0;
-
-        input.result = illustratorMarkup(in, out, localCountIllustrator);
-
-        localCountIllustrator++;
-
-        return input;
+        return rank;
     }
 
     @Override

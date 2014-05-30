@@ -45,8 +45,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import junit.framework.Assert;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -105,6 +103,8 @@ import org.apache.pig.newplan.logical.visitor.UnionOnSchemaSetter;
 import org.apache.pig.parser.ParserException;
 import org.apache.pig.parser.QueryParserDriver;
 import org.apache.pig.tools.grunt.GruntParser;
+import org.apache.pig.tools.pigstats.ScriptState;
+import org.junit.Assert;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -189,6 +189,7 @@ public class Util {
     static public Tuple buildBinTuple(final Object... args) throws IOException {
         return TupleFactory.getInstance().newTuple(Lists.transform(
                 Lists.newArrayList(args), new Function<Object, DataByteArray>() {
+                    @Override
                     public DataByteArray apply(Object o) {
                         if (o == null) {
                             return null;
@@ -339,7 +340,7 @@ public class Util {
      *                  on one line
      * @throws IOException
      */
-    static public void createInputFile(MiniCluster miniCluster, String fileName,
+    static public void createInputFile(MiniGenericCluster miniCluster, String fileName,
                                        String[] inputData)
     throws IOException {
         FileSystem fs = miniCluster.getFileSystem();
@@ -376,6 +377,7 @@ public class Util {
         FileStatus[] files;
         if (fileStatus.isDir()) {
             files = fs.listStatus(path, new PathFilter() {
+                @Override
                 public boolean accept(Path p) {
                     return !p.getName().startsWith("_");
                 }
@@ -408,7 +410,7 @@ public class Util {
      *         MiniCluster.
      * @throws IOException
      */
-    static public OutputStream createInputFile(MiniCluster cluster,
+    static public OutputStream createInputFile(MiniGenericCluster cluster,
             String fileName) throws IOException {
         FileSystem fs = cluster.getFileSystem();
         if(Util.WINDOWS){
@@ -444,7 +446,7 @@ public class Util {
      * @param fileName pathname of the file to be deleted
      * @throws IOException
      */
-    static public void deleteFile(MiniCluster miniCluster, String fileName)
+    static public void deleteFile(MiniGenericCluster miniCluster, String fileName)
     throws IOException {
         FileSystem fs = miniCluster.getFileSystem();
         if(Util.WINDOWS){
@@ -484,10 +486,8 @@ public class Util {
     */
     static public void checkQueryOutputs(Iterator<Tuple> actualResults,
                                     Tuple[] expectedResults) {
-        for (Tuple expected : expectedResults) {
-            Tuple actual = actualResults.next();
-            Assert.assertEquals(expected.toString(), actual.toString());
-        }
+        checkQueryOutputs(actualResults, Arrays.asList(expectedResults));
+
     }
 
     /**
@@ -499,8 +499,13 @@ public class Util {
      */
      static public void checkQueryOutputs(Iterator<Tuple> actualResults,
                                      List<Tuple> expectedResults) {
-
-         checkQueryOutputs(actualResults,expectedResults.toArray(new Tuple[expectedResults.size()]));
+         int count = 0;
+         for (Tuple expected : expectedResults) {
+             Tuple actual = actualResults.next();
+             count++;
+             Assert.assertEquals(expected.toString(), actual.toString());
+         }
+         Assert.assertEquals(expectedResults.size(), count);
      }
 
     /**
@@ -603,12 +608,13 @@ public class Util {
 	 * @param fileNameOnCluster the name with which the file should be created on the minicluster
 	 * @throws IOException
 	 */
-	static public void copyFromLocalToCluster(MiniCluster cluster, String localFileName, String fileNameOnCluster) throws IOException {
+     static public void copyFromLocalToCluster(MiniGenericCluster cluster,
+        String localFileName, String fileNameOnCluster) throws IOException {
         if(Util.WINDOWS){
             localFileName = localFileName.replace('\\','/');
             fileNameOnCluster = fileNameOnCluster.replace('\\','/');
         }
-        PigServer ps = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer ps = new PigServer(cluster.getExecType(), cluster.getProperties());
         String script = getMkDirCommandForHadoop2_0(fileNameOnCluster) + "fs -put " + localFileName + " " + fileNameOnCluster;
         GruntParser parser = new GruntParser(new StringReader(script), ps);
         parser.setInteractive(false);
@@ -640,7 +646,8 @@ public class Util {
 
     }
 
-	static public void copyFromClusterToLocal(MiniCluster cluster, String fileNameOnCluster, String localFileName) throws IOException {
+    static public void copyFromClusterToLocal(MiniGenericCluster cluster,
+            String fileNameOnCluster, String localFileName) throws IOException {
         if(Util.WINDOWS){
             fileNameOnCluster = fileNameOnCluster.replace('\\','/');
             localFileName = localFileName.replace('\\','/');
@@ -708,7 +715,7 @@ public class Util {
         if(Util.WINDOWS){
             filename = filename.replace('\\','/');
         }
-        if (context.getExecType() == ExecType.MAPREDUCE) {
+        if (context.getExecType() == ExecType.MAPREDUCE || context.getExecType().name().equals("TEZ")) {
             return FileLocalizer.hadoopify(filename, context);
         } else if (context.getExecType() == ExecType.LOCAL) {
             return filename;
@@ -775,7 +782,7 @@ public class Util {
             }else if(col instanceof DataBag){
                 Iterator<Tuple> it = ((DataBag)col).iterator();
                 while(it.hasNext()){
-                    convertStringToDataByteArray((Tuple)it.next());
+                    convertStringToDataByteArray(it.next());
                 }
             }
 
@@ -1025,6 +1032,7 @@ public class Util {
             while ((line = reader.readLine()) != null) {
                 logMessage = logMessage + line + "\n";
             }
+            reader.close();
             for (int i = 0; i < messages.length; i++) {
                 boolean present = logMessage.contains(messages[i]);
                 if (expected) {
@@ -1188,30 +1196,41 @@ public class Util {
             result += line;
             result += "\n";
         }
+        reader.close();
         return result;
     }
-    
+
+    /**
+     * this removes the signature from the serialized plan changing the way the
+     * unique signature is generated should not break this test
+     * @param plan the plan to canonicalize
+     * @return the cleaned up plan
+     */
+    public static String removeSignature(String plan) {
+        return plan.replaceAll("','','[^']*','scope','true'\\)\\)", "','','','scope','true'))");
+    }
+
     public static boolean isHadoop23() {
         String version = org.apache.hadoop.util.VersionInfo.getVersion();
         if (version.matches("\\b0\\.23\\..+\\b"))
             return true;
         return false;
     }
-    
+
     public static boolean isHadoop203plus() {
         String version = org.apache.hadoop.util.VersionInfo.getVersion();
         if (version.matches("\\b0\\.20\\.2\\b"))
             return false;
         return true;
     }
-    
+
     public static boolean isHadoop205() {
         String version = org.apache.hadoop.util.VersionInfo.getVersion();
         if (version.matches("\\b0\\.20\\.205\\..+"))
             return true;
         return false;
     }
-    
+
     public static boolean isHadoop1_x() {
         String version = org.apache.hadoop.util.VersionInfo.getVersion();
         if (version.matches("\\b1\\.*\\..+"))
@@ -1242,7 +1261,20 @@ public class Util {
     }
 
     /**
-     * 
+     * Returns a PathFilter that filters out filenames that start with _.
+     * @return PathFilter
+     */
+    public static PathFilter getSuccessMarkerPathFilter() {
+        return new PathFilter() {
+            @Override
+            public boolean accept(Path p) {
+                return !p.getName().startsWith("_");
+            }
+        };
+    }
+
+    /**
+     *
      * @param expected
      *            Exception class that is expected to be thrown
      * @param found
@@ -1255,4 +1287,23 @@ public class Util {
         assertEquals(expected, found.getClass());
         assertEquals(found.getMessage(), message);
     }
+
+    /**
+     * Called to reset ThreadLocal or static states that PigServer depends on
+     * when a test suite has testcases switching between LOCAL and MAPREDUCE/TEZ
+     * execution modes
+     */
+    public static void resetStateForExecModeSwitch() {
+        FileLocalizer.setInitialized(false);
+        // TODO: once we have Tez local mode, we can get rid of this. For now,
+        // if we run this test suite in Tez mode and there are some tests
+        // in LOCAL mode, we need to set ScriptState to
+        // null to force ScriptState gets initialized every time.
+        ScriptState.start(null);
+    }
+
+    public static boolean isMapredExecType(ExecType execType) {
+        return execType == ExecType.MAPREDUCE;
+    }
+
 }
