@@ -280,15 +280,8 @@ public class POUserFunc extends ExpressionOperator {
                 Tuple t = (Tuple) result.result;
 
                 // For backward compatibility, we short-circuit tuples whose
-                // fields are all null. (See PIG-3679)
-                boolean allNulls = true;
-                for (int i = 0; i < t.size(); i++) {
-                    if (!t.isNull(i)) {
-                        allNulls = false;
-                        break;
-                    }
-                }
-                if (allNulls) {
+                // size is 1 and field is null. (See PIG-3679)
+                if (t.size() == 1 && t.isNull(0)) {
                     pigLogger.warn(this, "All the input values are null, skipping the invocation of UDF",
                             PigWarning.SKIP_UDF_CALL_FOR_NULL);
                     Schema outputSchema = func.outputSchema(func.getInputSchema());
