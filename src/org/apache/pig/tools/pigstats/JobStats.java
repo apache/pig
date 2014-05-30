@@ -259,7 +259,7 @@ public abstract class JobStats extends Operator {
      * then use {@link org.apache.pig.tools.pigstats.mapreduce.MRJobStats#getAvgREduceTime} instead.
      */
     @Deprecated
-    abstract public long getAvgReduceTime();
+    abstract public long getAvgREduceTime();
 
     /**
      * @deprecated If you are using mapreduce, please cast JobStats to org.apache.pig.tools.pigstats.mapreduce.MRJobStats,
