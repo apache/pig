@@ -1068,7 +1068,7 @@ public class Util {
         QueryParserDriver parserDriver = new QueryParserDriver( pc, "test", fileNameMap );
         org.apache.pig.newplan.logical.relational.LogicalPlan lp = parserDriver.parse( query );
 
-        lp.validate(pc, "test");
+        lp.validate(pc, "test", false);
         return lp;
     }
 
@@ -1077,7 +1077,7 @@ public class Util {
         QueryParserDriver parserDriver = new QueryParserDriver( pc, "test", fileNameMap );
         org.apache.pig.newplan.logical.relational.LogicalPlan lp = parserDriver.parse( query );
 
-        lp.validate(pc, "test");
+        lp.validate(pc, "test", false);
         return lp;
     }
 

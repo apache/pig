@@ -165,8 +165,9 @@ public class LogicalPlan extends BaseOperatorPlan {
 
         return Integer.toString(hos.getHashCode().asInt());
     }
-    
-    public void validate(PigContext pigContext, String scope) throws FrontendException {
+
+    public void validate(PigContext pigContext, String scope, boolean skipInputOutputValidation)
+            throws FrontendException {
 
         new DanglingNestedNodeRemover(this).visit();
         new ColumnAliasConversionVisitor(this).visit();
@@ -204,7 +205,7 @@ public class LogicalPlan extends BaseOperatorPlan {
         // compute whether output data is sorted or not
         new SortInfoSetter(this).visit();
 
-        if (!(pigContext.inExplain || pigContext.inDumpSchema)) {
+        if (!(skipInputOutputValidation || pigContext.inExplain || pigContext.inDumpSchema)) {
             // Validate input/output file
             new InputOutputFileValidatorVisitor(this, pigContext).visit();
         }
