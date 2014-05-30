@@ -159,6 +159,8 @@ PIG-3882: Multiquery off mode execution is not done in batch and very inefficien
  
 BUG FIXES
 
+PIG-3874: FileLocalizer temp path can sometimes be non-unique (chitnis via cheolsoo)
+
 PIG-3967: Grunt fail if we running more statement after first store (daijy)
 
 PIG-3915: MapReduce queries in Pigmix outputs different results than Pig's (keren3000 via daijy)

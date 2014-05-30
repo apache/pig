@@ -429,7 +429,7 @@ public class FileLocalizer {
         return true;
     }
 
-    static Random      r           = new Random();
+    static Random r = new Random();
 
     /**
      * Thread local relativeRoot ContainerDescriptor. Do not access this object
@@ -464,14 +464,25 @@ public class FileLocalizer {
 
         if (relativeRoot.get() == null) {
             String tdir= Utils.substituteVars(pigContext.getProperties().getProperty(PigConfiguration.PIG_TEMP_DIR, "/tmp"));
-            ContainerDescriptor relative = pigContext.getDfs().asContainer(tdir + "/temp" + r.nextInt());
-            relativeRoot.set(relative);
+            ContainerDescriptor relative;
             try {
-                if (!relative.exists()) {
+                do {
+                    relative = pigContext.getDfs().asContainer(tdir + "/temp" + r.nextInt());
+                } while (relative.exists());
+                relativeRoot.set(relative);
+                createRelativeRoot(relative);
+            }
+            catch (IOException e) {
+                // try one last time in case this was due IO Exception caused by dir
+                // operations on directory created by another JVM at the same instant
+                relative = pigContext.getDfs().asContainer(tdir + "/temp" + r.nextInt());
+                relativeRoot.set(relative);
+                try {
                     createRelativeRoot(relative);
                 }
-            } catch (IOException e) {
-                throw new DataStorageException(e);
+                catch (IOException e1) {
+                    throw new DataStorageException(e1);
+                }
             }
         }
 
