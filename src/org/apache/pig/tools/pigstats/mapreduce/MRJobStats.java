@@ -141,7 +141,7 @@ public final class MRJobStats extends JobStats {
     public long getMinReduceTime() { return minReduceTime; }
 
     @Override
-    public long getAvgReduceTime() { return avgReduceTime; }
+    public long getAvgREduceTime() { return avgReduceTime; }
 
     @Override
     public long getMapInputRecords() { return mapInputRecords; }
