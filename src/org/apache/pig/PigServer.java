@@ -1677,12 +1677,12 @@ public class PigServer {
             }
         }
 
-        void validateQuery() throws FrontendException {
+        private void validateQuery() throws FrontendException {
             String query = buildQuery();
             QueryParserDriver parserDriver = new QueryParserDriver( pigContext, scope, fileNameMap );
             try {
                 LogicalPlan plan = parserDriver.parse( query );
-                plan.validate(pigContext, scope);
+                plan.validate(pigContext, scope, true);
             } catch(FrontendException ex) {
                 scriptCache.remove( scriptCache.size() -1 );
                 throw ex;
@@ -1741,7 +1741,7 @@ public class PigServer {
         }
 
         private void compile() throws IOException {
-            lp.validate(pigContext, scope);
+            lp.validate(pigContext, scope, false);
             currDAG.postProcess();
         }
 

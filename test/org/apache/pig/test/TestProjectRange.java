@@ -784,7 +784,7 @@ public class TestProjectRange  {
     private LogicalPlan createAndProcessLPlan(String query) throws FrontendException {
         //TODO: create a common util function for logical plan tests
         LogicalPlan lp = generateLogicalPlan(query);
-        lp.validate(pigServer.getPigContext(), "test");
+        lp.validate(pigServer.getPigContext(), "test", false);
 
         return lp;
 
