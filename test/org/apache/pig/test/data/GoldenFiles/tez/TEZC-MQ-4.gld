@@ -1,0 +1,79 @@
+#--------------------------------------------------
+# There are 1 DAGs in the session
+#--------------------------------------------------
+#--------------------------------------------------
+# TEZ DAG plan: scope-64
+#--------------------------------------------------
+Tez vertex scope-53	->	Tez vertex scope-55,
+Tez vertex scope-54	->	Tez vertex scope-55,
+Tez vertex scope-55
+
+Tez vertex scope-53
+# Plan on vertex
+c: Local Rearrange[tuple]{int}(false) - scope-20	->	 scope-55
+|   |
+|   Project[int][0] - scope-21
+|
+|---a: New For Each(false,false)[bag] - scope-7
+    |   |
+    |   Cast[int] - scope-2
+    |   |
+    |   |---Project[bytearray][0] - scope-1
+    |   |
+    |   Cast[int] - scope-5
+    |   |
+    |   |---Project[bytearray][1] - scope-4
+    |
+    |---a: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-0
+Tez vertex scope-54
+# Plan on vertex
+c: Local Rearrange[tuple]{int}(false) - scope-22	->	 scope-55
+|   |
+|   Project[int][0] - scope-23
+|
+|---b: New For Each(false,false)[bag] - scope-15
+    |   |
+    |   Cast[int] - scope-10
+    |   |
+    |   |---Project[bytearray][0] - scope-9
+    |   |
+    |   Cast[int] - scope-13
+    |   |
+    |   |---Project[bytearray][1] - scope-12
+    |
+    |---b: Load(file:///tmp/input2:org.apache.pig.builtin.PigStorage) - scope-8
+Tez vertex scope-55
+# Plan on vertex
+c: Split - scope-63
+|   |
+|   c: Store(file:///tmp/output/c:org.apache.pig.builtin.PigStorage) - scope-30
+|   |
+|   d: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-40
+|   |
+|   |---d: New For Each(false,false,false)[bag] - scope-39
+|       |   |
+|       |   Project[int][0] - scope-33
+|       |   |
+|       |   Project[int][1] - scope-35
+|       |   |
+|       |   Project[int][3] - scope-37
+|   |
+|   e: Store(file:///tmp/output/e:org.apache.pig.builtin.PigStorage) - scope-52
+|   |
+|   |---e: New For Each(false,false,false,false)[bag] - scope-51
+|       |   |
+|       |   Project[int][0] - scope-43
+|       |   |
+|       |   Project[int][1] - scope-45
+|       |   |
+|       |   Project[int][2] - scope-47
+|       |   |
+|       |   Project[int][3] - scope-49
+|
+|---c: New For Each(true,true)[tuple] - scope-26
+    |   |
+    |   Project[bag][1] - scope-24
+    |   |
+    |   Project[bag][2] - scope-25
+    |
+    |---c: Package(Packager)[tuple]{int} - scope-19

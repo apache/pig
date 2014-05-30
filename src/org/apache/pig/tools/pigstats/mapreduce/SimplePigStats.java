@@ -297,3 +297,4 @@ public final class SimplePigStats extends PigStats {
     }
 
 }
+

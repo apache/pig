@@ -50,7 +50,7 @@ import org.apache.pig.tools.pigstats.PigStatsUtil;
 public class POStore extends PhysicalOperator {
 
     private static final long serialVersionUID = 1L;
-    private static Result empty = new Result(POStatus.STATUS_NULL, null);
+    protected static Result empty = new Result(POStatus.STATUS_NULL, null);
     transient private StoreFuncInterface storer;
     transient private POStoreImpl impl;
     transient private String counterName = null;
@@ -91,6 +91,19 @@ public class POStore extends PhysicalOperator {
 
     public POStore(OperatorKey k, int rp, List<PhysicalOperator> inp) {
         super(k, rp, inp);
+    }
+
+    public POStore(POStore copy) {
+        super(copy);
+        this.sFile = copy.sFile;
+        this.schema = copy.schema;
+        this.isTmpStore = copy.isTmpStore;
+        this.isMultiStore = copy.isMultiStore;
+        this.disableCounter = copy.disableCounter;
+        this.index = copy.index;
+        this.lFile = copy.lFile;
+        this.sortInfo = copy.sortInfo;
+        this.signature = copy.signature;
     }
 
     /**

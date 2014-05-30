@@ -49,6 +49,7 @@ import org.apache.pig.PigWarning;
 import org.apache.pig.backend.BackendException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
 import org.apache.pig.backend.hadoop.executionengine.Launcher;
@@ -151,7 +152,7 @@ public class MapReduceLauncher extends Launcher{
             JobCreationException,
             Exception {
         long sleepTime = 500;
-        aggregateWarning = "true".equalsIgnoreCase(pc.getProperties().getProperty("aggregate.warning"));
+        aggregateWarning = Boolean.valueOf(pc.getProperties().getProperty("aggregate.warning"));
         MROperPlan mrp = compile(php, pc);
 
         ConfigurationValidator.validatePigProperties(pc.getProperties());
@@ -192,7 +193,7 @@ public class MapReduceLauncher extends Launcher{
         JobControlThreadExceptionHandler jctExceptionHandler = new JobControlThreadExceptionHandler();
 
         boolean stop_on_failure =
-                pc.getProperties().getProperty("stop.on.failure", "false").equals("true");
+            Boolean.valueOf(pc.getProperties().getProperty("stop.on.failure", "false"));
 
         // jc is null only when mrp.size == 0
         while(mrp.size() != 0) {
@@ -437,7 +438,7 @@ public class MapReduceLauncher extends Launcher{
             failed = true;
         }
 
-        if (!"false".equalsIgnoreCase(pc.getProperties().getProperty(PigConfiguration.PIG_DELETE_TEMP_FILE))) {
+        if (Boolean.valueOf(pc.getProperties().getProperty(PigConfiguration.PIG_DELETE_TEMP_FILE, "true"))) {
             // Clean up all the intermediate data
             for (String path : intermediateVisitor.getIntermediate()) {
                 // Skip non-file system paths such as hbase, see PIG-3617
@@ -663,9 +664,9 @@ public class MapReduceLauncher extends Launcher{
             la.adjust();
         }
         // Optimize to use secondary sort key if possible
-        prop = pc.getProperties().getProperty("pig.exec.nosecondarykey");
+        prop = pc.getProperties().getProperty(PigConfiguration.PIG_EXEC_NO_SECONDARY_KEY);
         if (!pc.inIllustrator && !("true".equals(prop)))  {
-            SecondaryKeyOptimizer skOptimizer = new SecondaryKeyOptimizer(plan);
+            SecondaryKeyOptimizerMR skOptimizer = new SecondaryKeyOptimizerMR(plan);
             skOptimizer.visit();
         }
 
@@ -690,7 +691,7 @@ public class MapReduceLauncher extends Launcher{
         fRem.visit();
 
         boolean isMultiQuery =
-                "true".equalsIgnoreCase(pc.getProperties().getProperty("opt.multiquery","true"));
+            Boolean.valueOf(pc.getProperties().getProperty(PigConfiguration.OPT_MULTIQUERY, "true"));
 
         if (isMultiQuery) {
             // reduces the number of MROpers in the MR plan generated
@@ -712,7 +713,7 @@ public class MapReduceLauncher extends Launcher{
         checker.visit();
 
         boolean isAccum =
-                "true".equalsIgnoreCase(pc.getProperties().getProperty("opt.accumulator","true"));
+            Boolean.valueOf(pc.getProperties().getProperty("opt.accumulator","true"));
         if (isAccum) {
             AccumulatorOptimizer accum = new AccumulatorOptimizer(plan);
             accum.visit();

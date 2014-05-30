@@ -56,6 +56,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -75,6 +76,7 @@ import org.apache.pig.tools.grunt.GruntParser;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -83,15 +85,14 @@ import org.w3c.dom.NodeList;
 import com.google.common.io.Files;
 
 public class TestPigServer {
-    private PigServer pig = null;
-    static MiniCluster cluster = MiniCluster.buildCluster();
+    private static Properties properties;
+    private static MiniGenericCluster cluster;
+
     private File tempDir;
 
     @Before
     public void setUp() throws Exception{
-        FileLocalizer.setInitialized(false);
-        pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-
+        Util.resetStateForExecModeSwitch();
         tempDir = Files.createTempDir();
         tempDir.deleteOnExit();
         registerNewResource(tempDir.getAbsolutePath());
@@ -99,8 +100,13 @@ public class TestPigServer {
 
     @After
     public void tearDown() throws Exception{
-        pig = null;
         tempDir.delete();
+    }
+
+    @BeforeClass
+    public static void oneTimeSetup() {
+        cluster = MiniGenericCluster.buildCluster();
+        properties = cluster.getProperties();
     }
 
     @AfterClass
@@ -150,8 +156,7 @@ public class TestPigServer {
         URL urlToAdd = new File(file).toURI().toURL();
         URLClassLoader sysLoader = (URLClassLoader) ClassLoader.getSystemClassLoader();
         Method addMethod = URLClassLoader.class.
-                            getDeclaredMethod("addURL",
-                                              new Class[]{URL.class});
+                getDeclaredMethod("addURL", new Class[]{URL.class});
         addMethod.setAccessible(true);
         addMethod.invoke(sysLoader, new Object[]{urlToAdd});
     }
@@ -166,6 +171,7 @@ public class TestPigServer {
         String jarName = "BadFileNameTestJarNotPresent.jar";
 
         // jar name is not present to start with
+        PigServer pig = new PigServer(cluster.getExecType(), properties);
         verifyStringContained(pig.getPigContext().extraJars, jarName, false);
         boolean raisedException = false;
         try {
@@ -192,9 +198,10 @@ public class TestPigServer {
 
         createFakeJarFile(jarLocation, jarName);
 
+        PigServer pig = new PigServer(cluster.getExecType(), properties);
         verifyStringContained(pig.getPigContext().extraJars, jarName, false);
 
-            pig.registerJar(jarLocation + jarName);
+        pig.registerJar(jarLocation + jarName);
         verifyStringContained(pig.getPigContext().extraJars, jarName, true);
 
         // clean-up
@@ -221,12 +228,13 @@ public class TestPigServer {
         createFakeJarFile(jarLocation1, jarName);
         createFakeJarFile(jarLocation2, jarName);
 
+        PigServer pig = new PigServer(cluster.getExecType(), properties);
         verifyStringContained(pig.getPigContext().extraJars, jarName, false);
 
         registerNewResource(jarLocation1);
         registerNewResource(jarLocation2);
 
-            pig.registerJar(jarName);
+        pig.registerJar(jarName);
         verifyStringContained(pig.getPigContext().extraJars, jarName, true);
 
         // clean-up
@@ -288,6 +296,7 @@ public class TestPigServer {
 
         // load the specific resource
         boolean exceptionRaised = false;
+        PigServer pig = new PigServer(cluster.getExecType(), properties);
         try {
             pig.registerJar("sub_dir/TestRegisterJar.class");
         }
@@ -314,7 +323,8 @@ public class TestPigServer {
         createFakeJarFile(jarLocation, jar1Name);
         createFakeJarFile(jarLocation, jar2Name);
 
-            pig.registerJar(jarLocation + "TestRegisterJarGlobbing*.jar");
+        PigServer pig = new PigServer(cluster.getExecType(), properties);
+        pig.registerJar(jarLocation + "TestRegisterJarGlobbing*.jar");
         verifyStringContained(pig.getPigContext().extraJars, jar1Name, true);
         verifyStringContained(pig.getPigContext().extraJars, jar2Name, true);
 
@@ -335,7 +345,8 @@ public class TestPigServer {
         createFakeJarFile(jarLocation, jar2Name);
 
         String currentDir = System.getProperty("user.dir");
-            pig.registerJar(new File(currentDir, dir) + FILE_SEPARATOR + "TestRegisterJarGlobbing*.jar");
+        PigServer pig = new PigServer(cluster.getExecType(), properties);
+        pig.registerJar(new File(currentDir, dir) + FILE_SEPARATOR + "TestRegisterJarGlobbing*.jar");
         verifyStringContained(pig.getPigContext().extraJars, jar1Name, true);
         verifyStringContained(pig.getPigContext().extraJars, jar2Name, true);
 
@@ -360,7 +371,8 @@ public class TestPigServer {
         // depend on configuration
         String absPath = fs.getFileStatus(new Path(jarLocation)).getPath().toString();
 
-            pig.registerJar(absPath + FILE_SEPARATOR + "TestRegister{Remote}Jar*.jar");
+        PigServer pig = new PigServer(cluster.getExecType(), properties);
+        pig.registerJar(absPath + FILE_SEPARATOR + "TestRegister{Remote}Jar*.jar");
 
         verifyStringContained(pig.getPigContext().extraJars, jar1Name, true);
         verifyStringContained(pig.getPigContext().extraJars, jar2Name, true);
@@ -370,6 +382,7 @@ public class TestPigServer {
     }
 
     public void testDescribeLoad() throws Throwable {
+        PigServer pig = new PigServer(cluster.getExecType(), properties);
         pig.registerQuery("a = load 'a' as (field1: int, field2: float, field3: chararray );") ;
         Schema dumpedSchema = pig.dumpSchema("a") ;
         Schema expectedSchema = Utils.getSchemaFromString("field1: int,field2: float,field3: chararray");
@@ -378,6 +391,7 @@ public class TestPigServer {
 
     @Test
     public void testDescribeFilter() throws Throwable {
+        PigServer pig = new PigServer(cluster.getExecType(), properties);
         pig.registerQuery("a = load 'a' as (field1: int, field2: float, field3: chararray );") ;
         pig.registerQuery("b = filter a by field1 > 10;") ;
         Schema dumpedSchema = pig.dumpSchema("b") ;
@@ -387,6 +401,7 @@ public class TestPigServer {
 
     @Test
     public void testDescribeDistinct() throws Throwable {
+        PigServer pig = new PigServer(cluster.getExecType(), properties);
         pig.registerQuery("a = load 'a' as (field1: int, field2: float, field3: chararray );") ;
         pig.registerQuery("b = distinct a ;") ;
         Schema dumpedSchema = pig.dumpSchema("b") ;
@@ -396,6 +411,7 @@ public class TestPigServer {
 
     @Test
     public void testDescribeSort() throws Throwable {
+        PigServer pig = new PigServer(cluster.getExecType(), properties);
         pig.registerQuery("a = load 'a' as (field1: int, field2: float, field3: chararray );") ;
         pig.registerQuery("b = order a by * desc;") ;
         Schema dumpedSchema = pig.dumpSchema("b") ;
@@ -405,6 +421,7 @@ public class TestPigServer {
 
     @Test
     public void testDescribeLimit() throws Throwable {
+        PigServer pig = new PigServer(cluster.getExecType(), properties);
         pig.registerQuery("a = load 'a' as (field1: int, field2: float, field3: chararray );") ;
         pig.registerQuery("b = limit a 10;") ;
         Schema dumpedSchema = pig.dumpSchema("b") ;
@@ -414,6 +431,7 @@ public class TestPigServer {
 
     @Test
     public void testDescribeForeach() throws Throwable {
+        PigServer pig = new PigServer(cluster.getExecType(), properties);
         pig.registerQuery("a = load 'a' as (field1: int, field2: float, field3: chararray );") ;
         pig.registerQuery("b = foreach a generate field1 + 10;") ;
         Schema dumpedSchema = pig.dumpSchema("b") ;
@@ -423,7 +441,7 @@ public class TestPigServer {
 
     @Test
     public void testDescribeForeachFail() throws Throwable {
-
+        PigServer pig = new PigServer(cluster.getExecType(), properties);
         pig.registerQuery("a = load 'a' as (field1: int, field2: float, field3: chararray );") ;
         pig.registerQuery("b = foreach a generate field1 + 10;") ;
         try {
@@ -436,6 +454,7 @@ public class TestPigServer {
 
     @Test
     public void testDescribeForeachNoSchema() throws Throwable {
+        PigServer pig = new PigServer(cluster.getExecType(), properties);
         pig.registerQuery("a = load 'a' ;") ;
         pig.registerQuery("b = foreach a generate *;") ;
         Schema dumpedSchema = pig.dumpSchema("b") ;
@@ -444,6 +463,7 @@ public class TestPigServer {
 
     @Test
     public void testDescribeCogroup() throws Throwable {
+        PigServer pig = new PigServer(cluster.getExecType(), properties);
         pig.registerQuery("a = load 'a' as (field1: int, field2: float, field3: chararray );") ;
         pig.registerQuery("b = load 'b' as (field4, field5: double, field6: chararray );") ;
         pig.registerQuery("c = cogroup a by field1, b by field4;") ;
@@ -454,6 +474,7 @@ public class TestPigServer {
 
     @Test
     public void testDescribeCross() throws Throwable {
+        PigServer pig = new PigServer(cluster.getExecType(), properties);
         pig.registerQuery("a = load 'a' as (field1: int, field2: float, field3: chararray );") ;
         pig.registerQuery("b = load 'b' as (field4, field5: double, field6: chararray );") ;
         pig.registerQuery("c = cross a, b;") ;
@@ -464,6 +485,7 @@ public class TestPigServer {
 
     @Test
     public void testDescribeJoin() throws Throwable {
+        PigServer pig = new PigServer(cluster.getExecType(), properties);
         pig.registerQuery("a = load 'a' as (field1: int, field2: float, field3: chararray );") ;
         pig.registerQuery("b = load 'b' as (field4, field5: double, field6: chararray );") ;
         pig.registerQuery("c = join a by field1, b by field4;") ;
@@ -474,6 +496,7 @@ public class TestPigServer {
 
     @Test
     public void testDescribeUnion() throws Throwable {
+        PigServer pig = new PigServer(cluster.getExecType(), properties);
         pig.registerQuery("a = load 'a' as (field1: int, field2: float, field3: chararray );") ;
         pig.registerQuery("b = load 'b' as (field4, field5: double, field6: chararray );") ;
         pig.registerQuery("c = union a, b;") ;
@@ -484,6 +507,7 @@ public class TestPigServer {
 
     @Test
     public void testDescribeTuple2Elem() throws Throwable {
+        PigServer pig = new PigServer(cluster.getExecType(), properties);
         pig.registerQuery("a = load 'a' as (field1: int, field2: int, field3: int );") ;
         pig.registerQuery("b = foreach a generate field1, (field2, field3);") ;
         Schema dumpedSchema = pig.dumpSchema("b") ;
@@ -493,6 +517,7 @@ public class TestPigServer {
 
     @Test
     public void testDescribeComplex() throws Throwable {
+        PigServer pig = new PigServer(cluster.getExecType(), properties);
         pig.registerQuery("a = load 'a' as (site: chararray, count: int, itemCounts: bag { itemCountsTuple: tuple (type: chararray, typeCount: int, f: float, m: map[]) } ) ;") ;
         pig.registerQuery("b = foreach a generate site, count, FLATTEN(itemCounts);") ;
         Schema dumpedSchema = pig.dumpSchema("b") ;
@@ -504,6 +529,7 @@ public class TestPigServer {
     }
 
     private void registerScalarScript(boolean useScalar, String expectedSchemaStr) throws IOException {
+        PigServer pig = new PigServer(cluster.getExecType(), properties);
         pig.registerQuery("A = load 'adata' AS (a: int, b: int);");
         //scalar
         pig.registerQuery("C = FOREACH A GENERATE *;");
@@ -533,6 +559,12 @@ public class TestPigServer {
 
     @Test
     public void testExplainXmlComplex() throws Throwable {
+        // TODO: Explain XML output is not supported in non-MR mode. Remove the
+        // following condition once it's implemented in Tez.
+        if (cluster.getExecType() != ExecType.MAPREDUCE) {
+            return;
+        }
+        PigServer pig = new PigServer(cluster.getExecType(), properties);
         pig.registerQuery("a = load 'a' as (site: chararray, count: int, itemCounts: bag { itemCountsTuple: tuple (type: chararray, typeCount: int, f: float, m: map[]) } ) ;") ;
         pig.registerQuery("b = foreach a generate site, count, FLATTEN(itemCounts);") ;
         pig.registerQuery("c = group b by site;");
@@ -614,6 +646,7 @@ public class TestPigServer {
         String absPath = fs.getFileStatus(new Path(scriptName)).getPath().toString();
 
         Util.createInputFile(cluster, "testRegisterRemoteScript_input", new String[]{"1", "2"});
+        PigServer pig = new PigServer(cluster.getExecType(), properties);
         pig.registerCode(absPath, "jython", "pig");
         pig.registerQuery("a = load 'testRegisterRemoteScript_input';");
         pig.registerQuery("b = foreach a generate pig.helloworld($0);");
@@ -631,26 +664,6 @@ public class TestPigServer {
 
         assertFalse(iter.hasNext());
     }
-
-    // PIG-3469
-    @Test
-    public void testNonExistingSecondDirectoryInSkewJoin() throws Exception {
-        String script =
-          "exists = LOAD 'test/org/apache/pig/test/data/InputFiles/jsTst1.txt' AS (x:chararray, a:long);" +
-          "missing = LOAD '/non/existing/directory' AS (a:long);" +
-          "missing = FOREACH ( GROUP missing BY a ) GENERATE $0 AS a, COUNT_STAR($1);" +
-          "joined = JOIN exists BY a, missing BY a USING 'skewed';" +
-          "STORE joined INTO '/tmp/test_out.tsv';";
-
-        PigServer pig = new PigServer(ExecType.LOCAL);
-        // Execution of the script should fail, but without throwing any exceptions (such as NPE)
-        try {
-            pig.registerScript(new ByteArrayInputStream(script.getBytes("UTF-8")));
-        } catch(Exception ex) {
-            fail("Unexpected exception: " + ex);
-        }
-    }
-
     @Test
     public void testParamSubstitution() throws Exception{
         // using params map
@@ -822,6 +835,7 @@ public class TestPigServer {
 
     @Test
     public void testDescribeForEachFlatten() throws Throwable {
+        PigServer pig = new PigServer(cluster.getExecType(), properties);
         pig.registerQuery("a = load 'a';") ;
         pig.registerQuery("b = group a by $0;") ;
         pig.registerQuery("c = foreach b generate flatten(a);") ;
@@ -831,7 +845,8 @@ public class TestPigServer {
 
     @Test // PIG-2059
     public void test1() throws Throwable {
-    	pig.setValidateEachStatement(true);
+        PigServer pig = new PigServer(cluster.getExecType(), properties);
+        pig.setValidateEachStatement(true);
         pig.registerQuery("A = load 'x' as (u, v);") ;
         try {
             pig.registerQuery("B = foreach A generate $2;") ;
@@ -844,40 +859,40 @@ public class TestPigServer {
     }
 
     @Test
-	public void testDefaultPigProperties() throws Throwable {
-    	//Test with PigServer
-    	PigServer pigServer = new PigServer(ExecType.MAPREDUCE);
-    	Properties properties = pigServer.getPigContext().getProperties();
+    public void testDefaultPigProperties() throws Throwable {
+        //Test with PigServer
+        PigServer pigServer = new PigServer(cluster.getExecType());
+        Properties properties = pigServer.getPigContext().getProperties();
 
         assertEquals("999", properties.getProperty("pig.exec.reducers.max"));
         assertEquals("true", properties.getProperty("aggregate.warning"));
-        assertEquals("true", properties.getProperty("opt.multiquery"));
+        assertEquals("true", properties.getProperty(PigConfiguration.OPT_MULTIQUERY));
         assertEquals("false", properties.getProperty("stop.on.failure"));
 
-		//Test with properties file
-		File propertyFile = new File(tempDir, "pig.properties");
+        //Test with properties file
+        File propertyFile = new File(tempDir, "pig.properties");
 
-		properties = PropertiesUtil.loadDefaultProperties();
+        properties = PropertiesUtil.loadDefaultProperties();
 
-		assertEquals("999", properties.getProperty("pig.exec.reducers.max"));
+        assertEquals("999", properties.getProperty("pig.exec.reducers.max"));
         assertEquals("true", properties.getProperty("aggregate.warning"));
-        assertEquals("true", properties.getProperty("opt.multiquery"));
+        assertEquals("true", properties.getProperty(PigConfiguration.OPT_MULTIQUERY));
         assertEquals("false", properties.getProperty("stop.on.failure"));
 
-		PrintWriter out = new PrintWriter(new FileWriter(propertyFile));
-		out.println("aggregate.warning=false");
-		out.println("opt.multiquery=false");
-		out.println("stop.on.failure=true");
+        PrintWriter out = new PrintWriter(new FileWriter(propertyFile));
+        out.println("aggregate.warning=false");
+        out.println("opt.multiquery=false");
+        out.println("stop.on.failure=true");
 
-		out.close();
+        out.close();
 
-		properties = PropertiesUtil.loadDefaultProperties();
-		assertEquals("false", properties.getProperty("aggregate.warning"));
-		assertEquals("false", properties.getProperty("opt.multiquery"));
-		assertEquals("true", properties.getProperty("stop.on.failure"));
+        properties = PropertiesUtil.loadDefaultProperties();
+        assertEquals("false", properties.getProperty("aggregate.warning"));
+        assertEquals("false", properties.getProperty(PigConfiguration.OPT_MULTIQUERY));
+        assertEquals("true", properties.getProperty("stop.on.failure"));
 
-		propertyFile.delete();
-	}
+        propertyFile.delete();
+    }
 
     @Test
     public void testSecondarySort() throws Exception {

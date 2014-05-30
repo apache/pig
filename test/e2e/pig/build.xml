@@ -59,6 +59,12 @@
   <property name="benchmark.location" value="${test.location}/benchmarks"/>
 
 
+  <condition property="harness.old.pig" value="">
+    <not>  
+      <isset property="harness.old.pig"/>
+    </not>
+  </condition>
+
   <condition property="HADOOP_PREFIX" value="">
     <not>  
       <isset property="HADOOP_PREFIX"/>
@@ -213,9 +219,7 @@
 
   <!-- Check that the necessary properties are setup -->
   <target name="property-check">
-    <fail message="Please set the property harness.old.pig to the directory where your old version of Pig is installed"
-      unless="harness.old.pig"/>
-     <fail message="Please set the property harness.cluster.conf to the conf directory of your hadoop installation or harness.hadoop.home to HADOOP_HOME for your Hadoop installation.">
+    <fail message="Please set the property harness.cluster.conf to the conf directory of your hadoop installation or harness.hadoop.home to HADOOP_HOME for your Hadoop installation.">
         <condition>
             <not>
                 <or>
@@ -324,6 +328,12 @@
   <target name="test-local">
     <antcall target="test-base">
       <param name="harness.conf.file" value="${basedir}/conf/local.conf"/>
+    </antcall>
+  </target>
+
+  <target name="test-tez">
+    <antcall target="test-base">
+      <param name="harness.conf.file" value="${basedir}/conf/tez.conf"/>
     </antcall>
   </target>
 

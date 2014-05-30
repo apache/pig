@@ -71,7 +71,27 @@ public class PigConfiguration {
 
     public static final String SCHEMA_TUPLE_SHOULD_ALLOW_FORCE = "pig.schematuple.force";
 
-    /*
+    /**
+     * This key is used to enable multiquery optimization.
+     */
+    public static final String OPT_MULTIQUERY = "opt.multiquery";
+
+    /**
+     * This key is used to enable accumulator optimization.
+     */
+    public static final String OPT_ACCUMULATOR = "opt.accumulator";
+
+    /**
+     * This key is used to enable union optimization.
+     */
+    public static final String TEZ_OPT_UNION = "pig.tez.opt.union";
+
+    /**
+     * This key is used to define whether to reuse AM in Tez jobs.
+     */
+    public static final String TEZ_SESSION_REUSE = "pig.tez.session.reuse";
+
+    /**
      * Turns off use of combiners in MapReduce jobs produced by Pig.
      */
     public static final String PROP_NO_COMBINER = "pig.exec.nocombiner";
@@ -135,11 +155,44 @@ public class PigConfiguration {
     public static final String PIG_DELETE_TEMP_FILE = "pig.delete.temp.files";
 
     /**
+     * For a given mean and a confidence, a sample rate is obtained from a poisson udf
+     */
+    public static final String SAMPLE_RATE = "pig.sksampler.samplerate";
+
+    /**
+     * % of memory available for the input data. This is currently equal to the
+     * memory available for the skewed join
+     */
+    public static final String PERC_MEM_AVAIL = "pig.skewedjoin.reduce.memusage";
+
+    /**
      * This key used to control the maximum size loaded into
      * the distributed cache when doing fragment-replicated join
      */
     public static final String PIG_JOIN_REPLICATED_MAX_BYTES = "pig.join.replicated.max.bytes";
- 
+
+    /**
+     * Turns combine split files on or off
+     */
+    public static final String PIG_SPLIT_COMBINATION = "pig.splitCombination";
+
+    /**
+     * Whether turns combine split files off. This is for internal use only
+     */
+    public static final String PIG_NO_SPLIT_COMBINATION = "pig.noSplitCombination";
+
+    /**
+     * Specifies the size, in bytes, of data to be processed by a single map.
+     * Smaller files are combined untill this size is reached.
+     */
+    public static final String PIG_MAX_COMBINED_SPLIT_SIZE = "pig.maxCombinedSplitSize";
+
+    /**
+     * This key controls whether secondary sort key is used for optimization in case
+     * of nested distinct or sort
+     */
+    public static final String PIG_EXEC_NO_SECONDARY_KEY = "pig.exec.nosecondarykey";
+
     /**
      * This key used to control the sample size of RandomeSampleLoader for
      * order-by. The default value is 100 rows per task.

@@ -298,7 +298,7 @@ public class Main {
 
                 case 'M':
                     // turns off multiquery optimization
-                    properties.setProperty("opt.multiquery",""+false);
+                    properties.setProperty(PigConfiguration.OPT_MULTIQUERY,""+false);
                     break;
 
                 case 'N':

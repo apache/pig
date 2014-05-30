@@ -40,14 +40,8 @@ public class PigIntRawComparator extends WritableComparator implements Configura
     }
 
     public void setConf(Configuration conf) {
-        if (!(conf instanceof JobConf)) {
-            mLog.warn("Expected jobconf in setConf, got " +
-                conf.getClass().getName());
-            return;
-        }
-        JobConf jconf = (JobConf)conf;
         try {
-            mAsc = (boolean[])ObjectSerializer.deserialize(jconf.get(
+            mAsc = (boolean[])ObjectSerializer.deserialize(conf.get(
                 "pig.sortOrder"));
         } catch (IOException ioe) {
             mLog.error("Unable to deserialize pig.sortOrder " +
@@ -76,7 +70,7 @@ public class PigIntRawComparator extends WritableComparator implements Configura
         if (b1[s1] == 0 && b2[s2] == 0) {
             int int1 = readInt(b1, s1 + 1);
             int int2 = readInt(b2, s2 + 1);
-            rc = (int1 < int2) ? -1 : ((int1 > int2) ? 1 : 0); 
+            rc = (int1 < int2) ? -1 : ((int1 > int2) ? 1 : 0);
         } else {
             // For sorting purposes two nulls are equal.
             if (b1[s1] != 0 && b2[s2] != 0) rc = 0;

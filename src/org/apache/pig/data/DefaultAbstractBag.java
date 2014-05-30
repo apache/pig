@@ -51,7 +51,7 @@ public abstract class DefaultAbstractBag implements DataBag {
     // If we grow past 100K, may be worthwhile to register.
     private static final int SPILL_REGISTER_THRESHOLD = 100 * 1024;
 
-    private static PigLogger pigLogger = PhysicalOperator.getPigLogger();
+    private static PigLogger pigLogger;
 
     private static InterSedes sedes = InterSedesFactory.getInterSedesInstance();
     // Container that holds the tuples. Actual object instantiated by
@@ -85,7 +85,7 @@ public abstract class DefaultAbstractBag implements DataBag {
 
 
     /**
-     * Sample every SPILL_SAMPLE_FREQUENCYth tuple 
+     * Sample every SPILL_SAMPLE_FREQUENCYth tuple
      * until we reach a max of SPILL_SAMPLE_SIZE
      * to get an estimate of the tuple sizes.
      */

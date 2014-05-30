@@ -282,6 +282,32 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
             }
         }
     }
+    
+    /**
+     * Move everything below a given operator to the new operator plan.  The specified operator will
+     * be moved and will be the root of the new operator plan
+     * @param root Operator to move everything after
+     * @param newPlan new operator plan to move things into
+     * @throws PlanException 
+     */
+    public void moveTree(E root, OperatorPlan<E> newPlan) throws PlanException {
+        newPlan.add(root);
+        if (getSuccessors(root) == null) {
+            remove(root);
+            return;
+        }
+        
+        List<E> succs = new ArrayList<E>();
+        succs.addAll(getSuccessors(root));
+        
+        for (E succ : succs) {
+            moveTree(succ, newPlan);
+        }
+        remove(root);
+        for (E succ : succs) {
+            newPlan.connect(root, succ);
+        }
+    }
 
     /**
      * Trim everything above a given operator.  The specified operator will

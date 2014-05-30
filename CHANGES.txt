@@ -23,6 +23,8 @@ Trunk (unreleased changes)
 INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
+
+PIG-3970: Merge Tez branch into trunk (daijy)
  
 OPTIMIZATIONS
  

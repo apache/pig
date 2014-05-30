@@ -47,13 +47,8 @@ public class PigTupleDefaultRawComparator extends WritableComparator implements 
     }
 
     public void setConf(Configuration conf) {
-        if (!(conf instanceof JobConf)) {
-            mLog.warn("Expected jobconf in setConf, got " + conf.getClass().getName());
-            return;
-        }
-        JobConf jconf = (JobConf) conf;
         try {
-            mAsc = (boolean[]) ObjectSerializer.deserialize(jconf.get("pig.sortOrder"));
+            mAsc = (boolean[]) ObjectSerializer.deserialize(conf.get("pig.sortOrder"));
         } catch (IOException ioe) {
             mLog.error("Unable to deserialize pig.sortOrder " + ioe.getMessage());
             throw new RuntimeException(ioe);
@@ -75,7 +70,7 @@ public class PigTupleDefaultRawComparator extends WritableComparator implements 
     public boolean hasComparedTupleNull() {
         return mHasNullField;
     }
-    
+
     private static final BinInterSedes bis = new BinInterSedes();
 
     /**

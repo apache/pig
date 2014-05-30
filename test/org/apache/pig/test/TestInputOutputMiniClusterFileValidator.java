@@ -30,7 +30,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Iterator;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
@@ -55,15 +54,15 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TestInputOutputMiniClusterFileValidator {
-    private static MiniCluster cluster = MiniCluster.buildCluster();
+    private static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
     private PigServer pig;
     private PigContext ctx;
 
     @Before
     public void setUp() throws Exception {
-        ctx = new PigContext(ExecType.MAPREDUCE, cluster.getProperties());
+        ctx = new PigContext(cluster.getExecType(), cluster.getProperties());
         ctx.connect() ;
-        pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pig = new PigServer(ctx);
     }
 
     @AfterClass
@@ -165,7 +164,6 @@ public class TestInputOutputMiniClusterFileValidator {
     @Test
     public void testValidationNeg() throws Throwable{
 
-        PigServer pig = new PigServer(ExecType.MAPREDUCE,cluster.getProperties());
         try{
             pig.setBatchOn();
             pig.registerQuery("A = load 'inputfile' using PigStorage () as (a:int);");

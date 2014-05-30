@@ -24,7 +24,6 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOp
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -45,6 +44,7 @@ import org.apache.pig.pen.util.LineageTracer;
  */
 public class LitePackager extends Packager {
 
+    private static final long serialVersionUID = 1L;
     private PigNullableWritable keyWritable;
 
     @Override
@@ -79,8 +79,7 @@ public class LitePackager extends Packager {
     }
 
     /**
-     * @param distinct
-     *            the distinct to set
+     * @param distinct the distinct to set
      */
     @Override
     public void setDistinct(boolean distinct) {

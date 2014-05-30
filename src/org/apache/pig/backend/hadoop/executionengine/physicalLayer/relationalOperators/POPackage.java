@@ -19,10 +19,8 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOp
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
@@ -42,7 +40,6 @@ import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.util.Pair;
 import org.apache.pig.pen.Illustrator;
 
 /**
@@ -59,9 +56,7 @@ import org.apache.pig.pen.Illustrator;
  * bags based on the index.
  */
 public class POPackage extends PhysicalOperator {
-    /**
-     *
-     */
+
     private static final long serialVersionUID = 1L;
 
     //The iterator of indexed Tuples
@@ -86,7 +81,7 @@ public class POPackage extends PhysicalOperator {
 
     protected Packager pkgr;
 
-    private PigNullableWritable keyWritable;
+    protected PigNullableWritable keyWritable;
 
     public POPackage(OperatorKey k) {
         this(k, -1, null);
@@ -109,6 +104,13 @@ public class POPackage extends PhysicalOperator {
         super(k, rp, inp);
         numInputs = -1;
         this.pkgr = pkgr;
+    }
+
+    public POPackage(POPackage copy) {
+        super(copy);
+        this.numInputs = copy.numInputs;
+        this.pkgr = copy.pkgr;
+        this.pkgr.keyInfo = copy.pkgr.keyInfo;
     }
 
     @Override
@@ -211,6 +213,8 @@ public class POPackage extends PhysicalOperator {
                 // all bags have reference to the sample tuples buffer
                 // which contains tuples from one batch
                 POPackageTupleBuffer buffer = new POPackageTupleBuffer();
+                buffer.setKey(key);
+                buffer.setIterator(tupIter);
                 for (int i = 0; i < numInputs; i++) {
                     dbs[i] = new AccumulativeBag(buffer, i);
                 }
@@ -240,8 +244,7 @@ public class POPackage extends PhysicalOperator {
                     NullableTuple ntup = tupIter.next();
                     int index = ntup.getIndex();
                     if (index == numInputs - 1) {
-                        dbs[index] = new PeekedBag(pkgr, ntup, tupIter,
-                                keyWritable);
+                        dbs[index] = new PeekedBag(pkgr, ntup, tupIter, keyWritable);
                         break;
                     }
                     Tuple copy = pkgr.getValueTuple(keyWritable, ntup, index);
@@ -296,7 +299,7 @@ public class POPackage extends PhysicalOperator {
         return clone;
     }
 
-    class POPackageTupleBuffer implements AccumulativeTupleBuffer {
+    public class POPackageTupleBuffer implements AccumulativeTupleBuffer {
         private List<Tuple>[] bags;
         private Iterator<NullableTuple> iter;
         private int batchSize;
@@ -316,8 +319,14 @@ public class POPackage extends PhysicalOperator {
             for(int i=0; i<numInputs; i++) {
                 this.bags[i] = new ArrayList<Tuple>();
             }
-            this.iter = tupIter;
+        }
+
+        public void setKey(Object key) {
             this.currKey = key;
+        }
+
+        public void setIterator(Iterator<NullableTuple> iter) {
+            this.iter = iter;
         }
 
         @Override
@@ -382,9 +391,6 @@ public class POPackage extends PhysicalOperator {
 
     // A ReadOnceBag that we've already "peeked" at
     private static class PeekedBag extends ReadOnceBag {
-        /**
-         * 
-         */
         private static final long serialVersionUID = 1L;
         NullableTuple head;
         int index;

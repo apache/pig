@@ -31,49 +31,65 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 
-import org.apache.pig.ExecType;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.parser.ParserException;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestAccumulator {
-    private static final String INPUT_FILE = "AccumulatorInput.txt";
+    private static final String INPUT_FILE1 = "AccumulatorInput1.txt";
     private static final String INPUT_FILE2 = "AccumulatorInput2.txt";
     private static final String INPUT_FILE3 = "AccumulatorInput3.txt";
     private static final String INPUT_FILE4 = "AccumulatorInput4.txt";
+    private static final String INPUT_DIR = "build/test/data";
 
-    private PigServer pigServer;
-    private static MiniCluster cluster = MiniCluster.buildCluster();
+    private static PigServer pigServer;
+    private static Properties properties;
+    private static MiniGenericCluster cluster;
 
-    public TestAccumulator() throws ExecException, IOException{
-        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-        // pigServer = new PigServer(ExecType.LOCAL);
-        pigServer.getPigContext().getProperties().setProperty("pig.accumulative.batchsize", "2");
-        pigServer.getPigContext().getProperties().setProperty("pig.exec.nocombiner", "true");
-        // reducing the number of retry attempts to speed up test completion
-        pigServer.getPigContext().getProperties().setProperty("mapred.map.max.attempts","1");
-        pigServer.getPigContext().getProperties().setProperty("mapred.reduce.max.attempts","1");
-    }
-
-    @Before
-    public void setUp() throws Exception {
-        pigServer.getPigContext().getProperties().remove("opt.accumulator");
+    @BeforeClass
+    public static void oneTimeSetUp() throws Exception {
+        cluster = MiniGenericCluster.buildCluster();
+        properties = cluster.getProperties();
+        properties.setProperty("pig.accumulative.batchsize", "2");
+        properties.setProperty("pig.exec.nocombiner", "true");
+        // Reducing the number of retry attempts to speed up test completion
+        properties.setProperty("mapred.map.max.attempts","1");
+        properties.setProperty("mapred.reduce.max.attempts","1");
         createFiles();
     }
 
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
+        deleteFiles();
         cluster.shutDown();
     }
 
-    private void createFiles() throws IOException {
-        PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE));
+    @Before
+    public void setUp() throws Exception {
+        Util.resetStateForExecModeSwitch();
+        // Drop stale configuration from previous test run
+        properties.remove(PigConfiguration.OPT_ACCUMULATOR);
+        pigServer = new PigServer(cluster.getExecType(), properties);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        pigServer.shutdown();
+        pigServer = null;
+    }
+
+    private static void createFiles() throws IOException {
+        new File(INPUT_DIR).mkdir();
+
+        PrintWriter w = new PrintWriter(new FileWriter(INPUT_DIR + "/" + INPUT_FILE1));
 
         w.println("100\tapple");
         w.println("200\torange");
@@ -84,9 +100,9 @@ public class TestAccumulator {
         w.println("400\tapple");
         w.close();
 
-        Util.copyFromLocalToCluster(cluster, INPUT_FILE, INPUT_FILE);
+        Util.copyFromLocalToCluster(cluster, INPUT_DIR + "/" + INPUT_FILE1, INPUT_FILE1);
 
-        w = new PrintWriter(new FileWriter(INPUT_FILE2));
+        w = new PrintWriter(new FileWriter(INPUT_DIR + "/" + INPUT_FILE2));
 
         w.println("100\t");
         w.println("100\t");
@@ -95,9 +111,9 @@ public class TestAccumulator {
         w.println("300\tstrawberry");
         w.close();
 
-        Util.copyFromLocalToCluster(cluster, INPUT_FILE2, INPUT_FILE2);
+        Util.copyFromLocalToCluster(cluster, INPUT_DIR + "/" + INPUT_FILE2, INPUT_FILE2);
 
-        w = new PrintWriter(new FileWriter(INPUT_FILE3));
+        w = new PrintWriter(new FileWriter(INPUT_DIR + "/" + INPUT_FILE3));
 
         w.println("100\t1.0");
         w.println("100\t2.0");
@@ -112,9 +128,9 @@ public class TestAccumulator {
         w.println("400\t");
         w.close();
 
-        Util.copyFromLocalToCluster(cluster, INPUT_FILE3, INPUT_FILE3);
+        Util.copyFromLocalToCluster(cluster, INPUT_DIR + "/" + INPUT_FILE3, INPUT_FILE3);
 
-        w = new PrintWriter(new FileWriter(INPUT_FILE4));
+        w = new PrintWriter(new FileWriter(INPUT_DIR + "/" + INPUT_FILE4));
 
         w.println("100\thttp://ibm.com,ibm");
         w.println("100\thttp://ibm.com,ibm");
@@ -122,25 +138,17 @@ public class TestAccumulator {
         w.println("300\thttp://sun.com,sun");
         w.close();
 
-        Util.copyFromLocalToCluster(cluster, INPUT_FILE4, INPUT_FILE4);
+        Util.copyFromLocalToCluster(cluster, INPUT_DIR + "/" + INPUT_FILE4, INPUT_FILE4);
     }
 
-    @After
-    public void tearDown() throws Exception {
-        new File(INPUT_FILE).delete();
-        Util.deleteFile(cluster, INPUT_FILE);
-        new File(INPUT_FILE2).delete();
-        Util.deleteFile(cluster, INPUT_FILE2);
-        new File(INPUT_FILE3).delete();
-        Util.deleteFile(cluster, INPUT_FILE3);
-        new File(INPUT_FILE4).delete();
-        Util.deleteFile(cluster, INPUT_FILE4);
+    private static void deleteFiles() {
+        Util.deleteDirectory(new File(INPUT_DIR));
     }
 
     @Test
     public void testAccumBasic() throws IOException{
         // test group by
-        pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, fruit);");
+        pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (id:int, fruit);");
         pigServer.registerQuery("B = group A by id;");
         pigServer.registerQuery("C = foreach B generate group,  org.apache.pig.test.utils.AccumulatorBagCount(A);");
 
@@ -149,7 +157,6 @@ public class TestAccumulator {
         expected.put(200, 1);
         expected.put(300, 3);
         expected.put(400, 1);
-
 
         Iterator<Tuple> iter = pigServer.openIterator("C");
 
@@ -175,8 +182,8 @@ public class TestAccumulator {
         }
 
         // test cogroup
-        pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, fruit);");
-        pigServer.registerQuery("B = load '" + INPUT_FILE + "' as (id:int, fruit);");
+        pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (id:int, fruit);");
+        pigServer.registerQuery("B = load '" + INPUT_FILE1 + "' as (id:int, fruit);");
         pigServer.registerQuery("C = cogroup A by id, B by id;");
         pigServer.registerQuery("D = foreach C generate group,  " +
                 "org.apache.pig.test.utils.AccumulatorBagCount(A), org.apache.pig.test.utils.AccumulatorBagCount(B);");
@@ -186,7 +193,6 @@ public class TestAccumulator {
         expected2.put(200, "1,1");
         expected2.put(300, "3,3");
         expected2.put(400, "1,1");
-
 
         iter = pigServer.openIterator("D");
 
@@ -198,7 +204,7 @@ public class TestAccumulator {
 
     @Test
     public void testAccumWithNegative() throws IOException{
-        pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, fruit);");
+        pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (id:int, fruit);");
         pigServer.registerQuery("B = group A by id;");
         pigServer.registerQuery("C = foreach B generate group,  -org.apache.pig.test.utils.AccumulatorBagCount(A);");
 
@@ -219,7 +225,7 @@ public class TestAccumulator {
 
     @Test
     public void testAccumWithAdd() throws IOException{
-        pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, fruit);");
+        pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (id:int, fruit);");
         pigServer.registerQuery("B = group A by id;");
         pigServer.registerQuery("C = foreach B generate group,  org.apache.pig.test.utils.AccumulatorBagCount(A)+1.0;");
 
@@ -261,7 +267,7 @@ public class TestAccumulator {
 
     @Test
     public void testAccumWithMinus() throws IOException{
-        pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, fruit);");
+        pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (id:int, fruit);");
         pigServer.registerQuery("B = group A by id;");
         pigServer.registerQuery("C = foreach B generate group, " +
                 " org.apache.pig.test.utils.AccumulatorBagCount(A)*3.0-org.apache.pig.test.utils.AccumulatorBagCount(A);");
@@ -283,7 +289,7 @@ public class TestAccumulator {
 
     @Test
     public void testAccumWithMod() throws IOException{
-        pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, fruit);");
+        pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (id:int, fruit);");
         pigServer.registerQuery("B = group A by id;");
         pigServer.registerQuery("C = foreach B generate group,  " +
                 "org.apache.pig.test.utils.AccumulatorBagCount(A) % 2;");
@@ -305,7 +311,7 @@ public class TestAccumulator {
 
     @Test
     public void testAccumWithDivide() throws IOException{
-        pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, fruit);");
+        pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (id:int, fruit);");
         pigServer.registerQuery("B = group A by id;");
         pigServer.registerQuery("C = foreach B generate group,  " +
                 "org.apache.pig.test.utils.AccumulatorBagCount(A)/2;");
@@ -327,7 +333,7 @@ public class TestAccumulator {
 
     @Test
     public void testAccumWithAnd() throws IOException{
-        pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, fruit);");
+        pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (id:int, fruit);");
         pigServer.registerQuery("B = group A by id;");
         pigServer.registerQuery("C = foreach B generate group,  " +
                 "((org.apache.pig.test.utils.AccumulatorBagCount(A)>1 and " +
@@ -350,7 +356,7 @@ public class TestAccumulator {
 
     @Test
     public void testAccumWithOr() throws IOException{
-        pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, fruit);");
+        pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (id:int, fruit);");
         pigServer.registerQuery("B = group A by id;");
         pigServer.registerQuery("C = foreach B generate group,  " +
                 "((org.apache.pig.test.utils.AccumulatorBagCount(A)>3 or " +
@@ -373,7 +379,7 @@ public class TestAccumulator {
 
     @Test
     public void testAccumWithRegexp() throws IOException{
-        pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, fruit);");
+        pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (id:int, fruit);");
         pigServer.registerQuery("B = group A by id;");
         pigServer.registerQuery("C = foreach B generate group,  " +
                 "(((chararray)org.apache.pig.test.utils.AccumulatorBagCount(A)) matches '1*' ?0:1);");
@@ -417,7 +423,7 @@ public class TestAccumulator {
     @Test
     public void testAccumWithIsEmpty() throws IOException{
         pigServer.getPigContext().getProperties().setProperty("pig.accumulative.batchsize", "1");
-        pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, fruit);");
+        pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (id:int, fruit);");
         pigServer.registerQuery("B = load '" + INPUT_FILE2 + "' as (id:int, fruit);");
         pigServer.registerQuery("C = cogroup A by id outer, B by id outer;");
         pigServer.registerQuery("D = foreach C generate group," +
@@ -442,9 +448,10 @@ public class TestAccumulator {
 
     @Test
     public void testAccumWithDistinct() throws IOException{
-        pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, f);");
+        pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (id:int, f);");
         pigServer.registerQuery("B = group A by id;");
-        pigServer.registerQuery("C = foreach B { D = distinct A; generate group, org.apache.pig.test.utils.AccumulatorBagCount(D)+1;};");
+        pigServer.registerQuery("C = foreach B { D = distinct A;" +
+                "generate group, org.apache.pig.test.utils.AccumulatorBagCount(D)+1;};");
 
         HashMap<Integer, Integer> expected = new HashMap<Integer, Integer>();
         expected.put(100, 2);
@@ -454,18 +461,22 @@ public class TestAccumulator {
 
         Iterator<Tuple> iter = pigServer.openIterator("C");
 
+        int count = 0;
         while(iter.hasNext()) {
+            count++;
             Tuple t = iter.next();
             assertEquals(expected.get((Integer)t.get(0)), (Integer)t.get(1));
         }
+        assertEquals(4, count);
     }
 
     @Test
     public void testAccumWithSort() throws IOException{
-        pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, f);");
+        pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (id:int, f);");
         pigServer.registerQuery("B = foreach A generate id, f, id as t;");
         pigServer.registerQuery("C = group B by id;");
-        pigServer.registerQuery("D = foreach C { E = order B by f; F = E.f; generate group, org.apache.pig.test.utils.AccumulativeSumBag(F);};");
+        pigServer.registerQuery("D = foreach C { E = order B by f; F = E.f;" +
+                "generate group, org.apache.pig.test.utils.AccumulativeSumBag(F);};");
 
         HashMap<Integer, String> expected = new HashMap<Integer, String>();
         expected.put(100, "(apple)(apple)");
@@ -475,13 +486,17 @@ public class TestAccumulator {
 
         Iterator<Tuple> iter = pigServer.openIterator("D");
 
+        int count = 0;
         while(iter.hasNext()) {
+            count++;
             Tuple t = iter.next();
             assertEquals(expected.get((Integer)t.get(0)), (String)t.get(1));
         }
+        assertEquals(4, count);
     }
 
-    public void testAccumWithBuildinAvg() throws IOException {
+    @Test
+    public void testAccumWithBuiltinAvg() throws IOException {
       HashMap<Integer, Double> expected = new HashMap<Integer, Double>();
       expected.put(100, 3.0);
       expected.put(200, 2.1);
@@ -490,31 +505,31 @@ public class TestAccumulator {
       // Test all the averages for correct behaviour with null values
       String[] types = { "double", "float", "int", "long" };
       for (int i = 0; i < types.length; i++) {
-        if (i > 1) { // adjust decimal error for non real types
-          expected.put(200, 2.0);
-          expected.put(300, 3.0);
-        }
-        pigServer.registerQuery("A = load '" + INPUT_FILE3 + "' as (id:int, v:"
-            + types[i] + ");");
-        pigServer.registerQuery("C = group A by id;");
-        pigServer.registerQuery("D = foreach C generate group, AVG(A.v);");
-        Iterator<Tuple> iter = pigServer.openIterator("D");
-
-        while (iter.hasNext()) {
-          Tuple t = iter.next();
-          Double v = expected.get((Integer) t.get(0));
-          if (v != null) {
-            assertEquals(v.doubleValue(), ((Number) t.get(1)).doubleValue(),
-                0.0001);
-          } else {
-            assertNull(t.get(1));
+          if (i > 1) { // adjust decimal error for non real types
+              expected.put(200, 2.0);
+              expected.put(300, 3.0);
           }
-        }
+          pigServer.registerQuery("A = load '" + INPUT_FILE3 + "' as (id:int, v:"
+                  + types[i] + ");");
+          pigServer.registerQuery("C = group A by id;");
+          pigServer.registerQuery("D = foreach C generate group, AVG(A.v);");
+          Iterator<Tuple> iter = pigServer.openIterator("D");
+
+          while (iter.hasNext()) {
+              Tuple t = iter.next();
+              Double v = expected.get((Integer) t.get(0));
+              if (v != null) {
+                  assertEquals(v.doubleValue(), ((Number) t.get(1)).doubleValue(),
+                          0.0001);
+              } else {
+                  assertNull(t.get(1));
+              }
+          }
       }
     }
 
     @Test
-    public void testAccumWithBuildin() throws IOException{
+    public void testAccumWithBuiltin() throws IOException{
         pigServer.registerQuery("A = load '" + INPUT_FILE3 + "' as (id:int, v:double);");
         pigServer.registerQuery("C = group A by id;");
         // moving AVG accumulator test to separate test case
@@ -532,19 +547,19 @@ public class TestAccumulator {
             Tuple t = iter.next();
             Double[] v = expected.get((Integer)t.get(0));
             for(int i=0; i<v.length; i++) {
-              if (v[i] != null) {
-                assertEquals(v[i].doubleValue(), ((Number) t.get(i + 1))
-                    .doubleValue(), 0.0001);
-              } else {
-                assertNull(t.get(i + 1));
-              }
+                if (v[i] != null) {
+                    assertEquals(v[i].doubleValue(), ((Number) t.get(i + 1))
+                            .doubleValue(), 0.0001);
+                } else {
+                    assertNull(t.get(i + 1));
+                }
             }
         }
     }
 
     @Test
-    public void testAccumWithMultiBuildin() throws IOException{
-        pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, c:chararray);");
+    public void testAccumWithMultiBuiltin() throws IOException{
+        pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (id:int, c:chararray);");
         pigServer.registerQuery("C = group A by 1;");
         pigServer.registerQuery("D = foreach C generate SUM(A.id), 1+SUM(A.id)+SUM(A.id);");
 
@@ -564,7 +579,7 @@ public class TestAccumulator {
         pigServer.registerQuery("C = group A by id;");
         pigServer.registerQuery("D = foreach C generate group, COUNT_STAR(A.id);");
 
-        Iterator<Tuple> iter = pigServer.openIterator("D");
+        pigServer.openIterator("D");
     }
 
     /**
@@ -615,24 +630,25 @@ public class TestAccumulator {
 
     @Test
     public void testAccumulatorOff() throws IOException{
-        pigServer.getPigContext().getProperties().setProperty("opt.accumulator", "false");
+        pigServer.getPigContext().getProperties().setProperty(
+                PigConfiguration.OPT_ACCUMULATOR, "false");
 
         pigServer.registerQuery("A = load '" + INPUT_FILE2 + "' as (id:int, fruit);");
         pigServer.registerQuery("B = group A by id;");
-        pigServer.registerQuery("C = foreach B generate group, org.apache.pig.test.utils.AccumulativeSumBag(A);");
+        pigServer.registerQuery("C = foreach B generate group," +
+                "org.apache.pig.test.utils.AccumulativeSumBag(A);");
 
         checkAccumulatorOff("C");
-        pigServer.getPigContext().getProperties().setProperty("opt.accumulator", "true");
+        pigServer.getPigContext().getProperties().setProperty(
+                PigConfiguration.OPT_ACCUMULATOR, "true");
 
     }
 
     private void checkAccumulatorOff(String alias) {
         try {
             Iterator<Tuple> iter = pigServer.openIterator(alias);
-            int c = 0;
             while(iter.hasNext()) {
                 iter.next();
-                c++;
             }
             fail("Accumulator should be off.");
         }catch(Exception e) {
@@ -644,7 +660,8 @@ public class TestAccumulator {
     public void testAccumWithMap() throws IOException{
         pigServer.registerQuery("A = load '" + INPUT_FILE4 + "' as (id, url);");
         pigServer.registerQuery("B = group A by (id, url);");
-        pigServer.registerQuery("C = foreach B generate COUNT(A), org.apache.pig.test.utils.URLPARSE(group.url)#'url';");
+        pigServer.registerQuery("C = foreach B generate COUNT(A)," +
+                "org.apache.pig.test.utils.URLPARSE(group.url)#'url';");
 
         HashMap<Integer, String> expected = new HashMap<Integer, String>();
         expected.put(2, "http://ibm.com");
@@ -679,7 +696,8 @@ public class TestAccumulator {
         pigServer.registerQuery("A = load 'data1' as (x:int, y:int);");
         pigServer.registerQuery("B = load 'data2' as (x:int, z:int);");
         pigServer.registerQuery("C = cogroup A by x, B by x;");
-        pigServer.registerQuery("D = foreach C generate group, SUM((IsEmpty(A.y) ? {(0)} : A.y)) + SUM((IsEmpty(B.z) ? {(0)} : B.z));");
+        pigServer.registerQuery("D = foreach C generate group," +
+                "SUM((IsEmpty(A.y) ? {(0)} : A.y)) + SUM((IsEmpty(B.z) ? {(0)} : B.z));");
 
         HashMap<Integer, Long> expected = new HashMap<Integer, Long>();
         expected.put(1, 21l);
@@ -704,7 +722,7 @@ public class TestAccumulator {
     @Test
     public void testAccumAfterNestedOp() throws IOException, ParserException{
         // test group by
-        pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, fruit);");
+        pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (id:int, fruit);");
         pigServer.registerQuery("B = group A by id;");
         pigServer.registerQuery("C = foreach B " +
                         "{ o = order A by id; " +

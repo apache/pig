@@ -121,7 +121,6 @@ import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -132,17 +131,16 @@ import org.joda.time.DateTimeZone;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestBuiltin {
+    private static PigServer pigServer;
+    private static Properties properties;
+    private static MiniGenericCluster cluster;
 
-    PigServer pigServer;
-
-    // This should only be used when absolutely necessary -- eg, when using ReadToEndLoader.
-    private static MiniCluster cluster = MiniCluster.buildCluster();
-
-    TupleFactory tupleFactory = TupleFactory.getInstance();
-    BagFactory bagFactory = DefaultBagFactory.getInstance();
+    private TupleFactory tupleFactory = TupleFactory.getInstance();
+    private BagFactory bagFactory = DefaultBagFactory.getInstance();
 
     // some inputs
     private static Integer[] intInput = { 3, 1, 2, 4, 5, 7, null, 6, 8, 9, 10 };
@@ -203,10 +201,7 @@ public class TestBuiltin {
 
     @Before
     public void setUp() throws Exception {
-        // re initialize FileLocalizer so that each test will run correctly
-        // without any side effect of other tests - this is needed since some
-        // tests are in mapred and some in local mode.
-        FileLocalizer.setInitialized(false);
+        Util.resetStateForExecModeSwitch();
 
         pigServer = new PigServer(ExecType.LOCAL, new Properties());
         pigServer.setValidateEachStatement(true);
@@ -347,14 +342,17 @@ public class TestBuiltin {
         DateTimeZone.setDefault(DateTimeZone.forOffsetMillis(DateTimeZone.UTC.getOffset(null)));
     }
 
+    @BeforeClass
+    public static void oneTimeSetUp() throws Exception {
+        cluster = MiniGenericCluster.buildCluster();
+        properties = cluster.getProperties();
+    }
+
     @AfterClass
     public static void shutDown() {
         cluster.shutDown();
     }
 
-    /**
-     *
-     */
     private void setupEvalFuncMap() {
         for (String[] aggGroup : aggs) {
             for (String agg : aggGroup) {
@@ -2114,13 +2112,6 @@ public class TestBuiltin {
         assertEquals(0.582222509739582, (Double)ans.get(2) ,0.0005);
     }
 
-    private void checkItemsGT(Iterable<Tuple> tuples, int field, int limit) throws ExecException {
-        for (Tuple t : tuples) {
-            Long val = (Long) t.get(field);
-            assertTrue("Value "+ val + " exceeded the expected limit", val > limit);
-        }
-    }
-
     @Test
     public void testToBag() throws Exception {
         //TEST TOBAG
@@ -2599,7 +2590,7 @@ public class TestBuiltin {
 
         String input3 = "this:has:a:trailing:colon:\n";
         int arity3 = 6;
-        Util.createInputFile(cluster, "input.txt", new String[] {input2});
+        Util.createInputFile(cluster, "input.txt", new String[] {input3});
         LoadFunc p3 = new ReadToEndLoader(new PigStorage(":"), ConfigurationUtil.
             toConfiguration(cluster.getProperties()), "input.txt", 0);
         Tuple f3 = p3.getNext();
@@ -2637,10 +2628,10 @@ public class TestBuiltin {
         assertTrue(f3 == null);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void testSFPig() throws Exception {
-        PigServer mrPigServer = new PigServer(ExecType.MAPREDUCE);
+        Util.resetStateForExecModeSwitch();
+        PigServer mrPigServer = new PigServer(cluster.getExecType(), properties);
         String inputStr = "amy\tbob\tcharlene\tdavid\terin\tfrank";
         Util.createInputFile(cluster, "testSFPig-input.txt", new String[]
                                                                     {inputStr});
@@ -2670,7 +2661,6 @@ public class TestBuiltin {
      * unit tests are done in TestStringUDFs
      */
     @Test
-    @SuppressWarnings("unchecked")
     public void testStringUDFs() throws Exception {
         String inputStr = "amy smith ";
         File inputFile = Util.createInputFile("tmp", "testStrUDFsIn.txt", new String[] {inputStr});

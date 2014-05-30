@@ -42,6 +42,12 @@ public class NullableTuple extends PigNullableWritable {
         mValue = t;
     }
 
+    public NullableTuple(NullableTuple copy) {
+        setNull(copy.isNull());
+        mValue = copy.mValue;
+        setIndex(copy.getIndex());
+    }
+
     @Override
     public Object getValueAsPigType() {
         return isNull() ? null : (Tuple)mValue;

@@ -550,6 +550,11 @@ public class POUserFunc extends ExpressionOperator {
     public FuncSpec getFuncSpec() {
         return funcSpec;
     }
+    
+    public void setFuncSpec(FuncSpec funcSpec) {
+        this.funcSpec = funcSpec;
+        instantiateFunc(funcSpec);
+    }
 
     public String[] getCacheFiles() {
         return cacheFiles;

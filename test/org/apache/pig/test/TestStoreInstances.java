@@ -18,7 +18,6 @@
 package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -53,10 +52,10 @@ import org.junit.Test;
  * Test to ensure that same instance of store func is used for multiple
  *  backend tasks. This enables sharing of information between putNext and
  *  output committer
- * 
+ *
  */
 public class TestStoreInstances  {
-    static MiniCluster cluster ;
+    static MiniGenericCluster cluster ;
     private static final String INP_FILE_2NUMS = "TestStoreInstances";
 
     @Before
@@ -71,7 +70,7 @@ public class TestStoreInstances  {
 
     @BeforeClass
     public static void oneTimeSetup() throws IOException, Exception {
-        cluster = MiniCluster.buildCluster();
+        cluster = MiniGenericCluster.buildCluster();
 
         String[] input = {
                 "1\t5",
@@ -99,29 +98,30 @@ public class TestStoreInstances  {
      */
     @Test
     public void testBackendStoreCommunication() throws IOException, ParserException {
-        ExecType[] execTypes = { ExecType.MAPREDUCE, ExecType.LOCAL};
+        ExecType[] execTypes = { cluster.getExecType(), ExecType.LOCAL};
         PigServer pig = null;
         for(ExecType execType : execTypes){
+            Util.resetStateForExecModeSwitch();
             System.err.println("Starting test mode " + execType);
-            if(execType == ExecType.MAPREDUCE) {
-                pig = new PigServer(ExecType.MAPREDUCE, 
+            if (execType == cluster.getExecType()) {
+                pig = new PigServer(cluster.getExecType(),
                         cluster.getProperties());
-            }else{
-                pig = new PigServer(ExecType.LOCAL);
+            } else {
+                pig = new PigServer(execType);
             }
             final String outFile = "TestStoreInst1";
             Util.deleteFile(pig.getPigContext(), outFile);
             pig.setBatchOn();
             String query =
                 "  l1 = load '" + INP_FILE_2NUMS + "' as (i : int, j : int);" +
-                " store l1 into '" + outFile + "' using " + CHECK_INSTANCE_STORE_FUNC + 
+                " store l1 into '" + outFile + "' using " + CHECK_INSTANCE_STORE_FUNC +
                 ";";
             Util.registerMultiLineQuery(pig, query);
             List<ExecJob> execJobs = pig.executeBatch();
             assertEquals("num jobs", 1, execJobs.size());
             assertEquals("status ", JOB_STATUS.COMPLETED, execJobs.get(0).getStatus());
         }
-            
+
     }
 
 
@@ -160,7 +160,7 @@ public class TestStoreInstances  {
                 throws IOException {
             Configuration conf = job.getConfiguration();
             conf.set("mapred.output.dir", location);
-            
+
         }
 
 
@@ -200,11 +200,11 @@ public class TestStoreInstances  {
             this.outRows = outRows;
         }
 
-   
+
         @Override
         public void commitTask(TaskAttemptContext arg0) {
             System.err.println("OutputCommitterTestInstances commitTask called");
-            assertTrue("Number of output rows > 0 ",outRows.size() > 0);
+            assertEquals("Number of output rows should be 3", 3, outRows.size());
         }
 
         @Override

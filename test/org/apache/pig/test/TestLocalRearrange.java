@@ -17,7 +17,8 @@
  */
 package org.apache.pig.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -28,9 +29,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
-import junit.framework.Assert;
-
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -50,33 +48,34 @@ import org.apache.pig.test.utils.GenRandomData;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 /**
  * Tests localrearrange db for
- * group db by $0 
+ * group db by $0
  *
  */
 public class TestLocalRearrange  {
-    
+
     POLocalRearrange lr;
     Tuple t;
     DataBag db;
-    private static final MiniCluster cluster = MiniCluster.buildCluster();
+    private static final MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
 
-    
+
     @Before
     public void setUp() throws Exception {
         Random r = new Random();
         db = GenRandomData.genRandSmallTupDataBag(r, 10, 100);
     }
-    
+
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
+
     private void setUp1() throws PlanException, ExecException{
         lr = GenPhyOp.topLocalRearrangeOPWithPlanPlain(0,0,db.iterator().next());
         POProject proj = GenPhyOp.exprProject();
@@ -106,32 +105,32 @@ public class TestLocalRearrange  {
             // The input data has 2 columns of which the first
             // is the key
             // With the optimized LocalRearrange, the part
-            // of the "value" present in the "key" is 
+            // of the "value" present in the "key" is
             // excluded from the "value". So to reconstruct
             // the true "value", create a tuple with "key" in
             // first position and the "value" (val) we currently
             // have in the second position
             assertEquals(1, val.size());
-            
+
             Tuple actualVal = new DefaultTuple();
             actualVal.append(key);
             actualVal.append(val.get(0));
             //Check if the index is same as input index
             assertEquals((byte)0, (byte)(Byte)t.get(0));
-            
+
             //Check if the input bag contains the value tuple
             assertTrue(TestHelper.bagContains(db, actualVal));
-            
+
             //Check if the input key and the output key are same
             String inpKey = (String)actualVal.get(0);
             assertEquals(0, inpKey.compareTo((String)t.get(1)));
             ++size;
         }
-        
+
         //check if all the tuples in the input are generated
         assertEquals(db.size(), size);
     }
-    
+
     private void setUp2() throws PlanException, ExecException{
         lr = GenPhyOp.topLocalRearrangeOPWithPlanPlain(0,0,db.iterator().next());
         List<PhysicalPlan> plans = lr.getPlans();
@@ -139,7 +138,7 @@ public class TestLocalRearrange  {
         List<PhysicalPlan> plansT = lrT.getPlans();
         plans.add(plansT.get(0));
         lr.setPlans(plans);
-        
+
         POProject proj = GenPhyOp.exprProject();
         proj.setColumn(0);
         proj.setResultType(DataType.TUPLE);
@@ -151,7 +150,7 @@ public class TestLocalRearrange  {
         inputs.add(proj);
         lr.setInputs(inputs);
     }
-    
+
     @Test
     public void testGetNextTuple2() throws ExecException, PlanException {
         setUp2();
@@ -160,32 +159,32 @@ public class TestLocalRearrange  {
             Tuple t = (Tuple)res.result;
             Tuple key = (Tuple)t.get(1);
             Tuple val = (Tuple)t.get(2);
-            
+
             // The input data has 2 columns of which both
             // are the key.
             // With the optimized LocalRearrange, the part
-            // of the "value" present in the "key" is 
-            // excluded from the "value". So in this case, 
+            // of the "value" present in the "key" is
+            // excluded from the "value". So in this case,
             // the "value" coming out of the LocalRearrange
             // would be an empty tuple
             assertEquals(0, val.size());
-            
+
             //Check if the index is same as input index
             assertEquals((byte)0, (byte)(Byte)t.get(0));
-            
+
             // reconstruct value from tuple
             val = key;
             //Check if the input baf contains the value tuple
             assertTrue(TestHelper.bagContains(db, val));
-            
+
             //Check if the input key and the output key are same
-            Tuple inpKey = TupleFactory.getInstance().newTuple(2); 
+            Tuple inpKey = TupleFactory.getInstance().newTuple(2);
             inpKey.set(0, val.get(0));
             inpKey.set(1, val.get(1));
-            assertEquals(0, inpKey.compareTo((Tuple)t.get(1)));
+            assertEquals(inpKey, (Tuple)t.get(1));
             ++size;
         }
-        
+
         //check if all the tuples in the input are generated
         assertEquals(db.size(), size);
     }
@@ -193,11 +192,11 @@ public class TestLocalRearrange  {
     @Test
     public void testMultiQueryJiraPig1194() {
 
-        // test case: POLocalRearrange doesn't handle nulls returned by POBinCond 
-        
+        // test case: POLocalRearrange doesn't handle nulls returned by POBinCond
+
         String INPUT_FILE = "data.txt";
-        
-        
+
+
         try {
             PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE));
             w.println("10\t2\t3");
@@ -210,25 +209,22 @@ public class TestLocalRearrange  {
             w.close();
             Util.copyFromLocalToCluster(cluster, INPUT_FILE, INPUT_FILE);
 
-            PigServer myPig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+            Util.resetStateForExecModeSwitch();
+            PigServer myPig = new PigServer(cluster.getExecType(), cluster.getProperties());
 
             myPig.registerQuery("data = load '" + INPUT_FILE + "' as (a0, a1, a2);");
             myPig.registerQuery("grp = GROUP data BY (((double) a2)/((double) a1) > .001 OR a0 < 11 ? a0 : 0);");
             myPig.registerQuery("res = FOREACH grp GENERATE group, SUM(data.a1), SUM(data.a2);");
-            
+
             List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
-                    new String[] {   
+                    new String[] {
                             "(0,7000.0,5.0)",
-                            "(10,6.0,8.0)",                            
+                            "(10,6.0,8.0)",
                             "(null,12.0,null)"
                     });
-            
+
             Iterator<Tuple> iter = myPig.openIterator("res");
-            int counter = 0;
-            while (iter.hasNext()) {
-                assertEquals(expectedResults.get(counter++).toString(), iter.next().toString());      
-            }
-            assertEquals(expectedResults.size(), counter);
+            Util.checkQueryOutputsAfterSort(iter, expectedResults);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -243,5 +239,5 @@ public class TestLocalRearrange  {
             }
         }
     }
-    
+
 }

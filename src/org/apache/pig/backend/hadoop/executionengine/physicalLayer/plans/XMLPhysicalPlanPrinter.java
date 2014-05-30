@@ -57,7 +57,7 @@ import org.w3c.dom.Node;
 
 
 public class XMLPhysicalPlanPrinter<P extends OperatorPlan<PhysicalOperator>> extends
-PhyPlanVisitor {
+        PhyPlanVisitor {
 
     private Document doc = null;
     private Element parent = null;

@@ -29,9 +29,10 @@ import java.util.Map;
 
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.BinaryExpressionOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ComparisonOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ExpressionOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POBinCond;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.UnaryComparisonOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.UnaryExpressionOperator;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.PlanException;
@@ -39,18 +40,18 @@ import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.MultiMap;
 
 /**
- * 
- * The base class for all types of physical plans. 
+ *
+ * The base class for all types of physical plans.
  * This extends the Operator Plan.
  *
  */
 public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Cloneable {
 
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = 1L;
-    
+
     // marker to indicate whether all input for this plan
     // has been sent - this is currently used in POStream
     // to know if all map() calls and reduce() calls are finished
@@ -58,18 +59,18 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
     public boolean endOfAllInput = false;
 
     private MultiMap<PhysicalOperator, PhysicalOperator> opmap = null;
-    
+
     public PhysicalPlan() {
         super();
     }
-    
+
     public void attachInput(Tuple t){
         List<PhysicalOperator> roots = getRoots();
         for (PhysicalOperator operator : roots) {
             operator.attachInput(t);
 		}
     }
-    
+
     public void detachInput(){
         for(PhysicalOperator op : getRoots())
             op.detachInput();
@@ -117,7 +118,7 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
             ps.println("<physicalPlan>XML Not Supported</physicalPlan>");
             return;
         }
-        
+
         ps.println("#-----------------------------------------------");
         ps.println("# Physical Plan:");
         ps.println("#-----------------------------------------------");
@@ -132,22 +133,22 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
         }
         ps.println("");
   }
-    
+
     @Override
     public void connect(PhysicalOperator from, PhysicalOperator to)
             throws PlanException {
-        
+
         super.connect(from, to);
         to.setInputs(getPredecessors(to));
     }
-    
+
     /*public void connect(List<PhysicalOperator> from, PhysicalOperator to) throws IOException{
         if(!to.supportsMultipleInputs()){
             throw new IOException("Invalid Operation on " + to.name() + ". It doesn't support multiple inputs.");
         }
-        
+
     }*/
-    
+
     @Override
     public void remove(PhysicalOperator op) {
         op.setInputs(null);
@@ -169,7 +170,7 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
         }
         super.remove(op);
     }
-    
+
     /* (non-Javadoc)
      * @see org.apache.pig.impl.plan.OperatorPlan#replace(org.apache.pig.impl.plan.Operator, org.apache.pig.impl.plan.Operator)
      */
@@ -187,10 +188,10 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
                     if(inputs.get(i) == oldNode) {
                         inputs.set(i, newNode);
                     }
-                }    
+                }
             }
         }
-        
+
     }
 
     /* (non-Javadoc)
@@ -226,7 +227,7 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
         // clones, create a map between clone and original.  Then walk the
         // connections in this plan and create equivalent connections in the
         // clone.
-        Map<PhysicalOperator, PhysicalOperator> matches = 
+        Map<PhysicalOperator, PhysicalOperator> matches =
             new HashMap<PhysicalOperator, PhysicalOperator>(mOps.size());
         for (PhysicalOperator op : mOps.keySet()) {
             PhysicalOperator c = op.clone();
@@ -264,7 +265,7 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
         for (PhysicalOperator op : mOps.keySet()) {
             List<PhysicalOperator> inputs = op.getInputs();
             if (inputs == null || inputs.size() == 0) continue;
-            List<PhysicalOperator> newInputs = 
+            List<PhysicalOperator> newInputs =
                 new ArrayList<PhysicalOperator>(inputs.size());
             PhysicalOperator cloneOp = matches.get(op);
             if (cloneOp == null) {
@@ -281,13 +282,17 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
             }
             cloneOp.setInputs(newInputs);
         }
-        
+
         for (PhysicalOperator op : mOps.keySet()) {
-            if (op instanceof UnaryComparisonOperator) {
-                UnaryComparisonOperator orig = (UnaryComparisonOperator)op;
-                UnaryComparisonOperator cloneOp = (UnaryComparisonOperator)matches.get(op);
-                cloneOp.setExpr((ExpressionOperator)matches.get(orig.getExpr()));
+            if (op instanceof ComparisonOperator) {
+                ComparisonOperator orig = (ComparisonOperator)op;
+                ComparisonOperator cloneOp = (ComparisonOperator)matches.get(op);
                 cloneOp.setOperandType(orig.getOperandType());
+            }
+            if (op instanceof UnaryExpressionOperator) {
+                UnaryExpressionOperator orig = (UnaryExpressionOperator)op;
+                UnaryExpressionOperator cloneOp = (UnaryExpressionOperator)matches.get(op);
+                cloneOp.setExpr((ExpressionOperator)matches.get(orig.getExpr()));
             } else if (op instanceof BinaryExpressionOperator) {
                 BinaryExpressionOperator orig = (BinaryExpressionOperator)op;
                 BinaryExpressionOperator cloneOp = (BinaryExpressionOperator)matches.get(op);
@@ -304,11 +309,11 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
 
         return clone;
     }
-    
+
     public void setOpMap(MultiMap<PhysicalOperator, PhysicalOperator> opmap) {
         this.opmap = opmap;
     }
-    
+
     public void resetOpMap()
     {
         opmap = null;

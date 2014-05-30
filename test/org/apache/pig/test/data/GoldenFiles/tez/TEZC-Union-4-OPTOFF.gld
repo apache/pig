@@ -1,0 +1,69 @@
+#--------------------------------------------------
+# There are 1 DAGs in the session
+#--------------------------------------------------
+#--------------------------------------------------
+# TEZ DAG plan: scope-83
+#--------------------------------------------------
+Tez vertex scope-76	->	Tez vertex scope-78,
+Tez vertex scope-77	->	Tez vertex scope-78,
+Tez vertex scope-82	->	Tez vertex scope-78,
+Tez vertex scope-78
+
+Tez vertex scope-76
+# Plan on vertex
+POValueOutputTez - scope-80	->	 [scope-78]
+|
+|---a: New For Each(false,false)[bag] - scope-49
+    |   |
+    |   Cast[int] - scope-44
+    |   |
+    |   |---Project[bytearray][0] - scope-43
+    |   |
+    |   Cast[chararray] - scope-47
+    |   |
+    |   |---Project[bytearray][1] - scope-46
+    |
+    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-42
+Tez vertex scope-77
+# Plan on vertex
+POValueOutputTez - scope-81	->	 [scope-78]
+|
+|---c: New For Each(false,false)[bag] - scope-57
+    |   |
+    |   Cast[int] - scope-52
+    |   |
+    |   |---Project[bytearray][1] - scope-51
+    |   |
+    |   Cast[chararray] - scope-55
+    |   |
+    |   |---Project[bytearray][0] - scope-54
+    |
+    |---b: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-50
+Tez vertex scope-82
+# Plan on vertex
+Local Rearrange[tuple]{int}(false) - scope-72	->	 scope-78
+|   |
+|   Project[int][0] - scope-68
+|
+|---d: New For Each(false,false)[bag] - scope-66
+    |   |
+    |   Cast[int] - scope-61
+    |   |
+    |   |---Project[bytearray][0] - scope-60
+    |   |
+    |   Cast[chararray] - scope-64
+    |   |
+    |   |---Project[bytearray][1] - scope-63
+    |
+    |---d: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-59
+Tez vertex scope-78
+# Plan on vertex
+e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-75
+|
+|---e: FRJoin[tuple] - scope-69	<-	 scope-82
+    |   |
+    |   Project[int][0] - scope-67
+    |   |
+    |   Project[int][0] - scope-68
+    |
+    |---POShuffledValueInputTez - scope-79	<-	 [scope-77, scope-76]

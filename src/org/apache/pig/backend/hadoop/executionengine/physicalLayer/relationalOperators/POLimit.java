@@ -34,13 +34,13 @@ import org.apache.pig.pen.util.ExampleTuple;
 
 public class POLimit extends PhysicalOperator {
 	   /**
-     * 
+     *
      */
     private static final long serialVersionUID = 1L;
 
     // Counts for outputs processed
     private long soFar = 0;
-    
+
     // Number of limited outputs
     long mLimit;
 
@@ -62,11 +62,11 @@ public class POLimit extends PhysicalOperator {
     public POLimit(OperatorKey k, int rp, List<PhysicalOperator> inputs) {
         super(k, rp, inputs);
     }
-    
+
     public void setLimit(long limit) {
     	mLimit = limit;
     }
-    
+
     public long getLimit() {
     	return mLimit;
     }
@@ -80,8 +80,8 @@ public class POLimit extends PhysicalOperator {
     }
 
     /**
-     * Counts the number of tuples processed into static variable soFar, if the number of tuples processed reach the 
-     * limit, return EOP; Otherwise, return the tuple 
+     * Counts the number of tuples processed into static variable soFar, if the number of tuples processed reach the
+     * limit, return EOP; Otherwise, return the tuple
      */
     @Override
     public Result getNextTuple() throws ExecException {
@@ -117,12 +117,12 @@ public class POLimit extends PhysicalOperator {
             inp = processInput();
             if (inp.returnStatus == POStatus.STATUS_EOP || inp.returnStatus == POStatus.STATUS_ERR)
                 break;
-            
+
             illustratorMarkup(inp.result, null, 0);
             // illustrator ignore LIMIT before the post processing
             if ((illustrator == null || illustrator.getOriginalLimit() != -1) && soFar>=mLimit)
             	inp.returnStatus = POStatus.STATUS_EOP;
-            
+
             soFar++;
             break;
         }
@@ -161,11 +161,13 @@ public class POLimit extends PhysicalOperator {
             NodeIdGenerator.getGenerator().getNextNodeId(this.mKey.scope)),
             this.requestedParallelism, this.inputs);
         newLimit.mLimit = this.mLimit;
-        newLimit.expressionPlan = this.expressionPlan.clone();
+        if (this.expressionPlan != null) {
+            newLimit.expressionPlan = this.expressionPlan.clone();
+        }
         newLimit.addOriginalLocation(alias, getOriginalLocations());
         return newLimit;
     }
-    
+
     @Override
     public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
         if(illustrator != null) {

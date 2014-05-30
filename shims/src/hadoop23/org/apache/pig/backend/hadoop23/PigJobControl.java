@@ -77,7 +77,7 @@ public class PigJobControl extends JobControl {
     }
   }
 
-  private int timeToSleep;
+  protected int timeToSleep;
 
   /**
    * Construct a job control for a group of jobs.
@@ -174,6 +174,9 @@ public class PigJobControl extends JobControl {
 
         synchronized(this) {
           Iterator<ControlledJob> it = getJobs(jobsInProgress).iterator();
+          if (!it.hasNext()) {
+              stop();
+          }
           while(it.hasNext()) {
             ControlledJob j = it.next();
             log.debug("Checking state of job "+j);

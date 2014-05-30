@@ -39,8 +39,11 @@ import org.apache.pig.impl.util.Pair;
  * offset in the tuple.
  */
 public class CombinerPackager extends Packager {
+
+    private static final long serialVersionUID = 1L;
+
     private boolean[] mBags; // For each field, indicates whether or not it
-    // needs to be put in a bag.
+                             // needs to be put in a bag.
 
     private Map<Integer, Integer> keyLookup;
 
@@ -57,7 +60,7 @@ public class CombinerPackager extends Packager {
         super();
         keyType = pkg.keyType;
         numInputs = 1;
-        inner = new boolean[1];
+        inner = new boolean[pkg.inner.length];
         for (int i = 0; i < pkg.inner.length; i++) {
             inner[i] = true;
         }
@@ -105,7 +108,7 @@ public class CombinerPackager extends Packager {
             return new Result(POStatus.STATUS_EOP, null);
         }
 
-        //Create numInputs bags
+        // Create numInputs bags
         Object[] fields = new Object[mBags.length];
         for (int i = 0; i < mBags.length; i++) {
             if (mBags[i]) fields[i] = createDataBag(numBags);
@@ -116,7 +119,7 @@ public class CombinerPackager extends Packager {
         // set the value as is.
         for (Tuple tup : bags[0]) {
             int tupIndex = 0; // an index for accessing elements from
-            // the value (tup) that we have currently
+                              // the value (tup) that we have currently
             for(int i = 0; i < mBags.length; i++) {
                 Integer keyIndex = keyLookup.get(i);
                 if(keyIndex == null && mBags[i]) {

@@ -38,15 +38,15 @@ public class ReadOnceBag implements DataBag {
 
     // The Packager that created this
     protected Packager pkgr;
-    
+
     //The iterator of Tuples. Marked transient because we will never serialize this.
     protected transient Iterator<NullableTuple> tupIter;
-    
+
     // The key being worked on
     protected PigNullableWritable keyWritable;
 
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = 2L;
 
@@ -75,7 +75,7 @@ public class ReadOnceBag implements DataBag {
 
     /* (non-Javadoc)
      * @see org.apache.pig.impl.util.Spillable#spill()
-  
+
      */
     @Override
     public long spill() {
@@ -87,7 +87,7 @@ public class ReadOnceBag implements DataBag {
      */
     @Override
     public void add(Tuple t) {
-        throw new RuntimeException("ReadOnceBag does not support add operation");		
+        throw new RuntimeException("ReadOnceBag does not support add operation");
     }
 
     /* (non-Javadoc)
@@ -131,7 +131,7 @@ public class ReadOnceBag implements DataBag {
     }
 
     /* (non-Javadoc)
-	 * @see org.apache.pig.data.DataBag#markStale(boolean)
+     * @see org.apache.pig.data.DataBag#markStale(boolean)
      */
     @Override
     public void markStale(boolean stale) {
@@ -166,7 +166,7 @@ public class ReadOnceBag implements DataBag {
 
     /* (non-Javadoc)
      * @see java.lang.Comparable#compareTo(java.lang.Object)
-     * This has to be defined since DataBag implements 
+     * This has to be defined since DataBag implements
      * Comparable although, in this case we cannot really compare.
      */
     @Override
@@ -202,7 +202,7 @@ public class ReadOnceBag implements DataBag {
 
     @Override
     public int hashCode() {
-    	int hash = 7;
+        int hash = 7;
         if (pkgr.getKeyTuple())
         {
             hash = hash * 31 + pkgr.getKeyAsTuple().hashCode();
@@ -236,18 +236,18 @@ public class ReadOnceBag implements DataBag {
                 ret = pkgr.getValueTuple(keyWritable, ntup, index);
             } catch (ExecException e)
             {
-            	throw new RuntimeException("ReadOnceBag failed to get value tuple : "+e.toString());
+                throw new RuntimeException("ReadOnceBag failed to get value tuple : "+e.toString());
             }
             return ret;
         }
-		
+
         /* (non-Javadoc)
          * @see java.util.Iterator#remove()
          */
         @Override
         public void remove() {
-            throw new RuntimeException("ReadOnceBag.iterator().remove() is not allowed");    
+            throw new RuntimeException("ReadOnceBag.iterator().remove() is not allowed");
         }
-	}
+    }
 }
 

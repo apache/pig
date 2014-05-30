@@ -31,7 +31,7 @@ import org.apache.pig.impl.PigContext;
 public class MRExecType implements ExecType {
 
     private static final long serialVersionUID = 1L;
-    private static final String[] modes = { "MAPREDUCE", "MAPRED" };
+    private static final String[] modes = { "MAPREDUCE", "MAPRED", "MR" };
 
     @Override
     public boolean accepts(Properties properties) {

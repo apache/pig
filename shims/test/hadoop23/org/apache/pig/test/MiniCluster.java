@@ -22,17 +22,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapreduce.filecache.DistributedCache;
-import org.apache.hadoop.mapreduce.v2.MiniMRYarnCluster;
-import org.apache.hadoop.mapreduce.v2.TestMRJobs;
-import org.apache.hadoop.yarn.server.MiniYARNCluster;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.hadoop.mapreduce.filecache.DistributedCache;
+import org.apache.hadoop.mapreduce.v2.MiniMRYarnCluster;
+import org.apache.pig.ExecType;
 
 /**
  * This class builds a single instance of itself with the Singleton
@@ -49,13 +43,23 @@ public class MiniCluster extends MiniGenericCluster {
     private Configuration m_dfs_conf = null;
     private Configuration m_mr_conf = null;
 
-    public MiniCluster() {
-        super();
+    /**
+     * @deprecated use {@link org.apache.pig.test.MiniGenericCluster.buildCluster() instead.
+     */
+    @Deprecated
+    public static MiniCluster buildCluster() {
+        System.setProperty("test.exec.type", "mr");
+        return (MiniCluster)MiniGenericCluster.buildCluster("mr");
+    }
+
+    @Override
+    protected ExecType getExecType() {
+        return ExecType.MAPREDUCE;
     }
 
     @Override
     protected void setupMiniDfsAndMrClusters() {
-	try {
+        try {
             final int dataNodes = 4;     // There will be 4 data nodes
             final int taskTrackers = 4;  // There will be 4 task tracker nodes
 
@@ -74,7 +78,7 @@ public class MiniCluster extends MiniGenericCluster {
             m_dfs = new MiniDFSCluster(config, dataNodes, true, null);
             m_fileSys = m_dfs.getFileSystem();
             m_dfs_conf = m_dfs.getConfiguration(0);
-            
+
             //Create user home directory
             m_fileSys.mkdirs(m_fileSys.getWorkingDirectory());
 
@@ -86,7 +90,7 @@ public class MiniCluster extends MiniGenericCluster {
             m_mr_conf = new Configuration(m_mr.getConfig());
 
             m_conf = m_mr_conf;
-			m_conf.set("fs.default.name", m_dfs_conf.get("fs.default.name"));
+            m_conf.set("fs.default.name", m_dfs_conf.get("fs.default.name"));
             m_conf.unset("mapreduce.job.cache.files");
 
             m_conf.setInt("mapred.io.sort.mb", 200);
@@ -103,7 +107,7 @@ public class MiniCluster extends MiniGenericCluster {
                     new Path("/pigtest/conf/hadoop-site.xml"));
             DistributedCache.addFileToClassPath(new Path("/pigtest/conf/hadoop-site.xml"), m_conf);
 
-			System.err.println("XXX: Setting fs.default.name to: " + m_dfs_conf.get("fs.default.name"));
+            System.err.println("XXX: Setting fs.default.name to: " + m_dfs_conf.get("fs.default.name"));
             // Set the system properties needed by Pig
             System.setProperty("cluster", m_conf.get("mapred.job.tracker"));
             //System.setProperty("namenode", m_dfs_conf.get("fs.default.name"));

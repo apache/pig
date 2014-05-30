@@ -56,7 +56,7 @@ public class POPackageAnnotator extends MROpPlanVisitor {
 
     @Override
     public void visitMROp(MapReduceOper mr) throws VisitorException {
-        
+
         // POPackage OR POJoinPackage could be present in the combine plan
         // OR in the reduce plan. POPostCombinerPackage could
         // be present only in the reduce plan. Search in these two
@@ -67,9 +67,9 @@ public class POPackageAnnotator extends MROpPlanVisitor {
             POPackage pkg = pkgDiscoverer.getPkg();
             if(pkg != null) {
                 handlePackage(mr, pkg);
-            }   
+            }
         }
-        
+
         if(!mr.reducePlan.isEmpty()) {
             PackageDiscoverer pkgDiscoverer = new PackageDiscoverer(mr.reducePlan);
             pkgDiscoverer.visit();
@@ -89,14 +89,14 @@ public class POPackageAnnotator extends MROpPlanVisitor {
                 }
             }
         }
-        
+
     }
-    
+
     private void handlePackage(MapReduceOper mr, POPackage pkg) throws VisitorException {
         // the LocalRearrange(s) could either be in the map of this MapReduceOper
         // OR in the reduce of predecessor MapReduceOpers
         int lrFound = 0;
-        
+
         lrFound = patchPackage(mr.mapPlan, pkg);
         if(lrFound != pkg.getNumInps()) {
             // we did not find the LocalRearrange(s) in the map plan
@@ -109,7 +109,7 @@ public class POPackageAnnotator extends MROpPlanVisitor {
                 lrFound += patchPackage(mrOper.reducePlan, pkg);
                 if(lrFound == pkg.getNumInps()) {
                     break;
-                }     
+                }
             }
         }
         if(lrFound != pkg.getNumInps()) {
@@ -126,7 +126,7 @@ public class POPackageAnnotator extends MROpPlanVisitor {
         // the package
         return lrDiscoverer.getLoRearrangeFound();
     }
-    
+
     /**
      * Simple visitor of the "Reduce" physical plan
      * which will get a reference to the POPacakge
@@ -135,14 +135,11 @@ public class POPackageAnnotator extends MROpPlanVisitor {
     static class PackageDiscoverer extends PhyPlanVisitor {
 
         private POPackage pkg;
-        
+
         public PackageDiscoverer(PhysicalPlan plan) {
             super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(plan));
         }
-        
-        /* (non-Javadoc)
-         * @see org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor#visitStream(org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStream)
-         */
+
         @Override
         public void visitPackage(POPackage pkg) throws VisitorException {
             this.pkg = pkg;
@@ -154,9 +151,9 @@ public class POPackageAnnotator extends MROpPlanVisitor {
         public POPackage getPkg() {
             return pkg;
         }
-        
+
     }
-    
+
     /**
      * Physical Plan visitor which tries to get the
      * LocalRearrange(s) present in the plan (if any) and
@@ -165,18 +162,15 @@ public class POPackageAnnotator extends MROpPlanVisitor {
      * present in the "key")
      */
     static class LoRearrangeDiscoverer extends PhyPlanVisitor {
-        
+
         private int loRearrangeFound = 0;
         private POPackage pkg;
-        
+
         public LoRearrangeDiscoverer(PhysicalPlan plan, POPackage pkg) {
             super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(plan));
             this.pkg = pkg;
         }
-        
-        /* (non-Javadoc)
-         * @see org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor#visitStream(org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStream)
-         */
+
         @Override
         public void visitLocalRearrange(POLocalRearrange lrearrange) throws VisitorException {
             loRearrangeFound++;
@@ -194,18 +188,18 @@ public class POPackageAnnotator extends MROpPlanVisitor {
             keyInfo = pkg.getPkgr().getKeyInfo();
             if(keyInfo == null)
                 keyInfo = new HashMap<Integer, Pair<Boolean, Map<Integer, Integer>>>();
-            
+
             if(keyInfo.get(Integer.valueOf(lrearrange.getIndex())) != null) {
-                // something is wrong - we should not be getting key info 
+                // something is wrong - we should not be getting key info
                 // for the same index from two different Local Rearranges
                 int errCode = 2087;
                 String msg = "Unexpected problem during optimization." +
-                " Found index:" + lrearrange.getIndex() + 
+                " Found index:" + lrearrange.getIndex() +
                 " in multiple LocalRearrange operators.";
                 throw new OptimizerException(msg, errCode, PigException.BUG);
-                
+
             }
-            keyInfo.put(Integer.valueOf(lrearrange.getIndex()), 
+            keyInfo.put(Integer.valueOf(lrearrange.getIndex()),
                 new Pair<Boolean, Map<Integer, Integer>>(
                         lrearrange.isProjectStar(), lrearrange.getProjectedColsMap()));
             pkg.getPkgr().setKeyInfo(keyInfo);

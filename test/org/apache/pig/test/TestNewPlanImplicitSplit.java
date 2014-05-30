@@ -17,12 +17,12 @@
  */
 package org.apache.pig.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.util.HashMap;
 import java.util.Iterator;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
@@ -34,23 +34,23 @@ import org.junit.Test;
 
 public class TestNewPlanImplicitSplit {
     private PigServer pigServer;
-    static MiniCluster cluster = MiniCluster.buildCluster();
-    
+    static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
+
     @Before
     public void setUp() throws Exception {
-        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
         pigServer.getPigContext().getProperties().setProperty("pig.usenewlogicalplan", "true");
     }
 
     @After
     public void tearDown() throws Exception {
     }
-    
+
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
+
     @Test
     public void testImplicitSplit() throws Exception{
         int LOOP_SIZE = 20;
@@ -74,20 +74,20 @@ public class TestNewPlanImplicitSplit {
         assertEquals(20, cnt);
         Util.deleteFile(cluster, inputFileName);
     }
-    
+
     @Test
     public void testImplicitSplitInCoGroup() throws Exception {
         // this query is similar to the one reported in JIRA - PIG-537
         // Create input file
         String input1 = "testImplicitSplitInCoGroup-input1.txt";
         String input2 = "testImplicitSplitInCoGroup-input2.txt";
-        Util.createInputFile(cluster, input1, 
+        Util.createInputFile(cluster, input1,
                 new String[] {"a:1", "b:2", "b:20", "c:3", "c:30"});
-        Util.createInputFile(cluster, input2, 
+        Util.createInputFile(cluster, input2,
                 new String[] {"a:first", "b:second", "c:third"});
-        pigServer.registerQuery("a = load '" + input1 + 
+        pigServer.registerQuery("a = load '" + input1 +
                 "' using PigStorage(':') as (name:chararray, marks:int);");
-        pigServer.registerQuery("b = load '" + input2 + 
+        pigServer.registerQuery("b = load '" + input2 +
                 "' using PigStorage(':') as (name:chararray, rank:chararray);");
         pigServer.registerQuery("c = cogroup a by name, b by name;");
         pigServer.registerQuery("d = foreach c generate group, FLATTEN(a.marks) as newmarks;");
@@ -100,7 +100,7 @@ public class TestNewPlanImplicitSplit {
         results.put(20, new Object[] { "b", 20, "b", 20 });
         results.put(30, new Object[] { "c", 30, "c", 30 });
         pigServer.explain("f", System.out);
-        
+
         Iterator<Tuple> it = pigServer.openIterator("f");
         while(it.hasNext()) {
             Tuple t = it.next();
@@ -108,13 +108,13 @@ public class TestNewPlanImplicitSplit {
             Integer group = (Integer)t.get(0);
             Object[] groupValues = results.get(group);
             for(int i = 0; i < 4; i++) {
-                assertEquals(groupValues[i], t.get(i+1));    
+                assertEquals(groupValues[i], t.get(i+1));
             }
         }
         Util.deleteFile(cluster, input1);
         Util.deleteFile(cluster, input2);
     }
-    
+
     @Test
     public void testImplicitSplitInCoGroup2() throws Exception {
         // this query is similar to the one reported in JIRA - PIG-537
@@ -125,13 +125,13 @@ public class TestNewPlanImplicitSplit {
         "e = cogroup a by marks, d by newmarks;"+
         "f = foreach e generate group, flatten(a), flatten(d);" +
         "store f into 'out';");
-        
+
         org.apache.pig.newplan.logical.relational.LogicalPlan plan = Util.buildLp(pigServer, query);
-        
+
 
         // this will run ImplicitSplitInserter
         new LogicalPlanOptimizer( plan, 5, null ).optimize();
-        
+
         // get Schema of leaf and compare:
         String expectedSchema = "group:int,a::name:chararray,a::marks:int,d::group:chararray,d::newmarks:int";
         assertEquals(expectedSchema, ((LogicalRelationalOperator)plan.getSinks().get(0)).getSchema().toString(false));

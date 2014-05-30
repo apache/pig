@@ -20,22 +20,20 @@ package org.apache.pig.test;
 
 import java.util.Iterator;
 
-import junit.framework.Assert;
-
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestFRJoinNullValue {
 
-    private static MiniCluster cluster = MiniCluster.buildCluster();
-    
+    private static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
+
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
         String[] input = new String[4];
@@ -52,14 +50,14 @@ public class TestFRJoinNullValue {
 
     @Test
     public void testNullMatch() throws Exception {
-        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
         pigServer.registerQuery("A = LOAD 'input';");
         pigServer.registerQuery("B = LOAD 'input';");
         DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
             pigServer.registerQuery("C = join A by $0, B by $0 using 'replicated';");
             Iterator<Tuple> iter = pigServer.openIterator("C");
-            
+
             while(iter.hasNext()) {
                 dbfrj.add(iter.next());
             }
@@ -67,25 +65,25 @@ public class TestFRJoinNullValue {
         {
             pigServer.registerQuery("C = join A by $0, B by $0;");
             Iterator<Tuple> iter = pigServer.openIterator("C");
-            
+
             while(iter.hasNext()) {
                 dbshj.add(iter.next());
             }
         }
         Assert.assertEquals(dbfrj.size(), dbshj.size());
-        Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));        
+        Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));
     }
-    
+
     @Test
     public void testTupleNullMatch() throws Exception {
-        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
         pigServer.registerQuery("A = LOAD 'input' as (x:int,y:int,z:int);");
         pigServer.registerQuery("B = LOAD 'input' as (x:int,y:int,z:int);");
         DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
             pigServer.registerQuery("C = join A by (x, y), B by (x, y) using 'replicated';");
             Iterator<Tuple> iter = pigServer.openIterator("C");
-            
+
             while(iter.hasNext()) {
                 dbfrj.add(iter.next());
             }
@@ -93,25 +91,25 @@ public class TestFRJoinNullValue {
         {
             pigServer.registerQuery("C = join A by (x, y), B by (x, y);");
             Iterator<Tuple> iter = pigServer.openIterator("C");
-            
+
             while(iter.hasNext()) {
                 dbshj.add(iter.next());
             }
         }
         Assert.assertEquals(dbfrj.size(), dbshj.size());
-        Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));        
+        Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));
     }
-    
+
     @Test
     public void testLeftNullMatch() throws Exception {
-        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
         pigServer.registerQuery("A = LOAD 'input' as (x:int,y:int, z:int);");
         pigServer.registerQuery("B = LOAD 'input' as (x:int,y:int, z:int);");
         DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
             pigServer.registerQuery("C = join A by $0 left, B by $0 using 'replicated';");
             Iterator<Tuple> iter = pigServer.openIterator("C");
-            
+
             while(iter.hasNext()) {
                 dbfrj.add(iter.next());
             }
@@ -119,25 +117,25 @@ public class TestFRJoinNullValue {
         {
             pigServer.registerQuery("C = join A by $0 left, B by $0;");
             Iterator<Tuple> iter = pigServer.openIterator("C");
-            
+
             while(iter.hasNext()) {
                 dbshj.add(iter.next());
             }
         }
         Assert.assertEquals(dbfrj.size(), dbshj.size());
-        Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));        
+        Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));
     }
-    
+
     @Test
     public void testTupleLeftNullMatch() throws Exception {
-        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
         pigServer.registerQuery("A = LOAD 'input' as (x:int,y:int,z:int);");
         pigServer.registerQuery("B = LOAD 'input' as (x:int,y:int,z:int);");
         DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
             pigServer.registerQuery("C = join A by (x, y) left, B by (x, y) using 'replicated';");
             Iterator<Tuple> iter = pigServer.openIterator("C");
-            
+
             while(iter.hasNext()) {
                 dbfrj.add(iter.next());
             }
@@ -145,12 +143,12 @@ public class TestFRJoinNullValue {
         {
             pigServer.registerQuery("C = join A by (x, y) left, B by (x, y);");
             Iterator<Tuple> iter = pigServer.openIterator("C");
-            
+
             while(iter.hasNext()) {
                 dbshj.add(iter.next());
             }
         }
         Assert.assertEquals(dbfrj.size(), dbshj.size());
-        Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));        
+        Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));
     }
 }

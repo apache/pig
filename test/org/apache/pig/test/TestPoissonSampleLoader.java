@@ -29,7 +29,6 @@ import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Tuple;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -37,7 +36,6 @@ public class TestPoissonSampleLoader {
     private static final String INPUT_FILE1 = "SkewedJoinInput1.txt";
 
     private PigServer pigServer;
-    private static MiniCluster cluster = MiniCluster.buildCluster();
 
     public TestPoissonSampleLoader() throws ExecException, IOException {
         pigServer = new PigServer(ExecType.LOCAL);
@@ -55,11 +53,6 @@ public class TestPoissonSampleLoader {
         createFiles();
     }
 
-    @AfterClass
-    public static void oneTimeTearDown() throws Exception {
-        cluster.shutDown();
-    }
-
     private void createFiles() throws IOException {
         PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE1));
 
@@ -75,30 +68,11 @@ public class TestPoissonSampleLoader {
 
         w.close();
 
-        Util.copyFromLocalToCluster(cluster, INPUT_FILE1, INPUT_FILE1);
     }
 
     @After
     public void tearDown() throws Exception {
         new File(INPUT_FILE1).delete();
-
-        Util.deleteFile(cluster, INPUT_FILE1);
-    }
-
-    private int testNumSamples(String memUsage, String sampleRate) throws IOException {
-        pigServer.getPigContext().getProperties()
-                .setProperty("pig.skewedjoin.reduce.memusage", memUsage);
-        pigServer.getPigContext().getProperties()
-                .setProperty("pig.sksampler.samplerate", sampleRate);
-        pigServer.registerQuery("A = Load '" + INPUT_FILE1
-                + "' Using PoissonSampleLoader('PigStorage()', '100');");
-        Iterator<Tuple> iter = pigServer.openIterator("A");
-        int count = 0;
-        while (iter.hasNext()) {
-            count++;
-            iter.next();
-        }
-        return count;
     }
 
     /*

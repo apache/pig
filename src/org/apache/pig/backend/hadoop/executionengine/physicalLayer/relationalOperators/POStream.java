@@ -175,8 +175,8 @@ public class POStream extends PhysicalOperator {
             // if we are here, we haven't consumed all input to be sent
             // to the streaming binary - check if we are being called
             // from close() on the map or reduce
+            Result r = getNextHelper((Tuple)null);
             if(isFetchable || this.parentPlan.endOfAllInput) {
-                Result r = getNextHelper((Tuple)null);
                 if(r.returnStatus == POStatus.STATUS_EOP) {
                     // we have now seen *ALL* possible input
                     // check if we ever had any real input
@@ -224,7 +224,6 @@ public class POStream extends PhysicalOperator {
                 // we are not being called from close() - so
                 // we must be called from either map() or reduce()
                 // get the next Result from helper
-                Result r = getNextHelper((Tuple)null);
                 if(r.returnStatus == POStatus.STATUS_EOS) {
                     // If we received EOS, it means all output
                     // from the streaming binary has been sent to us

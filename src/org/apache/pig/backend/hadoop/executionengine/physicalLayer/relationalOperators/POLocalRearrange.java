@@ -82,6 +82,8 @@ public class POLocalRearrange extends PhysicalOperator {
 
     protected boolean isCross = false;
 
+    protected Result inp;
+
     // map to store mapping of projected columns to
     // the position in the "Key" where these will be projected to.
     // We use this information to strip off these columns
@@ -150,6 +152,32 @@ public class POLocalRearrange extends PhysicalOperator {
         secondaryLeafOps = new ArrayList<ExpressionOperator>();
         mProjectedColsMap = new HashMap<Integer, Integer>();
         mSecondaryProjectedColsMap = new HashMap<Integer, Integer>();
+    }
+
+    public POLocalRearrange(POLocalRearrange copy) {
+        super(copy);
+        this.plans = copy.plans;
+        this.secondaryPlans = copy.secondaryPlans;
+        this.leafOps = copy.leafOps;
+        this.secondaryLeafOps = copy.secondaryLeafOps;
+        this.index = copy.index;
+        this.keyType = copy.keyType;
+        this.mainKeyType = copy.mainKeyType;
+        this.secondaryKeyType = copy.secondaryKeyType;
+        this.mIsDistinct = copy.mIsDistinct;
+        this.isCross = copy.isCross;
+        this.mProjectedColsMap = copy.mProjectedColsMap;
+        this.mSecondaryProjectedColsMap = copy.mSecondaryProjectedColsMap;
+        this.mFakeTuple = copy.mFakeTuple;
+        this.mProjectStar = copy.mProjectStar;
+        this.mSecondaryProjectStar = copy.mSecondaryProjectStar;
+        this.isKeyTuple = copy.isKeyTuple;
+        this.isKeyCompound = copy.isKeyCompound;
+        this.isSecondaryKeyTuple = copy.isSecondaryKeyTuple;
+        this.mProjectedColsMapSize = copy.mProjectedColsMapSize;
+        this.mSecondaryProjectedColsMapSize = copy.mSecondaryProjectedColsMapSize;
+        this.useSecondaryKey = copy.useSecondaryKey;
+        this.stripKeyFromValue = copy.stripKeyFromValue;
     }
 
     @Override
@@ -257,7 +285,7 @@ public class POLocalRearrange extends PhysicalOperator {
     @Override
     public Result getNextTuple() throws ExecException {
 
-        Result inp = null;
+        inp = null;
         Result res = ERR_RESULT;
         while (true) {
             inp = processInput();
@@ -501,11 +529,16 @@ public class POLocalRearrange extends PhysicalOperator {
         return keyType;
     }
 
+    public byte getMainKeyType() {
+        return mainKeyType;
+    }
+
     public void setKeyType(byte keyType) {
         if (useSecondaryKey) {
             this.mainKeyType = keyType;
         } else {
             this.keyType = keyType;
+            this.mainKeyType = keyType;
         }
     }
 
@@ -676,32 +709,50 @@ public class POLocalRearrange extends PhysicalOperator {
      */
     @Override
     public POLocalRearrange clone() throws CloneNotSupportedException {
-        List<PhysicalPlan> clonePlans = new
-            ArrayList<PhysicalPlan>(plans.size());
-        for (PhysicalPlan plan : plans) {
-            clonePlans.add(plan.clone());
-        }
         POLocalRearrange clone = new POLocalRearrange(new OperatorKey(
             mKey.scope,
             NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
             requestedParallelism);
+        deepCopyTo(clone);
+        return clone;
+    }
+
+    protected void deepCopyTo(POLocalRearrange clone)
+            throws CloneNotSupportedException {
+
+        clone.setParentPlan(parentPlan);
+        clone.index = index;
+        if (useSecondaryKey) {
+            clone.keyType = mainKeyType;
+        } else {
+            clone.keyType = keyType;
+        }
+        clone.setUseSecondaryKey(useSecondaryKey);
+        // Needs to be called as setDistinct so that the fake index tuple gets
+        // created.
+        clone.setDistinct(mIsDistinct);
+        clone.setCross(isCross);
+        clone.addOriginalLocation(alias, getOriginalLocations());
+        clone.setStripKeyFromValue(stripKeyFromValue);
+
         try {
-            clone.setPlans(clonePlans);
+            clone.setPlans(clonePlans(plans));
+            if (secondaryPlans != null) {
+                clone.setSecondaryPlans(clonePlans(secondaryPlans));
+            }
         } catch (PlanException pe) {
             CloneNotSupportedException cnse = new CloneNotSupportedException("Problem with setting plans of " + this.getClass().getSimpleName());
             cnse.initCause(pe);
             throw cnse;
         }
-        clone.keyType = keyType;
-        clone.mainKeyType = mainKeyType;
-        clone.secondaryKeyType = secondaryKeyType;
-        clone.useSecondaryKey = useSecondaryKey;
-        clone.index = index;
-        // Needs to be called as setDistinct so that the fake index tuple gets
-        // created.
-        clone.setDistinct(mIsDistinct);
-        clone.addOriginalLocation(alias, getOriginalLocations());
-        return clone;
+    }
+
+    private List<PhysicalPlan> clonePlans(List<PhysicalPlan> origPlans) throws CloneNotSupportedException {
+        List<PhysicalPlan> clonePlans = new ArrayList<PhysicalPlan>(origPlans.size());
+        for (PhysicalPlan plan : origPlans) {
+            clonePlans.add(plan.clone());
+        }
+        return clonePlans;
     }
 
     public boolean isCross() {

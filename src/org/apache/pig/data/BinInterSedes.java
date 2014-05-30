@@ -688,10 +688,6 @@ public class BinInterSedes implements InterSedes {
 
         @Override
         public void setConf(Configuration conf) {
-            if (!(conf instanceof JobConf)) {
-                mLog.warn("Expected jobconf in setConf, got " + conf.getClass().getName());
-                return;
-            }
             try {
                 mAsc = (boolean[]) ObjectSerializer.deserialize(conf.get("pig.sortOrder"));
                 mSecondaryAsc = (boolean[]) ObjectSerializer.deserialize(conf.get("pig.secondarySortOrder"));

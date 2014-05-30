@@ -1,0 +1,69 @@
+#--------------------------------------------------
+# There are 1 DAGs in the session
+#--------------------------------------------------
+#--------------------------------------------------
+# TEZ DAG plan: scope-41
+#--------------------------------------------------
+Tez vertex scope-34	->	Tez vertex scope-36,
+Tez vertex scope-35	->	Tez vertex scope-36,
+Tez vertex scope-40	->	Tez vertex scope-36,
+Tez vertex scope-36
+
+Tez vertex scope-34
+# Plan on vertex
+POValueOutputTez - scope-38	->	 [scope-36]
+|
+|---a: New For Each(false,false)[bag] - scope-7
+    |   |
+    |   Cast[int] - scope-2
+    |   |
+    |   |---Project[bytearray][0] - scope-1
+    |   |
+    |   Cast[chararray] - scope-5
+    |   |
+    |   |---Project[bytearray][1] - scope-4
+    |
+    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
+Tez vertex scope-35
+# Plan on vertex
+POValueOutputTez - scope-39	->	 [scope-36]
+|
+|---c: New For Each(false,false)[bag] - scope-15
+    |   |
+    |   Cast[int] - scope-10
+    |   |
+    |   |---Project[bytearray][1] - scope-9
+    |   |
+    |   Cast[chararray] - scope-13
+    |   |
+    |   |---Project[bytearray][0] - scope-12
+    |
+    |---b: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-8
+Tez vertex scope-40
+# Plan on vertex
+Local Rearrange[tuple]{int}(false) - scope-30	->	 scope-36
+|   |
+|   Project[int][0] - scope-26
+|
+|---d: New For Each(false,false)[bag] - scope-24
+    |   |
+    |   Cast[int] - scope-19
+    |   |
+    |   |---Project[bytearray][0] - scope-18
+    |   |
+    |   Cast[chararray] - scope-22
+    |   |
+    |   |---Project[bytearray][1] - scope-21
+    |
+    |---d: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-17
+Tez vertex scope-36
+# Plan on vertex
+e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-33
+|
+|---e: FRJoin[tuple] - scope-27	<-	 scope-40
+    |   |
+    |   Project[int][0] - scope-25
+    |   |
+    |   Project[int][0] - scope-26
+    |
+    |---POShuffledValueInputTez - scope-37	<-	 [scope-34, scope-35]

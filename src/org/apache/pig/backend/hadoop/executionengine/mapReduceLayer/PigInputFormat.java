@@ -27,6 +27,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
@@ -58,7 +59,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
     public static final String PIG_INPUTS = "pig.inputs";
 
     /**
-     * @deprecated Use {@link UDFContext} instead in the following way to get 
+     * @deprecated Use {@link UDFContext} instead in the following way to get
      * the job's {@link Configuration}:
      * <pre>UdfContext.getUdfContext().getJobConf()</pre>
      */
@@ -75,7 +76,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
             TaskAttemptContext context) throws IOException,
             InterruptedException {
         // We need to create a TaskAttemptContext based on the Configuration which
-        // was used in the getSplits() to produce the split supplied here. For 
+        // was used in the getSplits() to produce the split supplied here. For
         // this, let's find out the input of the script which produced the split
         // supplied here and then get the corresponding Configuration and setup
         // TaskAttemptContext based on it and then call the real InputFormat's
@@ -83,13 +84,15 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
 
         PigSplit pigSplit = (PigSplit)split;
         activeSplit = pigSplit;
-        // XXX hadoop 20 new API integration: get around a hadoop 20 bug by 
-        // passing total # of splits to each split so it can be retrieved 
+        // XXX hadoop 20 new API integration: get around a hadoop 20 bug by
+        // passing total # of splits to each split so it can be retrieved
         // here and set it to the configuration object. This number is needed
         // by PoissonSampleLoader to compute the number of samples
         int n = pigSplit.getTotalSplits();
         context.getConfiguration().setInt("pig.mapsplits.count", n);
         Configuration conf = context.getConfiguration();
+        PigContext.setPackageImportList((ArrayList<String>) ObjectSerializer
+                .deserialize(conf.get("udf.import.list")));
         LoadFunc loadFunc = getLoadFunc(pigSplit.getInputIndex(), conf);
         // Pass loader signature to LoadFunc and to InputFormat through
         // the conf
@@ -103,7 +106,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
 
         InputFormat inputFormat = loadFunc.getInputFormat();
 
-        List<Long> inpLimitLists = 
+        List<Long> inpLimitLists =
                 (ArrayList<Long>)ObjectSerializer.deserialize(
                         conf.get("pig.inpLimits"));
 
@@ -114,15 +117,15 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
     /**
      * get the corresponding configuration for the input on which the split
      * is based and merge it with the Conf supplied
-     * 
+     *
      * package level access so that this is not publicly used elsewhere
-     * @throws IOException 
+     * @throws IOException
      */
-    static void mergeSplitSpecificConf(LoadFunc loadFunc, PigSplit pigSplit, Configuration originalConf) 
+    static void mergeSplitSpecificConf(LoadFunc loadFunc, PigSplit pigSplit, Configuration originalConf)
             throws IOException {
         // set up conf with entries from input specific conf
         Job job = new Job(originalConf);
-        loadFunc.setLocation(getLoadLocation(pigSplit.getInputIndex(), 
+        loadFunc.setLocation(getLoadLocation(pigSplit.getInputIndex(),
                 originalConf), job);
         // The above setLocation call could write to the conf within
         // the job - merge that updated conf with original conf
@@ -134,11 +137,11 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
      * @param inputIndex
      * @param conf
      * @return
-     * @throws IOException 
+     * @throws IOException
      */
     @SuppressWarnings("unchecked")
     private static LoadFunc getLoadFunc(int inputIndex, Configuration conf) throws IOException {
-        ArrayList<FileSpec> inputs = 
+        ArrayList<FileSpec> inputs =
                 (ArrayList<FileSpec>) ObjectSerializer.deserialize(
                         conf.get(PIG_INPUTS));
         FuncSpec loadFuncSpec = inputs.get(inputIndex).getFuncSpec();
@@ -147,7 +150,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
 
     @SuppressWarnings("unchecked")
     private static String getLoadLocation(int inputIndex, Configuration conf) throws IOException {
-        ArrayList<FileSpec> inputs = 
+        ArrayList<FileSpec> inputs =
                 (ArrayList<FileSpec>) ObjectSerializer.deserialize(
                         conf.get(PIG_INPUTS));
         return inputs.get(inputIndex).getFileName();
@@ -163,9 +166,9 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
      * @throws IOException on failure
      */
     @SuppressWarnings("unchecked")
-    static void passLoadSignature(LoadFunc loadFunc, int inputIndex, 
+    static void passLoadSignature(LoadFunc loadFunc, int inputIndex,
             Configuration conf) throws IOException {
-        List<String> inpSignatureLists = 
+        List<String> inpSignatureLists =
                 (ArrayList<String>)ObjectSerializer.deserialize(
                         conf.get("pig.inpSignatures"));
         // signature can be null for intermediate jobs where it will not
@@ -183,7 +186,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
      */
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
-    public List<InputSplit> getSplits(JobContext jobcontext) 
+    public List<InputSplit> getSplits(JobContext jobcontext)
             throws IOException, InterruptedException {
 
         Configuration conf = jobcontext.getConfiguration();
@@ -231,10 +234,10 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
                     fs.setWorkingDirectory(jobcontext.getWorkingDirectory());
                 }
 
-                // first pass input location to the loader - for this send a 
+                // first pass input location to the loader - for this send a
                 // clone of the configuration we have - this is so that if the
                 // loader (or the inputformat of the loader) decide to store the
-                // input location into the configuration (for example, 
+                // input location into the configuration (for example,
                 // FileInputFormat stores this in mapred.input.dir in the conf),
                 // then for different inputs, the loader's don't end up
                 // over-writing the same conf.
@@ -246,12 +249,12 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
                         || (loadFunc instanceof CollectableLoadFunc && loadFunc instanceof OrderedLoadFunc));
                 if (combinable)
                     combinable = !conf.getBoolean("pig.noSplitCombination", false);
-                Configuration confClone = new Configuration(conf);
+                JobConf confClone = new JobConf(conf);
                 Job inputSpecificJob = new Job(confClone);
                 // Pass loader signature to LoadFunc and to InputFormat through
                 // the conf
                 passLoadSignature(loadFunc, i, inputSpecificJob.getConfiguration());
-                loadFunc.setLocation(inputs.get(i).getFileName(), 
+                loadFunc.setLocation(inputs.get(i).getFileName(),
                         inputSpecificJob);
                 // The above setLocation call could write to the conf within
                 // the inputSpecificJob - use this updated conf
@@ -259,7 +262,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
                 // get the InputFormat from it and ask for splits
                 InputFormat inpFormat = loadFunc.getInputFormat();
                 List<InputSplit> oneInputSplits = inpFormat.getSplits(
-                        HadoopShims.createJobContext(inputSpecificJob.getConfiguration(), 
+                        HadoopShims.createJobContext(inputSpecificJob.getConfiguration(),
                                 jobcontext.getJobID()));
                 List<InputSplit> oneInputPigSplits = getPigSplits(
                         oneInputSplits, i, inpTargets.get(i),
@@ -279,13 +282,13 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
             }
         }
 
-        // XXX hadoop 20 new API integration: get around a hadoop 20 bug by 
-        // passing total # of splits to each split so that it can be retrieved 
-        // in the RecordReader method when called by mapreduce framework later. 
+        // XXX hadoop 20 new API integration: get around a hadoop 20 bug by
+        // passing total # of splits to each split so that it can be retrieved
+        // in the RecordReader method when called by mapreduce framework later.
         int n = splits.size();
-        // also passing the multi-input flag to the back-end so that 
-        // the multi-input record counters can be created 
-        int m = inputs.size();        
+        // also passing the multi-input flag to the back-end so that
+        // the multi-input record counters can be created
+        int m = inputs.size();
 
         boolean disableCounter = conf.getBoolean("pig.disable.counter", false);
         if ((m > 1) && disableCounter) {
@@ -301,7 +304,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
         return splits;
     }
 
-    protected List<InputSplit> getPigSplits(List<InputSplit> oneInputSplits, 
+    protected List<InputSplit> getPigSplits(List<InputSplit> oneInputSplits,
             int inputIndex, ArrayList<OperatorKey> targetOps, long blockSize, boolean combinable, Configuration conf)
                     throws IOException, InterruptedException {
         ArrayList<InputSplit> pigSplits = new ArrayList<InputSplit>();
@@ -319,7 +322,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
             if (maxCombinedSplitSize== 0)
                 // default is the block size
                 maxCombinedSplitSize = blockSize;
-            List<List<InputSplit>> combinedSplits = 
+            List<List<InputSplit>> combinedSplits =
                     MapRedUtil.getCombinePigSplits(oneInputSplits, maxCombinedSplitSize, conf);
             for (int i = 0; i < combinedSplits.size(); i++)
                 pigSplits.add(createPigSplit(combinedSplits.get(i), inputIndex, targetOps, i, conf));

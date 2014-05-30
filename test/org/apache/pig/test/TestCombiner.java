@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Properties;
 
 import org.apache.pig.EvalFunc;
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
@@ -41,15 +40,27 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestCombiner {
+    private static MiniGenericCluster cluster;
+    private static Properties properties;
 
-    static MiniCluster cluster = MiniCluster.buildCluster();
+    @BeforeClass
+    public static void oneTimeSetUp() throws Exception {
+        cluster = MiniGenericCluster.buildCluster();
+        properties = cluster.getProperties();
+    }
 
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
+    }
+
+    @Before
+    public void setUp() throws Exception {
+        Util.resetStateForExecModeSwitch();
     }
 
     @Test
@@ -58,10 +69,11 @@ public class TestCombiner {
                 "c = group a by c2; " +
                 "f = foreach c generate COUNT(org.apache.pig.builtin.Distinct($1.$2)); " +
                 "store f into 'out';";
-        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer pigServer = new PigServer(cluster.getExecType(), properties);
         PigContext pc = pigServer.getPigContext();
         assertTrue((Util.buildMRPlan(Util.buildPp(pigServer, query), pc).getRoots().get(0).combinePlan
                 .isEmpty()));
+        pigServer.shutdown();
     }
 
     @Test
@@ -72,41 +84,27 @@ public class TestCombiner {
                 "f = foreach c generate COUNT(" + dummyUDF + "" +
                 "(org.apache.pig.builtin.Distinct($1.$2)," + dummyUDF + "())); " +
                 "store f into 'out';";
-        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer pigServer = new PigServer(cluster.getExecType(), properties);
         PigContext pc = pigServer.getPigContext();
         assertTrue((Util.buildMRPlan(Util.buildPp(pigServer, query), pc).getRoots().get(0).combinePlan
                 .isEmpty()));
+        pigServer.shutdown();
     }
 
     @Test
     public void testOnCluster() throws Exception {
         // run the test on cluster
-        String inputFileName = runTest(new PigServer(
-                ExecType.MAPREDUCE, cluster.getProperties()));
+        PigServer pigServer = new PigServer(cluster.getExecType(), properties);
+        String inputFileName = runTest(pigServer);
         Util.deleteFile(cluster, inputFileName);
-
-    }
-
-    /*
-     * (non-Javadoc)
-     * @see junit.framework.TestCase#setUp()
-     */
-    @Before
-    public void setUp() throws Exception {
-        // cause a re initialization of FileLocalizer's
-        // internal state before each test run
-        // A previous test might have been in a different
-        // mode than the test which is about to run. To
-        // ensure each test runs correctly in it's exectype
-        // mode, let's re initialize.
-        FileLocalizer.setInitialized(false);
+        pigServer.shutdown();
     }
 
     @Test
     public void testLocal() throws Exception {
         // run the test locally
         FileLocalizer.deleteTempFiles();
-        runTest(new PigServer(ExecType.LOCAL, new Properties()));
+        runTest(new PigServer("local"));
         FileLocalizer.deleteTempFiles();
     }
 
@@ -133,7 +131,7 @@ public class TestCombiner {
         File inputFile = File.createTempFile("test", "txt");
         inputFile.deleteOnExit();
         String inputFileName = inputFile.getAbsolutePath();
-        if (pig.getPigContext().getExecType() == ExecType.LOCAL) {
+        if (pig.getPigContext().getExecType().isLocal()) {
             PrintStream ps = new PrintStream(new FileOutputStream(inputFile));
             for (String line : inputLines) {
                 ps.println(line);
@@ -171,9 +169,11 @@ public class TestCombiner {
             }
         }
         Util.createInputFile(cluster, "MultiCombinerUseInput.txt", input);
-        Properties props = cluster.getProperties();
-        props.setProperty("io.sort.mb", "1");
-        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, props);
+        String oldValue = properties.getProperty("io.sort.mb");
+        properties.setProperty("io.sort.mb", "1");
+
+        PigServer pigServer = new PigServer(cluster.getExecType(), properties);
+        pigServer.getPigContext().getProperties().setProperty("mapred.child.java.opts", "-Xmx1024m");
         pigServer.registerQuery("a = load 'MultiCombinerUseInput.txt' as (x:int);");
         pigServer.registerQuery("b = group a all;");
         pigServer.registerQuery("c = foreach b generate COUNT(a), SUM(a.$0), " +
@@ -198,6 +198,13 @@ public class TestCombiner {
 
         assertFalse(it.hasNext());
         Util.deleteFile(cluster, "MultiCombinerUseInput.txt");
+        // Reset io.sort.mb to the original value before exit
+        if (oldValue == null) {
+            properties.remove("io.sort.mb");
+        } else {
+            properties.setProperty("io.sort.mb", oldValue);
+        }
+        pigServer.shutdown();
     }
 
     @Test
@@ -213,7 +220,7 @@ public class TestCombiner {
                         "pig1\t20\t3.1" };
 
         Util.createInputFile(cluster, "distinctAggs1Input.txt", input);
-        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer pigServer = new PigServer(cluster.getExecType(), properties);
         pigServer.registerQuery("a = load 'distinctAggs1Input.txt' as (name:chararray, age:int, gpa:double);");
         pigServer.registerQuery("b = group a by name;");
         pigServer.registerQuery("c = foreach b  {" +
@@ -237,14 +244,14 @@ public class TestCombiner {
         while (it.hasNext()) {
             Tuple t = it.next();
             List<Object> fields = t.getAll();
-            Object[] expected = results.get((String)fields.get(0));
+            Object[] expected = results.get(fields.get(0));
             int i = 0;
             for (Object field : fields) {
                 assertEquals(expected[i++], field);
             }
         }
         Util.deleteFile(cluster, "distinctAggs1Input.txt");
-
+        pigServer.shutdown();
     }
 
     @Test
@@ -260,7 +267,7 @@ public class TestCombiner {
         };
 
         Util.createInputFile(cluster, "testGroupElements.txt", input);
-        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer pigServer = new PigServer(cluster.getExecType(), properties);
         pigServer.registerQuery("a = load 'testGroupElements.txt' as (str:chararray, num1:int, alph : chararray, num2 : int);");
         pigServer.registerQuery("b = group a by (str, num1);");
 
@@ -305,7 +312,7 @@ public class TestCombiner {
         Util.checkQueryOutputsAfterSort(it, expectedRes);
 
         Util.deleteFile(cluster, "distinctAggs1Input.txt");
-
+        pigServer.shutdown();
     }
 
     @Test
@@ -321,7 +328,7 @@ public class TestCombiner {
         };
 
         Util.createInputFile(cluster, "testGroupLimit.txt", input);
-        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer pigServer = new PigServer(cluster.getExecType(), properties);
         pigServer.registerQuery("a = load 'testGroupLimit.txt'  using PigStorage(' ') " +
                 "as (str:chararray, num1:int) ;");
         pigServer.registerQuery("b = group a by str;");
@@ -341,7 +348,7 @@ public class TestCombiner {
 
         Iterator<Tuple> it = pigServer.openIterator("d");
         Util.checkQueryOutputsAfterSort(it, expectedRes);
-
+        pigServer.shutdown();
     }
 
     private void checkCombinerUsed(PigServer pigServer, String string, boolean combineExpected)
@@ -370,7 +377,7 @@ public class TestCombiner {
                         "pig1\t20\t3.1" };
 
         Util.createInputFile(cluster, "distinctNoCombinerInput.txt", input);
-        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer pigServer = new PigServer(cluster.getExecType(), properties);
         pigServer.registerQuery("a = load 'distinctNoCombinerInput.txt' as (name:chararray, age:int, gpa:double);");
         pigServer.registerQuery("b = group a by name;");
         pigServer.registerQuery("c = foreach b  {" +
@@ -391,7 +398,7 @@ public class TestCombiner {
         while (it.hasNext()) {
             Tuple t = it.next();
             List<Object> fields = t.getAll();
-            Object[] expected = results.get((String)fields.get(0));
+            Object[] expected = results.get(fields.get(0));
             int i = 0;
             for (Object field : fields) {
                 if (i == 1) {
@@ -403,7 +410,7 @@ public class TestCombiner {
             }
         }
         Util.deleteFile(cluster, "distinctNoCombinerInput.txt");
-
+        pigServer.shutdown();
     }
 
     @Test
@@ -421,7 +428,7 @@ public class TestCombiner {
                         "pig1\t20\t3.1" };
 
         Util.createInputFile(cluster, "forEachNoCombinerInput.txt", input);
-        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer pigServer = new PigServer(cluster.getExecType(), properties);
         pigServer.registerQuery("a = load 'forEachNoCombinerInput.txt' as (name:chararray, age:int, gpa:double);");
         pigServer.registerQuery("b = group a by name;");
         pigServer.registerQuery("c = foreach b  {" +
@@ -442,7 +449,7 @@ public class TestCombiner {
         while (it.hasNext()) {
             Tuple t = it.next();
             List<Object> fields = t.getAll();
-            Object[] expected = results.get((String)fields.get(0));
+            Object[] expected = results.get(fields.get(0));
             int i = 0;
             for (Object field : fields) {
                 if (i == 1) {
@@ -454,7 +461,7 @@ public class TestCombiner {
             }
         }
         Util.deleteFile(cluster, "forEachNoCombinerInput.txt");
-
+        pigServer.shutdown();
     }
 
     @Test
@@ -480,7 +487,7 @@ public class TestCombiner {
         try {
             Util.createInputFile(cluster, "forEachNoCombinerInput.txt", input);
 
-            PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+            PigServer pigServer = new PigServer(cluster.getExecType(), properties);
             pigServer.registerQuery("a = load 'forEachNoCombinerInput.txt' as (name:chararray, age:int, gpa:double);");
             pigServer.registerQuery("b = group a by name;");
             pigServer.registerQuery("c = foreach b generate group, SUM(a.age), a;");
@@ -494,6 +501,7 @@ public class TestCombiner {
             Iterator<Tuple> it = pigServer.openIterator("c");
             Util.checkQueryOutputsAfterSortRecursive(it, expected,
                     "group:chararray,age:long,b:{t:(name:chararray,age:int,gpa:double)}");
+            pigServer.shutdown();
         } finally {
             Util.deleteFile(cluster, "forEachNoCombinerInput.txt");
         }
@@ -501,6 +509,7 @@ public class TestCombiner {
 
     public static class JiraPig1030 extends EvalFunc<DataBag> {
 
+        @Override
         public DataBag exec(Tuple input) throws IOException {
             return new DefaultDataBag();
         }
@@ -524,7 +533,7 @@ public class TestCombiner {
 
         try {
             Util.createInputFile(cluster, "forEachNoCombinerInput.txt", input);
-            PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+            PigServer pigServer = new PigServer(cluster.getExecType(), properties);
             pigServer.registerQuery("a = load 'forEachNoCombinerInput.txt' as (name:chararray, age:int, gpa:double);");
             pigServer.registerQuery("b = group a all;");
             pigServer.registerQuery("c = foreach b  {" +
@@ -536,6 +545,7 @@ public class TestCombiner {
             PrintStream ps = new PrintStream(baos);
             pigServer.explain("c", ps);
             assertFalse(baos.toString().matches("(?si).*combine plan.*"));
+            pigServer.shutdown();
         } finally {
             Util.deleteFile(cluster, "forEachNoCombinerInput.txt");
         }

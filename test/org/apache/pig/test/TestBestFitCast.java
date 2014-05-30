@@ -17,16 +17,15 @@ package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 
 import org.apache.pig.EvalFunc;
-import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
@@ -40,17 +39,20 @@ import org.apache.pig.impl.util.LogUtils;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestBestFitCast {
-    private PigServer pigServer;
-    private static MiniCluster cluster = MiniCluster.buildCluster();
-    String inputFile, inputFile2;
-    int LOOP_SIZE = 20;
+    private static PigServer pigServer;
+    private static Properties properties;
+    private static MiniGenericCluster cluster;
+
+    private String inputFile, inputFile2;
+    private int LOOP_SIZE = 20;
 
     @Before
     public void setUp() throws Exception {
-        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pigServer = new PigServer(cluster.getExecType(), properties);
         inputFile = "TestBestFitCast-input.txt";
         String[] input = new String[LOOP_SIZE];
         long l = 0;
@@ -71,6 +73,12 @@ public class TestBestFitCast {
     public void tearDown() throws Exception {
         Util.deleteFile(cluster, inputFile);
         Util.deleteFile(cluster, inputFile2);
+    }
+
+    @BeforeClass
+    public static void oneTimeSetUp() throws Exception {
+        cluster = MiniGenericCluster.buildCluster();
+        properties = cluster.getProperties();
     }
 
     @AfterClass
@@ -233,7 +241,7 @@ public class TestBestFitCast {
         try {
             pigServer.registerQuery("A = LOAD '" + inputFile + "' as (x:float, y);");
             pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y);");
-            Iterator<Tuple> iter = pigServer.openIterator("B");
+            pigServer.openIterator("B");
         } catch (Exception e) {
             exceptionCaused = true;
             PigException pe = LogUtils.getPigException(e);
@@ -319,7 +327,7 @@ public class TestBestFitCast {
             pigServer.registerQuery("A = LOAD '" + inputFile + "' as (x, y:int);");
             pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName()
                     + "(x,y, y);");
-            Iterator<Tuple> iter = pigServer.openIterator("B");
+            pigServer.openIterator("B");
         } catch (Exception e) {
             exceptionCaused = true;
             PigException pe = LogUtils.getPigException(e);
@@ -341,7 +349,7 @@ public class TestBestFitCast {
             pigServer.registerQuery("A = LOAD '" + inputFile + "' as (x, y:long);");
             pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName()
                     + "(x,y, y);");
-            Iterator<Tuple> iter = pigServer.openIterator("B");
+            pigServer.openIterator("B");
         } catch (Exception e) {
             exceptionCaused = true;
             PigException pe = LogUtils.getPigException(e);
@@ -363,7 +371,7 @@ public class TestBestFitCast {
             pigServer.registerQuery("A = LOAD '" + inputFile + "' as (x, y:double);");
             pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName()
                     + "(x,y, y);");
-            Iterator<Tuple> iter = pigServer.openIterator("B");
+            pigServer.openIterator("B");
         } catch (Exception e) {
             exceptionCaused = true;
             PigException pe = LogUtils.getPigException(e);
@@ -476,7 +484,7 @@ public class TestBestFitCast {
             pigServer.registerQuery("A = LOAD '" + inputFile2 + "' as (x:float, y, z:int);");
             pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName()
                     + "(x,y, y);");
-            Iterator<Tuple> iter = pigServer.openIterator("B");
+            pigServer.openIterator("B");
         } catch (Exception e) {
             exceptionCaused = true;
             PigException pe = LogUtils.getPigException(e);

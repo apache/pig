@@ -44,6 +44,7 @@ import org.apache.pig.PigServer;
 import org.apache.pig.impl.util.JarManager;
 import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -62,7 +63,7 @@ public class TestRegisteredJarVisibility {
     // Actual data is not important. Reusing an existing input file.
     private static final File INPUT_FILE = new File("test/data/pigunit/top_queries_input_data.txt");
 
-    private static MiniCluster cluster;
+    private static MiniGenericCluster cluster;
     private static File jarFile;
 
     @BeforeClass()
@@ -95,13 +96,18 @@ public class TestRegisteredJarVisibility {
 
         jar(filesToJar);
 
-        cluster = MiniCluster.buildCluster();
+        cluster = MiniGenericCluster.buildCluster();
         Util.copyFromLocalToCluster(cluster, INPUT_FILE.getPath(), INPUT_FILE.getName());
     }
 
     @AfterClass()
     public static void tearDown() {
         cluster.shutDown();
+    }
+
+    @Before
+    public void setup() {
+        Util.resetStateForExecModeSwitch();
     }
 
     @Test()
@@ -114,10 +120,10 @@ public class TestRegisteredJarVisibility {
         }
         Assert.assertTrue(exceptionThrown);
     }
-    
+
     @Test
     public void testRegisterJarVisibilityMR() throws IOException {
-        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
         testRegisteredJarVisibility(pigServer, INPUT_FILE.getName());
     }
 
@@ -126,7 +132,7 @@ public class TestRegisteredJarVisibility {
         PigServer pigServer = new PigServer(ExecType.LOCAL, new Properties());
         testRegisteredJarVisibility(pigServer, INPUT_FILE.getAbsolutePath());
     }
-    
+
     public void testRegisteredJarVisibility(PigServer pigServer, String inputPath) throws IOException {
         String query = "register " + jarFile.getAbsolutePath() + ";\n"
                 + "a = load '" + inputPath

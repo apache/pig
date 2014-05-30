@@ -62,8 +62,10 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POOptimizedForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPartialAgg;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPoissonSample;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPreCombinerLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORank;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POReservoirSample;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSkewedJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
@@ -84,6 +86,11 @@ public class PhyPlanSetter extends PhyPlanVisitor {
     public PhyPlanSetter(PhysicalPlan plan) {
         super(plan, new DependencyOrderWalker<PhysicalOperator, PhysicalPlan>(plan));
         parent = plan;
+    }
+    
+    @Override
+    public void visit(PhysicalOperator op) {
+        op.setParentPlan(parent);
     }
 
     @Override
@@ -173,7 +180,7 @@ public class PhyPlanSetter extends PhyPlanVisitor {
 
     @Override
     public void visitRank(PORank rank) throws VisitorException {
-
+        rank.setParentPlan(parent);
     }
 
     @Override
@@ -314,7 +321,7 @@ public class PhyPlanSetter extends PhyPlanVisitor {
     @Override
     public void visitSkewedJoin(POSkewedJoin join) throws VisitorException {
         join.setParentPlan(parent);
-    }   
+    }
 
     @Override
     public void visitStream(POStream stream) throws VisitorException {
@@ -330,25 +337,37 @@ public class PhyPlanSetter extends PhyPlanVisitor {
      */
 
     @Override
-    public void visitPartialAgg(POPartialAgg poPartialAgg) {
+    public void visitPartialAgg(POPartialAgg poPartialAgg) throws VisitorException {
        poPartialAgg.setParentPlan(parent);
     }
 
     @Override
-    public void visitPOOptimizedForEach(POOptimizedForEach optimizedForEach) {
+    public void visitPOOptimizedForEach(POOptimizedForEach optimizedForEach) throws VisitorException {
         optimizedForEach.setParentPlan(parent);
     }
 
     @Override
     public void visitPreCombinerLocalRearrange(
-            POPreCombinerLocalRearrange preCombinerLocalRearrange) {
+            POPreCombinerLocalRearrange preCombinerLocalRearrange) throws VisitorException {
         preCombinerLocalRearrange.setParentPlan(parent);
     }
-
 
     @Override
     public void visitMergeCoGroup(POMergeCogroup mergeCoGrp)
             throws VisitorException {
         mergeCoGrp.setParentPlan(parent);
     }
+
+    @Override
+    public void visitReservoirSample(POReservoirSample reservoirSample)
+            throws VisitorException {
+        reservoirSample.setParentPlan(parent);
+    }
+    
+    @Override
+    public void visitPoissonSample(POPoissonSample poissonSample)
+            throws VisitorException {
+        poissonSample.setParentPlan(parent);
+    }
+
 }

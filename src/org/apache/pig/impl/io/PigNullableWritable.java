@@ -40,7 +40,7 @@ import org.apache.pig.data.Tuple;
 //Put in to make the compiler not complain about WritableComparable
 //being a generic type.
 @SuppressWarnings("unchecked")
-public abstract class PigNullableWritable implements WritableComparable {
+public abstract class PigNullableWritable implements WritableComparable, Cloneable {
 
     /**
      * indices in multiquery optimized maps
@@ -60,6 +60,19 @@ public abstract class PigNullableWritable implements WritableComparable {
     protected WritableComparable mValue;
 
     private byte mIndex;
+
+    @Override
+    public PigNullableWritable clone() throws CloneNotSupportedException {
+        try {
+            PigNullableWritable clone = this.getClass().newInstance();
+            clone.mNull = this.mNull;
+            clone.mValue = this.mValue;
+            clone.mIndex = this.mIndex;
+            return clone;
+        } catch (Exception e) {
+            throw new RuntimeException("Exception while cloning " + this, e);
+        }
+    }
 
     /**
      * Compare two nullable objects.  Step one is to check if either or both
