@@ -915,6 +915,33 @@ public class TestPigServer {
         _testSkipParseInRegisterForBatch(true, 7, 1);
     }
 
+    @Test
+    // See PIG-3967
+    public void testGruntValidation() throws IOException {
+        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        Data data = resetData(pigServer);
+
+        data.set("foo",
+                tuple("a", 1, "b"),
+                tuple("b", 2, "c"),
+                tuple("c", 3, "d"));
+
+        pigServer.setValidateEachStatement(true);
+        pigServer.registerQuery("A = LOAD 'foo' USING mock.Storage() AS (f1:chararray,f2:int,f3:chararray);");
+        pigServer.registerQuery("store A into '" + tempDir + "/testGruntValidation1';");
+        pigServer.registerQuery("B = LOAD 'foo' USING mock.Storage() AS (f1:chararray,f2:int,f3:chararray);");
+        pigServer.registerQuery("store B into '" + tempDir + "/testGruntValidation2';"); // This should pass
+        boolean validationExceptionCaptured = false;
+        try {
+            // This should fail due to output validation
+            pigServer.registerQuery("store A into '" + tempDir + "/testGruntValidation1';");
+        } catch (FrontendException e) {
+            validationExceptionCaptured = true;
+        }
+
+        assertTrue(validationExceptionCaptured);
+    }
+
     private void _testSkipParseInRegisterForBatch(boolean skipParseInRegisterForBatch,
             int numTimesInitiated, int numTimesSchemaCalled) throws Throwable {
         MockTrackingStorage.numTimesInitiated = 0;
