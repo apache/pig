@@ -46,6 +46,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Random;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -55,7 +56,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.ExecType;
-import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -121,7 +121,7 @@ public class TestPigServer {
                     fail("Included is false, but url ["+url+"] contains name ["+name+"]");
             }
                 assertEquals("Too many urls contain name: " + name, 1, ++count);
-        }
+            }
         }
         if (included) {
             assertEquals("Number of urls that contain name [" + name + "] != 1", 1, count);
@@ -775,24 +775,48 @@ public class TestPigServer {
 
     @Test
     public void testPigTempDir() throws Throwable {
-        File propertyFile = new File(tempDir, "pig.properties");
-        propertyFile.deleteOnExit();
-        PrintWriter out = new PrintWriter(new FileWriter(propertyFile));
-        out.println(PigConfiguration.PIG_TEMP_DIR + "=/tmp/test");
-        out.close();
         Properties properties = PropertiesUtil.loadDefaultProperties();
+        File pigTempDir = new File(tempDir, FILE_SEPARATOR + "tmp" + FILE_SEPARATOR + "test");
+        properties.put("pig.temp.dir", pigTempDir.getPath());
         PigContext pigContext=new PigContext(ExecType.LOCAL, properties);
         pigContext.connect();
         FileLocalizer.setInitialized(false);
+
         String tempPath= FileLocalizer.getTemporaryPath(pigContext).toString();
-        assertTrue(tempPath.startsWith("file:/tmp/test/"));
         Path path = new Path(tempPath);
+        assertTrue(tempPath.startsWith(pigTempDir.toURI().toString()));
+
         FileSystem fs = FileSystem.get(path.toUri(),
                 ConfigurationUtil.toConfiguration(pigContext.getProperties()));
         FileStatus status = fs.getFileStatus(path.getParent());
         // Temporary root dir should have 700 as permission
         assertEquals("rwx------", status.getPermission().toString());
-        propertyFile.delete();
+        pigTempDir.delete();
+        FileLocalizer.setInitialized(false);
+    }
+
+    @Test
+    public void testUniquePigTempDir() throws Throwable {
+        Properties properties = PropertiesUtil.loadDefaultProperties();
+        File pigTempDir = new File(tempDir, FILE_SEPARATOR + "tmp" + FILE_SEPARATOR + "test");
+        properties.put("pig.temp.dir", pigTempDir.getPath());
+        PigContext pigContext = new PigContext(ExecType.LOCAL, properties);
+        pigContext.connect();
+        FileLocalizer.setInitialized(false);
+
+        Random r = new Random(5);
+        FileLocalizer.setR(r);
+        String tempPath1 = FileLocalizer.getTemporaryPath(pigContext).toString();
+
+        FileLocalizer.setInitialized(false);
+        r = new Random(5);
+        FileLocalizer.setR(r);
+        String tempPath2 = FileLocalizer.getTemporaryPath(pigContext).toString();
+
+        assertFalse(tempPath1.toString().equals(tempPath2.toString()));
+
+        // cleanup
+        pigTempDir.delete();
         FileLocalizer.setInitialized(false);
     }
 
