@@ -102,10 +102,9 @@ public class TezSessionManager {
     }
 
     private static SessionInfo createSession(Configuration conf, Map<String, LocalResource> requestedAMResources, Credentials creds) throws TezException, IOException {
-        TezConfiguration tezConf = new TezConfiguration(conf);
-        AMConfiguration amConfig = getAMConfig(tezConf, requestedAMResources, creds);
+        AMConfiguration amConfig = getAMConfig(new TezConfiguration(conf), requestedAMResources, creds);
+        TezConfiguration tezConf = amConfig.getAMConf();
         TezSessionConfiguration sessionConfig = new TezSessionConfiguration(amConfig, tezConf);
-
         String jobName = conf.get(PigContext.JOB_NAME, "pig");
         TezClient tezClient = new TezClient(tezConf);
         ApplicationId appId = tezClient.createApplication();

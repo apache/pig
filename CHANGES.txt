@@ -30,6 +30,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3971: Pig on tez fails to run in Oozie in secure cluster (rohini)
+
 PIG-3968: OperatorPlan.serialVersionUID is not defined (daijy)
 
 Release 0.13.0 - Unreleased

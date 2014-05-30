@@ -132,6 +132,11 @@ public class MRToTezHelper {
                 + dagAMConf.getInt(MRJobConfig.MR_AM_MAX_ATTEMPTS,
                         MRJobConfig.DEFAULT_MR_AM_MAX_ATTEMPTS));
 
+        if (tezConf.get("mapreduce.job.credentials.binary") != null) {
+            dagAMConf.setIfUnset(TezJobConfig.TEZ_CREDENTIALS_PATH,
+                    tezConf.get("mapreduce.job.credentials.binary"));
+        }
+
         return dagAMConf;
     }
 
