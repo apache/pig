@@ -81,9 +81,9 @@ public final class PigHadoopLogger implements PigLogger {
                 }
                 if (o instanceof EvalFunc || o instanceof LoadFunc || o instanceof StoreFunc) {
                     reporter.incrCounter(className, warningEnum.name(), 1);
-                } else {
-                    reporter.incrCounter(warningEnum, 1);
                 }
+                // For backwards compatibility, always report with warningEnum, see PIG-3739
+                reporter.incrCounter(warningEnum, 1);
             } else {
                 //TODO:
                 //in local mode of execution if the PigHadoopLogger is used initially,
