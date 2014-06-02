@@ -244,7 +244,7 @@ sub generateData
     );
 
 	# Create the HDFS directories
-	$self->runPigCmd($cfg, $log, "fs -mkdir $cfg->{'inpathbase'}");
+	$self->runPigCmd($cfg, $log, "fs -mkdir -p $cfg->{'inpathbase'}");
 
     foreach my $table (@tables) {
 		print "Generating data for $table->{'name'}\n";
