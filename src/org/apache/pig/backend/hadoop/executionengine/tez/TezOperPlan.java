@@ -42,12 +42,9 @@ public class TezOperPlan extends OperatorPlan<TezOperator> {
 
     private static final long serialVersionUID = 1L;
 
-    private TezResourceManager tezResourceManager;
-
     private Map<String, Path> extraResources = new HashMap<String, Path>();
 
-    public TezOperPlan(TezResourceManager tezResourceManager) {
-        this.tezResourceManager = tezResourceManager;
+    public TezOperPlan() {
     }
 
     @Override
@@ -70,7 +67,7 @@ public class TezOperPlan extends OperatorPlan<TezOperator> {
         String resourceName = resourcePath.getName();
 
         if (!extraResources.containsKey(resourceName)) {
-            Path remoteFsPath = tezResourceManager.addTezResource(url);
+            Path remoteFsPath = TezResourceManager.getInstance().addTezResource(url);
             extraResources.put(resourceName, remoteFsPath);
         }
     }
@@ -78,7 +75,7 @@ public class TezOperPlan extends OperatorPlan<TezOperator> {
     // Add extra plan-specific local resources already present in the remote FS
     public void addExtraResource(String resourceName, Path remoteFsPath) throws IOException {
         if (!extraResources.containsKey(resourceName)) {
-            tezResourceManager.addTezResource(resourceName, remoteFsPath);
+            TezResourceManager.getInstance().addTezResource(resourceName, remoteFsPath);
             extraResources.put(resourceName, remoteFsPath);
         }
     }
@@ -93,7 +90,7 @@ public class TezOperPlan extends OperatorPlan<TezOperator> {
         addShipResources(streamVisitor.getShipFiles());
         addCacheResources(streamVisitor.getCacheFiles());
 
-        return tezResourceManager.getTezResources(extraResources.keySet());
+        return TezResourceManager.getInstance().getTezResources(extraResources.keySet());
     }
 
     // In the statement "SHIP('/home/foo')" we'll map the resource name foo to
