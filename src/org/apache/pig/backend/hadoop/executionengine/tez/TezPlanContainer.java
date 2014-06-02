@@ -38,12 +38,10 @@ import org.apache.pig.impl.util.JarManager;
 
 public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
     private static final long serialVersionUID = 1L;
-    private TezResourceManager tezResourceManager;
     private PigContext pigContext;
 
-    public TezPlanContainer(PigContext pigContext, TezResourceManager tezResourceManager) {
+    public TezPlanContainer(PigContext pigContext) {
         this.pigContext = pigContext;
-        this.tezResourceManager = tezResourceManager;
     }
 
     // Add the Pig jar and the UDF jars as AM resources (all DAG's in the planContainer
@@ -52,7 +50,7 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
     public Map<String, LocalResource> getLocalResources() throws Exception {
         Set<URL> jarLists = new HashSet<URL>();
 
-        jarLists.add(tezResourceManager.getBootStrapJar());
+        jarLists.add(new File(TezResourceManager.getInstance().getBootStrapJar()).toURI().toURL());
 
         // In MR Pig the extra jars and script jars get put in Distributed Cache, but
         // in Tez we'll add them as local resources.
@@ -101,7 +99,7 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
         //     }
         // }
 
-        return tezResourceManager.addTezResources(jarLists);
+        return TezResourceManager.getInstance().addTezResources(jarLists);
     }
 
     public TezOperPlan getNextPlan(List<TezOperPlan> processedPlans) {
@@ -157,7 +155,7 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
         if (operToSegment != null) {
             for (TezOperator succ : succs) {
                 tezOperPlan.disconnect(operToSegment, succ);
-                TezOperPlan newOperPlan = new TezOperPlan(tezResourceManager);
+                TezOperPlan newOperPlan = new TezOperPlan();
                 List<TezPlanContainerNode> containerSuccs = new ArrayList<TezPlanContainerNode>();
                 if (getSuccessors(planNode)!=null) {
                     containerSuccs.addAll(getSuccessors(planNode));

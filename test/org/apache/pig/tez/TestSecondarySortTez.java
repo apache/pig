@@ -44,7 +44,7 @@ public class TestSecondarySortTez extends TestSecondarySort {
     public SecondaryKeyOptimizer visitSecondaryKeyOptimizer(String query)
             throws Exception, VisitorException {
         PhysicalPlan pp = Util.buildPp(pigServer, query);
-        TezCompiler comp = new TezCompiler(pp, pc, null);
+        TezCompiler comp = new TezCompiler(pp, pc);
         TezOperPlan tezPlan = comp.compile();
         boolean nocombiner = Boolean.parseBoolean(pc.getProperties().getProperty(
                 PigConfiguration.PROP_NO_COMBINER, "false"));

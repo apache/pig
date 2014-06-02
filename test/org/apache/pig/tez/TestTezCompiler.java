@@ -551,7 +551,7 @@ public class TestTezCompiler {
     private void run(String query, String expectedFile) throws Exception {
         PhysicalPlan pp = Util.buildPp(pigServer, query);
         TezLauncher launcher = new TezLauncher();
-        TezPlanContainer tezPlanContainer = launcher.compile(pp, pc, null);
+        TezPlanContainer tezPlanContainer = launcher.compile(pp, pc);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(baos);

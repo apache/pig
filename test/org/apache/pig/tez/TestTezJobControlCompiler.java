@@ -169,7 +169,7 @@ public class TestTezJobControlCompiler {
 
     private Pair<TezOperPlan, DAG> compile(String query) throws Exception {
         PhysicalPlan pp = Util.buildPp(pigServer, query);
-        TezCompiler comp = new TezCompiler(pp, pc, null);
+        TezCompiler comp = new TezCompiler(pp, pc);
         TezOperPlan tezPlan = comp.compile();
         TezJobControlCompiler jobComp = new TezJobControlCompiler(pc, new Configuration());
         DAG dag = jobComp.buildDAG(tezPlan, new HashMap<String, LocalResource>());

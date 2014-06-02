@@ -65,8 +65,10 @@ public class TezLauncher extends Launcher {
 
         Path stagingDir = FileLocalizer.getTemporaryPath(pc, "-tez");
 
-        TezResourceManager tezResourceManager = new TezResourceManager(stagingDir, pc, conf);
+        TezResourceManager tezResourceManager = TezResourceManager.getInstance();
+        tezResourceManager.init(pc, conf);
 
+        stagingDir.getFileSystem(conf).mkdirs(stagingDir);
         log.info("Tez staging directory is " + stagingDir.toString());
         conf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDir.toString());
 
@@ -77,7 +79,7 @@ public class TezLauncher extends Launcher {
         PigStats.start(tezStats);
 
         TezJobControlCompiler jcc = new TezJobControlCompiler(pc, conf);
-        TezPlanContainer tezPlanContainer = compile(php, pc, tezResourceManager);
+        TezPlanContainer tezPlanContainer = compile(php, pc);
 
         TezOperPlan tezPlan;
 
@@ -205,7 +207,7 @@ public class TezLauncher extends Launcher {
             String format, boolean verbose) throws PlanException,
             VisitorException, IOException {
         log.debug("Entering TezLauncher.explain");
-        TezPlanContainer tezPlanContainer = compile(php, pc, null);
+        TezPlanContainer tezPlanContainer = compile(php, pc);
 
         if (format.equals("text")) {
             TezPlanContainerPrinter printer = new TezPlanContainerPrinter(ps, tezPlanContainer);
@@ -217,9 +219,9 @@ public class TezLauncher extends Launcher {
         }
     }
 
-    public TezPlanContainer compile(PhysicalPlan php, PigContext pc, TezResourceManager tezResourceManager)
+    public TezPlanContainer compile(PhysicalPlan php, PigContext pc)
             throws PlanException, IOException, VisitorException {
-        TezCompiler comp = new TezCompiler(php, pc, tezResourceManager);
+        TezCompiler comp = new TezCompiler(php, pc);
         TezOperPlan tezPlan = comp.compile();
 
         NoopFilterRemover filter = new NoopFilterRemover(tezPlan);

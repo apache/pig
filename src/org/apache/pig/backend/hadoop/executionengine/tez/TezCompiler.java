@@ -149,8 +149,6 @@ public class TezCompiler extends PhyPlanVisitor {
 
     private Map<PhysicalOperator, TezOperator> phyToTezOpMap;
 
-    private TezResourceManager tezResourceManager;
-
     public static final String USER_COMPARATOR_MARKER = "user.comparator.func:";
     public static final String FILE_CONCATENATION_THRESHOLD = "pig.files.concatenation.threshold";
     public static final String OPTIMISTIC_FILE_CONCATENATION = "pig.optimistic.files.concatenation";
@@ -160,16 +158,15 @@ public class TezCompiler extends PhyPlanVisitor {
 
     private POLocalRearrangeTezFactory localRearrangeFactory;
 
-    public TezCompiler(PhysicalPlan plan, PigContext pigContext, TezResourceManager tezResourceManager)
+    public TezCompiler(PhysicalPlan plan, PigContext pigContext)
             throws TezCompilerException {
         super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(plan));
         this.plan = plan;
         this.pigContext = pigContext;
-        this.tezResourceManager = tezResourceManager;
 
         pigProperties = pigContext.getProperties();
         splitsSeen = Maps.newHashMap();
-        tezPlan = new TezOperPlan(tezResourceManager);
+        tezPlan = new TezOperPlan();
         nig = NodeIdGenerator.getGenerator();
         udfFinder = new UDFFinder();
         List<PhysicalOperator> roots = plan.getRoots();
@@ -196,7 +193,7 @@ public class TezCompiler extends PhyPlanVisitor {
 
     // Segment a single DAG into a DAG graph
     public TezPlanContainer getPlanContainer() throws PlanException {
-        TezPlanContainer tezPlanContainer = new TezPlanContainer(pigContext, tezResourceManager);
+        TezPlanContainer tezPlanContainer = new TezPlanContainer(pigContext);
         TezPlanContainerNode node = new TezPlanContainerNode(OperatorKey.genOpKey(scope), tezPlan);
         tezPlanContainer.add(node);
         tezPlanContainer.split(node);

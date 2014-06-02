@@ -30,6 +30,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3978: Container reuse does not across PigServer (daijy)
+
 PIG-3974: E2E test data generation fails in cluster mode (lbendig via cheolsoo)
 
 PIG-3969: Javascript UDF fails if no output schema is defined (lbendig via cheolsoo)
