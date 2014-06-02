@@ -23,8 +23,10 @@ import java.util.Iterator;
 import org.apache.hadoop.util.Shell;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.BagFactory;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
@@ -51,6 +53,9 @@ public class TestScriptUDF{
     @Test
     public void testJavascriptExampleScript() throws Exception{
         String[] script = {
+                "function simple(word) {",
+                "return word;",
+                "}",
                 "helloworld.outputSchema = \"word:chararray\";",
                 "function helloworld() {",
                 "return 'Hello, World';",
@@ -72,24 +77,34 @@ public class TestScriptUDF{
         // Test the namespace
         pigServer.registerCode("testJavascriptExampleScript.js", "javascript", "myfuncs");
         pigServer.registerQuery("A = LOAD 'table_testJavascriptExampleScript' as (a0:chararray, a1:long);");
-        pigServer.registerQuery("B = foreach A generate myfuncs.helloworld(), myfuncs.complex($0);");
+        pigServer.registerQuery("B = foreach A generate myfuncs.simple($0), myfuncs.helloworld(), myfuncs.complex($0);");
 
         Iterator<Tuple> iter = pigServer.openIterator("B");
         Assert.assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        Assert.assertEquals(((Tuple)t.get(1)).get(1), 3);
+        Assert.assertEquals(((Tuple)t.get(2)).get(1), 3);
 
         Assert.assertTrue(iter.hasNext());
         t = iter.next();
 
-        Assert.assertEquals(((Tuple)t.get(1)).get(1), 3);
+        Assert.assertEquals(((Tuple)t.get(2)).get(1), 3);
 
         Assert.assertTrue(iter.hasNext());
         t = iter.next();
 
-        Assert.assertEquals(((Tuple)t.get(1)).get(1), 5);
+        Assert.assertEquals(((Tuple)t.get(2)).get(1), 5);
 
+        //test output schema
+        Schema outputSchema = pigServer.dumpSchema("B");
+
+        Assert.assertEquals(new Schema.FieldSchema(null, DataType.BYTEARRAY), outputSchema.getField(0));
+        Assert.assertEquals(new Schema.FieldSchema("word", DataType.CHARARRAY), outputSchema.getField(1));
+        
+        Schema inner = new Schema();
+        inner.add(new Schema.FieldSchema("word", DataType.CHARARRAY));
+        inner.add(new Schema.FieldSchema("num", DataType.LONG));
+        Assert.assertEquals(new Schema.FieldSchema("tuple_0", inner, DataType.TUPLE), outputSchema.getField(2));
     }
 
     // See Pig-1653 -- left here because we can't force absolute paths in e2e harness

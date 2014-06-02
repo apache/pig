@@ -30,6 +30,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3969: Javascript UDF fails if no output schema is defined (lbendig via cheolsoo)
+
 PIG-3971: Pig on tez fails to run in Oozie in secure cluster (rohini)
 
 PIG-3968: OperatorPlan.serialVersionUID is not defined (daijy)
