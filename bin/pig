@@ -365,10 +365,12 @@ if [ -n "$HADOOP_BIN" ]; then
 
     export HADOOP_CLASSPATH=$CLASSPATH:$HADOOP_CLASSPATH
     export HADOOP_OPTS="$JAVA_HEAP_MAX $PIG_OPTS $HADOOP_OPTS"
+    export HADOOP_CLIENT_OPTS="$JAVA_HEAP_MAX $PIG_OPTS $HADOOP_CLIENT_OPTS"
     if [ "$debug" == "true" ]; then
         echo "dry run:"
         echo "HADOOP_CLASSPATH: $HADOOP_CLASSPATH"
         echo "HADOOP_OPTS: $HADOOP_OPTS"
+        echo "HADOOP_CLIENT_OPTS: $HADOOP_CLIENT_OPTS"
         echo "$HADOOP_BIN" jar "$PIG_JAR" "${remaining[@]}"
         echo
     else
