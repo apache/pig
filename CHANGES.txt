@@ -147,6 +147,8 @@ PIG-3882: Multiquery off mode execution is not done in batch and very inefficien
  
 BUG FIXES
 
+PIG-3989: PIG_OPTS does not work with some version of HADOOP (daijy)
+
 PIG-3739: The Warning_4 e2e test is broken in trunk (aniket486)
 
 PIG-3976: Typo correction in JobStats breaks Oozie (rohini)
