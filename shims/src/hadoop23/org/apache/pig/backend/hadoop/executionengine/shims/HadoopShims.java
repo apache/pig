@@ -221,4 +221,8 @@ public class HadoopShims {
             throw new IOException(ir);
         }
     }
+    
+    public static boolean isHadoopYARN() {
+        return true;
+    }
 }

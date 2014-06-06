@@ -183,4 +183,8 @@ public class HadoopShims {
                 ? jobClient.getMapTaskReports(job.getAssignedJobID())
                         : jobClient.getReduceTaskReports(job.getAssignedJobID());
     }
+    
+    public static boolean isHadoopYARN() {
+        return false;
+    }
 }

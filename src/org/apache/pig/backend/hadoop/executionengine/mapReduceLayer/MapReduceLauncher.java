@@ -49,7 +49,6 @@ import org.apache.pig.PigWarning;
 import org.apache.pig.backend.BackendException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
 import org.apache.pig.backend.hadoop.executionengine.Launcher;
@@ -325,10 +324,9 @@ public class MapReduceLauncher extends Launcher{
                                 log.info("detailed locations: " + aliasLocation);
                             }
 
-
-                            if(jobTrackerLoc != null){
-                                log.info("More information at: http://"+ jobTrackerLoc+
-                                        "/jobdetails.jsp?jobid="+job.getAssignedJobID());
+                            if (!HadoopShims.isHadoopYARN() && jobTrackerLoc != null) {
+                                log.info("More information at: http://" + jobTrackerLoc
+                                        + "/jobdetails.jsp?jobid=" + job.getAssignedJobID());
                             }
 
                             // update statistics for this job so jobId is set
