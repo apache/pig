@@ -87,6 +87,7 @@ import org.apache.pig.builtin.ROUND;
 import org.apache.pig.builtin.ROUND_TO;
 import org.apache.pig.builtin.RTRIM;
 import org.apache.pig.builtin.SIZE;
+import org.apache.pig.builtin.SPRINTF;
 import org.apache.pig.builtin.STRSPLIT;
 import org.apache.pig.builtin.SUBSTRING;
 import org.apache.pig.builtin.SecondsBetween;
@@ -2428,7 +2429,59 @@ public class TestBuiltin {
         its = pigServer.openIterator("B");
         t = its.next();
         assertEquals("abcd",t.get(0));
-        
+
+        // Concat on a null value returns null
+        pigServer.registerQuery("B = foreach A generate CONCAT('a', CONCAT('b',Null), 'd');");
+        its = pigServer.openIterator("B");
+        t = its.next();
+        assertNull(t.get(0));
+    }
+
+    @Test
+    public void testSPRINTF() throws Exception {
+        // String Sprintf
+        String  fmt = "%2$10s <%1$-6s< %2$,10d >%1$7s> %2$8x %3$10.3f";
+        String  s1  = "meep";
+        Integer ii  = 665568;
+        Float   ff  = 993.14159265f;
+        String  exp = "    665568 <meep  <    665,568 >   meep>    a27e0    993.142";
+        Tuple   ts;
+        String  res;
+        EvalFunc<String> sprinter = new SPRINTF();
+        //
+        // Formats output, happily navigating strings, numbers, etc
+        ts = TupleFactory.getInstance().newTuple(5);
+        ts.set(0, fmt);
+        ts.set(1, s1);
+        ts.set(2, ii);
+        ts.set(3, ff);
+        ts.set(4, (long)(ii * 1000000L));
+        res = sprinter.exec(ts);
+        assertEquals(exp, res);
+        //
+        // Happy with float/double, int/long
+        ts.set(2, 665568l);
+        ts.set(3, 993.14159265d);
+        res = sprinter.exec(ts);
+        assertEquals(exp, res);
+        //
+        // Works with just one arg
+        ts = TupleFactory.getInstance().newTuple(1);
+        ts.set(0, "meep!");
+        res = sprinter.exec(ts);
+        assertEquals("meep!", res);
+
+        // Test in script
+        //
+        String input = "vararg_sprintf_test_jira_3939.txt";
+        Util.createLocalInputFile(input, new String[]{"dummy"});
+        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        pigServer.registerQuery("A = LOAD '"+input+"' as (x:chararray);");
+        //
+        pigServer.registerQuery("B = foreach A generate SPRINTF('%6s|%-8s|%2$,+12d %2$8x', 'yay', 665568);");
+        Iterator<Tuple> its = pigServer.openIterator("B");
+        Tuple t = its.next();
+        assertEquals("   yay|665568  |    +665,568    a27e0", t.get(0));
     }
 
     @Test

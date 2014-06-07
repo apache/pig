@@ -924,37 +924,36 @@ DUMP X;
            <td>
              <p>DEFINE pluck PluckTuple(expression1)</p>
              <p>pluck(expression2)</p>
-            </td>
-          </tr>
-        </table>
+           </td>
+         </tr>
+       </table>
      </section>
-   </section>
-   
-   <section>
-     <title>Terms</title>
-     <table>
-       <tr>
-         <td>
-           <p>expression1</p>
-         </td>
-         <td>
-           <p>A prefix to pluck by</p>
-         </td>
-       </tr>
-       <tr>
-         <td>
-           <p>expression2</p>
-         </td>
-         <td>
-           <p>The fields to apply the pluck to, usually '*'</p>
-         </td>
-       </tr>
-     </table>
-   </section>
-   
-   <section>
-   <title>Usage</title>
-   <p>Example:</p>
+     
+     <section>
+       <title>Terms</title>
+       <table>
+	 <tr>
+           <td>
+             <p>expression1</p>
+           </td>
+           <td>
+             <p>A prefix to pluck by</p>
+           </td>
+	 </tr>
+	 <tr>
+           <td>
+             <p>expression2</p>
+           </td>
+           <td>
+             <p>The fields to apply the pluck to, usually '*'</p>
+           </td>
+	 </tr>
+       </table>
+     </section>
+     
+     <section>
+       <title>Usage</title>
+       <p>Example:</p>
 <source>
 a = load 'a' as (x, y);
 b = load 'b' as (x, y);
@@ -966,6 +965,7 @@ c: {a::x: bytearray,a::y: bytearray,b::x: bytearray,b::y: bytearray}
 describe d;
 d: {plucked::a::x: bytearray,plucked::a::y: bytearray}
 </source>
+     </section>
    </section>
    
      <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
@@ -3341,7 +3341,7 @@ Use the RANDOM function to return a pseudo random number (type double) greater t
     </p>
     <table>
 
-      <tr><th><p>val</p></th> <th><p>digits</p></th> <th><p>mode</p></th> <th><p>ROUND(val, digits)</p></th></tr>
+      <tr><th><p>val</p></th> <th><p>digits</p></th> <th><p>mode</p></th> <th><p>ROUND_TO(val, digits)</p></th></tr>
 
       <tr><td><p>  1234.1789</p> </td> <td><p> 8</p></td> <td><p></p></td> <td><p> 1234.1789</p> </td> </tr>
       <tr><td><p>  1234.1789</p> </td> <td><p> 4</p></td> <td><p></p></td> <td><p> 1234.1789</p> </td> </tr>
@@ -4139,6 +4139,104 @@ Use the RTRIM function to remove trailing white space from a string.
      </p>
 </section>
 </section> 
+
+
+<!-- ======================================================== -->
+<section id="sprintf">
+  <title>SPRINTF</title>
+  <p>Formats a set of values according to a printf-style template, using the <a href="http://docs.oracle.com/javase/7/docs/api/java/util/Formatter.html">native Java Formatter</a> library.</p>
+
+  <section>
+    <title>Syntax</title>
+    <table>
+      <tr>
+        <td>
+          <p>SPRINTF(format, [...vals])</p>
+        </td>
+      </tr>
+
+  </table></section>
+
+  <section>
+    <title>Terms</title>
+    <table>
+      <tr>
+        <td>
+          <p>format</p>
+        </td>
+        <td>
+          <p>The printf-style string describing the template.</p>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <p>vals</p>
+        </td>
+        <td>
+          <p>
+            The values to place in the template.  There must be a tuple element
+            for each formatting placeholder, and it must have the correct type:
+            <code>int</code> or <code>long</code> for integer formats such as
+            <code>%d</code>; <code>float</code> or <code>double</code> for
+            decimal formats such as <code>%f</code>; and <code>long</code> for
+            date/time formats such as <code>%t</code>.
+          </p>
+        </td>
+      </tr>
+    </table>
+  </section>
+
+  <section>
+    <title>Usage</title>
+    <p>
+      Use the SPRINTF function to format a string according to a template. For example, SPRINTF("part-%05d", 69) will return 'part-00069'.
+    </p>
+    <table>
+
+      <tr><th><p>String&nbsp;format&nbsp;specification</p></th> <th><p>arg1</p></th> <th><p>arg2</p></th> <th><p>arg3</p></th> <th><p>SPRINTF(format, arg1, arg2)</p></th> <th><p>notes</p></th></tr>
+
+      <tr><td><p><code>'%8s|%8d|%-8s'</code></p></td>
+      <td><p><code>1234567</code></p></td>      <td><p><code>1234567</code></p></td>    <td><p><code>'yay'</code></p></td>
+      <td><p><code>' 1234567| 1234567|yay     '</code></p></td>
+      <td><p>Format strings with %s, integers with %d. Types are converted for you where reasonable (here, int -&gt; string).</p></td></tr>
+
+      <tr><td><p><code>'%8.3f|%6x'</code></p></td>
+      <td><p><code>123.14159</code></p></td>    <td><p><code>665568</code></p></td>     <td><p><code></code></p></td>
+      <td><p><code>' 123.142| a27e0'</code></p></td>
+      <td><p>Format floats/doubles with %f, hexadecimal integers with %x (there are others besides -- see the <a href='http://docs.oracle.com/javase/7/docs/api/java/util/Formatter.html'>Java docs</a>)</p></td></tr>
+
+      <tr><td><p><code>'%,+10d|%(06d'</code></p></td>
+      <td><p><code>1234567</code></p></td>      <td><p><code>-123</code></p></td>       <td><p><code></code></p></td>
+      <td><p><code>'+1,234,567|(0123)'</code></p></td>
+      <td><p>Numerics take a prefix modifier: <code>,</code> for locale-specific thousands-delimiting, 0 for zero-padding; <code>+</code> to always show a plus sign for positive numbers; space <code> </code> to allow a space preceding positive numbers; <code>(</code> to indicate negative numbers with parentheses (accountant-style).</p></td></tr>
+
+      <tr><td><p><code>'%2$5d: %3$6s %1$3s %2$4x (%&lt;4X)'</code></p></td>
+      <td><p><code>'the'</code></p></td>   <td><p><code>48879</code></p></td>           <td><p><code>'wheres'</code></p></td>
+      <td><p><code>'48879: wheres the beef (BEEF)'</code></p></td>
+      <td><p>Refer to args positionally and as many times as you like using <code>%(pos)$...</code>. Use <code>%&lt;...</code> to refer to the previously-specified arg.</p></td></tr>
+
+
+      <tr><td><p><code>'Launch Time: %14d %s'</code></p></td>
+        <td><p><code>ToMilliSeconds(CurrentTime())</code></p></td>   <td><p><code>ToString(CurrentTime(), 'yyyy-MM-dd HH:mm:ss Z')</code></p></td>     <td><p><code></code></p></td>
+        <td><p><code>'Launch Time:  1400164132000 2014-05-15 09:28:52 -0500'</code></p></td>
+        <td><p>Instead use ToString to format the date/time portions and SPRINTF to layout the results.</p></td></tr>
+      
+      <tr><td><p><code>'%8s|%-8s'</code></p></td>                 <td><p><code>1234567</code></p></td> <td><p><code></code></p></td> <td><p><code></code></p></td>
+      <td><p><code>MissingFormatArgumentException: Format specifier '%-8s' </code></p></td><td><p>You must supply arguments for all specifiers</p></td></tr>
+
+      <tr><td><p><code>'%8s'</code></p></td>                      <td><p><code>1234567</code></p></td> <td><p><code>'ignored'</code></p></td> <td><p><code>'also'</code></p></td>
+      <td><p><code> 1234567</code></p></td>                     <td><p>It's OK to supply too many, though</p></td></tr>
+
+    </table>
+    <p>
+      <em>Note: although the Java formatter (and thus this function) offers the
+      <code>%t</code> specifier for date/time elements, it's best avoided: it's
+      cumbersome, the output and timezone handling may differ from what you
+      expect, and it doesn't accept datetime objects from pig. Instead, just
+      prepare dates usint the ToString UDF as shown.</em>
+    </p>
+  </section>
+</section>
 
 <!-- ======================================================== -->  
 <section id="startswith">
