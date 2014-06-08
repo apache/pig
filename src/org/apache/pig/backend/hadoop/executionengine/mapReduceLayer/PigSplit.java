@@ -209,7 +209,7 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
     public long getLength(int idx) throws IOException, InterruptedException {
         return wrappedSplits[idx].getLength();
     }
-    
+
     @SuppressWarnings("unchecked")
     public void readFields(DataInput is) throws IOException {
         disableCounter = is.readBoolean();
@@ -219,23 +219,31 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
         inputIndex = is.readInt();
         targetOps = (ArrayList<OperatorKey>) readObject(is);
         int splitLen = is.readInt();
-        String splitClassName = is.readUTF();
+        int distinctSplitClassCount = is.readInt();
+        //construct the input split class name list
+        String[] distinctSplitClassName = new String[distinctSplitClassCount];
+        for (int i = 0; i < distinctSplitClassCount; i++) {
+            distinctSplitClassName[i] = is.readUTF();
+        }
         try {
-            Class splitClass = conf.getClassByName(splitClassName);
             SerializationFactory sf = new SerializationFactory(conf);
             // The correct call sequence for Deserializer is, we shall open, then deserialize, but we shall not close
-            Deserializer d = sf.getDeserializer(splitClass);
-            d.open((InputStream) is);
             wrappedSplits = new InputSplit[splitLen];
             for (int i = 0; i < splitLen; i++)
             {
+                //read the className index
+                int index = is.readInt();
+                //get the split class name
+                String splitClassName = distinctSplitClassName[index];
+                Class splitClass = conf.getClassByName(splitClassName);
+                Deserializer d = sf.getDeserializer(splitClass);
+                d.open((InputStream) is);
                 wrappedSplits[i] = (InputSplit)ReflectionUtils.newInstance(splitClass, conf);
                 d.deserialize(wrappedSplits[i]);
             }
         } catch (ClassNotFoundException e) {
             throw new IOException(e);
         }
-        
     }
 
     @SuppressWarnings("unchecked")
@@ -247,22 +255,36 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
         os.writeInt(inputIndex);
         writeObject(targetOps, os);
         os.writeInt(wrappedSplits.length);
-        os.writeUTF(wrappedSplits[0].getClass().getName());
+        Set<String> splitClassNameSet = new HashSet<String>();
+        //first get the distinct split class name set
+        for ( int i= 0; i < wrappedSplits.length; i++) {
+            splitClassNameSet.add(wrappedSplits[i].getClass().getName());
+        }
+        List<String> distinctSplitClassList = new ArrayList<String>();
+        distinctSplitClassList.addAll(splitClassNameSet);
+        //write the distinct number of split class name
+        os.writeInt(distinctSplitClassList.size());
+        //write each classname once
+        for (int i = 0 ; i < distinctSplitClassList.size(); i++) {
+            os.writeUTF(distinctSplitClassList.get(i));
+        }
         SerializationFactory sf = new SerializationFactory(conf);
-        Serializer s = 
-            sf.getSerializer(wrappedSplits[0].getClass());
-         
-        //Checks if Serializer is NULL or not before calling open() method on it.         
-        if (s == null) {
-            	throw new IllegalArgumentException("Could not find Serializer for class "+wrappedSplits[0].getClass()+". InputSplits must implement Writable.");
-        }        
-        s.open((OutputStream) os);
+
         for (int i = 0; i < wrappedSplits.length; i++)
         {
+            //find out the index of the split class name
+            int index = distinctSplitClassList.indexOf(wrappedSplits[i].getClass().getName());
+            os.writeInt(index);
+            Serializer s = sf.getSerializer(wrappedSplits[i].getClass());
+            //Checks if Serializer is NULL or not before calling open() method on it.
+            if (s == null) {
+                throw new IllegalArgumentException("Could not find Serializer for class "+wrappedSplits[i].getClass()+". InputSplits must implement Writable.");
+            }
+            s.open((OutputStream) os);
             // The correct call sequence for Serializer is, we shall open, then serialize, but we shall not close
             s.serialize(wrappedSplits[i]);
         }
-        
+
     }
 
     private void writeObject(Serializable obj, DataOutput os)
@@ -376,7 +398,8 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
         try {
             st.append("Total Length = "+ getLength()+"\n");
             for (int i = 0; i < wrappedSplits.length; i++) {
-                st.append("Input split["+i+"]:\n   Length = "+ wrappedSplits[i].getLength()+"\n  Locations:\n");
+                st.append("Input split["+i+"]:\n   Length = "+ wrappedSplits[i].getLength()+"\n   ClassName: " +
+                    wrappedSplits[i].getClass().getName() + "\n   Locations:\n");
                 for (String location :  wrappedSplits[i].getLocations())
                     st.append("    "+location+"\n");
                 st.append("\n-----------------------\n"); 
