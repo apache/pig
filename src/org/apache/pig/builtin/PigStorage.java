@@ -149,10 +149,6 @@ LoadPushDown, LoadMetadata, StoreMetadata, OverwritableStoreFunc {
     protected ResourceSchema schema;
     protected LoadCaster caster;
 
-    private final CommandLine configuredOptions;
-    private final Options validOptions = new Options();
-    private final static CommandLineParser parser = new GnuParser();
-
     protected boolean[] mRequiredColumns = null;
     private boolean mRequiredColumnsInitialized = false;
 
@@ -163,14 +159,21 @@ LoadPushDown, LoadMetadata, StoreMetadata, OverwritableStoreFunc {
     private static final String TAG_SOURCE_PATH = "tagPath";
     private Path sourcePath = null;
 
-    private void populateValidOptions() {
+    private Options populateValidOptions() {
+        Options validOptions = new Options();
         validOptions.addOption("schema", false, "Loads / Stores the schema of the relation using a hidden JSON file.");
         validOptions.addOption("noschema", false, "Disable attempting to load data schema from the filesystem.");
         validOptions.addOption(TAG_SOURCE_FILE, false, "Appends input source file name to beginning of each tuple.");
         validOptions.addOption(TAG_SOURCE_PATH, false, "Appends input source file path to beginning of each tuple.");
         validOptions.addOption("tagsource", false, "Appends input source file name to beginning of each tuple.");
-        Option overwrite = OptionBuilder.hasOptionalArgs(1).withArgName("overwrite").withLongOpt("overwrite").withDescription("Overwrites the destination.").create();
-        validOptions.addOption(overwrite);        
+        Option overwrite = new Option(null, "Overwrites the destination.");
+        overwrite.setLongOpt("overwrite");
+        overwrite.setOptionalArg(true);
+        overwrite.setArgs(1);
+        overwrite.setArgName("overwrite");
+        validOptions.addOption(overwrite);
+        
+        return validOptions;
     }
 
     public PigStorage() {
@@ -204,11 +207,12 @@ LoadPushDown, LoadMetadata, StoreMetadata, OverwritableStoreFunc {
      * @throws ParseException
      */
     public PigStorage(String delimiter, String options) {
-        populateValidOptions();
         fieldDel = StorageUtil.parseFieldDel(delimiter);
+        Options validOptions = populateValidOptions();
         String[] optsArr = options.split(" ");
         try {
-            configuredOptions = parser.parse(validOptions, optsArr);
+            CommandLineParser parser = new GnuParser();
+            CommandLine configuredOptions = parser.parse(validOptions, optsArr);
             isSchemaOn = configuredOptions.hasOption("schema");
             if (configuredOptions.hasOption("overwrite")) {
                 String value = configuredOptions.getOptionValue("overwrite");
