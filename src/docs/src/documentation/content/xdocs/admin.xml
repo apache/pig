@@ -34,21 +34,26 @@
 
 <!-- DISABLE PIG COMMANDS AND OPERATORS -->
     <section>
-       <title>Disabling Pig commands and operators</title>
-           <p>This is an admin feature providing ability to blacklist or/and whitelist certain commands and operations. Pig exposes a few of these that could be not very safe in a multitenant environment. For example, "sh" invokes shell commands, "set" allows users to change non-final configs. While these are tremendously useful in general, having an ability to disable would make Pig a safer platform. The goal is to allow administrators to be able to have more control over user scripts. Default behaviour would still be the same - no filters applied on commands and operators.</p>
-           <p>There are two properties you can use to control what users are able to do</p>
+        <title>Disabling Pig commands and operators</title>
+            <p>This is an admin feature providing ability to blacklist or/and whitelist certain commands and operations. Pig exposes a few of these that could be not very safe in a multitenant environment. For example, "sh" invokes shell commands, "set" allows users to change non-final configs. While these are tremendously useful in general, having an ability to disable would make Pig a safer platform. The goal is to allow administrators to be able to have more control over user scripts. Default behaviour would still be the same - no filters applied on commands and operators.</p>
+            <p>There are two properties you can use to control what users are able to do</p>
                <ul>
                   <li>pig.blacklist</li>
                   <li>pig.whitelist</li>
                </ul>
-           <h4>Blacklisting</h4>
-             <p>Set "pig.blacklist" to a comma-delimited set of operators and commands. For eg, <i>pig.blacklist=rm,kill,cross</i> would disable users from executing any of "rm", "kill" commands and "cross" operator.</p>
-
-           <h4>Whitelisting</h4>
-             <p>This is an even safer approach to disallowing functionality in Pig. Using this you will be able to disable all commands and operators that are not a part of the whitelist. For eg, <i>pig.whitelist=load,filter,store</i> will disallow every command and operator other than "load", "filter" and "store". </p>
-             <h4>Note</h4>
+        <section>
+            <title>Blacklisting</title>
+               <p>Set "pig.blacklist" to a comma-delimited set of operators and commands. For eg, <strong>pig.blacklist=rm,kill,cross</strong> would disable users from executing any of "rm", "kill" commands and "cross" operator.</p>
+        </section>
+        <section>
+            <title>Whitelisting</title>
+               <p>This is an even safer approach to disallowing functionality in Pig. Using this you will be able to disable all commands and operators that are not a part of the whitelist. For eg, <strong>pig.whitelist=load,filter,store</strong> will disallow every command and operator other than "load", "filter" and "store".</p>
+        </section>
+        <section>
+            <title>Note</title>
                <p>There should not be any conflicts between blacklist and whitelist. Make sure to have them entirely distinct or Pig will complain.</p>
+        </section>
     </section>
 
-</body>
+   </body>
 </document>
