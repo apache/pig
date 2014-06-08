@@ -32,6 +32,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3986: PigSplit to support multiple split class (tongjie via cheolsoo)
+
 PIG-3988: PigStorage: CommandLineParser is not thread safe (tmwoodruff via cheolsoo)
 
 PIG-2409: Pig show wrong tracking URL for hadoop 2 (lbendig via rohini)

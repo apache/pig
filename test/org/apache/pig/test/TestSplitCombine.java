@@ -17,25 +17,32 @@
  */
 package org.apache.pig.test;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInput;
+import java.io.DataInputStream;
+import java.io.DataOutput;
+import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+
+import junit.framework.Assert;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.PathFilter;
-import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigInputFormat;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.impl.plan.OperatorKey;
-
-import junit.framework.Assert;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+
+import parquet.hadoop.ParquetInputSplit;
+import parquet.hadoop.metadata.BlockMetaData;
 
 public class TestSplitCombine {
     private Configuration conf;
@@ -76,6 +83,8 @@ public class TestSplitCombine {
     public void setUp() throws Exception {
         conf = new Configuration();
         conf.setLong("pig.maxCombinedSplitSize", 1000);
+      conf.setStrings("io.serializations",
+            "org.apache.hadoop.io.serializer.WritableSerialization");
         pigInputFormat = new TestPigInputFormat();
         ok = new ArrayList<OperatorKey>();
         ok.add(new OperatorKey());
@@ -456,6 +465,105 @@ public class TestSplitCombine {
             Assert.assertEquals(200, pigSplit.getLength(1));
             Assert.assertEquals(100, pigSplit.getLength(2));
             index++;
+        }
+    }
+    
+    @Test
+    public void test10() throws IOException, InterruptedException {
+        // verify locations in order
+        ArrayList<InputSplit> rawSplits = new ArrayList<InputSplit>();
+
+        rawSplits.add(new FileSplit(new Path("path1"), 0, 100, new String[] {
+                "l1", "l2", "l3" }));
+        rawSplits.add(new FileSplit(new Path("path2"), 0, 200, new String[] {
+                "l3", "l4", "l5" }));
+        rawSplits.add(new FileSplit(new Path("path3"), 0, 400, new String[] {
+                "l5", "l6", "l1" }));
+        List<InputSplit> result = pigInputFormat.getPigSplits(rawSplits, 0, ok,
+                null, true, conf);
+
+        Assert.assertEquals(result.size(), 1);
+
+        for (InputSplit split : result) {
+            PigSplit pigSplit = (PigSplit) split;
+            // write to a byte array output stream
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+            DataOutput out = new DataOutputStream(outputStream);
+            pigSplit.write(out);
+            // restore the pig split from the byte array
+            ByteArrayInputStream inputStream = new ByteArrayInputStream(
+                    outputStream.toByteArray());
+
+            DataInput in = new DataInputStream(inputStream);
+            PigSplit anotherSplit = new PigSplit();
+            anotherSplit.setConf(conf);
+
+            anotherSplit.readFields(in);
+
+            Assert.assertEquals(700, anotherSplit.getLength());
+            checkLocationOrdering(pigSplit.getLocations(), new String[] { "l5",
+                    "l1", "l6", "l3", "l4" });
+
+            Assert.assertEquals(3, anotherSplit.getNumPaths());
+
+            Assert.assertEquals(
+                    "org.apache.hadoop.mapreduce.lib.input.FileSplit",
+                    (anotherSplit.getWrappedSplit(0).getClass().getName()));
+            Assert.assertEquals(
+                    "org.apache.hadoop.mapreduce.lib.input.FileSplit",
+                    (anotherSplit.getWrappedSplit(1).getClass().getName()));
+            Assert.assertEquals(
+                    "org.apache.hadoop.mapreduce.lib.input.FileSplit",
+                    (anotherSplit.getWrappedSplit(2).getClass().getName()));
+        }
+    }
+
+    @Test
+    public void test11() throws IOException, InterruptedException {
+        // verify locations in order
+        ArrayList<InputSplit> rawSplits = new ArrayList<InputSplit>();
+
+        // first split is parquetinputsplit
+        rawSplits.add(new ParquetInputSplit(new Path("path1"), 0, 100,
+                new String[] { "l1", "l2", "l3" },
+                new ArrayList<BlockMetaData>(), "", "",
+                new HashMap<String, String>(), new HashMap<String, String>()));
+        // second split is file split
+        rawSplits.add(new FileSplit(new Path("path2"), 0, 400, new String[] {
+                "l5", "l6", "l1" }));
+
+        List<InputSplit> result = pigInputFormat.getPigSplits(rawSplits, 0, ok,
+                null, true, conf);
+
+        // pig combines two into one pigsplit
+        Assert.assertEquals(result.size(), 1);
+
+        for (InputSplit split : result) {
+            PigSplit pigSplit = (PigSplit) split;
+
+            // write to a byte array output stream
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+            DataOutput out = new DataOutputStream(outputStream);
+            pigSplit.write(out);
+            // restore the pig split from the byte array
+            ByteArrayInputStream inputStream = new ByteArrayInputStream(
+                    outputStream.toByteArray());
+
+            DataInput in = new DataInputStream(inputStream);
+            PigSplit anotherSplit = new PigSplit();
+            anotherSplit.setConf(conf);
+            anotherSplit.readFields(in);
+
+            Assert.assertEquals(500, anotherSplit.getLength());
+
+            Assert.assertEquals(2, anotherSplit.getNumPaths());
+            Assert.assertEquals("parquet.hadoop.ParquetInputSplit",
+                    (anotherSplit.getWrappedSplit(0).getClass().getName()));
+            Assert.assertEquals(
+                    "org.apache.hadoop.mapreduce.lib.input.FileSplit",
+                    (anotherSplit.getWrappedSplit(1).getClass().getName()));
         }
     }
     
