@@ -270,7 +270,7 @@ DUMP B;  -- retrieving results
 
 <p id="dfs"><strong>Scripts and Distributed File Systems</strong></p>
 
-<p>Pig supports running scripts (and Jar files) that are stored in HDFS, Amazon S3, and other distributed file systems. The script's full location URI is required (see <a href="basic.html#REGISTER">REGISTER</a> for information about Jar files). For example, to run a Pig script on HDFS, do the following:</p>
+<p>Pig supports running scripts (and Jar files) that are stored in HDFS, Amazon S3, and other distributed file systems. The script's full location URI is required (see <a href="basic.html#register">REGISTER</a> for information about Jar files). For example, to run a Pig script on HDFS, do the following:</p>
 <source>
 $ pig hdfs://nn.mydomain.com:9020/myscripts/script.pig
 </source> 
@@ -286,7 +286,7 @@ $ pig hdfs://nn.mydomain.com:9020/myscripts/script.pig
    <p>Pig Latin statements are the basic constructs you use to process data using Pig. 
    A Pig Latin statement is an operator that takes a <a href="basic.html#relations">relation</a> as input and produces another relation as output. 
    (This definition applies to all Pig Latin operators except LOAD and STORE which read data from and write data to the file system.) 
-   Pig Latin statements may include <a href="basic.html#Expressions">expressions</a> and <a href="basic.html#Schemas">schemas</a>. 
+   Pig Latin statements may include <a href="basic.html#expressions">expressions</a> and <a href="basic.html#schemas">schemas</a>. 
    Pig Latin statements can span multiple lines and must end with a semi-colon ( ; ).  
    By default, Pig Latin statements are processed using <a href="perf.html#multi-query-execution">multi-query execution</a>.  
  </p>
@@ -330,7 +330,7 @@ DUMP B;
    <!-- ++++++++++++++++++++++++++++++++++ -->   
    <section id="data-load">
    <title>Loading Data</title>
-   <p>Use the  <a href="basic.html#LOAD">LOAD</a> operator and the <a href="udf.html#load-store-functions">load/store functions</a> to read data into Pig (PigStorage is the default load function).</p>
+   <p>Use the  <a href="basic.html#load">LOAD</a> operator and the <a href="udf.html#load-store-functions">load/store functions</a> to read data into Pig (PigStorage is the default load function).</p>
    </section>
   
    <!-- ++++++++++++++++++++++++++++++++++ -->   
@@ -339,19 +339,19 @@ DUMP B;
    <p>Pig allows you to transform data in many ways. As a starting point, become familiar with these operators:</p>
    <ul>
       <li>
-         <p>Use the <a href="basic.html#FILTER">FILTER</a> operator to work with tuples or rows of data. 
-         Use the <a href="basic.html#FOREACH">FOREACH</a> operator to work with columns of data.</p>
+         <p>Use the <a href="basic.html#filter">FILTER</a> operator to work with tuples or rows of data. 
+         Use the <a href="basic.html#foreach">FOREACH</a> operator to work with columns of data.</p>
       </li>
       <li>
-         <p>Use the <a href="basic.html#GROUP ">GROUP</a> operator to group data in a single relation. 
-         Use the <a href="basic.html#COGROUP ">COGROUP</a>,
+         <p>Use the <a href="basic.html#group ">GROUP</a> operator to group data in a single relation. 
+         Use the <a href="basic.html#cogroup ">COGROUP</a>,
          <a href="basic.html#join-inner">inner JOIN</a>, and
          <a href="basic.html#join-outer">outer JOIN</a>
          operators  to group or join data in two or more relations.</p>
       </li>
       <li>
-         <p>Use the <a href="basic.html#UNION">UNION</a> operator to merge the contents of two or more relations. 
-         Use the <a href="basic.html#SPLIT">SPLIT</a> operator to partition the contents of a relation into multiple relations.</p>
+         <p>Use the <a href="basic.html#union">UNION</a> operator to merge the contents of two or more relations. 
+         Use the <a href="basic.html#split">SPLIT</a> operator to partition the contents of a relation into multiple relations.</p>
       </li>
    </ul>
    </section>
@@ -368,10 +368,10 @@ DUMP B;
    
     <section id="data-results">
    <title>Storing Final Results</title>
-   <p>Use the  <a href="basic.html#STORE">STORE</a> operator and the <a href="udf.html#load-store-functions">load/store functions</a> 
+   <p>Use the  <a href="basic.html#store">STORE</a> operator and the <a href="udf.html#load-store-functions">load/store functions</a> 
    to write results to the file system (PigStorage is the default store function). </p>
 <p><strong>Note:</strong> During the testing/debugging phase of your implementation, you can use DUMP to display results to your terminal screen. 
-However, in a production environment you always want to use the STORE operator to save your results (see <a href="perf.html#Store-Dump">Store vs. Dump</a>).</p>   
+However, in a production environment you always want to use the STORE operator to save your results (see <a href="perf.html#store-dump">Store vs. Dump</a>).</p>   
    </section> 
 
  <!-- ++++++++++++++++++++++++++++++++++ -->     

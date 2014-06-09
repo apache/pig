@@ -159,7 +159,7 @@ D: {age: bytearray}
    
    <p>
    Note that production scripts SHOULD NOT use DUMP as it will disable multi-query optimizations and is likely to slow down execution 
-   (see <a href="perf.html#Store-Dump">Store vs. Dump</a>).
+   (see <a href="perf.html#store-dump">Store vs. Dump</a>).
    </p>
    </section>
    
@@ -846,7 +846,7 @@ $pig_trunk ant pigunit-jar
       
       <p>The example included here computes the top N of the most common queries. 
         The Pig script, top_queries.pig, is similar to the 
-        <a href="start.html#Pig-Script-1">Query Phrase Popularity</a> 
+        <a href="start.html#pig-script-1">Query Phrase Popularity</a> 
         in the Pig tutorial. It expects an input a file of queries and a parameter n (n is 2 in our case in order to do a top 2). 
       </p>
       

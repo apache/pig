@@ -1817,9 +1817,9 @@ outputSchema "t:(m:[], t:(name:chararray, age:int, gpa:double), b:{t:(name:chara
 </source>
 <p>@OutputSchemaFunction annotation - Defines the name of a function which will return the schema at runtime according to the input schema.</p>
 <source>
-import org.apache.pig.scripting.groovy.OutputSchemaFunction;",
+import org.apache.pig.scripting.groovy.OutputSchemaFunction;
 
-class GroovyUDFs {",
+class GroovyUDFs {
   @OutputSchemaFunction('squareSchema')
   public static square(x) {
     return x * x;

@@ -311,7 +311,7 @@ A!B
 <!-- RELATIONS, BAGS, TUPLES, FIELDS-->
    <section id="relations">
    <title>Relations, Bags, Tuples, Fields</title>
-      <p><a href="start.html#pl-Statements">Pig Latin statements</a> work with relations. A relation can be defined as follows:</p>
+      <p><a href="start.html#pl-statements">Pig Latin statements</a> work with relations. A relation can be defined as follows:</p>
    <ul>
       <li>
          <p>A relation is a bag (more specifically, an outer bag).</p>
@@ -1633,7 +1633,7 @@ A = load ‘input’ as (x, y, z);
 B = foreach A generate x+y;
 </source>
 
- <p>If you do <a href="test.html#DESCRIBE">DESCRIBE</a> on B, you will see a single column of type double. This is because Pig makes the safest choice and uses the largest numeric type when the schema is not know. In practice, the input data could contain integer values; however, Pig will cast the data to double and make sure that a double result is returned.</p>
+ <p>If you do <a href="test.html#describe">DESCRIBE</a> on B, you will see a single column of type double. This is because Pig makes the safest choice and uses the largest numeric type when the schema is not know. In practice, the input data could contain integer values; however, Pig will cast the data to double and make sure that a double result is returned.</p>
 
  <p>If the schema of a relation can’t be inferred, Pig will just use the runtime data as is and propagate it through the pipeline.</p>
 
@@ -5767,7 +5767,7 @@ ASSERT A by a0 > 0, 'a0 should be greater than 0';
              <p>Use this feature to specify the Hadoop Partitioner. The partitioner controls the partitioning of the keys of the intermediate map-outputs. </p>
              <ul>
              <li>
-             <p>For more details, see http://hadoop.apache.org/common/docs/r0.20.2/api/org/apache/hadoop/mapred/Partitioner.html</p>
+             <p>For more details, see <a href="http://hadoop.apache.org/docs/current/api/org/apache/hadoop/mapred/Partitioner.html">http://hadoop.apache.org/docs/current/api/org/apache/hadoop/mapred/Partitioner.html</a></p>
              </li>
              <li>
              <p>For usage, see <a href="#partitionby">Example: PARTITION BY</a></p>
@@ -5781,7 +5781,7 @@ ASSERT A by a0 > 0, 'a0 should be greater than 0';
             </td>
             <td>
                <p>Increase the parallelism of a job by specifying the number of reduce tasks, n. </p>
-               <p>For more information, see <a href="perf.html#Parallel">Use the Parallel Features</a>.</p>
+               <p>For more information, see <a href="perf.html#parallel">Use the Parallel Features</a>.</p>
             </td>
          </tr> 
    </table></section>
@@ -5906,7 +5906,7 @@ DUMP X;
                </td>
                <td>
                   <p>Increase the parallelism of a job by specifying the number of reduce tasks, n.</p>
-                  <p>For more information, see <a href="perf.html#Parallel">Use the Parallel Features</a>.</p>
+                  <p>For more information, see <a href="perf.html#parallel">Use the Parallel Features</a>.</p>
                </td>
             </tr>
          </table>
@@ -6058,7 +6058,7 @@ state: chararray,city: chararray,sales: long)}}</source>
              <p>Use this feature to specify the Hadoop Partitioner. The partitioner controls the partitioning of the keys of the intermediate map-outputs. </p>
              <ul>
              <li>
-             <p>For more details, see http://hadoop.apache.org/common/docs/r0.20.2/api/org/apache/hadoop/mapred/Partitioner.html</p>
+             <p>For more details, see <a href="http://hadoop.apache.org/docs/current/api/org/apache/hadoop/mapred/Partitioner.html">http://hadoop.apache.org/docs/current/api/org/apache/hadoop/mapred/Partitioner.html</a></p>
              </li>
              <li>
               <p>For usage, see <a href="#partitionby">Example: PARTITION BY</a>.</p>
@@ -6073,7 +6073,7 @@ state: chararray,city: chararray,sales: long)}}</source>
             </td>
             <td>
                <p>Increase the parallelism of a job by specifying the number of reduce tasks, n.</p>
-               <p>For more information, see <a href="perf.html#Parallel">Use the Parallel Features</a>.</p>
+               <p>For more information, see <a href="perf.html#parallel">Use the Parallel Features</a>.</p>
             </td>
          </tr> 
    </table>
@@ -6700,7 +6700,7 @@ DUMP X;
              <p>Use this feature to specify the Hadoop Partitioner. The partitioner controls the partitioning of the keys of the intermediate map-outputs. </p>
              <ul>
              <li>
-             <p>For more details, see http://hadoop.apache.org/common/docs/r0.20.2/api/org/apache/hadoop/mapred/Partitioner.html</p>
+             <p>For more details, see <a href="http://hadoop.apache.org/docs/current/api/org/apache/hadoop/mapred/Partitioner.html">http://hadoop.apache.org/docs/current/api/org/apache/hadoop/mapred/Partitioner.html</a></p>
              </li>
              <li>
              <p>For usage, see <a href="#partitionby">Example: PARTITION BY</a></p>
@@ -6968,7 +6968,7 @@ public class SimpleCustomPartitioner extends Partitioner &lt;PigNullableWritable
                <p>'replicated'</p>
             </td>
             <td>
-               <p>Use to perform replicated joins (see <a href="perf.html#Replicated-Joins">Replicated Joins</a>).</p>
+               <p>Use to perform replicated joins (see <a href="perf.html#replicated-joins">Replicated Joins</a>).</p>
             </td>
          </tr>
          
@@ -6977,7 +6977,7 @@ public class SimpleCustomPartitioner extends Partitioner &lt;PigNullableWritable
                <p>'skewed'</p>
             </td>
             <td>
-               <p>Use to perform skewed joins (see <a href="perf.html#Skewed-Joins">Skewed Joins</a>).</p>
+               <p>Use to perform skewed joins (see <a href="perf.html#skewed-joins">Skewed Joins</a>).</p>
             </td>
          </tr>
          
@@ -6986,7 +6986,7 @@ public class SimpleCustomPartitioner extends Partitioner &lt;PigNullableWritable
                <p>'merge'</p>
             </td>
             <td>
-               <p>Use to perform merge joins (see <a href="perf.html#Merge-Joins">Merge Joins</a>).</p>
+               <p>Use to perform merge joins (see <a href="perf.html#merge-joins">Merge Joins</a>).</p>
             </td>
          </tr>
          
@@ -6995,7 +6995,7 @@ public class SimpleCustomPartitioner extends Partitioner &lt;PigNullableWritable
                <p>'merge-sparse'</p>
             </td>
             <td>
-               <p>Use to perform merge-sparse joins (see <a href="perf.html#Merge-sparse-Joins">Merge-Sparse Joins</a>).</p>
+               <p>Use to perform merge-sparse joins (see <a href="perf.html#merge-sparse-joins">Merge-Sparse Joins</a>).</p>
             </td>
          </tr>         
          
@@ -7007,8 +7007,7 @@ public class SimpleCustomPartitioner extends Partitioner &lt;PigNullableWritable
              <p>Use this feature to specify the Hadoop Partitioner. The partitioner controls the partitioning of the keys of the intermediate map-outputs. </p>
              <ul>
              <li>
-             <p>For more details, see http://hadoop.apache.org/common/docs/r0.20.2/api/org/apache/hadoop/mapred/Partitioner.html</p>
-             </li>
+             <p>For more details, see <a href="http://hadoop.apache.org/docs/current/api/org/apache/hadoop/mapred/Partitioner.html">http://hadoop.apache.org/docs/current/api/org/apache/hadoop/mapred/Partitioner.html</a></p>             </li>
              <li>
               <p>For usage, see <a href="#partitionby">Example: PARTITION BY</a></p>
              </li>
@@ -7024,7 +7023,7 @@ public class SimpleCustomPartitioner extends Partitioner &lt;PigNullableWritable
             </td>
             <td>
                <p>Increase the parallelism of a job by specifying the number of reduce tasks, n. </p>
-               <p>For more information, see <a href="perf.html#Parallel">Use the Parallel Features</a>.</p>
+               <p>For more information, see <a href="perf.html#parallel">Use the Parallel Features</a>.</p>
             </td>
          </tr> 
    </table></section>
@@ -7194,7 +7193,7 @@ DUMP X;
                <p>'replicated'</p>
             </td>
             <td>
-               <p>Use to perform replicated joins (see <a href="perf.html#Replicated-Joins">Replicated Joins</a>).</p>
+               <p>Use to perform replicated joins (see <a href="perf.html#replicated-joins">Replicated Joins</a>).</p>
                <p>Only left outer join is supported for replicated joins.</p>
             </td>
          </tr>
@@ -7204,7 +7203,7 @@ DUMP X;
                <p>'skewed'</p>
             </td>
             <td>
-               <p>Use to perform skewed joins (see <a href="perf.html#Skewed-Joins">Skewed Joins</a>).</p>
+               <p>Use to perform skewed joins (see <a href="perf.html#skewed-joins">Skewed Joins</a>).</p>
             </td>
          </tr>
 
@@ -7213,7 +7212,7 @@ DUMP X;
                <p>'merge'</p>
             </td>
             <td>
-               <p>Use to perform merge joins (see <a href="perf.html#Merge-Joins">Merge Joins</a>).</p>
+               <p>Use to perform merge joins (see <a href="perf.html#merge-joins">Merge Joins</a>).</p>
             </td>
          </tr>
          
@@ -7226,7 +7225,7 @@ DUMP X;
              <p>Use this feature to specify the Hadoop Partitioner. The partitioner controls the partitioning of the keys of the intermediate map-outputs. </p>
              <ul>
              <li>
-             <p>For more details, see http://hadoop.apache.org/common/docs/r0.20.2/api/org/apache/hadoop/mapred/Partitioner.html</p>
+             <p>For more details, see <a href="http://hadoop.apache.org/docs/current/api/org/apache/hadoop/mapred/Partitioner.html">http://hadoop.apache.org/docs/current/api/org/apache/hadoop/mapred/Partitioner.html</a></p>
              </li>
              <li>
               <p>For usage, see <a href="#partitionby">Example: PARTITION BY</a></p>
@@ -7243,7 +7242,7 @@ DUMP X;
             </td>
             <td>
                <p>Increase the parallelism of a job by specifying the number of reduce tasks, n. </p>
-               <p>For more information, see <a href="perf.html#Parallel">Use the Parallel Features</a>.</p>
+               <p>For more information, see <a href="perf.html#parallel">Use the Parallel Features</a>.</p>
             </td>
          </tr>
     
@@ -7463,7 +7462,7 @@ DUMP X;
                   <li>
                   
                   
-                     <p>You can use a built in function (see <a href="func.html#Load-Store-Functions">Load/Store Functions</a>). PigStorage is the default load function and does not need to be specified (simply omit the USING clause).</p>
+                     <p>You can use a built in function (see <a href="func.html#load-store-functions">Load/Store Functions</a>). PigStorage is the default load function and does not need to be specified (simply omit the USING clause).</p>
                   </li>
                   <li>
                      <p>You can write your own load function  
@@ -8954,7 +8953,7 @@ B = FOREACH A GENERATE myFunc($0);
    <title>Usage</title>
    <p><strong>Pig Scripts</strong></p>
    
-   <p>Use the REGISTER statement inside a Pig script to specify a JAR file or a Python/JavaScript module. Pig supports JAR files and modules stored in local file systems as well as remote, distributed file systems such as HDFS and Amazon S3 (see <a href="start.html#Pig-Scripts">Pig Scripts</a>).</p>
+   <p>Use the REGISTER statement inside a Pig script to specify a JAR file or a Python/JavaScript module. Pig supports JAR files and modules stored in local file systems as well as remote, distributed file systems such as HDFS and Amazon S3 (see <a href="start.html#pig-scripts">Pig Scripts</a>).</p>
    
    <p id="register-glob">Additionally, JAR files stored in local file systems can be specified as a glob pattern using “*”. Pig will search for matching jars in the local file system, either the relative path (relative to your working directory) or the absolute path. Pig will pick up all JARs that match the glob.</p>
    
