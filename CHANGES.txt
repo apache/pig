@@ -151,6 +151,8 @@ PIG-3882: Multiquery off mode execution is not done in batch and very inefficien
  
 BUG FIXES
 
+PIG-3998: Documentation fix: invalid page links, wrong Groovy udf example (lbendig via cheolsoo)
+
 PIG-4000: Minor documentation fix for PIG-3642 (lbendig via cheolsoo)
 
 PIG-3991: TestErrorHandling.tesNegative7 is broken in trunk/branch-0.13 (cheolsoo)

@@ -61,7 +61,7 @@ explain C;
 </ul>
 <p></p>
 
-<p>You can check if the combiner is used for your query by running <a href="test.html#EXPLAIN">EXPLAIN</a> on the FOREACH alias as shown above. You should see the combine section in the MapReduce part of the plan:</p>
+<p>You can check if the combiner is used for your query by running <a href="test.html#explain">EXPLAIN</a> on the FOREACH alias as shown above. You should see the combine section in the MapReduce part of the plan:</p>
 
 
 
@@ -89,7 +89,7 @@ B: Local Rearrange[tuple]{bytearray}(false) - scope-42
 </source>
 
 <p>The combiner is also used with a nested foreach as long as the only nested operation used is DISTINCT
-(see <a href="basic.html#FOREACH">FOREACH</a> and <a href="basic.html#nestedblock">Example: Nested Block</a>).
+(see <a href="basic.html#foreach">FOREACH</a> and <a href="basic.html#nestedblock">Example: Nested Block</a>).
 </p>
 
 <source>
@@ -226,7 +226,7 @@ $ pig -no_multiquery myscript.pig
 <li>
 <p>For batch mode execution, the entire script is first parsed to determine if intermediate tasks 
 can be combined to reduce the overall amount of work that needs to be done; execution starts only after the parsing is completed 
-(see the <a href="test.html#EXPLAIN">EXPLAIN</a> operator and the <a href="cmds.html#run">run</a> and <a href="cmds.html#exec">exec</a> commands). </p>
+(see the <a href="test.html#explain">EXPLAIN</a> operator and the <a href="cmds.html#run">run</a> and <a href="cmds.html#exec">exec</a> commands). </p>
 
 </li>
 <li>
@@ -294,8 +294,8 @@ With multi-query execution, the script will process A and dump A' as a side-effe
 <!-- ++++++++++++++++++++++++++++++++++++++++++ -->
 <section id="store-dump">
 	<title>Store vs. Dump</title>
-	<p>With multi-query exection, you want to use <a href="basic.html#STORE">STORE</a> to save (persist) your results. 
-	You do not want to use <a href="test.html#DUMP">DUMP</a> as it will disable multi-query execution and is likely to slow down execution. (If you have included DUMP statements in your scripts for debugging purposes, you should remove them.) </p>
+	<p>With multi-query exection, you want to use <a href="basic.html#store">STORE</a> to save (persist) your results. 
+	You do not want to use <a href="test.html#dump">DUMP</a> as it will disable multi-query execution and is likely to slow down execution. (If you have included DUMP statements in your scripts for debugging purposes, you should remove them.) </p>
 	
 	<p>DUMP Example: In this script, because the DUMP command is interactive, the multi-query execution will be disabled and two separate jobs will be created to execute this script. The first job will execute A > B > DUMP while the second job will execute A > B > C > STORE.</p>
 	
@@ -699,7 +699,7 @@ B = GROUP A all PARALLEL 10;
 
 <section>
 <title>Use Optimization</title>
-<p>Pig supports various <a href="perf.html#Optimization-Rules">optimization rules</a> which are turned on by default. 
+<p>Pig supports various <a href="perf.html#optimization-rules">optimization rules</a> which are turned on by default. 
 Become familiar with these rules.</p>
 </section>
 
@@ -833,7 +833,7 @@ C = foreach B generate group, MyUDF(A);
 <section id="accumulator-interface">
 <title>Use the Accumulator Interface</title>
 <p>
-If your UDF can't be made Algebraic but is able to deal with getting input in chunks rather than all at once, consider implementing the Accumulator  interface to reduce the amount of memory used by your script. If your function <em>is</em> Algebraic and can be used on conjunction with Accumulator functions, you will need to implement the Accumulator interface as well as the Algebraic interface. For more information, see <a href="udf.html#Accumulator-Interface">Accumulator Interface</a>.</p>
+If your UDF can't be made Algebraic but is able to deal with getting input in chunks rather than all at once, consider implementing the Accumulator  interface to reduce the amount of memory used by your script. If your function <em>is</em> Algebraic and can be used on conjunction with Accumulator functions, you will need to implement the Accumulator interface as well as the Algebraic interface. For more information, see <a href="udf.html#accumulator-interface">Accumulator Interface</a>.</p>
 
 <p><strong>Note:</strong> Pig automatically chooses the interface that it expects to provide the best performance: Algebraic &gt; Accumulator &gt; Default. </p>
 
@@ -889,7 +889,7 @@ C = join small by t, large by x;
 
 <p><strong>Specialized Join Optimizations</strong></p>
 <p>Optimization can also be achieved using fragment replicate joins, skewed joins, and merge joins. 
-For more information see <a href="perf.html#Specialized-Joins">Specialized Joins</a>.</p>
+For more information see <a href="perf.html#specialized-joins">Specialized Joins</a>.</p>
 
 </section>
 
@@ -906,13 +906,13 @@ For more information see <a href="perf.html#Specialized-Joins">Specialized Joins
 <p>Alternatively, use the PARALLEL clause to set the number of reducers at the operator level. 
 (In a script, the value set via the PARALLEL clause will override any value set via "set default parallel.")
 You can include the PARALLEL clause with any operator that starts a reduce phase:  
-<a href="basic.html#COGROUP">COGROUP</a>, 
-<a href="basic.html#CROSS">CROSS</a>, 
-<a href="basic.html#DISTINCT">DISTINCT</a>, 
-<a href="basic.html#GROUP">GROUP</a>, 
-<a href="basic.html#JOIN-inner">JOIN (inner)</a>, 
-<a href="basic.html#JOIN-outer">JOIN (outer)</a>, and
-<a href="basic.html#ORDER-BY">ORDER BY</a>.
+<a href="basic.html#cogroup">COGROUP</a>, 
+<a href="basic.html#cross">CROSS</a>, 
+<a href="basic.html#distinct">DISTINCT</a>, 
+<a href="basic.html#group">GROUP</a>, 
+<a href="basic.html#join-inner">JOIN (inner)</a>, 
+<a href="basic.html#join-outer">JOIN (outer)</a>, and
+<a href="basic.html#order-by">ORDER BY</a>.
 </p>
 
 <p>The number of reducers you need for a particular construct in Pig that forms a MapReduce boundary depends entirely on (1) your data and the number of intermediate keys you are generating in your mappers and (2) the partitioner and distribution of map (combiner) output keys. In the best cases we have seen that a reducer processing about 1 GB of data behaves efficiently.</p>
@@ -1038,7 +1038,7 @@ java -cp $PIG_HOME/pig.jar
 </ul>
 <p></p>
 
-<p>This feature works with <a href="func.html#PigStorage">PigStorage</a>. However, if you are using a custom loader, please note the following:</p>
+<p>This feature works with <a href="func.html#pigstorage">PigStorage</a>. However, if you are using a custom loader, please note the following:</p>
 
 <ul>
 <li>If your loader implementation makes use of the PigSplit object passed through the prepareToRead method, then you may need to rebuild the loader since the definition of PigSplit has been modified. </li>
@@ -1130,7 +1130,7 @@ don't, the process fails and an error is generated.</p>
  
 <section>
 <title>Usage</title>
-<p>Perform a replicated join with the USING clause (see <a href="basic.html#JOIN-inner">JOIN (inner)</a> and <a href="basic.html#JOIN-outer">JOIN (outer)</a>).
+<p>Perform a replicated join with the USING clause (see <a href="basic.html#join-inner">JOIN (inner)</a> and <a href="basic.html#join-outer">JOIN (outer)</a>).
 In this example, a large relation is joined with two smaller relations. Note that the large relation comes first followed by the smaller relations; 
 and, all small relations together must fit into main memory, otherwise an error is generated. </p>
 <source>
@@ -1176,7 +1176,7 @@ associated with a given key is too large to fit in memory.
 
 <section>
 <title>Usage</title>
-<p>Perform a skewed join with the USING clause (see <a href="basic.html#JOIN-inner">JOIN (inner)</a> and <a href="basic.html#JOIN-outer">JOIN (outer)</a>). </p>
+<p>Perform a skewed join with the USING clause (see <a href="basic.html#join-inner">JOIN (inner)</a> and <a href="basic.html#join-outer">JOIN (outer)</a>). </p>
 <source>
 A = LOAD 'skewed_data' AS (a1,a2,a3);
 B = LOAD 'data' AS (b1,b2,b3);
@@ -1233,7 +1233,7 @@ and the right input of the join to be the side file. It then samples records fro
 
 <section>
 <title>Usage</title>
-<p>Perform a merge join with the USING clause (see <a href="basic.html#JOIN-inner">JOIN (inner)</a> and <a href="basic.html#JOIN-outer">JOIN (outer)</a>). </p>
+<p>Perform a merge join with the USING clause (see <a href="basic.html#join-inner">JOIN (inner)</a> and <a href="basic.html#join-outer">JOIN (outer)</a>). </p>
 <source>
 C = JOIN A BY a1, B BY b1, C BY c1 USING 'merge';
 </source>
@@ -1286,7 +1286,7 @@ C = JOIN A BY a1, B BY b1, C BY c1 USING 'merge';
 
 <section>
 <title>Usage</title>
-<p>Perform a merge-sparse join with the USING clause (see <a href="basic.html#JOIN-inner">JOIN (inner)</a>). </p>
+<p>Perform a merge-sparse join with the USING clause (see <a href="basic.html#join-inner">JOIN (inner)</a>). </p>
 <source>
 a = load 'sorted_input1' using org.apache.pig.piggybank.storage.IndexedStorage('\t', '0');
 b = load 'sorted_input2' using org.apache.pig.piggybank.storage.IndexedStorage('\t', '0');
