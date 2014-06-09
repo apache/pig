@@ -71,16 +71,16 @@ B = FILTER A BY name matches 'J.+';
 
 C = GROUP B BY name;
 
-D = FOREACH B GENERATE COUNT(B.age);
+D = FOREACH C GENERATE COUNT(B.age);
 
 DESCRIBE A;
-A: {group, B: (name: chararray,age: int,gpa: float}
+A: {name: chararray,age: int,gpa: float}
 
 DESCRIBE B;
-B: {group, B: (name: chararray,age: int,gpa: float}
+B: {name: chararray,age: int,gpa: float}
 
 DESCRIBE C;
-C: {group, chararry,B: (name: chararray,age: int,gpa: float}
+C: {group: chararray,B: {(name: chararray,age: int,gpa: float)}}
 
 DESCRIBE D;
 D: {long}
