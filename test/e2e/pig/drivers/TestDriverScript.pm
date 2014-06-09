@@ -91,13 +91,6 @@ sub runTest
 
         my %result;
 
-        # extract the current zebra.jar file path from the classpath
-        # and enter it in the hash for use in the substitution of :ZEBRAJAR:
-        my $zebrajar = $testCmd->{'cp'};
-        $zebrajar =~ s/zebra.jar.*/zebra.jar/;
-        $zebrajar =~ s/.*://;
-        $testCmd->{'zebrajar'} = $zebrajar;
-
         if(  $testCmd->{'pig'} ){
            return runPig( $self, $testCmd, $log );
         } elsif(  $testCmd->{'pigsql'} ){
@@ -126,7 +119,6 @@ sub runPig
     $pigcmd =~ s/:OUTPATH:/$outfile/g;
     $pigcmd =~ s/:FUNCPATH:/$testCmd->{'funcjarPath'}/g;
     $pigcmd =~ s/:PIGGYBANKPATH:/$testCmd->{'piggybankjarPath'}/g;
-    $pigcmd =~ s/:ZEBRAJAR:/$testCmd->{'zebrajar'}/g;
     $pigcmd =~ s/:RUNID:/$testCmd->{'UID'}/g;
     $pigcmd =~ s/:PIGHARNESS:/$ENV{PIG_HARNESS_ROOT}/g;
     $pigcmd =~ s/:USRHOMEPATH:/$testCmd->{'userhomePath'}/g;
