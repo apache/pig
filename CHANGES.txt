@@ -177,6 +177,8 @@ PIG-3882: Multiquery off mode execution is not done in batch and very inefficien
  
 BUG FIXES
 
+PIG-3996: Delete zebra from svn (cheolsoo)
+
 PIG-3991: TestErrorHandling.tesNegative7 is broken in trunk/branch-0.13 (cheolsoo)
 
 PIG-3990: ant docs is broken in trunk/branch-0.13 (cheolsoo)
