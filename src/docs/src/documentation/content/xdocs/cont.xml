@@ -28,7 +28,7 @@
    
 <p>To enable control flow, you can embed Pig Latin statements and Pig commands in the Python, JavaScript and Groovy scripting languages using a JDBC-like compile, bind, run model. For Python, make sure the Jython jar is included in your class path. For JavaScript, make sure the Rhino jar is included in your classpath. For Groovy, make sure the groovy-all jar is included in your classpath.</p>
 
-<p>Note that host languages and the languages of UDFs (included as part of the embedded Pig) are completely orthogonal. For example, a Pig Latin statement that registers a Python UDF may be embedded in Python, JavaScript, or Java. The exception to this rule is "combined" scripts – here the languages must match (see the <a href="udf.html#python-advanced">Advanced Topics for Python</a>, <a href="udf.html#js-advanced">Advanced Topics for JavaScript</a> and <a href="udf.html#groovy-advanced">Advanced Topics for Groovy</a>). </p>
+<p>Note that host languages and the languages of UDFs (included as part of the embedded Pig) are completely orthogonal. For example, a Pig Latin statement that registers a Python UDF may be embedded in Python, JavaScript, or Java. The exception to this rule is "combined" scripts – here the languages must match (see the <a href="udf.html#jython-advanced">Advanced Topics for Python</a>, <a href="udf.html#js-advanced">Advanced Topics for JavaScript</a> and <a href="udf.html#groovy-advanced">Advanced Topics for Groovy</a>). </p>
 
 
 <!-- ============================================== -->
@@ -818,11 +818,11 @@ public interface PigProgressNotificationListener extends java.util.EventListener
 
 <p>To enable control flow, you can embed Pig Latin statements and Pig commands in the Java programming language. </p>
 
-<p>Note that host languages and the languages of UDFs (included as part of the embedded Pig) are completely orthogonal. For example, a Pig Latin statement that registers a Java UDF may be embedded in Python, JavaScript, Groovy, or Java. The exception to this rule is "combined" scripts – here the languages must match (see the <a href="udf.html#python-advanced">Advanced Topics for Python</a>, <a href="udf.html#js-advanced">Advanced Topics for JavaScript</a> and <a href="udf.html#groovy-advanced">Advanced Topics for Groovy</a>). </p>
+<p>Note that host languages and the languages of UDFs (included as part of the embedded Pig) are completely orthogonal. For example, a Pig Latin statement that registers a Java UDF may be embedded in Python, JavaScript, Groovy, or Java. The exception to this rule is "combined" scripts – here the languages must match (see the <a href="udf.html#jython-advanced">Advanced Topics for Python</a>, <a href="udf.html#js-advanced">Advanced Topics for JavaScript</a> and <a href="udf.html#groovy-advanced">Advanced Topics for Groovy</a>). </p>
 
 <section id="pigserver">
 <title>PigServer Interface</title>
-<p>Currently, <a href="http://pig.apache.org/docs/r0.10.0/api/org/apache/pig/PigServer.html">PigServer</a> is the main interface for embedding Pig in Java. PigServer can now be instantiated from multiple threads. (In the past, PigServer contained references to static data that prevented multiple instances of the object to be created from different threads within your application.) Please note that PigServer is NOT thread safe; the same object can't be shared across multiple threads. </p>
+<p>Currently, <a href="http://pig.apache.org/docs/r0.13.0/api/org/apache/pig/PigServer.html">PigServer</a> is the main interface for embedding Pig in Java. PigServer can now be instantiated from multiple threads. (In the past, PigServer contained references to static data that prevented multiple instances of the object to be created from different threads within your application.) Please note that PigServer is NOT thread safe; the same object can't be shared across multiple threads. </p>
 </section>
 
 <section>

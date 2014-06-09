@@ -102,7 +102,7 @@ decoded_strings = FOREACH encoded_strings GENERATE UrlDecode(encoded, 'UTF-8');
    
    <section>
    <title>Example</title>
-   <p>In this example the average GPA for each student is computed (see the <a href="basic.html#GROUP">GROUP</a> operator for information about the field names in relation B).</p>
+   <p>In this example the average GPA for each student is computed (see the <a href="basic.html#group">GROUP</a> operator for information about the field names in relation B).</p>
 <source>
 A = LOAD 'student.txt' AS (name:chararray, term:chararray, gpa:float);
 
@@ -401,7 +401,7 @@ DUMP X;
    
    <section>
    <title>Example</title>
-   <p>In this example the tuples in the bag are counted (see the <a href="basic.html#GROUP">GROUP</a> operator for information about the field names in relation B).</p>
+   <p>In this example the tuples in the bag are counted (see the <a href="basic.html#group">GROUP</a> operator for information about the field names in relation B).</p>
 <source>
 A = LOAD 'data' AS (f1:int,f2:int,f3:int);
 
