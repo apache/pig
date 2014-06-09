@@ -1843,6 +1843,7 @@ A = LOAD 'data' USING TextLoader();
                     returned from HBase (default=false)</li>
                 <li>-gt=minKeyVal Return rows with a rowKey greater than minKeyVal</li>
                 <li>-lt=maxKeyVal Return rows with a rowKey less than maxKeyVal</li>
+                <li>-regex=regex Return rows with a rowKey that match this regex on KeyVal</li>
                 <li>-gte=minKeyVal Return rows with a rowKey greater than or equal to minKeyVal</li>
                 <li>-lte=maxKeyVal Return rows with a rowKey less than or equal to maxKeyVal</li>
                 <li>-limit=numRowsPerRegion Max number of rows to retrieve per region</li>
