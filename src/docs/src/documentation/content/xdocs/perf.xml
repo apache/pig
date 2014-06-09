@@ -1069,8 +1069,9 @@ Fetching will be disabled in case of:
 </ul>
 
 <p>
-You can check if the query can be fetched by running EXPLAIN. You should see "No MR jobs. Fetch only." in the MapReduce part of the plan.
-<br></br>
+Also note that direct-fetch doesn't support UDFs that interact with the distributed cache. You can check if the query can be fetched by running EXPLAIN. You should see "No MR jobs. Fetch only." in the MapReduce part of the plan.
+</p>
+<p>
 Direct fetch is turned on by default. To turn it off set the property opt.fetch to false or start Pig with the "-N" or "-no_fetch" option.
 </p>
 
