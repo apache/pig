@@ -32,6 +32,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3995: Tez unit tests shouldn't run when -Dhadoopversion=20 (cheolsoo)
+
 PIG-3986: PigSplit to support multiple split class (tongjie via cheolsoo)
 
 PIG-3988: PigStorage: CommandLineParser is not thread safe (tmwoodruff via cheolsoo)

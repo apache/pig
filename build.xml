@@ -106,6 +106,7 @@
     <property name="test.all.file" value="${test.src.dir}/all-tests"/>
     <property name="test.tez.file" value="${test.src.dir}/tez-tests"/>
     <property name="test.exclude.file" value="${test.src.dir}/excluded-tests"/>
+    <property name="test.exclude.file.20" value="${test.src.dir}/excluded-tests-20"/>
     <property name="test.exclude.file.23" value="${test.src.dir}/excluded-tests-23"/>
     <property name="pigunit.jarfile" value="pigunit.jar" />
     <property name="piggybank.jarfile" value="${basedir}/contrib/piggybank/java/piggybank.jar" />
@@ -886,7 +887,8 @@
                     <patternset>
                        <includesfile name="@{test.file}"/>
                        <excludesfile name="${test.exclude.file}" if="test.exclude.file"/>
-                       <excludesfile name="${test.exclude.file.23}" if="isHadoop23" />
+                       <excludesfile name="${test.exclude.file.20}" unless="isHadoop23"/>
+                       <excludesfile name="${test.exclude.file.23}" if="isHadoop23"/>
                     </patternset>
                     <exclude name="**/${exclude.testcase}.java" if="exclude.testcase" />
                     <exclude name="**/TestRegisteredJarVisibility.java" if="offline"/>
