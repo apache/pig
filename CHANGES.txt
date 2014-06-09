@@ -62,6 +62,8 @@ PIG-2207: Support custom counters for aggregating warnings from different udfs (
 
 IMPROVEMENTS
 
+PIG-3999: Document PIG-3388 (lbendig via cheolsoo)
+
 PIG-3954: Document use of user level jar cache (aniket486)
 
 PIG-3752: Fix e2e Parallel test for Windows (daijy)
