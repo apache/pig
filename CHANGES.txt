@@ -52,6 +52,8 @@ Release 0.13.0 - Unreleased
  
 INCOMPATIBLE CHANGES
 
+PIG-3996: Delete zebra from svn (cheolsoo)
+
 PIG-3898: Refactor PPNL for non-MR execution engine (cheolsoo)
 
 PIG-3485: Remove CastUtils.bytesToMap(byte[] b) method from LoadCaster interface (cheolsoo) 
@@ -180,8 +182,6 @@ PIG-3882: Multiquery off mode execution is not done in batch and very inefficien
 BUG FIXES
 
 PIG-4000: Minor documentation fix for PIG-3642 (lbendig via cheolsoo)
-
-PIG-3996: Delete zebra from svn (cheolsoo)
 
 PIG-3991: TestErrorHandling.tesNegative7 is broken in trunk/branch-0.13 (cheolsoo)
 
