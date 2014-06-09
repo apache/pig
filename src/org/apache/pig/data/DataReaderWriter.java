@@ -37,7 +37,7 @@ import org.joda.time.DateTimeZone;
  * This class was used to handle reading and writing of intermediate
  *  results of data types. Now that functionality is in {@link BinInterSedes}
  *  This class could also be used for storing permanent results, it used
- *  by BinStorage and Zebra through DefaultTuple class.
+ *  by BinStorage through DefaultTuple class.
  */
 @InterfaceAudience.Private
 @InterfaceStability.Stable
