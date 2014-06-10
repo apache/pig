@@ -269,8 +269,8 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         for (POLocalRearrangeTez lr : lrs) {
             if (lr.getOutputKey().equals(to.getOperatorKey().toString())) {
                 byte keyType = lr.getKeyType();
-                setIntermediateInputKeyValue(keyType, conf, to);
-                setIntermediateOutputKeyValue(keyType, conf, to);
+                setIntermediateInputKeyValue(keyType, conf, to, lr.isConnectedToPackage());
+                setIntermediateOutputKeyValue(keyType, conf, to, lr.isConnectedToPackage());
                 // In case of secondary key sort, main key type is the actual key type
                 conf.set("pig.reduce.key.type", Byte.toString(lr.getMainKeyType()));
                 break;
@@ -801,12 +801,12 @@ public class TezDagBuilder extends TezOpPlanVisitor {
     }
 
     @SuppressWarnings("rawtypes")
-    private void setIntermediateInputKeyValue(byte keyType, Configuration conf, TezOperator tezOp)
-            throws JobCreationException, ExecException {
-        if (tezOp != null && tezOp.isUseSecondaryKey()) {
+    private void setIntermediateInputKeyValue(byte keyType, Configuration conf, TezOperator tezOp,
+            boolean isConnectedToPackage) throws JobCreationException, ExecException {
+        if (tezOp != null && tezOp.isUseSecondaryKey() && isConnectedToPackage) {
             conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS,
                     NullableTuple.class.getName());
-        } else if (tezOp != null && tezOp.isSkewedJoin()) {
+        } else if (tezOp != null && tezOp.isSkewedJoin() && isConnectedToPackage) {
             conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS,
                     NullablePartitionWritable.class.getName());
         } else {
@@ -821,12 +821,17 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 NullableTuple.class.getName());
     }
 
-    @SuppressWarnings("rawtypes")
-    private void setIntermediateOutputKeyValue(byte keyType, Configuration conf, TezOperator tezOp)
+    private void setIntermediateInputKeyValue(byte keyType, Configuration conf, TezOperator tezOp)
             throws JobCreationException, ExecException {
+        setIntermediateInputKeyValue(keyType, conf, tezOp, true);
+    }
+
+    @SuppressWarnings("rawtypes")
+    private void setIntermediateOutputKeyValue(byte keyType, Configuration conf, TezOperator tezOp,
+            boolean isConnectedToPackage) throws JobCreationException, ExecException {
         Class<? extends WritableComparable> keyClass = HDataType
                 .getWritableComparableTypes(keyType).getClass();
-        if (tezOp != null && tezOp.isSkewedJoin()) {
+        if (tezOp != null && tezOp.isSkewedJoin() && isConnectedToPackage) {
             conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS,
                     NullablePartitionWritable.class.getName());
         } else {
@@ -838,6 +843,11 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         conf.set(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS,
                 MRPartitioner.class.getName());
         selectOutputComparator(keyType, conf, tezOp);
+    }
+
+    private void setIntermediateOutputKeyValue(byte keyType, Configuration conf, TezOperator tezOp)
+            throws JobCreationException, ExecException {
+        setIntermediateOutputKeyValue(keyType, conf, tezOp, true);
     }
 
     private static Class<? extends WritableComparator> comparatorForKeyType(byte keyType, boolean hasOrderBy)
