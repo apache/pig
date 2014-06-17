@@ -34,6 +34,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4013: Order by multiple column fail on Tez (daijy)
+
 PIG-3983: TestGrunt.testKeepGoigFailed fail on tez mode (daijy)
 
 PIG-3959: Skewed join followed by replicated join fails in Tez (cheolsoo)

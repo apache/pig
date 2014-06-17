@@ -60,9 +60,9 @@ public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, W
     protected Map<PigNullableWritable, DiscreteProbabilitySampleGenerator> weightedParts =
             new HashMap<PigNullableWritable, DiscreteProbabilitySampleGenerator>();
     protected PigNullableWritable[] quantiles;
-    private RawComparator<PigNullableWritable> comparator;
+    protected RawComparator<PigNullableWritable> comparator;
     private PigContext pigContext;
-    private Configuration job;
+    protected Configuration job;
 
     protected boolean inited = false;
 
