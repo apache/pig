@@ -632,6 +632,7 @@ public class MapReduceLauncher extends Launcher{
         MRCompiler comp = new MRCompiler(php, pc);
         comp.compile();
         comp.aggregateScalarsFiles();
+        comp.connectSoftLink();
         MROperPlan plan = comp.getMRPlan();
 
         //display the warning message(s) from the MRCompiler
