@@ -30,6 +30,7 @@ import org.apache.pig.data.InternalMap;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.builtin.FindQuantiles;
 import org.apache.pig.impl.io.PigNullableWritable;
+import org.apache.tez.runtime.library.common.ConfigUtils;
 
 public class WeightedRangePartitionerTez extends WeightedRangePartitioner {
     private static final Log LOG = LogFactory.getLog(WeightedRangePartitionerTez.class);
@@ -72,7 +73,7 @@ public class WeightedRangePartitionerTez extends WeightedRangePartitioner {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-
+        comparator = ConfigUtils.getIntermediateInputKeyComparator(job);
         LOG.info("Initialized WeightedRangePartitionerTez. Time taken: " + (System.currentTimeMillis() - start));
         inited = true;
     }
