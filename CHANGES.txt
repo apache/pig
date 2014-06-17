@@ -193,6 +193,8 @@ PIG-3882: Multiquery off mode execution is not done in batch and very inefficien
  
 BUG FIXES
 
+PIG-4017: NPE thrown from JobControlCompiler.shipToHdfs (cheolsoo)
+
 PIG-3997: Issue on Pig docs: Testing and Diagnostics (zjffdu via cheolsoo)
 
 PIG-3998: Documentation fix: invalid page links, wrong Groovy udf example (lbendig via cheolsoo)

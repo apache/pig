@@ -1687,7 +1687,9 @@ public class JobControlCompiler{
         } finally {
             org.apache.commons.io.IOUtils.closeQuietly(is);
             // IOUtils should not close stream to HDFS quietly
-            os.close();
+            if (os != null) {
+                os.close();
+            }
         }
         return dst;
     }
