@@ -29,9 +29,11 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.lib.jobcontrol.ControlledJob;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.backend.BackendException;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.Launcher;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.tez.optimizers.NoopFilterRemover;
 import org.apache.pig.backend.hadoop.executionengine.tez.optimizers.UnionOptimizer;
 import org.apache.pig.impl.PigContext;
@@ -40,6 +42,7 @@ import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.tez.TezStats;
 import org.apache.pig.tools.pigstats.tez.TezTaskStats;
@@ -156,6 +159,26 @@ public class TezLauncher extends Launcher {
         }
 
         tezStats.finish();
+        for (OutputStats output : tezStats.getOutputStats()) {
+            POStore store = output.getPOStore();
+            try {
+                if (!output.isSuccessful()) {
+                    store.getStoreFunc().cleanupOnFailure(
+                            store.getSFile().getFileName(),
+                            new org.apache.hadoop.mapreduce.Job(output.getConf()));
+                } else {
+                    store.getStoreFunc().cleanupOnSuccess(
+                            store.getSFile().getFileName(),
+                            new org.apache.hadoop.mapreduce.Job(output.getConf()));
+                }
+            } catch (IOException e) {
+                throw new ExecException(e);
+            } catch (AbstractMethodError nsme) {
+                // Just swallow it.  This means we're running against an
+                // older instance of a StoreFunc that doesn't implement
+                // this method.
+            }
+        }
         tezScriptState.emitLaunchCompletedNotification(tezStats.getNumberSuccessfulJobs());
 
         return tezStats;
