@@ -51,7 +51,7 @@ import org.apache.pig.pen.util.ExampleTuple;
 public class POCounter extends PhysicalOperator {
 
     private static final long serialVersionUID = 1L;
-    private static final Long ONE = 1L;
+    public static final Long ONE = 1L;
 
     private List<PhysicalPlan> counterPlans;
     private List<Boolean> mAscCols;

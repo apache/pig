@@ -33,6 +33,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.tez.POValueOutputTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezOutput;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezTaskConfigurable;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.TezProcessorContext;
@@ -123,6 +124,9 @@ public class POCounterTez extends POCounter implements TezOutput, TezTaskConfigu
 
                 tuplesWriter.write(POValueOutputTez.EMPTY_KEY,
                         addCounterValue(inp).result);
+                if (isRowNumber()) {
+                    incrementReduceCounter(POCounter.ONE);
+                }
             }
 
             statsWriter.write(new IntWritable(this.getTaskId()), new LongWritable(totalTaskRecords));
@@ -131,18 +135,6 @@ public class POCounterTez extends POCounter implements TezOutput, TezTaskConfigu
             throw new ExecException(e);
         }
         return RESULT_EOP;
-    }
-
-    @Override
-    protected Long incrementLocalCounter() {
-        totalTaskRecords++;
-        return super.incrementLocalCounter();
-    }
-
-    @Override
-    protected void addToLocalCounter(Long sizeBag) {
-        super.addToLocalCounter(sizeBag);
-        totalTaskRecords += sizeBag;
     }
 
     @Override
