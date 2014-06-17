@@ -57,7 +57,11 @@ import org.apache.tez.runtime.api.LogicalIOProcessor;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.api.KeyValueReader;
+
+import com.google.common.collect.Lists;
+import com.google.common.primitives.Ints;
 
 public class PigProcessor implements LogicalIOProcessor {
 
@@ -65,6 +69,19 @@ public class PigProcessor implements LogicalIOProcessor {
     // Names of the properties that store serialized physical plans
     public static final String PLAN = "pig.exec.tez.plan";
     public static final String COMBINE_PLAN = "pig.exec.tez.combine.plan";
+    // This flag is used in both order by and skewed job. This is a configuration
+    // entry to instruct sample job to dynamically estimate parallelism
+    public static final String ESTIMATE_PARALLELISM = "pig.exec.estimate.parallelism";
+    // This flag is used in both order by and skewed job.
+    // This is the key in sampleMap of estimated parallelism
+    public static final String ESTIMATED_NUM_PARALLELISM = "pig.exec.estimated.num.parallelism";
+
+    // The operator key for sample vertex, used by partition vertex to collect sample
+    public static final String SAMPLE_VERTEX = "pig.sampleVertex";
+
+    // The operator key for sort vertex, used by sample vertex to send parallelism event
+    // if Pig need to estimate parallelism of sort vertex
+    public static final String SORT_VERTEX = "pig.sortVertex";
 
     private PhysicalPlan execPlan;
 
@@ -74,6 +91,8 @@ public class PigProcessor implements LogicalIOProcessor {
 
     private Configuration conf;
     private PigHadoopLogger pigHadoopLogger;
+    
+    private TezProcessorContext processorContext;
 
     public static String sampleVertex;
     public static Map<String, Object> sampleMap;
@@ -82,6 +101,8 @@ public class PigProcessor implements LogicalIOProcessor {
     @Override
     public void initialize(TezProcessorContext processorContext)
             throws Exception {
+        this.processorContext = processorContext;
+        
         // Reset any static variables to avoid conflict in container-reuse.
         sampleVertex = null;
         sampleMap = null;
@@ -190,6 +211,22 @@ public class PigProcessor implements LogicalIOProcessor {
                 if (fileOutput.isCommitRequired()) {
                     fileOutput.commit();
                 }
+            }
+
+            // send event containing parallelism to sorting job of order by / skewed join
+            if (conf.getBoolean(ESTIMATE_PARALLELISM, false)) {
+                int parallelism = 1;
+                if (sampleMap!=null && sampleMap.containsKey(ESTIMATED_NUM_PARALLELISM)) {
+                    parallelism = (Integer)sampleMap.get(ESTIMATED_NUM_PARALLELISM);
+                }
+                String sortingVertex = conf.get(SORT_VERTEX);
+                // Should contain only 1 output for sampleAggregation job
+                LOG.info("Sending numParallelism " + parallelism + " to " + sortingVertex);
+                VertexManagerEvent vmEvent = new VertexManagerEvent(
+                        sortingVertex, Ints.toByteArray(parallelism));
+                List<Event> events = Lists.newArrayListWithCapacity(1);
+                events.add(vmEvent);
+                processorContext.sendEvents(events);
             }
         } catch (Exception e) {
             abortOutput();
@@ -304,8 +341,9 @@ public class PigProcessor implements LogicalIOProcessor {
 
     @SuppressWarnings({ "unchecked" })
     private void collectSample(String sampleVertex, LogicalInput logicalInput) throws Exception {
-        Boolean cached = (Boolean) ObjectCache.getInstance().retrieve("cached.sample." + sampleVertex);
-        if (cached == Boolean.TRUE) {
+        String quantileMapCacheKey = "sample-" + sampleVertex  + ".cached";
+        sampleMap =  (Map<String, Object>)ObjectCache.getInstance().retrieve(quantileMapCacheKey);
+        if (sampleMap != null) {
             return;
         }
         LOG.info("Starting fetch of input " + logicalInput + " from vertex " + sampleVertex);
@@ -317,6 +355,9 @@ public class PigProcessor implements LogicalIOProcessor {
             // Sample is not empty
             Tuple t = (Tuple) val;
             sampleMap = (Map<String, Object>) t.get(0);
+            ObjectCache.getInstance().cache(quantileMapCacheKey, sampleMap);
+        } else {
+            LOG.warn("Cannot fetch sample from " + sampleVertex);
         }
     }
 

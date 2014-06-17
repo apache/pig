@@ -273,6 +273,9 @@ public class UnionOptimizer extends TezOpPlanVisitor {
         pred.setUseSecondaryKey(unionOp.isUseSecondaryKey());
         pred.UDFs.addAll(unionOp.UDFs);
         pred.scalars.addAll(unionOp.scalars);
+        if (unionOp.isSampler()) {
+            pred.markSampler();
+        }
     }
 
     public static PhysicalPlan getUnionPredPlanFromSplit(PhysicalPlan plan, String unionOpKey) throws VisitorException {

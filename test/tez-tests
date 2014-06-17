@@ -47,3 +47,4 @@
 **/TestTezCompiler.java
 **/TestTezJobControlCompiler.java
 **/TestTezLauncher.java
+**/TestTezAutoParallelism.java

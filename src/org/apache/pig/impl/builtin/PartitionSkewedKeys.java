@@ -75,13 +75,13 @@ public class PartitionSkewedKeys extends EvalFunc<Map<String, Object>> {
 
     private int currentIndex_;
 
-    private int totalReducers_;
-
     private long totalMemory_;
 
     private long totalSampleCount_;
 
     private double heapPercentage_;
+
+    protected int totalReducers_;
 
     // specify how many tuple a reducer can hold for a key
     // this is for testing purpose. If not specified, then
@@ -135,7 +135,9 @@ public class PartitionSkewedKeys extends EvalFunc<Map<String, Object>> {
         long totalInputRows = 0;
 
         try {
-            totalReducers_ = (Integer) in.get(0);
+            if (totalReducers_ == -1) {
+                totalReducers_ = (Integer) in.get(0);
+            }
             DataBag samples = (DataBag) in.get(1);
 
             totalSampleCount_ = samples.size();
@@ -271,7 +273,7 @@ public class PartitionSkewedKeys extends EvalFunc<Map<String, Object>> {
     }
 
     // the last field of the tuple is a tuple for memory size and disk size
-    private long getMemorySize(Tuple t) {
+    protected long getMemorySize(Tuple t) {
         int s = t.size();
         try {
             return (Long) t.get(s - 2);

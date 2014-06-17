@@ -62,6 +62,8 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     // even when parallelism of source vertex changes.
     // Can change to int and set to -1 if TEZ-800 gets fixed.
     private AtomicInteger requestedParallelism = new AtomicInteger(-1);
+    
+    private int estimatedParallelism = -1;
 
     // TODO: When constructing Tez vertex, we have to specify how much resource
     // the vertex will need. So we need to estimate these values while compiling
@@ -89,6 +91,9 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     //Indicates if this job is an order by job
     boolean globalSort = false;
 
+    //Indicate if this job is a union job 
+    boolean union = false;
+
     //The sort order of the columns;
     //asc is true and desc is false
     boolean[] sortOrder;
@@ -104,8 +109,16 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     // are NOT combinable for correctness.
     private boolean combineSmallSplits = true;
 
-    // If not null, need to collect sample sent from predecessor
+    // Used by partition vertex, if not null, need to collect sample sent from predecessor
     TezOperator sampleOperator = null;
+
+    // Used by sample vertex, send parallelism event to orderOperator
+    TezOperator sortOperator = null;
+
+    // If the flag is set, FindQuantilesTez/PartitionSkewedKeysTez will use aggregated sample
+    // to calculate the number of parallelism at runtime, instead of the numQuantiles/totalReducers_
+    // parameter set statically
+    private boolean needEstimateParallelism = false;
 
     // If true, we will use secondary key sort in the job
     private boolean useSecondaryKey = false;
@@ -113,12 +126,14 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     // Types of blocking operators. For now, we only support the following ones.
     private static enum OPER_FEATURE {
         NONE,
-        // Indicate if this job is a union job
-        UNION,
         // Indicate if this job is a merge indexer
         INDEXER,
         // Indicate if this job is a sampling job
         SAMPLER,
+        // Indicate if this job is a sample aggregation job
+        SAMPLE_AGGREGATOR,
+        // Indicate if this job is a sample based partition job (order by/skewed join)
+        SAMPLE_BASED_PARTITIONER,
         // Indicate if this job is a group by job
         GROUPBY,
         // Indicate if this job is a cogroup job
@@ -175,6 +190,18 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         this.requestedParallelism = oper.requestedParallelism;
     }
 
+    public int getEstimatedParallelism() {
+        return estimatedParallelism;
+    }
+
+    public void setEstimatedParallelism(int estimatedParallelism) {
+        this.estimatedParallelism = estimatedParallelism;
+    }
+
+    public int getEffectiveParallelism() {
+        return getRequestedParallelism()!=-1? getRequestedParallelism() : getEstimatedParallelism();
+    }
+
     public OperatorKey getSplitParent() {
         return splitParent;
     }
@@ -224,11 +251,11 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     }
 
     public boolean isUnion() {
-        return (feature == OPER_FEATURE.UNION);
+        return union;
     }
 
-    public void markUnion() {
-        feature = OPER_FEATURE.UNION;
+    public void setUnion() {
+        union = true;
     }
 
     public boolean isIndexer() {
@@ -245,6 +272,30 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     public void markSampler() {
         feature = OPER_FEATURE.SAMPLER;
+    }
+
+    public boolean isSampleAggregation() {
+        return (feature == OPER_FEATURE.SAMPLE_AGGREGATOR);
+    }
+
+    public void markSampleAggregation() {
+        feature = OPER_FEATURE.SAMPLE_AGGREGATOR;
+    }
+    
+    public boolean isSampleBasedPartitioner() {
+        return (feature == OPER_FEATURE.SAMPLE_BASED_PARTITIONER);
+    }
+
+    public void markSampleBasedPartitioner() {
+        feature = OPER_FEATURE.SAMPLE_BASED_PARTITIONER;
+    }
+
+    public void setNeedEstimatedQuantile(boolean needEstimateParallelism) {
+        this.needEstimateParallelism = needEstimateParallelism;
+    }
+
+    public boolean isNeedEstimateParallelism() {
+        return needEstimateParallelism;
     }
 
     public boolean isUseSecondaryKey() {
