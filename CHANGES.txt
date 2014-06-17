@@ -34,6 +34,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3983: TestGrunt.testKeepGoigFailed fail on tez mode (daijy)
+
 PIG-3959: Skewed join followed by replicated join fails in Tez (cheolsoo)
 
 PIG-3995: Tez unit tests shouldn't run when -Dhadoopversion=20 (cheolsoo)
