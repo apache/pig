@@ -26,10 +26,14 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.builtin.PoissonSampleLoader;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 
 public class POReservoirSample extends PhysicalOperator {
+
+    private static final TupleFactory tf = TupleFactory.getInstance();
 
     private static final long serialVersionUID = 1L;
 
@@ -44,6 +48,9 @@ public class POReservoirSample extends PhysicalOperator {
 
     //array to store the result
     private transient Result[] samples = null;
+
+    // last sample result
+    private Result lastSample = null;
 
     public POReservoirSample(OperatorKey k) {
         this(k, -1, null);
@@ -101,7 +108,6 @@ public class POReservoirSample extends PhysicalOperator {
             }
         }
 
-        int rowNum = rowProcessed;
         Random randGen = new Random();
 
         while (true) {
@@ -114,11 +120,11 @@ public class POReservoirSample extends PhysicalOperator {
             }
 
             // collect samples until input is exhausted
-            int rand = randGen.nextInt(rowNum);
+            int rand = randGen.nextInt(rowProcessed);
             if (rand < numSamples) {
                 samples[rand] = res;
             }
-            rowNum++;
+            rowProcessed++;
         }
 
         if (this.parentPlan.endOfAllInput && res.returnStatus == POStatus.STATUS_EOP) {
@@ -129,6 +135,26 @@ public class POReservoirSample extends PhysicalOperator {
     }
 
     private Result getSample() throws ExecException {
+        if (lastSample == null) {
+            lastSample = retrieveSample();
+        }
+        if (lastSample.returnStatus==POStatus.STATUS_EOP) {
+            return lastSample;
+        }
+        
+        Result currentSample = retrieveSample();
+        // If this is the last sample, tag with number of rows
+        if (currentSample.returnStatus == POStatus.STATUS_EOP) {
+            lastSample = createNumRowTuple((Tuple)lastSample.result);
+        } else if (currentSample.returnStatus == POStatus.STATUS_NULL) {
+            return currentSample;
+        }
+        Result result = lastSample;
+        lastSample = currentSample;
+        return result;
+    }
+
+    private Result retrieveSample() throws ExecException {
         if(nextSampleIdx < samples.length){
             if (illustrator != null) {
                 illustratorMarkup(samples[nextSampleIdx].result, samples[nextSampleIdx].result, 0);
@@ -140,7 +166,8 @@ public class POReservoirSample extends PhysicalOperator {
             return res;
         }
         else{
-            Result res = new Result(POStatus.STATUS_EOP, null);
+            Result res;
+            res = new Result(POStatus.STATUS_EOP, null);
             return res;
         }
     }
@@ -158,5 +185,25 @@ public class POReservoirSample extends PhysicalOperator {
     @Override
     public String name() {
         return getAliasString() + "ReservoirSample - " + mKey.toString();
+    }
+
+    /**
+     * @param sample - sample tuple
+     * @return - Tuple appended with special marker string column, num-rows column
+     * @throws ExecException
+     */
+    private Result createNumRowTuple(Tuple sample) throws ExecException {
+        int sz = (sample == null) ? 0 : sample.size();
+        Tuple t = tf.newTuple(sz + 2);
+
+        if (sample != null) {
+            for (int i=0; i<sample.size(); i++){
+                t.set(i, sample.get(i));
+            }
+        }
+
+        t.set(sz, PoissonSampleLoader.NUMROWS_TUPLE_MARKER);
+        t.set(sz + 1, (long)rowProcessed);
+        return new Result(POStatus.STATUS_OK, t);
     }
 }

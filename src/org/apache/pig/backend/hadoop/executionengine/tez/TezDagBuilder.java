@@ -61,6 +61,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCo
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingPartitionWritableComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingTupleWritableComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigSecondaryKeyGroupComparator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.InputSizeReducerEstimator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PhyPlanSetter;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigBigDecimalRawComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigBigIntegerRawComparator;
@@ -91,6 +92,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelp
 import org.apache.pig.backend.hadoop.executionengine.tez.TezPOPackageAnnotator.LoRearrangeDiscoverer;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.MRToTezHelper;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.SecurityHelper;
+import org.apache.pig.backend.hadoop.executionengine.util.ParallelConstantVisitor;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -107,6 +109,7 @@ import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
+import org.apache.tez.dag.api.EdgeManagerDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.GroupInputEdge;
@@ -115,6 +118,8 @@ import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.VertexGroup;
+import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
+import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
 import org.apache.tez.mapreduce.combine.MRCombiner;
 import org.apache.tez.mapreduce.committer.MROutputCommitter;
 import org.apache.tez.mapreduce.common.MRInputSplitDistributor;
@@ -132,6 +137,9 @@ import org.apache.tez.runtime.library.input.SortedGroupedMergedInput;
  */
 public class TezDagBuilder extends TezOpPlanVisitor {
     private static final Log log = LogFactory.getLog(TezJobControlCompiler.class);
+
+    private static final String REDUCER_ESTIMATOR_KEY = "pig.exec.reducer.estimator";
+    private static final String REDUCER_ESTIMATOR_ARG_KEY =  "pig.exec.reducer.estimator.arg";
 
     private DAG dag;
     private Map<String, LocalResource> localResources;
@@ -343,6 +351,12 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         in.setUserPayload(TezUtils.createUserPayloadFromConf(conf));
         out.setUserPayload(TezUtils.createUserPayloadFromConf(conf));
 
+        if (to.getEstimatedParallelism()!=-1 && (to.isGlobalSort()||to.isSkewedJoin())) {
+            // Use custom edge
+            return new EdgeProperty((EdgeManagerDescriptor)null,
+                    edge.dataSourceType, edge.schedulingType, out, in);
+            }
+
         return new EdgeProperty(edge.dataMovementType, edge.dataSourceType,
                 edge.schedulingType, out, in);
     }
@@ -393,7 +407,11 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         payloadConf = (JobConf) job.getConfiguration();
 
         if (tezOp.sampleOperator != null) {
-            payloadConf.set("pig.sampleVertex", tezOp.sampleOperator.getOperatorKey().toString());
+            payloadConf.set(PigProcessor.SAMPLE_VERTEX, tezOp.sampleOperator.getOperatorKey().toString());
+        }
+
+        if (tezOp.sortOperator != null) {
+            payloadConf.set(PigProcessor.SORT_VERTEX, tezOp.sortOperator.getOperatorKey().toString());
         }
 
         String tmp;
@@ -492,7 +510,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             // TODO Need to fix multiple input key mapping
             TezOperator identityInOutPred = null;
             for (TezOperator pred : mPlan.getPredecessors(tezOp)) {
-                if (!pred.isSampler()) {
+                if (!pred.isSampleAggregation()) {
                     identityInOutPred = pred;
                     break;
                 }
@@ -544,12 +562,9 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                     ObjectSerializer.serialize(stores));
         }
 
-        // Take our assembled configuration and create a vertex
-        byte[] userPayload = TezUtils.createUserPayloadFromConf(payloadConf);
-        procDesc.setUserPayload(userPayload);
         // Can only set parallelism here if the parallelism isn't derived from
         // splits
-        int parallelism = tezOp.getRequestedParallelism();
+        int parallelism = -1;
         InputSplitInfo inputSplitInfo = null;
         if (loads != null && loads.size() > 0) {
             // Not using MRInputAMSplitGenerator because delegation tokens are
@@ -559,28 +574,85 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             // splits can be moved to if(loads) block below
             parallelism = inputSplitInfo.getNumTasks();
             tezOp.setRequestedParallelism(parallelism);
-        }
-        if (tezOp.getRequestedParallelism() < 0) {
-            if (pc.defaultParallel > 0) {
-                parallelism = pc.defaultParallel;
-            } else {
-                // Rough estimation till we have Automatic Reducer Parallelism
-                // and Parallelism estimator. To be removed.
-                int sumOfPredParallelism = 0;
-                int predParallelism;
-                for (TezOperator pred : mPlan.getPredecessors(tezOp)) {
-                    predParallelism = pred.getRequestedParallelism();
-                    if (predParallelism < 0) {
-                        predParallelism = Math.max(pc.defaultParallel, 1);
+        } else {
+            int prevParallelism = -1;
+            boolean isOneToOneParallelism = false;
+            for (Map.Entry<OperatorKey,TezEdgeDescriptor> entry : tezOp.inEdges.entrySet()) {
+                if (entry.getValue().dataMovementType == DataMovementType.ONE_TO_ONE) {
+                    TezOperator pred = mPlan.getOperator(entry.getKey());
+                    parallelism = pred.getEffectiveParallelism();
+                    if (prevParallelism == -1) {
+                        prevParallelism = parallelism;
+                    } else if (prevParallelism != parallelism) {
+                        throw new IOException("one to one sources parallelism for vertex "
+                                + tezOp.getOperatorKey().toString() + " are not equal");
                     }
-                    sumOfPredParallelism += predParallelism;
+                    if (pred.getRequestedParallelism()!=-1) {
+                        tezOp.setRequestedParallelism(pred.getRequestedParallelism());
+                    } else {
+                        tezOp.setEstimatedParallelism(pred.getEstimatedParallelism());
+                    }
+                    isOneToOneParallelism = true;
+                    parallelism = -1;
                 }
-                sumOfPredParallelism = Math.min(sumOfPredParallelism, 20);
-                parallelism = Math.max(sumOfPredParallelism, 1);
             }
-            tezOp.setRequestedParallelism(parallelism);
+            if (!isOneToOneParallelism) {
+                if (tezOp.getRequestedParallelism()!=-1) {
+                    parallelism = tezOp.getRequestedParallelism();
+                } else if (pc.defaultParallel!=-1) {
+                    parallelism = pc.defaultParallel;
+                } else {
+                    parallelism = estimateParallelism(job, mPlan, tezOp);
+                    tezOp.setEstimatedParallelism(parallelism);
+                    if (tezOp.isGlobalSort()||tezOp.isSkewedJoin()) {
+                        // Vertex manager will set parallelism
+                        parallelism = -1;
+                    }
+                }
+            }
         }
 
+        // Once we decide the parallelism of the sampler, propagate to
+        // downstream operators if necessary
+        if (tezOp.isSampler()) {
+            // There could be multiple sampler and share the same sample aggregation job
+            // and partitioner job
+            TezOperator sampleAggregationOper = null;
+            TezOperator sampleBasedPartionerOper = null;
+            TezOperator sortOper = null;
+            for (TezOperator succ : mPlan.getSuccessors(tezOp)) {
+                if (succ.isVertexGroup()) {
+                    succ = mPlan.getSuccessors(succ).get(0);
+                }
+                if (succ.isSampleAggregation()) {
+                    sampleAggregationOper = succ;
+                } else if (succ.isSampleBasedPartitioner()) {
+                    sampleBasedPartionerOper = succ;
+                }
+            }
+            sortOper = mPlan.getSuccessors(sampleBasedPartionerOper).get(0);
+            
+            if (sortOper.getRequestedParallelism()==-1 && pc.defaultParallel==-1) {
+                // set estimate parallelism for order by/skewed join to sampler parallelism
+                // that include:
+                // 1. sort operator
+                // 2. constant for sample aggregation oper
+                sortOper.setEstimatedParallelism(parallelism);
+                ParallelConstantVisitor visitor =
+                        new ParallelConstantVisitor(sampleAggregationOper.plan, parallelism);
+                visitor.visit();
+            }
+        }
+
+        if (tezOp.isNeedEstimateParallelism()) {
+            payloadConf.setBoolean(PigProcessor.ESTIMATE_PARALLELISM, true);
+            log.info("Estimate quantile for sample aggregation vertex " + tezOp.getOperatorKey().toString());
+        }
+
+        // Take our assembled configuration and create a vertex
+        byte[] userPayload = TezUtils.createUserPayloadFromConf(payloadConf);
+        procDesc.setUserPayload(userPayload);
+        
         Vertex vertex = new Vertex(tezOp.getOperatorKey().toString(), procDesc, parallelism,
                 isMap ? MRHelpers.getMapResource(globalConf) : MRHelpers.getReduceResource(globalConf));
 
@@ -655,6 +727,47 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         // checkOutputSpecs. For eg: FileInputFormat and FileOutputFormat
         if (stores.size() > 0) {
             new PigOutputFormat().checkOutputSpecs(job);
+        }
+        
+        // Set the right VertexManagerPlugin
+        if (tezOp.getEstimatedParallelism() != -1) {
+            if (tezOp.isGlobalSort()||tezOp.isSkewedJoin()) {
+                // Set VertexManagerPlugin to PartitionerDefinedVertexManager, which is able
+                // to decrease/increase parallelism of sorting vertex dynamically
+                // based on the numQuantiles calculated by sample aggregation vertex
+                vertex.setVertexManagerPlugin(new VertexManagerPluginDescriptor(
+                        PartitionerDefinedVertexManager.class.getName()));
+                log.info("Set VertexManagerPlugin to PartitionerDefinedParallelismVertexManager for vertex " + tezOp.getOperatorKey().toString());
+            } else {
+                boolean containScatterGather = false;
+                boolean containCustomPartitioner = false;
+                for (TezEdgeDescriptor edge : tezOp.inEdges.values()) {
+                    if (edge.dataMovementType == DataMovementType.SCATTER_GATHER) {
+                        containScatterGather = true;
+                    }
+                    if (edge.partitionerClass!=null) {
+                        containCustomPartitioner = true;
+                    }
+                }
+                if (containScatterGather && !containCustomPartitioner) {
+                    // Use auto-parallelism feature of ShuffleVertexManager to dynamically
+                    // reduce the parallelism of the vertex
+                    VertexManagerPluginDescriptor vmPluginDescriptor = new VertexManagerPluginDescriptor(
+                            ShuffleVertexManager.class.getName());
+                    Configuration vmPluginConf = ConfigurationUtil.toConfiguration(pc.getProperties(), false);
+                    vmPluginConf.setBoolean(ShuffleVertexManager.TEZ_AM_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL, true);
+                    if (vmPluginConf.getLong(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM,
+                            InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER)!=
+                                    InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER) {
+                        vmPluginConf.setLong(ShuffleVertexManager.TEZ_AM_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE,
+                                vmPluginConf.getLong(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM,
+                                        InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER));
+                    }
+                    vmPluginDescriptor.setUserPayload(TezUtils.createUserPayloadFromConf(vmPluginConf));
+                    vertex.setVertexManagerPlugin(vmPluginDescriptor);
+                    log.info("Set auto parallelism for vertex " + tezOp.getOperatorKey().toString());
+                }
+            }
         }
 
         // Reset udfcontext jobconf. It is not supposed to be set in the front end
@@ -1033,6 +1146,20 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 comparatorClass);
         conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_SECONDARY_COMPARATOR_CLASS,
                 comparatorClass);
+    }
+    
+    public static int estimateParallelism(Job job, TezOperPlan tezPlan,
+            TezOperator tezOp) throws IOException {
+        Configuration conf = job.getConfiguration();
+
+        TezParallelismEstimator estimator = conf.get(REDUCER_ESTIMATOR_KEY) == null ? new TezOperDependencyParallelismEstimator()
+                : PigContext.instantiateObjectFromParams(conf,
+                        REDUCER_ESTIMATOR_KEY, REDUCER_ESTIMATOR_ARG_KEY,
+                        TezParallelismEstimator.class);
+
+        log.info("Using parallel estimator: " + estimator.getClass().getName());
+        int numberOfReducers = estimator.estimateParallelism(tezPlan, tezOp, conf);
+        return numberOfReducers;
     }
 
 }

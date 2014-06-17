@@ -2,15 +2,15 @@
 # There are 1 DAGs in the session
 #--------------------------------------------------
 #--------------------------------------------------
-# TEZ DAG plan: scope-51
+# TEZ DAG plan: scope-53
 #--------------------------------------------------
 Tez vertex scope-23	->	Tez vertex scope-24,
-Tez vertex scope-24	->	Tez vertex scope-41,Tez vertex scope-31,
-Tez vertex scope-31	->	Tez vertex scope-41,
-Tez vertex scope-41	->	Tez vertex scope-43,
-Tez vertex scope-43	->	Tez vertex scope-49,Tez vertex scope-47,
-Tez vertex scope-47	->	Tez vertex scope-49,
-Tez vertex scope-49
+Tez vertex scope-24	->	Tez vertex scope-43,Tez vertex scope-33,
+Tez vertex scope-33	->	Tez vertex scope-43,
+Tez vertex scope-43	->	Tez vertex scope-45,
+Tez vertex scope-45	->	Tez vertex scope-51,Tez vertex scope-49,
+Tez vertex scope-49	->	Tez vertex scope-51,
+Tez vertex scope-51
 
 Tez vertex scope-23
 # Plan on vertex
@@ -31,17 +31,21 @@ b: Local Rearrange[tuple]{int}(false) - scope-10	->	 scope-24
     |---a: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-0
 Tez vertex scope-24
 # Plan on vertex
-Local Rearrange[tuple]{tuple}(false) - scope-27	->	 scope-31
+Local Rearrange[tuple]{tuple}(false) - scope-27	->	 scope-33
 |   |
 |   Constant(DummyVal) - scope-26
 |
-|---ReservoirSample - scope-30
+|---New For Each(true,true)[tuple] - scope-32
+    |   |
+    |   Project[int][0] - scope-15
+    |   |
+    |   POUserFunc(org.apache.pig.impl.builtin.GetMemNumRows)[tuple] - scope-31
+    |   |
+    |   |---Project[tuple][*] - scope-30
     |
-    |---New For Each(false)[tuple] - scope-29
-        |   |
-        |   Project[int][0] - scope-28
+    |---ReservoirSample - scope-29
         |
-        |---b: Local Rearrange[tuple]{int}(false) - scope-25	->	 scope-41
+        |---b: Local Rearrange[tuple]{int}(false) - scope-25	->	 scope-43
             |   |
             |   Project[int][0] - scope-15
             |
@@ -52,43 +56,43 @@ Local Rearrange[tuple]{tuple}(false) - scope-27	->	 scope-31
                 |   Project[bag][1] - scope-13
                 |
                 |---b: Package(Packager)[tuple]{int} - scope-9
-Tez vertex scope-31
+Tez vertex scope-33
 # Plan on vertex
-POValueOutputTez - scope-40	->	 [scope-41]
+POValueOutputTez - scope-42	->	 [scope-43]
 |
-|---New For Each(false)[tuple] - scope-39
+|---New For Each(false)[tuple] - scope-41
     |   |
-    |   POUserFunc(org.apache.pig.impl.builtin.FindQuantiles)[tuple] - scope-38
+    |   POUserFunc(org.apache.pig.backend.hadoop.executionengine.tez.FindQuantilesTez)[tuple] - scope-40
     |   |
-    |   |---Project[tuple][*] - scope-37
+    |   |---Project[tuple][*] - scope-39
     |
-    |---New For Each(false,false)[tuple] - scope-36
+    |---New For Each(false,false)[tuple] - scope-38
         |   |
-        |   Constant(1) - scope-35
+        |   Constant(-1) - scope-37
         |   |
-        |   Project[bag][1] - scope-33
+        |   Project[bag][1] - scope-35
         |
-        |---Package(Packager)[tuple]{bytearray} - scope-32
-Tez vertex scope-41
-# Plan on vertex
-POIdentityInOutTez - scope-42	<-	 scope-24	->	 scope-43
-|   |
-|   Project[int][0] - scope-15
+        |---Package(Packager)[tuple]{bytearray} - scope-34
 Tez vertex scope-43
 # Plan on vertex
-POCounterTez - scope-17	->	 scope-49,scope-47
+POIdentityInOutTez - scope-44	<-	 scope-24	->	 scope-45
+|   |
+|   Project[int][0] - scope-15
+Tez vertex scope-45
+# Plan on vertex
+POCounterTez - scope-17	->	 scope-51,scope-49
 |   |
 |   Project[int][0] - scope-15
 |
-|---New For Each(true)[tuple] - scope-46
+|---New For Each(true)[tuple] - scope-48
     |   |
-    |   Project[bag][1] - scope-45
+    |   Project[bag][1] - scope-47
     |
-    |---Package(LitePackager)[tuple]{int} - scope-44
-Tez vertex scope-47
-# Plan on vertex
-PORankStatsTez - scope-48	<-	 scope-43	->	 scope-49
+    |---Package(LitePackager)[tuple]{int} - scope-46
 Tez vertex scope-49
+# Plan on vertex
+PORankStatsTez - scope-50	<-	 scope-45	->	 scope-51
+Tez vertex scope-51
 # Plan on vertex
 b: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-22
 |
@@ -98,6 +102,6 @@ b: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-22
     |   |
     |   Project[bag][2] - scope-20
     |
-    |---PORankTez - scope-18	<-	 scope-43,scope-47
+    |---PORankTez - scope-18	<-	 scope-45,scope-49
         |   |
         |   Project[int][0] - scope-15

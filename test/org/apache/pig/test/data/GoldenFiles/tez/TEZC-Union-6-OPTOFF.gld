@@ -69,13 +69,13 @@ POValueOutputTez - scope-138	->	 [scope-139, scope-121]
 |
 |---New For Each(false)[tuple] - scope-137
     |   |
-    |   POUserFunc(org.apache.pig.impl.builtin.PartitionSkewedKeys)[tuple] - scope-136
+    |   POUserFunc(org.apache.pig.backend.hadoop.executionengine.tez.PartitionSkewedKeysTez)[tuple] - scope-136
     |   |
     |   |---Project[tuple][*] - scope-135
     |
     |---New For Each(false,false)[tuple] - scope-134
         |   |
-        |   Constant(1) - scope-133
+        |   Constant(-1) - scope-133
         |   |
         |   Project[bag][1] - scope-131
         |

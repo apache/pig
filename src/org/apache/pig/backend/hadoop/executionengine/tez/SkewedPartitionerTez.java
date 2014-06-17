@@ -31,22 +31,8 @@ import org.apache.pig.impl.util.Pair;
 public class SkewedPartitionerTez extends SkewedPartitioner {
     private static final Log LOG = LogFactory.getLog(SkewedPartitionerTez.class);
 
-    @SuppressWarnings("unchecked")
     @Override
     protected void init() {
-
-        ObjectCache cache = ObjectCache.getInstance();
-        String isCachedKey = "sample-" + PigProcessor.sampleVertex + ".cached";
-        String totalReducersCacheKey = "sample-" + PigProcessor.sampleVertex + ".totalReducers";
-        String reducerMapCacheKey = "sample-" + PigProcessor.sampleVertex + ".reducerMap";
-        if (cache.retrieve(isCachedKey) == Boolean.TRUE) {
-            totalReducers = (Integer) cache.retrieve(totalReducersCacheKey);
-            reducerMap = (Map<Tuple, Pair<Integer, Integer>>) cache.retrieve(reducerMapCacheKey);
-            LOG.info("Found totalReducers and reducerMap in Tez cache. cachekey="
-                    + totalReducersCacheKey + "," + reducerMapCacheKey);
-            inited = true;
-            return;
-        }
 
         Map<String, Object> distMap = null;
         if (PigProcessor.sampleMap != null) {
@@ -98,9 +84,6 @@ public class SkewedPartitionerTez extends SkewedPartitioner {
             throw new RuntimeException(e);
         }
         LOG.info("Initialized SkewedPartitionerTez. Time taken: " + (System.currentTimeMillis() - start));
-        cache.cache(isCachedKey, Boolean.TRUE);
-        cache.cache(totalReducersCacheKey, totalReducers);
-        cache.cache(reducerMapCacheKey, reducerMap);
         inited = true;
     }
 }
