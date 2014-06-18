@@ -92,7 +92,7 @@ public class PartitionerDefinedVertexManager implements VertexManagerPlugin {
                             new EdgeManagerDescriptor(ScatterGatherEdgeManager.class.getName());
                     edgeManagers.put(vertex, edgeManagerDescriptor);
                 }
-                context.setVertexParallelism(dynamicParallelism, null, edgeManagers);
+                context.setVertexParallelism(dynamicParallelism, null, edgeManagers, null);
             }
             List<TaskWithLocationHint> tasksToStart = Lists.newArrayListWithCapacity(dynamicParallelism);
             for (int i=0; i<dynamicParallelism; ++i) {
