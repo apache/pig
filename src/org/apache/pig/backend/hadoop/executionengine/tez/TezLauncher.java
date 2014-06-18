@@ -63,6 +63,10 @@ public class TezLauncher extends Launcher {
 
     @Override
     public PigStats launchPig(PhysicalPlan php, String grpName, PigContext pc) throws Exception {
+        if (pc.defaultParallel == -1 && 
+                !Boolean.parseBoolean(pc.getProperties().getProperty("pig.tez.auto.parallelism", "true"))) {
+            pc.defaultParallel = 1;
+        }
         aggregateWarning = Boolean.parseBoolean(pc.getProperties().getProperty("aggregate.warning", "false"));
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties(), true);
 
