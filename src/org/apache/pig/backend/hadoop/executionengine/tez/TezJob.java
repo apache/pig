@@ -22,6 +22,8 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
@@ -64,6 +66,8 @@ public class TezJob extends ControlledJob {
     private TezCounters dagCounters;
     // Vertex, CounterGroup, Counter, Value
     private Map<String, Map<String, Map<String, Long>>> vertexCounters;
+    // Timer for DAG status reporter
+    private Timer timer;
 
     public TezJob(TezConfiguration conf, DAG dag, Map<String, LocalResource> requestAMResources)
             throws IOException {
@@ -131,6 +135,10 @@ public class TezJob extends ControlledJob {
             return;
         }
 
+        timer = new Timer();
+        timer.schedule(new DAGStatusReporter(), 1000, conf.getLong(
+                PigConfiguration.TEZ_DAG_STATUS_REPORT_INTERVAL, 10) * 1000);
+
         while (true) {
             try {
                 dagStatus = dagClient.getDAGStatus(statusGetOpts);
@@ -140,7 +148,6 @@ public class TezJob extends ControlledJob {
                 break;
             }
 
-            log.info("DAG Status: " + dagStatus);
             setJobState(dagState2JobState(dagStatus.getState()));
             if (dagStatus.isCompleted()) {
                 StringBuilder sb = new StringBuilder();
@@ -170,6 +177,14 @@ public class TezJob extends ControlledJob {
             } catch (InterruptedException e) {
                 // Do nothing
             }
+        }
+
+        timer.cancel();
+    }
+
+    private class DAGStatusReporter extends TimerTask {
+        public void run() {
+            log.info("DAG Status: " + dagStatus);
         }
     }
 

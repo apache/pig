@@ -92,6 +92,11 @@ public class PigConfiguration {
     public static final String TEZ_SESSION_REUSE = "pig.tez.session.reuse";
 
     /**
+     * This key is used to configure the interval of dag status report in seconds.
+     */
+    public static final String TEZ_DAG_STATUS_REPORT_INTERVAL = "pig.tez.dag.status.report.interval";
+
+    /**
      * Turns off use of combiners in MapReduce jobs produced by Pig.
      */
     public static final String PROP_NO_COMBINER = "pig.exec.nocombiner";
