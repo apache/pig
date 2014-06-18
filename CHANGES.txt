@@ -36,6 +36,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4019: Compilation broken after TEZ-1169 (daijy)
+
 PIG-4014: Fix Rank e2e test failures on tez (daijy)
 
 PIG-4013: Order by multiple column fail on Tez (daijy)
