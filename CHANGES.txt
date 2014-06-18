@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4015: Provide a way to disable auto-parallism in tez (daijy)
+
 PIG-3846: Implement automatic reducer parallelism (daijy)
 
 PIG-3939: SPRINTF function to format strings using a printf-style template (mrflip via cheolsoo)
