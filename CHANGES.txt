@@ -36,6 +36,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4001: POPartialAgg aggregates too aggressively when multiple values aggregated (tmwoodruff via cheolsoo)
+
 PIG-4027: Always check for latest Tez snapshot dependencies (lbendig via cheolsoo)
 
 PIG-4020: Fix tez e2e tests MapPartialAgg_[2-4], StreamingPerformance_[6-7] (daijy)
