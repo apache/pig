@@ -18,7 +18,10 @@
 <project name="TestHarnessPigTests" default="test">
 
   <property name="pig.dir" value="${basedir}/../../.."/>
-  <property name="pig.jar" value="${pig.dir}/pig.jar"/>
+  <condition property="pig.jarname" value="pig-h2.jar" else="pig-h1.jar">
+    <equals arg1="${hadoopversion}" arg2="23" />
+  </condition>
+  <property name="pig.jar" value="${pig.dir}/${pig.jarname}"/>
   <property name="ivy.dir" location="${pig.dir}/ivy" />
   <loadproperties srcfile="${ivy.dir}/libraries.properties"/>
 
