@@ -213,7 +213,7 @@ public class POSplit extends PhysicalOperator {
             
             Result inp = processInput();
 
-            if (this.parentPlan.endOfAllInput) {
+            if (inp.returnStatus == POStatus.STATUS_EOP && this.parentPlan.endOfAllInput) {
                 return getStreamCloseResult();
             }
 
