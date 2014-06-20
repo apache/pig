@@ -282,6 +282,25 @@ if [ -z "$HADOOP_BIN" ]; then
     fi
 fi
 
+# find out the HADOOP_HOME in order to find hadoop jar
+# we use the name of hadoop jar to decide if user is using
+# hadoop 1 or hadoop 2
+if [[ -z "$HADOOP_HOME" && -n "$HADOOP_PREFIX" ]]; then
+    HADOOP_HOME=$HADOOP_PREFIX
+fi
+
+if [[ -z "$HADOOP_HOME" && -n "$HADOOP_BIN" ]]; then
+    HADOOP_HOME=`dirname $HADOOP_BIN`/..
+fi
+
+HADOOP_CORE_JAR=`echo ${HADOOP_HOME}/hadoop-core*.jar`
+
+if [ -z "$HADOOP_CORE_JAR" ]; then
+    HADOOP_VERSION=2
+else
+    HADOOP_VERSION=1
+fi
+
 # if using HBase, likely want to include HBase jars and config
 HBH=${HBASE_HOME:-"${PIG_HOME}/share/hbase"}
 if [ -d "${HBH}" ]; then
@@ -345,21 +364,25 @@ if [ -n "$HADOOP_BIN" ]; then
         echo "Find hadoop at $HADOOP_BIN"
     fi
 
-    if [ -f $PIG_HOME/pig-withouthadoop.jar ]; then
-        PIG_JAR=$PIG_HOME/pig-withouthadoop.jar
+    if [ -f $PIG_HOME/pig-withouthadoop-h${HADOOP_VERSION}.jar ]; then
+        PIG_JAR=$PIG_HOME/pig-withouthadoop-h${HADOOP_VERSION}.jar
     else
-        PIG_JAR=`echo $PIG_HOME/pig-?.*withouthadoop.jar`
+        PIG_JAR=`echo $PIG_HOME/pig-?.*withouthadoop-h${HADOOP_VERSION}.jar`
     fi
 
     # for deb/rpm package, add pig jar in /usr/share/pig
     if [ -z "$PIG_JAR" ]; then
-        PIG_JAR=`echo $PIG_HOME/share/pig/pig-*withouthadoop.jar`
+        PIG_JAR=`echo $PIG_HOME/share/pig/pig-*withouthadoop-h${HADOOP_VERSION}.jar`
     fi
 
     if [ -n "$PIG_JAR" ]; then
         CLASSPATH=${CLASSPATH}:$PIG_JAR
     else
-        echo "Cannot locate pig-withouthadoop.jar. do 'ant jar-withouthadoop', and try again"
+        if [ "$HADOOP_VERSION" == "1" ]; then
+            echo "Cannot locate pig-withouthadoop-h${HADOOP_VERSION}.jar. do 'ant jar-withouthadoop', and try again"
+        else
+            echo "Cannot locate pig-withouthadoop-h${HADOOP_VERSION}.jar. do 'ant -Dhadoopversion=23 jar-withouthadoop', and try again"
+        fi
         exit 1
     fi
 
@@ -378,10 +401,10 @@ if [ -n "$HADOOP_BIN" ]; then
     fi
 else
     # fall back to use fat pig.jar
-    if [ -f $PIG_HOME/pig.jar ]; then
-        PIG_JAR=$PIG_HOME/pig.jar
+    if [ -f $PIG_HOME/pig-h1.jar ]; then
+        PIG_JAR=$PIG_HOME/pig-h1.jar
     else
-        PIG_JAR=`echo $PIG_HOME/pig-?.!(*withouthadoop).jar`
+        PIG_JAR=`echo $PIG_HOME/pig-?.!(*withouthadoop)-h1.jar`
     fi
 
     if [ -n "$PIG_JAR" ]; then

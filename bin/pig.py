@@ -307,7 +307,6 @@ pigJar = ""
 hadoopBin = ""
 
 print "HADOOP_HOME: %s" % os.path.expandvars(os.environ['HADOOP_HOME'])
-print "HADOOP_PREFIX: %s" % os.path.expandvars(os.environ['HADOOP_PREFIX'])
 
 if (os.environ.get('HADOOP_PREFIX') is not None):
   print "Found a hadoop prefix"
@@ -326,28 +325,46 @@ if hadoopBin == "":
   if os.path.exists(os.path.join(os.path.sep + "usr", "bin", "hadoop")):
     hadoopBin = os.path.join(os.path.sep + "usr", "bin", "hadoop")
 
+# find out the HADOOP_HOME in order to find hadoop jar
+# we use the name of hadoop jar to decide if user is using
+# hadoop 1 or hadoop 2
+if (hadoopHomePath is None and hadoopPrefixPath is not None):
+  hadoopHomePath = hadoopPrefixPath
+
+if (os.environ.get('HADOOP_HOME') is None and hadoopBin != ""):
+  hadoopHomePath = os.path.join(hadoopBin, "..")
+
+hadoopCoreJars = glob.glob(os.path.join(hadoopHomePath, "hadoop-core*.jar"))
+if len(hadoopCoreJars) == 0:
+  hadoopVersion = 2
+else:
+  hadoopVersion = 1
+
 if hadoopBin != "":
   if debug == True:
     print "Find hadoop at %s" % hadoopBin
 
-  if os.path.exists(os.path.join(os.environ['PIG_HOME'], "pig-withouthadoop.jar")):
-    pigJar = os.path.join(os.environ['PIG_HOME'], "pig-withouthadoop.jar")
+  if os.path.exists(os.path.join(os.environ['PIG_HOME'], "pig-withouthadoop-h$hadoopVersion.jar")):
+    pigJar = os.path.join(os.environ['PIG_HOME'], "pig-withouthadoop-h$hadoopVersion.jar")
 
   else:
-    pigJars = glob.glob(os.path.join(os.environ['PIG_HOME'], "pig-?.*withouthadoop.jar"))
+    pigJars = glob.glob(os.path.join(os.environ['PIG_HOME'], "pig-*withouthadoop-h" + str(hadoopVersion) + ".jar"))
     if len(pigJars) == 1:
       pigJar = pigJars[0]
 
     elif len(pigJars) > 1:
       print "Ambiguity with pig jars found the following jars"
       print pigJars
-      sys.exit("Please remove irrelavant jars fromt %s" % os.path.join(os.environ['PIG_HOME'], "pig-?.*withouthadoop.jar"))
+      sys.exit("Please remove irrelavant jars fromt %s" % os.path.join(os.environ['PIG_HOME'], "pig-*withouthadoop.jar"))
     else:
       pigJars = glob.glob(os.path.join(os.environ['PIG_HOME'], "share", "pig", "pig-*withouthadoop.jar"))
       if len(pigJars) == 1:
         pigJar = pigJars[0]
       else:
-        sys.exit("Cannot locate pig-withouthadoop.jar do 'ant jar-withouthadoop', and try again")
+        if hadoopVersion == 1:
+          sys.exit("Cannot locate pig-withouthadoop-h1.jar do 'ant jar-withouthadoop', and try again")
+        else:
+          sys.exit("Cannot locate pig-withouthadoop-h2.jar do 'ant -Dhadoopversion=23 jar-withouthadoop', and try again")
 
   if 'HADOOP_CLASSPATH' in os.environ:
     os.environ['HADOOP_CLASSPATH'] += os.pathsep + classpath
@@ -372,20 +389,24 @@ else:
   if debug == True:
     print "Cannot find local hadoop installation, using bundled hadoop 20.2"
     
-  if os.path.exists(os.path.join(os.environ['PIG_HOME'], "pig.jar")):
-    pigJar = os.path.join(os.environ['PIG_HOME'], "pig.jar")
+  if os.path.exists(os.path.join(os.environ['PIG_HOME'], "pig-h1.jar")):
+    pigJar = os.path.join(os.environ['PIG_HOME'], "pig-h1.jar")
 
   else:
-    pigJars = glob.glob(os.path.join(os.environ['PIG_HOME'], "pig-?.!(*withouthadoop).jar"))
+    pigJars = glob.glob(os.path.join(os.environ['PIG_HOME'], "pig-*-h1.jar"))
+    for pigJar in pigJars:
+      if "withouthadoop" in pigJar:
+        pigJars.remove(pigJar)
+
     if len(pigJars) == 1:
       pigJar = pigJars[0]
 
     elif len(pigJars) > 1:
       print "Ambiguity with pig jars found the following jars"
       print pigJars
-      sys.exit("Please remove irrelavant jars fromt %s" % os.path.join(os.environ['PIG_HOME'], "pig-?.*withouthadoop.jar"))
+      sys.exit("Please remove irrelavant jars fromt %s" % os.path.join(os.environ['PIG_HOME'], "pig-h1.jar"))
     else:
-      sys.exit("Cannot locate pig.jar. do 'ant jar' and try again")
+      sys.exit("Cannot locate pig-h1.jar. do 'ant jar' and try again")
 
   classpath += os.pathsep + pigJar
   pigClass = "org.apache.pig.Main"

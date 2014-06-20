@@ -68,8 +68,10 @@
 
     <!-- artifact jar file names -->
     <property name="artifact.pig.jar" value="${final.name}.jar"/>
+    <property name="artifact.pig-h1.jar" value="${final.name}-h1.jar"/>
     <property name="artifact.pig-h2.jar" value="${final.name}-h2.jar"/>
     <property name="artifact.pig-withouthadoop.jar" value="${final.name}-withouthadoop.jar"/>
+    <property name="artifact.pig-withouthadoop-h1.jar" value="${final.name}-withouthadoop-h1.jar"/>
     <property name="artifact.pig-withouthadoop-h2.jar" value="${final.name}-withouthadoop-h2.jar"/>
     <property name="artifact.pig-withdependencies.jar" value="${final.name}-withdependencies.jar"/>
     <property name="artifact.pig-sources.jar" value="${final.name}-sources.jar"/>
@@ -78,16 +80,21 @@
 
     <!-- jar names. TODO we might want to use the svn reversion name in the name in case it is a dev version -->
     <property name="output.jarfile.withdependencies" value="${build.dir}/${artifact.pig-withdependencies.jar}" />
-    <property name="output.stage.jarfile.withdependencies" value="${build.dir}/${final.name}-withdependencies.stage.jar" />
     <property name="output.jarfile.withouthadoop" value="${build.dir}/${artifact.pig-withouthadoop.jar}" />
+    <property name="output.jarfile.withouthadoop-h1" value="${build.dir}/${artifact.pig-withouthadoop-h1.jar}" />
     <property name="output.jarfile.withouthadoop-h2" value="${build.dir}/${artifact.pig-withouthadoop-h2.jar}" />
     <property name="output.jarfile.core" value="${build.dir}/${artifact.pig.jar}" />
+    <property name="output.jarfile.core-h1" value="${build.dir}/${artifact.pig-h1.jar}" />
     <property name="output.jarfile.core-h2" value="${build.dir}/${artifact.pig-h2.jar}" />
     <property name="output.jarfile.sources" value="${build.dir}/${artifact.pig-sources.jar}" />
     <property name="output.jarfile.javadoc" value="${build.dir}/${artifact.pig-javadoc.jar}" />
     <!-- Maintain old pig.jar in top level directory. -->
     <property name="output.jarfile.backcompat" value="${basedir}/${name}.jar" />
+    <property name="output.jarfile.backcompat-h1" value="${basedir}/${name}-h1.jar" />
+    <property name="output.jarfile.backcompat-h2" value="${basedir}/${name}-h2.jar" />
     <property name="output.jarfile.backcompat.withouthadoop" value="${basedir}/${name}-withouthadoop.jar" />
+    <property name="output.jarfile.backcompat.withouthadoop-h1" value="${basedir}/${name}-withouthadoop-h1.jar" />
+    <property name="output.jarfile.backcompat.withouthadoop-h2" value="${basedir}/${name}-withouthadoop-h2.jar" />
 
     <!-- test properties -->
     <condition property="test.exec.type" value="${exectype}" else="mr">
@@ -447,8 +454,9 @@
         <delete file="${jdiff.xml.dir}\${name}_${version}.xml" />
         <delete dir="${build.dir}" />
         <delete dir="${src.gen.dot.parser.dir}" />
-        <delete file="${output.jarfile.backcompat}" />
-        <delete file="${output.jarfile.backcompat.withouthadoop}" />
+        <delete>
+            <fileset dir="${basedir}" includes="pig*.jar" />
+        </delete>
         <ant dir="${test.e2e.dir}" target="clean"/>
     </target>
 
@@ -689,6 +697,18 @@
     <!-- ================================================================== -->
     <target name="jar-all" depends="jar,jar-withouthadoop" description="Create pig, pig withdependencies and pig withouthadoop jar" />
 
+    <target name="jar-all-h12" description="Create pig, pig withdependencies and pig withouthadoop jar for both Hadoop 1 and Hadoop 2">
+        <propertyreset name="hadoopversion" value="23" />
+        <propertyreset name="src.shims.dir" value="${basedir}/shims/src/hadoop${hadoopversion}" />
+        <antcall target="clean" inheritRefs="true" inheritall="true"/>
+        <antcall target="jar-withouthadoop" inheritRefs="true" inheritall="true"/>
+        <delete dir="${build.dir}" />
+        <propertyreset name="hadoopversion" value="20" />
+        <propertyreset name="src.shims.dir" value="${basedir}/shims/src/hadoop${hadoopversion}" />
+        <antcall target="jar" inheritRefs="true" inheritall="true"/>
+        <antcall target="jar-withouthadoop" inheritRefs="true" inheritall="true"/>
+    </target>
+
     <!-- ================================================================== -->
     <!-- Make pig.jar                                                       -->
     <!-- ================================================================== -->
@@ -697,30 +717,14 @@
     <target name="jar" depends="compile,ivy-buildJar" description="Create pig withdependecies jar">
         <buildJar svnString="${svn.revision}" outputFile="${output.jarfile.core}" includedJars="core.dependencies.jar"/>
         <buildJar svnString="${svn.revision}" outputFile="${output.jarfile.withdependencies}" includedJars="runtime.dependencies.jar"/>
-        <copy file="${output.jarfile.withdependencies}" tofile="${output.jarfile.backcompat}"/>
-        <antcall target="include-meta" inheritRefs="true" inheritall="true"/>
-    </target>
-
-    <target name="include-meta" if="isHadoop23">
-        <copy todir="${build.classes}/META-INF">
-            <fileset dir="${src.dir}/META-INF" includes="**"/>
-        </copy>
-        <move file="${output.jarfile.withdependencies}" tofile="${output.stage.jarfile.withdependencies}"/>
-        <sleep seconds="1"/>
-        <jar jarfile="${output.jarfile.withdependencies}">
-            <manifest>
-                <attribute name="Main-Class" value="org.apache.pig.Main" />
-                <section name="org/apache/pig">
-                    <attribute name="Implementation-Vendor" value="Apache" />
-                    <attribute name="Implementation-Title" value="Pig" />
-                    <attribute name="Implementation-Version" value="${version}" />
-                    <attribute name="Build-TimeStamp" value="${timestamp}" />
-                    <attribute name="Svn-Revision" value="${svnString}" />
-                </section>
-            </manifest>
-            <zipfileset src="${output.stage.jarfile.withdependencies}"/>
-            <fileset dir="${build.classes}" includes="META-INF/**" />
-        </jar>
+        <antcall target="copyHadoop1">
+            <param name="source" value="${output.jarfile.withdependencies}"/>
+            <param name="dest" value="${output.jarfile.backcompat-h1}"/>
+        </antcall>
+        <antcall target="copyHadoop2">
+            <param name="source" value="${output.jarfile.withdependencies}"/>
+            <param name="dest" value="${output.jarfile.backcompat-h2}"/>
+        </antcall>
     </target>
 
     <!-- ================================================================== -->
@@ -729,7 +733,22 @@
     <target name="jar-withouthadoop" depends="compile,ivy-buildJar" description="Create pig withouthadoop jar">
         <buildJar svnString="${svn.revision}" outputFile="${output.jarfile.core}" includedJars="core.dependencies.jar"/>
         <buildJar svnString="${svn.revision}" outputFile="${output.jarfile.withouthadoop}" includedJars="runtime.dependencies-withouthadoop.jar"/>
-        <copy file="${output.jarfile.withouthadoop}" tofile="${output.jarfile.backcompat.withouthadoop}"/>
+        <antcall target="copyHadoop1">
+            <param name="source" value="${output.jarfile.withouthadoop}"/>
+            <param name="dest" value="${output.jarfile.backcompat.withouthadoop-h1}"/>
+        </antcall>
+        <antcall target="copyHadoop2">
+            <param name="source" value="${output.jarfile.withouthadoop}"/>
+            <param name="dest" value="${output.jarfile.backcompat.withouthadoop-h2}"/>
+        </antcall>
+    </target>
+
+    <target name="copyHadoop2" if="isHadoop23">
+        <copy file="${source}" tofile="${dest}"/>
+    </target>
+
+    <target name="copyHadoop1" unless="isHadoop23">
+        <copy file="${source}" tofile="${dest}"/>
     </target>
 
     <scriptdef name="propertyreset" language="javascript"
@@ -749,12 +768,14 @@
         <!-- Move and rename pig jar for Hadoop2/23 to a different location before compiling for Hadoop1/20 -->
         <move file="${output.jarfile.core}" tofile="${basedir}/${artifact.pig-h2.jar}"/>
         <move file="${output.jarfile.withouthadoop}" tofile="${basedir}/${artifact.pig-withouthadoop-h2.jar}"/>
-        <antcall target="clean" inheritRefs="true" inheritall="true"/>
+        <delete dir="${build.dir}" />
         <propertyreset name="hadoopversion" value="20" />
         <propertyreset name="isHadoop" value="" />
         <propertyreset name="src.shims.dir" value="${basedir}/shims/src/hadoop${hadoopversion}" />
         <antcall target="jar" inheritRefs="true" inheritall="true"/>
         <antcall target="jar-withouthadoop" inheritRefs="true" inheritall="true"/>
+        <move file="${output.jarfile.core}" tofile="${output.jarfile.core-h1}"/>
+        <move file="${output.jarfile.withouthadoop}" tofile="${output.jarfile.withouthadoop-h1}"/>
         <move file="${basedir}/${artifact.pig-h2.jar}" tofile="${output.jarfile.core-h2}"/>
         <move file="${basedir}/${artifact.pig-withouthadoop-h2.jar}" tofile="${output.jarfile.withouthadoop-h2}"/>
     </target>
@@ -971,7 +992,16 @@
     <!-- ================================================================== -->
     <!-- Distribution                                                       -->
     <!-- ================================================================== -->
-    <target name="package" depends="docs, api-report, jar, piggybank" description="Create a Pig tar release">
+    <target name="package-h12" depends="jar-all-h12, docs, api-report, piggybank" description="Create a Pig tar release">
+		<package-base/>
+    </target>
+	
+    <target name="package" depends="jar-all, docs, api-report, piggybank" description="Create a Pig tar release">
+		<package-base/>
+    </target>
+	
+    <macrodef name="package-base">
+      <sequential>
         <mkdir dir="${tar.dist.dir}" />
         <mkdir dir="${tar.dist.dir}/lib" />
         <mkdir dir="${tar.dist.dir}/conf" />
@@ -998,9 +1028,11 @@
             <fileset dir="${ivy.lib.dir}" includes="json-simple-*.jar"/>
         </copy>
 
-        <copy file="${output.jarfile.backcompat.withouthadoop}" tofile="${tar.dist.dir}/${final.name}-withouthadoop.jar" />
+        <copy file="${output.jarfile.backcompat.withouthadoop-h1}" tofile="${tar.dist.dir}/${final.name}-withouthadoop-h1.jar" failonerror="false"/>
+        <copy file="${output.jarfile.backcompat.withouthadoop-h2}" tofile="${tar.dist.dir}/${final.name}-withouthadoop-h2.jar" failonerror="false"/>
 
-        <copy file="${output.jarfile.backcompat}" tofile="${tar.dist.dir}/${final.name}.jar" />
+        <copy file="${output.jarfile.backcompat-h1}" tofile="${tar.dist.dir}/${final.name}-h1.jar" failonerror="false"/>
+        <copy file="${output.jarfile.backcompat-h2}" tofile="${tar.dist.dir}/${final.name}-h2.jar" failonerror="false"/>
 
         <copy todir="${tar.dist.dir}/lib" file="contrib/piggybank/java/piggybank.jar"/>
 
@@ -1063,12 +1095,22 @@
         <chmod perm="ugo+x" type="file">
             <fileset dir="${tar.dist.dir}/bin" />
         </chmod>
-    </target>
+      </sequential>
+    </macrodef>
 
     <!-- ================================================================== -->
     <!-- Make release packages                                              -->
     <!-- ================================================================== -->
     <target name="tar" depends="package" description="Source distribution">
+		<tar-base/>
+    </target>
+
+    <target name="tar-h12" depends="package-h12" description="Source distribution">
+		<tar-base/>
+    </target>
+
+    <macrodef name="tar-base">
+      <sequential>
         <tar compression="gzip" longfile="gnu" destfile="${build.dir}/${artifact.pig.tar}">
             <tarfileset dir="${build.dir}/tar/" mode="664">
                 <exclude name="${final.name}/bin/*" />
@@ -1078,8 +1120,8 @@
                 <include name="${final.name}/bin/*" />
             </tarfileset>
         </tar>
-    </target>
-
+      </sequential>
+    </macrodef>
     <!-- ================================================================== -->
     <!-- Make release tarball                                               -->
     <!-- ================================================================== -->
@@ -1152,11 +1194,11 @@
           uri="urn:maven-artifact-ant"
           classpathref="mvn-ant-task.classpath"/>
     </target>
-    <target name="mvn-install" depends="mvn-taskdef,jar, set-version, source-jar,
+    <target name="mvn-install" depends="mvn-taskdef,mvn-jar, set-version, source-jar,
       javadoc-jar, pigunit-jar, smoketests-jar, piggybank"
          description="To install pig to local filesystem's m2 cache">
          <artifact:pom file="${pig.pom}" id="pig"/>
-          <artifact:install file="${output.jarfile.core}">
+          <artifact:install file="${output.jarfile.core-h1}">
                <pom refid="pig"/>
            <attach file="${output.jarfile.sources}" classifier="sources" />
            <attach file="${output.jarfile.javadoc}" classifier="javadoc" />
@@ -1232,7 +1274,7 @@
     <target name="simpledeploy" unless="staging">
       <artifact:pom file="${pig.pom}" id="pig"/>
       <artifact:install-provider artifactId="wagon-http" version="${wagon-http.version}"/>
-      <artifact:deploy file="${output.jarfile.core}">
+      <artifact:deploy file="${output.jarfile.core-h1}">
               <remoteRepository id="${snapshots_repo_id}" url="${asfsnapshotrepo}"/>
               <pom refid="pig"/>
               <attach file="${output.jarfile.core-h2}" classifier="h2" />
