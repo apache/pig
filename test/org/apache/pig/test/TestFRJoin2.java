@@ -18,6 +18,7 @@
 package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.util.Iterator;
@@ -28,6 +29,8 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
@@ -430,6 +433,81 @@ public class TestFRJoin2 {
                         PigConfiguration.PIG_JOIN_REPLICATED_MAX_BYTES,
                         String.valueOf(17));
             pigServer.openIterator("D");
+        }
+    }
+
+    // pig-3975 test scalar alias with file concatenation referenced
+    // by multiple mapreduce jobs
+    @Test
+    public void testSoftLinkDependencyWithMultipleScalarReferences()
+                  throws Exception {
+        PigServer pigServer = new PigServer(ExecType.MAPREDUCE,
+                                      cluster.getProperties());
+
+        pigServer.setBatchOn();
+        pigServer.getPigContext().getProperties().setProperty(
+                  MRCompiler.FILE_CONCATENATION_THRESHOLD, String.valueOf(FILE_MERGE_THRESHOLD));
+        pigServer.getPigContext().getProperties().setProperty("pig.noSplitCombination", "false");
+        String query = "A = LOAD '" + INPUT_FILE + "' as (x:int,y:int);"
+                       + "B = group A by x parallel " + FILE_MERGE_THRESHOLD + ";"
+                       + "C = LOAD '" + INPUT_FILE + "' as (x:int,y:int);"
+                       + "D = FOREACH C generate B.$0;"
+                       + "STORE D into '/tmp/output1';"
+                       + "E = LOAD '" + INPUT_FILE + "' as (x:int,y:int);"
+                       + "F = FOREACH E generate B.$0;"
+                       + "STORE F into '/tmp/output2';";
+        MROperPlan mrplan = Util.buildMRPlanWithOptimizer(Util.buildPp(pigServer, query),pigServer.getPigContext());
+        assertEquals("Unexpected number of mapreduce job. Missing concat job?",
+                     4, mrplan.size() );
+
+        // look for concat job
+        MapReduceOper concatMRop = null;
+        for(MapReduceOper mrOp: mrplan) {
+            //concatjob == map-plan load-store && reudce-plan empty
+            if( mrOp.mapPlan.size() == 2 && mrOp.reducePlan.isEmpty() ) {
+                concatMRop = mrOp;
+                break;
+            }
+        }
+
+        if( concatMRop == null ) {
+            fail("Cannot find concat job.");
+        }
+        // 2 mr job reads from the concat job result [B.$0] so there
+        // should be 2 mr jobs as successors of the concat job
+        assertEquals("Missing dependency for concatjob",
+                     2, mrplan.getSuccessors(concatMRop).size());
+
+    }
+
+    // Extra scalar reference should not cause concat job to be created
+    @Test
+    public void testSoftLinkDoesNotCreateUnnecessaryConcatJob()
+                  throws Exception {
+        PigServer pigServer = new PigServer(ExecType.MAPREDUCE,
+                                      cluster.getProperties());
+
+        pigServer.setBatchOn();
+        pigServer.getPigContext().getProperties().setProperty(
+                  MRCompiler.FILE_CONCATENATION_THRESHOLD, String.valueOf(FILE_MERGE_THRESHOLD));
+        pigServer.getPigContext().getProperties().setProperty("pig.noSplitCombination", "false");
+        String query = "A = LOAD '" + INPUT_FILE + "' as (x:int,y:int);"
+                       + "B = group A all;"
+                       + "C = LOAD '" + INPUT_FILE + "' as (x:int,y:int);"
+                       + "D = group C by x;"
+                       + "E = group D all;"
+                       + "F = FOREACH E generate B.$0;"
+                       + "Z = LOAD '" + INPUT_FILE + "' as (x:int,y:int);"
+                       + "Y = FOREACH E generate F.$0;"
+                       + "STORE Y into '/tmp/output2';";
+        MROperPlan mrplan = Util.buildMRPlanWithOptimizer(Util.buildPp(pigServer, query),pigServer.getPigContext());
+
+        // look for concat job
+        for(MapReduceOper mrOp: mrplan) {
+            //concatjob == map-plan load-store && reudce-plan empty
+            if( mrOp.mapPlan.size() == 2 && mrOp.reducePlan.isEmpty() ) {
+                fail("Somehow concatjob was created even though there is no large or multiple inputs.");
+            }
         }
     }
 }
