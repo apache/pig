@@ -853,6 +853,8 @@ public class Util {
     public static MROperPlan buildMRPlan(PhysicalPlan pp, PigContext pc) throws Exception{
         MRCompiler comp = new MRCompiler(pp, pc);
         comp.compile();
+        comp.aggregateScalarsFiles();
+        comp.connectSoftLink();
         return comp.getMRPlan();
     }
 

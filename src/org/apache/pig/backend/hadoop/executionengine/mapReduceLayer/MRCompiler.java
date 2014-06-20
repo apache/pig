@@ -234,39 +234,44 @@ public class MRCompiler extends PhyPlanVisitor {
             ConfigurationUtil.toConfiguration(pigContext.getProperties());
         boolean combinable = !conf.getBoolean("pig.noSplitCombination", false);
 
-        Map<FileSpec, MapReduceOper> seen = new HashMap<FileSpec, MapReduceOper>();
+        Set<FileSpec> seen = new HashSet<FileSpec>();
 
-        for(MapReduceOper mrOp: mrOpList) {
-            for(PhysicalOperator scalar: mrOp.scalars) {
-                MapReduceOper mro = phyToMROpMap.get(scalar);
+        for(MapReduceOper mro_scalar_consumer: mrOpList) {
+            for(PhysicalOperator scalar: mro_scalar_consumer.scalars) {
+                MapReduceOper mro_scalar_producer = phyToMROpMap.get(scalar);
                 if (scalar instanceof POStore) {
                     FileSpec oldSpec = ((POStore)scalar).getSFile();
-                    MapReduceOper mro2 = seen.get(oldSpec);
-                    boolean hasSeen = false;
-                    if (mro2 != null) {
-                        hasSeen = true;
-                        mro = mro2;
+                    if( seen.contains(oldSpec) ) {
+                      continue;
                     }
-                    if (!hasSeen
-                            && combinable
-                            && (mro.reducePlan.isEmpty() ? hasTooManyInputFiles(mro, conf)
-                                    : (mro.requestedParallelism >= fileConcatenationThreshold))) {
-                        PhysicalPlan pl = mro.reducePlan.isEmpty() ? mro.mapPlan : mro.reducePlan;
+                    seen.add(oldSpec);
+                    if ( combinable
+                         && (mro_scalar_producer.reducePlan.isEmpty() ?
+                              hasTooManyInputFiles(mro_scalar_producer, conf)
+                              : (mro_scalar_producer.requestedParallelism >= fileConcatenationThreshold))) {
+                        PhysicalPlan pl = mro_scalar_producer.reducePlan.isEmpty() ?
+                                            mro_scalar_producer.mapPlan : mro_scalar_producer.reducePlan;
                         FileSpec newSpec = getTempFileSpec();
 
                         // replace oldSpec in mro with newSpec
                         new FindStoreNameVisitor(pl, newSpec, oldSpec).visit();
+                        seen.add(newSpec);
 
                         POStore newSto = getStore();
                         newSto.setSFile(oldSpec);
-                        if (MRPlan.getPredecessors(mrOp)!=null &&
-                                MRPlan.getPredecessors(mrOp).contains(mro))
-                            MRPlan.disconnect(mro, mrOp);
-                        MapReduceOper catMROp = getConcatenateJob(newSpec, mro, newSto);
-                        MRPlan.connect(catMROp, mrOp);
-                        seen.put(oldSpec, catMROp);
-                    } else {
-                        if (!hasSeen) seen.put(oldSpec, mro);
+                        MapReduceOper catMROp = getConcatenateJob(newSpec, mro_scalar_producer, newSto);
+                        MRPlan.connect(mro_scalar_producer, catMROp);
+
+                        // Need to add it to the PhysicalPlan and phyToMROpMap
+                        // so that softlink can be created
+                        phyToMROpMap.put(newSto, catMROp);
+                        plan.add(newSto);
+
+                        for (PhysicalOperator succ :
+                                plan.getSoftLinkSuccessors(scalar).toArray(new PhysicalOperator[0])) {
+                            plan.createSoftLink(newSto, succ);
+                            plan.removeSoftLink(scalar, succ);
+                        }
                     }
                 }
             }
@@ -334,8 +339,6 @@ public class MRCompiler extends PhyPlanVisitor {
         for (PhysicalOperator op : ops) {
             compile(op);
         }
-
-        connectSoftLink();
 
         return MRPlan;
     }
