@@ -86,6 +86,8 @@ PIG-2207: Support custom counters for aggregating warnings from different udfs (
 
 IMPROVEMENTS
 
+PIG-3892: Pig distribution for hadoop 2 (daijy)
+
 PIG-4006: Make the interval of DAGStatus report configurable (cheolsoo)
 
 PIG-3999: Document PIG-3388 (lbendig via cheolsoo)
