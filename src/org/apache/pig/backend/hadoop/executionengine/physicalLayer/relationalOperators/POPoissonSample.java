@@ -134,13 +134,14 @@ public class POPoissonSample extends PhysicalOperator {
             res = processInput();
             if (res.returnStatus == POStatus.STATUS_NULL) {
                 continue;
-            } else if (res.returnStatus == POStatus.STATUS_EOP
-                    || res.returnStatus == POStatus.STATUS_ERR) {
+            } else if (res.returnStatus == POStatus.STATUS_EOP) {
                 if (this.parentPlan.endOfAllInput) {
                     return createNumRowTuple((Tuple)newSample.result);
                 } else {
-                    continue;
+                    return res;
                 }
+            } else if (res.returnStatus == POStatus.STATUS_ERR){
+                return res;
             }
             rowNum++;
         }
@@ -150,13 +151,14 @@ public class POPoissonSample extends PhysicalOperator {
             res = processInput();
             if (res.returnStatus == POStatus.STATUS_NULL) {
                 continue;
-            } else if (res.returnStatus == POStatus.STATUS_EOP
-                    || res.returnStatus == POStatus.STATUS_ERR) {
+            } else if (res.returnStatus == POStatus.STATUS_EOP) {
                 if (this.parentPlan.endOfAllInput) {
                     return createNumRowTuple((Tuple)newSample.result);
                 } else {
-                    continue;
+                    return res;
                 }
+            } else if (res.returnStatus == POStatus.STATUS_ERR){
+                return res;
             }
 
             if (res.result == null) {

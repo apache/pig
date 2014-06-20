@@ -38,6 +38,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4022: Fix tez e2e test SkewedJoin_6 (daijy)
+
 PIG-4001: POPartialAgg aggregates too aggressively when multiple values aggregated (tmwoodruff via cheolsoo)
 
 PIG-4027: Always check for latest Tez snapshot dependencies (lbendig via cheolsoo)
