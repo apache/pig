@@ -255,7 +255,8 @@ public class MRCompiler extends PhyPlanVisitor {
                         
                         // replace oldSpec in mro with newSpec
                         new FindStoreNameVisitor(pl, newSpec, oldSpec).visit();
-                        
+                        seen.add(newSpec);
+
                         POStore newSto = getStore();
                         newSto.setSFile(oldSpec);
                         MapReduceOper catMROp = getConcatenateJob(newSpec, mro_scalar_producer, newSto);

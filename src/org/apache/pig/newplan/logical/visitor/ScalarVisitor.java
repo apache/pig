@@ -98,9 +98,9 @@ public class ScalarVisitor extends AllExpressionVisitor {
                     store.setTmpStore(true);
                     lp.add( store );
                     lp.connect( refOp, store );
-                    expr.setImplicitReferencedOperator(store);
                 }
-
+                
+                expr.setImplicitReferencedOperator(store);
                 filenameConst.setValue( store.getOutputSpec().getFileName() );
                 
                 if( lp.getSoftLinkSuccessors( store ) == null || 
