@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4028: add a flag to control the ivy resolve/retrieve output (gkesavan via daijy)
+
 PIG-4015: Provide a way to disable auto-parallism in tez (daijy)
 
 PIG-3846: Implement automatic reducer parallelism (daijy)
