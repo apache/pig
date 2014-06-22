@@ -10,18 +10,18 @@ MapReduce(-1) - -13:
 |   |   |
 |   |   Project[tuple][*] - -9
 |   |
-|   |---Load(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -12
+|   |---Load(file:/tmp/temp-1456742965/tmp-26634357:org.apache.pig.impl.io.InterStorage) - -12
 |
 |---MapReduce(-1) - -8:
-    |   Store(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -11
+    |   Store(file:/tmp/temp-1456742965/tmp-26634357:org.apache.pig.impl.io.InterStorage) - -11
     |   |
     |   |---Package(Packager)[tuple]{Unknown} - -3088212343542276753
     |   Local Rearrange[tuple]{Unknown}(false) - --881122551222328650
     |   |
-    |   |---Load(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -7
+    |   |---Load(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -7
     |
     |---MapReduce(-1) - -0:
-        |   Store(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -6
+        |   Store(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -6
         |   |
         |   |---New For Each(true)[bag] - -5
         |       |   |
