@@ -211,6 +211,8 @@ PIG-3882: Multiquery off mode execution is not done in batch and very inefficien
  
 BUG FIXES
 
+PIG-4030: TestGrunt, TestPigRunner fail after PIG-3892 (daijy)
+
 PIG-3975: Multiple Scalar reference calls leading to missing records (knoguchi via rohini)
 
 PIG-4017: NPE thrown from JobControlCompiler.shipToHdfs (cheolsoo)
