@@ -1176,6 +1176,7 @@ public class TestGrunt {
     public void testRegisterWithQuotes() throws Throwable {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
+        String jarName = "pig-withouthadoop-h2.jar";
         if (System.getProperty("hadoopversion").equals("20")) {
             jarName = "pig-withouthadoop-h1.jar";
         }
