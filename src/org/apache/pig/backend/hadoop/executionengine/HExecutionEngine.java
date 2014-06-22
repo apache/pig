@@ -110,14 +110,6 @@ public abstract class HExecutionEngine implements ExecutionEngine {
     public JobConf getLocalConf(Properties properties) {
         JobConf jc = new JobConf(false);
 
-        // If we are running in local mode we dont read the hadoop conf file
-        if (properties.getProperty(MAPREDUCE_FRAMEWORK_NAME) == null) {
-            jc.set(MAPREDUCE_FRAMEWORK_NAME, LOCAL);
-        }
-        jc.set(JOB_TRACKER_LOCATION, LOCAL);
-        jc.set(FILE_SYSTEM_LOCATION, "file:///");
-        jc.set(ALTERNATIVE_FILE_SYSTEM_LOCATION, "file:///");
-
         jc.addResource(MAPRED_DEFAULT_SITE);
         jc.addResource(YARN_DEFAULT_SITE);
         jc.addResource(CORE_DEFAULT_SITE);
@@ -182,6 +174,14 @@ public abstract class HExecutionEngine implements ExecutionEngine {
             // add hdfs-default.xml into configuration
             new DistributedFileSystem();
         } else {
+            // If we are running in local mode we dont read the hadoop conf file
+            if (properties.getProperty(MAPREDUCE_FRAMEWORK_NAME) == null) {
+                properties.setProperty(MAPREDUCE_FRAMEWORK_NAME, LOCAL);
+            }
+            properties.setProperty(JOB_TRACKER_LOCATION, LOCAL);
+            properties.setProperty(FILE_SYSTEM_LOCATION, "file:///");
+            properties.setProperty(ALTERNATIVE_FILE_SYSTEM_LOCATION, "file:///");
+
             jc = getLocalConf(properties);
         }
 
