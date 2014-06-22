@@ -39,7 +39,6 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.ExecTypeProvider;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.Launcher;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
@@ -173,7 +172,10 @@ public class StreamingUDF extends EvalFunc<Object> {
         String[] command = new String[10];
         Configuration conf = UDFContext.getUDFContext().getJobConf();
 
-        String jarPath = conf.get("mapred.jar");
+        String jarPath = conf.get("mapreduce.job.jar");
+        if (jarPath == null) {
+            jarPath = conf.get("mapred.jar");
+        }
         String jobDir;
         if (jarPath != null) {
             jobDir = new File(jarPath).getParent();
@@ -204,14 +206,66 @@ public class StreamingUDF extends EvalFunc<Object> {
                 "." : 
                 filePath.substring(0, lastSeparator - 1);
         command[UDF_NAME] = funcName;
-        command[PATH_TO_FILE_CACHE] = "\"" + jobDir + filePath.substring(0, lastSeparator) + "\"";
+        String fileCachePath = jobDir + filePath.substring(0, lastSeparator);
+        command[PATH_TO_FILE_CACHE] = "\"" + fileCachePath + "\"";
         command[STD_OUT_OUTPUT_PATH] = outFileName;
         command[STD_ERR_OUTPUT_PATH] = errOutFileName;
         command[CONTROLLER_LOG_FILE_PATH] = controllerLogFileName;
         command[IS_ILLUSTRATE] = isIllustrate;
+        
+        ensureUserFileAvailable(command, fileCachePath);
+        
         return command;
     }
 
+    /**
+     * Need to make sure the user's file is available. If jar hasn't been
+     * exploded, just copy the udf file to its path relative to the controller
+     * file and update file cache path appropriately.
+     */
+    private void ensureUserFileAvailable(String[] command, String fileCachePath)
+            throws ExecException, IOException {
+
+        File userUdfFile = new File(fileCachePath + command[UDF_FILE_NAME] + getUserFileExtension());
+        if (!userUdfFile.exists()) {
+            String absolutePath = filePath.startsWith("/") ? filePath : File.separator + filePath;
+            String controllerDir = new File(command[PATH_TO_CONTROLLER_FILE]).getParent();
+            String userUdfPath = controllerDir + absolutePath + getUserFileExtension();
+            userUdfFile = new File(userUdfPath);
+            userUdfFile.deleteOnExit();
+            userUdfFile.getParentFile().mkdirs();
+            if (userUdfFile.exists()) {
+                userUdfFile.delete();
+                if (!userUdfFile.createNewFile()) {
+                    throw new IOException("Unable to create file: " + userUdfFile.getAbsolutePath());
+                }
+            }
+            InputStream udfFileStream = this.getClass().getResourceAsStream(
+                    absolutePath + getUserFileExtension());
+            command[PATH_TO_FILE_CACHE] = "\"" + userUdfFile.getParentFile().getAbsolutePath()
+                    + "\"";
+
+            try {
+                FileUtils.copyInputStreamToFile(udfFileStream, userUdfFile);
+            }
+            catch (Exception e) {
+                throw new ExecException("Unable to copy user udf file: " + userUdfFile.getName(), e);
+            }
+            finally {
+                udfFileStream.close();
+            }
+        }
+    }
+
+    private String getUserFileExtension() throws ExecException {
+        if (isPython()) {
+            return ".py";
+        }
+        else {
+            throw new ExecException("Unrecognized streamingUDF language: " + language);
+        }
+    }
+    
     private void createInputHandlers() throws ExecException, FrontendException {
         PigStreamingUDF serializer = new PigStreamingUDF();
         this.inputHandler = new StreamingUDFInputHandler(serializer);
@@ -257,13 +311,12 @@ public class StreamingUDF extends EvalFunc<Object> {
      * @throws IOException
      */
     private String getControllerPath(String jarPath) throws IOException {
-        if (language.toLowerCase().equals("python")) {
+        if (isPython()) {
             String controllerPath = jarPath + PYTHON_CONTROLLER_JAR_PATH;
             File controller = new File(controllerPath);
             if (!controller.exists()) {
                 File controllerFile = File.createTempFile("controller", ".py");
-                InputStream pythonControllerStream = Launcher.class.getResourceAsStream(PYTHON_CONTROLLER_JAR_PATH);
-                try {
+                InputStream pythonControllerStream = this.getClass().getResourceAsStream(PYTHON_CONTROLLER_JAR_PATH);                try {
                     FileUtils.copyInputStreamToFile(pythonControllerStream, controllerFile);
                 } finally {
                     pythonControllerStream.close();
@@ -271,7 +324,7 @@ public class StreamingUDF extends EvalFunc<Object> {
                 controllerFile.deleteOnExit();
                 File pigUtilFile = new File(controllerFile.getParent() + "/pig_util.py");
                 pigUtilFile.deleteOnExit();
-                InputStream pythonUtilStream = Launcher.class.getResourceAsStream(PYTHON_PIG_UTIL_PATH);
+                InputStream pythonUtilStream = this.getClass().getResourceAsStream(PYTHON_PIG_UTIL_PATH);
                 try {
                     FileUtils.copyInputStreamToFile(pythonUtilStream, pigUtilFile);
                 } finally {
@@ -285,6 +338,10 @@ public class StreamingUDF extends EvalFunc<Object> {
         }
     }
 
+    private boolean isPython() {
+        return language.toLowerCase().equals("python");
+    }
+    
     /**
      * Returns a list of file names (relative to root of pig jar) of files that need to be
      * included in the jar shipped to the cluster.
@@ -465,7 +522,7 @@ public class StreamingUDF extends EvalFunc<Object> {
                     stderr = null;
                 }
             } catch (IOException e) {
-                log.debug("Process Ended");
+                log.debug("Process Ended", e);
             } catch (Exception e) {
                 log.error("standard error problem", e);
             }
