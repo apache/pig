@@ -20,7 +20,9 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -28,6 +30,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.lib.jobcontrol.ControlledJob;
 import org.apache.pig.PigConfiguration;
+import org.apache.pig.PigWarning;
 import org.apache.pig.backend.BackendException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
@@ -39,6 +42,7 @@ import org.apache.pig.backend.hadoop.executionengine.tez.optimizers.UnionOptimiz
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
+import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.UDFContext;
@@ -159,6 +163,19 @@ public class TezLauncher extends Launcher {
 
             notifyFinishedOrFailed(job);
             tezStats.accumulateStats(job);
+            Map<Enum, Long> warningAggMap = new HashMap<Enum, Long>();
+
+            if (aggregateWarning && job.getJobState() == ControlledJob.State.SUCCESS) {
+                for (Vertex vertex : job.getDAG().getVertices()) {
+                    String vertexName = vertex.getVertexName();
+                    Map<String, Map<String, Long>> counterGroups = job.getVertexCounters(vertexName);
+                    computeWarningAggregate(counterGroups, warningAggMap);
+                }
+            }
+
+            if(aggregateWarning) {
+                CompilationMessageCollector.logAggregate(warningAggMap, MessageType.Warning, log) ;
+            }
             tezScriptState.emitProgressUpdatedNotification(100);
         }
 
@@ -186,6 +203,25 @@ public class TezLauncher extends Launcher {
         tezScriptState.emitLaunchCompletedNotification(tezStats.getNumberSuccessfulJobs());
 
         return tezStats;
+    }
+
+    void computeWarningAggregate(Map<String, Map<String, Long>> counterGroups, Map<Enum, Long> aggMap) {
+        for (Map<String, Long> counters : counterGroups.values()) {
+            for (Enum e : PigWarning.values()) {
+                if (counters.containsKey(e.toString())) {
+                    if (aggMap.containsKey(e.toString())) {
+                        Long currentCount = aggMap.get(e.toString());
+                        currentCount = (currentCount == null ? 0 : currentCount);
+                        if (counters != null) {
+                            currentCount += counters.get(e.toString());
+                        }
+                        aggMap.put(e, currentCount);
+                    } else {
+                        aggMap.put(e, counters.get(e.toString()));
+                    }
+                }
+            }
+        }
     }
 
     private void notifyStarted(TezJob job) throws IOException {
