@@ -10,10 +10,10 @@ MapReduce(1,GFCross) - -29:
 |       |---Package(Packager)[tuple]{Unknown} - -3851605818031718348
 |   Local Rearrange[tuple]{Unknown}(false) - --3658165997714269604
 |   |
-|   |---Load(file:/tmp/temp-1456742965/tmp-586682361:org.apache.pig.impl.io.InterStorage) - -28
+|   |---Load(file:/tmp/temp-1456742965/tmp774375955:org.apache.pig.impl.io.InterStorage) - -28
 |
 |---MapReduce(1,AVG) - -26:
-    |   Store(file:/tmp/temp-1456742965/tmp-586682361:org.apache.pig.impl.io.InterStorage) - -27
+    |   Store(file:/tmp/temp-1456742965/tmp774375955:org.apache.pig.impl.io.InterStorage) - -27
     |   |
     |   |---New For Each(false)[tuple] - --696216369324861973
     |       |   |
@@ -24,10 +24,10 @@ MapReduce(1,GFCross) - -29:
     |       |---Package(Packager)[tuple]{Unknown} - --368145047166239648
     |   Local Rearrange[tuple]{Unknown}(false) - -6541270116190953413
     |   |
-    |   |---Load(file:/tmp/temp-1456742965/tmp-26634357:org.apache.pig.impl.io.InterStorage) - -25
+    |   |---Load(file:/tmp/temp-1456742965/tmp-586682361:org.apache.pig.impl.io.InterStorage) - -25
     |
     |---MapReduce(20,SUM,COUNT,TestMRCompiler$WeirdComparator) - -18:
-        |   Store(file:/tmp/temp-1456742965/tmp-26634357:org.apache.pig.impl.io.InterStorage) - -24
+        |   Store(file:/tmp/temp-1456742965/tmp-586682361:org.apache.pig.impl.io.InterStorage) - -24
         |   |
         |   |---New For Each(false,false)[tuple] - -7251706569645724914
         |       |   |
@@ -48,10 +48,10 @@ MapReduce(1,GFCross) - -29:
         |   |   |
         |   |   Project[tuple][*] - -19
         |   |
-        |   |---Load(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -17
+        |   |---Load(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -17
         |
         |---MapReduce(1,TestMRCompiler$WeirdComparator) - -3:
-            |   Store(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -16
+            |   Store(file:/tmp/temp-1456742965/tmp-26634357:org.apache.pig.impl.io.InterStorage) - -16
             |   |
             |   |---New For Each(false)[tuple] - -15
             |       |   |
@@ -78,11 +78,11 @@ MapReduce(1,GFCross) - -29:
             |       |   |
             |       |   Project[tuple][*] - -4
             |       |
-            |       |---Load(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.builtin.RandomSampleLoader('org.apache.pig.impl.io.InterStorage','100')) - -2
+            |       |---Load(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.builtin.RandomSampleLoader('org.apache.pig.impl.io.InterStorage','100')) - -2
             |
             |---MapReduce(-1) - -0:
                 Reduce Plan Empty
-                |   Store(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -1
+                |   Store(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -1
                 |   |
                 |   |---Filter[tuple] - --2783416442434419494
                 |       |   |

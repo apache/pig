@@ -153,6 +153,8 @@ PIG-3882: Multiquery off mode execution is not done in batch and very inefficien
  
 BUG FIXES
 
+PIG-4029: TestMRCompiler is broken after PIG-3874 (daijy)
+
 PIG-4030: TestGrunt, TestPigRunner fail after PIG-3892 (daijy)
 
 PIG-4017: NPE thrown from JobControlCompiler.shipToHdfs (cheolsoo)

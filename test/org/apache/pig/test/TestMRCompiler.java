@@ -78,6 +78,7 @@ import org.apache.pig.test.junit.OrderedJUnit4Runner;
 import org.apache.pig.test.junit.OrderedJUnit4Runner.TestOrder;
 import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.test.utils.TestHelper;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -172,6 +173,11 @@ public class TestMRCompiler {
         NodeIdGenerator.reset("");
         pigServer = new PigServer(pc);
         pigServerMR = new PigServer(pcMR);
+    }
+
+    @After
+    public void shutdown() {
+        pigServer.shutdown();
     }
 
     @Test
