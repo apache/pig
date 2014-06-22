@@ -4,12 +4,12 @@ Reduce Plan Empty
 |   |
 |   |---Union[tuple] - -8760996681222683693
 |       |
-|       |---Load(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -11
+|       |---Load(file:/tmp/temp-1456742965/tmp-26634357:org.apache.pig.impl.io.InterStorage) - -11
 |       |
-|       |---Load(file:/tmp/temp-1456742965/tmp-26634357:org.apache.pig.impl.io.InterStorage) - -13
+|       |---Load(file:/tmp/temp-1456742965/tmp-586682361:org.apache.pig.impl.io.InterStorage) - -13
 |
 |---MapReduce(-1) - -2:
-|   |   Store(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -12
+|   |   Store(file:/tmp/temp-1456742965/tmp-26634357:org.apache.pig.impl.io.InterStorage) - -12
 |   |   |
 |   |   |---Filter[tuple] - -956528893337238225
 |   |       |   |
@@ -31,12 +31,12 @@ Reduce Plan Empty
 |   |       |---Load(DummyFil:DummyLdr) - -7577375165361647685
 |
 |---MapReduce(-1) - -6:
-    |   Store(file:/tmp/temp-1456742965/tmp-26634357:org.apache.pig.impl.io.InterStorage) - -14
+    |   Store(file:/tmp/temp-1456742965/tmp-586682361:org.apache.pig.impl.io.InterStorage) - -14
     |   |
     |   |---Package(Packager)[tuple]{Unknown} - -3742910951635599848
     |   Union[tuple] - -7
     |   |
-    |   |---Load(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -8
+    |   |---Load(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -8
     |   |
     |   |---Local Rearrange[tuple]{Unknown}(false) - -689137294940608050
     |       |
@@ -47,7 +47,7 @@ Reduce Plan Empty
     |           |---Load(DummyFil:DummyLdr) - --961974426096759446
     |
     |---MapReduce(-1) - -4:
-        |   Store(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -9
+        |   Store(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -9
         |   |
         |   |---Package(Packager)[tuple]{Unknown} - --5733160635931065595
         |   Local Rearrange[tuple]{Unknown}(false) - --1115934782004129477

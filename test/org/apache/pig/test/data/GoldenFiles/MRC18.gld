@@ -7,7 +7,7 @@ Reduce Plan Empty
 |       |---a: Load(/tmp/input1:org.apache.pig.builtin.PigStorage) - scope-101
 |
 |---MapReduce(1,PigStorage) - scope-110:
-    |   Store(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - scope-116
+    |   Store(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - scope-116
     |   |
     |   |---New For Each(true)[bag] - scope-115
     |       |   |
