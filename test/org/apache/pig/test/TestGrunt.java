@@ -1176,8 +1176,11 @@ public class TestGrunt {
     public void testRegisterWithQuotes() throws Throwable {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
+        if (System.getProperty("hadoopversion").equals("20")) {
+            jarName = "pig-withouthadoop-h1.jar";
+        }
 
-        String strCmd = "register 'pig-withouthadoop.jar'\n";
+        String strCmd = "register '" + jarName + "'\n";
 
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -1186,15 +1189,19 @@ public class TestGrunt {
 
         grunt.exec();
         assertEquals(context.extraJars+ " of size 1", 1, context.extraJars.size());
-        assertTrue(context.extraJars.get(0)+" ends with /pig-withouthadoop.jar", context.extraJars.get(0).toString().endsWith("/pig-withouthadoop.jar"));
+        assertTrue(context.extraJars.get(0)+" ends with /" + jarName, context.extraJars.get(0).toString().endsWith("/" + jarName));
     }
 
     @Test
     public void testRegisterWithoutQuotes() throws Throwable {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
+        String jarName = "pig-withouthadoop-h2.jar";
+        if (System.getProperty("hadoopversion").equals("20")) {
+            jarName = "pig-withouthadoop-h1.jar";
+        }
 
-        String strCmd = "register pig-withouthadoop.jar\n";
+        String strCmd = "register " + jarName + "\n";
 
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -1203,7 +1210,7 @@ public class TestGrunt {
 
         grunt.exec();
         assertEquals(context.extraJars+ " of size 1", 1, context.extraJars.size());
-        assertTrue(context.extraJars.get(0)+" ends with /pig-withouthadoop.jar", context.extraJars.get(0).toString().endsWith("/pig-withouthadoop.jar"));
+        assertTrue(context.extraJars.get(0)+" ends with /" + jarName, context.extraJars.get(0).toString().endsWith("/" + jarName));
     }
 
     @Test
