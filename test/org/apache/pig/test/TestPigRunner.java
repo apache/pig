@@ -609,7 +609,11 @@ public class TestPigRunner {
 
     @Test
     public void testRegisterExternalJar() throws Exception {
-        String[] args = { "-Dpig.additional.jars=pig-withouthadoop.jar",
+        String jarName = "pig-withouthadoop-h2.jar";
+        if (System.getProperty("hadoopversion").equals("20")) {
+            jarName = "pig-withouthadoop-h1.jar";
+        }
+        String[] args = { "-Dpig.additional.jars=" + jarName,
                 "-Dmapred.job.queue.name=default",
                 "-e", "A = load '" + INPUT_FILE + "';store A into '" + OUTPUT_FILE + "';\n" };
         PigStats stats = PigRunner.run(args, new TestNotificationListener());
@@ -619,7 +623,7 @@ public class TestPigRunner {
 
         assertNotNull(ctx);
 
-        assertTrue(ctx.extraJars.contains(ClassLoader.getSystemResource("pig-withouthadoop.jar")));
+        assertTrue(ctx.extraJars.contains(ClassLoader.getSystemResource(jarName)));
         assertTrue("default", ctx.getProperties().getProperty("mapred.job.queue.name")!=null && ctx.getProperties().getProperty("mapred.job.queue.name").equals("default")||
                 ctx.getProperties().getProperty("mapreduce.job.queuename")!=null && ctx.getProperties().getProperty("mapreduce.job.queuename").equals("default"));
 
