@@ -76,21 +76,29 @@ public class LOUnion extends LogicalRelationalOperator {
         }
         
         LogicalSchema mergedSchema = null;
-        LogicalSchema s0 = ((LogicalRelationalOperator)inputs.get(0)).getSchema();
         if ( inputs.size() == 1 )
-            return schema = s0;
+            return schema = ((LogicalRelationalOperator)inputs.get(0)).getSchema();
+        
+        List<String> inputAliases = new ArrayList<String>(inputs.size());
+        List<LogicalSchema> inputSchemas = new ArrayList<LogicalSchema>(inputs.size());
+        for (Operator input : inputs) {
+            LogicalRelationalOperator lop = (LogicalRelationalOperator)input;
+            inputAliases.add(lop.getAlias());
+            inputSchemas.add(lop.getSchema());
+        }
         
         if( isOnSchema() ) {
-            mergedSchema = createMergedSchemaOnAlias( inputs );
+            mergedSchema = createMergedSchemaOnAlias( inputSchemas, inputAliases );
         } else {
-            LogicalSchema s1 = ((LogicalRelationalOperator)inputs.get(1)).getSchema();
+            LogicalSchema s0 = inputSchemas.get(0);
+            LogicalSchema s1 = inputSchemas.get(1);
             mergedSchema = LogicalSchema.merge(s0, s1, LogicalSchema.MergeMode.Union);
             if (mergedSchema==null)
                 return null;
             
             // Merge schema
-            for (int i=2;i<inputs.size();i++) {
-                LogicalSchema otherSchema = ((LogicalRelationalOperator)inputs.get(i)).getSchema();
+            for (int i=2;i<inputSchemas.size();i++) {
+                LogicalSchema otherSchema = inputSchemas.get(i);
                 if (mergedSchema==null || otherSchema==null)
                     return null;
                 mergedSchema = LogicalSchema.merge(mergedSchema, otherSchema, LogicalSchema.MergeMode.Union);
@@ -100,28 +108,36 @@ public class LOUnion extends LogicalRelationalOperator {
         }
 
         // Bring back cached uid if any; otherwise, cache uid generated
-        for (int i=0;i<s0.size();i++)
+        for (int i=0;i<mergedSchema.size();i++)
         {
-            LogicalSchema.LogicalFieldSchema outputFieldSchema;
-            if (onSchema) {
-                outputFieldSchema = mergedSchema.getFieldSubNameMatch(s0.getField(i).alias);
-            } else {
-                outputFieldSchema = mergedSchema.getField(i);
-            }
+            LogicalSchema.LogicalFieldSchema outputFieldSchema = mergedSchema.getField(i);
+
             long uid = -1;
-            for (Pair<Long, Long> pair : uidMapping) {
-                if (pair.second==s0.getField(i).uid) {
-                    uid = pair.first;
-                    break;
+            
+            // Search all the cached uid mappings by input field to see if 
+            // we've cached an output uid for this output field
+            for (LogicalSchema inputSchema : inputSchemas) {
+                LogicalSchema.LogicalFieldSchema inputFieldSchema;
+                if (onSchema) {
+                    inputFieldSchema = inputSchema.getFieldSubNameMatch(outputFieldSchema.alias);
+                } else {
+                    inputFieldSchema = inputSchema.getField(i);
+                }
+                
+                if (inputFieldSchema != null) {
+                    uid = getCachedOuputUid(inputFieldSchema.uid);
+                    if (uid >= 0) break;
                 }
             }
+            
+            // No cached uid. Allocate one, and locate and cache all inputs.
             if (uid==-1) {
                 uid = LogicalExpression.getNextUid();
-                for (Operator input : inputs) {
+                for (LogicalSchema inputSchema : inputSchemas) {
                     long inputUid;
                     LogicalFieldSchema matchedInputFieldSchema;
                 	if (onSchema) {
-                	    matchedInputFieldSchema = ((LogicalRelationalOperator)input).getSchema().getFieldSubNameMatch(s0.getField(i).alias);
+                	    matchedInputFieldSchema = inputSchema.getFieldSubNameMatch(mergedSchema.getField(i).alias);
                         if (matchedInputFieldSchema!=null) {
                             inputUid = matchedInputFieldSchema.uid;
                             uidMapping.add(new Pair<Long, Long>(uid, inputUid));
@@ -129,10 +145,9 @@ public class LOUnion extends LogicalRelationalOperator {
                     }
                     else {
                         matchedInputFieldSchema = mergedSchema.getField(i);
-	                	inputUid = ((LogicalRelationalOperator)input).getSchema().getField(i).uid;
+	                	inputUid = inputSchema.getField(i).uid;
 	                	uidMapping.add(new Pair<Long, Long>(uid, inputUid));
                     }
-                	
                 }
             }
 
@@ -145,15 +160,15 @@ public class LOUnion extends LogicalRelationalOperator {
     /**
      * create schema for union-onschema
      */
-    private LogicalSchema createMergedSchemaOnAlias(List<Operator> ops)
+    private LogicalSchema createMergedSchemaOnAlias(List<LogicalSchema> inputSchemas, 
+            List<String> inputAliases) 
     throws FrontendException {
         ArrayList<LogicalSchema> schemas = new ArrayList<LogicalSchema>();
-        for( Operator op : ops ){
-            LogicalRelationalOperator lop = (LogicalRelationalOperator)op;
-            LogicalSchema sch = lop.getSchema();
+        for (int i = 0; i < inputSchemas.size(); i++){
+            LogicalSchema sch = inputSchemas.get(i);
             for( LogicalFieldSchema fs : sch.getFields() ) {
                 if(fs.alias == null){
-                    String msg = "Schema of relation " + lop.getAlias()
+                    String msg = "Schema of relation " + inputAliases.get(i)
                         + " has a null fieldschema for column(s). Schema :" + sch.toString(false);
                     throw new FrontendException( this, msg, 1116, PigException.INPUT );
                 }
@@ -174,6 +189,19 @@ public class LOUnion extends LogicalRelationalOperator {
         return mergedSchema;
     }
     
+    private long getCachedOuputUid(long inputUid) {
+        long uid = -1;
+        
+        for (Pair<Long, Long> pair : uidMapping) {
+            if (pair.second==inputUid) {
+                uid = pair.first;
+                break;
+            }
+        }
+        
+        return uid;
+    }
+
     @Override
     public void accept(PlanVisitor v) throws FrontendException {
         if (!(v instanceof LogicalRelationalNodesVisitor)) {

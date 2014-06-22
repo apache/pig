@@ -31,6 +31,8 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
+import org.apache.pig.builtin.mock.Storage;
+import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -51,6 +53,7 @@ public class TestUnionOnSchema  {
     private static final String INP_FILE_2NUMS = "TestUnionOnSchemaInput1";
     private static final String INP_FILE_2NUM_1CHAR_1BAG = "TestUnionOnSchemaInput2";
     private static final String INP_FILE_EMPTY= "TestUnionOnSchemaInput3";
+    private static final String INP_FILE_3NUMS = "TestUnionOnSchemaInput4";
     
     @Before
     public void setUp() throws Exception {
@@ -77,6 +80,11 @@ public class TestUnionOnSchema  {
 
         //3rd input - empty file
         Util.createLocalInputFile(INP_FILE_EMPTY, new String[0]);
+        
+        // 4th input
+        String[] input4 = {"1\t2\t3","4\t5\t6",};
+        Util.createLocalInputFile(INP_FILE_3NUMS, input4);
+
     }
     
     @AfterClass
@@ -449,6 +457,45 @@ public class TestUnionOnSchema  {
         Util.checkQueryOutputsAfterSort(it, expectedRes);
     }
     
+    @Test
+    public void testUnionOnSchemaAdditionalColumnsWithImplicitSplit() throws IOException {
+        PigServer pig = new PigServer(ExecType.LOCAL);
+        Data data = Storage.resetData(pig);
+        
+        // Use batch to force multiple outputs from relation l3. This causes 
+        // ImplicitSplitInsertVisitor to call SchemaResetter. 
+        pig.setBatchOn();
+        
+        String query =
+            "  l1 = load '" + INP_FILE_2NUMS + "' as (i : int, j: int);"
+            + "l2 = load '" + INP_FILE_3NUMS + "' as (i : int, j : int, k : int);" 
+            + "l3 = load '" + INP_FILE_EMPTY + "' as (i : int, j : int, k : int, l :int);"
+            + "u = union onschema l1, l2, l3;"
+            + "store u into 'out1' using mock.Storage;"
+            + "store l3 into 'out2' using mock.Storage;"
+        ;
+
+        Util.registerMultiLineQuery(pig, query);
+        
+        pig.executeBatch();
+        
+        
+        List<Tuple> list1 = data.get("out1");
+        List<Tuple> list2 = data.get("out2");
+        
+        List<Tuple> expectedRes = 
+                Util.getTuplesFromConstantTupleStrings(
+                        new String[] {
+                                "(1,2,null,null)",
+                                "(5,3,null,null)",
+                                "(1,2,3,null)",
+                                "(4,5,6,null)",
+                        });
+        
+        Util.compareActualAndExpectedResults(list1, expectedRes);
+        
+        assertEquals(0, list2.size());
+    }
     
     /**
      * Test UNION ONSCHEMA on 3 inputs 
