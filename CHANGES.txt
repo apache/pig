@@ -40,6 +40,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4032: BloomFilter fails with s3 path in Hadoop 2.4 (cheolsoo)
+
 PIG-4018: Schema validation fails with UNION ONSCHEMA (daijy)
 
 PIG-4022: Fix tez e2e test SkewedJoin_6 (daijy)

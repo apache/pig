@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.bloom.BloomFilter;
 import org.apache.hadoop.util.bloom.Key;
@@ -35,7 +34,6 @@ import org.apache.pig.FilterFunc;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 /**
  * Use a Bloom filter build previously by BuildBloom.  You would first
@@ -112,7 +110,8 @@ public class Bloom extends FilterFunc {
     }
 
     private String getFilenameFromPath(String p) throws IOException {
-        return p.replace("/", "_");
+        Path path = new Path(p);
+        return path.toUri().getPath().replace("/", "_");
     }
 
 }
