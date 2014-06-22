@@ -60,13 +60,38 @@ public class ScriptingOutputCapturer {
         this.execType = execType;
     }
 
-    public String getStandardOutputRootWriteLocation() {
+    public String getStandardOutputRootWriteLocation() throws IOException {
         Configuration conf = UDFContext.getUDFContext().getJobConf();
         
         String jobId = conf.get("mapred.job.id");
         String taskId = conf.get("mapred.task.id");
+        String hadoopLogDir = System.getProperty("hadoop.log.dir");
+        if (hadoopLogDir == null) {
+            hadoopLogDir = conf.get("hadoop.log.dir");
+        }
+        
+        String tmpDir = conf.get("hadoop.tmp.dir");
+        boolean fallbackToTmp = (hadoopLogDir == null);
+        if (!fallbackToTmp) {
+            try {
+                if (!(new File(hadoopLogDir).canWrite())) {
+                    fallbackToTmp = true;
+                }
+            }
+            catch (SecurityException e) {
+                fallbackToTmp = true;
+            }
+            finally {
+                if (fallbackToTmp)
+                    log.warn(String.format("Insufficient permission to write into %s. Change path to: %s", hadoopLogDir, tmpDir));
+            }
+        }
+        if (fallbackToTmp) {
+            hadoopLogDir = tmpDir;
+        }
         log.debug("JobId: " + jobId);
         log.debug("TaskId: " + taskId);
+        log.debug("hadoopLogDir: " + hadoopLogDir);
 
         if (execType.isLocal()) {
             String logDir = System.getProperty("pig.udf.scripting.log.dir");
@@ -74,14 +99,13 @@ public class ScriptingOutputCapturer {
                 logDir = ".";
             return logDir + "/" + (taskId == null ? "" : (taskId + "_"));
         } else {
-            String taskLogDir = getTaskLogDir(jobId, taskId);
+            String taskLogDir = getTaskLogDir(jobId, taskId, hadoopLogDir);
             return taskLogDir + "/";
         }
     }
 
-    public String getTaskLogDir(String jobId, String taskId) {
+    public String getTaskLogDir(String jobId, String taskId, String hadoopLogDir) throws IOException {
         String taskLogDir;
-        String hadoopLogDir = System.getProperty("hadoop.log.dir");
         String defaultUserLogDir = hadoopLogDir + File.separator + "userlogs";
 
         if ( new File(defaultUserLogDir + File.separator + jobId).exists() ) {
@@ -92,6 +116,11 @@ public class ScriptingOutputCapturer {
             taskLogDir = defaultUserLogDir;
         } else {
             taskLogDir = hadoopLogDir + File.separator + "udfOutput";
+            File dir = new File(taskLogDir);
+            dir.mkdirs();
+            if (!dir.exists()) {
+                throw new IOException("Could not create directory: " + taskLogDir);
+            }
         }
         return taskLogDir;
     }

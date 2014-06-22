@@ -49,7 +49,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.util.StringUtils;
-import org.apache.pig.backend.hadoop.executionengine.Launcher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.StreamingUDF;
@@ -193,8 +192,8 @@ public class JarManager {
                 
                 if (clazz.getSimpleName().equals("StreamingUDF")) {
                     for (String fileName : StreamingUDF.getResourcesForJar()) {
-                        InputStream in = Launcher.class.getResourceAsStream(fileName);
-                        addStream(jarFile, fileName, in, contents);
+                        InputStream in = JarManager.class.getResourceAsStream(fileName);
+                        addStream(jarFile, fileName.substring(1), in, contents);
                     }
                 }
             }
