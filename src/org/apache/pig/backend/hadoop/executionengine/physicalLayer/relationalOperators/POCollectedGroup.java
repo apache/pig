@@ -130,15 +130,7 @@ public class POCollectedGroup extends PhysicalOperator {
         // Since the output is buffered, we need to flush the last
         // set of records when the close method is called by mapper.
         if (this.parentPlan.endOfAllInput) {
-            if (outputBag != null) {
-                Tuple tup = mTupleFactory.newTuple(2);
-                tup.set(0, prevKey);
-                tup.set(1, outputBag);
-                outputBag = null;
-                return new Result(POStatus.STATUS_OK, tup);
-            }
-
-            return new Result(POStatus.STATUS_EOP, null);
+            return getStreamCloseResult();
         }
 
         Result inp = null;
@@ -146,8 +138,13 @@ public class POCollectedGroup extends PhysicalOperator {
 
         while (true) {
             inp = processInput();
-            if (inp.returnStatus == POStatus.STATUS_EOP ||
-                    inp.returnStatus == POStatus.STATUS_ERR) {
+            if (inp.returnStatus == POStatus.STATUS_EOP) {
+                if (this.parentPlan.endOfAllInput) {
+                    return getStreamCloseResult();
+                } else {
+                    break;
+                }
+            } else if (inp.returnStatus == POStatus.STATUS_ERR) {
                 break;
             }
 
@@ -277,5 +274,17 @@ public class POCollectedGroup extends PhysicalOperator {
     @Override
     public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
         return null;
+    }
+
+    private Result getStreamCloseResult() throws ExecException {
+        if (outputBag != null) {
+            Tuple tup = mTupleFactory.newTuple(2);
+            tup.set(0, prevKey);
+            tup.set(1, outputBag);
+            outputBag = null;
+            return new Result(POStatus.STATUS_OK, tup);
+        }
+
+        return new Result(POStatus.STATUS_EOP, null);
     }
 }
