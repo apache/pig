@@ -34,6 +34,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.lib.partition.HashPartitioner;
+import org.apache.pig.CollectableLoadFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.IndexableLoadFunc;
 import org.apache.pig.LoadFunc;
@@ -551,13 +552,46 @@ public class TezCompiler extends PhyPlanVisitor {
         }
     }
 
-    // visit methods in alphabetical order
-
     @Override
     public void visitCollectedGroup(POCollectedGroup op) throws VisitorException {
-        int errCode = 2034;
-        String msg = "Cannot compile " + op.getClass().getSimpleName();
-        throw new TezCompilerException(msg, errCode, PigException.BUG);
+
+        List<PhysicalOperator> roots = curTezOp.plan.getRoots();
+        if(roots.size() != 1){
+            int errCode = 2171;
+            String errMsg = "Expected one but found more then one root physical operator in physical plan.";
+            throw new TezCompilerException(errMsg,errCode,PigException.BUG);
+        }
+
+        PhysicalOperator phyOp = roots.get(0);
+        if(! (phyOp instanceof POLoad)){
+            int errCode = 2172;
+            String errMsg = "Expected physical operator at root to be POLoad. Found : "+phyOp.getClass().getCanonicalName();
+            throw new TezCompilerException(errMsg,errCode,PigException.BUG);
+        }
+
+        LoadFunc loadFunc = ((POLoad)phyOp).getLoadFunc();
+        try {
+            if(!(CollectableLoadFunc.class.isAssignableFrom(loadFunc.getClass()))){
+                int errCode = 2249;
+                throw new TezCompilerException("While using 'collected' on group; data must be loaded via loader implementing CollectableLoadFunc.", errCode);
+            }
+            ((CollectableLoadFunc)loadFunc).ensureAllKeyInstancesInSameSplit();
+        } catch (TezCompilerException e){
+            throw (e);
+        } catch (IOException e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator " + op.getClass().getSimpleName();
+            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
+        }
+
+        try{
+            nonBlocking(op);
+            phyToTezOpMap.put(op, curTezOp);
+        }catch(Exception e){
+            int errCode = 2034;
+            String msg = "Error compiling operator " + op.getClass().getSimpleName();
+            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
+        }
     }
 
     @Override

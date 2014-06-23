@@ -40,6 +40,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4035: Fix CollectedGroup e2e tests for tez (daijy)
+
 PIG-4034: Exclude TestTezAutoParallelism when -Dhadoopversion=20 (cheolsoo)
 
 PIG-4033: Fix MergeSparseJoin e2e tests on tez (daijy)
