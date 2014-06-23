@@ -202,6 +202,12 @@
         <equals arg1="${hadoopversion}" arg2="23"/>
     </condition>
 
+    <condition property="hbase.hadoop.version" value="hadoop1" else="hadoop2">
+        <not>
+            <equals arg1="${hadoopversion}" arg2="23"/>
+        </not>
+    </condition>
+
     <!--
       HBase master version
       Denotes how the HBase dependencies are layout. Value "94" denotes older
@@ -211,7 +217,7 @@
       e.g. "client", "server", ... . Only values "94" and "95" are supported
       at the moment.
     -->
-    <property name="hbaseversion" value="94" />
+    <property name="hbaseversion" value="95" />
 
     <property name="src.shims.dir" value="${basedir}/shims/src/hadoop${hadoopversion}" />
     <property name="src.shims.test.dir" value="${basedir}/shims/test/hadoop${hadoopversion}" />

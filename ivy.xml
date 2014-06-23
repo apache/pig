@@ -331,9 +331,9 @@
       <artifact name="hbase-hadoop-compat" type="test-jar" ext="jar" m:classifier="tests"/>
     </dependency>
 
-    <dependency org="org.apache.hbase" name="hbase-hadoop1-compat" rev="${hbase95.version}" conf="hbase95->master">
-      <artifact name="hbase-hadoop1-compat" type="jar"/>
-      <artifact name="hbase-hadoop1-compat" type="test-jar" ext="jar" m:classifier="tests"/>
+    <dependency org="org.apache.hbase" name="hbase-${hbase.hadoop.version}-compat" rev="${hbase95.version}" conf="hbase95->master">
+      <artifact name="hbase-${hbase.hadoop.version}-compat" type="jar"/>
+      <artifact name="hbase-${hbase.hadoop.version}-compat" type="test-jar" ext="jar" m:classifier="tests"/>
       <exclude org="org.apache.hadoop" module="hadoop-core"/>
       <exclude org="org.slf4j" module="slf4j-api"/>
       <exclude org="stax" module="stax-api" />
