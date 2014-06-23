@@ -279,7 +279,7 @@ public class IndexedStorage extends PigStorage implements IndexableLoadFunc {
 	public void initialize(Configuration conf) throws IOException {
 		try {
 			InputFormat inputFormat = this.getInputFormat();
-			TaskAttemptID id = TaskAttemptID.forName(conf.get("mapred.task.id"));
+			TaskAttemptID id = HadoopShims.getNewTaskAttemptID();
 			
 			if (System.getenv("HADOOP_TOKEN_FILE_LOCATION") != null) {
 		                conf.set("mapreduce.job.credentials.binary", System.getenv("HADOOP_TOKEN_FILE_LOCATION"));

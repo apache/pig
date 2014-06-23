@@ -40,6 +40,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4033: Fix MergeSparseJoin e2e tests on tez (daijy)
+
 PIG-3478: Make StreamingUDF work for Hadoop 2 (lbendig via daijy)
 
 PIG-4032: BloomFilter fails with s3 path in Hadoop 2.4 (cheolsoo)
