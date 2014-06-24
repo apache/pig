@@ -37,6 +37,7 @@ import org.apache.pig.classification.InterfaceStability;
 public interface PigStatsOutputSizeReader {
 
     static final String OUTPUT_SIZE_READER_KEY = "pig.stats.output.size.reader";
+    static final String OUTPUT_SIZE_READER_UNSUPPORTED = "pig.stats.output.size.reader.unsupported";
 
     /**
      * Returns whether the given PSStore is supported by this output size reader
