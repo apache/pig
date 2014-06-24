@@ -301,4 +301,27 @@ public class TestMRJobStats {
         assertEquals("The dummy output size reader always returns " + DummyOutputSizeReader.SIZE,
                 DummyOutputSizeReader.SIZE, outputSize);
     }
+
+    @Test
+    public void testGetOuputSizeUsingNonFileBasedStorage5() throws Exception {
+        Configuration conf = new Configuration();
+
+        long size = 2L * 1024 * 1024 * 1024;
+        long outputSize = JobStats.getOutputSize(
+                createPOStoreForFileBasedSystem(size, new PigStorageWithStatistics(), conf), conf);
+
+        // By default, FileBasedOutputSizeReader is used to compute the size of output.
+        assertEquals("The returned output size is expected to be the same as the file size",
+                size, outputSize);
+
+        // Now add PigStorageWithStatistics to the unsupported store funcs list, and
+        // verify that JobStats.getOutputSize() returns -1.
+        conf.set(PigStatsOutputSizeReader.OUTPUT_SIZE_READER_UNSUPPORTED,
+                PigStorageWithStatistics.class.getName());
+
+        outputSize = JobStats.getOutputSize(
+                createPOStoreForFileBasedSystem(size, new PigStorageWithStatistics(), conf), conf);
+        assertEquals("The default output size reader returns -1 for unsupported store funcs",
+                -1, outputSize);
+    }
 }
