@@ -40,6 +40,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4023: BigDec/Int sort is broken (ahireanup via daijy)
+
 PIG-4003: Error is thrown by JobStats.getOutputSize() when storing to a Hive table (cheolsoo)
 
 PIG-4035: Fix CollectedGroup e2e tests for tez (daijy)

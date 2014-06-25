@@ -18,6 +18,7 @@
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import java.io.IOException;
+import java.math.BigInteger;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -90,7 +91,7 @@ public class PigBigIntegerRawComparator extends WritableComparator implements Co
 
         // If either are null, handle differently.
         if (!ndw1.isNull() && !ndw2.isNull()) {
-            rc = ((Double)ndw1.getValueAsPigType()).compareTo((Double)ndw2.getValueAsPigType());
+            rc = ((BigInteger)ndw1.getValueAsPigType()).compareTo((BigInteger)ndw2.getValueAsPigType());
         } else {
             // For sorting purposes two nulls are equal.
             if (ndw1.isNull() && ndw2.isNull()) rc = 0;

@@ -97,8 +97,8 @@ public class BigIntegerWritable implements WritableComparable<BigIntegerWritable
         public int compare(byte[] b1, int s1, int l1,
                            byte[] b2, int s2, int l2) {
             try {
-                thisValue.readFields(new DataInputStream(new ByteArrayInputStream(b1)));
-                thatValue.readFields(new DataInputStream(new ByteArrayInputStream(b2)));
+                thisValue.readFields(new DataInputStream(new ByteArrayInputStream(b1,s1,l1)));
+                thatValue.readFields(new DataInputStream(new ByteArrayInputStream(b2,s2,l2)));
             } catch (IOException e) {
                 throw new RuntimeException("Unable to read field from byte array: " + e);
             }
