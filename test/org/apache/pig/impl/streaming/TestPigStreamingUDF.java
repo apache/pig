@@ -19,7 +19,7 @@ package org.apache.pig.impl.streaming;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.List;
 import java.util.Map;
 
@@ -159,7 +159,7 @@ public class TestPigStreamingUDF {
     @Test
     public void testSerialize__map() throws IOException {
         Tuple t =tf.newTuple(1);
-        Map<String, String> m = new HashMap<String, String>();
+        Map<String, String> m = new TreeMap<String, String>();
         m.put("A", "B");
         m.put("C", "D");
         t.set(0,m);
@@ -170,16 +170,16 @@ public class TestPigStreamingUDF {
     @Test
     public void testSerialize__complex_map() throws IOException {
         Tuple t = tf.newTuple(1);
-        Map<String, Object> inner_map = new HashMap<String, Object>();
+        Map<String, Object> inner_map = new TreeMap<String, Object>();
         inner_map.put("A", 1);
         inner_map.put("B", "E");
         
-        Map<String, Object> outer_map = new HashMap<String, Object>();
+        Map<String, Object> outer_map = new TreeMap<String, Object>();
         outer_map.put("C", "F");
         outer_map.put("D", inner_map);
         
         t.set(0,outer_map);
-        byte[] expectedOutput = "|[_CD#|[_CA#I1|,_CB#CE|]_|,_CC#CF|]_|_\n".getBytes();
+        byte[] expectedOutput = "|[_CC#CF|,_CD#|[_CA#I1|,_CB#CE|]_|]_|_\n".getBytes();
         Assert.assertTrue(assertEquals(expectedOutput, ps.serializeToBytes(t)));
     }
 
@@ -360,7 +360,7 @@ public class TestPigStreamingUDF {
         PigStreamingUDF sp = new PigStreamingUDF(fs);
 
         
-        Map<String, String> expectedOutput = new HashMap<String, String>();
+        Map<String, String> expectedOutput = new TreeMap<String, String>();
         expectedOutput.put("A", "B");
         expectedOutput.put("C", "D");        
         

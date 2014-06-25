@@ -20,7 +20,7 @@ package org.apache.pig.test;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.List;
 import java.util.Map;
 
@@ -135,7 +135,7 @@ public class TestPigStreaming extends TestCase {
     @Test
     public void testSerialize__map() throws IOException {
         Tuple t = tf.newTuple(1);
-        Map<String, String> m = new HashMap<String, String>();
+        Map<String, String> m = new TreeMap<String, String>();
         m.put("A", "B");
         m.put("C", "D");
         t.set(0,m);
@@ -147,16 +147,16 @@ public class TestPigStreaming extends TestCase {
     @Test
     public void testSerialize__complex_map() throws IOException {
         Tuple t = tf.newTuple(1);
-        Map<String, Object> inner_map = new HashMap<String, Object>();
+        Map<String, Object> inner_map = new TreeMap<String, Object>();
         inner_map.put("A", 1);
         inner_map.put("B", "E");
         
-        Map<String, Object> outer_map = new HashMap<String, Object>();
+        Map<String, Object> outer_map = new TreeMap<String, Object>();
         outer_map.put("C", "F");
         outer_map.put("D", inner_map);
         
         t.set(0,outer_map);
-        byte[] expectedOutput = "[D#[A#1,B#E],C#F]\n".getBytes();
+        byte[] expectedOutput = "[C#F,D#[A#1,B#E]]\n".getBytes();
         byte[] output = ps.serialize(t);
         Assert.assertArrayEquals(expectedOutput, output);
     }
