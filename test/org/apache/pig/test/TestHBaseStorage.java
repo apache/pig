@@ -58,7 +58,6 @@ public class TestHBaseStorage {
     private static final Log LOG = LogFactory.getLog(TestHBaseStorage.class);
     private static HBaseTestingUtility util;
     private static Configuration conf;
-    private static MiniCluster cluster;
     private static PigServer pig;
 
     enum DataFormat {
@@ -78,8 +77,7 @@ public class TestHBaseStorage {
     @BeforeClass
     public static void setUp() throws Exception {
         // This is needed by Pig
-        cluster = MiniCluster.buildCluster();
-        conf = HBaseConfiguration.create(cluster.getConfiguration());
+        conf = HBaseConfiguration.create(new Configuration());
 
         util = new HBaseTestingUtility(conf);
         util.startMiniZKCluster();
@@ -96,7 +94,6 @@ public class TestHBaseStorage {
             hbc.join();
         }
         util.shutdownMiniZKCluster();
-        cluster.shutDown();
     }
 
 

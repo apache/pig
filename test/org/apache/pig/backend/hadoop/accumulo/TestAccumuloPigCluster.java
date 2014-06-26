@@ -76,8 +76,6 @@ public class TestAccumuloPigCluster {
             .getLogger(TestAccumuloPigCluster.class);
     private static final File tmpdir = Files.createTempDir();
     private static MiniAccumuloCluster accumuloCluster;
-    private static MiniCluster cluster;
-    private static Configuration conf;
     private PigServer pig;
 
     @BeforeClass
@@ -87,20 +85,15 @@ public class TestAccumuloPigCluster {
 
         accumuloCluster = new MiniAccumuloCluster(macConf);
         accumuloCluster.start();
-
-        // This is needed by Pig
-        cluster = MiniCluster.buildCluster();
-        conf = cluster.getConfiguration();
     }
 
     @Before
     public void beforeTest() throws Exception {
-        pig = new PigServer(ExecType.LOCAL, conf);
+        pig = new PigServer(ExecType.LOCAL);
     }
 
     @AfterClass
     public static void stopClusters() throws Exception {
-        cluster.shutDown();
         accumuloCluster.stop();
         FileUtils.deleteDirectory(tmpdir);
     }
