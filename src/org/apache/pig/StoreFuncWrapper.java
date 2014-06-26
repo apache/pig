@@ -22,6 +22,7 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.util.Utils;
 
 import java.io.IOException;
 
@@ -110,6 +111,12 @@ public class StoreFuncWrapper implements StoreFuncInterface {
      */
     protected String getMethodName(final int depth) {
         final StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-        return ste[2 + depth].getMethodName();
+        int index;
+        if (Utils.isVendorIBM()) {
+          index = 3 + depth;
+        } else {
+          index = 2 + depth;
+        }
+        return ste[index].getMethodName();
     }
 }

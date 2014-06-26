@@ -81,6 +81,17 @@ import com.google.common.collect.Lists;
  */
 public class Utils {
     private static final Log log = LogFactory.getLog(Utils.class);
+    
+    /**
+     * This method checks whether JVM vendor is IBM
+     * @return true if IBM JVM is being used
+     * false otherwise
+     */
+    public static boolean isVendorIBM() {    	
+    	  return System.getProperty("java.vendor").contains("IBM");
+    }
+    
+    
     /**
      * This method is a helper for classes to implement {@link java.lang.Object#equals(java.lang.Object)}
      * checks if two objects are equals - two levels of checks are
