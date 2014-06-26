@@ -42,6 +42,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4038: SPRINTF should return NULL on any NULL input (mrflip via daijy)
+
 PIG-4025: TestLoadFuncWrapper, TestLoadFuncMetaDataWrapper,TestStoreFuncWrapper
  and TestStoreFuncMetadataWrapper fail on IBM JDK (ahireanup via daijy)
 
