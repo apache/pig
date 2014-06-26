@@ -4201,6 +4201,17 @@ Use the RTRIM function to remove trailing white space from a string.
       <td><p><code>' 1234567| 1234567|yay     '</code></p></td>
       <td><p>Format strings with %s, integers with %d. Types are converted for you where reasonable (here, int -&gt; string).</p></td></tr>
 
+
+      <tr><td><p>(null value)</p></td>
+      <td><p><code>1234567</code></p></td>      <td><p><code>1234567</code></p></td>    <td><p><code>'yay'</code></p></td>
+      <td><p>(null value)</p></td>
+      <td><p>Returns null (no error or warning) with a null format string.</p></td></tr>
+
+      <tr><td><p><code>'%8s|%8d|%-8s'</code></p></td>
+      <td><p><code>1234567</code></p></td>      <td><p>(null value)</p></td>    <td><p><code>'yay'</code></p></td>
+      <td><p>(null value)</p></td>
+      <td><p>Returns null (no error or warning) if any single argument is null.</p></td></tr>
+
       <tr><td><p><code>'%8.3f|%6x'</code></p></td>
       <td><p><code>123.14159</code></p></td>    <td><p><code>665568</code></p></td>     <td><p><code></code></p></td>
       <td><p><code>' 123.142| a27e0'</code></p></td>

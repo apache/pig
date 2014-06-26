@@ -48,11 +48,13 @@ public class SPRINTF extends EvalFunc<String> {
         Formatter     formatter = new Formatter(sb);
         try{
             if (input == null || input.size() == 0) return null;
+            if (input.get(0) == null){ return null; }
 
             String   fmt  = String.valueOf(input.get(0));
             Object[] args = new Object[input.size()-1];
             for (int i = 1; i < input.size(); i++) {
                 args[i-1] =  input.get(i);
+                if (args[i-1] == null){ return null; }
             }
 
             formatter.format(fmt, args);

@@ -2465,6 +2465,15 @@ public class TestBuiltin {
         res = sprinter.exec(ts);
         assertEquals(exp, res);
         //
+        // Returns null if any input is null
+        ts.set(3, null);
+        res = sprinter.exec(ts);
+        assertNull(res);
+        ts.set(3, ff);
+        ts.set(0, null);
+        res = sprinter.exec(ts);
+        assertNull(res);
+        //
         // Works with just one arg
         ts = TupleFactory.getInstance().newTuple(1);
         ts.set(0, "meep!");
