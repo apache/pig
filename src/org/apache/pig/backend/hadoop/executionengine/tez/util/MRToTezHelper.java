@@ -111,7 +111,7 @@ public class MRToTezHelper {
             }
         }
 
-        dagAMConf.setIfUnset(TezConfiguration.TEZ_AM_JAVA_OPTS,
+        dagAMConf.setIfUnset(TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS,
                 org.apache.tez.mapreduce.hadoop.MRHelpers
                         .getMRAMJavaOpts(tezConf));
 
