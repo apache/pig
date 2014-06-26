@@ -40,6 +40,9 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4025: TestLoadFuncWrapper, TestLoadFuncMetaDataWrapper,TestStoreFuncWrapper
+ and TestStoreFuncMetadataWrapper fail on IBM JDK (ahireanup via daijy)
+
 PIG-4024: TestPigStreamingUDF and TestPigStreaming fail on IBM JDK (ahireanup via daijy)
 
 PIG-4023: BigDec/Int sort is broken (ahireanup via daijy)

@@ -25,6 +25,7 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.util.Utils;
 
 /**
  * Convenience class to extend when decorating a LoadFunc. Subclasses must call the setLoadFunc
@@ -100,7 +101,13 @@ public class LoadFuncWrapper extends LoadFunc {
      */
     protected String getMethodName(final int depth) {
         final StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-        return ste[2 + depth].getMethodName();
+        int index;
+        if (Utils.isVendorIBM()) {
+          index = 3 + depth;
+        } else {
+          index = 2 + depth;
+        }
+        return ste[index].getMethodName();
     }
 
 }

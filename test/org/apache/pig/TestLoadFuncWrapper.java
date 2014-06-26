@@ -31,6 +31,7 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.util.Utils;
 import org.junit.Test;
 
 /**
@@ -39,8 +40,10 @@ import org.junit.Test;
 public class TestLoadFuncWrapper {
 
     // Asserts that each call to a Wrapper invokes the correct method on the Wrappee.
+	
     @Test
-    public void testSucess() throws IOException {
+    public void testSucess() throws IOException {    	
+    	
         DummyLoadFunc loadFunc = new DummyLoadFunc();
         MockWrapper wrapper = new MockWrapper(loadFunc);
 
@@ -107,7 +110,14 @@ public class TestLoadFuncWrapper {
 
         public String getLastMethodCalled() { return methodCalls.pop(); }
         protected void setLastMethodCalled() {
-            methodCalls.push(Thread.currentThread().getStackTrace()[2].getMethodName());
+        	StackTraceElement e[] = Thread.currentThread().getStackTrace();            
+            int index;
+            if (Utils.isVendorIBM()) {
+              index = 3;
+            } else {
+              index = 2;
+            }
+            methodCalls.push(e[index].getMethodName());
         }
         
         @Override
