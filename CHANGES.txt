@@ -238,6 +238,8 @@ PIG-3882: Multiquery off mode execution is not done in batch and very inefficien
  
 BUG FIXES
 
+PIG-4037: TestHBaseStorage, TestAccumuloPigCluster has failures with hadoopversion=23 (daijy)
+
 PIG-4005: depend on hbase-hadoop2-compat rather than hbase-hadoop1-compat when hbaseversion is 95 (daijy)
 
 PIG-4021: Fix TestHBaseStorage failure after auto local mode change (PIG-3463) (daijy)
