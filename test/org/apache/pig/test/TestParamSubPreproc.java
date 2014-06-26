@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -1344,6 +1345,27 @@ public class TestParamSubPreproc {
         inExpected.close();
         inResult.close();
     }
+
+    @Test
+    public void testGruntWithParamSub() throws Exception{
+        log.info("Starting test testGruntWithParamSub()");
+        File inputFile = Util.createFile(new String[]{"daniel\t10","jenny\t20"});
+        File outputFile = File.createTempFile("tmp", "");
+        outputFile.delete();
+        String command = "a = load '" + Util.encodeEscape(inputFile.toString()) + "' as ($param1:chararray, $param2:int);\n"
+                + "store a into '" + outputFile.toString() + "';\n"
+                + "quit\n";
+        System.setIn(new ByteArrayInputStream(command.getBytes()));
+        org.apache.pig.PigRunner.run(new String[] {"-x", "local", "-p", "param1=name", "-p", "param2=age"}, null);
+        File[] partFiles = outputFile.listFiles(new FilenameFilter() {
+            public boolean accept(File dir, String name) { 
+            return name.startsWith("part");
+        }
+        });
+        String resultContent = Util.readFile(partFiles[0]);
+        assertEquals(resultContent, "daniel\t10\njenny\t20\n");
+    }
+
     @SuppressWarnings("resource")
     private BufferedReader WithConditionalReplacement(String filename, String orig, String dest, boolean replace) throws IOException {
         BufferedReader pigOrigIStream = new BufferedReader(new FileReader(filename));

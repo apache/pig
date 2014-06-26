@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.Reader;
 import java.io.StringReader;
 import java.text.ParseException;
 import java.util.AbstractList;
@@ -536,7 +537,7 @@ public class Main {
                 String historyFile = System.getProperty("user.home") + File.separator  + HISTORYFILE;
                 reader.setHistory(new History(new File(historyFile)));
                 ConsoleReaderInputStream inputStream = new ConsoleReaderInputStream(reader);
-                grunt = new Grunt(new BufferedReader(new InputStreamReader(inputStream)), pigContext);
+                grunt = new Grunt(new BufferedReaderWithParamSub(new InputStreamReader(inputStream), pigContext), pigContext);
                 grunt.setConsoleReader(reader);
                 gruntCalled = true;
                 grunt.run();
@@ -1038,6 +1039,22 @@ public class Main {
         return (totalCount > 0 && failCount == totalCount) ? ReturnCode.FAILURE
                 : (failCount > 0) ? ReturnCode.PARTIAL_FAILURE
                         : ReturnCode.SUCCESS;
+    }
+    
+    static class BufferedReaderWithParamSub extends BufferedReader {
+        PigContext pc;
+        BufferedReaderWithParamSub(Reader in, PigContext pigContext) {
+            super(in);
+            pc = pigContext;
+        }
+
+        @Override
+        public String readLine() throws IOException {
+            String line = super.readLine();
+            String paramSubLine = pc.doParamSubstitution(new BufferedReader(new StringReader(line)));
+            return paramSubLine;
+        }
+        
     }
 
 }
