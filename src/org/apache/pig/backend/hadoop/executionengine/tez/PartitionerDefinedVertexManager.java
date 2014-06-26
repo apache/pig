@@ -42,7 +42,7 @@ import com.google.common.primitives.Ints;
  * The complex part is the PigOrderByEdgeManager, which specify how
  * partition in the previous setting routes to the new vertex setting
  */
-public class PartitionerDefinedVertexManager implements VertexManagerPlugin {
+public class PartitionerDefinedVertexManager extends VertexManagerPlugin {
 
     private VertexManagerPluginContext context;
     private boolean isParallelismSet = false;
