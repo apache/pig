@@ -79,6 +79,8 @@ public class POPackage extends PhysicalOperator {
 
     private boolean useDefaultBag = false;
 
+    private boolean lastBagReadOnly = true;
+
     protected Packager pkgr;
 
     protected PigNullableWritable keyWritable;
@@ -196,6 +198,12 @@ public class POPackage extends PhysicalOperator {
                     useDefaultBag = true;
                 }
             }
+            // If multiquery, the last bag is InternalCachedBag and should not
+            // set ReadOnly flag, otherwise we will materialize again to another
+            // InternalCachedBag
+            if (pkgr instanceof MultiQueryPackager) {
+                lastBagReadOnly = false;
+            }
         }
         int numInputs = pkgr.getNumInputs(keyWritable.getIndex());
         boolean[] readOnce = new boolean[numInputs];
@@ -220,7 +228,10 @@ public class POPackage extends PhysicalOperator {
                 }
 
             } else {
-                readOnce[numInputs - 1] = true;
+                if (lastBagReadOnly) {
+                    readOnce[numInputs - 1] = true;
+                }
+
                 // We know the tuples will come sorted by index, so we can wrap
                 // the last input in a ReadOnceBag and let the Packager decide
                 // whether or not to read into memory

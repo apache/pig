@@ -34,7 +34,7 @@ import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.builtin.PigStreaming;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.zookeeper.Shell;
+import org.apache.hadoop.util.Shell;
 
 
 /**
