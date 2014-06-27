@@ -481,6 +481,6 @@ public class Packager implements Illustrable, Serializable, Cloneable {
                 // POJoinPackage in the pipeline and is also blocking the pipeline;
                 // constructor argument should be 2 * numInputs. But for one obscure
                 // case we don't want to pay the penalty all the time.
-                : new InternalCachedBag(numInputs-1);
+                : new InternalCachedBag(numInputs);
     }
 }
