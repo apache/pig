@@ -42,6 +42,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4036: Fix e2e failures - JobManagement_3, CmdErrors_3 and BigData_4 (daijy)
+
 PIG-4041: org.apache.pig.backend.hadoop.executionengine.tez.util.MRToTezHelper compiling error (jeagles via cheolsoo)
 
 PIG-4038: SPRINTF should return NULL on any NULL input (mrflip via daijy)
