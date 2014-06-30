@@ -186,7 +186,13 @@
       <exclude org="org.codehaus.jackson" module="jackson-mapper-asl"/>
     </dependency>
     <dependency org="org.apache.avro" name="avro-mapred" rev="${avro.version}"
-      conf="compile->default;checkstyle->master">
+      conf="hadoop20->default;checkstyle->master">
+      <exclude org="org.codehaus.jackson" module="jackson-core-asl"/>
+      <exclude org="org.codehaus.jackson" module="jackson-mapper-asl"/>
+    </dependency>
+    <dependency org="org.apache.avro" name="avro-mapred" rev="${avro.version}"
+      conf="hadoop23->default;checkstyle->master">
+      <artifact name="avro-mapred" type="jar" m:classifier="hadoop2"/>
       <exclude org="org.codehaus.jackson" module="jackson-core-asl"/>
       <exclude org="org.codehaus.jackson" module="jackson-mapper-asl"/>
     </dependency>

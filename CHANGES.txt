@@ -42,6 +42,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4044: Pig should use avro-mapred-hadoop2.jar instead of avro-mapred.jar when compile with hadoop 2 (daijy)
+
 PIG-4043: JobClient.getMap/ReduceTaskReports() causes OOM for jobs with a large number of tasks (cheolsoo)
 
 PIG-4036: Fix e2e failures - JobManagement_3, CmdErrors_3 and BigData_4 (daijy)
