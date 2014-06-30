@@ -23,9 +23,11 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
@@ -34,7 +36,10 @@ import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.TaskReport;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigConfiguration;
+import org.apache.pig.PigServer;
 import org.apache.pig.StoreFuncInterface;
+import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.FileBasedOutputSizeReader;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigStatsOutputSizeReader;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
@@ -323,5 +328,58 @@ public class TestMRJobStats {
                 createPOStoreForFileBasedSystem(size, new PigStorageWithStatistics(), conf), conf);
         assertEquals("The default output size reader returns -1 for unsupported store funcs",
                 -1, outputSize);
+    }
+
+    // See PIG-4043
+    @Test
+    public void testNoTaskReportProperty() throws IOException{
+        MiniGenericCluster cluster = MiniGenericCluster.buildCluster(MiniGenericCluster.EXECTYPE_MR);
+        Properties properties = cluster.getProperties();
+
+        String inputFile = "input";
+        PrintWriter pw = new PrintWriter(Util.createInputFile(cluster, inputFile));
+        pw.println("100\tapple");
+        pw.println("200\torange");
+        pw.close();
+
+        // Enable task reports in job statistics
+        properties.setProperty(PigConfiguration.PIG_NO_TASK_REPORT, "false");
+        PigServer pigServer = new PigServer(cluster.getExecType(), properties);
+        pigServer.setBatchOn();
+
+        // Launch a map-only job
+        pigServer.registerQuery("A = load '" + inputFile + "' as (id:int, fruit:chararray);");
+        pigServer.registerQuery("store A into 'task_reports';");
+        List<ExecJob> jobs = pigServer.executeBatch();
+        PigStats pigStats = jobs.get(0).getStatistics();
+        MRJobStats jobStats = (MRJobStats) pigStats.getJobGraph().getJobList().get(0);
+
+        // Make sure JobStats includes TaskReports information
+        long minMapTime = jobStats.getMinMapTime();
+        long maxMapTime = jobStats.getMaxMapTime();
+        long avgMapTime = jobStats.getAvgMapTime();
+        assertTrue("TaskReports are enabled, so minMapTime shouldn't be -1", minMapTime != -1l);
+        assertTrue("TaskReports are enabled, so maxMapTime shouldn't be -1", maxMapTime != -1l);
+        assertTrue("TaskReports are enabled, so avgMapTime shouldn't be -1", avgMapTime != -1l);
+
+        // Disable task reports in job statistics
+        properties.setProperty(PigConfiguration.PIG_NO_TASK_REPORT, "true");
+
+        // Launch another map-only job
+        pigServer.registerQuery("B = load '" + inputFile + "' as (id:int, fruit:chararray);");
+        pigServer.registerQuery("store B into 'no_task_reports';");
+        jobs = pigServer.executeBatch();
+        pigStats = jobs.get(0).getStatistics();
+        jobStats = (MRJobStats) pigStats.getJobGraph().getJobList().get(0);
+
+        // Make sure JobStats doesn't include any TaskReports information
+        minMapTime = jobStats.getMinMapTime();
+        maxMapTime = jobStats.getMaxMapTime();
+        avgMapTime = jobStats.getAvgMapTime();
+        assertEquals("TaskReports are disabled, so minMapTime should be -1", -1l, minMapTime);
+        assertEquals("TaskReports are disabled, so maxMapTime should be -1", -1l, maxMapTime);
+        assertEquals("TaskReports are disabled, so avgMapTime should be -1", -1l, avgMapTime);
+
+        cluster.shutDown();
     }
 }

@@ -19,6 +19,8 @@ package org.apache.pig.backend.hadoop.executionengine.shims;
 
 import java.io.IOException;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -34,6 +36,7 @@ import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.TaskType;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigOutputCommitter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop20.PigJobControl;
@@ -49,6 +52,9 @@ import org.apache.pig.backend.hadoop20.PigJobControl;
  * version dependant implementation of PigGenericMapReduce, PigGenericMapBase and MiniGenericCluster.
  **/
 public class HadoopShims {
+
+    private static Log LOG = LogFactory.getLog(HadoopShims.class);
+
     static public JobContext cloneJobContext(JobContext original) throws IOException, InterruptedException {
         JobContext newContext = new JobContext(original.getConfiguration(), original.getJobID());
         return newContext;
@@ -178,6 +184,10 @@ public class HadoopShims {
     }
 
     public static TaskReport[] getTaskReports(Job job, TaskType type) throws IOException {
+        if (job.getJobConf().getBoolean(PigConfiguration.PIG_NO_TASK_REPORT, false)) {
+            LOG.info("TaskReports are disabled for job: " + job.getAssignedJobID());
+            return null;
+        }
         JobClient jobClient = job.getJobClient();
         return (type == TaskType.MAP)
                 ? jobClient.getMapTaskReports(job.getAssignedJobID())
