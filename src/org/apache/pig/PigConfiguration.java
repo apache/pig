@@ -259,4 +259,9 @@ public class PigConfiguration {
      * which case, the entry would be "pig.whitelist=load,store,filter,group"
      */
     public static final String PIG_WHITELIST = "pig.whitelist";
+
+    /**
+     * This key is used to turns off use of task reports in job statistics.
+     */
+    public static final String PIG_NO_TASK_REPORT = "pig.stats.notaskreport";
 }

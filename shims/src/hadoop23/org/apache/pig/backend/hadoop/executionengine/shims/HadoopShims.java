@@ -41,6 +41,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.hadoop.mapreduce.task.JobContextImpl;
 import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop23.PigJobControl;
 
@@ -213,6 +214,10 @@ public class HadoopShims {
     }
 
     public static TaskReport[] getTaskReports(Job job, TaskType type) throws IOException {
+        if (job.getJobConf().getBoolean(PigConfiguration.PIG_NO_TASK_REPORT, false)) {
+            LOG.info("TaskReports are disabled for job: " + job.getAssignedJobID());
+            return null;
+        }
         org.apache.hadoop.mapreduce.Job mrJob = job.getJob();
         try {
             org.apache.hadoop.mapreduce.TaskReport[] reports = mrJob.getTaskReports(type);
