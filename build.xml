@@ -381,7 +381,7 @@
             <include name="automaton-${automaton.version}.jar"/>
             <include name="jansi-${jansi.version}.jar"/>
             <include name="avro-${avro.version}.jar"/>
-            <include name="avro-mapred-${avro.version}.jar"/>
+            <include name="avro-mapred-${avro.version}*.jar"/>
             <include name="trevni-core-${avro.version}.jar"/>
             <include name="trevni-avro-${avro.version}.jar"/>
             <include name="snappy-java-${snappy.version}.jar"/>
@@ -402,7 +402,7 @@
             <include name="slf4j*.jar"/>
             <include name="jsp-api*.jar"/>
             <include name="avro-${avro.version}.jar"/>
-            <include name="avro-mapred-${avro.version}.jar"/>
+            <include name="avro-mapred-${avro.version}*.jar"/>
             <include name="trevni-core-${avro.version}.jar"/>
             <include name="trevni-avro-${avro.version}.jar"/>
             <include name="snappy-java-${snappy.version}.jar"/>
