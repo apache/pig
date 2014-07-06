@@ -92,7 +92,7 @@ public class MRToTezHelper {
     }
 
     public static TezConfiguration getDAGAMConfFromMRConf(
-            TezConfiguration tezConf) {
+            Configuration tezConf) {
 
         // Set Tez parameters based on MR parameters.
         TezConfiguration dagAMConf = new TezConfiguration(tezConf);

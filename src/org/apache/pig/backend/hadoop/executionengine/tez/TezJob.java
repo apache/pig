@@ -33,7 +33,7 @@ import org.apache.hadoop.mapreduce.lib.jobcontrol.ControlledJob;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.pig.PigConfiguration;
-import org.apache.tez.client.TezSession;
+import org.apache.tez.client.TezClient;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
@@ -61,7 +61,7 @@ public class TezJob extends ControlledJob {
     private DAG dag;
     private DAGClient dagClient;
     private Map<String, LocalResource> requestAMResources;
-    private TezSession tezSession;
+    private TezClient tezSession;
     private boolean reuseSession;
     private TezCounters dagCounters;
     // Vertex, CounterGroup, Counter, Value
@@ -123,11 +123,13 @@ public class TezJob extends ControlledJob {
     public void submit() {
         try {
             tezSession = TezSessionManager.getSession(conf, requestAMResources, dag.getCredentials());
-            log.info("Submitting DAG - Application id: " + tezSession.getApplicationId());
+            log.info("Submitting DAG " + dag.getName());
             dagClient = tezSession.submitDAG(dag);
+            log.info("Submitted DAG " + dag.getName() + ". Application id: " +
+                    tezSession.getAppMasterApplicationId());
         } catch (Exception e) {
             if (tezSession != null) {
-                log.error("Cannot submit DAG - Application id: " + tezSession.getApplicationId(), e);
+                log.error("Cannot submit DAG - Application id: " + tezSession.getAppMasterApplicationId(), e);
             } else {
                 log.error("Cannot submit DAG", e);
             }
@@ -183,6 +185,7 @@ public class TezJob extends ControlledJob {
     }
 
     private class DAGStatusReporter extends TimerTask {
+        @Override
         public void run() {
             log.info("DAG Status: " + dagStatus);
         }
@@ -225,7 +228,7 @@ public class TezJob extends ControlledJob {
                 tezSession.stop();
             }
         } catch (TezException e) {
-            throw new IOException("Cannot kill DAG - Application Id: " + tezSession.getApplicationId(), e);
+            throw new IOException("Cannot kill DAG - Application Id: " + tezSession.getAppMasterApplicationId(), e);
         }
     }
 
