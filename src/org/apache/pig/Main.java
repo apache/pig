@@ -651,6 +651,7 @@ public class Main {
             if (deleteTempFiles) {
                 // clear temp files
                 FileLocalizer.deleteTempFiles();
+                FileLocalizer.deleteTempResourceFiles();
             }
             PerformanceTimerFactory.getPerfTimerFactory().dumpTimers();
         }
@@ -1040,7 +1041,7 @@ public class Main {
                 : (failCount > 0) ? ReturnCode.PARTIAL_FAILURE
                         : ReturnCode.SUCCESS;
     }
-    
+
     static class BufferedReaderWithParamSub extends BufferedReader {
         PigContext pc;
         BufferedReaderWithParamSub(Reader in, PigContext pigContext) {
@@ -1054,7 +1055,7 @@ public class Main {
             String paramSubLine = pc.doParamSubstitution(new BufferedReader(new StringReader(line)));
             return paramSubLine;
         }
-        
+
     }
 
 }

@@ -440,6 +440,10 @@ public class FileLocalizer {
         new ThreadLocal<ContainerDescriptor>() {
     };
 
+    private static ThreadLocal<ContainerDescriptor> resourcePath =
+        new ThreadLocal<ContainerDescriptor>() {
+    };
+
     /**
      * This method is only used by test code to reset state.
      * @param initialized
@@ -461,38 +465,60 @@ public class FileLocalizer {
      */
     private static synchronized ContainerDescriptor relativeRoot(final PigContext pigContext)
             throws DataStorageException {
-
         if (relativeRoot.get() == null) {
-            String tdir= Utils.substituteVars(pigContext.getProperties().getProperty(PigConfiguration.PIG_TEMP_DIR, "/tmp"));
-            ContainerDescriptor relative;
-            try {
-                do {
-                    relative = pigContext.getDfs().asContainer(tdir + "/temp" + r.nextInt());
-                } while (relative.exists());
-                relativeRoot.set(relative);
-                createRelativeRoot(relative);
-            }
-            catch (IOException e) {
-                // try one last time in case this was due IO Exception caused by dir
-                // operations on directory created by another JVM at the same instant
-                relative = pigContext.getDfs().asContainer(tdir + "/temp" + r.nextInt());
-                relativeRoot.set(relative);
-                try {
-                    createRelativeRoot(relative);
-                }
-                catch (IOException e1) {
-                    throw new DataStorageException(e1);
-                }
-            }
+            ContainerDescriptor relative = getTempContainer(pigContext);
+            relativeRoot.set(relative);
         }
-
         return relativeRoot.get();
     }
 
-    private static void createRelativeRoot(ContainerDescriptor relativeRoot) throws IOException {
-        relativeRoot.create();
-        if (relativeRoot instanceof HDirectory) {
-            ((HDirectory) relativeRoot).setPermission(OWNER_ONLY_PERMS);
+    /**
+     * Accessor method to get the resource ContainerDescriptor used for tez resource
+     * path bound to this thread. Calling this method lazy-initialized the
+     * resourcePath object. This path is different than relativeRoot in that
+     * calling PigServer.shutdown will only remove relativeRoot but not resourthPath
+     * since resourthPath should be available in the entire session
+     *
+     * @param pigContext
+     * @return
+     * @throws DataStorageException
+     */
+    public static synchronized ContainerDescriptor getTemporaryResourcePath(final PigContext pigContext)
+            throws DataStorageException {
+        if (resourcePath.get() == null) {
+            resourcePath.set(getTempContainer(pigContext));
+        }
+        return resourcePath.get();
+    }
+
+    private static synchronized ContainerDescriptor getTempContainer(final PigContext pigContext)
+            throws DataStorageException {
+        ContainerDescriptor tempContainer = null;
+        String tdir= Utils.substituteVars(pigContext.getProperties().getProperty(PigConfiguration.PIG_TEMP_DIR, "/tmp"));
+        try {
+            do {
+                tempContainer = pigContext.getDfs().asContainer(tdir + "/temp" + r.nextInt());
+            } while (tempContainer.exists());
+            createContainer(tempContainer);
+        }
+        catch (IOException e) {
+            // try one last time in case this was due IO Exception caused by dir
+            // operations on directory created by another JVM at the same instant
+            tempContainer = pigContext.getDfs().asContainer(tdir + "/temp" + r.nextInt());
+            try {
+                createContainer(tempContainer);
+            }
+            catch (IOException e1) {
+                throw new DataStorageException(e1);
+            }
+        }
+        return tempContainer;
+    }
+
+    private static void createContainer(ContainerDescriptor container) throws IOException {
+        container.create();
+        if (container instanceof HDirectory) {
+            ((HDirectory) container).setPermission(OWNER_ONLY_PERMS);
         }
     }
 
@@ -504,6 +530,16 @@ public class FileLocalizer {
                 log.error(e);
             }
             setInitialized(false);
+        }
+    }
+
+    public static void deleteTempResourceFiles() {
+        if (resourcePath.get() != null) {
+            try {
+                resourcePath.get().delete();
+            } catch (IOException e) {
+                log.error(e);
+            }
         }
     }
 
