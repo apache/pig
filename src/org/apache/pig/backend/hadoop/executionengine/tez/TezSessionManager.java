@@ -28,15 +28,11 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.MRToTezHelper;
 import org.apache.pig.impl.PigContext;
-import org.apache.tez.client.AMConfiguration;
+import org.apache.tez.client.TezAppMasterStatus;
 import org.apache.tez.client.TezClient;
-import org.apache.tez.client.TezSession;
-import org.apache.tez.client.TezSessionConfiguration;
-import org.apache.tez.client.TezSessionStatus;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
@@ -61,67 +57,39 @@ public class TezSessionManager {
     }
 
     public static class SessionInfo {
-        SessionInfo(TezSession session, Map<String, LocalResource> resources) {
+        SessionInfo(TezClient session, Map<String, LocalResource> resources) {
             this.session = session;
             this.resources = resources;
         }
         public Map<String, LocalResource> getResources() {
             return resources;
         }
-        public TezSession getTezSession() {
+        public TezClient getTezSession() {
             return session;
         }
         public void setInUse(boolean inUse) {
             this.inUse = inUse;
         }
-        private TezSession session;
+        private TezClient session;
         private Map<String, LocalResource> resources;
         private boolean inUse = false;
     }
 
     private static List<SessionInfo> sessionPool = new ArrayList<SessionInfo>();
 
-    private static void waitForTezSessionReady(TezSession tezSession)
-        throws IOException, TezException {
-        while (true) {
-            TezSessionStatus status = tezSession.getSessionStatus();
-            if (status.equals(TezSessionStatus.SHUTDOWN)) {
-                //TODO: TEZ-1017 Show diagnostics message
-                //log.error("TezSession has already shutdown. Diagnostics: " + tezSession.getSessionDiagnostics());
-                throw new RuntimeException("TezSession has already shutdown");
-            }
-            if (status.equals(TezSessionStatus.READY)) {
-                return;
-            }
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                throw new IOException("Interrupted while trying to check session status", e);
-            }
-        }
-    }
-
     private static SessionInfo createSession(Configuration conf, Map<String, LocalResource> requestedAMResources, Credentials creds) throws TezException, IOException {
-        AMConfiguration amConfig = getAMConfig(new TezConfiguration(conf), requestedAMResources, creds);
-        TezConfiguration tezConf = amConfig.getAMConf();
-        TezSessionConfiguration sessionConfig = new TezSessionConfiguration(amConfig, tezConf);
-        String jobName = conf.get(PigContext.JOB_NAME, "pig");
-        TezClient tezClient = new TezClient(tezConf);
-        ApplicationId appId = tezClient.createApplication();
-
-        TezSession tezSession = new TezSession(jobName, appId, sessionConfig);
-        tezSession.start();
-        waitForTezSessionReady(tezSession);
-        return new SessionInfo(tezSession, requestedAMResources);
-    }
-
-    private static AMConfiguration getAMConfig(TezConfiguration tezConf, Map<String, LocalResource> resources, Credentials creds) {
-        TezConfiguration dagAMConf = MRToTezHelper.getDAGAMConfFromMRConf(tezConf);
+        TezConfiguration amConf = MRToTezHelper.getDAGAMConfFromMRConf(conf);
         Map<String, String> amEnv = new HashMap<String, String>();
-        MRHelpers.updateEnvironmentForMRAM(tezConf, amEnv);
-
-        AMConfiguration amConfig = new AMConfiguration(amEnv, resources, dagAMConf, creds);
-        return amConfig;
+        MRHelpers.updateEnvironmentForMRAM(amConf, amEnv);
+        String jobName = conf.get(PigContext.JOB_NAME, "pig");
+        TezClient tezClient = new TezClient(jobName, amConf, true, requestedAMResources, creds);
+        tezClient.start();
+        TezAppMasterStatus appMasterStatus = tezClient.getAppMasterStatus();
+        if (appMasterStatus.equals(TezAppMasterStatus.SHUTDOWN)) {
+            throw new RuntimeException("TezSession has already shutdown");
+        }
+        tezClient.waitTillReady();
+        return new SessionInfo(tezClient, requestedAMResources);
     }
 
     private static boolean validateSessionResources(SessionInfo currentSession, Map<String, LocalResource> requestedAMResources) throws TezException, IOException {
@@ -133,14 +101,14 @@ public class TezSessionManager {
         return true;
     }
 
-    static TezSession getSession(Configuration conf, Map<String, LocalResource> requestedAMResources, Credentials creds) throws TezException, IOException {
+    static TezClient getSession(Configuration conf, Map<String, LocalResource> requestedAMResources, Credentials creds) throws TezException, IOException {
         synchronized (sessionPool) {
             List<SessionInfo> sessionsToRemove = new ArrayList<SessionInfo>();
             for (SessionInfo sessionInfo : sessionPool) {
-                if (sessionInfo.session.getSessionStatus()==TezSessionStatus.SHUTDOWN) {
+                TezAppMasterStatus appMasterStatus = sessionInfo.session.getAppMasterStatus();
+                if (appMasterStatus.equals(TezAppMasterStatus.SHUTDOWN)) {
                     sessionsToRemove.add(sessionInfo);
-                }
-                else if (!sessionInfo.inUse && sessionInfo.session.getSessionStatus()==TezSessionStatus.READY &&
+                } else if (!sessionInfo.inUse && appMasterStatus.equals(TezAppMasterStatus.READY) &&
                         validateSessionResources(sessionInfo, requestedAMResources)) {
                     sessionInfo.inUse = true;
                     return sessionInfo.session;
@@ -159,7 +127,7 @@ public class TezSessionManager {
         }
     }
 
-    static void freeSession(TezSession session) {
+    static void freeSession(TezClient session) {
         synchronized (sessionPool) {
             for (SessionInfo sessionInfo : sessionPool) {
                 if (sessionInfo.session == session) {
@@ -170,7 +138,7 @@ public class TezSessionManager {
         }
     }
 
-    static void stopSession(TezSession session) throws TezException, IOException {
+    static void stopSession(TezClient session) throws TezException, IOException {
         synchronized (sessionPool) {
             Iterator<SessionInfo> iter = sessionPool.iterator();
             while (iter.hasNext()) {
