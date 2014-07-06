@@ -34,6 +34,7 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.util.ConverterUtils;
+import org.apache.pig.backend.hadoop.datastorage.HPath;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.util.JarManager;
@@ -58,10 +59,10 @@ public class TezResourceManager {
         }
         return instance;
     }
-  
+
     public void init(PigContext pigContext, Configuration conf) throws IOException {
         if (!inited) {
-            this.stagingDir = FileLocalizer.getTemporaryPath(pigContext, "-tez-resource");;
+            this.stagingDir = ((HPath)FileLocalizer.getTemporaryResourcePath(pigContext)).getPath();
             this.pigContext = pigContext;
             this.conf = conf;
             String jar = JarManager.findContainingJar(org.apache.pig.Main.class);
@@ -78,11 +79,11 @@ public class TezResourceManager {
         synchronized(this) {
             Path resourcePath = new Path(url.getFile());
             String resourceName = resourcePath.getName();
-    
+
             if (resources.containsKey(resourceName)) {
                 return resources.get(resourceName);
             }
-    
+
             // Ship the resource to the staging directory on the remote FS
             Path remoteFsPath = remoteFs.makeQualified(new Path(stagingDir, resourceName));
             remoteFs.copyFromLocalFile(resourcePath, remoteFsPath);
@@ -115,13 +116,13 @@ public class TezResourceManager {
             if (resources.containsKey(bootStrapJar)) {
                 return;
             }
-    
+
             FileSystem remoteFs = FileSystem.get(conf);
             File jobJar = File.createTempFile("Job", ".jar");
             jobJar.deleteOnExit();
             FileOutputStream fos = new FileOutputStream(jobJar);
             JarManager.createBootStrapJar(fos, pigContext);
-    
+
             // Ship the job.jar to the staging directory on the remote FS
             Path remoteJarPath = remoteFs.makeQualified(new Path(stagingDir, bootStrapJar));
             remoteFs.copyFromLocalFile(new Path(jobJar.getAbsolutePath()), remoteJarPath);

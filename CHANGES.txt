@@ -42,6 +42,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3984: PigServer.shutdown removes the tez resource folder (daijy via rohini)
+
 PIG-4048: TEZ-692 has a incompatible API change removing TezSession (rohini)
 
 PIG-4044: Pig should use avro-mapred-hadoop2.jar instead of avro-mapred.jar when compile with hadoop 2 (daijy)
