@@ -31,14 +31,14 @@ import org.apache.pig.PigServer;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.io.FileLocalizer;
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
 public class TestScalarAliases  {
     private static final String BUILD_TEST_TMP = "build/test/tmp/";
-    static MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
     private PigServer pigServer;
 
     TupleFactory mTf = TupleFactory.getInstance();
@@ -46,9 +46,7 @@ public class TestScalarAliases  {
 
     @Before
     public void setUp() throws Exception{
-        //re-init the variables, so that we can switch between
-        // local and mapreduce modes
-        FileLocalizer.setInitialized(false);
+        Util.resetStateForExecModeSwitch();
         pigServer = new PigServer(ExecType.LOCAL);
     }
 
@@ -481,7 +479,8 @@ public class TestScalarAliases  {
     // See PIG-1434
     @Test
     public void testScalarAliasesSplitClause() throws Exception{
-        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        Util.resetStateForExecModeSwitch();
+        pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
         String[] input = {
                 "1\t5",
                 "2\t10",
@@ -519,7 +518,9 @@ public class TestScalarAliases  {
 
     @Test
     public void testScalarErrMultipleRowsInInput() throws Exception{
-        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        Assume.assumeTrue("Skip this test for TEZ. See PIG-3994", Util.isMapredExecType(cluster.getExecType()));
+        Util.resetStateForExecModeSwitch();
+        pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
         String[] input = {
                 "1\t5",
                 "2\t10",

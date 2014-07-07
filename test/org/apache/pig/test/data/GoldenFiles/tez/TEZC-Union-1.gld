@@ -4,9 +4,9 @@
 #--------------------------------------------------
 # TEZ DAG plan: scope-27
 #--------------------------------------------------
-Tez vertex scope-18	->	Tez vertex scope-24,
-Tez vertex scope-19	->	Tez vertex scope-24,
-Tez vertex scope-24
+Tez vertex scope-18	->	Tez vertex group scope-24,
+Tez vertex scope-19	->	Tez vertex group scope-24,
+Tez vertex group scope-24
 
 Tez vertex scope-18
 # Plan on vertex

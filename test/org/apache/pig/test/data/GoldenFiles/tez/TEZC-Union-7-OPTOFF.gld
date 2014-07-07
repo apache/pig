@@ -47,7 +47,7 @@ Local Rearrange[tuple]{tuple}(false) - scope-102	->	 scope-108
 |   |
 |   Constant(DummyVal) - scope-101
 |
-|---New For Each(true,true)[tuple] - scope-107
+|---New For Each(false,true)[tuple] - scope-107
     |   |
     |   Project[int][0] - scope-91
     |   |

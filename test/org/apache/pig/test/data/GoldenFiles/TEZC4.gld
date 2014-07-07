@@ -2,21 +2,19 @@
 # There are 1 DAGs in the session
 #--------------------------------------------------
 #--------------------------------------------------
-# TEZ DAG plan: scope-18
+# TEZ DAG plan: scope-15
 #--------------------------------------------------
-Tez vertex scope-10	->	Tez vertex scope-13,
-Tez vertex scope-13
+Tez vertex scope-10	->	Tez vertex scope-12,
+Tez vertex scope-12
 
 Tez vertex scope-10
 # Plan on vertex
-b: Local Rearrange[tuple]{tuple}(false) - scope-12	->	 scope-13
-|   |
-|   Project[tuple][*] - scope-11
+POValueOutputTez - scope-11	->	 [scope-12]
 |
 |---b: Limit - scope-1
     |
     |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
-Tez vertex scope-13
+Tez vertex scope-12
 # Plan on vertex
 c: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-9
 |
@@ -30,10 +28,6 @@ c: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-9
         |   |
         |   |---Project[bytearray][0] - scope-2
         |
-        |---b: Limit - scope-17
+        |---b: Limit - scope-14
             |
-            |---b: New For Each(true)[bag] - scope-16
-                |   |
-                |   Project[tuple][1] - scope-15
-                |
-                |---b: Package(Packager)[tuple]{tuple} - scope-14
+            |---POValueInputTez - scope-13	<-	 scope-10

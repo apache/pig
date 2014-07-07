@@ -81,6 +81,12 @@ public class PigConfiguration {
      */
     public static final String OPT_ACCUMULATOR = "opt.accumulator";
 
+
+    /**
+     * This key is used to configure auto parallelism in tez. Default is true.
+     */
+    public static final String TEZ_AUTO_PARALLELISM = "pig.tez.auto.parallelism";
+
     /**
      * This key is used to enable union optimization.
      */

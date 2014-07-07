@@ -2,31 +2,27 @@
 # There are 1 DAGs in the session
 #--------------------------------------------------
 #--------------------------------------------------
-# TEZ DAG plan: scope-57
+# TEZ DAG plan: scope-46
 #--------------------------------------------------
-Tez vertex scope-23	->	Tez vertex scope-26,
-Tez vertex scope-26	->	Tez vertex scope-50,
-Tez vertex scope-31	->	Tez vertex scope-34,
-Tez vertex scope-34	->	Tez vertex scope-50,
-Tez vertex scope-50	->	Tez vertex scope-45,
-Tez vertex scope-45
+Tez vertex scope-23	->	Tez vertex scope-25,
+Tez vertex scope-25	->	Tez vertex group scope-41,
+Tez vertex scope-28	->	Tez vertex scope-30,
+Tez vertex scope-30	->	Tez vertex group scope-41,
+Tez vertex group scope-41	->	Tez vertex scope-38,
+Tez vertex scope-38
 
 Tez vertex scope-23
 # Plan on vertex
-Local Rearrange[tuple]{tuple}(false) - scope-25	->	 scope-26
-|   |
-|   Project[tuple][*] - scope-24
+POValueOutputTez - scope-24	->	 [scope-25]
 |
 |---Limit - scope-1
     |
     |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
-Tez vertex scope-26
+Tez vertex scope-25
 # Plan on vertex
-d: Local Rearrange[tuple]{tuple}(false) - scope-51	->	 scope-45
-|   |
-|   Project[tuple][*] - scope-52
+POValueOutputTez - scope-42	->	 [scope-38]
 |
-|---d: Limit - scope-53
+|---d: Limit - scope-43
     |
     |---a: New For Each(false,false)[bag] - scope-9
         |   |
@@ -40,29 +36,21 @@ d: Local Rearrange[tuple]{tuple}(false) - scope-51	->	 scope-45
         |
         |---Limit - scope-2
             |
-            |---Limit - scope-30
+            |---Limit - scope-27
                 |
-                |---New For Each(true)[bag] - scope-29
-                    |   |
-                    |   Project[tuple][1] - scope-28
-                    |
-                    |---Package(Packager)[tuple]{tuple} - scope-27
-Tez vertex scope-31
+                |---POValueInputTez - scope-26	<-	 scope-23
+Tez vertex scope-28
 # Plan on vertex
-Local Rearrange[tuple]{tuple}(false) - scope-33	->	 scope-34
-|   |
-|   Project[tuple][*] - scope-32
+POValueOutputTez - scope-29	->	 [scope-30]
 |
 |---Limit - scope-11
     |
     |---b: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-10
-Tez vertex scope-34
+Tez vertex scope-30
 # Plan on vertex
-d: Local Rearrange[tuple]{tuple}(false) - scope-54	->	 scope-45
-|   |
-|   Project[tuple][*] - scope-55
+POValueOutputTez - scope-44	->	 [scope-38]
 |
-|---d: Limit - scope-56
+|---d: Limit - scope-45
     |
     |---c: New For Each(false,false)[bag] - scope-19
         |   |
@@ -76,23 +64,15 @@ d: Local Rearrange[tuple]{tuple}(false) - scope-54	->	 scope-45
         |
         |---Limit - scope-12
             |
-            |---Limit - scope-38
+            |---Limit - scope-32
                 |
-                |---New For Each(true)[bag] - scope-37
-                    |   |
-                    |   Project[tuple][1] - scope-36
-                    |
-                    |---Package(Packager)[tuple]{tuple} - scope-35
-Tez vertex group scope-50	<-	 [scope-26, scope-34]	->	 scope-45
+                |---POValueInputTez - scope-31	<-	 scope-28
+Tez vertex group scope-41	<-	 [scope-25, scope-30]	->	 scope-38
 # No plan on vertex group
-Tez vertex scope-45
+Tez vertex scope-38
 # Plan on vertex
 d: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-22
 |
-|---d: Limit - scope-49
+|---d: Limit - scope-40
     |
-    |---d: New For Each(true)[bag] - scope-48
-        |   |
-        |   Project[tuple][1] - scope-47
-        |
-        |---d: Package(Packager)[tuple]{tuple} - scope-46
+    |---POValueInputTez - scope-39	<-	 scope-41

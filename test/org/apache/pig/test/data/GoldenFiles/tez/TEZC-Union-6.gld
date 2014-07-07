@@ -4,11 +4,11 @@
 #--------------------------------------------------
 # TEZ DAG plan: scope-85
 #--------------------------------------------------
-Tez vertex scope-29	->	Tez vertex scope-63,Tez vertex scope-64,
-Tez vertex scope-30	->	Tez vertex scope-63,Tez vertex scope-64,
-Tez vertex scope-64	->	Tez vertex scope-43,
+Tez vertex scope-29	->	Tez vertex group scope-63,Tez vertex group scope-64,
+Tez vertex scope-30	->	Tez vertex group scope-63,Tez vertex group scope-64,
+Tez vertex group scope-64	->	Tez vertex scope-43,
 Tez vertex scope-43	->	Tez vertex scope-53,Tez vertex scope-35,
-Tez vertex scope-63	->	Tez vertex scope-53,
+Tez vertex group scope-63	->	Tez vertex scope-53,
 Tez vertex scope-53	->	Tez vertex scope-57,
 Tez vertex scope-35	->	Tez vertex scope-57,
 Tez vertex scope-57

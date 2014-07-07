@@ -42,6 +42,7 @@ import org.apache.pig.OrderedLoadFunc;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigTupleWritableComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompilerException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MergeJoinIndexer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.ScalarPhyFinder;
@@ -107,6 +108,7 @@ import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
+import org.apache.tez.runtime.library.input.ShuffledMergedInput;
 import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
 import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
 
@@ -260,12 +262,11 @@ public class TezCompiler extends PhyPlanVisitor {
 
                     TezOperator from = phyToTezOpMap.get(store);
 
-                    FuncSpec newSpec = new FuncSpec(ReadScalarsTez.class.getName(), from.getOperatorKey().toString());
-                    userFunc.setFuncSpec(newSpec);
-
                     if (storeSeen.containsKey(store)) {
-                        storeSeen.get(store).outputKeys.add(tezOp.getOperatorKey().toString());
+                        storeSeen.get(store).addOutputKey(tezOp.getOperatorKey().toString());
                     } else {
+                        FuncSpec newSpec = new FuncSpec(ReadScalarsTez.class.getName(), from.getOperatorKey().toString());
+                        userFunc.setFuncSpec(newSpec);
                         POValueOutputTez output = new POValueOutputTez(OperatorKey.genOpKey(scope));
                         output.addOutputKey(tezOp.getOperatorKey().toString());
                         from.plan.remove(from.plan.getOperator(store.getOperatorKey()));
@@ -771,28 +772,28 @@ public class TezCompiler extends PhyPlanVisitor {
                 }
             }
 
-            // Need to add POLocalRearrange to the end of the last tezOp before we shuffle.
-            POLocalRearrange lr = localRearrangeFactory.create();
-            lr.setAlias(op.getAlias());
-            curTezOp.plan.addAsLeaf(lr);
+            // Need to add POValueOutputTez to the end of the last tezOp
+            POValueOutputTez output = new POValueOutputTez(OperatorKey.genOpKey(scope));
+            output.setAlias(op.getAlias());
+            curTezOp.plan.addAsLeaf(output);
+            TezOperator prevOp = curTezOp;
 
-            // Mark the start of a new TezOperator, connecting the inputs.
+            // Mark the start of a new TezOperator which will do the actual limiting with 1 task.
             blocking();
 
-            // As an optimization, don't do any sorting in the shuffle, as LIMIT does not make any
-            // ordering guarantees.
-            // TODO Enable this after TEZ-661
-            // TezEdgeDescriptor edge = curTezOp.inEdges.get(lastOp.getOperatorKey());
-            // edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
-            // edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
+            // Explicitly set the parallelism for the new vertex to 1.
+            curTezOp.setRequestedParallelism(1);
 
-            // Then add a POPackage and a POForEach to the start of the new tezOp.
-            POPackage pkg = getPackage(1, DataType.TUPLE);
-            POForEach forEach = TezCompilerUtil.getForEachPlain(scope, nig);
-            pkg.setAlias(op.getAlias());
-            forEach.setAlias(op.getAlias());
-            curTezOp.plan.add(pkg);
-            curTezOp.plan.addAsLeaf(forEach);
+            output.addOutputKey(curTezOp.getOperatorKey().toString());
+            // LIMIT does not make any ordering guarantees and this is unsorted shuffle.
+            TezEdgeDescriptor edge = curTezOp.inEdges.get(prevOp.getOperatorKey());
+            TezCompilerUtil.configureValueOnlyTupleOutput(edge, DataMovementType.SCATTER_GATHER);
+
+            // Then add a POValueInputTez to the start of the new tezOp.
+            POValueInputTez input = new POValueInputTez(OperatorKey.genOpKey(scope));
+            input.setAlias(op.getAlias());
+            input.setInputKey(prevOp.getOperatorKey().toString());
+            curTezOp.plan.addAsLeaf(input);
 
             if (!pigContext.inIllustrator) {
                 POLimit limitCopy = new POLimit(OperatorKey.genOpKey(scope));
@@ -804,8 +805,6 @@ public class TezCompiler extends PhyPlanVisitor {
                 curTezOp.plan.addAsLeaf(op);
             }
 
-            // Explicitly set the parallelism for the new vertex to 1.
-            curTezOp.setRequestedParallelism(1);
         } catch (Exception e) {
             int errCode = 2034;
             String msg = "Error compiling operator " + op.getClass().getSimpleName();
@@ -1972,6 +1971,7 @@ public class TezCompiler extends PhyPlanVisitor {
             if (rp == -1) {
                 rp = pigContext.defaultParallel;
             }
+
             // if rp is still -1, let it be, TezParallelismEstimator will set it to an estimated rp
             Pair<TezOperator, Integer> quantJobParallelismPair = getOrderbySamplingAggregationJob(op, rp);
             TezOperator[] sortOpers = getSortJobs(prevOper, lr, op, keyType, fields);
@@ -2020,6 +2020,48 @@ public class TezCompiler extends PhyPlanVisitor {
 //                curTezOp.isUDFComparatorUsed = true;
 //            }
             quantJobParallelismPair.first.sortOperator = sortOpers[1];
+
+            // If Order by followed by Limit and parallelism of order by is not 1
+            // add a new vertex for Limit with parallelism 1.
+            // Equivalent of LimitAdjuster.java in MR
+            if (op.isLimited() && rp != 1) {
+                POValueOutputTez output = new POValueOutputTez(OperatorKey.genOpKey(scope));
+                output.setAlias(op.getAlias());
+                sortOpers[1].plan.addAsLeaf(output);
+
+                TezOperator limitOper = getTezOp();
+                tezPlan.add(limitOper);
+                curTezOp = limitOper;
+
+                // Explicitly set the parallelism for the new vertex to 1.
+                limitOper.setRequestedParallelism(1);
+
+                edge = TezCompilerUtil.connect(tezPlan, sortOpers[1], limitOper);
+                // LIMIT in this case should be ordered. So we output unordered with key as task index
+                // and on the input we use ShuffledMergedInput to do ordered merge to retain sorted order.
+                output.addOutputKey(limitOper.getOperatorKey().toString());
+                output.setTaskIndexWithRecordIndexAsKey(true);
+                edge = curTezOp.inEdges.get(sortOpers[1].getOperatorKey());
+                TezCompilerUtil.configureValueOnlyTupleOutput(edge, DataMovementType.SCATTER_GATHER);
+                // POValueOutputTez will write key (task index, record index) in
+                // sorted order. So using OnFileUnorderedKVOutput instead of OnFileSortedOutput.
+                // But input needs to be merged in sorter order and requires ShuffledMergedInput
+                edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
+                edge.inputClassName = ShuffledMergedInput.class.getName();
+                edge.setIntermediateOutputKeyClass(TezCompilerUtil.TUPLE_CLASS);
+                edge.setIntermediateOutputKeyComparatorClass(PigTupleWritableComparator.class.getName());
+
+                // Then add a POValueInputTez to the start of the new tezOp followed by a LIMIT
+                POValueInputTez input = new POValueInputTez(OperatorKey.genOpKey(scope));
+                input.setAlias(op.getAlias());
+                input.setInputKey(sortOpers[1].getOperatorKey().toString());
+                curTezOp.plan.addAsLeaf(input);
+
+                POLimit limit = new POLimit(OperatorKey.genOpKey(scope));
+                limit.setLimit(op.getLimit());
+                curTezOp.plan.addAsLeaf(limit);
+            }
+
             phyToTezOpMap.put(op, curTezOp);
         }catch(Exception e){
             int errCode = 2034;

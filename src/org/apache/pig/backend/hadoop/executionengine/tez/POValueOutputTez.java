@@ -29,7 +29,6 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.Writable;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -37,26 +36,54 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.tez.runtime.api.LogicalOutput;
+import org.apache.tez.runtime.api.TezProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 
-public class POValueOutputTez extends PhysicalOperator implements TezOutput {
+public class POValueOutputTez extends PhysicalOperator implements TezOutput, TezTaskConfigurable {
 
     private static final long serialVersionUID = 1L;
     private static final Log LOG = LogFactory.getLog(POValueOutputTez.class);
+
+    private static final TupleFactory tupleFactory = TupleFactory.getInstance();
+
+    private boolean taskIndexWithRecordIndexAsKey;
     // TODO Change this to outputKey and write only once
     // when a shared edge support is available in Tez
-    protected Set<String> outputKeys = new HashSet<String>();
+    private Set<String> outputKeys = new HashSet<String>();
     // TODO Change this to value only writer after implementing
     // value only input output
-    protected transient List<KeyValueWriter> writers;
+    private transient List<KeyValueWriter> writers;
+    private transient Object key;
+    private transient int taskIndex;
+    private transient long count;
+
 
     public static EmptyWritable EMPTY_KEY = new EmptyWritable();
 
     public POValueOutputTez(OperatorKey k) {
         super(k);
+    }
+
+    public boolean isTaskIndexWithRecordIndexAsKey() {
+        return taskIndexWithRecordIndexAsKey;
+    }
+
+    /*
+     * Sets tuple with task index and record index as the key. For eg: (0,1), (0,2), etc
+     * Default is empty key
+     */
+    public void setTaskIndexWithRecordIndexAsKey(boolean taskIndexWithRecordIndexAsKey) {
+        this.taskIndexWithRecordIndexAsKey = taskIndexWithRecordIndexAsKey;
+    }
+
+    @Override
+    public void initialize(TezProcessorContext processorContext)
+            throws ExecException {
+        taskIndex = processorContext.getTaskIndex();
     }
 
     @Override
@@ -89,6 +116,10 @@ public class POValueOutputTez extends PhysicalOperator implements TezOutput {
                 throw new ExecException(e);
             }
         }
+        count = 0;
+        if (!taskIndexWithRecordIndexAsKey) {
+            key = EMPTY_KEY;
+        }
     }
 
     public void addOutputKey(String outputKey) {
@@ -117,7 +148,13 @@ public class POValueOutputTez extends PhysicalOperator implements TezOutput {
             }
             for (KeyValueWriter writer : writers) {
                 try {
-                    writer.write(EMPTY_KEY, inp.result);
+                    if (taskIndexWithRecordIndexAsKey) {
+                        Tuple tuple = tupleFactory.newTuple(2);
+                        tuple.set(0, taskIndex);
+                        tuple.set(1, count++);
+                        key = tuple;
+                    }
+                    writer.write(key, inp.result);
                 } catch (IOException e) {
                     throw new ExecException(e);
                 }
@@ -162,26 +199,6 @@ public class POValueOutputTez extends PhysicalOperator implements TezOutput {
         @Override
         public void readFields(DataInput in) throws IOException {
         }
-    }
-
-    //TODO: Remove after PIG-3775/TEZ-661
-    public static class EmptyWritableComparator implements RawComparator<EmptyWritable> {
-
-        @Override
-        public int compare(EmptyWritable o1, EmptyWritable o2) {
-            return 0;
-        }
-
-        @Override
-        public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2) {
-            // 0 - Reverses the input order. 0 groups all values into
-            // single record on reducer which is additional overhead.
-            // -1, 1 - Returns input in random order. But comparator is invoked way more
-            // times than 0. Compared to 1, -1 invokes comparator even more.
-            // Going with 0 for now. After TEZ-661 this will not be required any more.
-            return 0;
-        }
-
     }
 
 }

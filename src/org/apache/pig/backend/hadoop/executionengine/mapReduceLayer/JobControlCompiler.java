@@ -690,7 +690,7 @@ public class JobControlCompiler{
                 }
             }
 
-            setOutputFormat((JobConf) nwJob.getConfiguration());
+            setOutputFormat(nwJob);
 
             if (mapStores.size() + reduceStores.size() == 1) { // single store case
                 log.info("Setting up single store job");
@@ -1877,24 +1877,24 @@ public class JobControlCompiler{
         }
     }
 
-    public static void setOutputFormat(JobConf conf) {
+    public static void setOutputFormat(org.apache.hadoop.mapreduce.Job job) {
         // the OutputFormat we report to Hadoop is always PigOutputFormat which
         // can be wrapped with LazyOutputFormat provided if it is supported by
         // the Hadoop version and PigConfiguration.PIG_OUTPUT_LAZY is set
-        if ("true".equalsIgnoreCase(conf.get(PigConfiguration.PIG_OUTPUT_LAZY))) {
+        if ("true".equalsIgnoreCase(job.getConfiguration().get(PigConfiguration.PIG_OUTPUT_LAZY))) {
             try {
                 Class<?> clazz = PigContext
                         .resolveClassName("org.apache.hadoop.mapreduce.lib.output.LazyOutputFormat");
                 Method method = clazz.getMethod("setOutputFormatClass",
-                        JobConf.class, Class.class);
-                method.invoke(null, conf, PigOutputFormat.class);
+                        org.apache.hadoop.mapreduce.Job.class, Class.class);
+                method.invoke(null, job, PigOutputFormat.class);
             } catch (Exception e) {
-                conf.set("mapreduce.outputformat.class", PigOutputFormat.class.getName());
+                job.setOutputFormatClass(PigOutputFormat.class);
                 log.warn(PigConfiguration.PIG_OUTPUT_LAZY
                         + " is set but LazyOutputFormat couldn't be loaded. Default PigOutputFormat will be used");
             }
         } else {
-            conf.set("mapreduce.outputformat.class", PigOutputFormat.class.getName());
+            job.setOutputFormatClass(PigOutputFormat.class);
         }
     }
 
