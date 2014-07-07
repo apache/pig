@@ -42,6 +42,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3935: Port more mini cluster tests to Tez - part 5 (rohini)
+
 PIG-3984: PigServer.shutdown removes the tez resource folder (daijy via rohini)
 
 PIG-4048: TEZ-692 has a incompatible API change removing TezSession (rohini)

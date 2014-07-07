@@ -21,6 +21,8 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 import java.io.IOException;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
@@ -34,8 +36,6 @@ import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
-import org.apache.tez.runtime.library.output.OnFileSortedOutput;
-import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
 
 /**
  * POLocalRearrangeTez is used to write to a Tez OnFileSortedOutput
@@ -44,6 +44,7 @@ import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
 public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
 
     private static final long serialVersionUID = 1L;
+    private static final Log LOG = LogFactory.getLog(POLocalRearrangeTez.class);
 
     protected String outputKey;
     protected transient KeyValueWriter writer;
@@ -108,28 +109,13 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
     @Override
     public void attachOutputs(Map<String, LogicalOutput> outputs,
             Configuration conf) throws ExecException {
-        LogicalOutput logicalOut = outputs.get(outputKey);
-        if (logicalOut == null) {
-            throw new ExecException(
-                    "POLocalRearrangeTez only accepts OnFileSortedOutput (shuffle)"
-                            + " or OnFileUnorderedKVOutput(broadcast). key =  "
-                            + outputKey + ", outputs = " + outputs
-                            + ", operator = " + this);
+        LogicalOutput output = outputs.get(outputKey);
+        if (output == null) {
+            throw new ExecException("Output to vertex " + outputKey + " is missing");
         }
         try {
-            if (logicalOut instanceof OnFileSortedOutput) {
-                writer = ((OnFileSortedOutput) logicalOut).getWriter();
-            } else if (logicalOut instanceof OnFileUnorderedKVOutput) {
-                writer = ((OnFileUnorderedKVOutput) logicalOut).getWriter();
-            } else {
-                throw new ExecException(
-                        "POLocalRearrangeTez only accepts OnFileSortedOutput (shuffle)"
-                                + " or OnFileUnorderedKVOutput(broadcast). key =  "
-                                + outputKey + ", outputs = " + outputs
-                                + ", operator = " + this);
-            }
-        } catch (ExecException e) {
-            throw e;
+            writer = (KeyValueWriter) output.getWriter();
+            LOG.info("Attached output to vertex " + outputKey + " : output=" + output + ", writer=" + writer);
         } catch (Exception e) {
             throw new ExecException(e);
         }

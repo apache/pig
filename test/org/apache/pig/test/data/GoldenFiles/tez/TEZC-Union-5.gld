@@ -4,9 +4,9 @@
 #--------------------------------------------------
 # TEZ DAG plan: scope-130
 #--------------------------------------------------
-Tez vertex scope-119	->	Tez vertex scope-125,
-Tez vertex scope-120	->	Tez vertex scope-125,
-Tez vertex scope-125	->	Tez vertex scope-118,
+Tez vertex scope-119	->	Tez vertex group scope-125,
+Tez vertex scope-120	->	Tez vertex group scope-125,
+Tez vertex group scope-125	->	Tez vertex scope-118,
 Tez vertex scope-118
 
 Tez vertex scope-119

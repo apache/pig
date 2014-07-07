@@ -99,12 +99,20 @@ public class TezPrinter extends TezOpPlanVisitor {
 
         @Override
         public void visitTezOp(TezOperator tezOper) throws VisitorException {
-            buf.append("Tez vertex " + tezOper.getOperatorKey().toString());
+            if (tezOper.isVertexGroup()) {
+                buf.append("Tez vertex group " + tezOper.getOperatorKey().toString());
+            } else {
+                buf.append("Tez vertex " + tezOper.getOperatorKey().toString());
+            }
             List<TezOperator> succs = mPlan.getSuccessors(tezOper);
             if (succs != null) {
                 buf.append("\t->\t");
                 for (TezOperator op : succs) {
-                    buf.append("Tez vertex " + op.getOperatorKey().toString()).append(",");
+                    if (op.isVertexGroup()) {
+                        buf.append("Tez vertex group " + op.getOperatorKey().toString()).append(",");
+                    } else {
+                        buf.append("Tez vertex " + op.getOperatorKey().toString()).append(",");
+                    }
                 }
             }
             buf.append("\n");

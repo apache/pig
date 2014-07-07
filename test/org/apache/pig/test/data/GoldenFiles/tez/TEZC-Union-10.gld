@@ -4,10 +4,10 @@
 #--------------------------------------------------
 # TEZ DAG plan: scope-53
 #--------------------------------------------------
-Tez vertex scope-37	->	Tez vertex scope-43,
-Tez vertex scope-31	->	Tez vertex scope-43,
-Tez vertex scope-32	->	Tez vertex scope-43,
-Tez vertex scope-43	->	Tez vertex scope-42,
+Tez vertex scope-37	->	Tez vertex group scope-43,
+Tez vertex scope-31	->	Tez vertex group scope-43,
+Tez vertex scope-32	->	Tez vertex group scope-43,
+Tez vertex group scope-43	->	Tez vertex scope-42,
 Tez vertex scope-42
 
 Tez vertex scope-37

@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map.Entry;
 
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
@@ -107,9 +108,9 @@ public class MultiQueryOptimizerTez extends TezOpPlanVisitor {
                     addSubPlanPropertiesToParent(tezOp, splitee);
 
                     removeSplittee(getPlan(), tezOp, splitee);
-                    valueOutput.outputKeys.remove(splitee.getOperatorKey().toString());
+                    valueOutput.removeOutputKey(splitee.getOperatorKey().toString());
                 }
-                if (!valueOutput.outputKeys.isEmpty()) {
+                if (valueOutput.getTezOutputs().length > 0) {
                     // We still need valueOutput
                     PhysicalPlan phyPlan = new PhysicalPlan();
                     phyPlan.addAsLeaf(valueOutput);
@@ -144,6 +145,15 @@ public class MultiQueryOptimizerTez extends TezOpPlanVisitor {
                     for (TezInput input : inputs) {
                         input.replaceInput(splittee.getOperatorKey().toString(),
                                 splitter.getOperatorKey().toString());
+                    }
+                    List<POUserFunc> userFuncs = PlanHelper.getPhysicalOperators(succTezOperator.plan, POUserFunc.class);
+                    for (POUserFunc userFunc : userFuncs) {
+                        if (userFunc.getFunc() instanceof ReadScalarsTez) {
+                            TezInput tezInput = (TezInput)userFunc.getFunc();
+                            tezInput.replaceInput(splittee.getOperatorKey().toString(),
+                                    splitter.getOperatorKey().toString());
+                            userFunc.getFuncSpec().setCtorArgs(tezInput.getTezInputs());
+                        }
                     }
                 } catch (VisitorException e) {
                     throw new PlanException(e);

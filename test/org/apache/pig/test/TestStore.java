@@ -19,7 +19,6 @@ package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
@@ -71,7 +70,6 @@ import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.PlanValidationException;
@@ -79,7 +77,6 @@ import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
-import org.apache.pig.newplan.logical.visitor.InputOutputFileValidatorVisitor;
 import org.apache.pig.parser.ParserException;
 import org.apache.pig.parser.QueryParserDriver;
 import org.apache.pig.test.utils.GenRandomData;
@@ -94,7 +91,7 @@ import org.junit.Test;
 public class TestStore {
     POStore st;
     DataBag inpDB;
-    static MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
     PigContext pc;
     POProject proj;
     PigServer pig;
@@ -109,10 +106,11 @@ public class TestStore {
     = "org.apache.pig.test.TestStore\\$FailUDF";
     private static final String MAP_MAX_ATTEMPTS = "mapred.map.max.attempts";
     private static final String TESTDIR = "/tmp/" + TestStore.class.getSimpleName();
+    private static ExecType[] modes = new ExecType[] { ExecType.LOCAL, cluster.getExecType() };
 
     @Before
     public void setUp() throws Exception {
-        pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pig = new PigServer(cluster.getExecType(), cluster.getProperties());
         pc = pig.getPigContext();
         inputFileName = TESTDIR + "/TestStore-" + new Random().nextLong() + ".txt";
         outputFileName = TESTDIR + "/TestStore-output-" + new Random().nextLong() + ".txt";
@@ -122,6 +120,7 @@ public class TestStore {
 
     @After
     public void tearDown() throws Exception {
+        Util.resetStateForExecModeSwitch();
         Util.deleteDirectory(new File(TESTDIR));
         Util.deleteFile(cluster, TESTDIR);
     }
@@ -134,7 +133,33 @@ public class TestStore {
         pig.setBatchOn();
         Util.registerMultiLineQuery(pig, script);
         pig.executeBatch();
-        Util.copyFromClusterToLocal(cluster, outputFileName + "/part-m-00000", outputFileName);
+        Path path = getFirstOutputFile(cluster.getConfiguration(),
+                new Path(outputFileName), cluster.getExecType(), true);
+        Util.copyFromClusterToLocal(
+                cluster,
+                path.toString(), outputFileName);
+    }
+
+    public static Path getFirstOutputFile(Configuration conf, Path outputDir,
+            ExecType exectype, boolean isMapOutput) throws IOException {
+        FileSystem fs = outputDir.getFileSystem(conf);
+        FileStatus[] outputFiles = fs.listStatus(outputDir,
+                Util.getSuccessMarkerPathFilter());
+
+        boolean filefound = false;
+        if (outputFiles != null && outputFiles.length != 0) {
+            String name = outputFiles[0].getPath().getName();
+            if (exectype == ExecType.LOCAL || exectype == ExecType.MAPREDUCE) {
+                if (isMapOutput) {
+                    filefound = name.equals("part-m-00000");
+                } else {
+                    filefound = name.equals("part-r-00000");
+                }
+            } else {
+                filefound = name.startsWith("part-");
+            }
+        }
+        return filefound ? outputFiles[0].getPath() : null;
     }
 
     @AfterClass
@@ -172,6 +197,7 @@ public class TestStore {
             Util.buildLp( pig, query );
         } catch (InvocationTargetException e){
             FrontendException pve = (FrontendException)e.getCause();
+            pve.printStackTrace();
             // Since output file is present, validation should fail
             // and throw this exception
             assertEquals(6000,pve.getErrorCode());
@@ -205,6 +231,7 @@ public class TestStore {
             ++size;
         }
         assertEquals(size, inpDB.size());
+        br.close();
     }
 
     /**
@@ -273,6 +300,7 @@ public class TestStore {
             ++size;
         }
         assertEquals(true, size==inpDB.size());
+        br.close();
     }
 
     @Test
@@ -328,6 +356,7 @@ public class TestStore {
             t.append(flds[11].compareTo("")!=0 ? ps.getLoadCaster().bytesToCharArray(flds[10].getBytes()) : null);
             assertTrue(TestHelper.tupleEquals(inputTuple, t));
         }
+        br.close();
     }
     @Test
     public void testBinStorageGetSchema() throws IOException, ParserException {
@@ -398,7 +427,6 @@ public class TestStore {
         filesToVerify.put(DummyOutputCommitter.FILE_COMMITJOB_CALLED, Boolean.TRUE);
         filesToVerify.put(DummyOutputCommitter.FILE_ABORTJOB_CALLED, Boolean.FALSE);
         filesToVerify.put(DummyOutputCommitter.FILE_CLEANUPJOB_CALLED, Boolean.FALSE);
-        ExecType[] modes = new ExecType[] { ExecType.MAPREDUCE, ExecType.LOCAL};
         String[] inputData = new String[]{"hello\tworld", "bye\tworld"};
 
         String script = "a = load '"+ inputFileName + "' as (a0:chararray, a1:chararray);" +
@@ -406,9 +434,9 @@ public class TestStore {
                 DUMMY_STORE_CLASS_NAME + "();";
 
         for (ExecType execType : modes) {
-            FileLocalizer.setInitialized(false);
-            if(execType == ExecType.MAPREDUCE) {
-                ps = new PigServer(ExecType.MAPREDUCE,
+            Util.resetStateForExecModeSwitch();
+            if(execType == cluster.getExecType()) {
+                ps = new PigServer(cluster.getExecType(),
                         cluster.getProperties());
             } else {
                 Properties props = new Properties();
@@ -442,7 +470,6 @@ public class TestStore {
         PigServer ps = null;
         String cleanupSuccessFile = outputFileName + "_cleanupOnFailure_succeeded";
         String cleanupFailFile = outputFileName + "_cleanupOnFailure_failed";
-        ExecType[] modes = new ExecType[] { ExecType.LOCAL, ExecType.MAPREDUCE};
         String[] inputData = new String[]{"hello\tworld", "bye\tworld"};
 
         String script = "a = load '"+ inputFileName + "';" +
@@ -450,8 +477,9 @@ public class TestStore {
                 DUMMY_STORE_CLASS_NAME + "('true');";
 
         for (ExecType execType : modes) {
-            if(execType == ExecType.MAPREDUCE) {
-                ps = new PigServer(ExecType.MAPREDUCE,
+            Util.resetStateForExecModeSwitch();
+            if(execType == cluster.getExecType()) {
+                ps = new PigServer(cluster.getExecType(),
                         cluster.getProperties());
             } else {
                 Properties props = new Properties();
@@ -502,7 +530,6 @@ public class TestStore {
         filesToVerify.put(DummyOutputCommitter.FILE_CLEANUPJOB_CALLED + "1", Boolean.FALSE);
         filesToVerify.put(DummyOutputCommitter.FILE_CLEANUPJOB_CALLED + "2", Boolean.FALSE);
 
-        ExecType[] modes = new ExecType[] { ExecType.MAPREDUCE, ExecType.LOCAL};
         String[] inputData = new String[]{"hello\tworld", "bye\tworld"};
 
         // though the second store should
@@ -514,10 +541,10 @@ public class TestStore {
                 "store a into '" + outputFileName2 + "' using " +
                 DUMMY_STORE_CLASS_NAME + "('false', '2');";
 
-        for (ExecType execType : modes) {
-            FileLocalizer.setInitialized(false);
-            if(execType == ExecType.MAPREDUCE) {
-                ps = new PigServer(ExecType.MAPREDUCE,
+        for (ExecType execType : new ExecType[] {cluster.getExecType(), ExecType.LOCAL}) {
+            Util.resetStateForExecModeSwitch();
+            if(execType == cluster.getExecType()) {
+                ps = new PigServer(cluster.getExecType(),
                         cluster.getProperties());
             } else {
                 Properties props = new Properties();
@@ -561,7 +588,6 @@ public class TestStore {
         PigServer ps = null;
 
         try {
-            ExecType[] modes = new ExecType[] { ExecType.LOCAL, ExecType.MAPREDUCE};
             String[] inputData = new String[]{"hello\tworld", "hi\tworld", "bye\tworld"};
 
             String multiStoreScript = "a = load '"+ inputFileName + "';" +
@@ -580,12 +606,9 @@ public class TestStore {
                     for(boolean isMultiStore: new boolean[] { true, false}) {
                         String script = (isMultiStore ? multiStoreScript :
                             singleStoreScript);
-                        // since we will be switching between map red and local modes
-                        // we will need to make sure filelocalizer is reset before each
-                        // run.
-                        FileLocalizer.setInitialized(false);
-                        if(execType == ExecType.MAPREDUCE) {
-                            ps = new PigServer(ExecType.MAPREDUCE,
+                        Util.resetStateForExecModeSwitch();
+                        if(execType == cluster.getExecType()) {
+                            ps = new PigServer(cluster.getExecType(),
                                     cluster.getProperties());
                         } else {
                             Properties props = new Properties();
@@ -625,7 +648,6 @@ public class TestStore {
     public void testSuccessFileCreation2() throws Exception {
         PigServer ps = null;
         try {
-            ExecType[] modes = new ExecType[] { ExecType.LOCAL, ExecType.MAPREDUCE};
             String[] inputData = new String[]{"hello\tworld", "hi\tworld", "bye\tworld"};
             System.err.println("XXX: " + TestStore.FailUDF.class.getName());
             String multiStoreScript = "a = load '"+ inputFileName + "';" +
@@ -646,16 +668,13 @@ public class TestStore {
                     for(boolean isMultiStore: new boolean[] { true, false}) {
                         String script = (isMultiStore ? multiStoreScript :
                             singleStoreScript);
-                        // since we will be switching between map red and local modes
-                        // we will need to make sure filelocalizer is reset before each
-                        // run.
-                        FileLocalizer.setInitialized(false);
-                        if(execType == ExecType.MAPREDUCE) {
+                        Util.resetStateForExecModeSwitch();
+                        if(execType == cluster.getExecType()) {
                             // since the job is guaranteed to fail, let's set
                             // number of retries to 1.
                             Properties props = cluster.getProperties();
                             props.setProperty(MAP_MAX_ATTEMPTS, "1");
-                            ps = new PigServer(ExecType.MAPREDUCE, props);
+                            ps = new PigServer(cluster.getExecType(), props);
                         } else {
                             Properties props = new Properties();
                             props.setProperty(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
@@ -694,9 +713,9 @@ public class TestStore {
             Util.deleteFile(ps.getPigContext(), TESTDIR);
         }
     }
-    
+
     /**
-     * Test whether "part-m-00000" file is created on empty output when 
+     * Test whether "part-m-00000" file is created on empty output when
      * {@link PigConfiguration#PIG_OUTPUT_LAZY} is set and if LazyOutputFormat is
      * supported by Hadoop.
      * The test covers multi store and single store case in local and mapreduce mode
@@ -705,7 +724,7 @@ public class TestStore {
      */
     @Test
     public void testEmptyPartFileCreation() throws IOException {
-        
+
         boolean isLazyOutputPresent = true;
         try {
             Class<?> clazz = PigContext
@@ -715,14 +734,13 @@ public class TestStore {
         catch (Exception e) {
             isLazyOutputPresent = false;
         }
-        
+
         //skip test if LazyOutputFormat is not supported (<= Hadoop 1.0.0)
         Assume.assumeTrue("LazyOutputFormat couldn't be loaded, test is skipped", isLazyOutputPresent);
-        
+
         PigServer ps = null;
 
         try {
-            ExecType[] modes = new ExecType[] { ExecType.LOCAL, ExecType.MAPREDUCE};
             String[] inputData = new String[]{"hello\tworld", "hi\tworld", "bye\tworld"};
 
             String multiStoreScript = "a = load '"+ inputFileName + "';" +
@@ -741,14 +759,18 @@ public class TestStore {
 
             for (ExecType execType : modes) {
                 for(boolean isMultiStore: new boolean[] { true, false}) {
-                    String script = (isMultiStore ? multiStoreScript :
-                        singleStoreScript);
-                    // since we will be switching between map red and local modes
-                    // we will need to make sure filelocalizer is reset before each
-                    // run.
-                    FileLocalizer.setInitialized(false);
-                    if(execType == ExecType.MAPREDUCE) {
-                        ps = new PigServer(ExecType.MAPREDUCE,
+                    if (isMultiStore && (execType.equals(ExecType.LOCAL) ||
+                            execType.equals(ExecType.MAPREDUCE))) {
+                        // Skip this test for Mapreduce as MapReducePOStoreImpl
+                        // does not handle LazyOutputFormat
+                        continue;
+                    }
+
+                    String script = (isMultiStore ? multiStoreScript
+                            : singleStoreScript);
+                    Util.resetStateForExecModeSwitch();
+                    if(execType == cluster.getExecType()) {
+                        ps = new PigServer(cluster.getExecType(),
                                 cluster.getProperties());
                     } else {
                         Properties props = new Properties();
@@ -763,10 +785,11 @@ public class TestStore {
                             inputFileName, inputData);
                     Util.registerMultiLineQuery(ps, script);
                     ps.executeBatch();
+                    Configuration conf = ConfigurationUtil.toConfiguration(ps.getPigContext().getProperties());
                     for(int i = 1; i <= (isMultiStore ? 3 : 1); i++) {
-                        String output = "part-m-00000";
-                        assertFalse("For an empty output part-m-00000 should not exist in " +
-                                execType + " mode", Util.exists(ps.getPigContext(), output));
+                        assertEquals("For an empty output part-m-00000 should not exist in " + execType + " mode",
+                                null,
+                                getFirstOutputFile(conf, new Path(outputFileName + "_" + i), execType, true));
                     }
                 }
             }
@@ -822,17 +845,23 @@ public class TestStore {
         public void storeSchema(ResourceSchema schema, String location,
                 Job job) throws IOException {
             FileSystem fs = FileSystem.get(job.getConfiguration());
+
+            FileStatus[] outputFiles = fs.listStatus(new Path(location),
+                    Util.getSuccessMarkerPathFilter());
             // verify that output is available prior to storeSchema call
-            Path resultPath = new Path(location, "part-m-00000");
-            if (!fs.exists(resultPath)) {
+            Path resultPath = null;
+            if (outputFiles != null && outputFiles.length > 0
+                    && outputFiles[0].getPath().getName().startsWith("part-")) {
+                resultPath = outputFiles[0].getPath();
+            }
+            if (resultPath == null) {
                 FileStatus[] listing = fs.listStatus(new Path(location));
                 for (FileStatus fstat : listing) {
-                    System.err.println(fstat.getPath());
+                    System.err.println("Output File:" + fstat.getPath());
                 }
                 // not creating the marker file below fails the test
                 throw new IOException("" + resultPath + " not available in storeSchema");
             }
-
             // create a file to test that this method got called - if it gets called
             // multiple times, the create will throw an Exception
             fs.create(

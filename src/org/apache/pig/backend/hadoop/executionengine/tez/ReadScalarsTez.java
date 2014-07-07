@@ -78,9 +78,10 @@ public class ReadScalarsTez extends EvalFunc<Object> implements TezInput {
             KeyValueReader reader = (KeyValueReader) input.getReader();
             if (reader.next()) {
                 t = (Tuple) reader.getCurrentValue();
+                String first = t == null ? null : t.toString();
                 if (reader.next()) {
                     String msg = "Scalar has more than one row in the output. "
-                            + "1st : " + t + ", 2nd :"
+                            + "1st : " + first + ", 2nd :"
                             + reader.getCurrentValue();
                     throw new ExecException(msg);
                 }

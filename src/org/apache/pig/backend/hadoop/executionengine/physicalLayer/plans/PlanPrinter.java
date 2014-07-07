@@ -38,6 +38,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFilter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POGlobalRearrange;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLimit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
@@ -218,7 +219,13 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
                   inner_plans.addAll(joinPlans.values());
                   sb.append(planString(inner_plans));
               }
-            }
+          }
+          else if(node instanceof POLimit) {
+              PhysicalPlan limitPlan = ((POLimit)node).getLimitPlan();
+              if (limitPlan != null) {
+                  sb.append(planString(limitPlan));
+              }
+          }
         }
 
         if (node instanceof POSplit) {

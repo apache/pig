@@ -54,6 +54,7 @@ import org.apache.pig.test.Util.ProcessReturnInfo;
 import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -848,7 +849,7 @@ public class TestGrunt {
 
     @Test
     public void testIllustrate() throws Throwable {
-        if (!Util.isMapredExecType(cluster.getExecType())) return;
+        Assume.assumeTrue("Skip this test for TEZ. See PIG-3993", Util.isMapredExecType(cluster.getExecType()));
         PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
 
@@ -873,7 +874,7 @@ public class TestGrunt {
 
     @Test
     public void testKeepGoing() throws Throwable {
-        if (!Util.isMapredExecType(cluster.getExecType())) return;
+        Assume.assumeTrue("Skip this test for TEZ", Util.isMapredExecType(cluster.getExecType()));
         PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
 
         PigContext context = server.getPigContext();
@@ -961,7 +962,7 @@ public class TestGrunt {
 
     @Test
     public void testStopOnFailure() throws Throwable {
-        if (!Util.isMapredExecType(cluster.getExecType())) return;
+        Assume.assumeTrue("Skip this test for TEZ", Util.isMapredExecType(cluster.getExecType()));
         PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
         context.getProperties().setProperty("stop.on.failure", ""+true);

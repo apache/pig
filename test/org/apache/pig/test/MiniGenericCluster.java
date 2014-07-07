@@ -58,7 +58,9 @@ abstract public class MiniGenericCluster {
         if (INSTANCE == null) {
             String execType = System.getProperty("test.exec.type");
             if (execType == null) {
-                throw new RuntimeException("test.exec.type is not set");
+                // Default to MR
+                System.setProperty("test.exec.type", EXECTYPE_MR);
+                return buildCluster(EXECTYPE_MR);
             }
 
             return buildCluster(execType);

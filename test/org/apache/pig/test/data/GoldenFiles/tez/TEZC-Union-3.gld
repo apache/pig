@@ -5,9 +5,9 @@
 # TEZ DAG plan: scope-50
 #--------------------------------------------------
 Tez vertex scope-43	->	Tez vertex scope-44,
-Tez vertex scope-37	->	Tez vertex scope-45,
-Tez vertex scope-38	->	Tez vertex scope-45,
-Tez vertex scope-45	->	Tez vertex scope-44,
+Tez vertex scope-37	->	Tez vertex group scope-45,
+Tez vertex scope-38	->	Tez vertex group scope-45,
+Tez vertex group scope-45	->	Tez vertex scope-44,
 Tez vertex scope-44
 
 Tez vertex scope-43

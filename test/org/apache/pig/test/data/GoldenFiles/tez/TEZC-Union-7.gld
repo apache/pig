@@ -4,11 +4,11 @@
 #--------------------------------------------------
 # TEZ DAG plan: scope-73
 #--------------------------------------------------
-Tez vertex scope-20	->	Tez vertex scope-51,Tez vertex scope-52,
-Tez vertex scope-21	->	Tez vertex scope-51,Tez vertex scope-52,
-Tez vertex scope-52	->	Tez vertex scope-34,
+Tez vertex scope-20	->	Tez vertex group scope-51,Tez vertex group scope-52,
+Tez vertex scope-21	->	Tez vertex group scope-51,Tez vertex group scope-52,
+Tez vertex group scope-52	->	Tez vertex scope-34,
 Tez vertex scope-34	->	Tez vertex scope-44,
-Tez vertex scope-51	->	Tez vertex scope-44,
+Tez vertex group scope-51	->	Tez vertex scope-44,
 Tez vertex scope-44	->	Tez vertex scope-46,
 Tez vertex scope-46
 
@@ -18,7 +18,7 @@ Local Rearrange[tuple]{tuple}(false) - scope-54	->	 scope-34
 |   |
 |   Constant(DummyVal) - scope-55
 |
-|---New For Each(true,true)[tuple] - scope-62
+|---New For Each(false,true)[tuple] - scope-62
     |   |
     |   Project[int][0] - scope-59
     |   |
@@ -49,7 +49,7 @@ Local Rearrange[tuple]{tuple}(false) - scope-64	->	 scope-34
 |   |
 |   Constant(DummyVal) - scope-65
 |
-|---New For Each(true,true)[tuple] - scope-72
+|---New For Each(false,true)[tuple] - scope-72
     |   |
     |   Project[int][0] - scope-69
     |   |

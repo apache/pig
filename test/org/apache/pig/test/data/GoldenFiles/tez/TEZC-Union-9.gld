@@ -4,10 +4,10 @@
 #--------------------------------------------------
 # TEZ DAG plan: scope-62
 #--------------------------------------------------
-Tez vertex scope-40	->	Tez vertex scope-58,Tez vertex scope-59,
-Tez vertex scope-46	->	Tez vertex scope-58,Tez vertex scope-59,
-Tez vertex scope-59
-Tez vertex scope-58
+Tez vertex scope-40	->	Tez vertex group scope-58,Tez vertex group scope-59,
+Tez vertex scope-46	->	Tez vertex group scope-58,Tez vertex group scope-59,
+Tez vertex group scope-59
+Tez vertex group scope-58
 
 Tez vertex scope-40
 # Plan on vertex

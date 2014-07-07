@@ -22,7 +22,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 
-import org.apache.commons.lang.ArrayUtils;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
@@ -41,8 +40,8 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.ReverseDependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
-import org.apache.tez.runtime.library.input.ShuffledMergedInput;
-import org.apache.tez.runtime.library.output.OnFileSortedOutput;
+import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
+import org.apache.tez.runtime.library.output.OnFileUnorderedPartitionedKVOutput;
 
 /**
  * Optimizes union by removing the intermediate union vertex and making the
@@ -207,15 +206,8 @@ public class UnionOptimizer extends TezOpPlanVisitor {
                 if (edge.dataMovementType == DataMovementType.ONE_TO_ONE) {
                     edge.dataMovementType = DataMovementType.SCATTER_GATHER;
                     edge.partitionerClass = RoundRobinPartitioner.class;
-                    edge.outputClassName = OnFileSortedOutput.class.getName();
-                    edge.inputClassName = ShuffledMergedInput.class.getName();
-
-                    for (TezOutput tezOutput : valueOnlyOutputs) {
-                        if (ArrayUtils.contains(tezOutput.getTezOutputs(), entry.getKey().toString())) {
-                            edge.setIntermediateOutputKeyComparatorClass(
-                                    POValueOutputTez.EmptyWritableComparator.class.getName());
-                        }
-                    }
+                    edge.outputClassName = OnFileUnorderedPartitionedKVOutput.class.getName();
+                    edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
                 }
                 TezOperator vertexGroupOp = outputVertexGroupOps[unionOutputKeys.indexOf(entry.getKey().toString())];
                 for (OperatorKey predKey : vertexGroupOp.getVertexGroupMembers()) {

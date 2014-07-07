@@ -157,6 +157,15 @@
     <condition property="isWindows">
       <equals arg1="${windows}" arg2="true" />
     </condition>
+	
+    <target name="setTezEnv">
+        <propertyreset name="hadoopversion" value="23" />
+        <propertyreset name="isHadoop23" value="true" />
+        <propertyreset name="src.shims.dir" value="${basedir}/shims/src/hadoop${hadoopversion}" />
+        <propertyreset name="src.shims.test.dir" value="${basedir}/shims/test/hadoop${hadoopversion}" />
+        <propertyreset name="src.exclude.dir" value="" />
+        <propertyreset name="test.exec.type" value="tez" />
+    </target>
 
     <target name="setWindowsPath" if="${isWindows}">
       <property name="build.path" value="${env.Path};${hadoop.root}\bin" />
@@ -869,10 +878,10 @@
         <macro-test-runner test.file="${test.smoke.file}" />
     </target>
 
-    <target name="test-tez" depends="setWindowsPath,setLinuxPath,compile-test,jar-withouthadoop,debugger.check" description="Run tez unit tests">
+    <target name="test-tez" depends="setTezEnv,setWindowsPath,setLinuxPath,compile-test,jar-withouthadoop,debugger.check" description="Run tez unit tests">
         <macro-test-runner test.file="${test.tez.file}" />
     </target>
-
+	
     <target name="debugger.check" depends="debugger.set,debugger.unset"/>
     <target name="debugger.set" if="debugPort">
         <property name="debugArgs" value="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=${debugPort}"/>

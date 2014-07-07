@@ -47,6 +47,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.InputSizeReducerEstimator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingBigDecimalWritableComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingBigIntegerWritableComparator;
@@ -61,7 +62,6 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCo
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingPartitionWritableComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingTupleWritableComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigSecondaryKeyGroupComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.InputSizeReducerEstimator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PhyPlanSetter;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigBigDecimalRawComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigBigIntegerRawComparator;
@@ -130,6 +130,7 @@ import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
 import org.apache.tez.runtime.library.input.ConcatenatedMergedKeyValueInput;
+import org.apache.tez.runtime.library.input.ShuffledMergedInput;
 import org.apache.tez.runtime.library.input.SortedGroupedMergedInput;
 
 /**
@@ -242,10 +243,15 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         EdgeProperty edgeProperty = newEdge(fromOp, toOp);
 
-        String groupInputClass = edgeProperty.getDataMovementType().equals(
-                DataMovementType.SCATTER_GATHER)
-                        ? SortedGroupedMergedInput.class.getName()
-                        : ConcatenatedMergedKeyValueInput.class.getName();
+        String groupInputClass = ConcatenatedMergedKeyValueInput.class.getName();
+
+        // In case of SCATTER_GATHER and ShuffledUnorderedKVInput it will still be
+        // ConcatenatedMergedKeyValueInput
+        if(edgeProperty.getDataMovementType().equals(DataMovementType.SCATTER_GATHER)
+                && edgeProperty.getEdgeDestination().getClassName().equals(ShuffledMergedInput.class.getName())) {
+            groupInputClass = SortedGroupedMergedInput.class.getName();
+        }
+
         return new GroupInputEdge(from, to, edgeProperty,
                 new InputDescriptor(groupInputClass).setUserPayload(edgeProperty.getEdgeDestination().getUserPayload()));
     }
@@ -533,7 +539,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 }
             }
         }
-        JobControlCompiler.setOutputFormat(payloadConf);
+        JobControlCompiler.setOutputFormat(job);
 
         // set parent plan in all operators. currently the parent plan is really
         // used only when POStream, POSplit are present in the plan
@@ -631,7 +637,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 }
             }
             sortOper = mPlan.getSuccessors(sampleBasedPartionerOper).get(0);
-            
+
             if (sortOper.getRequestedParallelism()==-1 && pc.defaultParallel==-1) {
                 // set estimate parallelism for order by/skewed join to sampler parallelism
                 // that include:
@@ -652,7 +658,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         // Take our assembled configuration and create a vertex
         byte[] userPayload = TezUtils.createUserPayloadFromConf(payloadConf);
         procDesc.setUserPayload(userPayload);
-        
+
         Vertex vertex = new Vertex(tezOp.getOperatorKey().toString(), procDesc, parallelism,
                 isMap ? MRHelpers.getMapResource(globalConf) : MRHelpers.getReduceResource(globalConf));
 
@@ -728,7 +734,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         if (stores.size() > 0) {
             new PigOutputFormat().checkOutputSpecs(job);
         }
-        
+
         // Set the right VertexManagerPlugin
         if (tezOp.getEstimatedParallelism() != -1) {
             if (tezOp.isGlobalSort()||tezOp.isSkewedJoin()) {
@@ -1147,7 +1153,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_SECONDARY_COMPARATOR_CLASS,
                 comparatorClass);
     }
-    
+
     public static int estimateParallelism(Job job, TezOperPlan tezPlan,
             TezOperator tezOp) throws IOException {
         Configuration conf = job.getConfiguration();

@@ -120,8 +120,8 @@ public class TezTaskStats extends JobStats {
             String filename = sto.getSFile().getFileName();
             if (map != null) {
                 if (sto.isMultiStore()) {
-                    Long n = map.get(PigStatsUtil.MULTI_STORE_COUNTER_GROUP)
-                            .get(PigStatsUtil.getMultiStoreCounterName(sto));
+                    Map<String, Long> msGroup = map.get(PigStatsUtil.MULTI_STORE_COUNTER_GROUP);
+                    Long n = msGroup == null ? null: msGroup.get(PigStatsUtil.getMultiStoreCounterName(sto));
                     if (n != null) records = n;
                 } else if (map.get(TASK_COUNTER_GROUP) != null
                         && map.get(TASK_COUNTER_GROUP).get(TaskCounter.OUTPUT_RECORDS.name()) != null) {

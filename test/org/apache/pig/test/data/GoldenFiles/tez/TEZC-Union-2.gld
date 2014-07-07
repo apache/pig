@@ -4,9 +4,9 @@
 #--------------------------------------------------
 # TEZ DAG plan: scope-72
 #--------------------------------------------------
-Tez vertex scope-29	->	Tez vertex scope-55,
-Tez vertex scope-30	->	Tez vertex scope-55,
-Tez vertex scope-55	->	Tez vertex scope-35,
+Tez vertex scope-29	->	Tez vertex group scope-55,
+Tez vertex scope-30	->	Tez vertex group scope-55,
+Tez vertex group scope-55	->	Tez vertex scope-35,
 Tez vertex scope-35
 
 Tez vertex scope-29

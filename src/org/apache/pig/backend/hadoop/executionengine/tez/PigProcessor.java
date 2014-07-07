@@ -91,7 +91,7 @@ public class PigProcessor implements LogicalIOProcessor {
 
     private Configuration conf;
     private PigHadoopLogger pigHadoopLogger;
-    
+
     private TezProcessorContext processorContext;
 
     public static String sampleVertex;
@@ -102,7 +102,7 @@ public class PigProcessor implements LogicalIOProcessor {
     public void initialize(TezProcessorContext processorContext)
             throws Exception {
         this.processorContext = processorContext;
-        
+
         // Reset any static variables to avoid conflict in container-reuse.
         sampleVertex = null;
         sampleMap = null;

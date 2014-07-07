@@ -177,7 +177,8 @@ public class GruntParser extends PigScriptParser {
                         mNumFailedJobs++;
                         Exception exp = (js.getException() != null) ? js.getException()
                                 : new ExecException(
-                                        "Job " + js.getName() + " failed, hadoop does not return any error message",
+                                        "Job " + (js.getJobId() == null ? "" : js.getJobId() + " ") +
+                                        "failed, hadoop does not return any error message",
                                         2244);
                         LogUtils.writeLog(exp,
                                 mPigServer.getPigContext().getProperties().getProperty("pig.logfile"),
