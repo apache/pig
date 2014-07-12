@@ -193,7 +193,7 @@ public class TezJob extends ControlledJob {
 
     private void collectVertexCounters() {
         for (Vertex v : dag.getVertices()) {
-            String name = v.getVertexName();
+            String name = v.getName();
             try {
                 VertexStatus s = dagClient.getVertexStatus(name, statusGetOpts);
                 TezCounters counters = s.getVertexCounters();
