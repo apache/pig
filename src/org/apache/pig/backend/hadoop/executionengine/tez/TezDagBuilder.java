@@ -674,15 +674,15 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         ClientDistributedCacheManager.getDelegationTokens(globalConf,
                 job.getCredentials());
         MRApps.setupDistributedCache(globalConf, localResources);
-        vertex.setTaskLocalResources(localResources);
+        vertex.setTaskLocalFiles(localResources);
 
-        vertex.setJavaOpts(isMap ? MRHelpers.getMapJavaOpts(globalConf)
+        vertex.setTaskLaunchCmdOpts(isMap ? MRHelpers.getMapJavaOpts(globalConf)
                 : MRHelpers.getReduceJavaOpts(globalConf));
 
         log.info("For vertex - " + tezOp.getOperatorKey().toString()
                 + ": parallelism=" + parallelism
                 + ", memory=" + vertex.getTaskResource().getMemory()
-                + ", java opts=" + vertex.getJavaOpts()
+                + ", java opts=" + vertex.getTaskLaunchCmdOpts()
                 );
 
         // Right now there can only be one of each of these. Will need to be

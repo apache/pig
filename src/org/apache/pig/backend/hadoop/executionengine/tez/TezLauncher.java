@@ -167,7 +167,7 @@ public class TezLauncher extends Launcher {
 
             if (aggregateWarning && job.getJobState() == ControlledJob.State.SUCCESS) {
                 for (Vertex vertex : job.getDAG().getVertices()) {
-                    String vertexName = vertex.getVertexName();
+                    String vertexName = vertex.getName();
                     Map<String, Map<String, Long>> counterGroups = job.getVertexCounters(vertexName);
                     computeWarningAggregate(counterGroups, warningAggMap);
                 }
@@ -226,12 +226,12 @@ public class TezLauncher extends Launcher {
 
     private void notifyStarted(TezJob job) throws IOException {
         for (Vertex v : job.getDAG().getVertices()) {
-            TezTaskStats tts = tezStats.getVertexStats(v.getVertexName());
+            TezTaskStats tts = tezStats.getVertexStats(v.getName());
             byte[] bb = v.getProcessorDescriptor().getUserPayload();
             Configuration conf = TezUtils.createConfFromUserPayload(bb);
             tts.setConf(conf);
-            tts.setId(v.getVertexName());
-            tezScriptState.emitJobStartedNotification(v.getVertexName());
+            tts.setId(v.getName());
+            tezScriptState.emitJobStartedNotification(v.getName());
         }
     }
 
@@ -254,12 +254,12 @@ public class TezLauncher extends Launcher {
     private void notifyFinishedOrFailed(TezJob job) {
         if (job.getJobState() == ControlledJob.State.SUCCESS) {
             for (Vertex v : job.getDAG().getVertices()) {
-                TezTaskStats tts = tezStats.getVertexStats(v.getVertexName());
+                TezTaskStats tts = tezStats.getVertexStats(v.getName());
                 tezScriptState.emitjobFinishedNotification(tts);
             }
         } else if (job.getJobState() == ControlledJob.State.FAILED) {
             for (Vertex v : ((TezJob)job).getDAG().getVertices()) {
-                TezTaskStats tts = tezStats.getVertexStats(v.getVertexName());
+                TezTaskStats tts = tezStats.getVertexStats(v.getName());
                 tezScriptState.emitJobFailedNotification(tts);
             }
         }
