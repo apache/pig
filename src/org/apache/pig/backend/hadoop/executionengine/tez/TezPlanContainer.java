@@ -20,6 +20,7 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.PrintStream;
+import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -48,18 +49,18 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
     // will use them for simplicity). This differs from MR Pig, where they are added to
     // the job jar.
     public Map<String, LocalResource> getLocalResources() throws Exception {
-        Set<URL> jarLists = new HashSet<URL>();
+        Set<URI> jarLists = new HashSet<URI>();
 
-        jarLists.add(new File(TezResourceManager.getInstance().getBootStrapJar()).toURI().toURL());
+        jarLists.add(TezResourceManager.getInstance().getBootStrapJar().toURI());
 
         // In MR Pig the extra jars and script jars get put in Distributed Cache, but
         // in Tez we'll add them as local resources.
         for (URL jarUrl : pigContext.extraJars) {
-            jarLists.add(jarUrl);
+            jarLists.add(jarUrl.toURI());
         }
 
         for (String jarFile : pigContext.scriptJars) {
-            jarLists.add(new File(jarFile).toURI().toURL());
+            jarLists.add(new File(jarFile).toURI());
         }
 
         // Script files for non-Java UDF's are added to the Job.jar by the JarManager class,
@@ -67,7 +68,7 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
         // to the GroovyScriptEngine (see JarManager.java for comments).
         for (Map.Entry<String, File> scriptFile : pigContext.getScriptFiles().entrySet()) {
             if (scriptFile.getKey().endsWith(".groovy")) {
-                jarLists.add(scriptFile.getValue().toURI().toURL());
+                jarLists.add(scriptFile.getValue().toURI());
             }
         }
 
@@ -86,8 +87,8 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
                     // avoid NPE.
                     continue;
                 }
-                URL jarUrl = new File(jarName).toURI().toURL();
-                jarLists.add(jarUrl);
+                URI jarUri = new File(jarName).toURI();
+                jarLists.add(jarUri);
             }
         }
 

@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
@@ -67,7 +68,12 @@ public class TezOperPlan extends OperatorPlan<TezOperator> {
         String resourceName = resourcePath.getName();
 
         if (!extraResources.containsKey(resourceName)) {
-            Path remoteFsPath = TezResourceManager.getInstance().addTezResource(url);
+            Path remoteFsPath;
+            try {
+                remoteFsPath = TezResourceManager.getInstance().addTezResource(url.toURI());
+            } catch (URISyntaxException e) {
+                throw new IOException(e);
+            }
             extraResources.put(resourceName, remoteFsPath);
         }
     }
@@ -82,13 +88,20 @@ public class TezOperPlan extends OperatorPlan<TezOperator> {
 
     // Get the plan-specific resources
     public Map<String, LocalResource> getExtraResources() throws Exception {
+        // In a STREAM add the files specified in SHIP and CACHE
+        // as local resources for the plan.
         TezPOStreamVisitor streamVisitor = new TezPOStreamVisitor(this);
         streamVisitor.visit();
 
-        // In a STREAM add the files specified in SHIP and CACHE
-        // as local resources for the plan.
         addShipResources(streamVisitor.getShipFiles());
         addCacheResources(streamVisitor.getCacheFiles());
+
+        // In a UDF add the files specified by getCacheFiles()
+        // as local resources for the plan.
+        TezPOUserFuncVisitor udfVisitor = new TezPOUserFuncVisitor(this);
+        udfVisitor.visit();
+
+        addCacheResources(udfVisitor.getCacheFiles());
 
         return TezResourceManager.getInstance().getTezResources(extraResources.keySet());
     }

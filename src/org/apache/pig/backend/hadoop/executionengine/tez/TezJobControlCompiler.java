@@ -17,6 +17,7 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,6 +25,7 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.exceptions.YarnException;
@@ -103,6 +105,18 @@ public class TezJobControlCompiler {
             Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
             localResources.putAll(planContainer.getLocalResources());
             localResources.putAll(tezPlan.getExtraResources());
+            String shipFiles = pigContext.getProperties().getProperty("pig.streaming.ship.files");
+            if (shipFiles != null) {
+                for (String file : shipFiles.split(",")) {
+                    TezResourceManager.getInstance().addTezResource(new File(file).toURI());
+                }
+            }
+            String cacheFiles = pigContext.getProperties().getProperty("pig.streaming.cache.files");
+            if (cacheFiles != null) {
+                for (String file : cacheFiles.split(",")) {
+                    TezResourceManager.getInstance().addTezResource(new Path(file).toUri());
+                }
+            }
             DAG tezDag = buildDAG(tezPlan, localResources);
             return new TezJob(tezConf, tezDag, localResources);
         } catch (Exception e) {

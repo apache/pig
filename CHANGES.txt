@@ -42,6 +42,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3886: UdfDistributedCache_1 fails in tez branch (cheolsoo)
+
 PIG-4055 Build broke after TEZ-1130 API rename (knoguchi)
 
 PIG-3935: Port more mini cluster tests to Tez - part 5 (rohini)
