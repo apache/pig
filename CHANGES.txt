@@ -42,6 +42,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4058: Use single config in Tez for input and output (rohini)
+
 PIG-3886: UdfDistributedCache_1 fails in tez branch (cheolsoo)
 
 PIG-4055 Build broke after TEZ-1130 API rename (knoguchi)

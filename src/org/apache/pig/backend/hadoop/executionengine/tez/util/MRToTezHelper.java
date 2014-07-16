@@ -18,7 +18,6 @@
 package org.apache.pig.backend.hadoop.executionengine.tez.util;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -33,7 +32,6 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.classification.InterfaceAudience;
-import org.apache.pig.impl.util.Pair;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.mapreduce.hadoop.DeprecatedKeys;
@@ -44,32 +42,13 @@ public class MRToTezHelper {
 
     private static final Log LOG = LogFactory.getLog(MRToTezHelper.class);
 
-    /**
-     * Keys which are used across an edge. i.e. by an Output-Input pair.
-     */
-    private static Map<String, Pair<String, String>> mrToTezIOParamMap = new HashMap<String, Pair<String, String>>();
-
     private static List<String> mrSettingsToRetain = new ArrayList<String>();
 
     private MRToTezHelper() {
     }
 
     static {
-        populateMRToTezIOParamMap();
         populateMRSettingsToRetain();
-    }
-
-    private static void populateMRToTezIOParamMap() {
-        mrToTezIOParamMap.put(MRJobConfig.MAP_OUTPUT_COMPRESS,
-                new Pair<String, String> (
-                        TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_SHOULD_COMPRESS,
-                        TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_IS_COMPRESSED));
-
-        mrToTezIOParamMap.put(MRJobConfig.MAP_OUTPUT_COMPRESS_CODEC,
-                new Pair<String, String> (
-                        TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_COMPRESS_CODEC,
-                        TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_COMPRESS_CODEC));
-
     }
 
     private static void populateMRSettingsToRetain() {
@@ -173,17 +152,6 @@ public class MRToTezHelper {
                         + mrConf.get(dep.getKey()) + " from MR setting "
                         + dep.getKey());
                 conf.setIfUnset(dep.getValue(), mrConf.get(dep.getKey()));
-            }
-        }
-
-        for (Entry<String, Pair<String, String>> dep : mrToTezIOParamMap.entrySet()) {
-            if (mrConf.get(dep.getKey()) != null) {
-                conf.unset(dep.getKey());
-                LOG.info("Setting " + dep.getValue() + " to "
-                        + mrConf.get(dep.getKey()) + " from MR setting "
-                        + dep.getKey());
-                conf.setIfUnset(dep.getValue().first, mrConf.get(dep.getKey()));
-                conf.setIfUnset(dep.getValue().second, mrConf.get(dep.getKey()));
             }
         }
     }
