@@ -822,7 +822,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 POSimpleTezLoad tezLoad = new POSimpleTezLoad(new OperatorKey(
                         scope, nig.getNextNodeId(scope)), ld.getLFile());
                 tezLoad.setInputKey(ld.getOperatorKey().toString());
-                tezLoad.setAlias(ld.getAlias());
+                tezLoad.copyAliasFrom(ld);
                 tezOp.plan.add(tezLoad);
                 for (PhysicalOperator sucs : ldSucs) {
                     tezOp.plan.connect(tezLoad, sucs);
