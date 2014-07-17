@@ -626,7 +626,7 @@ public class TezCompiler extends PhyPlanVisitor {
         try {
             POLocalRearrangeTez lr = localRearrangeFactory.create();
             lr.setDistinct(true);
-            lr.setAlias(op.getAlias());
+            lr.copyAliasFrom(op);
             curTezOp.plan.addAsLeaf(lr);
             TezOperator lastOp = curTezOp;
 
@@ -774,7 +774,7 @@ public class TezCompiler extends PhyPlanVisitor {
 
             // Need to add POValueOutputTez to the end of the last tezOp
             POValueOutputTez output = new POValueOutputTez(OperatorKey.genOpKey(scope));
-            output.setAlias(op.getAlias());
+            output.copyAliasFrom(op);
             curTezOp.plan.addAsLeaf(output);
             TezOperator prevOp = curTezOp;
 
@@ -791,13 +791,13 @@ public class TezCompiler extends PhyPlanVisitor {
 
             // Then add a POValueInputTez to the start of the new tezOp.
             POValueInputTez input = new POValueInputTez(OperatorKey.genOpKey(scope));
-            input.setAlias(op.getAlias());
+            input.copyAliasFrom(op);
             input.setInputKey(prevOp.getOperatorKey().toString());
             curTezOp.plan.addAsLeaf(input);
 
             if (!pigContext.inIllustrator) {
                 POLimit limitCopy = new POLimit(OperatorKey.genOpKey(scope));
-                limitCopy.setAlias(op.getAlias());
+                limitCopy.copyAliasFrom(op);
                 limitCopy.setLimit(op.getLimit());
                 limitCopy.setLimitPlan(op.getLimitPlan());
                 curTezOp.plan.addAsLeaf(limitCopy);
@@ -2026,7 +2026,7 @@ public class TezCompiler extends PhyPlanVisitor {
             // Equivalent of LimitAdjuster.java in MR
             if (op.isLimited() && rp != 1) {
                 POValueOutputTez output = new POValueOutputTez(OperatorKey.genOpKey(scope));
-                output.setAlias(op.getAlias());
+                output.copyAliasFrom(op);
                 sortOpers[1].plan.addAsLeaf(output);
 
                 TezOperator limitOper = getTezOp();
@@ -2053,7 +2053,7 @@ public class TezCompiler extends PhyPlanVisitor {
 
                 // Then add a POValueInputTez to the start of the new tezOp followed by a LIMIT
                 POValueInputTez input = new POValueInputTez(OperatorKey.genOpKey(scope));
-                input.setAlias(op.getAlias());
+                input.copyAliasFrom(op);
                 input.setInputKey(sortOpers[1].getOperatorKey().toString());
                 curTezOp.plan.addAsLeaf(input);
 
@@ -2083,7 +2083,7 @@ public class TezCompiler extends PhyPlanVisitor {
                 splitOp.setSplitter(true);
                 phyToTezOpMap.put(op, splitOp);
                 output = new POValueOutputTez(OperatorKey.genOpKey(scope));
-                output.setAlias(op.getAlias());
+                output.copyAliasFrom(op);
                 splitOp.plan.addAsLeaf(output);
             }
             curTezOp = getTezOp();
@@ -2095,7 +2095,7 @@ public class TezCompiler extends PhyPlanVisitor {
             TezCompilerUtil.configureValueOnlyTupleOutput(edge, DataMovementType.ONE_TO_ONE);
             curTezOp.setRequestedParallelismByReference(splitOp);
             POValueInputTez input = new POValueInputTez(OperatorKey.genOpKey(scope));
-            input.setAlias(op.getAlias());
+            input.copyAliasFrom(op);
             input.setInputKey(splitOp.getOperatorKey().toString());
             curTezOp.plan.addAsLeaf(input);
         } catch (Exception e) {

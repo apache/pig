@@ -99,7 +99,7 @@ public class MultiQueryOptimizerTez extends TezOpPlanVisitor {
             } else {
                 POValueOutputTez valueOutput = (POValueOutputTez)tezOp.plan.getLeaves().get(0);
                 POSplit split = new POSplit(OperatorKey.genOpKey(valueOutput.getOperatorKey().getScope()));
-                split.setAlias(valueOutput.getAlias());
+                split.copyAliasFrom(valueOutput);
                 for (TezOperator splitee : splittees) {
                     PhysicalOperator spliteeRoot =  splitee.plan.getRoots().get(0);
                     splitee.plan.remove(spliteeRoot);

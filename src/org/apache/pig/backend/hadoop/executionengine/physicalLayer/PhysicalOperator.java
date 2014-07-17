@@ -183,8 +183,9 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
         return (alias == null) ? "" : (alias + ": ");
     }
 
-    public void setAlias(String alias) {
-        this.alias = alias;
+    public void copyAliasFrom(PhysicalOperator op) {
+        this.alias = op.alias;
+        this.originalLocations = op.originalLocations;
     }
 
     public void addOriginalLocation(String alias, SourceLocation sourceLocation) {
