@@ -42,6 +42,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-2689: JsonStorage fails to find schema when LimitAdjuster runs (rohini)
+
 PIG-4056: Remove PhysicalOperator.setAlias (rohini)
 
 PIG-4058: Use single config in Tez for input and output (rohini)
