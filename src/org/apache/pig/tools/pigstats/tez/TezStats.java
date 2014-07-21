@@ -28,7 +28,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobClient;
-import org.apache.hadoop.mapreduce.lib.jobcontrol.ControlledJob;
 import org.apache.pig.PigRunner.ReturnCode;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezExecType;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezJob;
@@ -51,6 +50,7 @@ import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Vertex;
+import org.apache.tez.dag.api.client.DAGStatus;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -187,10 +187,11 @@ public class TezStats extends PigStats {
      * @param jc the job control
      */
     public void accumulateStats(TezJob tezJob) throws IOException {
-        if (tezJob.getJobState() == ControlledJob.State.SUCCESS) {
+        DAGStatus dagStatus = tezJob.getDAGStatus();
+        if (dagStatus.getState() == DAGStatus.State.SUCCEEDED) {
             addVertexStats(tezJob, true);
             dagStatsStrings.add(getDisplayString(tezJob));
-        } else if (tezJob.getJobState() == ControlledJob.State.FAILED) {
+        } else if (dagStatus.getState() == DAGStatus.State.FAILED) {
             addVertexStats(tezJob, false);
             dagStatsStrings.add(getDisplayString(tezJob));
         }
@@ -207,7 +208,7 @@ public class TezStats extends PigStats {
             }
         }
         if (!succeeded) {
-            errorMessage = tezJob.getMessage().trim();
+            errorMessage = tezJob.getDiagnostics();
         }
     }
 
@@ -234,8 +235,8 @@ public class TezStats extends PigStats {
             return "";
         }
 
-        sb.append(String.format("%1$20s: %2$-100s%n", "JobId",
-                tezJob.getJobID()));
+        sb.append(String.format("%1$20s: %2$-100s%n", "ApplicationId",
+                tezJob.getApplicationId()));
 
         CounterGroup dagGrp = cnt.getGroup(DAG_COUNTER_GROUP);
         TezCounter numTasks = dagGrp.findCounter("TOTAL_LAUNCHED_TASKS");

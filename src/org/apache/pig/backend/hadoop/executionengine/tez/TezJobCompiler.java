@@ -40,14 +40,14 @@ import org.apache.tez.dag.api.TezConfiguration;
  * JobControl object with the relevant dependency info maintained. The
  * JobControl object is made up of TezJobs each of which has a JobConf.
  */
-public class TezJobControlCompiler {
-    private static final Log log = LogFactory.getLog(TezJobControlCompiler.class);
+public class TezJobCompiler {
+    private static final Log log = LogFactory.getLog(TezJobCompiler.class);
     private static int dagIdentifier = 0;
 
     private PigContext pigContext;
     private TezConfiguration tezConf;
 
-    public TezJobControlCompiler(PigContext pigContext, Configuration conf) throws IOException {
+    public TezJobCompiler(PigContext pigContext, Configuration conf) throws IOException {
         this.pigContext = pigContext;
         this.tezConf = new TezConfiguration(conf);
     }
@@ -63,31 +63,13 @@ public class TezJobControlCompiler {
         return tezDag;
     }
 
-    public TezJobControl compile(TezOperPlan tezPlan, String grpName, TezPlanContainer planContainer)
+    public TezJob compile(TezOperPlan tezPlan, String grpName, TezPlanContainer planContainer)
             throws JobCreationException {
-        int timeToSleep;
-        String defaultPigJobControlSleep = pigContext.getExecType().isLocal() ? "100" : "1000";
-        String pigJobControlSleep = tezConf.get("pig.jobcontrol.sleep", defaultPigJobControlSleep);
-        if (!pigJobControlSleep.equals(defaultPigJobControlSleep)) {
-            log.info("overriding default JobControl sleep (" +
-                    defaultPigJobControlSleep + ") to " + pigJobControlSleep);
-        }
-
-        try {
-            timeToSleep = Integer.parseInt(pigJobControlSleep);
-        } catch (NumberFormatException e) {
-            throw new RuntimeException("Invalid configuration " +
-                    "pig.jobcontrol.sleep=" + pigJobControlSleep +
-                    " should be a time in ms. default=" + defaultPigJobControlSleep, e);
-        }
-
-        TezJobControl jobCtrl = new TezJobControl(grpName, timeToSleep);
-
+        TezJob job = null;
         try {
             // A single Tez job always pack only 1 Tez plan. We will track
             // Tez job asynchronously to exploit parallel execution opportunities.
-            TezJob job = getJob(tezPlan, planContainer);
-            jobCtrl.addJob(job);
+            job = getJob(tezPlan, planContainer);
         } catch (JobCreationException jce) {
             throw jce;
         } catch(Exception e) {
@@ -96,7 +78,7 @@ public class TezJobControlCompiler {
             throw new JobCreationException(msg, errCode, PigException.BUG, e);
         }
 
-        return jobCtrl;
+        return job;
     }
 
     private TezJob getJob(TezOperPlan tezPlan, TezPlanContainer planContainer)

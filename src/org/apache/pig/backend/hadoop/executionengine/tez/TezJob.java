@@ -29,7 +29,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapreduce.lib.jobcontrol.ControlledJob;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.pig.PigConfiguration;
@@ -53,15 +52,16 @@ import com.google.common.collect.Maps;
  * Wrapper class that encapsulates Tez DAG. This class mediates between Tez DAGs
  * and JobControl.
  */
-public class TezJob extends ControlledJob {
+public class TezJob implements Runnable {
     private static final Log log = LogFactory.getLog(TezJob.class);
-    private EnumSet<StatusGetOpts> statusGetOpts;
-    private DAGStatus dagStatus;
     private Configuration conf;
+    private EnumSet<StatusGetOpts> statusGetOpts;
+    private Map<String, LocalResource> requestAMResources;
+    private ApplicationId appId;
     private DAG dag;
     private DAGClient dagClient;
-    private Map<String, LocalResource> requestAMResources;
-    private TezClient tezSession;
+    private DAGStatus dagStatus;
+    private TezClient tezClient;
     private boolean reuseSession;
     private TezCounters dagCounters;
     // Vertex, CounterGroup, Counter, Value
@@ -71,7 +71,6 @@ public class TezJob extends ControlledJob {
 
     public TezJob(TezConfiguration conf, DAG dag, Map<String, LocalResource> requestAMResources)
             throws IOException {
-        super(conf);
         this.conf = conf;
         this.dag = dag;
         this.requestAMResources = requestAMResources;
@@ -84,8 +83,16 @@ public class TezJob extends ControlledJob {
         return dag;
     }
 
+    public String getName() {
+        return dag == null ? "" : dag.getName();
+    }
+
+    public Configuration getConfiguration() {
+        return conf;
+    }
+
     public ApplicationId getApplicationId() {
-        return dagClient == null ? null : dagClient.getApplicationId();
+        return appId;
     }
 
     public DAGStatus getDAGStatus() {
@@ -104,36 +111,35 @@ public class TezJob extends ControlledJob {
         return vertexCounters.get(group).get(name);
     }
 
-    public Double getDAGProgress() {
+    public float getDAGProgress() {
         Progress p = dagStatus.getDAGProgress();
-        return (double)p.getSucceededTaskCount()/(double)p.getTotalTaskCount();
+        return (float)p.getSucceededTaskCount() / (float)p.getTotalTaskCount();
     }
 
-    public Map<String, Double> getVertexProgress() {
-        Map<String, Double> vertexProgress = Maps.newHashMap();
+    public Map<String, Float> getVertexProgress() {
+        Map<String, Float> vertexProgress = Maps.newHashMap();
         for (Map.Entry<String, Progress> entry : dagStatus.getVertexProgress().entrySet()) {
             Progress p = entry.getValue();
-            Double progress = (double)p.getSucceededTaskCount()/(double)p.getTotalTaskCount();
+            float progress = (float)p.getSucceededTaskCount() / (float)p.getTotalTaskCount();
             vertexProgress.put(entry.getKey(), progress);
         }
         return vertexProgress;
     }
 
     @Override
-    public void submit() {
+    public void run() {
         try {
-            tezSession = TezSessionManager.getSession(conf, requestAMResources, dag.getCredentials());
+            tezClient = TezSessionManager.getClient(conf, requestAMResources, dag.getCredentials());
             log.info("Submitting DAG " + dag.getName());
-            dagClient = tezSession.submitDAG(dag);
-            log.info("Submitted DAG " + dag.getName() + ". Application id: " +
-                    tezSession.getAppMasterApplicationId());
+            dagClient = tezClient.submitDAG(dag);
+            appId = tezClient.getAppMasterApplicationId();
+            log.info("Submitted DAG " + dag.getName() + ". Application id: " + appId);
         } catch (Exception e) {
-            if (tezSession != null) {
-                log.error("Cannot submit DAG - Application id: " + tezSession.getAppMasterApplicationId(), e);
+            if (tezClient != null) {
+                log.error("Cannot submit DAG - Application id: " + tezClient.getAppMasterApplicationId(), e);
             } else {
                 log.error("Cannot submit DAG", e);
             }
-            setJobState(ControlledJob.State.FAILED);
             return;
         }
 
@@ -146,30 +152,21 @@ public class TezJob extends ControlledJob {
                 dagStatus = dagClient.getDAGStatus(statusGetOpts);
             } catch (Exception e) {
                 log.info("Cannot retrieve DAG status", e);
-                setJobState(ControlledJob.State.FAILED);
                 break;
             }
 
-            setJobState(dagState2JobState(dagStatus.getState()));
             if (dagStatus.isCompleted()) {
-                StringBuilder sb = new StringBuilder();
-                for (String msg : dagStatus.getDiagnostics()) {
-                    sb.append(msg);
-                    sb.append("\n");
-                }
                 dagCounters = dagStatus.getDAGCounters();
                 collectVertexCounters();
-                setMessage(sb.toString());
-                TezSessionManager.freeSession(tezSession);
+                TezSessionManager.freeSession(tezClient);
                 try {
                     if (!reuseSession) {
-                        TezSessionManager.stopSession(tezSession);
+                        TezSessionManager.stopSession(tezClient);
                     }
-                    tezSession = null;
+                    tezClient = null;
                     dagClient = null;
                 } catch (Exception e) {
                     log.info("Cannot stop Tez session", e);
-                    setJobState(ControlledJob.State.FAILED);
                 }
                 break;
             }
@@ -218,46 +215,20 @@ public class TezJob extends ControlledJob {
         }
     }
 
-    @Override
     public void killJob() throws IOException {
         try {
             if (dagClient != null) {
                 dagClient.tryKillDAG();
             }
-            if (tezSession != null) {
-                tezSession.stop();
+            if (tezClient != null) {
+                tezClient.stop();
             }
         } catch (TezException e) {
-            throw new IOException("Cannot kill DAG - Application Id: " + tezSession.getAppMasterApplicationId(), e);
+            throw new IOException("Cannot kill DAG - Application Id: " + appId, e);
         }
     }
 
-    private static ControlledJob.State dagState2JobState(DAGStatus.State dagState) {
-        ControlledJob.State jobState = null;
-        switch (dagState) {
-            case SUBMITTED:
-            case INITING:
-            case RUNNING:
-                jobState = ControlledJob.State.RUNNING;
-                break;
-            case SUCCEEDED:
-                jobState = ControlledJob.State.SUCCESS;
-                break;
-            case KILLED:
-            case FAILED:
-            case ERROR:
-                jobState = ControlledJob.State.FAILED;
-                break;
-        }
-        return jobState;
-    }
-
-    @Override
-    public synchronized String getMessage() {
-        return super.getMessage() + "\n " + getDiagnostics();
-    }
-
-    private String getDiagnostics() {
+    public String getDiagnostics() {
         try {
             if (dagClient != null && dagStatus == null) {
                 dagStatus = dagClient.getDAGStatus(new HashSet<StatusGetOpts>());
