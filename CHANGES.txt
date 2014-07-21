@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4062: Add ascending order option to builtin TOP function (raj171 via cheolsoo)
+
 PIG-3558: ORC support for Pig (daijy)
 
 PIG-2122: Parameter Substitution doesn't work in the Grunt shell (daijy)

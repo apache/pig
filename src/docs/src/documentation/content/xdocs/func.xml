@@ -5849,8 +5849,15 @@ Output (results)
 <section>
      <title>Usage</title>
      <p>
-TOP function returns a bag containing top N tuples from the input bag where N is controlled by the first parameter to the function. The tuple comparison is performed based on a single column from the tuple. The column position is determined by the second parameter to the function. The function assumes that all tuples in the bag contain an element of the same type in the compared column
+TOP function returns a bag containing top N tuples from the input bag where N is controlled by the first parameter to the function. The tuple comparison is performed based on a single column from the tuple. The column position is determined by the second parameter to the function. The function assumes that all tuples in the bag contain an element of the same type in the compared column.
      </p>
+     <p>
+By default, TOP function uses descending order. But it can be configured via DEFINE statement.
+     </p>
+<source>
+DEFINE asc TOP('ASC'); -- ascending order
+DEFINE desc TOP('DESC'); -- descending order
+</source>
 </section>
  
  <section>
@@ -5859,12 +5866,20 @@ TOP function returns a bag containing top N tuples from the input bag where N is
 In this example the top 10 occurrences are returned.
      </p>
  <source>
+DEFINE asc TOP('ASC'); -- ascending order
+DEFINE desc TOP('DESC'); -- descending order
+
 A = LOAD 'data' as (first: chararray, second: chararray);
 B = GROUP A BY (first, second);
 C = FOREACH B generate FLATTEN(group), COUNT(A) as count;
-D = GROUP C BY first; // again group by first
+D = GROUP C BY first; -- again group by first
 topResults = FOREACH D {
-    result = TOP(10, 1, C); // and retain top 10 occurrences of 'second' in first
+    result = asc(10, 1, C); -- and retain top 10 (in ascending order) occurrences of 'second' in first  
+    GENERATE FLATTEN(result);
+}
+
+bottomResults = FOREACH D {
+    result = desc(10, 1, C); -- and retain top 10  (in descending order) occurrences of 'second' in first  
     GENERATE FLATTEN(result);
 }
 </source>
