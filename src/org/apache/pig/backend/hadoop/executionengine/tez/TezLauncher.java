@@ -23,12 +23,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapreduce.lib.jobcontrol.ControlledJob;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigWarning;
 import org.apache.pig.backend.BackendException;
@@ -54,31 +58,31 @@ import org.apache.pig.tools.pigstats.tez.TezTaskStats;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.Vertex;
+import org.apache.tez.dag.api.client.DAGStatus;
 
 /**
  * Main class that launches pig for Tez
  */
 public class TezLauncher extends Launcher {
-
     private static final Log log = LogFactory.getLog(TezLauncher.class);
+    private ScheduledExecutorService executor = new ScheduledThreadPoolExecutor(1);
     private boolean aggregateWarning = false;
     private TezScriptState tezScriptState;
     private TezStats tezStats;
+    private TezJob runningJob;
 
     @Override
     public PigStats launchPig(PhysicalPlan php, String grpName, PigContext pc) throws Exception {
-        if (pc.defaultParallel == -1 &&
-                !Boolean.parseBoolean(pc.getProperties().getProperty(PigConfiguration.TEZ_AUTO_PARALLELISM, "true"))) {
+        Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties(), true);
+        if (pc.defaultParallel == -1 && !conf.getBoolean(PigConfiguration.TEZ_AUTO_PARALLELISM, true)) {
             pc.defaultParallel = 1;
         }
-        aggregateWarning = Boolean.parseBoolean(pc.getProperties().getProperty("aggregate.warning", "false"));
-        Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties(), true);
-
-        Path stagingDir = FileLocalizer.getTemporaryPath(pc, "-tez");
+        aggregateWarning = conf.getBoolean("aggregate.warning", false);
 
         TezResourceManager tezResourceManager = TezResourceManager.getInstance();
         tezResourceManager.init(pc, conf);
 
+        Path stagingDir = FileLocalizer.getTemporaryPath(pc, "-tez");
         stagingDir.getFileSystem(conf).mkdirs(stagingDir);
         log.info("Tez staging directory is " + stagingDir.toString());
         conf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDir.toString());
@@ -89,33 +93,32 @@ public class TezLauncher extends Launcher {
         tezStats = new TezStats(pc);
         PigStats.start(tezStats);
 
-        TezJobControlCompiler jcc = new TezJobControlCompiler(pc, conf);
+        TezJobCompiler jc = new TezJobCompiler(pc, conf);
         TezPlanContainer tezPlanContainer = compile(php, pc);
 
-        TezOperPlan tezPlan;
+        int defaultTimeToSleep = pc.getExecType().isLocal() ? 100 : 1000;
+        int timeToSleep = conf.getInt("pig.jobcontrol.sleep", defaultTimeToSleep);
+        if (timeToSleep != defaultTimeToSleep) {
+            log.info("overriding default JobControl sleep (" +
+                    defaultTimeToSleep + ") to " + timeToSleep);
+        }
 
-        while ((tezPlan=tezPlanContainer.getNextPlan(processedPlans))!=null) {
+        TezOperPlan tezPlan;
+        while ((tezPlan=tezPlanContainer.getNextPlan(processedPlans)) != null) {
             processedPlans.add(tezPlan);
 
             TezPOPackageAnnotator pkgAnnotator = new TezPOPackageAnnotator(tezPlan);
             pkgAnnotator.visit();
 
             tezStats.initialize(tezPlan);
-
-            jc = jcc.compile(tezPlan, grpName, tezPlanContainer);
-            TezJobNotifier notifier = new TezJobNotifier(tezPlanContainer, tezPlan);
-            ((TezJobControl)jc).setJobNotifier(notifier);
-
-            // Initially, all jobs are in wait state.
-            List<ControlledJob> jobsWithoutIds = jc.getWaitingJobList();
-            log.info(jobsWithoutIds.size() + " tez job(s) waiting for submission.");
+            runningJob = jc.compile(tezPlan, grpName, tezPlanContainer);
 
             tezScriptState.emitInitialPlanNotification(tezPlan);
             tezScriptState.emitLaunchStartedNotification(tezPlan.size());
 
             // Set the thread UDFContext so registered classes are available.
             final UDFContext udfContext = UDFContext.getUDFContext();
-            Thread jcThread = new Thread(jc, "JobControl") {
+            Thread task = new Thread(runningJob) {
                 @Override
                 public void run() {
                     UDFContext.setUdfContext(udfContext.clone());
@@ -124,73 +127,53 @@ public class TezLauncher extends Launcher {
             };
 
             JobControlThreadExceptionHandler jctExceptionHandler = new JobControlThreadExceptionHandler();
-            jcThread.setUncaughtExceptionHandler(jctExceptionHandler);
-            jcThread.setContextClassLoader(PigContext.getClassLoader());
+            task.setUncaughtExceptionHandler(jctExceptionHandler);
+            task.setContextClassLoader(PigContext.getClassLoader());
 
             // TezJobControl always holds a single TezJob. We use JobControl
             // only because it is convenient to launch the job via
             // ControlledJob.submit().
-            TezJob job = (TezJob)jobsWithoutIds.get(0);
-            tezStats.setTezJob(job);
+            tezStats.setTezJob(runningJob);
 
             // Mark the times that the jobs were submitted so it's reflected in job
             // history props
             long scriptSubmittedTimestamp = System.currentTimeMillis();
             // Job.getConfiguration returns the shared configuration object
-            Configuration jobConf = job.getJob().getConfiguration();
+            Configuration jobConf = runningJob.getConfiguration();
             jobConf.set("pig.script.submitted.timestamp",
                     Long.toString(scriptSubmittedTimestamp));
             jobConf.set("pig.job.submitted.timestamp",
                     Long.toString(System.currentTimeMillis()));
 
-            // Inform ppnl of jobs submission
-            tezScriptState.emitJobsSubmittedNotification(jobsWithoutIds.size());
+            Future<?> future = executor.schedule(task, timeToSleep, TimeUnit.MILLISECONDS);
+            ProgressReporter reporter = new ProgressReporter();
+            tezScriptState.emitJobsSubmittedNotification(1);
+            reporter.notifyStarted();
 
-            // All the setup done, now lets launch the jobs. DAG is submitted to
-            // YARN cluster by TezJob.submit().
-            jcThread.start();
-
-            Double prevProgress = 0.0;
-            while(!jc.allFinished()) {
-                List<ControlledJob> jobsAssignedIdInThisRun = new ArrayList<ControlledJob>();
-                if (job.getApplicationId() != null) {
-                    jobsAssignedIdInThisRun.add(job);
-                }
-                notifyStarted(job);
-                jobsWithoutIds.removeAll(jobsAssignedIdInThisRun);
-                prevProgress = notifyProgress(job, prevProgress);
+            while (!future.isDone()) {
+                reporter.notifyUpdate();
+                Thread.sleep(1000);
             }
 
-            notifyFinishedOrFailed(job);
-            tezStats.accumulateStats(job);
-            Map<Enum, Long> warningAggMap = new HashMap<Enum, Long>();
-
-            if (aggregateWarning && job.getJobState() == ControlledJob.State.SUCCESS) {
-                for (Vertex vertex : job.getDAG().getVertices()) {
-                    String vertexName = vertex.getName();
-                    Map<String, Map<String, Long>> counterGroups = job.getVertexCounters(vertexName);
-                    computeWarningAggregate(counterGroups, warningAggMap);
-                }
-            }
-
-            if(aggregateWarning) {
-                CompilationMessageCollector.logAggregate(warningAggMap, MessageType.Warning, log) ;
-            }
+            tezStats.accumulateStats(runningJob);
             tezScriptState.emitProgressUpdatedNotification(100);
+            tezPlanContainer.updatePlan(tezPlan, reporter.notifyFinishedOrFailed());
         }
 
         tezStats.finish();
+        tezScriptState.emitLaunchCompletedNotification(tezStats.getNumberSuccessfulJobs());
+
         for (OutputStats output : tezStats.getOutputStats()) {
             POStore store = output.getPOStore();
             try {
                 if (!output.isSuccessful()) {
                     store.getStoreFunc().cleanupOnFailure(
                             store.getSFile().getFileName(),
-                            new org.apache.hadoop.mapreduce.Job(output.getConf()));
+                            Job.getInstance(output.getConf()));
                 } else {
                     store.getStoreFunc().cleanupOnSuccess(
                             store.getSFile().getFileName(),
-                            new org.apache.hadoop.mapreduce.Job(output.getConf()));
+                            Job.getInstance(output.getConf()));
                 }
             } catch (IOException e) {
                 throw new ExecException(e);
@@ -200,12 +183,11 @@ public class TezLauncher extends Launcher {
                 // this method.
             }
         }
-        tezScriptState.emitLaunchCompletedNotification(tezStats.getNumberSuccessfulJobs());
 
         return tezStats;
     }
 
-    void computeWarningAggregate(Map<String, Map<String, Long>> counterGroups, Map<Enum, Long> aggMap) {
+    private void computeWarningAggregate(Map<String, Map<String, Long>> counterGroups, Map<Enum, Long> aggMap) {
         for (Map<String, Long> counters : counterGroups.values()) {
             for (Enum e : PigWarning.values()) {
                 if (counters.containsKey(e.toString())) {
@@ -224,44 +206,56 @@ public class TezLauncher extends Launcher {
         }
     }
 
-    private void notifyStarted(TezJob job) throws IOException {
-        for (Vertex v : job.getDAG().getVertices()) {
-            TezTaskStats tts = tezStats.getVertexStats(v.getName());
-            byte[] bb = v.getProcessorDescriptor().getUserPayload();
-            Configuration conf = TezUtils.createConfFromUserPayload(bb);
-            tts.setConf(conf);
-            tts.setId(v.getName());
-            tezScriptState.emitJobStartedNotification(v.getName());
-        }
-    }
+    private class ProgressReporter {
+        private int count = 0;
+        private int prevProgress = 0;
 
-    private Double notifyProgress(TezJob job, Double prevProgress) {
-        int numberOfJobs = tezStats.getNumberJobs();
-        Double perCom = 0.0;
-        if (job.getJobState() == ControlledJob.State.RUNNING) {
-            Double fractionComplete = job.getDAGProgress();
-            perCom += fractionComplete;
+        public void notifyStarted() throws IOException {
+            for (Vertex v : runningJob.getDAG().getVertices()) {
+                TezTaskStats tts = tezStats.getVertexStats(v.getName());
+                byte[] bb = v.getProcessorDescriptor().getUserPayload();
+                Configuration conf = TezUtils.createConfFromUserPayload(bb);
+                tts.setConf(conf);
+                tts.setId(v.getName());
+                tezScriptState.emitJobStartedNotification(v.getName());
+            }
         }
-        perCom = (perCom/(double)numberOfJobs)*100;
-        if (perCom >= (prevProgress + 4.0)) {
-            tezScriptState.emitProgressUpdatedNotification( perCom.intValue() );
-            return perCom;
-        } else {
-            return prevProgress;
-        }
-    }
 
-    private void notifyFinishedOrFailed(TezJob job) {
-        if (job.getJobState() == ControlledJob.State.SUCCESS) {
-            for (Vertex v : job.getDAG().getVertices()) {
-                TezTaskStats tts = tezStats.getVertexStats(v.getName());
-                tezScriptState.emitjobFinishedNotification(tts);
+        public void notifyUpdate() {
+            DAGStatus dagStatus = runningJob.getDAGStatus();
+            if (dagStatus != null && dagStatus.getState() == DAGStatus.State.RUNNING) {
+                // Emit notification when the job has progressed more than 1%,
+                // or every 10 second
+                int currProgress = Math.round(runningJob.getDAGProgress() * 100f);
+                if (currProgress - prevProgress >= 1 || count % 100 == 0) {
+                    tezScriptState.emitProgressUpdatedNotification(currProgress);
+                    prevProgress = currProgress;
+                }
+                count++;
             }
-        } else if (job.getJobState() == ControlledJob.State.FAILED) {
-            for (Vertex v : ((TezJob)job).getDAG().getVertices()) {
-                TezTaskStats tts = tezStats.getVertexStats(v.getName());
-                tezScriptState.emitJobFailedNotification(tts);
+        }
+
+        public boolean notifyFinishedOrFailed() {
+            DAGStatus dagStatus = runningJob.getDAGStatus();
+            if (dagStatus.getState() == DAGStatus.State.SUCCEEDED) {
+                Map<Enum, Long> warningAggMap = new HashMap<Enum, Long>();
+                for (Vertex v : runningJob.getDAG().getVertices()) {
+                    TezTaskStats tts = tezStats.getVertexStats(v.getName());
+                    tezScriptState.emitjobFinishedNotification(tts);
+                    Map<String, Map<String, Long>> counterGroups = runningJob.getVertexCounters(v.getName());
+                    computeWarningAggregate(counterGroups, warningAggMap);
+                }
+                if (aggregateWarning) {
+                    CompilationMessageCollector.logAggregate(warningAggMap, MessageType.Warning, log);
+                }
+                return true;
+            } else if (dagStatus.getState() == DAGStatus.State.FAILED) {
+                for (Vertex v : ((TezJob)runningJob).getDAG().getVertices()) {
+                    TezTaskStats tts = tezStats.getVertexStats(v.getName());
+                    tezScriptState.emitJobFailedNotification(tts);
+                }
             }
+            return false;
         }
     }
 
@@ -284,16 +278,15 @@ public class TezLauncher extends Launcher {
 
     public TezPlanContainer compile(PhysicalPlan php, PigContext pc)
             throws PlanException, IOException, VisitorException {
+        Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
         TezCompiler comp = new TezCompiler(php, pc);
         TezOperPlan tezPlan = comp.compile();
 
         NoopFilterRemover filter = new NoopFilterRemover(tezPlan);
         filter.visit();
 
-        boolean nocombiner = Boolean.parseBoolean(pc.getProperties().getProperty(
-                PigConfiguration.PROP_NO_COMBINER, "false"));
-
         // Run CombinerOptimizer on Tez plan
+        boolean nocombiner = conf.getBoolean(PigConfiguration.PROP_NO_COMBINER, false);
         if (!pc.inIllustrator && !nocombiner)  {
             boolean doMapAgg = Boolean.parseBoolean(pc.getProperties().getProperty(
                     PigConfiguration.PROP_EXEC_MAP_PARTAGG, "false"));
@@ -304,16 +297,13 @@ public class TezLauncher extends Launcher {
 
         // Run optimizer to make use of secondary sort key when possible for nested foreach
         // order by and distinct. Should be done before AccumulatorOptimizer
-        boolean noSecKeySort = Boolean.parseBoolean(pc.getProperties().getProperty(
-                PigConfiguration.PIG_EXEC_NO_SECONDARY_KEY, "false"));
+        boolean noSecKeySort = conf.getBoolean(PigConfiguration.PIG_EXEC_NO_SECONDARY_KEY, false);
         if (!pc.inIllustrator && !noSecKeySort)  {
             SecondaryKeyOptimizerTez skOptimizer = new SecondaryKeyOptimizerTez(tezPlan);
             skOptimizer.visit();
         }
 
-        boolean isMultiQuery =
-                "true".equalsIgnoreCase(pc.getProperties().getProperty(PigConfiguration.OPT_MULTIQUERY, "true"));
-
+        boolean isMultiQuery = conf.getBoolean(PigConfiguration.OPT_MULTIQUERY, true);
         if (isMultiQuery) {
             // reduces the number of TezOpers in the Tez plan generated
             // by multi-query (multi-store) script.
@@ -322,16 +312,14 @@ public class TezLauncher extends Launcher {
         }
 
         // Run AccumulatorOptimizer on Tez plan
-        boolean isAccum = Boolean.parseBoolean(pc.getProperties().getProperty(
-                    PigConfiguration.OPT_ACCUMULATOR, "true"));
+        boolean isAccum = conf.getBoolean(PigConfiguration.OPT_ACCUMULATOR, true);
         if (isAccum) {
             AccumulatorOptimizer accum = new AccumulatorOptimizer(tezPlan);
             accum.visit();
         }
 
-        boolean isUnionOpt = "true".equalsIgnoreCase(pc.getProperties()
-                .getProperty(PigConfiguration.TEZ_OPT_UNION, "true"));
         // Use VertexGroup in Tez
+        boolean isUnionOpt = conf.getBoolean(PigConfiguration.TEZ_OPT_UNION, true);
         if (isUnionOpt) {
             UnionOptimizer uo = new UnionOptimizer(tezPlan);
             uo.visit();
@@ -342,29 +330,28 @@ public class TezLauncher extends Launcher {
 
     @Override
     public void kill() throws BackendException {
-        if (jc == null) return;
-        for (ControlledJob job : jc.getRunningJobs()) {
+        if (runningJob != null) {
             try {
-                job.killJob();
-                break;
+                runningJob.killJob();
             } catch (Exception e) {
                 throw new BackendException(e);
             }
+        }
+        if (executor != null) {
+            executor.shutdownNow();
         }
     }
 
     @Override
     public void killJob(String jobID, Configuration conf) throws BackendException {
-        for (ControlledJob job : jc.getRunningJobs()) {
-            if (job.getJobID().equals(jobID)) {
-                try {
-                    job.killJob();
-                } catch (Exception e) {
-                    throw new BackendException(e);
-                }
-                break;
+        if (runningJob != null && runningJob.getApplicationId().toString() == jobID) {
+            try {
+                runningJob.killJob();
+            } catch (Exception e) {
+                throw new BackendException(e);
             }
+        } else {
+            log.info("Cannot find job: " + jobID);
         }
-        log.info("Cannot find job: " + jobID);
     }
 }

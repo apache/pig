@@ -43,7 +43,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.MultiQueryOptimizerTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezCompiler;
-import org.apache.pig.backend.hadoop.executionengine.tez.TezJobControlCompiler;
+import org.apache.pig.backend.hadoop.executionengine.tez.TezJobCompiler;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezLocalExecType;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezOperator;
@@ -287,7 +287,7 @@ public class TestTezJobControlCompiler {
         PhysicalPlan pp = Util.buildPp(pigServer, query);
         TezCompiler comp = new TezCompiler(pp, pc);
         TezOperPlan tezPlan = comp.compile();
-        TezJobControlCompiler jobComp = new TezJobControlCompiler(pc, new Configuration());
+        TezJobCompiler jobComp = new TezJobCompiler(pc, new Configuration());
         MultiQueryOptimizerTez mqOptimizer = new MultiQueryOptimizerTez(tezPlan);
         mqOptimizer.visit();
         DAG dag = jobComp.buildDAG(tezPlan, new HashMap<String, LocalResource>());

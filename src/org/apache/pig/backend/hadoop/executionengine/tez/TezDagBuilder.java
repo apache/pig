@@ -137,7 +137,7 @@ import org.apache.tez.runtime.library.input.SortedGroupedMergedInput;
  * A visitor to construct DAG out of Tez plan.
  */
 public class TezDagBuilder extends TezOpPlanVisitor {
-    private static final Log log = LogFactory.getLog(TezJobControlCompiler.class);
+    private static final Log log = LogFactory.getLog(TezJobCompiler.class);
 
     private static final String REDUCER_ESTIMATOR_KEY = "pig.exec.reducer.estimator";
     private static final String REDUCER_ESTIMATOR_ARG_KEY =  "pig.exec.reducer.estimator.arg";

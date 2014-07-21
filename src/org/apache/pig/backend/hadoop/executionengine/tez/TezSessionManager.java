@@ -101,7 +101,7 @@ public class TezSessionManager {
         return true;
     }
 
-    static TezClient getSession(Configuration conf, Map<String, LocalResource> requestedAMResources, Credentials creds) throws TezException, IOException {
+    static TezClient getClient(Configuration conf, Map<String, LocalResource> requestedAMResources, Credentials creds) throws TezException, IOException {
         synchronized (sessionPool) {
             List<SessionInfo> sessionsToRemove = new ArrayList<SessionInfo>();
             for (SessionInfo sessionInfo : sessionPool) {
