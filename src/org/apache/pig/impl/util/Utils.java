@@ -29,6 +29,7 @@ import java.io.SequenceInputStream;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -45,6 +46,7 @@ import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.compress.BZip2Codec;
 import org.apache.hadoop.io.compress.GzipCodec;
@@ -75,6 +77,7 @@ import org.apache.pig.parser.ParserException;
 import org.apache.pig.parser.QueryParserDriver;
 
 import com.google.common.collect.Lists;
+import com.google.common.primitives.Longs;
 
 /**
  * Class with utility static methods
@@ -624,5 +627,68 @@ public class Utils {
         }
         throw new IllegalStateException("Variable substitution depth too large: " 
                 + MAX_SUBST + " " + expr);
+    }
+
+    /**
+     * A PathFilter that filters out invisible files.
+     */
+    public static final PathFilter VISIBLE_FILES = new PathFilter() {
+      @Override
+      public boolean accept(final Path p) {
+        return (!(p.getName().startsWith("_") || p.getName().startsWith(".")));
+      }
+    };
+
+    /**
+     * Finds a valid path for a file from a FileStatus object.
+     * @param fileStatus FileStatus object corresponding to a file,
+     * or a directory.
+     * @param fileSystem FileSystem in with the file should be found
+     * @return The first file found
+     * @throws IOException
+     */
+
+    public static Path depthFirstSearchForFile(final FileStatus fileStatus,
+        final FileSystem fileSystem) throws IOException {
+      if (fileSystem.isFile(fileStatus.getPath())) {
+        return fileStatus.getPath();
+      } else {
+        return depthFirstSearchForFile(
+            fileSystem.listStatus(fileStatus.getPath(), VISIBLE_FILES),
+            fileSystem);
+      }
+
+    }
+
+    /**
+     * Finds a valid path for a file from an array of FileStatus objects.
+     * @param statusArray Array of FileStatus objects in which to search
+     * for the file.
+     * @param fileSystem FileSystem in which to search for the first file.
+     * @return The first file found.
+     * @throws IOException
+     */
+    public static Path depthFirstSearchForFile(final FileStatus[] statusArray,
+        final FileSystem fileSystem) throws IOException {
+
+      // Most recent files first
+      Arrays.sort(statusArray,
+          new Comparator<FileStatus>() {
+            @Override
+            public int compare(final FileStatus fs1, final FileStatus fs2) {
+                return Longs.compare(fs2.getModificationTime(),fs1.getModificationTime());
+              }
+            }
+      );
+
+      for (FileStatus f : statusArray) {
+        Path p = depthFirstSearchForFile(f, fileSystem);
+        if (p != null) {
+          return p;
+        }
+      }
+
+      return null;
+
     }
 }
