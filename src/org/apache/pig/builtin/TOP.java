@@ -48,59 +48,94 @@ import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
  * long field. This is efficient as priority queue provides constant time - O(1)
  * removal of the least element and O(log n) time for heap restructuring. The
  * UDF is especially helpful for turning the nested grouping operation inside
- * out and retaining top-n in a nested group. 
- * 
+ * out and retaining top-n in a nested group.
+ *
  * Assumes all tuples in the bag contain an element of the same type in the compared column.
+ *
+ * Sample usage:
+ * DEFINE TOP_ASC TOP("ASC")
+ * DEFINE TOP_DESC TOP("DESC")
  * 
- * Sample usage: 
- * A = LOAD 'test.tsv' as (first: chararray, second: chararray); 
+ * A = LOAD 'test.tsv' as (first: chararray, second: chararray);
  * B = GROUP A BY (first, second);
  * C = FOREACH B generate FLATTEN(group), COUNT(*) as count;
- * D = GROUP C BY first; // again group by first 
- * topResults = FOREACH D { 
- *          result = Top(10, 1, C); // and retain top 10 occurrences of 'second' in first 
- *          GENERATE FLATTEN(result); 
+ * D = GROUP C BY first; // again group by first
+ * topResults = FOREACH D {
+ *          result = TOP_ASC(10, 1, C); // and retain top 10 occurrences of 'second' in first
+ *          GENERATE FLATTEN(result);
+ * topDescResults = FOREACH D {
+ *          result = TOP_DESC(10, 1, C); // and retain top 10 occurrences of 'second' in first
+ *          GENERATE FLATTEN(result); *          
  *  }
  */
 public class TOP extends EvalFunc<DataBag> implements Algebraic{
     private static final Log log = LogFactory.getLog(TOP.class);
-    static BagFactory mBagFactory = BagFactory.getInstance();
-    static TupleFactory mTupleFactory = TupleFactory.getInstance();
-    private Random randomizer = new Random();
+    private static BagFactory mBagFactory = BagFactory.getInstance();
+    private static TupleFactory mTupleFactory = TupleFactory.getInstance();
+    private final Random randomizer = new Random();
+    private boolean sortDesc;
 
-    static class TupleComparator implements Comparator<Tuple> {
+    // By default, set the sorting order to descending. This is to make it
+    // backward compatible.
+    public TOP() {
+        sortDesc = true;
+    }
+
+    // Allow to set the sorting order explicitly.
+    public TOP(String arg) {
+        sortDesc = decideSortOrder(arg);
+    }
+
+    private static boolean decideSortOrder(String arg) {
+        if ("ASC".equalsIgnoreCase(arg)) {
+            return false;
+        } else if ("DESC".equalsIgnoreCase(arg)) {
+            return true;
+        } else {
+            log.warn("Unknown order '" + arg + "' is given. Defaulting to descending order.");
+            return true;
+        }
+    }
+
+    private static class TupleComparator implements Comparator<Tuple> {
         private final int fieldNum;
         private byte datatype;
         private boolean typeFound=false;
+        private boolean isDescOrder = true;
 
-        public TupleComparator(int fieldNum) {
+        public TupleComparator(int fieldNum, boolean isDescOrder) {
             this.fieldNum = fieldNum;
+            this.isDescOrder = isDescOrder;
         }
 
-        /*          
+        /*
          * (non-Javadoc)
          * @see java.util.Comparator#compare(java.lang.Object, java.lang.Object)
          */
         @Override
         public int compare(Tuple o1, Tuple o2) {
-            if (o1 == null)
-                return -1;
-            if (o2 == null)
-                return 1;
-            try {
-                Object field1 = o1.get(fieldNum);
-                Object field2 = o2.get(fieldNum);
-                if (!typeFound) {
-                    datatype = DataType.findType(field1);
-                    if(datatype != DataType.NULL) {
-                        typeFound = true;
+            int ret = 0;
+            if (o1 == null) {
+                ret = -1;
+            } else if (o2 == null) {
+                ret = 1;
+            } else {
+                try {
+                    Object field1 = o1.get(fieldNum);
+                    Object field2 = o2.get(fieldNum);
+                    if (!typeFound) {
+                        datatype = DataType.findType(field1);
+                        if(datatype != DataType.NULL) {
+                            typeFound = true;
+                        }
                     }
+                    ret =  DataType.compare(field1, field2, datatype, datatype);
+                } catch (ExecException e) {
+                    throw new RuntimeException("Error while comparing o1:" + o1
+                            + " and o2:" + o2, e);
                 }
-                return DataType.compare(field1, field2, datatype, datatype);
-            } catch (ExecException e) {
-                throw new RuntimeException("Error while comparing o1:" + o1
-                        + " and o2:" + o2, e);
             }
+            return isDescOrder ? ret : ret * -1;
         }
     }
 
@@ -116,8 +151,9 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
             if (inputBag == null) {
                 return null;
             }
+
             PriorityQueue<Tuple> store = new PriorityQueue<Tuple>(n + 1,
-                    new TupleComparator(fieldNum));
+                    new TupleComparator(fieldNum, sortDesc));
             updateTop(store, n, inputBag);
             DataBag outputBag = mBagFactory.newDefaultBag();
             for (Tuple t : store) {
@@ -126,7 +162,7 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
             if (log.isDebugEnabled()) {
                 if (randomizer.nextInt(1000) == 1) {
                     log.debug("outputting a bag: ");
-                    for (Tuple t : outputBag) 
+                    for (Tuple t : outputBag)
                         log.debug("outputting "+t.toDelimitedString("\t"));
                     log.debug("==================");
                 }
@@ -151,7 +187,7 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see org.apache.pig.EvalFunc#getArgToFuncMapping()
      */
     @Override
@@ -197,15 +233,24 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
      * Same as normal code-path exec, but outputs a Tuple with the schema
      * <Int, Int, DataBag> -- same schema as expected input.
      */
-    static public class Initial extends EvalFunc<Tuple> {
-        //private static final Log log = LogFactory.getLog(Initial.class);
-        //private final Random randomizer = new Random();
+    public static class Initial extends EvalFunc<Tuple> {
+        @SuppressWarnings("unused")
+        private boolean sortDesc;
+
+        public Initial() {
+            this.sortDesc = true;
+        }
+
+        public Initial(String arg) {
+            sortDesc = decideSortOrder(arg);
+        }
+
         @Override
         public Tuple exec(Tuple tuple) throws IOException {
             if (tuple == null || tuple.size() < 3) {
                 return null;
             }
-            
+
             try {
                 int n = (Integer) tuple.get(0);
                 int fieldNum = (Integer) tuple.get(1);
@@ -221,7 +266,7 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
                 }
                 retTuple.set(0, n);
                 retTuple.set(1,fieldNum);
-                retTuple.set(2, outputBag);               
+                retTuple.set(2, outputBag);
                 return retTuple;
             } catch (Exception e) {
                 throw new RuntimeException("General Exception executing function: ", e);
@@ -229,15 +274,25 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
         }
     }
 
-    static public class Intermed extends EvalFunc<Tuple> {
+    public static class Intermed extends EvalFunc<Tuple> {
         private static final Log log = LogFactory.getLog(Intermed.class);
         private final Random randomizer = new Random();
+        private boolean sortDesc;
+
+        public Intermed() {
+            this.sortDesc = true;
+        }
+
+        public Intermed(String arg) {
+            sortDesc = decideSortOrder(arg);
+        }
+
         /* The input is a tuple that contains a single bag.
          * This bag contains outputs of the Initial step --
          * tuples of the format (limit, index, { top_tuples })
-         * 
+         *
          * We need to take the top of tops and return a similar tuple.
-         * 
+         *
          * (non-Javadoc)
          * @see org.apache.pig.EvalFunc#exec(org.apache.pig.data.Tuple)
          */
@@ -260,7 +315,7 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
                 boolean allInputBagsNull = true;
 
                 PriorityQueue<Tuple> store = new PriorityQueue<Tuple>(n + 1,
-                        new TupleComparator(fieldNum));
+                        new TupleComparator(fieldNum, sortDesc));
 
                 if (inputBag != null) {
                     allInputBagsNull = false;
@@ -275,7 +330,7 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
                         allInputBagsNull = false;
                         updateTop(store, n, inputBag);
                     }
-                }   
+                }
 
                 Tuple retTuple = mTupleFactory.newTuple(3);
                 retTuple.set(0, n);
@@ -288,8 +343,8 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
                     }
                 }
                 retTuple.set(2, outputBag);
-                if (log.isDebugEnabled()) { 
-                    if (randomizer.nextInt(1000) == 1) log.debug("outputting "+retTuple.toDelimitedString("\t")); 
+                if (log.isDebugEnabled()) {
+                    if (randomizer.nextInt(1000) == 1) log.debug("outputting "+retTuple.toDelimitedString("\t"));
                 }
                 return retTuple;
             } catch (ExecException e) {
@@ -298,23 +353,29 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
                 throw new RuntimeException("General Exception executing function: ", e);
             }
         }
-        
-    }
-    
-    static public class Final extends EvalFunc<DataBag> {
 
+    }
+
+    public static class Final extends EvalFunc<DataBag> {
         private static final Log log = LogFactory.getLog(Final.class);
         private final Random randomizer = new Random();
+        private boolean sortDesc;
 
+        public Final() {
+            this.sortDesc = true;
+        }
 
+        public Final(String arg) {
+            sortDesc = decideSortOrder(arg);
+        }
 
         /*
          * The input to this function is a tuple that contains a single bag.
-         * This bag, in turn, contains outputs of the Intermediate step -- 
+         * This bag, in turn, contains outputs of the Intermediate step --
          * tuples of the format (limit, index, { top_tuples } )
-         * 
+         *
          * we want to return a bag of top tuples
-         * 
+         *
          * (non-Javadoc)
          * @see org.apache.pig.EvalFunc#exec(org.apache.pig.data.Tuple)
          */
@@ -337,8 +398,7 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
                 boolean allInputBagsNull = true;
 
                 PriorityQueue<Tuple> store = new PriorityQueue<Tuple>(n + 1,
-                        new TupleComparator(fieldNum));
-
+                        new TupleComparator(fieldNum, sortDesc));
                 if (inputBag != null) {
                     allInputBagsNull = false;
                     updateTop(store, n, inputBag);
@@ -352,12 +412,12 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
                         allInputBagsNull = false;
                         updateTop(store, n, inputBag);
                     }
-                }   
+                }
 
                 if (allInputBagsNull) {
                     return null;
                 }
-                
+
                 DataBag outputBag = mBagFactory.newDefaultBag();
                 for (Tuple t : store) {
                     outputBag.add(t);
