@@ -44,7 +44,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.tez.optimizers.NoopFilterRemover;
 import org.apache.pig.backend.hadoop.executionengine.tez.optimizers.UnionOptimizer;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.plan.PlanException;
@@ -82,8 +81,7 @@ public class TezLauncher extends Launcher {
         TezResourceManager tezResourceManager = TezResourceManager.getInstance();
         tezResourceManager.init(pc, conf);
 
-        Path stagingDir = FileLocalizer.getTemporaryPath(pc, "-tez");
-        stagingDir.getFileSystem(conf).mkdirs(stagingDir);
+        Path stagingDir = tezResourceManager.getStagingDir();
         log.info("Tez staging directory is " + stagingDir.toString());
         conf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDir.toString());
 

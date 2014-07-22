@@ -19,6 +19,7 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -96,7 +97,8 @@ public class TezJobCompiler {
             String cacheFiles = pigContext.getProperties().getProperty("pig.streaming.cache.files");
             if (cacheFiles != null) {
                 for (String file : cacheFiles.split(",")) {
-                    TezResourceManager.getInstance().addTezResource(new Path(file).toUri());
+                    // Do new URI() before passing to Path constructor else it encodes # when there is symlink
+                    TezResourceManager.getInstance().addTezResource(new Path(new URI(file.trim())).toUri());
                 }
             }
             DAG tezDag = buildDAG(tezPlan, localResources);

@@ -906,7 +906,8 @@ public class TestEvalPipeline2 {
 
     // See PIG-1766
     @Test
-    public void testForEachSameOriginColumn1() throws Exception{
+    public void testForEachSameOriginColumn1() throws Exception {
+        Assume.assumeTrue("Skip this test for TEZ as it hangs till PIG-4064 is fixed", Util.isMapredExecType(cluster.getExecType()));
         String[] input1 = {
                 "1\t2",
                 "1\t3",
@@ -1192,6 +1193,7 @@ public class TestEvalPipeline2 {
     // See PIG-1812
     @Test
     public void testLocalRearrangeInReducer() throws Exception{
+        Assume.assumeTrue("Skip this test for TEZ as it hangs till PIG-4064 is fixed", Util.isMapredExecType(cluster.getExecType()));
         String[] input1 = {
                 "1\t1",
                 "1\t1",
@@ -1578,6 +1580,7 @@ public class TestEvalPipeline2 {
     // See PIG-2237
     @Test
     public void testLimitAutoReducer() throws Exception{
+        Assume.assumeTrue("Skip this test for TEZ as it hangs till PIG-4064 is fixed", Util.isMapredExecType(cluster.getExecType()));
         String[] input = {
                 "1\tA",
                 "4\tB",

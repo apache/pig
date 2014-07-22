@@ -46,6 +46,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4065: Fix failing unit tests in Tez (rohini)
+
 PIG-4060: Refactor TezJob and TezLauncher (cheolsoo)
 
 PIG-2689: JsonStorage fails to find schema when LimitAdjuster runs (rohini)

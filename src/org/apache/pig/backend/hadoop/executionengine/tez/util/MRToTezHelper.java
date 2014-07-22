@@ -90,6 +90,16 @@ public class MRToTezHelper {
             }
         }
 
+        String env = tezConf.get(MRJobConfig.MR_AM_ADMIN_USER_ENV);
+        if (tezConf.get(MRJobConfig.MR_AM_ENV) != null) {
+            env = (env == null) ? tezConf.get(MRJobConfig.MR_AM_ENV)
+                                : env + "," + tezConf.get(MRJobConfig.MR_AM_ENV);
+        }
+
+        if (env != null) {
+            dagAMConf.setIfUnset(TezConfiguration.TEZ_AM_LAUNCH_ENV, env);
+        }
+
         dagAMConf.setIfUnset(TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS,
                 org.apache.tez.mapreduce.hadoop.MRHelpers
                         .getMRAMJavaOpts(tezConf));
@@ -115,6 +125,8 @@ public class MRToTezHelper {
             dagAMConf.setIfUnset(TezJobConfig.TEZ_CREDENTIALS_PATH,
                     tezConf.get("mapreduce.job.credentials.binary"));
         }
+
+        //TODO: Strip out all MR settings
 
         return dagAMConf;
     }

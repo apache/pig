@@ -19,7 +19,6 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +34,6 @@ import org.apache.tez.client.TezAppMasterStatus;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
-import org.apache.tez.mapreduce.hadoop.MRHelpers;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -79,8 +77,6 @@ public class TezSessionManager {
 
     private static SessionInfo createSession(Configuration conf, Map<String, LocalResource> requestedAMResources, Credentials creds) throws TezException, IOException {
         TezConfiguration amConf = MRToTezHelper.getDAGAMConfFromMRConf(conf);
-        Map<String, String> amEnv = new HashMap<String, String>();
-        MRHelpers.updateEnvironmentForMRAM(amConf, amEnv);
         String jobName = conf.get(PigContext.JOB_NAME, "pig");
         TezClient tezClient = new TezClient(jobName, amConf, true, requestedAMResources, creds);
         tezClient.start();
