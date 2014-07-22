@@ -262,11 +262,12 @@ public class TezCompiler extends PhyPlanVisitor {
 
                     TezOperator from = phyToTezOpMap.get(store);
 
+                    FuncSpec newSpec = new FuncSpec(ReadScalarsTez.class.getName(), from.getOperatorKey().toString());
+                    userFunc.setFuncSpec(newSpec);
+
                     if (storeSeen.containsKey(store)) {
                         storeSeen.get(store).addOutputKey(tezOp.getOperatorKey().toString());
                     } else {
-                        FuncSpec newSpec = new FuncSpec(ReadScalarsTez.class.getName(), from.getOperatorKey().toString());
-                        userFunc.setFuncSpec(newSpec);
                         POValueOutputTez output = new POValueOutputTez(OperatorKey.genOpKey(scope));
                         output.addOutputKey(tezOp.getOperatorKey().toString());
                         from.plan.remove(from.plan.getOperator(store.getOperatorKey()));
@@ -788,6 +789,18 @@ public class TezCompiler extends PhyPlanVisitor {
             // LIMIT does not make any ordering guarantees and this is unsorted shuffle.
             TezEdgeDescriptor edge = curTezOp.inEdges.get(prevOp.getOperatorKey());
             TezCompilerUtil.configureValueOnlyTupleOutput(edge, DataMovementType.SCATTER_GATHER);
+
+            // Limit after order by with scalar expression
+            if (this.plan.getPredecessors(op).get(0) instanceof POSort) {
+                output.setTaskIndexWithRecordIndexAsKey(true);
+                // POValueOutputTez will write key (task index, record index) in
+                // sorted order. So using OnFileUnorderedKVOutput instead of OnFileSortedOutput.
+                // But input needs to be merged in sorter order and requires ShuffledMergedInput
+                edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
+                edge.inputClassName = ShuffledMergedInput.class.getName();
+                edge.setIntermediateOutputKeyClass(TezCompilerUtil.TUPLE_CLASS);
+                edge.setIntermediateOutputKeyComparatorClass(PigTupleWritableComparator.class.getName());
+            }
 
             // Then add a POValueInputTez to the start of the new tezOp.
             POValueInputTez input = new POValueInputTez(OperatorKey.genOpKey(scope));

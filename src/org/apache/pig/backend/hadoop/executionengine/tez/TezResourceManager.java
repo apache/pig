@@ -73,6 +73,10 @@ public class TezResourceManager {
         }
     }
 
+    public Path getStagingDir() {
+        return stagingDir;
+    }
+
     // Add files from the source FS as local resources. The resource name will
     // be the same as the file name.
     public Path addTezResource(URI uri) throws IOException {
@@ -83,7 +87,7 @@ public class TezResourceManager {
             if (resources.containsKey(resourceName)) {
                 return resources.get(resourceName);
             }
- 
+
             // Ship the local resource to the staging directory on the remote FS
             if (uri.toString().startsWith("file:")) {
                 Path remoteFsPath = remoteFs.makeQualified(new Path(stagingDir, resourceName));

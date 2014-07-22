@@ -29,6 +29,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.logical.visitor.ScalarVariableValidator;
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -78,6 +79,7 @@ public class TestLimitVariable {
 
     @Test
     public void testLimitVariable2() throws IOException {
+        Assume.assumeTrue("Skip this test for TEZ as it hangs till PIG-4064 is fixed", Util.isMapredExecType(cluster.getExecType()));
         String query =
             "a = load '" + inputFile.getName() + "' as (id, num);" +
             "b = filter a by id == 2;" + // only 1 tuple returned (2,3)

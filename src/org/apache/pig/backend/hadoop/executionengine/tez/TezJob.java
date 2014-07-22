@@ -40,9 +40,9 @@ import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
-import org.apache.tez.dag.api.client.Progress;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.dag.api.client.Progress;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.VertexStatus;
 
@@ -113,7 +113,7 @@ public class TezJob implements Runnable {
 
     public float getDAGProgress() {
         Progress p = dagStatus.getDAGProgress();
-        return (float)p.getSucceededTaskCount() / (float)p.getTotalTaskCount();
+        return p == null ? 0 : (float)p.getSucceededTaskCount() / (float)p.getTotalTaskCount();
     }
 
     public Map<String, Float> getVertexProgress() {

@@ -448,6 +448,8 @@
       conf="hadoop23->master"/>
     <dependency org="org.codehaus.jettison" name="jettison" rev="${jettison.version}"
       conf="hadoop23->master"/>
+    <dependency org="org.apache.commons" name="commons-math3" rev="${commons-math3.version}"
+      conf="hadoop23->master"/>
 
   </dependencies>
 </ivy-module>
