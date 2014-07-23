@@ -46,6 +46,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4067: TestAllLoader in piggybank fails with new hive version (rohini)
+
 PIG-4065: Fix failing unit tests in Tez (rohini)
 
 PIG-4060: Refactor TezJob and TezLauncher (cheolsoo)

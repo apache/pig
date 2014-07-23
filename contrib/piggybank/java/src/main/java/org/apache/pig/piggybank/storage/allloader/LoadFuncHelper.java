@@ -133,6 +133,8 @@ public class LoadFuncHelper {
         Map<MagicNumber, String> magicNumberExtensionMap = new HashMap<MagicNumber, String>();
         magicNumberExtensionMap.put(new MagicNumber(new byte[] { 83, 69, 81 }),
                 "seq");
+        magicNumberExtensionMap.put(new MagicNumber(new byte[] { 82, 67, 70 }),
+                "rc");
         magicNumberExtensionMap.put(
                 new MagicNumber(new byte[] { -119, 76, 90 }), "lzo");
         magicNumberExtensionMap.put(
