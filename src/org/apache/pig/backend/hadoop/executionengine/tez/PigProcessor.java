@@ -341,7 +341,7 @@ public class PigProcessor implements LogicalIOProcessor {
 
     @SuppressWarnings({ "unchecked" })
     private void collectSample(String sampleVertex, LogicalInput logicalInput) throws Exception {
-        String quantileMapCacheKey = "sample-" + sampleVertex  + ".cached";
+        String quantileMapCacheKey = "sample-" + sampleVertex  + ".quantileMap";
         sampleMap =  (Map<String, Object>)ObjectCache.getInstance().retrieve(quantileMapCacheKey);
         if (sampleMap != null) {
             return;
