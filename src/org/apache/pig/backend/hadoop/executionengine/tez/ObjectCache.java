@@ -22,13 +22,13 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.tez.runtime.common.objectregistry.ObjectLifeCycle;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistry;
-import org.apache.tez.runtime.common.objectregistry.ObjectRegistryFactory;
+import org.apache.tez.runtime.common.objectregistry.ObjectRegistryImpl;
 
 @InterfaceAudience.Private
 public class ObjectCache {
 
     private static final Log LOG = LogFactory.getLog(ObjectCache.class);
-    private final ObjectRegistry registry = ObjectRegistryFactory.getObjectRegistry();
+    private final ObjectRegistry registry = new ObjectRegistryImpl();
     private static ObjectCache cache = new ObjectCache();
 
     private ObjectCache() {
