@@ -33,7 +33,7 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezExecType;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezSessionManager;
-import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 
 public class TezMiniCluster extends MiniGenericCluster {
     private static final File CONF_DIR = new File("build/classes");
@@ -106,7 +106,7 @@ public class TezMiniCluster extends MiniGenericCluster {
             // Write tez-site.xml
             Configuration tez_conf = new Configuration(false);
             // TODO PIG-3659 - Remove this once memory management is fixed
-            tez_conf.set(TezJobConfig.TEZ_RUNTIME_IO_SORT_MB, "20");
+            tez_conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, "20");
             tez_conf.set("tez.lib.uris", "hdfs:///tez,hdfs:///tez/lib");
             tez_conf.writeXml(new FileOutputStream(TEZ_CONF_FILE));
             m_fileSys.copyFromLocalFile(
