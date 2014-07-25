@@ -46,6 +46,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4070: Change from TezJobConfig to TezRuntimeConfiguration (rohini)
+
 PIG-4068: ObjectCache causes ClassCastException (cheolsoo)
 
 PIG-4067: TestAllLoader in piggybank fails with new hive version (rohini)

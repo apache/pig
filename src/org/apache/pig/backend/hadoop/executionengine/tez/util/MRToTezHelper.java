@@ -32,7 +32,6 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.classification.InterfaceAudience;
-import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.mapreduce.hadoop.DeprecatedKeys;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
@@ -122,7 +121,7 @@ public class MRToTezHelper {
                         MRJobConfig.DEFAULT_MR_AM_MAX_ATTEMPTS));
 
         if (tezConf.get("mapreduce.job.credentials.binary") != null) {
-            dagAMConf.setIfUnset(TezJobConfig.TEZ_CREDENTIALS_PATH,
+            dagAMConf.setIfUnset(TezConfiguration.TEZ_CREDENTIALS_PATH,
                     tezConf.get("mapreduce.job.credentials.binary"));
         }
 

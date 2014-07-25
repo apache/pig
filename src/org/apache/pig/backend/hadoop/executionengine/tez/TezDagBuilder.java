@@ -105,7 +105,6 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.UDFContext;
-import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
@@ -114,6 +113,8 @@ import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.GroupInputEdge;
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.InputInitializerDescriptor;
+import org.apache.tez.dag.api.OutputCommitterDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.Vertex;
@@ -129,6 +130,7 @@ import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.input.ConcatenatedMergedKeyValueInput;
 import org.apache.tez.runtime.library.input.ShuffledMergedInput;
 import org.apache.tez.runtime.library.input.SortedGroupedMergedInput;
@@ -230,9 +232,9 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 tezOp.getVertexGroupInfo().setVertexGroup(vertexGroup);
                 POStore store = tezOp.getVertexGroupInfo().getStore();
                 if (store != null) {
-                    vertexGroup.addOutput(store.getOperatorKey().toString(),
+                    vertexGroup.addDataSink(store.getOperatorKey().toString(),
                             tezOp.getVertexGroupInfo().getStoreOutputDescriptor(),
-                            MROutputCommitter.class);
+                            new OutputCommitterDescriptor(MROutputCommitter.class.getName()));
                 }
             }
         }
@@ -290,21 +292,21 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             }
         }
 
-        conf.setIfUnset(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS,
+        conf.setIfUnset(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS,
                 MRPartitioner.class.getName());
 
         if (edge.getIntermediateOutputKeyClass() != null) {
-            conf.set(TezJobConfig.TEZ_RUNTIME_KEY_CLASS,
+            conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS,
                     edge.getIntermediateOutputKeyClass());
         }
 
         if (edge.getIntermediateOutputValueClass() != null) {
-            conf.set(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS,
+            conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS,
                     edge.getIntermediateOutputValueClass());
         }
 
         if (edge.getIntermediateOutputKeyComparatorClass() != null) {
-            conf.set(TezJobConfig.TEZ_RUNTIME_KEY_COMPARATOR_CLASS,
+            conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS,
                     edge.getIntermediateOutputKeyComparatorClass());
         }
 
@@ -327,10 +329,10 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             // Tez framework also expects this to be per vertex and not edge. IFile.java picks
             // up keyClass and valueClass from vertex config. TODO - check with Tez folks
             // In MR - job.setSortComparatorClass() or MRJobConfig.KEY_COMPARATOR
-            conf.set(TezJobConfig.TEZ_RUNTIME_KEY_COMPARATOR_CLASS,
+            conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS,
                     PigSecondaryKeyComparator.class.getName());
             // In MR - job.setOutputKeyClass() or MRJobConfig.OUTPUT_KEY_CLASS
-            conf.set(TezJobConfig.TEZ_RUNTIME_KEY_CLASS, NullableTuple.class.getName());
+            conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, NullableTuple.class.getName());
             setGroupingComparator(conf, PigSecondaryKeyGroupComparator.class.getName());
         }
 
@@ -369,7 +371,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         lrDiscoverer.visit();
 
         combinePlan.remove(combPack);
-        conf.set(TezJobConfig.TEZ_RUNTIME_COMBINER_CLASS,
+        conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_COMBINER_CLASS,
                 MRCombiner.class.getName());
         conf.set(MRJobConfig.COMBINE_CLASS_ATTR,
                 PigCombiner.Combine.class.getName());
@@ -680,12 +682,12 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             // TODO: These should get the globalConf, or a merged version that
             // keeps settings like pig.maxCombinedSplitSize
             vertex.setTaskLocationsHint(inputSplitInfo.getTaskLocationHints());
-            vertex.addInput(ld.getOperatorKey().toString(),
+            vertex.addDataSource(ld.getOperatorKey().toString(),
                     new InputDescriptor(MRInput.class.getName())
                             .setUserPayload(MRHelpers.createMRInputPayload(
                                     userPayload,
                                     inputSplitInfo.getSplitsProto())),
-                    MRInputSplitDistributor.class);
+                    new InputInitializerDescriptor(MRInputSplitDistributor.class.getName()));
         }
 
         for (POStore store : stores) {
@@ -711,8 +713,8 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                     continue;
                 }
             }
-            vertex.addOutput(store.getOperatorKey().toString(),
-                    storeOutDescriptor, MROutputCommitter.class);
+            vertex.addDataSink(store.getOperatorKey().toString(),
+                    storeOutDescriptor, new OutputCommitterDescriptor(MROutputCommitter.class.getName()));
         }
 
         // LoadFunc and StoreFunc add delegation tokens to Job Credentials in
@@ -916,21 +918,21 @@ public class TezDagBuilder extends TezOpPlanVisitor {
     private void setIntermediateOutputKeyValue(byte keyType, Configuration conf, TezOperator tezOp,
             boolean isConnectedToPackage) throws JobCreationException, ExecException {
         if (tezOp != null && tezOp.isUseSecondaryKey() && isConnectedToPackage) {
-            conf.set(TezJobConfig.TEZ_RUNTIME_KEY_CLASS,
+            conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS,
                     NullableTuple.class.getName());
         } else if (tezOp != null && tezOp.isSkewedJoin() && isConnectedToPackage) {
-            conf.set(TezJobConfig.TEZ_RUNTIME_KEY_CLASS,
+            conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS,
                     NullablePartitionWritable.class.getName());
         } else {
             Class<? extends WritableComparable> keyClass = HDataType
                     .getWritableComparableTypes(keyType).getClass();
-            conf.set(TezJobConfig.TEZ_RUNTIME_KEY_CLASS,
+            conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS,
                     keyClass.getName());
 
         }
-        conf.set(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS,
+        conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS,
                 NullableTuple.class.getName());
-        conf.set(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS,
+        conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS,
                 MRPartitioner.class.getName());
         selectOutputComparator(keyType, conf, tezOp);
     }
@@ -1059,20 +1061,20 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         // TODO: Handle sorting like in JobControlCompiler
         // TODO: Group comparators as in JobControlCompiler
         if (tezOp != null && tezOp.isUseSecondaryKey()) {
-            conf.set(TezJobConfig.TEZ_RUNTIME_KEY_COMPARATOR_CLASS,
+            conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS,
                     PigSecondaryKeyComparator.class.getName());
             setGroupingComparator(conf, PigSecondaryKeyGroupComparator.class.getName());
         } else {
             if (tezOp != null && tezOp.isSkewedJoin()) {
                 // TODO: PigGroupingPartitionWritableComparator only used as Group comparator in MR.
                 // What should be TEZ_RUNTIME_KEY_COMPARATOR_CLASS if same as MR?
-                conf.set(TezJobConfig.TEZ_RUNTIME_KEY_COMPARATOR_CLASS,
+                conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS,
                         PigGroupingPartitionWritableComparator.class.getName());
                 setGroupingComparator(conf, PigGroupingPartitionWritableComparator.class.getName());
             } else {
                 boolean hasOrderby = hasOrderby(tezOp);
                 conf.setClass(
-                        TezJobConfig.TEZ_RUNTIME_KEY_COMPARATOR_CLASS,
+                        TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS,
                         comparatorForKeyType(keyType, hasOrderby), RawComparator.class);
                 if (!hasOrderby) {
                     setGroupingComparator(conf, getGroupingComparatorForKeyType(keyType).getName());
@@ -1099,9 +1101,9 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         // In MR - job.setGroupingComparatorClass() or MRJobConfig.GROUP_COMPARATOR_CLASS
         // TODO: Check why tez-mapreduce ReduceProcessor use two different tez
         // settings for the same MRJobConfig.GROUP_COMPARATOR_CLASS and use only one
-        conf.set(TezJobConfig.TEZ_RUNTIME_GROUP_COMPARATOR_CLASS,
+        conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_GROUP_COMPARATOR_CLASS,
                 comparatorClass);
-        conf.set(TezJobConfig.TEZ_RUNTIME_KEY_SECONDARY_COMPARATOR_CLASS,
+        conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_SECONDARY_COMPARATOR_CLASS,
                 comparatorClass);
     }
 

@@ -188,6 +188,8 @@ public class TezStats extends PigStats {
      */
     public void accumulateStats(TezJob tezJob) throws IOException {
         DAGStatus dagStatus = tezJob.getDAGStatus();
+        if (dagStatus == null)
+            return;
         if (dagStatus.getState() == DAGStatus.State.SUCCEEDED) {
             addVertexStats(tezJob, true);
             dagStatsStrings.add(getDisplayString(tezJob));
