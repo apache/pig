@@ -46,6 +46,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4075: TEZ-1311 broke Hadoop2 compilation (cheolsoo)
+
 PIG-4070: Change from TezJobConfig to TezRuntimeConfiguration (rohini)
 
 PIG-4068: ObjectCache causes ClassCastException (cheolsoo)
