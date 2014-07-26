@@ -31,16 +31,13 @@
     <property name="data.dir" value="data" />
     <property name="scripts.dir" value="scripts" />
 
-    <path id="pigjar.id">
-      <fileset dir="..">
-        <include name="pig*.jar"/>
-        <exclude name="pig*-withouthadoop.jar"/>
-      </fileset>
-    </path>
-
-    <property name="pigjar" refid="pigjar.id"/> 
-
     <path id="tutorial.classpath">
+        <fileset dir="../build/ivy/lib/Pig">
+          <include name="*.jar"/>
+        </fileset>
+        <fileset dir="..">
+          <include name="pig*-core-*.jar"/>
+        </fileset>
         <pathelement location="${build.classes}"/>
         <pathelement location="${pigjar}"/>
     </path>

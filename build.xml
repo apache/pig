@@ -15,7 +15,7 @@
    limitations under the License.
 -->
 
-<project name="Pig" default="jar-all"
+<project name="Pig" default="jar"
          xmlns:artifact="urn:maven-artifact-ant"
          xmlns:ivy="antlib:org.apache.ivy.ant">
     <!-- Load all the default properties, and any the user wants    -->
@@ -44,6 +44,7 @@
     <property name="src.lib.dir" value="${basedir}/lib-src" />
     <property name="src.gen.dir" value="${basedir}/src-gen" />
     <property name="docs.dir" value="${basedir}/src/docs" />
+    <property name="legacy.dir" value="${basedir}/legacy" />
 
 
     <!-- build properties -->
@@ -70,31 +71,22 @@
     <property name="artifact.pig.jar" value="${final.name}.jar"/>
     <property name="artifact.pig-h1.jar" value="${final.name}-h1.jar"/>
     <property name="artifact.pig-h2.jar" value="${final.name}-h2.jar"/>
-    <property name="artifact.pig-withouthadoop.jar" value="${final.name}-withouthadoop.jar"/>
-    <property name="artifact.pig-withouthadoop-h1.jar" value="${final.name}-withouthadoop-h1.jar"/>
-    <property name="artifact.pig-withouthadoop-h2.jar" value="${final.name}-withouthadoop-h2.jar"/>
-    <property name="artifact.pig-withdependencies.jar" value="${final.name}-withdependencies.jar"/>
     <property name="artifact.pig-sources.jar" value="${final.name}-sources.jar"/>
     <property name="artifact.pig-javadoc.jar" value="${final.name}-javadoc.jar"/>
     <property name="artifact.pig.tar" value="${final.name}.tar.gz"/>
 
     <!-- jar names. TODO we might want to use the svn reversion name in the name in case it is a dev version -->
-    <property name="output.jarfile.withdependencies" value="${build.dir}/${artifact.pig-withdependencies.jar}" />
-    <property name="output.jarfile.withouthadoop" value="${build.dir}/${artifact.pig-withouthadoop.jar}" />
-    <property name="output.jarfile.withouthadoop-h1" value="${build.dir}/${artifact.pig-withouthadoop-h1.jar}" />
-    <property name="output.jarfile.withouthadoop-h2" value="${build.dir}/${artifact.pig-withouthadoop-h2.jar}" />
+    <property name="output.jarfile.withouthadoop" value="${build.dir}/${final.name}-withouthadoop.jar" />
+    <property name="output.jarfile.withouthadoop-h1" value="${legacy.dir}/${final.name}-withouthadoop-h1.jar" />
+    <property name="output.jarfile.withouthadoop-h2" value="${legacy.dir}/${final.name}-withouthadoop-h2.jar" />
     <property name="output.jarfile.core" value="${build.dir}/${artifact.pig.jar}" />
     <property name="output.jarfile.core-h1" value="${build.dir}/${artifact.pig-h1.jar}" />
     <property name="output.jarfile.core-h2" value="${build.dir}/${artifact.pig-h2.jar}" />
     <property name="output.jarfile.sources" value="${build.dir}/${artifact.pig-sources.jar}" />
     <property name="output.jarfile.javadoc" value="${build.dir}/${artifact.pig-javadoc.jar}" />
     <!-- Maintain old pig.jar in top level directory. -->
-    <property name="output.jarfile.backcompat" value="${basedir}/${name}.jar" />
-    <property name="output.jarfile.backcompat-h1" value="${basedir}/${name}-h1.jar" />
-    <property name="output.jarfile.backcompat-h2" value="${basedir}/${name}-h2.jar" />
-    <property name="output.jarfile.backcompat.withouthadoop" value="${basedir}/${name}-withouthadoop.jar" />
-    <property name="output.jarfile.backcompat.withouthadoop-h1" value="${basedir}/${name}-withouthadoop-h1.jar" />
-    <property name="output.jarfile.backcompat.withouthadoop-h2" value="${basedir}/${name}-withouthadoop-h2.jar" />
+    <property name="output.jarfile.backcompat-core-h1" value="${basedir}/${final.name}-core-h1.jar" />
+    <property name="output.jarfile.backcompat-core-h2" value="${basedir}/${final.name}-core-h2.jar" />
 
     <!-- test properties -->
     <condition property="test.exec.type" value="${exectype}" else="mr">
@@ -281,7 +273,7 @@
     <property name="jdiff.jar" value="${ivy.lib.dir}/jdiff-${jdiff.version}.jar"/>
     <property name="xerces.jar" value="${ivy.lib.dir}/xercesImpl-${xerces.version}.jar"/>
     <property name="jdiff.build.dir" value="${build.docs}/jdiff"/>
-    <property name="jdiff.xml.dir" value="${lib.dir}/jdiff"/>
+    <property name="jdiff.xml.dir" value="${docs.dir}/jdiff"/>
     <property name="jdiff.stable" value="0.13.0"/>
     <property name="jdiff.stable.javadoc" value="http://hadoop.apache.org/${name}/docs/r${jdiff.stable}/api/"/>
 
@@ -359,7 +351,6 @@
     <!-- setup the classpath -->
     <path id="classpath">
         <path refid="compile.classpath"/>
-        <fileset dir="${lib.dir}" includes="*.jar"/>
         <fileset file="${ivy.lib.dir}/${zookeeper.jarfile}"/>
         <fileset dir="${ivy.lib.dir}" includes="*.jar"/>
     </path>
@@ -377,6 +368,10 @@
         <pathelement location="${piggybank.jarfile}"/>
         <path refid="classpath"/>
     </path>
+
+    <fileset dir="${ivy.lib.dir}" id="core.dependencies.jar">
+        <exclude name="**.*jar"/>
+    </fileset>
 
     <fileset dir="${ivy.lib.dir}" id="runtime.dependencies-withouthadoop.jar">
         <patternset id="pattern.runtime.dependencies-withouthadoop.jar">
@@ -396,32 +391,6 @@
             <include name="snappy-java-${snappy.version}.jar"/>
             <include name="asm*.jar"/>
         </patternset>
-    </fileset>
-
-    <fileset dir="${ivy.lib.dir}" id="runtime.dependencies.jar">
-        <patternset id="pattern.runtime.dependencies.jar">
-            <patternset refid="pattern.runtime.dependencies-withouthadoop.jar"/>
-            <include name="hadoop-core-${hadoop-core.version}.jar" unless="isHadoop23"/>
-            <include name="hadoop-*-${hadoop-common.version}.jar" if="isHadoop23"/>
-            <exclude name="hadoop-hdfs-${hadoop-hdfs.version}.jar"/>
-            <include name="junit-${junit.version}.jar"/>
-            <include name="protobuf-java-${protobuf-java.version}.jar"/>
-            <include name="commons*.jar"/>
-            <include name="log4j*.jar"/>
-            <include name="slf4j*.jar"/>
-            <include name="jsp-api*.jar"/>
-            <include name="avro-${avro.version}.jar"/>
-            <include name="avro-mapred-${avro.version}*.jar"/>
-            <include name="trevni-core-${avro.version}.jar"/>
-            <include name="trevni-avro-${avro.version}.jar"/>
-            <include name="snappy-java-${snappy.version}.jar"/>
-            <include name="asm*.jar"/>
-            <include name="tez-*-${tez.version}.jar" if="isHadoop23"/>
-        </patternset>
-    </fileset>
-
-    <fileset dir="${ivy.lib.dir}" id="core.dependencies.jar">
-        <exclude name="**.*jar"/>
     </fileset>
 
     <target name="init" depends="ivy-compile" >
@@ -473,6 +442,8 @@
         <delete>
             <fileset dir="${basedir}" includes="pig*.jar" />
         </delete>
+        <delete dir="${lib.dir}" />
+        <delete dir="${legacy.dir}" />
         <ant dir="${test.e2e.dir}" target="clean"/>
     </target>
 
@@ -637,7 +608,7 @@
     <!-- ================================================================== -->
     <!-- Documentation                                                      -->
     <!-- ================================================================== -->
-    <target name="javadoc" depends="jar-withouthadoop, ivy-javadoc" description="Create documentation">
+    <target name="javadoc" depends="jar, ivy-javadoc" description="Create documentation">
         <mkdir dir="${build.javadoc}" />
         <javadoc overview="${src.dir}/overview.html" packagenames="org.apache.pig.*" destdir="${build.javadoc}" author="true" version="true" use="true" windowtitle="${Name} ${version} API" doctitle="${Name} ${version} API" bottom="Copyright &amp;copy; ${year} The Apache Software Foundation">
             <packageset dir="${src.dir}" />
@@ -650,7 +621,7 @@
         </javadoc>
     </target>
 
-    <target name="javadoc-all" depends="jar-withouthadoop, piggybank, ivy-javadoc" description="Create documentation including all contrib projects">
+    <target name="javadoc-all" depends="jar, piggybank, ivy-javadoc" description="Create documentation including all contrib projects">
         <mkdir dir="${build.javadoc}" />
         <javadoc overview="${src.dir}/overview.html" packagenames="org.apache.pig*" destdir="${build.javadoc}" author="true" version="true" use="true" windowtitle="${Name} ${version} API" doctitle="${Name} ${version} API" bottom="Copyright &amp;copy; ${year} The Apache Software Foundation">
             <packageset dir="${src.dir}" />
@@ -658,7 +629,7 @@
             <link href="${javadoc.link.java}" />
             <classpath>
                 <path refid="javadoc-classpath" />
-                <pathelement path="${output.jarfile.withdependencies}" />
+                <pathelement path="${output.jarfile.core}" />
                 <pathelement path="${piggybank.jarfile}"/>
             </classpath>
             <group title="pig" packages="org.apache.pig*" />
@@ -709,62 +680,99 @@
     </target>
 
     <!-- ================================================================== -->
-    <!-- Facede to build pig.jar and pig-withouthadoop.jar                  -->
+    <!-- Facede to build pig.jar for both Hadoop 1 and Hadoop 2             -->
     <!-- ================================================================== -->
-    <target name="jar-all" depends="jar,jar-withouthadoop" description="Create pig, pig withdependencies and pig withouthadoop jar" />
-
-    <target name="jar-all-h12" description="Create pig, pig withdependencies and pig withouthadoop jar for both Hadoop 1 and Hadoop 2">
-        <propertyreset name="hadoopversion" value="23" />
-        <propertyreset name="src.shims.dir" value="${basedir}/shims/src/hadoop${hadoopversion}" />
-        <antcall target="clean" inheritRefs="true" inheritall="true"/>
-        <antcall target="jar-withouthadoop" inheritRefs="true" inheritall="true"/>
-        <delete dir="${build.dir}" />
+    <target name="jar-h12" description="Create pig for both Hadoop 1 and Hadoop 2">
         <propertyreset name="hadoopversion" value="20" />
         <propertyreset name="src.shims.dir" value="${basedir}/shims/src/hadoop${hadoopversion}" />
+        <antcall target="clean" inheritRefs="true" inheritall="true"/>
         <antcall target="jar" inheritRefs="true" inheritall="true"/>
-        <antcall target="jar-withouthadoop" inheritRefs="true" inheritall="true"/>
+        <antcall target="copyHadoop1LocalRuntimeDependencies"/>
+        <delete dir="${build.dir}" />
+        <propertyreset name="hadoopversion" value="23" />
+        <propertyreset name="hbase.hadoop.version" value="hadoop2" />
+        <propertyreset name="src.shims.dir" value="${basedir}/shims/src/hadoop${hadoopversion}" />
+        <antcall target="jar" inheritRefs="true" inheritall="true"/>
     </target>
 
     <!-- ================================================================== -->
     <!-- Make pig.jar                                                       -->
     <!-- ================================================================== -->
-    <!-- TODO we should also exclude test here...                           -->
-    <!-- ================================================================== -->
-    <target name="jar" depends="compile,ivy-buildJar" description="Create pig withdependecies jar">
-        <buildJar svnString="${svn.revision}" outputFile="${output.jarfile.core}" includedJars="core.dependencies.jar"/>
-        <buildJar svnString="${svn.revision}" outputFile="${output.jarfile.withdependencies}" includedJars="runtime.dependencies.jar"/>
-        <antcall target="copyHadoop1">
-            <param name="source" value="${output.jarfile.withdependencies}"/>
-            <param name="dest" value="${output.jarfile.backcompat-h1}"/>
-        </antcall>
-        <antcall target="copyHadoop2">
-            <param name="source" value="${output.jarfile.withdependencies}"/>
-            <param name="dest" value="${output.jarfile.backcompat-h2}"/>
-        </antcall>
-    </target>
-
-    <!-- ================================================================== -->
-    <!-- Make pig-withouthadoop.jar                                         -->
-    <!-- ================================================================== -->
-    <target name="jar-withouthadoop" depends="compile,ivy-buildJar" description="Create pig withouthadoop jar">
+    <target name="jar" depends="compile,ivy-buildJar" description="Create pig core jar">
         <buildJar svnString="${svn.revision}" outputFile="${output.jarfile.core}" includedJars="core.dependencies.jar"/>
         <buildJar svnString="${svn.revision}" outputFile="${output.jarfile.withouthadoop}" includedJars="runtime.dependencies-withouthadoop.jar"/>
-        <antcall target="copyHadoop1">
-            <param name="source" value="${output.jarfile.withouthadoop}"/>
-            <param name="dest" value="${output.jarfile.backcompat.withouthadoop-h1}"/>
-        </antcall>
-        <antcall target="copyHadoop2">
-            <param name="source" value="${output.jarfile.withouthadoop}"/>
-            <param name="dest" value="${output.jarfile.backcompat.withouthadoop-h2}"/>
-        </antcall>
+        <antcall target="copyCommonDependencies"/>
+        <antcall target="copyh1Dependencies"/>
+        <antcall target="copyh2Dependencies"/>
     </target>
 
-    <target name="copyHadoop2" if="isHadoop23">
-        <copy file="${source}" tofile="${dest}"/>
+    <target name="copyCommonDependencies">
+        <mkdir dir="${lib.dir}" />
+        <copy todir="${lib.dir}">
+            <fileset dir="${ivy.lib.dir}" includes="antlr-runtime-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="ST4-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="jline-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="jackson-mapper-asl-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="jackson-core-asl-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="joda-time-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="guava-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="automaton-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="jansi-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="avro-*.jar" excludes="avro-*tests.jar,avro-mapred-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="trevni-core-*.jar" excludes="trevni-core-*tests.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="trevni-avro-*.jar" excludes="trevni-avro-*tests.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="snappy-java-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="asm*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="jython-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="jruby-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="groovy-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="js-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="hbase-*.jar" excludes="hbase-*tests.jar,hbase-*hadoop*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="hive-*.jar" excludes="hive-shims-0.*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="protobuf-java-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="zookeeper-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="accumulo-*.jar" excludes="accumulo-minicluster*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="json-simple-*.jar"/>
+        </copy>
     </target>
 
-    <target name="copyHadoop1" unless="isHadoop23">
-        <copy file="${source}" tofile="${dest}"/>
+    <target name="copyh1Dependencies" unless="isHadoop23">
+        <mkdir dir="${lib.dir}/h1" />
+        <copy todir="${lib.dir}/h1">
+            <fileset dir="${ivy.lib.dir}" includes="avro-mapred-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="hive-shims-0.*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="hbase-*hadoop1.jar"/>
+        </copy>
+        <copy file="${output.jarfile.core}" tofile="${output.jarfile.backcompat-core-h1}"/>
+        <mkdir dir="${legacy.dir}" />
+        <move file="${output.jarfile.withouthadoop}" tofile="${output.jarfile.withouthadoop-h1}"/>
+    </target>
+
+    <target name="copyh2Dependencies" if="isHadoop23">
+        <mkdir dir="${lib.dir}/h2" />
+        <copy todir="${lib.dir}/h2">
+            <fileset dir="${ivy.lib.dir}" includes="avro-mapred-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="hive-shims-0.*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="hbase-*hadoop2.jar"/>
+        </copy>
+        <copy file="${output.jarfile.core}" tofile="${output.jarfile.backcompat-core-h2}"/>
+        <mkdir dir="${legacy.dir}" />
+        <move file="${output.jarfile.withouthadoop}" tofile="${output.jarfile.withouthadoop-h2}"/>
+    </target>
+
+    <target name="copyHadoop1LocalRuntimeDependencies">
+        <mkdir dir="${lib.dir}/hadoop1-runtime" />
+        <copy todir="${lib.dir}/hadoop1-runtime">
+            <fileset dir="${ivy.lib.dir}" includes="hadoop-core-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="commons-cli-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="commons-configuration-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="commons-lang-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="commons-codec-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="commons-io-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="commons-logging-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="commons-httpclient-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="log4j-*.jar"/>
+        </copy>
     </target>
 
     <scriptdef name="propertyreset" language="javascript"
@@ -780,20 +788,15 @@
         <propertyreset name="src.shims.dir" value="${basedir}/shims/src/hadoop${hadoopversion}" />
         <antcall target="clean" inheritRefs="true" inheritall="true"/>
         <antcall target="jar" inheritRefs="true" inheritall="true"/>
-        <antcall target="jar-withouthadoop" inheritRefs="true" inheritall="true"/>
         <!-- Move and rename pig jar for Hadoop2/23 to a different location before compiling for Hadoop1/20 -->
         <move file="${output.jarfile.core}" tofile="${basedir}/${artifact.pig-h2.jar}"/>
-        <move file="${output.jarfile.withouthadoop}" tofile="${basedir}/${artifact.pig-withouthadoop-h2.jar}"/>
         <delete dir="${build.dir}" />
         <propertyreset name="hadoopversion" value="20" />
         <propertyreset name="isHadoop" value="" />
         <propertyreset name="src.shims.dir" value="${basedir}/shims/src/hadoop${hadoopversion}" />
         <antcall target="jar" inheritRefs="true" inheritall="true"/>
-        <antcall target="jar-withouthadoop" inheritRefs="true" inheritall="true"/>
         <move file="${output.jarfile.core}" tofile="${output.jarfile.core-h1}"/>
-        <move file="${output.jarfile.withouthadoop}" tofile="${output.jarfile.withouthadoop-h1}"/>
         <move file="${basedir}/${artifact.pig-h2.jar}" tofile="${output.jarfile.core-h2}"/>
-        <move file="${basedir}/${artifact.pig-withouthadoop-h2.jar}" tofile="${output.jarfile.withouthadoop-h2}"/>
     </target>
 
     <!-- ================================================================== -->
@@ -862,23 +865,23 @@
     <!-- ================================================================== -->
     <!-- Run unit tests                                                     -->
     <!-- ================================================================== -->
-    <target name="test-core" depends="setWindowsPath,setLinuxPath,compile-test,jar-withouthadoop,debugger.check,jackson-pig-3039-test-download" description="Run full set of unit tests">
+    <target name="test-core" depends="setWindowsPath,setLinuxPath,compile-test,jar,debugger.check,jackson-pig-3039-test-download" description="Run full set of unit tests">
         <macro-test-runner test.file="${test.all.file}" />
     </target>
 
-    <target name="test-commit" depends="setWindowsPath,setLinuxPath,compile-test,jar-withouthadoop,debugger.check" description="Run approximate 10-minute set of unit tests prior to commiting">
+    <target name="test-commit" depends="setWindowsPath,setLinuxPath,compile-test,jar,debugger.check" description="Run approximate 10-minute set of unit tests prior to commiting">
         <macro-test-runner test.file="${test.commit.file}" />
     </target>
 
-    <target name="test-unit" depends="setWindowsPath,setLinuxPath,compile-test,jar-withouthadoop,debugger.check" description="Run all true unit tests">
+    <target name="test-unit" depends="setWindowsPath,setLinuxPath,compile-test,jar,debugger.check" description="Run all true unit tests">
         <macro-test-runner test.file="${test.unit.file}" />
     </target>
 
-    <target name="test-smoke" depends="setWindowsPath,setLinuxPath,compile-test,jar-withouthadoop,debugger.check" description="Run 30 min smoke tests">
+    <target name="test-smoke" depends="setWindowsPath,setLinuxPath,compile-test,jar,debugger.check" description="Run 30 min smoke tests">
         <macro-test-runner test.file="${test.smoke.file}" />
     </target>
 
-    <target name="test-tez" depends="setTezEnv,setWindowsPath,setLinuxPath,compile-test,jar-withouthadoop,debugger.check" description="Run tez unit tests">
+    <target name="test-tez" depends="setTezEnv,setWindowsPath,setLinuxPath,compile-test,jar,debugger.check" description="Run tez unit tests">
         <macro-test-runner test.file="${test.tez.file}" />
     </target>
 	
@@ -912,7 +915,10 @@
             <env key="MALLOC_ARENA_MAX" value="4"/>
             <env key="PATH" path="${build.path}"/>
             <classpath>
-                <pathelement location="${output.jarfile.withouthadoop}" />
+                <pathelement location="${output.jarfile.core}" />
+                <fileset dir="lib">
+                    <include name="**/*.jar"/>
+                </fileset>
                 <pathelement location="${test.build.classes}" />
                 <pathelement location="." />
                 <pathelement path="${clover.jar}"/>
@@ -955,35 +961,35 @@
     <!-- End to end tests                                                   -->
     <!-- ================================================================== -->
 
-    <target name="test-e2e" depends="jar, jar-withouthadoop, piggybank" description="run end-to-end tests">
+    <target name="test-e2e" depends="jar, piggybank" description="run end-to-end tests">
         <ant dir="${test.e2e.dir}"/>
     </target>
 
-    <target name="test-e2e-tez" depends="jar, jar-withouthadoop, piggybank" description="run end-to-end tests in tez mode">
+    <target name="test-e2e-tez" depends="jar, piggybank" description="run end-to-end tests in tez mode">
         <ant dir="${test.e2e.dir}" target="test-tez"/>
     </target>
 
-    <target name="test-e2e-deploy" depends="jar, jar-withouthadoop" description="deploy end-to-end tests to existing cluster">
+    <target name="test-e2e-deploy" depends="jar" description="deploy end-to-end tests to existing cluster">
         <ant dir="${test.e2e.dir}" target="deploy"/>
     </target>
 
-    <target name="test-e2e-undeploy" depends="jar, jar-withouthadoop" description="undeploy end-to-end tests from existing cluster">
+    <target name="test-e2e-undeploy" depends="jar" description="undeploy end-to-end tests from existing cluster">
         <ant dir="${test.e2e.dir}" target="undeploy"/>
     </target>
 
-    <target name="test-e2e-local" depends="jar, jar-withouthadoop, piggybank" description="run end-to-end tests in local mode">
+    <target name="test-e2e-local" depends="jar, piggybank" description="run end-to-end tests in local mode">
         <ant dir="${test.e2e.dir}" target="test-local"/>
     </target>
 
-    <target name="test-e2e-deploy-local" depends="jar, jar-withouthadoop" description="create files needed by local mode end-to-end tests">
+    <target name="test-e2e-deploy-local" depends="jar" description="create files needed by local mode end-to-end tests">
         <ant dir="${test.e2e.dir}" target="deploy-local"/>
     </target>
 
-    <target name="pigmix-deploy" depends="jar, jar-withouthadoop" description="deploy end-to-end tests to existing cluster">
+    <target name="pigmix-deploy" depends="jar" description="deploy end-to-end tests to existing cluster">
         <ant dir="${pigmix.dir}" target="deploy"/>
     </target>
 
-    <target name="pigmix" depends="jar, jar-withouthadoop, piggybank" description="run end-to-end tests">
+    <target name="pigmix" depends="jar, piggybank" description="run end-to-end tests">
         <ant dir="${pigmix.dir}" target="test"/>
     </target>
 
@@ -1002,19 +1008,19 @@
         </jar>
     </target>
 
-    <target name="test-pigunit" depends="setWindowsPath,setLinuxPath,compile-test,jar-withouthadoop, pigunit-jar" description="Run tests that test PigUnit">
+    <target name="test-pigunit" depends="setWindowsPath,setLinuxPath,compile-test,jar, pigunit-jar" description="Run tests that test PigUnit">
         <macro-test-runner test.file="${test.pigunit.file}" />
     </target>
 
     <!-- ================================================================== -->
     <!-- Distribution                                                       -->
     <!-- ================================================================== -->
-    <target name="package-h12" depends="jar-all-h12, docs, api-report, piggybank" description="Create a Pig tar release">
-		<package-base/>
+    <target name="package-h12" depends="jar-h12, docs, api-report, piggybank" description="Create a Pig tar release">
+        <package-base/>
     </target>
 	
-    <target name="package" depends="jar-all, docs, api-report, piggybank" description="Create a Pig tar release">
-		<package-base/>
+    <target name="package" depends="jar, docs, api-report, piggybank" description="Create a Pig tar release">
+        <package-base/>
     </target>
 	
     <macrodef name="package-base">
@@ -1032,24 +1038,8 @@
             <fileset dir="${lib.dir}"/>
         </copy>
 
-        <copy todir="${tar.dist.dir}/lib">
-            <fileset dir="${ivy.lib.dir}" includes="jython-*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="jruby-*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="groovy-*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="js-*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="hbase-*.jar" excludes="hbase-*tests.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="protobuf-java-*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="zookeeper-*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="accumulo-*.jar" excludes="accumulo-minicluster*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="avro-*.jar" excludes="avro-*tests.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="json-simple-*.jar"/>
-        </copy>
-
-        <copy file="${output.jarfile.backcompat.withouthadoop-h1}" tofile="${tar.dist.dir}/${final.name}-withouthadoop-h1.jar" failonerror="false"/>
-        <copy file="${output.jarfile.backcompat.withouthadoop-h2}" tofile="${tar.dist.dir}/${final.name}-withouthadoop-h2.jar" failonerror="false"/>
-
-        <copy file="${output.jarfile.backcompat-h1}" tofile="${tar.dist.dir}/${final.name}-h1.jar" failonerror="false"/>
-        <copy file="${output.jarfile.backcompat-h2}" tofile="${tar.dist.dir}/${final.name}-h2.jar" failonerror="false"/>
+        <copy file="${output.jarfile.backcompat-core-h1}" tofile="${tar.dist.dir}/${final.name}-core-h1.jar" failonerror="false"/>
+        <copy file="${output.jarfile.backcompat-core-h2}" tofile="${tar.dist.dir}/${final.name}-core-h2.jar" failonerror="false"/>
 
         <copy todir="${tar.dist.dir}/lib" file="contrib/piggybank/java/piggybank.jar"/>
 
@@ -1109,6 +1099,10 @@
             <fileset dir="license" />
         </copy>
 
+        <copy todir="${tar.dist.dir}/legacy">
+            <fileset dir="${legacy.dir}" />
+        </copy>
+
         <chmod perm="ugo+x" type="file">
             <fileset dir="${tar.dist.dir}/bin" />
         </chmod>
@@ -1119,11 +1113,11 @@
     <!-- Make release packages                                              -->
     <!-- ================================================================== -->
     <target name="tar" depends="package" description="Source distribution">
-		<tar-base/>
+        <tar-base/>
     </target>
 
     <target name="tar-h12" depends="package-h12" description="Source distribution">
-		<tar-base/>
+        <tar-base/>
     </target>
 
     <macrodef name="tar-base">
@@ -1549,7 +1543,7 @@
             <packageset dir="${src.dir}"/>
             <classpath>
                 <path refid="javadoc-classpath" />
-                <pathelement path="${output.jarfile.withdependencies}" />
+                <pathelement path="${output.jarfile.core}" />
             </classpath>
         </javadoc>
     </target>
@@ -1576,7 +1570,7 @@
            </doclet>
            <classpath>
               <path refid="javadoc-classpath" />
-              <pathelement path="${output.jarfile.withdependencies}" />
+              <pathelement path="${output.jarfile.core}" />
            </classpath>
         </javadoc>
      </target>
@@ -1686,19 +1680,7 @@
         <delete file="${jackson_mapper.jar}"/>
      </target>
 
-     <target name="assert-pig-jar-exists" depends="ivy-init">
-         <fail>
-             <condition >
-                 <not>
-                     <available file="${output.jarfile.withdependencies}" />
-                 </not>
-             </condition>
-             Not found: ${output.jarfile.withdependencies}
-             Please run the target "jar" in the main build file
-         </fail>
-     </target>
-
-     <target name="ready-to-publish" depends="jar, assert-pig-jar-exists, ivy-resolve"/>
+     <target name="ready-to-publish" depends="jar, ivy-resolve"/>
 
      <target name="ivy-publish-local" depends="ready-to-publish,ivy-resolve">
         <ivy:publish settingsRef="${ant.project.name}.ivy.settings"

@@ -18,10 +18,6 @@
 <project name="TestHarnessPigTests" default="test">
 
   <property name="pig.dir" value="${basedir}/../../.."/>
-  <condition property="pig.jarname" value="pig-h2.jar" else="pig-h1.jar">
-    <equals arg1="${hadoopversion}" arg2="23" />
-  </condition>
-  <property name="pig.jar" value="${pig.dir}/${pig.jarname}"/>
   <property name="ivy.dir" location="${pig.dir}/ivy" />
   <loadproperties srcfile="${ivy.dir}/libraries.properties"/>
 
@@ -31,7 +27,6 @@
     value="${pig.dir}/build/ivy/lib/Pig/jruby-complete-${jruby.version}.jar"/>
 
   <!-- Separate property name for udfs' build.xml -->
-  <property name="pig.jarfile" value="${pig.jar}"/>
   <property name="udf.dir" value="${basedir}/udfs"/>
   <property name="udf.java.dir" value="${udf.dir}/java"/>
   <property name="udf.jar" value="${udf.java.dir}/testudf.jar"/>
@@ -128,14 +123,7 @@
     </not>
   </condition>
 
-  <!-- Build the UDFs -->
-  <target name="pig-jar-available">
-    <available property="pig.jar.available" file="${pig.jar}"/>
-    <fail message="You must build the main Pig jar before running these tests"
-        unless="pig.jar.available"/>
-  </target>
-
-  <target name="udfs" depends="pig-jar-available">
+  <target name="udfs">
     <ant dir="${udf.java.dir}"/>
   </target>
 

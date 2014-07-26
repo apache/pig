@@ -609,10 +609,8 @@ public class TestPigRunner {
 
     @Test
     public void testRegisterExternalJar() throws Exception {
-        String jarName = "pig-withouthadoop-h2.jar";
-        if (System.getProperty("hadoopversion").equals("20")) {
-            jarName = "pig-withouthadoop-h1.jar";
-        }
+        String jarName = Util.findPigJarName();
+
         String[] args = { "-Dpig.additional.jars=" + jarName,
                 "-Dmapred.job.queue.name=default",
                 "-e", "A = load '" + INPUT_FILE + "';store A into '" + OUTPUT_FILE + "';\n" };
