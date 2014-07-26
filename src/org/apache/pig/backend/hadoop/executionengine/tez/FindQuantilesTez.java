@@ -77,7 +77,6 @@ public class FindQuantilesTez extends FindQuantiles {
             }
         }
         if (estimate_sample_quantile) {
-            Integer specifiedNumQuantiles = (Integer)in.get(0);
 
             long bytesPerTask = PigMapReduce.sJobConfInternal.get().getLong(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM,
                     InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER);
@@ -85,6 +84,9 @@ public class FindQuantilesTez extends FindQuantiles {
             long estimatedInputSize = (long)((double)sampleSize/mySamples.size() * totalInputRows);
             estimatedNumReducers = (int)Math.ceil((double)estimatedInputSize/bytesPerTask);
             estimatedNumReducers = Math.min(estimatedNumReducers, InputSizeReducerEstimator.DEFAULT_MAX_REDUCER_COUNT_PARAM);
+            if (estimatedNumReducers==0) {
+                estimatedNumReducers = 1;
+            }
 
             LOG.info("Estimating parallelism: estimatedInputSize is " + estimatedInputSize + ". bytesPerTask is " + bytesPerTask + ". estimatedNumQuantiles is " + estimatedNumReducers + ".");
 

@@ -46,6 +46,7 @@ public class PartitionerDefinedVertexManager extends VertexManagerPlugin {
 
     private VertexManagerPluginContext context;
     private boolean isParallelismSet = false;
+    private int dynamicParallelism = -1;
     
     private static final Log LOG = LogFactory.getLog(PartitionerDefinedVertexManager.class);
 
@@ -73,7 +74,6 @@ public class PartitionerDefinedVertexManager extends VertexManagerPlugin {
             return;
         }
         isParallelismSet = true;
-        int dynamicParallelism = -1;
         // Need to distinguish from VertexManagerEventPayloadProto emitted by OnFileSortedOutput
         if (vmEvent.getUserPayload().length==4) {
             dynamicParallelism = Ints.fromByteArray(vmEvent.getUserPayload());
@@ -94,16 +94,17 @@ public class PartitionerDefinedVertexManager extends VertexManagerPlugin {
                 }
                 context.setVertexParallelism(dynamicParallelism, null, edgeManagers, null);
             }
+        }
+    }
+
+    @Override
+    public void onVertexStarted(Map<String, List<Integer>> completions) {
+        if (dynamicParallelism != -1) {
             List<TaskWithLocationHint> tasksToStart = Lists.newArrayListWithCapacity(dynamicParallelism);
             for (int i=0; i<dynamicParallelism; ++i) {
                 tasksToStart.add(new TaskWithLocationHint(new Integer(i), null));
             }
             context.scheduleVertexTasks(tasksToStart);
         }
-    }
-
-    @Override
-    public void onVertexStarted(Map<String, List<Integer>> completions) {
-        // Nothing to do
     }
 }

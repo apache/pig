@@ -46,6 +46,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4064: Fix tez auto parallelism test failures (daijy)
+
 PIG-4075: TEZ-1311 broke Hadoop2 compilation (cheolsoo)
 
 PIG-4070: Change from TezJobConfig to TezRuntimeConfiguration (rohini)
