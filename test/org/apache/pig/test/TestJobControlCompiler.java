@@ -95,8 +95,7 @@ public class TestJobControlCompiler {
                 new URLClassLoader(new URL[] { conf_dir.toURI().toURL() }));
     }
   /**
-   * specifically tests that REGISTERED jars get added to distributed cache instead of merged into 
-   * the job jar
+   * specifically tests that REGISTERED jars get added to distributed cache
    * @throws Exception
    */
   @Test
@@ -126,7 +125,7 @@ public class TestJobControlCompiler {
 
     // verifying the jar gets on distributed cache
     Path[] fileClassPaths = DistributedCache.getFileClassPaths(jobConf);
-    Assert.assertEquals("size 1 for "+Arrays.toString(fileClassPaths), 1, fileClassPaths.length);
+    Assert.assertEquals("size for "+Arrays.toString(fileClassPaths), 8, fileClassPaths.length);
     Path distributedCachePath = fileClassPaths[0];
     Assert.assertEquals("ends with jar name: "+distributedCachePath, distributedCachePath.getName(), tmpFile.getName());
     // hadoop bug requires path to not contain hdfs://hotname in front
@@ -134,11 +133,6 @@ public class TestJobControlCompiler {
         distributedCachePath.toString().startsWith("/"));
     Assert.assertTrue("jar pushed to distributed cache should contain testUDF", 
         jarContainsFileNamed(new File(fileClassPaths[0].toUri().getPath()), testUDFFileName));
-
-    // verifying the job jar does not contain the UDF
-    File submitJarFile = new File(jobConf.get("mapred.jar"));
-    Assert.assertFalse("the mapred.jar should *not* contain the testUDF", jarContainsFileNamed(submitJarFile, testUDFFileName));
-
   }
 
     private static List<File> createFiles(String... extensions)
@@ -185,8 +179,14 @@ public class TestJobControlCompiler {
         final JobControl jobControl = jobControlCompiler.compile(plan, "test");
         final JobConf jobConf = jobControl.getWaitingJobs().get(0).getJobConf();
         
-        assertFilesInDistributedCache(DistributedCache.getCacheFiles(jobConf),
-                1, ".txt");
+        URI[] uris = DistributedCache.getCacheFiles(jobConf);
+        int sizeTxt = 0;
+        for (int i = 0; i < uris.length; i++) {
+            if (uris[i].toString().endsWith(".txt")) {
+                sizeTxt++;
+            }
+        }
+        Assert.assertTrue(sizeTxt == 1);
         assertFilesInDistributedCache(
                 DistributedCache.getCacheArchives(jobConf), 4, ".zip", ".tgz",
                 ".tar.gz", ".tar");

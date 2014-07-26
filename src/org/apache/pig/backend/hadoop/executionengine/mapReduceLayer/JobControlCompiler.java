@@ -18,6 +18,7 @@
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -591,26 +592,45 @@ public class JobControlCompiler{
                 } else {
                     log.info(BIG_JOB_LOG_MSG);
                     // Setup the DistributedCache for this job
+                    List<URL> allJars = new ArrayList<URL>();
+
                     for (URL extraJar : pigContext.extraJars) {
-                        log.debug("Adding jar to DistributedCache: " + extraJar.toString());
-                        putJarOnClassPathThroughDistributedCache(pigContext, conf, extraJar);
+                        if (!allJars.contains(extraJar)) {
+                            allJars.add(extraJar);
+                        }
                     }
 
                     for (String scriptJar : pigContext.scriptJars) {
-                        log.debug("Adding jar to DistributedCache: " + scriptJar.toString());
-                        putJarOnClassPathThroughDistributedCache(pigContext, conf, new File(scriptJar).toURI().toURL());
+                        URL jar = new File(scriptJar).toURI().toURL();
+                        if (!allJars.contains(jar)) {
+                            allJars.add(jar);
+                        }
                     }
 
-                    //Create the jar of all functions and classes required
-                    File submitJarFile = File.createTempFile("Job", ".jar");
-                    log.info("creating jar file "+submitJarFile.getName());
-                    // ensure the job jar is deleted on exit
-                    submitJarFile.deleteOnExit();
-                    FileOutputStream fos = new FileOutputStream(submitJarFile);
-                    JarManager.createJar(fos, mro.UDFs, pigContext);
-                    log.info("jar file "+submitJarFile.getName()+" created");
-                    //Start setting the JobConf properties
-                    conf.set("mapred.jar", submitJarFile.getPath());
+                    for (String defaultJar : JarManager.getDefaultJars()) {
+                        URL jar = new File(defaultJar).toURI().toURL();
+                        if (!allJars.contains(jar)) {
+                            allJars.add(jar);
+                        }
+                    }
+
+                    for (URL jar : allJars) {
+                        boolean predeployed = false;
+                        for (String predeployedJar : pigContext.predeployedJars) {
+                            if (predeployedJar.contains(new File(jar.toURI()).getName())) {
+                                predeployed = true;
+                            }
+                        }
+                        if (!predeployed) {
+                            log.info("Adding jar to DistributedCache: " + jar);
+                            putJarOnClassPathThroughDistributedCache(pigContext, conf, jar);
+                        }
+                    }
+
+                    File scriptUDFJarFile = JarManager.createPigScriptUDFJar(pigContext);
+                    if (scriptUDFJarFile != null) {
+                        putJarOnClassPathThroughDistributedCache(pigContext, conf, scriptUDFJarFile.toURI().toURL());
+                    }
                 }
             }
 
