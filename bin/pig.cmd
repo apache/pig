@@ -96,6 +96,9 @@ set PIGARGS=
     for %%i in (%PIG_HOME%\lib\*.jar) do (
       set CLASSPATH=!CLASSPATH!;%%i
     )
+    for %%i in (%PIG_HOME%\lib\h2\*.jar) do (
+      set CLASSPATH=!CLASSPATH!;%%i
+    )
     if not defined PIG_CONF_DIR (
       set PIG_CONF_DIR=%PIG_HOME%\conf
     )

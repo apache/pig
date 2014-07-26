@@ -28,6 +28,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -1308,4 +1309,23 @@ public class Util {
         return execType == ExecType.MAPREDUCE;
     }
 
+    public static String findPigJarName() {
+        final String suffix = System.getProperty("hadoopversion").equals("20") ? "1" : "2";
+        File baseDir = new File(".");
+        String[] jarNames = baseDir.list(new FilenameFilter() {
+            public boolean accept(File dir, String name) {
+                if (!name.matches("pig.*h" + suffix + "\\.jar")) {
+                    return false;
+                }
+                if (name.contains("all")) {
+                    return false;
+                }
+                return true;
+            }
+        });
+        if (jarNames==null || jarNames.length!=1) {
+            throw new RuntimeException("Cannot find pig.jar");
+        }
+        return jarNames[0];
+    }
 }

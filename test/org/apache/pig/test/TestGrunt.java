@@ -1187,10 +1187,7 @@ public class TestGrunt {
     public void testRegisterWithQuotes() throws Throwable {
         PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
-        String jarName = "pig-withouthadoop-h2.jar";
-        if (System.getProperty("hadoopversion").equals("20")) {
-            jarName = "pig-withouthadoop-h1.jar";
-        }
+        String jarName = Util.findPigJarName();
 
         String strCmd = "register '" + jarName + "'\n";
 
@@ -1208,10 +1205,8 @@ public class TestGrunt {
     public void testRegisterWithoutQuotes() throws Throwable {
         PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
-        String jarName = "pig-withouthadoop-h2.jar";
-        if (System.getProperty("hadoopversion").equals("20")) {
-            jarName = "pig-withouthadoop-h1.jar";
-        }
+        String jarName = Util.findPigJarName();
+
         String strCmd = "register " + jarName + "\n";
 
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());

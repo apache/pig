@@ -344,32 +344,38 @@ if hadoopBin != "":
   if debug == True:
     print "Find hadoop at %s" % hadoopBin
 
-  if os.path.exists(os.path.join(os.environ['PIG_HOME'], "pig-withouthadoop-h$hadoopVersion.jar")):
-    pigJar = os.path.join(os.environ['PIG_HOME'], "pig-withouthadoop-h$hadoopVersion.jar")
+  if os.path.exists(os.path.join(os.environ['PIG_HOME'], "pig-core-h$hadoopVersion.jar")):
+    pigJar = os.path.join(os.environ['PIG_HOME'], "pig-core-h$hadoopVersion.jar")
 
   else:
-    pigJars = glob.glob(os.path.join(os.environ['PIG_HOME'], "pig-*withouthadoop-h" + str(hadoopVersion) + ".jar"))
+    pigJars = glob.glob(os.path.join(os.environ['PIG_HOME'], "pig-*-core-h" + str(hadoopVersion) + ".jar"))
     if len(pigJars) == 1:
       pigJar = pigJars[0]
 
     elif len(pigJars) > 1:
       print "Ambiguity with pig jars found the following jars"
       print pigJars
-      sys.exit("Please remove irrelavant jars fromt %s" % os.path.join(os.environ['PIG_HOME'], "pig-*withouthadoop.jar"))
+      sys.exit("Please remove irrelavant jars from %s" % os.path.join(os.environ['PIG_HOME'], "pig-*-core-h" + str(hadoopVersion) + ".jar"))
     else:
-      pigJars = glob.glob(os.path.join(os.environ['PIG_HOME'], "share", "pig", "pig-*withouthadoop.jar"))
+      pigJars = glob.glob(os.path.join(os.environ['PIG_HOME'], "share", "pig", "pig-*-core-h" + str(hadoopVersion) + ".jar"))
       if len(pigJars) == 1:
         pigJar = pigJars[0]
       else:
         if hadoopVersion == 1:
-          sys.exit("Cannot locate pig-withouthadoop-h1.jar do 'ant jar-withouthadoop', and try again")
+          sys.exit("Cannot locate pig-core-h1.jar do 'ant jar', and try again")
         else:
-          sys.exit("Cannot locate pig-withouthadoop-h2.jar do 'ant -Dhadoopversion=23 jar-withouthadoop', and try again")
+          sys.exit("Cannot locate pig-core-h2.jar do 'ant -Dhadoopversion=23 jar', and try again")
+
+  pigLibJars = glob.glob(os.path.join(os.environ['PIG_HOME']+"/lib", "h" + str(hadoopVersion), "*.jar"))
+  for jar in pigLibJars:
+    classpath += os.pathsep + jar
 
   if 'HADOOP_CLASSPATH' in os.environ:
     os.environ['HADOOP_CLASSPATH'] += os.pathsep + classpath
   else:
     os.environ['HADOOP_CLASSPATH'] = classpath
+
+  os.environ['HADOOP_CLASSPATH'] += os.pathsep + pigJar
 
   if debug == True:
     print "dry run:"
@@ -387,16 +393,13 @@ if hadoopBin != "":
 else:
   # fall back to use fat pig.jar
   if debug == True:
-    print "Cannot find local hadoop installation, using bundled hadoop 20.2"
+    print "Cannot find local hadoop installation, using bundled hadoop 1"
     
-  if os.path.exists(os.path.join(os.environ['PIG_HOME'], "pig-h1.jar")):
-    pigJar = os.path.join(os.environ['PIG_HOME'], "pig-h1.jar")
+  if os.path.exists(os.path.join(os.environ['PIG_HOME'], "pig-core-h1.jar")):
+    pigJar = os.path.join(os.environ['PIG_HOME'], "pig-core-h1.jar")
 
   else:
-    pigJars = glob.glob(os.path.join(os.environ['PIG_HOME'], "pig-*-h1.jar"))
-    for pigJar in pigJars:
-      if "withouthadoop" in pigJar:
-        pigJars.remove(pigJar)
+    pigJars = glob.glob(os.path.join(os.environ['PIG_HOME'], "pig-*-core-h1.jar"))
 
     if len(pigJars) == 1:
       pigJar = pigJars[0]
@@ -404,9 +407,17 @@ else:
     elif len(pigJars) > 1:
       print "Ambiguity with pig jars found the following jars"
       print pigJars
-      sys.exit("Please remove irrelavant jars fromt %s" % os.path.join(os.environ['PIG_HOME'], "pig-h1.jar"))
+      sys.exit("Please remove irrelavant jars from %s" % os.path.join(os.environ['PIG_HOME'], "pig-core-h1.jar"))
     else:
-      sys.exit("Cannot locate pig-h1.jar. do 'ant jar' and try again")
+      sys.exit("Cannot locate pig-core-h1.jar. do 'ant jar' and try again")
+
+  pigLibJars = glob.glob(os.path.join(os.environ['PIG_HOME']+"/lib", "h1", "*.jar"))
+  for jar in pigLibJars:
+    classpath += os.pathsep + jar
+
+  pigLibJars = glob.glob(os.path.join(os.environ['PIG_HOME']+"/lib", "hadoop1-runtime", "*.jar"))
+  for jar in pigLibJars:
+    classpath += os.pathsep + jar
 
   classpath += os.pathsep + pigJar
   pigClass = "org.apache.pig.Main"

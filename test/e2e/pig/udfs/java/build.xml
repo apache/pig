@@ -26,7 +26,12 @@
     <!-- <fileset dir="lib">
             <include name="**/*.jar"/> 
     </fileset>-->
-        <fileset file="${pig.jarfile}" />
+        <fileset dir="${pig.dir}/build/ivy/lib/Pig">
+            <include name="*.jar"/>
+        </fileset>
+        <fileset dir="${pig.dir}">
+            <include name="pig*-core-*.jar"/>
+        </fileset>
     </path>
 
     <target name="init">
@@ -38,7 +43,7 @@
         <delete file="${udf.jarfile}" />
     </target>
 
-    <target name="udf-compile" depends="init, pig.jar.check">
+    <target name="udf-compile" depends="init">
         <echo>*** Compiling UDFs ***</echo>
         <javac srcdir="${udf.src.dir}" destdir="${udf.build.dir}" debug="on">
             <classpath refid="udf-classpath" />
@@ -51,10 +56,5 @@
 	    <fileset dir="build"/>
         </jar>
     </target>
-
-	<target name="pig.jar.check" unless="pig.jarfile">
-	 	<fail message="'pig.jarfile' is not defined. 
-		Please pass -Dpig.jarfile=&lt;Pig jar to use&gt; to Ant on the command-line." />
-	</target>
 
 </project>
