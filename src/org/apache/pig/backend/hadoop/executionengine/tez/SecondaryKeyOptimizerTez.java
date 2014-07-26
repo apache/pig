@@ -51,60 +51,65 @@ public class SecondaryKeyOptimizerTez extends TezOpPlanVisitor implements Second
             return;
         }
 
-        for (TezOperator from : predecessors) {
-            List<POLocalRearrangeTez> rearranges = PlanHelper.getPhysicalOperators(from.plan, POLocalRearrangeTez.class);
-            if (rearranges.isEmpty()) {
-                continue;
-            }
+        // Current code does not handle more than one predecessors
+        // even though it is possible. The problem is when we 
+        // process the first predecessor, we remove the foreach inner
+        // operators from the reduce side, and the second predecessor
+        // cannot see them
+        if (predecessors.size()>1) {
+            return;
+        }
+        TezOperator from = predecessors.get(0);
 
-            POLocalRearrangeTez connectingLR = null;
-            PhysicalPlan rearrangePlan = from.plan;
-            for (POLocalRearrangeTez lr : rearranges) {
-                if (lr.getOutputKey().equals(to.getOperatorKey().toString())) {
-                    connectingLR = lr;
-                    break;
-                }
-            }
+        List<POLocalRearrangeTez> rearranges = PlanHelper.getPhysicalOperators(from.plan, POLocalRearrangeTez.class);
+        if (rearranges.isEmpty()) {
+            return;
+        }
 
-            if (connectingLR == null) {
-                continue;
+        POLocalRearrangeTez connectingLR = null;
+        PhysicalPlan rearrangePlan = from.plan;
+        for (POLocalRearrangeTez lr : rearranges) {
+            if (lr.getOutputKey().equals(to.getOperatorKey().toString())) {
+                connectingLR = lr;
+                break;
             }
+        }
 
-            // Detected the POLocalRearrange -> POPackage pattern. Let's add
-            // combiner if possible.
-            TezEdgeDescriptor inEdge = to.inEdges.get(from.getOperatorKey());
-            // Only optimize for Cogroup case
-            if (from.isGlobalSort()) {
-                return;
-            }
+        if (connectingLR == null) {
+            return;
+        }
 
-            // If there is a custom partitioner do not do secondary key optimization.
-            // MR SecondaryKeyOptimizer currently does not check for this case.
-            if (inEdge.partitionerClass != null) {
-                return;
-            }
+        // Detected the POLocalRearrange -> POPackage pattern
+        TezEdgeDescriptor inEdge = to.inEdges.get(from.getOperatorKey());
+        // Only optimize for Cogroup case
+        if (from.isGlobalSort()) {
+            return;
+        }
 
-            if (from.plan.getOperator(connectingLR.getOperatorKey()) == null) {
-                // The POLocalRearrange is sub-plan of a POSplit
-                rearrangePlan = PlanHelper.getLocalRearrangePlanFromSplit(from.plan, connectingLR.getOperatorKey());
-            }
+        // If there is a custom partitioner do not do secondary key optimization.
+        if (inEdge.partitionerClass != null) {
+            return;
+        }
 
-            //TODO: Case of from plan leaf being POUnion.
-            SecondaryKeyOptimizerInfo info = SecondaryKeyOptimizerUtil.applySecondaryKeySort(rearrangePlan, to.plan);
-            if (info != null) {
-                numSortRemoved += info.getNumSortRemoved();
-                numDistinctChanged += info.getNumDistinctChanged();
-                numUseSecondaryKey += info.getNumUseSecondaryKey();
-                if (info.isUseSecondaryKey()) {
-                    // Set it on the receiving vertex and the connecting edge.
-                    to.setUseSecondaryKey(true);
-                    inEdge.setUseSecondaryKey(true);
-                    inEdge.setSecondarySortOrder(info.getSecondarySortOrder());
-                    log.info("Using Secondary Key Optimization in the edge between vertex - "
-                            + from.getOperatorKey()
-                            + " and vertex - "
-                            + to.getOperatorKey());
-                }
+        if (from.plan.getOperator(connectingLR.getOperatorKey()) == null) {
+            // The POLocalRearrange is sub-plan of a POSplit
+            rearrangePlan = PlanHelper.getLocalRearrangePlanFromSplit(from.plan, connectingLR.getOperatorKey());
+        }
+
+        SecondaryKeyOptimizerInfo info = SecondaryKeyOptimizerUtil.applySecondaryKeySort(rearrangePlan, to.plan);
+        if (info != null) {
+            numSortRemoved += info.getNumSortRemoved();
+            numDistinctChanged += info.getNumDistinctChanged();
+            numUseSecondaryKey += info.getNumUseSecondaryKey();
+            if (info.isUseSecondaryKey()) {
+                // Set it on the receiving vertex and the connecting edge.
+                to.setUseSecondaryKey(true);
+                inEdge.setUseSecondaryKey(true);
+                inEdge.setSecondarySortOrder(info.getSecondarySortOrder());
+                log.info("Using Secondary Key Optimization in the edge between vertex - "
+                        + from.getOperatorKey()
+                        + " and vertex - "
+                        + to.getOperatorKey());
             }
         }
     }

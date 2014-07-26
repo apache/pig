@@ -349,7 +349,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         in.setUserPayload(TezUtils.createUserPayloadFromConf(conf));
         out.setUserPayload(TezUtils.createUserPayloadFromConf(conf));
 
-        if (to.getEstimatedParallelism()!=-1 && (to.isGlobalSort()||to.isSkewedJoin())) {
+        if (from.isSampleBasedPartitioner() && to.getEstimatedParallelism()!=-1 && (to.isGlobalSort()||to.isSkewedJoin())) {
             // Use custom edge
             return new EdgeProperty((EdgeManagerDescriptor)null,
                     edge.dataSourceType, edge.schedulingType, out, in);

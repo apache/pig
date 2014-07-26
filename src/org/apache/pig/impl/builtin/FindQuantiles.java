@@ -165,6 +165,7 @@ public class FindQuantiles extends EvalFunc<Map<String, Object>>{
         // (numQuantiles, bag of samples) 
         // numQuantiles here is the reduce parallelism
         try{
+            Integer numQuantiles = this.numQuantiles;
             if (numQuantiles == null) {
                 numQuantiles = (Integer)in.get(0);
             }
