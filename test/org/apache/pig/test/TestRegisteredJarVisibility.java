@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -37,10 +38,18 @@ import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.FileAppender;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.SimpleLayout;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.util.JarManager;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -154,26 +163,15 @@ public class TestRegisteredJarVisibility {
     public void testRegisterJarOverridePigJarPackages() throws IOException, ClassNotFoundException {
         // When jackson jar is not registered, jackson-core from the first jar in
         // classpath (pig.jar) should be picked up (version 1.8.8 in this case).
-        PigServer pigServer = new PigServer(ExecType.LOCAL, new Properties());
-        File jobJarFile = Util.createTempFileDelOnExit("Job", ".jar");
-        FileOutputStream fos = new FileOutputStream(jobJarFile);
-        JarManager.createJar(fos, new HashSet<String>(), pigServer.getPigContext());
-        JarFile jobJar = new JarFile(jobJarFile);
-        // JsonClass present in 1.8.8 but not in 1.9.9
-        Assert.assertNotNull(jobJar.getJarEntry("org/codehaus/jackson/annotate/JsonClass.class"));
-        // JsonUnwrapped present in 1.9.9 but not in 1.8.8
-        Assert.assertNull(jobJar.getJarEntry("org/codehaus/jackson/annotate/JsonUnwrapped.class"));
+        String jacksonJar = JarManager.findContainingJar(org.codehaus.jackson.JsonParser.class);
+        Assert.assertTrue(new File(jacksonJar).getName().contains("1.8.8"));
 
-        // When jackson jar is registered, the registered version should be picked up.
-        pigServer = new PigServer(ExecType.LOCAL, new Properties());
+        PigServer pigServer = new PigServer(ExecType.LOCAL, new Properties());
         pigServer.registerJar("test/resources/jackson-core-asl-1.9.9.jar");
         pigServer.registerJar("test/resources/jackson-mapper-asl-1.9.9.jar");
-        jobJarFile = Util.createTempFileDelOnExit("Job", ".jar");
-        fos = new FileOutputStream(jobJarFile);
-        JarManager.createJar(fos, new HashSet<String>(), pigServer.getPigContext());
-        jobJar = new JarFile(jobJarFile);
-        Assert.assertNull(jobJar.getJarEntry("org/codehaus/jackson/annotate/JsonClass.class"));
-        Assert.assertNotNull(jobJar.getJarEntry("org/codehaus/jackson/annotate/JsonUnwrapped.class"));
+        jacksonJar = JarManager.findContainingJar(org.codehaus.jackson.JsonParser.class);
+        Assert.assertTrue(new File(jacksonJar).getName().contains("1.9.9"));
+
     }
 
     private static List<File> compile(File[] javaFiles) {

@@ -19,27 +19,24 @@ package org.apache.pig.impl.util;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 import java.util.jar.JarEntry;
-import java.util.jar.JarInputStream;
 import java.util.jar.JarOutputStream;
-import java.util.zip.ZipEntry;
 
 import org.antlr.runtime.CommonTokenStream;
 import org.apache.commons.logging.Log;
@@ -51,7 +48,6 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.builtin.StreamingUDF;
 import org.apache.tools.bzip2r.BZip2Constants;
 import org.codehaus.jackson.annotate.JsonPropertyOrder;
 import org.codehaus.jackson.map.annotate.JacksonStdImpl;
@@ -64,147 +60,50 @@ import dk.brics.automaton.Automaton;
 public class JarManager {
 
     private static Log log = LogFactory.getLog(JarManager.class);
-    /**
-     * A container class to track the Jar files that need to be merged together to submit to Hadoop.
-     */
-    private static class JarListEntry {
-        /**
-         * The name of the Jar file to merge in.
-         */
-        String jar;
-        /**
-         * If this field is not null, only entries that start with this prefix will be merged in.
-         */
-        String prefix;
-
-        JarListEntry(String jar, String prefix) {
-            this.jar = jar;
-            this.prefix = prefix;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (!(obj instanceof JarListEntry))
-                return false;
-            JarListEntry other = (JarListEntry) obj;
-            if (!jar.equals(other.jar))
-                return false;
-            if (prefix == null)
-                return other.prefix == null;
-            return prefix.equals(other.prefix);
-        }
-
-        @Override
-        public int hashCode() {
-            return jar.hashCode() + (prefix == null ? 1 : prefix.hashCode());
-        }
-    }
 
     private static enum DefaultPigPackages {
 
-        PIG("org/apache/pig", PigMapReduce.class),
-        BZIP2R("org/apache/tools/bzip2r", BZip2Constants.class),
-        AUTOMATON("dk/brics/automaton", Automaton.class),
-        ANTLR("org/antlr/runtime", CommonTokenStream.class),
-        GUAVA("com/google/common", Multimaps.class),
-        JACKSON_CORE("org/codehaus/jackson", JsonPropertyOrder.class),
-        JACKSON_MAPPER("org/codehaus/jackson", JacksonStdImpl.class),
-        JODATIME("org/joda/time", DateTime.class);
+        PIG(PigMapReduce.class),
+        BZIP2R(BZip2Constants.class),
+        AUTOMATON(Automaton.class),
+        ANTLR(CommonTokenStream.class),
+        GUAVA(Multimaps.class),
+        JACKSON_CORE(JsonPropertyOrder.class),
+        JACKSON_MAPPER(JacksonStdImpl.class),
+        JODATIME(DateTime.class);
 
-        private final String pkgPrefix;
         private final Class pkgClass;
 
-        DefaultPigPackages(String pkgPrefix, Class pkgClass) {
-            this.pkgPrefix = pkgPrefix;
+        DefaultPigPackages(Class pkgClass) {
             this.pkgClass = pkgClass;
-        }
-
-        public String getPkgPrefix() {
-            return pkgPrefix;
         }
 
         public Class getPkgClass() {
             return pkgClass;
         }
     }
-    
-    public static void createBootStrapJar(OutputStream os, PigContext pigContext) throws IOException {
-        JarOutputStream jarFile = new JarOutputStream(os);
+
+    public static File createPigScriptUDFJar(PigContext pigContext) throws IOException {
+        File scriptUDFJarFile = File.createTempFile("PigScriptUDF", ".jar");
+        // ensure the scriptUDFJarFile is deleted on exit
+        scriptUDFJarFile.deleteOnExit();
+        FileOutputStream fos = new FileOutputStream(scriptUDFJarFile);
         HashMap<String, String> contents = new HashMap<String, String>();
-        Vector<JarListEntry> jarList = new Vector<JarListEntry>();
+        createPigScriptUDFJar(fos, pigContext, contents);
 
-        for (DefaultPigPackages pkgToSend : DefaultPigPackages.values()) {
-            addContainingJar(jarList, pkgToSend.getPkgClass(), pkgToSend.getPkgPrefix(), pigContext);
+        if (!contents.isEmpty()) {
+            FileInputStream fis = new FileInputStream(scriptUDFJarFile);
+            String md5 = org.apache.commons.codec.digest.DigestUtils.md5Hex(fis);
+            fis.close();
+            File newScriptUDFJarFile = new File(scriptUDFJarFile.getParent(), "PigScriptUDF-" + md5 + ".jar");
+            scriptUDFJarFile.renameTo(newScriptUDFJarFile);
+            return newScriptUDFJarFile;
         }
-
-        Iterator<JarListEntry> it = jarList.iterator();
-        while (it.hasNext()) {
-            JarListEntry jarEntry = it.next();
-            mergeJar(jarFile, jarEntry.jar, jarEntry.prefix, contents);
-        }
-
-        // Just like in MR Pig, we'll add the script files to Job.jar. For Jython, MR Pig packages
-        // all the dependencies in Job.jar. For JRuby, we need the resource pigudf.rb, which is in
-        // the pig jar. JavaScript files could be packaged either in the Job.jar or as Tez local
-        // resources; MR Pig adds them to the Job.jar so that's what we will do also. Groovy files
-        // must be added as Tez local resources in the TezPlanContainer (in MR Pig Groovy UDF's
-        // are actually broken since they cannot be found by the GroovyScriptEngine).
-        for (Map.Entry<String, File> entry : pigContext.getScriptFiles().entrySet()) {
-            InputStream stream = null;
-            if (entry.getValue().exists()) {
-                stream = new FileInputStream(entry.getValue());
-            } else {
-                stream = PigContext.getClassLoader().getResourceAsStream(entry.getValue().getPath());
-            }
-            if (stream == null) {
-                throw new IOException("Cannot find " + entry.getValue().getPath());
-            }
-            addStream(jarFile, entry.getKey(), stream, contents);
-        }
-
-        jarFile.close();
+        return null;
     }
 
-    /**
-     * Create a jarfile in a temporary path, that is a merge of all the jarfiles containing the
-     * functions and the core pig classes.
-     * 
-     * @param funcs
-     *            the functions that will be used in a job and whose jar files need to be included
-     *            in the final merged jar file.
-     * @throws ClassNotFoundException
-     * @throws IOException
-     */
-    @SuppressWarnings("deprecation")
-    public static void createJar(OutputStream os, Set<String> funcs, PigContext pigContext) throws ClassNotFoundException, IOException {
-        JarOutputStream jarFile = new JarOutputStream(os);
-        HashMap<String, String> contents = new HashMap<String, String>();
-        Vector<JarListEntry> jarList = new Vector<JarListEntry>();
-
-        for (DefaultPigPackages pkgToSend : DefaultPigPackages.values()) {
-            addContainingJar(jarList, pkgToSend.getPkgClass(), pkgToSend.getPkgPrefix(), pigContext);
-        }
-
-        for (String func: funcs) {
-            Class clazz = pigContext.getClassForAlias(func);
-            if (clazz != null) {
-                addContainingJar(jarList, clazz, null, pigContext);
-                
-                if (clazz.getSimpleName().equals("StreamingUDF")) {
-                    for (String fileName : StreamingUDF.getResourcesForJar()) {
-                        InputStream in = JarManager.class.getResourceAsStream(fileName);
-                        addStream(jarFile, fileName.substring(1), in, contents);
-                    }
-                }
-            }
-        }
-
-        Iterator<JarListEntry> it = jarList.iterator();
-        while (it.hasNext()) {
-            JarListEntry jarEntry = it.next();
-            // log.error("Adding " + jarEntry.jar + ":" + jarEntry.prefix);
-            mergeJar(jarFile, jarEntry.jar, jarEntry.prefix, contents);
-        }
+    private static void createPigScriptUDFJar(OutputStream os, PigContext pigContext, HashMap<String, String> contents) throws IOException {
+        JarOutputStream jarOutputStream = new JarOutputStream(os);
         for (String path: pigContext.scriptFiles) {
             log.debug("Adding entry " + path + " to job jar" );
             InputStream stream = null;
@@ -216,7 +115,7 @@ public class JarManager {
             if (stream==null) {
                 throw new IOException("Cannot find " + path);
             }
-        	addStream(jarFile, path, stream, contents);
+            addStream(jarOutputStream, path, stream, contents);
         }
         for (Map.Entry<String, File> entry : pigContext.getScriptFiles().entrySet()) {
             log.debug("Adding entry " + entry.getKey() + " to job jar" );
@@ -229,13 +128,13 @@ public class JarManager {
             if (stream==null) {
                 throw new IOException("Cannot find " + entry.getValue().getPath());
             }
-        	addStream(jarFile, entry.getKey(), stream, contents);
+            addStream(jarOutputStream, entry.getKey(), stream, contents);
         }
-
-        log.debug("Adding entry pigContext to job jar" );
-        jarFile.putNextEntry(new ZipEntry("pigContext"));
-        new ObjectOutputStream(jarFile).writeObject(pigContext);
-        jarFile.close();
+        if (!contents.isEmpty()) {
+            jarOutputStream.close();
+        } else {
+            os.close();
+        }
     }
 
     /**
@@ -259,47 +158,8 @@ public class JarManager {
         }
         return new URLClassLoader(urls, PigMapReduce.class.getClassLoader());
     }
-    
 
-    /**
-     * Merge one Jar file into another.
-     * 
-     * @param jarFile
-     *            the stream of the target jar file.
-     * @param jar
-     *            the name of the jar file to be merged.
-     * @param prefix
-     *            if not null, only entries in jar that start with this prefix will be merged.
-     * @param contents
-     *            the current contents of jarFile. (Use to prevent duplicate entries.)
-     * @throws FileNotFoundException
-     * @throws IOException
-     */
-    private static void mergeJar(JarOutputStream jarFile, String jar, String prefix, Map<String, String> contents)
-            throws FileNotFoundException, IOException {
-        JarInputStream jarInput = new JarInputStream(new FileInputStream(jar));
-        log.debug("Adding jar " + jar + (prefix != null ? " for prefix "+prefix : "" ) + " to job jar" );
-        mergeJar(jarFile, jarInput, prefix, contents);
-    }
-    
-    private static void mergeJar(JarOutputStream jarFile, URL jar, String prefix, Map<String, String> contents)
-    throws FileNotFoundException, IOException {
-        JarInputStream jarInput = new JarInputStream(jar.openStream());
-
-        mergeJar(jarFile, jarInput, prefix, contents);
-    }
-
-    private static void mergeJar(JarOutputStream jarFile, JarInputStream jarInput, String prefix, Map<String, String> contents)
-    throws FileNotFoundException, IOException {
-        JarEntry entry;
-        while ((entry = jarInput.getNextJarEntry()) != null) {
-            if (prefix != null && !entry.getName().startsWith(prefix)) {
-                continue;
-            }
-            addStream(jarFile, entry.getName(), jarInput, contents);
-        }
-    }
-        /**
+     /**
      * Adds a stream to a Jar file.
      * 
      * @param os
@@ -327,36 +187,16 @@ public class JarManager {
         }
     }
 
-
-    
-    /**
-     * Adds the Jar file containing the given class to the list of jar files to be merged.
-     * 
-     * @param jarList
-     *            the list of jar files to be merged.
-     * @param clazz
-     *            the class in a jar file to be merged.
-     * @param prefix
-     *            if not null, only resources from the jar file that start with this prefix will be
-     *            merged.
-     */
-    private static void addContainingJar(Vector<JarListEntry> jarList, Class clazz, String prefix, PigContext pigContext) {
-        String jar = findContainingJar(clazz);
-        if (pigContext.predeployedJars.contains(jar))
-            return;
-        if (pigContext.skipJars.contains(jar) && prefix == null)
-            return;
-        if (jar == null)
-        {
-            //throw new RuntimeException("Couldn't find the jar for " + clazz.getName());
-            log.warn("Couldn't find the jar for " + clazz.getName() + ", skip it");
-            return;
+    public static List<String> getDefaultJars() {
+        List<String> defaultJars = new ArrayList<String>();
+        for (DefaultPigPackages pkgToSend : DefaultPigPackages.values()) {
+            String jar = findContainingJar(pkgToSend.getPkgClass());
+            if (!defaultJars.contains(jar)) {
+                defaultJars.add(jar);
+            }
         }
-        JarListEntry jarListEntry = new JarListEntry(jar, prefix);
-        if (!jarList.contains(jarListEntry))
-            jarList.add(jarListEntry);
+        return defaultJars;
     }
-
 
     /**
      * Find a jar that contains a class of the same name, if any. It will return a jar file, even if

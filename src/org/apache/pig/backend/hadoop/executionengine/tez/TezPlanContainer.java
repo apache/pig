@@ -51,7 +51,9 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
     public Map<String, LocalResource> getLocalResources() throws Exception {
         Set<URI> jarLists = new HashSet<URI>();
 
-        jarLists.add(TezResourceManager.getInstance().getBootStrapJar().toURI());
+        for (String jarFile : JarManager.getDefaultJars()) {
+            jarLists.add(new File(jarFile).toURI());
+        }
 
         // In MR Pig the extra jars and script jars get put in Distributed Cache, but
         // in Tez we'll add them as local resources.
@@ -90,6 +92,11 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
                 URI jarUri = new File(jarName).toURI();
                 jarLists.add(jarUri);
             }
+        }
+
+        File scriptUDFJarFile = JarManager.createPigScriptUDFJar(pigContext);
+        if (scriptUDFJarFile != null) {
+            jarLists.add(scriptUDFJarFile.toURI());
         }
 
         // Streaming UDF's are not working under Hadoop 2 (PIG-3478), so don't bother adding

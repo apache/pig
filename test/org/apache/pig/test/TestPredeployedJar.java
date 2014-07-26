@@ -18,16 +18,23 @@
 package org.apache.pig.test;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Properties;
-import java.util.jar.JarFile;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.log4j.FileAppender;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.SimpleLayout;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.util.JarManager;
+import org.apache.pig.newplan.logical.rules.ColumnPruneVisitor;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -36,27 +43,37 @@ import org.junit.Test;
  * job jar. 
  */
 public class TestPredeployedJar {
+    static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
     @Test
     public void testPredeployedJar() throws IOException, ClassNotFoundException {
-        // The default jar should contain jackson classes
-        PigServer pigServer = new PigServer(ExecType.LOCAL, new Properties());
-        File jobJarFile = Util.createTempFileDelOnExit("Job", ".jar");
-        FileOutputStream fos = new FileOutputStream(jobJarFile);
-        JarManager.createJar(fos, new HashSet<String>(), pigServer.getPigContext());
-        JarFile jobJar = new JarFile(jobJarFile);
-        Assert.assertNotNull(jobJar.getJarEntry("org/codehaus/jackson/JsonParser.class"));
+        Logger logger = Logger.getLogger(JobControlCompiler.class);
+        logger.removeAllAppenders();
+        logger.setLevel(Level.INFO);
+        SimpleLayout layout = new SimpleLayout();
+        File logFile = File.createTempFile("log", "");
+        FileAppender appender = new FileAppender(layout, logFile.toString(), false, false, 0);
+        logger.addAppender(appender);
         
-        // Now let's mark the jackson jar as predeployed. 
-        pigServer = new PigServer(ExecType.LOCAL, new Properties());
-        pigServer.getPigContext().markJarAsPredeployed(JarManager.findContainingJar(
-                org.codehaus.jackson.JsonParser.class));
-        jobJarFile = Util.createTempFileDelOnExit("Job", ".jar");
-        fos = new FileOutputStream(jobJarFile);
-        JarManager.createJar(fos, new HashSet<String>(), pigServer.getPigContext());
-        jobJar = new JarFile(jobJarFile);
+        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getConfiguration());
+        pigServer.getPigContext().getProperties().put(PigConfiguration.OPT_FETCH, "false");
+        String[] inputData = new String[] { "hello", "world" };
+        Util.createInputFile(cluster, "a.txt", inputData);
+        String jacksonJar = JarManager.findContainingJar(org.codehaus.jackson.JsonParser.class);
+
+        pigServer.registerQuery("a = load 'a.txt' as (line:chararray);");
+        Iterator<Tuple> it = pigServer.openIterator("a");
+
+        String content = FileUtils.readFileToString(logFile);
+        Assert.assertTrue(content.contains(jacksonJar));
         
-        // And check that the predeployed jar was not added
-        Assert.assertNull(jobJar.getJarEntry("org/codehaus/jackson/JsonParser.class"));
+        logFile = File.createTempFile("log", "");
+        
+        // Now let's mark the jackson jar as predeployed.
+        pigServer.getPigContext().markJarAsPredeployed(jacksonJar);
+        it = pigServer.openIterator("a");
+
+        content = FileUtils.readFileToString(logFile);
+        Assert.assertFalse(content.contains(jacksonJar));
     }
     
     @Test

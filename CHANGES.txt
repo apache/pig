@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4054: Do not create job.jar when submitting job (daijy)
+
 PIG-4047: Break up pig withouthadoop and fat jar (daijy)
 
 PIG-4062: Add ascending order option to builtin TOP function (raj171 via cheolsoo)
