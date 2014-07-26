@@ -881,7 +881,7 @@
         <macro-test-runner test.file="${test.smoke.file}" />
     </target>
 
-    <target name="test-tez" depends="setTezEnv,setWindowsPath,setLinuxPath,compile-test,jar,debugger.check" description="Run tez unit tests">
+    <target name="test-tez" depends="setTezEnv,setWindowsPath,setLinuxPath,compile-test,jar,debugger.check,jackson-pig-3039-test-download" description="Run tez unit tests">
         <macro-test-runner test.file="${test.tez.file}" />
     </target>
 	
