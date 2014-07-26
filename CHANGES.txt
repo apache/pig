@@ -50,6 +50,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3982: ant target test-tez should depend on jackson-pig-3039-test-download (daijy)
+
 PIG-4064: Fix tez auto parallelism test failures (daijy)
 
 PIG-4075: TEZ-1311 broke Hadoop2 compilation (cheolsoo)
