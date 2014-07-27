@@ -61,6 +61,7 @@ import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
@@ -390,11 +391,12 @@ public class Utils {
     public static void setMapredCompressionCodecProps(Configuration conf) {
         String codec = conf.get(
                 PigConfiguration.PIG_TEMP_FILE_COMPRESSION_CODEC, "");
-        if ("".equals(codec) && conf.get("mapred.output.compression.codec") != null) {
-            conf.setBoolean("mapred.output.compress", true);
-        } else if(TEMPFILE_STORAGE.SEQFILE.ensureCodecSupported(codec)) {
-            conf.setBoolean("mapred.output.compress", true);
-            conf.set("mapred.output.compression.codec", TEMPFILE_CODEC.valueOf(codec.toUpperCase()).getHadoopCodecClassName());
+        if ("".equals(codec) && conf.get(MRConfiguration.OUTPUT_COMPRESSION_CODEC) != null) {
+            conf.setBoolean(MRConfiguration.OUTPUT_COMPRESS, true);
+        } else if (TEMPFILE_STORAGE.SEQFILE.ensureCodecSupported(codec)) {
+            conf.setBoolean(MRConfiguration.OUTPUT_COMPRESS, true);
+            conf.set(MRConfiguration.OUTPUT_COMPRESSION_CODEC,
+                    TEMPFILE_CODEC.valueOf(codec.toUpperCase()).getHadoopCodecClassName());
         }
         // no codec specified
     }
@@ -412,17 +414,19 @@ public class Utils {
             break;
         case SEQFILE:
             conf.set(PigConfiguration.PIG_TEMP_FILE_COMPRESSION_STORAGE, "seqfile");
-            if("".equals(codec)) {
+            if ("".equals(codec)) {
                 // codec is not specified, ensure  is set
-                log.warn("Temporary file compression codec is not specified. Using mapred.output.compression.codec property.");
-                if(conf.get("mapred.output.compression.codec") == null) {
-                    throw new IOException("mapred.output.compression.codec is not set");
+                log.warn("Temporary file compression codec is not specified. Using " +
+                         MRConfiguration.OUTPUT_COMPRESSION_CODEC + " property.");
+                if(conf.get(MRConfiguration.OUTPUT_COMPRESSION_CODEC) == null) {
+                    throw new IOException(MRConfiguration.OUTPUT_COMPRESSION_CODEC + " is not set");
                 }
             } else if(storage.ensureCodecSupported(codec)) {
                 // do nothing
             } else {
                 throw new IOException("Invalid temporary file compression codec [" + codec + "]. " +
-                        "Expected compression codecs for " + storage.getStorageClass().getName() + " are " + storage.supportedCodecsToString() + ".");
+                        "Expected compression codecs for " + storage.getStorageClass().getName() +
+                        " are " + storage.supportedCodecsToString() + ".");
             }
             break;
         case TFILE:
@@ -430,7 +434,8 @@ public class Utils {
                 conf.set(PigConfiguration.PIG_TEMP_FILE_COMPRESSION_CODEC, codec.toLowerCase());
             } else {
                 throw new IOException("Invalid temporary file compression codec [" + codec + "]. " +
-                        "Expected compression codecs for " + storage.getStorageClass().getName() + " are " + storage.supportedCodecsToString() + ".");
+                        "Expected compression codecs for " + storage.getStorageClass().getName() +
+                        " are " + storage.supportedCodecsToString() + ".");
             }
             break;
         }

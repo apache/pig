@@ -37,6 +37,7 @@ import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -200,7 +201,7 @@ public class DefaultIndexableLoader extends LoadFunc implements IndexableLoadFun
         
         // Hadoop security need this property to be set
         if (System.getenv("HADOOP_TOKEN_FILE_LOCATION") != null) {
-            conf.set("mapreduce.job.credentials.binary", 
+            conf.set(MRConfiguration.JOB_CREDENTIALS_BINARY, 
                     System.getenv("HADOOP_TOKEN_FILE_LOCATION"));
         }
         

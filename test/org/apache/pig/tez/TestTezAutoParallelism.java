@@ -32,6 +32,7 @@ import org.apache.hadoop.fs.PathFilter;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.InputSizeReducerEstimator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.test.MiniGenericCluster;
 import org.apache.pig.test.Util;
 import org.junit.After;
@@ -117,7 +118,7 @@ public class TestTezAutoParallelism {
     public void testGroupBy() throws IOException{
         // parallelism is 3 originally, reduce to 1
         pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
-        pigServer.getPigContext().getProperties().setProperty("mapred.max.split.size", "3000");
+        pigServer.getPigContext().getProperties().setProperty(MRConfiguration.MAX_SPLIT_SIZE, "3000");
         pigServer.getPigContext().getProperties().setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, 
                 Long.toString(InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER));
         pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (name:chararray, age:int);");
@@ -139,7 +140,7 @@ public class TestTezAutoParallelism {
     public void testOrderbyDecreaseParallelism() throws IOException{
         // order by parallelism is 3 originally, reduce to 1
         pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
-        pigServer.getPigContext().getProperties().setProperty("mapred.max.split.size", "3000");
+        pigServer.getPigContext().getProperties().setProperty(MRConfiguration.MAX_SPLIT_SIZE, "3000");
         pigServer.getPigContext().getProperties().setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, 
                 Long.toString(InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER));
         pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (name:chararray, age:int);");
@@ -163,7 +164,7 @@ public class TestTezAutoParallelism {
     public void testOrderbyIncreaseParallelism() throws IOException{
         // order by parallelism is 3 originally, increase to 4
         pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
-        pigServer.getPigContext().getProperties().setProperty("mapred.max.split.size", "3000");
+        pigServer.getPigContext().getProperties().setProperty(MRConfiguration.MAX_SPLIT_SIZE, "3000");
         pigServer.getPigContext().getProperties().setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, "1000");
         pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (name:chararray, age:int);");
         pigServer.registerQuery("B = group A by name parallel 3;");
@@ -186,7 +187,7 @@ public class TestTezAutoParallelism {
     public void testSkewedJoinDecreaseParallelism() throws IOException{
         // skewed join parallelism is 4 originally, reduce to 1
         pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
-        pigServer.getPigContext().getProperties().setProperty("mapred.max.split.size", "3000");
+        pigServer.getPigContext().getProperties().setProperty(MRConfiguration.MAX_SPLIT_SIZE, "3000");
         pigServer.getPigContext().getProperties().setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, 
                 Long.toString(InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER));
         pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (name:chararray, age:int);");
@@ -209,7 +210,7 @@ public class TestTezAutoParallelism {
     public void testSkewedJoinIncreaseParallelism() throws IOException{
         // skewed join parallelism is 3 originally, increase to 5
         pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
-        pigServer.getPigContext().getProperties().setProperty("mapred.max.split.size", "3000");
+        pigServer.getPigContext().getProperties().setProperty(MRConfiguration.MAX_SPLIT_SIZE, "3000");
         pigServer.getPigContext().getProperties().setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, "80000");
         pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (name:chararray, age:int);");
         pigServer.registerQuery("B = load '" + INPUT_FILE2 + "' as (name:chararray, gender:chararray);");

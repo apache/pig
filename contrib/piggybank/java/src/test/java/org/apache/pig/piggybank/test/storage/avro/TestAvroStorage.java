@@ -39,6 +39,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
+import org.apache.hadoop.io.compress.SnappyCodec;
 import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigConfiguration;
@@ -47,6 +48,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
 import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -971,8 +973,8 @@ public class TestAvroStorage {
         deleteDirectory(new File(output));
 
         Properties properties = new Properties();
-        properties.setProperty("mapred.output.compress", "true");
-        properties.setProperty("mapred.output.compression.codec", "org.apache.hadoop.io.compress.SnappyCodec");
+        properties.setProperty(MRConfiguration.OUTPUT_COMPRESS, "true");
+        properties.setProperty(MRConfiguration.OUTPUT_COMPRESSION_CODEC, "org.apache.hadoop.io.compress.SnappyCodec");
         properties.setProperty("avro.output.codec", "snappy");
         PigServer pigServer = new PigServer(ExecType.LOCAL, properties);
         pigServer.setBatchOn();

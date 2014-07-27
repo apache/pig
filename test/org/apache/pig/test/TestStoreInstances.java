@@ -38,6 +38,7 @@ import org.apache.pig.PigServer;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.parser.ParserException;
@@ -159,7 +160,7 @@ public class TestStoreInstances  {
         public void setStoreLocation(String location, Job job)
                 throws IOException {
             Configuration conf = job.getConfiguration();
-            conf.set("mapred.output.dir", location);
+            conf.set(MRConfiguration.OUTPUT_DIR, location);
 
         }
 
@@ -196,7 +197,7 @@ public class TestStoreInstances  {
 
         public OutputCommitterTestInstances(ArrayList<Tuple> outRows,
                 TaskAttemptContext taskAttemptCtx) throws IOException {
-            super(new Path(taskAttemptCtx.getConfiguration().get("mapred.output.dir")), taskAttemptCtx);
+            super(new Path(taskAttemptCtx.getConfiguration().get(MRConfiguration.OUTPUT_DIR)), taskAttemptCtx);
             this.outRows = outRows;
         }
 

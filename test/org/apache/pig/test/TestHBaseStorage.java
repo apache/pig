@@ -39,7 +39,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.hbase.HBaseStorage;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
@@ -864,7 +864,7 @@ public class TestHBaseStorage {
         prepareTable(TESTTABLE_2, false, DataFormat.HBaseBinary);
 
         pig.getPigContext().getProperties()
-                .setProperty(MapReduceLauncher.SUCCESSFUL_JOB_OUTPUT_DIR_MARKER, "true");
+                .setProperty(MRConfiguration.FILEOUTPUTCOMMITTER_MARKSUCCESSFULJOBS, "true");
 
         scanTable1(pig, DataFormat.HBaseBinary);
         pig.store("a", "hbase://" +  TESTTABLE_2,
@@ -891,7 +891,7 @@ public class TestHBaseStorage {
         Assert.assertEquals(100, i);
 
         pig.getPigContext().getProperties()
-                .setProperty(MapReduceLauncher.SUCCESSFUL_JOB_OUTPUT_DIR_MARKER, "false");
+                .setProperty(MRConfiguration.FILEOUTPUTCOMMITTER_MARKSUCCESSFULJOBS, "false");
     }
 
     /**

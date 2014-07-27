@@ -31,6 +31,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.mapreduce.hadoop.DeprecatedKeys;
@@ -61,7 +62,7 @@ public class MRToTezHelper {
         mrSettingsToRetain.add(FileInputFormat.INPUT_DIR_RECURSIVE);
 
         // FileOutputFormat
-        mrSettingsToRetain.add("mapreduce.output.basename");
+        mrSettingsToRetain.add(MRConfiguration.OUTPUT_BASENAME);
         mrSettingsToRetain.add(FileOutputFormat.COMPRESS);
         mrSettingsToRetain.add(FileOutputFormat.COMPRESS_CODEC);
         mrSettingsToRetain.add(FileOutputFormat.COMPRESS_TYPE);
@@ -120,9 +121,9 @@ public class MRToTezHelper {
                 + dagAMConf.getInt(MRJobConfig.MR_AM_MAX_ATTEMPTS,
                         MRJobConfig.DEFAULT_MR_AM_MAX_ATTEMPTS));
 
-        if (tezConf.get("mapreduce.job.credentials.binary") != null) {
+        if (tezConf.get(MRConfiguration.JOB_CREDENTIALS_BINARY) != null) {
             dagAMConf.setIfUnset(TezConfiguration.TEZ_CREDENTIALS_PATH,
-                    tezConf.get("mapreduce.job.credentials.binary"));
+                    tezConf.get(MRConfiguration.JOB_CREDENTIALS_BINARY));
         }
 
         //TODO: Strip out all MR settings

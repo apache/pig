@@ -37,6 +37,7 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTextOutputFormat;
@@ -392,7 +393,7 @@ public class TestMultiQueryLocal {
         @Override
         public synchronized OutputCommitter getOutputCommitter(TaskAttemptContext context)
                 throws IOException {
-            context.getConfiguration().set(PigStorageWithConfig.key, "mapred.work.output.dir");
+            context.getConfiguration().set(PigStorageWithConfig.key, MRConfiguration.WORK_OUPUT_DIR);
             return super.getOutputCommitter(context);
         }
     }

@@ -52,6 +52,7 @@ import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
@@ -536,7 +537,7 @@ public class TestSchemaTuple {
         conf.set("fs.default.name", "file:///");
 
         TaskAttemptID taskId = HadoopShims.createTaskAttemptID("jt", 1, true, 1, 1);
-        conf.set("mapred.task.id", taskId.toString());
+        conf.set(MRConfiguration.TASK_ID, taskId.toString());
 
         InputSplit is = new FileSplit(new Path(temp.getAbsolutePath()), 0, temp.length(), null);
 

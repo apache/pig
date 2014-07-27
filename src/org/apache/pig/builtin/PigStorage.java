@@ -62,6 +62,7 @@ import org.apache.pig.StoreFunc;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.StoreMetadata;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTextInputFormat;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTextOutputFormat;
@@ -452,7 +453,7 @@ LoadPushDown, LoadMetadata, StoreMetadata, OverwritableStoreFunc {
 
     @Override
     public void setStoreLocation(String location, Job job) throws IOException {
-        job.getConfiguration().set("mapred.textoutputformat.separator", "");
+        job.getConfiguration().set(MRConfiguration.TEXTOUTPUTFORMAT_SEPARATOR, "");
         FileOutputFormat.setOutputPath(job, new Path(location));
 
         if( "true".equals( job.getConfiguration().get( "output.compression.enabled" ) ) ) {
@@ -596,7 +597,7 @@ LoadPushDown, LoadMetadata, StoreMetadata, OverwritableStoreFunc {
     @Override
     public void cleanupOutput(POStore store, Job job) throws IOException {
         Configuration conf = job.getConfiguration();
-        String output = conf.get("mapred.output.dir");
+        String output = conf.get(MRConfiguration.OUTPUT_DIR);
         Path outputPath = null;
         if (output != null)
             outputPath = new Path(output);

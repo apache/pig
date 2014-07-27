@@ -43,6 +43,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.pig.LoadPushDown;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigFileInputFormat;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.util.Utils;
@@ -108,7 +109,7 @@ public class TrevniStorage extends AvroStorage implements LoadPushDown{
       @Override protected  List<FileStatus> listStatus(final JobContext job)
           throws IOException {
         List<FileStatus> results = Lists.newArrayList();
-        job.getConfiguration().setBoolean("mapred.input.dir.recursive", true);
+        job.getConfiguration().setBoolean(MRConfiguration.INPUT_DIR_RECURSIVE, true);
         for (FileStatus file : super.listStatus(job)) {
           if (Utils.VISIBLE_FILES.accept(file.getPath())) {
             results.add(file);

@@ -42,6 +42,7 @@ import org.apache.pig.PigServer;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataType;
@@ -127,7 +128,7 @@ public class TestPigStorage  {
         for (Entry<Object, Object> entry : properties.entrySet()) {
             props.put(entry.getKey(), entry.getValue());
         }
-        props.setProperty("mapred.max.split.size", "20");
+        props.setProperty(MRConfiguration.MAX_SPLIT_SIZE, "20");
         Util.resetStateForExecModeSwitch();
         PigServer pigServer = new PigServer(cluster.getExecType(), props);
         String[] inputs = {

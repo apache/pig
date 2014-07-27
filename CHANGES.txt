@@ -50,6 +50,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4074: mapreduce.client.submit.file.replication is not honored in cached files (cheolsoo)
+
 PIG-4052: TestJobControlSleep, TestInvokerSpeed are unreliable (daijy)
 
 PIG-4053: TestMRCompiler succeeded with sun jdk 1.6 while failed with sun jdk 1.7 (daijy)

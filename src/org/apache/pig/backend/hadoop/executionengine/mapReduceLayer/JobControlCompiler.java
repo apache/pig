@@ -452,7 +452,7 @@ public class JobControlCompiler{
             return false;
         }
 
-        int reducers = conf.getInt("mapred.reduce.tasks", 1);
+        int reducers = conf.getInt(MRConfiguration.REDUCE_TASKS, 1);
         log.info("No of reducers: " + reducers);
         if (reducers > 1) {
             return false;
@@ -509,15 +509,16 @@ public class JobControlCompiler{
             ss.addSettingsToConf(mro, conf);
         }
 
-        conf.set("mapred.mapper.new-api", "true");
-        conf.set("mapred.reducer.new-api", "true");
+        conf.set(MRConfiguration.MAPPER_NEW_API, "true");
+        conf.set(MRConfiguration.REDUCER_NEW_API, "true");
 
-        String buffPercent = conf.get("mapred.job.reduce.markreset.buffer.percent");
+        String buffPercent = conf.get(MRConfiguration.JOB_REDUCE_MARKRESET_BUFFER_PERCENT);
         if (buffPercent == null || Double.parseDouble(buffPercent) <= 0) {
-            log.info("mapred.job.reduce.markreset.buffer.percent is not set, set to default 0.3");
-            conf.set("mapred.job.reduce.markreset.buffer.percent", "0.3");
+            log.info(MRConfiguration.JOB_REDUCE_MARKRESET_BUFFER_PERCENT + " is not set, set to default 0.3");
+            conf.set(MRConfiguration.JOB_REDUCE_MARKRESET_BUFFER_PERCENT, "0.3");
         }else{
-            log.info("mapred.job.reduce.markreset.buffer.percent is set to " + conf.get("mapred.job.reduce.markreset.buffer.percent"));
+            log.info(MRConfiguration.JOB_REDUCE_MARKRESET_BUFFER_PERCENT + " is set to " +
+                     conf.get(MRConfiguration.JOB_REDUCE_MARKRESET_BUFFER_PERCENT));
         }
 
         configureCompression(conf);
@@ -570,7 +571,7 @@ public class JobControlCompiler{
                     // override with the default conf to run in local mode
                     for (Entry<String, String> entry : defaultConf) {
                         String key = entry.getKey();
-                        if (key.equals("mapred.reduce.tasks") || key.equals("mapreduce.job.reduces")) {
+                        if (key.equals(MRConfiguration.REDUCE_TASKS) || key.equals(MRConfiguration.JOB_REDUCES)) {
                             // this must not be set back to the default in case it has been set to 0 for example.
                             continue;
                         }
@@ -646,7 +647,7 @@ public class JobControlCompiler{
             // this is for unit tests since some don't create PigServer
 
             // if user specified the job name using -D switch, Pig won't reset the name then.
-            if (System.getProperty("mapred.job.name") == null &&
+            if (System.getProperty(MRConfiguration.JOB_NAME) == null &&
                     pigContext.getProperties().getProperty(PigContext.JOB_NAME) != null){
                 nwJob.setJobName(pigContext.getProperties().getProperty(PigContext.JOB_NAME));
             }
@@ -657,7 +658,7 @@ public class JobControlCompiler{
                 String jobPriority = pigContext.getProperties().getProperty(PigContext.JOB_PRIORITY).toUpperCase();
                 try {
                     // Allow arbitrary case; the Hadoop job priorities are all upper case.
-                    conf.set("mapred.job.priority", JobPriority.valueOf(jobPriority).toString());
+                    conf.set(MRConfiguration.JOB_PRIORITY, JobPriority.valueOf(jobPriority).toString());
 
                 } catch (IllegalArgumentException e) {
                     StringBuffer sb = new StringBuffer("The job priority must be one of [");
@@ -936,8 +937,8 @@ public class JobControlCompiler{
             if (pigContext.getExecType() == ExecType.MAPREDUCE) {
                 String newfiles = conf.get("alternative.mapreduce.job.cache.files");
                 if (newfiles!=null) {
-                    String files = conf.get("mapreduce.job.cache.files");
-                    conf.set("mapreduce.job.cache.files",
+                    String files = conf.get(MRConfiguration.JOB_CACHE_FILES);
+                    conf.set(MRConfiguration.JOB_CACHE_FILES,
                             files == null ? newfiles.toString() : files + "," + newfiles);
                 }
             }
@@ -958,11 +959,13 @@ public class JobControlCompiler{
 
     public static void configureCompression(Configuration conf) {
         // Convert mapred.output.* to output.compression.*, See PIG-1791
-        if( "true".equals( conf.get( "mapred.output.compress" ) ) ) {
+        if( "true".equals( conf.get(MRConfiguration.OUTPUT_COMPRESS) ) ) {
             conf.set( "output.compression.enabled",  "true" );
-            String codec = conf.get( "mapred.output.compression.codec" );
+            String codec = conf.get(MRConfiguration.OUTPUT_COMPRESSION_CODEC);
             if( codec == null ) {
-                throw new IllegalArgumentException("'mapred.output.compress' is set but no value is specified for 'mapred.output.compression.codec'." );
+                throw new IllegalArgumentException("'" + MRConfiguration.OUTPUT_COMPRESS +
+                        "' is set but no value is specified for '" +
+                        MRConfiguration.OUTPUT_COMPRESSION_CODEC + "'." );
             } else {
                 conf.set( "output.compression.codec", codec );
             }
@@ -1009,7 +1012,7 @@ public class JobControlCompiler{
         mro.requestedParallelism = jobParallelism;
 
         // finally set the number of reducers
-        conf.setInt("mapred.reduce.tasks", jobParallelism);
+        conf.setInt(MRConfiguration.REDUCE_TASKS, jobParallelism);
     }
 
     /**
@@ -1506,6 +1509,7 @@ public class JobControlCompiler{
                             new Path(FileLocalizer.getTemporaryPath(pigContext).toString());
                     FileSystem fs = dst.getFileSystem(conf);
                     fs.copyFromLocalFile(src, dst);
+                    fs.setReplication(dst, (short)conf.getInt(MRConfiguration.SUMIT_REPLICATION, 3));
 
                     // Construct the dst#srcName uri for DistributedCache
                     URI dstURI = null;

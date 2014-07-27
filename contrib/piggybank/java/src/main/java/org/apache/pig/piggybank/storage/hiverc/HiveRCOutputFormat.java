@@ -33,6 +33,7 @@ import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.ReflectionUtils;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,8 +78,8 @@ public class HiveRCOutputFormat extends FileOutputFormat<NullWritable, Writable>
           // override compression codec if set.
           String codecOverride = conf.get(COMPRESSION_CODEC_CONF);
           if (codecOverride != null) {
-            conf.setBoolean("mapred.output.compress", true);
-            conf.set("mapred.output.compression.codec", codecOverride);
+            conf.setBoolean(MRConfiguration.OUTPUT_COMPRESS, true);
+            conf.set(MRConfiguration.OUTPUT_COMPRESSION_CODEC, codecOverride);
           }
 
           CompressionCodec codec = null;

@@ -31,6 +31,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigHadoopLogger;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.UDFFinishVisitor;
@@ -120,7 +121,7 @@ public class PigProcessor implements LogicalIOProcessor {
         PigContext pc = (PigContext) ObjectSerializer.deserialize(conf.get("pig.pigContext"));
 
         // To determine front-end in UDFContext
-        conf.set("mapreduce.job.application.attempt.id", processorContext.getUniqueIdentifier());
+        conf.set(MRConfiguration.JOB_APPLICATION_ATTEMPT_ID, processorContext.getUniqueIdentifier());
         UDFContext.getUDFContext().addJobConf(conf);
         UDFContext.getUDFContext().deserialize();
 

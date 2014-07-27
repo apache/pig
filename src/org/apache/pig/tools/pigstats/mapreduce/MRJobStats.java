@@ -39,6 +39,7 @@ import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.pig.PigCounters;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
@@ -391,7 +392,7 @@ public final class MRJobStats extends JobStats {
             TaskStat st = getTaskStat(maps);
             setMapStat(st.size, st.max, st.min, st.avg, st.median);
         } else {
-            int m = conf.getInt("mapred.map.tasks", 1);
+            int m = conf.getInt(MRConfiguration.MAP_TASKS, 1);
             if (m > 0) {
                 setMapStat(m, -1, -1, -1, -1);
             }
@@ -401,7 +402,7 @@ public final class MRJobStats extends JobStats {
             TaskStat st = getTaskStat(reduces);
             setReduceStat(st.size, st.max, st.min, st.avg, st.median);
         } else {
-            int m = conf.getInt("mapred.reduce.tasks", 1);
+            int m = conf.getInt(MRConfiguration.REDUCE_TASKS, 1);
             if (m > 0) {
                 setReduceStat(m, -1, -1, -1, -1);
             }

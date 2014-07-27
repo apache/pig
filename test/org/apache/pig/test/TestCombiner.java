@@ -32,6 +32,7 @@ import java.util.Properties;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.PigServer;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DefaultDataBag;
@@ -173,7 +174,7 @@ public class TestCombiner {
         properties.setProperty("io.sort.mb", "1");
 
         PigServer pigServer = new PigServer(cluster.getExecType(), properties);
-        pigServer.getPigContext().getProperties().setProperty("mapred.child.java.opts", "-Xmx1024m");
+        pigServer.getPigContext().getProperties().setProperty(MRConfiguration.CHILD_JAVA_OPTS, "-Xmx1024m");
         pigServer.registerQuery("a = load 'MultiCombinerUseInput.txt' as (x:int);");
         pigServer.registerQuery("b = group a all;");
         pigServer.registerQuery("c = foreach b generate COUNT(a), SUM(a.$0), " +

@@ -43,6 +43,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
@@ -122,9 +123,9 @@ public class TestIndexedStorage {
         LocalFileSystem fs = FileSystem.getLocal(conf);
 
         TaskAttemptID taskId = HadoopShims.createTaskAttemptID("jt", 1, true, 1, 1);
-        conf.set("mapred.task.id", taskId.toString());
+        conf.set(MRConfiguration.TASK_ID, taskId.toString());
 
-        conf.set("mapred.input.dir", Util.encodeEscape(outputDir.getAbsolutePath()));
+        conf.set(MRConfiguration.INPUT_DIR, Util.encodeEscape(outputDir.getAbsolutePath()));
         storage.initialize(conf);
 
         Integer key;
@@ -154,9 +155,9 @@ public class TestIndexedStorage {
         LocalFileSystem fs = FileSystem.getLocal(conf);
 
         TaskAttemptID taskId =  HadoopShims.createTaskAttemptID("jt", 2, true, 2, 2);
-        conf.set("mapred.task.id", taskId.toString());
+        conf.set(MRConfiguration.TASK_ID, taskId.toString());
 
-        conf.set("mapred.input.dir", Util.encodeEscape(outputDir.getAbsolutePath()));
+        conf.set(MRConfiguration.INPUT_DIR, Util.encodeEscape(outputDir.getAbsolutePath()));
         storage.initialize(conf);
 
         TupleFactory tupleFactory = TupleFactory.getInstance();

@@ -18,19 +18,15 @@
 package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import org.apache.hadoop.conf.Configuration;
 
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.GFCross;
 import org.apache.pig.impl.util.UDFContext;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
 public class TestGFCross {
@@ -54,7 +50,7 @@ public class TestGFCross {
     @Test
     public void testSerial() throws Exception {
         Configuration cfg = new Configuration();
-        cfg.set("mapred.reduce.tasks", "1");
+        cfg.set(MRConfiguration.REDUCE_TASKS, "1");
         UDFContext.getUDFContext().addJobConf(cfg);
         Tuple t = TupleFactory.getInstance().newTuple(2);
 
@@ -70,7 +66,7 @@ public class TestGFCross {
     @Test
     public void testParallelSet() throws Exception {
         Configuration cfg = new Configuration();
-        cfg.set("mapred.reduce.tasks", "10");
+        cfg.set(MRConfiguration.REDUCE_TASKS, "10");
         UDFContext.getUDFContext().addJobConf(cfg);
         Tuple t = TupleFactory.getInstance().newTuple(2);
 

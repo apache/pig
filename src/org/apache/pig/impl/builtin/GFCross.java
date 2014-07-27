@@ -24,6 +24,7 @@ import org.apache.hadoop.conf.Configuration;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
@@ -47,7 +48,7 @@ public class GFCross extends EvalFunc<DataBag> {
             parallelism = DEFAULT_PARALLELISM;
             Configuration cfg = UDFContext.getUDFContext().getJobConf();
             if (cfg != null) {
-                String s = cfg.get("mapred.reduce.tasks");
+                String s = cfg.get(MRConfiguration.REDUCE_TASKS);
                 if (s == null) {
                     throw new IOException("Unable to determine parallelism from job conf");
                 }

@@ -52,11 +52,6 @@ import org.apache.pig.impl.util.ObjectSerializer;
 public class PigOutputFormat extends OutputFormat<WritableComparable, Tuple> {
     
     private enum Mode { SINGLE_STORE, MULTI_STORE};
-
-    /** hadoop job output directory */
-    public static final String MAPRED_OUTPUT_DIR = "mapred.output.dir";
-    /** hadoop partition number */ 
-    public static final String MAPRED_TASK_PARTITION = "mapred.task.partition";
     
     /** the temporary directory for the multi store */
     public static final String PIG_MAPRED_OUTPUT_DIR = "pig.mapred.output.dir";

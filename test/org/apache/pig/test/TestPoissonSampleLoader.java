@@ -27,6 +27,7 @@ import java.util.Iterator;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.data.Tuple;
 import org.junit.After;
 import org.junit.Before;
@@ -43,7 +44,7 @@ public class TestPoissonSampleLoader {
                 .setProperty("pig.skewedjoin.reduce.maxtuple", "5");
         pigServer.getPigContext().getProperties()
                 .setProperty("pig.skewedjoin.reduce.memusage", "0.0001");
-        pigServer.getPigContext().getProperties().setProperty("mapred.child.java.opts", "-Xmx512m");
+        pigServer.getPigContext().getProperties().setProperty(MRConfiguration.CHILD_JAVA_OPTS, "-Xmx512m");
 
         pigServer.getPigContext().getProperties().setProperty("pig.mapsplits.count", "5");
     }

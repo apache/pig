@@ -28,6 +28,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
@@ -41,6 +42,7 @@ public class TezResourceManager {
     private boolean inited = false;
     private Path stagingDir;
     private FileSystem remoteFs;
+    private Configuration conf;
     public Map<String, Path> resources = new HashMap<String, Path>();
 
     static public TezResourceManager getInstance() {
@@ -53,8 +55,9 @@ public class TezResourceManager {
     public void init(PigContext pigContext, Configuration conf) throws IOException {
         if (!inited) {
             this.stagingDir = ((HPath)FileLocalizer.getTemporaryResourcePath(pigContext)).getPath();
-            remoteFs = FileSystem.get(conf);
-            inited = true;
+            this.remoteFs = FileSystem.get(conf);
+            this.conf = conf;
+            this.inited = true;
         }
     }
 
@@ -77,6 +80,7 @@ public class TezResourceManager {
             if (uri.toString().startsWith("file:")) {
                 Path remoteFsPath = remoteFs.makeQualified(new Path(stagingDir, resourceName));
                 remoteFs.copyFromLocalFile(resourcePath, remoteFsPath);
+                remoteFs.setReplication(remoteFsPath, (short)conf.getInt(Job.SUBMIT_REPLICATION, 3));
                 resources.put(resourceName, remoteFsPath);
                 return remoteFsPath;
             }
