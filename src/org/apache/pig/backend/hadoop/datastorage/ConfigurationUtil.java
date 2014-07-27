@@ -27,6 +27,7 @@ import java.util.Properties;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigConstants;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
@@ -84,7 +85,7 @@ public class ConfigurationUtil {
             // so build/classes/hadoop-site.xml contains such entry. This prevents some tests from
             // successful (They expect those files in hdfs), so we need to unset it in hadoop 23.
             // This should go away once MiniMRCluster fix the distributed cache issue.
-            HadoopShims.unsetConf(localConf, "mapreduce.job.cache.files");
+            HadoopShims.unsetConf(localConf, MRConfiguration.JOB_CACHE_FILES);
         }
         localConf.set(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
         Properties props = ConfigurationUtil.toProperties(localConf);

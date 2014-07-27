@@ -3,9 +3,9 @@
  * NOTICE file distributed with this work for additional information regarding copyright ownership. The ASF
  * licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file
  * except in compliance with the License. You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software distributed under the License is
  * distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and limitations under the License.
@@ -35,6 +35,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.test.Util;
 import org.w3c.dom.Document;
@@ -55,31 +56,31 @@ public class TestXMLLoader extends TestCase {
     data.add(new String[] { "</property>"});
     data.add(new String[] { "</configuration>"});
   }
-  
+
   public static ArrayList<String[]> nestedTags = new ArrayList<String[]>();
   static {
      nestedTags.add(new String[] { "<events>"});
      nestedTags.add(new String[] { "<event id='116913365'>"});
      nestedTags.add(new String[] { "<eventRank>1.000000000000</eventRank>"});
-     nestedTags.add(new String[] { "<name>XY</name>"});   
+     nestedTags.add(new String[] { "<name>XY</name>"});
      nestedTags.add(new String[] { "<relatedEvents>"});
      nestedTags.add(new String[] { "<event id='116913365'>x</event>"});
      nestedTags.add(new String[] { "<event id='116913365'>y</event>"});
      nestedTags.add(new String[] { "</relatedEvents>"});
      nestedTags.add(new String[] { "</event>"});
-    
+
      nestedTags.add(new String[] { "<event id='116913365'>"});
      nestedTags.add(new String[] { "<eventRank>3.0000</eventRank>"});
-     nestedTags.add(new String[] { "<name>AB</name>"});   
+     nestedTags.add(new String[] { "<name>AB</name>"});
      nestedTags.add(new String[] { "<relatedEvents>"});
      nestedTags.add(new String[] { "<event id='116913365'>a</event>"});
      nestedTags.add(new String[] { "<event id='116913365'>b</event>"});
      nestedTags.add(new String[] { "</relatedEvents>"});
      nestedTags.add(new String[] { "</event>"});
-     
+
      nestedTags.add(new String[] { "<event>"});
      nestedTags.add(new String[] { "<eventRank>4.0000</eventRank>"});
-     nestedTags.add(new String[] { "<name>CD</name>"});   
+     nestedTags.add(new String[] { "<name>CD</name>"});
      nestedTags.add(new String[] { "<relatedEvents>"});
      nestedTags.add(new String[] { "<event>c</event>"});
      nestedTags.add(new String[] { "<event>d</event>"});
@@ -87,7 +88,7 @@ public class TestXMLLoader extends TestCase {
      nestedTags.add(new String[] { "</event>"});
      nestedTags.add(new String[] { "</events>"});
   }
-  
+
   public static ArrayList<String[]> inlineClosedTags = new ArrayList<String[]>();
   static {
     inlineClosedTags.add(new String[] { "<events>"});
@@ -97,8 +98,8 @@ public class TestXMLLoader extends TestCase {
     inlineClosedTags.add(new String[] { "<event id='33'><tag k='a' v='b'/></event>"});
     inlineClosedTags.add(new String[] { "</events>"});
   }
-  public void testShouldReturn0TupleCountIfSearchTagIsNotFound () throws Exception
-  {
+
+  public void testShouldReturn0TupleCountIfSearchTagIsNotFound () throws Exception {
     String filename = TestHelper.createTempFile(data, "");
     PigServer pig = new PigServer(LOCAL);
     filename = filename.replace("\\", "\\\\");
@@ -116,9 +117,9 @@ public class TestXMLLoader extends TestCase {
         }
       }
     }
-    assertEquals(0, tupleCount); 
+    assertEquals(0, tupleCount);
   }
-  
+
   public void testLoadXMLLoader() throws Exception {
     //ArrayList<DataByteArray[]> expected = TestHelper.getExpected(data, pattern);
     String filename = TestHelper.createTempFile(data, "");
@@ -138,90 +139,82 @@ public class TestXMLLoader extends TestCase {
         }
       }
     }
-    assertEquals(2, tupleCount);  
+    assertEquals(2, tupleCount);
   }
-  
+
   public void testXMLLoaderShouldLoadBasicBzip2Files() throws Exception {
     String filename = TestHelper.createTempFile(data, "");
     Process bzipProc = Runtime.getRuntime().exec("bzip2 "+filename);
     int waitFor = bzipProc.waitFor();
-  
-    if(waitFor != 0)
-    {
+
+    if(waitFor != 0) {
         fail ("Failed to create the class");
     }
 
     filename = filename + ".bz2";
 
-    try
-    {
+    try {
         PigServer pigServer = new PigServer (ExecType.LOCAL);
         String loadQuery = "A = LOAD '" + Util.encodeEscape(filename) + "' USING org.apache.pig.piggybank.storage.XMLLoader('property') as (doc:chararray);";
         pigServer.registerQuery(loadQuery);
+
         Iterator<Tuple> it = pigServer.openIterator("A");
         int tupleCount = 0;
         while (it.hasNext()) {
-        Tuple tuple = (Tuple) it.next();
-        if (tuple == null)
-        break;
-        else {
-        //TestHelper.examineTuple(expected, tuple, tupleCount);
-        if (tuple.size() > 0) {
-            tupleCount++;
-	        }
-	     }
+            Tuple tuple = (Tuple) it.next();
+            if (tuple == null)
+                break;
+            else {
+                //TestHelper.examineTuple(expected, tuple, tupleCount);
+                if (tuple.size() > 0) {
+                    tupleCount++;
+                }
+            }
         }
-	    
         assertEquals(2, tupleCount);
-    
-    }finally
-    {
+
+    } finally {
         new File(filename).delete();
     }
-	    
    }
+
    public void testLoaderShouldLoadBasicGzFile() throws Exception {
     String filename = TestHelper.createTempFile(data, "");
-	  
+
     Process bzipProc = Runtime.getRuntime().exec("gzip "+filename);
     int waitFor = bzipProc.waitFor();
-	  
-    if(waitFor != 0)
-    {
+
+    if(waitFor != 0) {
         fail ("Failed to create the class");
     }
-	  
+
     filename = filename + ".gz";
-    
-    try
-    {
 
-    PigServer pigServer = new PigServer (ExecType.LOCAL);
-    String loadQuery = "A = LOAD '" + Util.encodeEscape(filename) + "' USING org.apache.pig.piggybank.storage.XMLLoader('property') as (doc:chararray);";
-    pigServer.registerQuery(loadQuery);
+    try {
+        PigServer pigServer = new PigServer (ExecType.LOCAL);
+        String loadQuery = "A = LOAD '" + Util.encodeEscape(filename) + "' USING org.apache.pig.piggybank.storage.XMLLoader('property') as (doc:chararray);";
+        pigServer.registerQuery(loadQuery);
 
-    Iterator<Tuple> it = pigServer.openIterator("A");
-    int tupleCount = 0;
-    while (it.hasNext()) {
-    Tuple tuple = (Tuple) it.next();
-    if (tuple == null)
-        break;
-    else {
-        if (tuple.size() > 0) {
-        tupleCount++;
-             }
+        Iterator<Tuple> it = pigServer.openIterator("A");
+        int tupleCount = 0;
+        while (it.hasNext()) {
+            Tuple tuple = (Tuple) it.next();
+            if (tuple == null)
+                break;
+            else {
+                if (tuple.size() > 0) {
+                    tupleCount++;
+                }
+            }
         }
-    }	
-    assertEquals(2, tupleCount); 
-   
-    }finally
-    {
+        assertEquals(2, tupleCount);
+
+    } finally {
         new File(filename).delete();
     }
  }
-   
-   public void testXMLLoaderShouldNotConfusedWithTagsHavingSimilarPrefix () throws Exception
-   {
+
+   public void testXMLLoaderShouldNotConfusedWithTagsHavingSimilarPrefix () throws Exception {
       ArrayList<String[]> testData = new ArrayList<String[]>();
       testData.add(new String[] { "<namethisalso> foobar9 </namethisalso>"});
       testData.addAll(data);
@@ -233,21 +226,19 @@ public class TestXMLLoader extends TestCase {
       Iterator<?> it = pig.openIterator("A");
       int tupleCount = 0;
       while (it.hasNext()) {
-        Tuple tuple = (Tuple) it.next();
-        if (tuple == null) 
-          break;
-        else {
-          if (tuple.size() > 0) {
-              tupleCount++;
+          Tuple tuple = (Tuple) it.next();
+          if (tuple == null)
+              break;
+          else {
+              if (tuple.size() > 0) {
+                  tupleCount++;
+              }
           }
-        }
       }
       assertEquals(3, tupleCount);
-      
    }
-   
-   public void testShouldReturn1ForIntermediateTagData () throws Exception
-   {
+
+   public void testShouldReturn1ForIntermediateTagData () throws Exception {
       String filename = TestHelper.createTempFile(data, "");
       PigServer pig = new PigServer(LOCAL);
       filename = filename.replace("\\", "\\\\");
@@ -256,29 +247,27 @@ public class TestXMLLoader extends TestCase {
       Iterator<?> it = pig.openIterator("A");
       int tupleCount = 0;
       while (it.hasNext()) {
-        Tuple tuple = (Tuple) it.next();
-        if (tuple == null) 
-          break;
-        else {
-          if (tuple.size() > 0) {
-              tupleCount++;
+          Tuple tuple = (Tuple) it.next();
+          if (tuple == null)
+              break;
+          else {
+              if (tuple.size() > 0) {
+                  tupleCount++;
+              }
           }
-        }
       }
-      assertEquals(1, tupleCount);  
+      assertEquals(1, tupleCount);
    }
-   public void testShouldReturn0TupleCountIfNoEndTagIsFound() throws Exception
-   {
+
+   public void testShouldReturn0TupleCountIfNoEndTagIsFound() throws Exception {
       // modify the data content to avoid end tag for </ignoreProperty>
       ArrayList<String[]> testData = new ArrayList<String[]>();
       for (String content[] : data) {
-         
-         if(!content[0].equals("</ignoreProperty>"))
-         {
+         if(!content[0].equals("</ignoreProperty>")) {
             testData.add(content);
          }
       }
-      
+
       String filename = TestHelper.createTempFile(testData, "");
       PigServer pig = new PigServer(LOCAL);
       filename = filename.replace("\\", "\\\\");
@@ -287,23 +276,22 @@ public class TestXMLLoader extends TestCase {
       Iterator<?> it = pig.openIterator("A");
       int tupleCount = 0;
       while (it.hasNext()) {
-        Tuple tuple = (Tuple) it.next();
-        if (tuple == null)
-          break;
-        else {
-          if (tuple.size() > 0) {
-              tupleCount++;
+          Tuple tuple = (Tuple) it.next();
+          if (tuple == null)
+              break;
+          else {
+              if (tuple.size() > 0) {
+                  tupleCount++;
+              }
           }
-        }
       }
-      assertEquals(0, tupleCount);  
+      assertEquals(0, tupleCount);
    }
-   
-   public void testShouldReturn0TupleCountIfEmptyFileIsPassed() throws Exception
-   {
+
+   public void testShouldReturn0TupleCountIfEmptyFileIsPassed() throws Exception {
       // modify the data content to avoid end tag for </ignoreProperty>
       ArrayList<String[]> testData = new ArrayList<String[]>();
-      
+
       String filename = TestHelper.createTempFile(testData, "");
       PigServer pig = new PigServer(LOCAL);
       filename = filename.replace("\\", "\\\\");
@@ -312,20 +300,19 @@ public class TestXMLLoader extends TestCase {
       Iterator<?> it = pig.openIterator("A");
       int tupleCount = 0;
       while (it.hasNext()) {
-        Tuple tuple = (Tuple) it.next();
-        if (tuple == null)
-          break;
-        else {
-          if (tuple.size() > 0) {
-              tupleCount++;
+          Tuple tuple = (Tuple) it.next();
+          if (tuple == null)
+              break;
+          else {
+              if (tuple.size() > 0) {
+                  tupleCount++;
+              }
           }
-        }
       }
-      assertEquals(0, tupleCount);  
+      assertEquals(0, tupleCount);
    }
-   
+
    public void testXMLLoaderShouldSupportNestedTagWithSameName() throws Exception {
-      
       String filename = TestHelper.createTempFile(nestedTags, "");
       PigServer pig = new PigServer(LOCAL);
       filename = filename.replace("\\", "\\\\");
@@ -334,18 +321,17 @@ public class TestXMLLoader extends TestCase {
       Iterator<?> it = pig.openIterator("A");
       int tupleCount = 0;
       while (it.hasNext()) {
-        Tuple tuple = (Tuple) it.next();
-        if (tuple == null)
-          break;
-        else {
-          if (tuple.size() > 0) {
-              tupleCount++;
+          Tuple tuple = (Tuple) it.next();
+          if (tuple == null)
+              break;
+          else {
+              if (tuple.size() > 0) {
+                  tupleCount++;
+              }
           }
-        }
       }
-      assertEquals(3, tupleCount);  
+      assertEquals(3, tupleCount);
    }
-   
 
    public void testXMLLoaderShouldWorkWithInlineClosedTags() throws Exception {
      String filename = TestHelper.createTempFile(inlineClosedTags, "");
@@ -356,16 +342,16 @@ public class TestXMLLoader extends TestCase {
      Iterator<?> it = pig.openIterator("A");
      int tupleCount = 0;
      while (it.hasNext()) {
-       Tuple tuple = (Tuple) it.next();
-       if (tuple == null)
-         break;
-       else {
-         if (tuple.size() > 0) {
-             tupleCount++;
+         Tuple tuple = (Tuple) it.next();
+         if (tuple == null)
+             break;
+         else {
+             if (tuple.size() > 0) {
+                 tupleCount++;
+             }
          }
-       }
      }
-     assertEquals(4, tupleCount);  
+     assertEquals(4, tupleCount);
    }
 
    public void testXMLLoaderShouldReturnValidXML() throws Exception {
@@ -376,15 +362,15 @@ public class TestXMLLoader extends TestCase {
      pig.registerQuery(query);
      Iterator<?> it = pig.openIterator("A");
      while (it.hasNext()) {
-       Tuple tuple = (Tuple) it.next();
-       if (tuple == null)
-         break;
-       else {
-         // Test it returns a valid XML
-         DocumentBuilder docBuilder =
-           DocumentBuilderFactory.newInstance().newDocumentBuilder();
-         docBuilder.parse(new ByteArrayInputStream(((String)tuple.get(0)).getBytes()));
-       }
+         Tuple tuple = (Tuple) it.next();
+         if (tuple == null)
+             break;
+         else {
+             // Test it returns a valid XML
+             DocumentBuilder docBuilder =
+                     DocumentBuilderFactory.newInstance().newDocumentBuilder();
+             docBuilder.parse(new ByteArrayInputStream(((String)tuple.get(0)).getBytes()));
+         }
      }
    }
 
@@ -394,7 +380,7 @@ public class TestXMLLoader extends TestCase {
     * the first split is a prefix of the matching tag.
     * In other words, till the end of the first split, it looks like the tag is
     * matching but it is not actually matching.
-    * 
+    *
     * @throws Exception
     */
    public void testXMLLoaderShouldNotReturnLastNonMatchedTag() throws Exception {
@@ -435,7 +421,7 @@ public class TestXMLLoader extends TestCase {
      Configuration conf = new Configuration();
      long blockSize = 512;
      conf.setLong("fs.local.block.size", blockSize);
-     conf.setLong("mapred.max.split.size", blockSize);
+     conf.setLong(MRConfiguration.MAX_SPLIT_SIZE, blockSize);
 
      String tagName = "event";
      File tempFile = File.createTempFile("long-file", ".xml");
@@ -465,14 +451,13 @@ public class TestXMLLoader extends TestCase {
        matchingCount++;
      }
      ps.close();
-     
-     
+
      PigServer pig = new PigServer(LOCAL, conf);
      String tempFileName = tempFile.getAbsolutePath().replace("\\", "\\\\");
      String query = "A = LOAD '" + tempFileName + "' USING org.apache.pig.piggybank.storage.XMLLoader('event') as (doc:chararray);";
      pig.registerQuery(query);
      Iterator<?> it = pig.openIterator("A");
-     
+
      int count = 0;
      while (it.hasNext()) {
        Tuple tuple = (Tuple) it.next();

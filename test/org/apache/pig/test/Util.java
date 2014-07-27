@@ -66,6 +66,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -1249,7 +1250,7 @@ public class Util {
         assertConfLong(conf, "pig.info.reducers.default.parallel", defaultParallel);
         assertConfLong(conf, "pig.info.reducers.requested.parallel", requestedParallel);
         assertConfLong(conf, "pig.info.reducers.estimated.parallel", estimatedParallel);
-        assertConfLong(conf, "mapred.reduce.tasks", runtimeParallel);
+        assertConfLong(conf, MRConfiguration.REDUCE_TASKS, runtimeParallel);
     }
 
     private static void assertConfLong(Configuration conf, String param, long expected) {

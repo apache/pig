@@ -49,7 +49,6 @@ import org.apache.pig.PigWarning;
 import org.apache.pig.backend.BackendException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
 import org.apache.pig.backend.hadoop.executionengine.Launcher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler.LastInputStreamingOptimizer;
@@ -89,9 +88,6 @@ import org.apache.pig.tools.pigstats.mapreduce.MRScriptState;
 public class MapReduceLauncher extends Launcher{
 
     public static final String SUCCEEDED_FILE_NAME = "_SUCCESS";
-
-    public static final String SUCCESSFUL_JOB_OUTPUT_DIR_MARKER =
-            "mapreduce.fileoutputcommitter.marksuccessfuljobs";
 
     private static final Log log = LogFactory.getLog(MapReduceLauncher.class);
 
@@ -254,8 +250,8 @@ public class MapReduceLauncher extends Launcher{
             String jobTrackerLoc;
             JobConf jobConf = jobsWithoutIds.get(0).getJobConf();
             try {
-                String port = jobConf.get("mapred.job.tracker.http.address");
-                String jobTrackerAdd = jobConf.get(HExecutionEngine.JOB_TRACKER_LOCATION);
+                String port = jobConf.get(MRConfiguration.JOB_TRACKER_HTTP_ADDRESS);
+                String jobTrackerAdd = jobConf.get(MRConfiguration.JOB_TRACKER);
 
                 jobTrackerLoc = jobTrackerAdd.substring(0,jobTrackerAdd.indexOf(":"))
                         + port.substring(port.indexOf(":"));
@@ -721,7 +717,7 @@ public class MapReduceLauncher extends Launcher{
     }
 
     private boolean shouldMarkOutputDir(Job job) {
-        return job.getJobConf().getBoolean(SUCCESSFUL_JOB_OUTPUT_DIR_MARKER,
+        return job.getJobConf().getBoolean(MRConfiguration.FILEOUTPUTCOMMITTER_MARKSUCCESSFULJOBS,
                 false);
     }
 

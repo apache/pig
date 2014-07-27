@@ -32,6 +32,7 @@ import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.data.BagFactory;
@@ -57,8 +58,8 @@ public class TestMergeJoin {
     public TestMergeJoin() throws ExecException{
 
         Properties props = cluster.getProperties();
-        props.setProperty("mapred.map.max.attempts", "1");
-        props.setProperty("mapred.reduce.max.attempts", "1");
+        props.setProperty(MRConfiguration.MAP_MAX_ATTEMPTS, "1");
+        props.setProperty(MRConfiguration.REDUCE_MAX_ATTEMPTS, "1");
         pigServer = new PigServer(ExecType.MAPREDUCE, props);
     }
     /**

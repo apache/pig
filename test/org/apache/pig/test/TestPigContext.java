@@ -30,6 +30,7 @@ import java.util.Random;
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -226,7 +227,7 @@ public class TestPigContext {
 
     private static Properties getProperties() {
         Properties props = new Properties();
-        props.put("mapred.job.tracker", JOB_TRACKER);
+        props.put(MRConfiguration.JOB_TRACKER, JOB_TRACKER);
         props.put("fs.default.name", FS_NAME);
         props.put("hadoop.tmp.dir", TMP_DIR_PROP);
         return props;
@@ -255,7 +256,7 @@ public class TestPigContext {
 
     private void check_asserts(PigServer pigServer) {
         assertEquals(JOB_TRACKER,
-                pigServer.getPigContext().getProperties().getProperty("mapred.job.tracker"));
+                pigServer.getPigContext().getProperties().getProperty(MRConfiguration.JOB_TRACKER));
         assertEquals(FS_NAME,
                 pigServer.getPigContext().getProperties().getProperty("fs.default.name"));
         assertEquals(TMP_DIR_PROP,

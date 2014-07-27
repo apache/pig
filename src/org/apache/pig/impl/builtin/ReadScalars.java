@@ -23,6 +23,7 @@ import java.util.Map;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -90,7 +91,7 @@ public class ReadScalars extends EvalFunc<Object> {
                 // Hadoop security need this property to be set
                 Configuration conf = UDFContext.getUDFContext().getJobConf();
                 if (System.getenv("HADOOP_TOKEN_FILE_LOCATION") != null) {
-                    conf.set("mapreduce.job.credentials.binary",
+                    conf.set(MRConfiguration.JOB_CREDENTIALS_BINARY,
                             System.getenv("HADOOP_TOKEN_FILE_LOCATION"));
                 }
                 loader = new ReadToEndLoader(

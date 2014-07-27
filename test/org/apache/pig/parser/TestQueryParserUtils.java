@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import java.util.Properties;
 
 import org.apache.pig.ExecType;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.test.Util;
 import org.junit.Test;
@@ -36,73 +37,73 @@ public class TestQueryParserUtils {
 
         //No scheme/host
         QueryParserUtils.setHdfsServers("hdfs:///tmp", pc);
-        assertEquals(null, props.getProperty("mapreduce.job.hdfs-servers"));
+        assertEquals(null, props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
         QueryParserUtils.setHdfsServers("/tmp", pc);
-        assertEquals(null, props.getProperty("mapreduce.job.hdfs-servers"));
+        assertEquals(null, props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
         QueryParserUtils.setHdfsServers("tmp", pc);
-        assertEquals(null, props.getProperty("mapreduce.job.hdfs-servers"));
+        assertEquals(null, props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
 
         // Same as default host and scheme
         QueryParserUtils.setHdfsServers("hdfs://nn1/tmp", pc);
-        assertEquals(null, props.getProperty("mapreduce.job.hdfs-servers"));
+        assertEquals(null, props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
         QueryParserUtils.setHdfsServers("hdfs://nn1:8020/tmp", pc);
-        assertEquals(null, props.getProperty("mapreduce.job.hdfs-servers"));
+        assertEquals(null, props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
 
         // Same host different scheme
         QueryParserUtils.setHdfsServers("hftp://nn1/tmp", pc);
-        assertEquals("hftp://nn1", props.getProperty("mapreduce.job.hdfs-servers"));
+        assertEquals("hftp://nn1", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
         QueryParserUtils.setHdfsServers("hftp://nn1:50070/tmp", pc);
-        assertEquals("hftp://nn1,hftp://nn1:50070", props.getProperty("mapreduce.job.hdfs-servers"));
+        assertEquals("hftp://nn1,hftp://nn1:50070", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
         // There should be no duplicates
         QueryParserUtils.setHdfsServers("hftp://nn1:50070/tmp", pc);
-        assertEquals("hftp://nn1,hftp://nn1:50070", props.getProperty("mapreduce.job.hdfs-servers"));
+        assertEquals("hftp://nn1,hftp://nn1:50070", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
 
         // har
-        props.remove("mapreduce.job.hdfs-servers");
+        props.remove(MRConfiguration.JOB_HDFS_SERVERS);
         QueryParserUtils.setHdfsServers("har:///tmp", pc);
-        assertEquals(null, props.getProperty("mapreduce.job.hdfs-servers"));
+        assertEquals(null, props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
         QueryParserUtils.setHdfsServers("har://hdfs-nn1:8020/tmp", pc);
-        assertEquals(null, props.getProperty("mapreduce.job.hdfs-servers"));
+        assertEquals(null, props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
         QueryParserUtils.setHdfsServers("har://hdfs-nn1/tmp", pc);
-        assertEquals("hdfs://nn1", props.getProperty("mapreduce.job.hdfs-servers"));
+        assertEquals("hdfs://nn1", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
 
         // Non existing filesystem scheme
-        props.remove("mapreduce.job.hdfs-servers");
+        props.remove(MRConfiguration.JOB_HDFS_SERVERS);
         QueryParserUtils.setHdfsServers("hello://nn1/tmp", pc);
-        assertEquals(null, props.getProperty("mapreduce.job.hdfs-servers"));
+        assertEquals(null, props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
 
         if(Util.isHadoop23() || Util.isHadoop2_0()) {
             // webhdfs
-            props.remove("mapreduce.job.hdfs-servers");
+            props.remove(MRConfiguration.JOB_HDFS_SERVERS);
             QueryParserUtils.setHdfsServers("webhdfs://nn1/tmp", pc);
-            assertEquals("webhdfs://nn1", props.getProperty("mapreduce.job.hdfs-servers"));
+            assertEquals("webhdfs://nn1", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
             QueryParserUtils.setHdfsServers("webhdfs://nn1:50070/tmp", pc);
-            assertEquals("webhdfs://nn1,webhdfs://nn1:50070", props.getProperty("mapreduce.job.hdfs-servers"));
+            assertEquals("webhdfs://nn1,webhdfs://nn1:50070", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
 
             // har with webhfs
             QueryParserUtils.setHdfsServers("har://webhdfs-nn1:50070/tmp", pc);
-            assertEquals("webhdfs://nn1,webhdfs://nn1:50070", props.getProperty("mapreduce.job.hdfs-servers"));
+            assertEquals("webhdfs://nn1,webhdfs://nn1:50070", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
             QueryParserUtils.setHdfsServers("har://webhdfs-nn2:50070/tmp", pc);
-            assertEquals("webhdfs://nn1,webhdfs://nn1:50070,webhdfs://nn2:50070", props.getProperty("mapreduce.job.hdfs-servers"));
-            props.remove("mapreduce.job.hdfs-servers");
+            assertEquals("webhdfs://nn1,webhdfs://nn1:50070,webhdfs://nn2:50070", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
+            props.remove(MRConfiguration.JOB_HDFS_SERVERS);
             QueryParserUtils.setHdfsServers("har://webhdfs-nn1/tmp", pc);
-            assertEquals("webhdfs://nn1", props.getProperty("mapreduce.job.hdfs-servers"));
+            assertEquals("webhdfs://nn1", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
 
             //viewfs
-            props.remove("mapreduce.job.hdfs-servers");
+            props.remove(MRConfiguration.JOB_HDFS_SERVERS);
             QueryParserUtils.setHdfsServers("viewfs:/tmp", pc);
-            assertEquals("viewfs://", props.getProperty("mapreduce.job.hdfs-servers"));
+            assertEquals("viewfs://", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
             QueryParserUtils.setHdfsServers("viewfs:///tmp", pc);
-            assertEquals("viewfs://", props.getProperty("mapreduce.job.hdfs-servers"));
+            assertEquals("viewfs://", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
             QueryParserUtils.setHdfsServers("viewfs://cluster1/tmp", pc);
-            assertEquals("viewfs://,viewfs://cluster1", props.getProperty("mapreduce.job.hdfs-servers"));
+            assertEquals("viewfs://,viewfs://cluster1", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
 
             //har with viewfs
-            props.remove("mapreduce.job.hdfs-servers");
+            props.remove(MRConfiguration.JOB_HDFS_SERVERS);
             QueryParserUtils.setHdfsServers("har://viewfs/tmp", pc);
-            assertEquals("viewfs://", props.getProperty("mapreduce.job.hdfs-servers"));
+            assertEquals("viewfs://", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
             QueryParserUtils.setHdfsServers("har://viewfs-cluster1/tmp", pc);
-            assertEquals("viewfs://,viewfs://cluster1", props.getProperty("mapreduce.job.hdfs-servers"));
+            assertEquals("viewfs://,viewfs://cluster1", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
 
 
         }

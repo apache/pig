@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 
 public class UDFContext {
 
@@ -226,8 +227,8 @@ public class UDFContext {
         // mapred.task.id is for MR1
         // mapreduce.job.application.attempt.id is for MR2
         return (this.jconf == null
-                || (jconf.get("mapred.task.id") == null &&
-                    jconf.get("mapreduce.job.application.attempt.id") == null));
+                || (jconf.get(MRConfiguration.TASK_ID) == null &&
+                    jconf.get(MRConfiguration.JOB_APPLICATION_ATTEMPT_ID) == null));
     }
 
     /**

@@ -62,6 +62,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecutionEngine;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.impl.streaming.ExecutableManager;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.util.JarManager;
@@ -314,7 +315,7 @@ public class PigContext implements Serializable {
     }
 
     public void setJobtrackerLocation(String newLocation) {
-        executionEngine.setProperty("mapred.job.tracker", newLocation);
+        executionEngine.setProperty(MRConfiguration.JOB_TRACKER, newLocation);
     }
 
     /**

@@ -28,6 +28,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.test.MiniCluster;
 import org.apache.pig.test.Util;
@@ -43,9 +44,9 @@ public class TestCSVStorage {
         cluster = MiniCluster.buildCluster();
         pigServer = new PigServer(ExecType.LOCAL, new Properties());
         pigServer.getPigContext().getProperties()
-                .setProperty("mapred.map.max.attempts", "1");
+                .setProperty(MRConfiguration.MAP_MAX_ATTEMPTS, "1");
         pigServer.getPigContext().getProperties()
-                .setProperty("mapred.reduce.max.attempts", "1");
+                .setProperty(MRConfiguration.REDUCE_MAX_ATTEMPTS, "1");
     }
 
     @Test

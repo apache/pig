@@ -25,6 +25,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.mapred.MiniMRCluster;
 import org.apache.pig.ExecType;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 
 public class MiniCluster extends MiniGenericCluster {
     private static final File CONF_DIR = new File("build/classes");
@@ -68,16 +69,16 @@ public class MiniCluster extends MiniGenericCluster {
 
             // Write the necessary config info to hadoop-site.xml
             m_conf = m_mr.createJobConf();
-            m_conf.setInt("mapred.submit.replication", 2);
+            m_conf.setInt(MRConfiguration.SUMIT_REPLICATION, 2);
+            m_conf.setInt(MRConfiguration.MAP_MAX_ATTEMPTS, 2);
+            m_conf.setInt(MRConfiguration.REDUCE_MAX_ATTEMPTS, 2);
             m_conf.set("dfs.datanode.address", "0.0.0.0:0");
             m_conf.set("dfs.datanode.http.address", "0.0.0.0:0");
-            m_conf.set("mapred.map.max.attempts", "2");
-            m_conf.set("mapred.reduce.max.attempts", "2");
             m_conf.set("pig.jobcontrol.sleep", "100");
             m_conf.writeXml(new FileOutputStream(CONF_FILE));
 
             // Set the system properties needed by Pig
-            System.setProperty("cluster", m_conf.get("mapred.job.tracker"));
+            System.setProperty("cluster", m_conf.get(MRConfiguration.JOB_TRACKER));
             System.setProperty("namenode", m_conf.get("fs.default.name"));
             System.setProperty("junit.hadoop.conf", CONF_DIR.getPath());
         } catch (IOException e) {

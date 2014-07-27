@@ -35,6 +35,7 @@ import java.util.Properties;
 
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.parser.ParserException;
 import org.junit.After;
@@ -61,8 +62,8 @@ public class TestAccumulator {
         properties.setProperty("pig.accumulative.batchsize", "2");
         properties.setProperty("pig.exec.nocombiner", "true");
         // Reducing the number of retry attempts to speed up test completion
-        properties.setProperty("mapred.map.max.attempts","1");
-        properties.setProperty("mapred.reduce.max.attempts","1");
+        properties.setProperty(MRConfiguration.MAP_MAX_ATTEMPTS,"1");
+        properties.setProperty(MRConfiguration.REDUCE_MAX_ATTEMPTS,"1");
         createFiles();
     }
 

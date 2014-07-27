@@ -40,6 +40,7 @@ import org.apache.pig.backend.datastorage.ContainerDescriptor;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.impl.PigContext;
@@ -103,7 +104,7 @@ public class QueryParserUtils {
         ConfigurationUtil.mergeConf(conf, ConfigurationUtil.toConfiguration(pigContext.getProperties()));
         Set<String> remoteHosts = getRemoteHosts(absolutePath, defaultFSURI, conf);
 
-        String hdfsServersString = (String)pigContext.getProperties().get("mapreduce.job.hdfs-servers");
+        String hdfsServersString = (String)pigContext.getProperties().get(MRConfiguration.JOB_HDFS_SERVERS);
         if (hdfsServersString == null) hdfsServersString = "";
         String hdfsServers[] = hdfsServersString.split(",");
 
@@ -123,7 +124,7 @@ public class QueryParserUtils {
         }
 
         if (!hdfsServersString.isEmpty()) {
-            pigContext.getProperties().setProperty("mapreduce.job.hdfs-servers", hdfsServersString);
+            pigContext.getProperties().setProperty(MRConfiguration.JOB_HDFS_SERVERS, hdfsServersString);
         }
     }
 

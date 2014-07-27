@@ -45,6 +45,7 @@ import org.apache.pig.PigServer;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecJob;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
@@ -656,7 +657,7 @@ public class TestMultiQueryBasic {
         public void setStoreLocation(String location, Job job)
                 throws IOException {
             Configuration conf = job.getConfiguration();
-            conf.set("mapred.output.dir", location);
+            conf.set(MRConfiguration.OUTPUT_DIR, location);
 
         }
 
@@ -679,7 +680,7 @@ public class TestMultiQueryBasic {
             Configuration conf = context.getConfiguration();
             FileSystem fs = FileSystem.get(conf);
             // create a file to test that this method got called
-            fs.create(new Path(conf.get("mapred.output.dir") + "_checkOutputSpec_test"));
+            fs.create(new Path(conf.get(MRConfiguration.OUTPUT_DIR) + "_checkOutputSpec_test"));
         }
 
         @Override

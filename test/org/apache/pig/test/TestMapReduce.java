@@ -39,6 +39,7 @@ import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.builtin.COUNT;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.BagFactory;
@@ -94,12 +95,12 @@ public class TestMapReduce {
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         long nonNullCnt = 0;
         for(int i = 0; i < LOOP_COUNT; i++) {
-	    if ( i % 10 == 0 ){
+        if ( i % 10 == 0 ){
                ps.println("");
-	    } else {
+        } else {
                ps.println(i);
                nonNullCnt ++;
-	    }
+        }
         }
         ps.close();
 
@@ -122,7 +123,7 @@ public class TestMapReduce {
             for (Entry<Object, Object> entry : cluster.getProperties().entrySet()) {
                 props.put(entry.getKey(), entry.getValue());
             }
-            props.setProperty("mapred.max.split.size", Integer.toString(offsets[i]));
+            props.setProperty(MRConfiguration.MAX_SPLIT_SIZE, Integer.toString(offsets[i]));
             PigContext pigContext = new PigContext(cluster.getExecType(), props);
             PigServer pig = new PigServer(pigContext);
             pig.registerQuery("a = load '"
@@ -293,7 +294,7 @@ public class TestMapReduce {
 
         File tmpFile=TestHelper.createTempFile(data) ;
 
-	//Load, Execute and Store query
+    //Load, Execute and Store query
         String query = "foreach (load '"
                 + Util.generateURI(tmpFile.toString(), pig.getPigContext())
                 + "') generate $0,$1;";
@@ -309,7 +310,7 @@ public class TestMapReduce {
         BufferedReader br = new BufferedReader(new InputStreamReader(is));
         String line;
 
-	//verify query
+    //verify query
         int i= 0;
         while((line = br.readLine()) != null) {
 
@@ -369,11 +370,11 @@ public class TestMapReduce {
         File tmpFile = File.createTempFile("test", ".txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < 1; i++) {
-	    if ( i % 10 == 0 ){
+        if ( i % 10 == 0 ){
                ps.println("");
-	    } else {
+        } else {
                ps.println(i);
-	    }
+        }
         }
         ps.close();
 
@@ -508,14 +509,14 @@ public class TestMapReduce {
      * For generating a sample dataset as
      *
      * no nulls:
-     *   	$0 $1
+     *       $0 $1
      *           0  9
      *           1  1
      *           ....
      *           9  9
      *
      * has nulls:
-     *   	$0 $1
+     *       $0 $1
      *           0  9
      *           1  1
      *              2
@@ -529,48 +530,32 @@ public class TestMapReduce {
      *
      */
     private String[][] genDataSetFile1( int dataLength, boolean hasNulls ) throws IOException {
-
-
         String[][] data= new String[dataLength][];
-
         if ( hasNulls == true ) {
-
-        	for (int i = 0; i < dataLength; i++) {
-
-            	     data[i] = new String[2] ;
-                     if ( i == 2 ) {
-            		data[i][0] = "";
-            		data[i][1] = new Integer(i).toString();
-
-		     } else if ( i == 6 ) {
-
-            		data[i][0] = new Integer(i).toString();
-            		data[i][1] = "";
-
-		     } else if ( i == 8 ) {
-
-            		data[i][0] = "";
-            		data[i][1] = "";
-
-		     } else {
-            		data[i][0] = new Integer(i).toString();
-            		data[i][1] = new Integer(i).toString();
-           	     }
-	     }
-
-	} else {
-
-        	for (int i = 0; i < dataLength; i++) {
-            		data[i] = new String[2] ;
-            		data[i][0] = new Integer(i).toString();
-            		data[i][1] = new Integer(i).toString();
-        	}
-
-	}
-
-         return  data;
-
+            for (int i = 0; i < dataLength; i++) {
+                data[i] = new String[2] ;
+                if ( i == 2 ) {
+                    data[i][0] = "";
+                    data[i][1] = new Integer(i).toString();
+                } else if ( i == 6 ) {
+                    data[i][0] = new Integer(i).toString();
+                    data[i][1] = "";
+                } else if ( i == 8 ) {
+                    data[i][0] = "";
+                    data[i][1] = "";
+                } else {
+                    data[i][0] = new Integer(i).toString();
+                    data[i][1] = new Integer(i).toString();
+                }
+            }
+        } else {
+            for (int i = 0; i < dataLength; i++) {
+                data[i] = new String[2] ;
+                data[i][0] = new Integer(i).toString();
+                data[i][1] = new Integer(i).toString();
+            }
+        }
+        return  data;
     }
-
 
 }

@@ -62,6 +62,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCo
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingPartitionWritableComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingTupleWritableComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigSecondaryKeyGroupComparator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PhyPlanSetter;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigBigDecimalRawComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigBigIntegerRawComparator;
@@ -310,7 +311,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                     edge.getIntermediateOutputKeyComparatorClass());
         }
 
-        conf.setBoolean("mapred.mapper.new-api", true);
+        conf.setBoolean(MRConfiguration.MAPPER_NEW_API, true);
         conf.set("pig.pigContext", ObjectSerializer.serialize(pc));
         conf.set("udf.import.list",
                 ObjectSerializer.serialize(PigContext.getPackageImportList()));
@@ -375,7 +376,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 MRCombiner.class.getName());
         conf.set(MRJobConfig.COMBINE_CLASS_ATTR,
                 PigCombiner.Combine.class.getName());
-        conf.setBoolean("mapred.mapper.new-api", true);
+        conf.setBoolean(MRConfiguration.MAPPER_NEW_API, true);
         conf.set("pig.pigContext", ObjectSerializer.serialize(pc));
         conf.set("udf.import.list",
                 ObjectSerializer.serialize(PigContext.getPackageImportList()));
@@ -431,8 +432,8 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         payloadConf.set("udf.import.list",
                 ObjectSerializer.serialize(PigContext.getPackageImportList()));
         payloadConf.set("exectype", "TEZ");
-        payloadConf.setBoolean("mapred.mapper.new-api", true);
-        payloadConf.setClass("mapreduce.inputformat.class",
+        payloadConf.setBoolean(MRConfiguration.MAPPER_NEW_API, true);
+        payloadConf.setClass(MRConfiguration.INPUTFORMAT_CLASS,
                 PigInputFormat.class, InputFormat.class);
 
         // Set parent plan for all operators in the Tez plan.

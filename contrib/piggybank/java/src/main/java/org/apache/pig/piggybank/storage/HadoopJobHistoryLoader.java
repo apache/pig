@@ -52,6 +52,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.DefaultTupleFactory;
 import org.apache.pig.data.Tuple;
@@ -496,11 +497,11 @@ public class HadoopJobHistoryLoader extends LoadFunc {
     private static final Map<String, String> XML_KEYS;
     
     static {
-        XML_KEYS = new HashMap<String, String> ();       
+        XML_KEYS = new HashMap<String, String> ();
+        XML_KEYS.put(MRConfiguration.JOB_QUEUE_NAME, "QUEUE_NAME");
         XML_KEYS.put("group.name", "USER_GROUP");
         XML_KEYS.put("user.name", "USER");
         XML_KEYS.put("user.dir", "HOST_DIR");
-        XML_KEYS.put("mapred.job.queue.name", "QUEUE_NAME");
         XML_KEYS.put("cluster", "CLUSTER");
         XML_KEYS.put("jobName", "JOB_NAME");
         XML_KEYS.put("pig.script.id", "PIG_SCRIPT_ID");

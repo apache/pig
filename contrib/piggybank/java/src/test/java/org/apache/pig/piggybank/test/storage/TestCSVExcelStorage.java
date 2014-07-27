@@ -30,6 +30,7 @@ import org.apache.commons.lang.StringUtils;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.tools.parameters.ParseException;
@@ -139,11 +140,11 @@ public class TestCSVExcelStorage  {
     public void setup() throws IOException {
         pig = new PigServer(ExecType.LOCAL);
         pig.getPigContext().getProperties()
-                 .setProperty("mapred.map.max.attempts", "1");
+                 .setProperty(MRConfiguration.MAP_MAX_ATTEMPTS, "1");
         pig.getPigContext().getProperties()
-                 .setProperty("mapred.reduce.max.attempts", "1");
+                 .setProperty(MRConfiguration.REDUCE_MAX_ATTEMPTS, "1");
         pig.getPigContext().getProperties()
-                 .setProperty("mapreduce.job.end-notification.retry.interval", "100");
+                 .setProperty(MRConfiguration.JOB_END_NOTIFICATION_RETRY_INTERVAL, "100");
 
         Util.deleteDirectory(new File(dataDir));
 

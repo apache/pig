@@ -31,6 +31,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.ExecType;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.impl.util.UDFContext;
 
 import com.google.common.base.Charsets;
@@ -63,8 +64,8 @@ public class ScriptingOutputCapturer {
     public String getStandardOutputRootWriteLocation() throws IOException {
         Configuration conf = UDFContext.getUDFContext().getJobConf();
         
-        String jobId = conf.get("mapred.job.id");
-        String taskId = conf.get("mapred.task.id");
+        String jobId = conf.get(MRConfiguration.JOB_ID);
+        String taskId = conf.get(MRConfiguration.TASK_ID);
         String hadoopLogDir = System.getProperty("hadoop.log.dir");
         if (hadoopLogDir == null) {
             hadoopLogDir = conf.get("hadoop.log.dir");

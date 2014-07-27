@@ -36,6 +36,7 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.test.MiniCluster;
 import org.apache.pig.test.Util;
 import org.hsqldb.Server;
@@ -65,9 +66,9 @@ public class TestDBStorage extends TestCase {
         cluster = MiniCluster.buildCluster();
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         pigServer.getPigContext().getProperties()
-                .setProperty("mapred.map.max.attempts", "1");
+                .setProperty(MRConfiguration.MAP_MAX_ATTEMPTS, "1");
         pigServer.getPigContext().getProperties()
-                .setProperty("mapred.reduce.max.attempts", "1");
+                .setProperty(MRConfiguration.REDUCE_MAX_ATTEMPTS, "1");
         System.out.println("Pig server initialized successfully");
         TMP_DIR = System.getProperty("user.dir") + "/build/test/";
         dblocation = TMP_DIR + "batchtest";

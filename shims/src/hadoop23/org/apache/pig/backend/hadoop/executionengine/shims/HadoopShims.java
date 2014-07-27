@@ -42,6 +42,7 @@ import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.hadoop.mapreduce.task.JobContextImpl;
 import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
 import org.apache.pig.PigConfiguration;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop23.PigJobControl;
 
@@ -139,7 +140,7 @@ public class HadoopShims {
      * @param taskAttemptID
      */
     public static void setTaskAttemptId(Configuration conf, TaskAttemptID taskAttemptID) {
-        conf.setInt("mapreduce.job.application.attempt.id", taskAttemptID.getId());
+        conf.setInt(MRConfiguration.JOB_APPLICATION_ATTEMPT_ID, taskAttemptID.getId());
     }
 
     /**

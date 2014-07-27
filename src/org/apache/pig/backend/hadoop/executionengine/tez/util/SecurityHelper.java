@@ -30,6 +30,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.mapreduce.security.TokenCache;
 import org.apache.hadoop.security.Credentials;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.classification.InterfaceAudience;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
@@ -54,14 +55,14 @@ public class SecurityHelper {
             Credentials credentials) throws IOException {
         // add tokens and secrets coming from a token storage file
         String binaryTokenFilename = conf
-                .get("mapreduce.job.credentials.binary");
+                .get(MRConfiguration.JOB_CREDENTIALS_BINARY);
         if (binaryTokenFilename != null) {
             Credentials binary = Credentials.readTokenStorageFile(new Path(
                     "file:///" + binaryTokenFilename), conf);
             credentials.addAll(binary);
         }
         // add secret keys coming from a json file
-        String tokensFileName = conf.get("mapreduce.job.credentials.json");
+        String tokensFileName = conf.get(MRConfiguration.JOB_CREDENTIALS_JSON);
         if (tokensFileName != null) {
             LOG.info("loading user's secret keys from " + tokensFileName);
             String localFileName = new Path(tokensFileName).toUri().getPath();

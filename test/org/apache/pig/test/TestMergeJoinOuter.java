@@ -33,6 +33,7 @@ import java.util.Properties;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -64,8 +65,8 @@ public class TestMergeJoinOuter {
     public TestMergeJoinOuter() throws ExecException{
         
         Properties props = cluster.getProperties();
-        props.setProperty("mapred.map.max.attempts", "1");
-        props.setProperty("mapred.reduce.max.attempts", "1");
+        props.setProperty(MRConfiguration.MAP_MAX_ATTEMPTS, "1");
+        props.setProperty(MRConfiguration.REDUCE_MAX_ATTEMPTS, "1");
         pigServer = new PigServer(ExecType.MAPREDUCE, props);
     }
     

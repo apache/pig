@@ -56,6 +56,7 @@ import org.apache.pig.StoreMetadata;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTextOutputFormat;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
@@ -104,7 +105,7 @@ public class TestStore {
 
     private static final String FAIL_UDF_NAME
     = "org.apache.pig.test.TestStore\\$FailUDF";
-    private static final String MAP_MAX_ATTEMPTS = "mapred.map.max.attempts";
+    private static final String MAP_MAX_ATTEMPTS = MRConfiguration.MAP_MAX_ATTEMPTS;
     private static final String TESTDIR = "/tmp/" + TestStore.class.getSimpleName();
     private static ExecType[] modes = new ExecType[] { ExecType.LOCAL, cluster.getExecType() };
 
@@ -616,7 +617,7 @@ public class TestStore {
                             ps = new PigServer(ExecType.LOCAL, props);
                         }
                         ps.getPigContext().getProperties().setProperty(
-                                MapReduceLauncher.SUCCESSFUL_JOB_OUTPUT_DIR_MARKER,
+                                MRConfiguration.FILEOUTPUTCOMMITTER_MARKSUCCESSFULJOBS,
                                 Boolean.toString(isPropertySet));
                         Util.deleteFile(ps.getPigContext(), TESTDIR);
                         ps.setBatchOn();
@@ -684,7 +685,7 @@ public class TestStore {
                             ps = new PigServer(ExecType.LOCAL, props);
                         }
                         ps.getPigContext().getProperties().setProperty(
-                                MapReduceLauncher.SUCCESSFUL_JOB_OUTPUT_DIR_MARKER,
+                                MRConfiguration.FILEOUTPUTCOMMITTER_MARKSUCCESSFULJOBS,
                                 Boolean.toString(isPropertySet));
                         Util.deleteFile(ps.getPigContext(), TESTDIR);
                         ps.setBatchOn();

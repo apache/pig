@@ -27,6 +27,7 @@ import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.mapreduce.filecache.DistributedCache;
 import org.apache.hadoop.mapreduce.v2.MiniMRYarnCluster;
 import org.apache.pig.ExecType;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 
 /**
  * This class builds a single instance of itself with the Singleton
@@ -91,16 +92,16 @@ public class MiniCluster extends MiniGenericCluster {
 
             m_conf = m_mr_conf;
             m_conf.set("fs.default.name", m_dfs_conf.get("fs.default.name"));
-            m_conf.unset("mapreduce.job.cache.files");
+            m_conf.unset(MRConfiguration.JOB_CACHE_FILES);
 
-            m_conf.setInt("mapred.io.sort.mb", 200);
-            m_conf.set("mapred.child.java.opts", "-Xmx512m");
+            m_conf.setInt(MRConfiguration.IO_SORT_MB, 200);
+            m_conf.set(MRConfiguration.CHILD_JAVA_OPTS, "-Xmx512m");
 
-            m_conf.setInt("mapred.submit.replication", 2);
+            m_conf.setInt(MRConfiguration.SUMIT_REPLICATION, 2);
+            m_conf.setInt(MRConfiguration.MAP_MAX_ATTEMPTS, 2);
+            m_conf.setInt(MRConfiguration.REDUCE_MAX_ATTEMPTS, 2);
             m_conf.set("dfs.datanode.address", "0.0.0.0:0");
             m_conf.set("dfs.datanode.http.address", "0.0.0.0:0");
-            m_conf.set("mapred.map.max.attempts", "2");
-            m_conf.set("mapred.reduce.max.attempts", "2");
             m_conf.set("pig.jobcontrol.sleep", "100");
             m_conf.writeXml(new FileOutputStream(CONF_FILE));
             m_fileSys.copyFromLocalFile(new Path(CONF_FILE.getAbsoluteFile().toString()),
@@ -109,7 +110,7 @@ public class MiniCluster extends MiniGenericCluster {
 
             System.err.println("XXX: Setting fs.default.name to: " + m_dfs_conf.get("fs.default.name"));
             // Set the system properties needed by Pig
-            System.setProperty("cluster", m_conf.get("mapred.job.tracker"));
+            System.setProperty("cluster", m_conf.get(MRConfiguration.JOB_TRACKER));
             //System.setProperty("namenode", m_dfs_conf.get("fs.default.name"));
             System.setProperty("namenode", m_conf.get("fs.default.name"));
             System.setProperty("junit.hadoop.conf", CONF_DIR.getPath());

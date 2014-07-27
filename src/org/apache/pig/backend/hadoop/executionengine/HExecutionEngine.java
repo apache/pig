@@ -40,6 +40,7 @@ import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.fetch.FetchLauncher;
 import org.apache.pig.backend.hadoop.executionengine.fetch.FetchOptimizer;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
@@ -71,10 +72,8 @@ public abstract class HExecutionEngine implements ExecutionEngine {
     public static final String MAPRED_DEFAULT_SITE = "mapred-default.xml";
     public static final String YARN_DEFAULT_SITE = "yarn-default.xml";
 
-    public static final String JOB_TRACKER_LOCATION = "mapred.job.tracker";
     public static final String FILE_SYSTEM_LOCATION = "fs.default.name";
     public static final String ALTERNATIVE_FILE_SYSTEM_LOCATION = "fs.defaultFS";
-    public static final String MAPREDUCE_FRAMEWORK_NAME = "mapreduce.framework.name";
     public static final String LOCAL = "local";
 
     protected PigContext pigContext;
@@ -175,10 +174,10 @@ public abstract class HExecutionEngine implements ExecutionEngine {
             new DistributedFileSystem();
         } else {
             // If we are running in local mode we dont read the hadoop conf file
-            if (properties.getProperty(MAPREDUCE_FRAMEWORK_NAME) == null) {
-                properties.setProperty(MAPREDUCE_FRAMEWORK_NAME, LOCAL);
+            if (properties.getProperty(MRConfiguration.FRAMEWORK_NAME) == null) {
+                properties.setProperty(MRConfiguration.FRAMEWORK_NAME, LOCAL);
             }
-            properties.setProperty(JOB_TRACKER_LOCATION, LOCAL);
+            properties.setProperty(MRConfiguration.JOB_TRACKER, LOCAL);
             properties.setProperty(FILE_SYSTEM_LOCATION, "file:///");
             properties.setProperty(ALTERNATIVE_FILE_SYSTEM_LOCATION, "file:///");
 
@@ -190,7 +189,7 @@ public abstract class HExecutionEngine implements ExecutionEngine {
         // the properties
         Utils.recomputeProperties(jc, properties);
 
-        cluster = jc.get(JOB_TRACKER_LOCATION);
+        cluster = jc.get(MRConfiguration.JOB_TRACKER);
         nameNode = jc.get(FILE_SYSTEM_LOCATION);
         if (nameNode == null) {
             nameNode = (String) pigContext.getProperties().get(ALTERNATIVE_FILE_SYSTEM_LOCATION);
@@ -200,7 +199,7 @@ public abstract class HExecutionEngine implements ExecutionEngine {
             if (!cluster.contains(":") && !cluster.equalsIgnoreCase(LOCAL)) {
                 cluster = cluster + ":50020";
             }
-            properties.setProperty(JOB_TRACKER_LOCATION, cluster);
+            properties.setProperty(MRConfiguration.JOB_TRACKER, cluster);
         }
 
         if (nameNode != null && nameNode.length() > 0) {
@@ -217,7 +216,7 @@ public abstract class HExecutionEngine implements ExecutionEngine {
 
         if (cluster != null && !cluster.equalsIgnoreCase(LOCAL)) {
             LOG.info("Connecting to map-reduce job tracker at: "
-                    + jc.get(JOB_TRACKER_LOCATION));
+                    + jc.get(MRConfiguration.JOB_TRACKER));
         }
     }
 

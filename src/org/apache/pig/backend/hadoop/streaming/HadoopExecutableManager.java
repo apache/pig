@@ -34,6 +34,7 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
@@ -98,7 +99,7 @@ public class HadoopExecutableManager extends ExecutableManager {
         
         // Save the taskid
         // TODO Get an equivalent property in Tez mode (currently this returns null)
-        taskId = job.get("mapred.task.id");
+        taskId = job.get(MRConfiguration.TASK_ID);
     }
     
     protected void exec() throws IOException {
@@ -140,16 +141,13 @@ public class HadoopExecutableManager extends ExecutableManager {
                 for (int i=1; i < outputSpecs.size(); ++i) {
                     String fileName = outputSpecs.get(i).getName();
                     try {
-                        int partition = job.getInt("mapred.task.partition", -1);
-                        fs.copyFromLocalFile(false, true, new Path(fileName), 
-                                             new Path(
-                                                     new Path(scriptOutputDir, 
-                                                              fileName), 
-                                                     getOutputName(partition))
-                                            );
+                        int partition = job.getInt(MRConfiguration.TASK_PARTITION, -1);
+                        Path dst = new Path(new Path(scriptOutputDir, fileName), getOutputName(partition));
+                        fs.copyFromLocalFile(false, true, new Path(fileName), dst);
+                        fs.setReplication(dst, (short)job.getInt(MRConfiguration.SUMIT_REPLICATION, 3));
                     } catch (IOException ioe) {
                         int errCode = 6014; 
-                        String msg = "Failed to save secondary output '" + 
+                        String msg = "Failed to save secondary output '" +
                         fileName + "' of task: " + taskId;
                         throw new ExecException(msg, errCode, PigException.REMOTE_ENVIRONMENT, ioe);
                     }
@@ -200,7 +198,7 @@ public class HadoopExecutableManager extends ExecutableManager {
 
         processError("\nCommand: " + command);
         processError("\nStart time: " + new Date(System.currentTimeMillis()));
-        if (job.getBoolean("mapred.task.is.map", false)) {
+        if (job.getBoolean(MRConfiguration.TASK_IS_MAP, false)) {
             MapContext context = (MapContext)PigMapReduce.sJobContext;
             PigSplit pigSplit = (PigSplit)context.getInputSplit();
             int numPaths = pigSplit.getNumPaths();

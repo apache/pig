@@ -40,6 +40,7 @@ import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigRunner;
 import org.apache.pig.PigRunner.ReturnCode;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.plan.OperatorPlan;
@@ -622,8 +623,10 @@ public class TestPigRunner {
         assertNotNull(ctx);
 
         assertTrue(ctx.extraJars.contains(ClassLoader.getSystemResource(jarName)));
-        assertTrue("default", ctx.getProperties().getProperty("mapred.job.queue.name")!=null && ctx.getProperties().getProperty("mapred.job.queue.name").equals("default")||
-                ctx.getProperties().getProperty("mapreduce.job.queuename")!=null && ctx.getProperties().getProperty("mapreduce.job.queuename").equals("default"));
+        assertTrue("default", ctx.getProperties().getProperty(MRConfiguration.JOB_QUEUE_NAME) != null
+                && ctx.getProperties().getProperty(MRConfiguration.JOB_QUEUE_NAME).equals("default")
+                || ctx.getProperties().getProperty("mapreduce.job.queuename") != null
+                && ctx.getProperties().getProperty("mapreduce.job.queuename").equals("default"));
 
     }
 
