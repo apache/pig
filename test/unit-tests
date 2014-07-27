@@ -30,7 +30,6 @@
 **/TestGTOrEqual.java
 **/TestInstantiateFunc.java
 **/TestInvoker.java
-**/TestInvokerSpeed.java
 **/TestLessThan.java
 **/TestLoadFunc.java
 **/TestLocal2.java
