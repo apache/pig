@@ -50,6 +50,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4052: TestJobControlSleep, TestInvokerSpeed are unreliable (daijy)
+
 PIG-4053: TestMRCompiler succeeded with sun jdk 1.6 while failed with sun jdk 1.7 (daijy)
 
 PIG-3982: ant target test-tez should depend on jackson-pig-3039-test-download (daijy)
