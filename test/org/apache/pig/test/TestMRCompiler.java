@@ -24,6 +24,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -31,7 +32,6 @@ import java.util.Properties;
 import java.util.Random;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.util.VersionInfo;
 import org.apache.pig.CollectableLoadFunc;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.ExecType;
@@ -43,6 +43,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.LimitAdjuste
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompilerException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MergeJoinIndexer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
@@ -56,6 +57,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLimit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSortedDistinct;
@@ -1004,14 +1006,51 @@ public class TestMRCompiler {
 
     @Test
     public void testMergeJoin() throws Exception {
-        org.junit.Assume.assumeFalse("Skip this test for hadoop 0.20.2. See PIG-3194", VersionInfo.getVersion().equals("0.20.2"));
         String query = "a = load '/tmp/input1';" +
         "b = load '/tmp/input2';" +
         "c = join a by $0, b by $0 using 'merge';" +
         "store c into '/tmp/output1';";
 
         PhysicalPlan pp = Util.buildPp(pigServer, query);
-        run(pp, "test/org/apache/pig/test/data/GoldenFiles/MRC18.gld");
+        MRCompiler comp = new MRCompiler(pp, pc);
+        comp.compile();
+        MROperPlan mrp = comp.getMRPlan();
+        assertTrue(mrp.size()==2);
+
+        MapReduceOper mrOp0 = mrp.getRoots().get(0);
+        assertTrue(mrOp0.mapPlan.size()==2);
+        PhysicalOperator load0 = mrOp0.mapPlan.getRoots().get(0);
+        MergeJoinIndexer func = (MergeJoinIndexer)PigContext.instantiateFuncFromSpec(((POLoad)load0).getLFile().getFuncSpec());
+        Field lrField = MergeJoinIndexer.class.getDeclaredField("lr");
+        lrField.setAccessible(true);
+        POLocalRearrange lr = (POLocalRearrange)lrField.get(func);
+        List<PhysicalPlan> innerPlans = lr.getPlans();
+        PhysicalOperator localrearrange0 = mrOp0.mapPlan.getSuccessors(load0).get(0);
+        assertTrue(localrearrange0 instanceof POLocalRearrange);
+        assertTrue(mrOp0.reducePlan.size()==3);
+        PhysicalOperator pack0 = mrOp0.reducePlan.getRoots().get(0);
+        assertTrue(pack0 instanceof POPackage);
+        PhysicalOperator foreach0 = mrOp0.reducePlan.getSuccessors(pack0).get(0);
+        assertTrue(foreach0 instanceof POForEach);
+        PhysicalOperator store0 = mrOp0.reducePlan.getSuccessors(foreach0).get(0);
+        assertTrue(store0 instanceof POStore);
+
+        assertTrue(innerPlans.size()==1);
+        PhysicalPlan innerPlan = innerPlans.get(0);
+        assertTrue(innerPlan.size()==1);
+        PhysicalOperator project = innerPlan.getRoots().get(0);
+        assertTrue(project instanceof POProject);
+        assertTrue(((POProject)project).getColumn()==0);
+
+        MapReduceOper mrOp1 = mrp.getSuccessors(mrOp0).get(0);
+        assertTrue(mrOp1.mapPlan.size()==3);
+        PhysicalOperator load1 = mrOp1.mapPlan.getRoots().get(0);
+        assertTrue(load1 instanceof POLoad);
+        PhysicalOperator mergejoin1 = mrOp1.mapPlan.getSuccessors(load1).get(0);
+        assertTrue(mergejoin1 instanceof POMergeJoin);
+        PhysicalOperator store1 = mrOp1.mapPlan.getSuccessors(mergejoin1).get(0);
+        assertTrue(store1 instanceof POStore);
+        assertTrue(mrOp1.reducePlan.isEmpty());
     }
 
     public static class WeirdComparator extends ComparisonFunc {
