@@ -61,6 +61,7 @@ import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.ExecType;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.OverwritableStoreFunc;
 import org.apache.pig.PigConfiguration;
@@ -95,6 +96,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.PigImplConstants;
+import org.apache.pig.impl.builtin.GFCross;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.io.NullableBigDecimalWritable;
@@ -542,6 +544,22 @@ public class JobControlCompiler{
                 adjustNumReducers(plan, mro, nwJob);
             } else {
                 nwJob.setNumReduceTasks(0);
+            }
+
+            for (String udf : mro.UDFs) {
+                if (udf.contains("GFCross")) {
+                    Object func = pigContext.instantiateFuncFromSpec(new FuncSpec(udf));
+                    if (func instanceof GFCross) {
+                        String crossKey = ((GFCross)func).getCrossKey();
+                        // If non GFCross has been processed yet
+                        if (pigContext.getProperties().get(PigConfiguration.PIG_CROSS_PARALLELISM_HINT + "." + crossKey)==null) {
+                            pigContext.getProperties().setProperty(PigConfiguration.PIG_CROSS_PARALLELISM_HINT + "." + crossKey,
+                                    Integer.toString(nwJob.getNumReduceTasks()));
+                        }
+                        conf.set(PigConfiguration.PIG_CROSS_PARALLELISM_HINT + "." + crossKey,
+                                (String)pigContext.getProperties().get(PigConfiguration.PIG_CROSS_PARALLELISM_HINT + "." + crossKey));
+                    }
+                }
             }
 
             if(lds!=null && lds.size()>0){

@@ -583,6 +583,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
             POPackage poPackage = new POPackage(new OperatorKey(scope, nodeGen
                     .getNextNodeId(scope)), cross.getRequestedParallelism());
             poGlobal.addOriginalLocation(cross.getAlias(), cross.getLocation());
+            poGlobal.setCross(true);
             currentPlan.add(poGlobal);
             currentPlan.add(poPackage);
 
@@ -609,7 +610,9 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                     ce1.setValue(ce1val);
                     ce1.setResultType(DataType.TUPLE);*/
 
-                    POUserFunc gfc = new POUserFunc(new OperatorKey(scope, nodeGen.getNextNodeId(scope)),cross.getRequestedParallelism(), Arrays.asList((PhysicalOperator)ce1,(PhysicalOperator)ce2), new FuncSpec(GFCross.class.getName()));
+                    POUserFunc gfc = new POUserFunc(new OperatorKey(scope, nodeGen.getNextNodeId(scope)),cross.getRequestedParallelism(),
+                            Arrays.asList((PhysicalOperator)ce1,(PhysicalOperator)ce2), new FuncSpec(GFCross.class.getName()
+                            + "('" + poGlobal.getOperatorKey().toString() + "')"));
                     gfc.addOriginalLocation(cross.getAlias(), cross.getLocation());
                     gfc.setResultType(DataType.BAG);
                     fep1.addAsLeaf(gfc);

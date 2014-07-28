@@ -862,6 +862,9 @@ public class TezCompiler extends PhyPlanVisitor {
             blocking();
             TezCompilerUtil.setCustomPartitioner(op.getCustomPartitioner(), curTezOp);
             curTezOp.setRequestedParallelism(op.getRequestedParallelism());
+            if (op.isCross()) {
+                curTezOp.setCrossKey(op.getOperatorKey().toString());
+            }
             phyToTezOpMap.put(op, curTezOp);
         } catch (Exception e) {
             int errCode = 2034;

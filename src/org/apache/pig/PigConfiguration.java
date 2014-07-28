@@ -270,4 +270,9 @@ public class PigConfiguration {
      * This key is used to turns off use of task reports in job statistics.
      */
     public static final String PIG_NO_TASK_REPORT = "pig.stats.notaskreport";
+    
+    public static final String PIG_CROSS_PARALLELISM_HINT = "pig.cross.parallelism.hint";
+
+    public static final String REDUCER_ESTIMATOR_KEY = "pig.exec.reducer.estimator";
+    public static final String REDUCER_ESTIMATOR_ARG_KEY =  "pig.exec.reducer.estimator.arg";
 }

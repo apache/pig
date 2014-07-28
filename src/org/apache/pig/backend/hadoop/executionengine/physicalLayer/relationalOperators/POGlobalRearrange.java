@@ -49,6 +49,8 @@ public class POGlobalRearrange extends PhysicalOperator {
      */
     protected String customPartitioner;
 
+    private boolean cross = false;
+
     public String getCustomPartitioner() {
 		return customPartitioner;
 	}
@@ -103,5 +105,13 @@ public class POGlobalRearrange extends PhysicalOperator {
     @Override
     public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
       return null;
+    }
+
+    public void setCross(boolean cross) {
+        this.cross = cross;
+    }
+
+    public boolean isCross() {
+        return cross;
     }
 }
