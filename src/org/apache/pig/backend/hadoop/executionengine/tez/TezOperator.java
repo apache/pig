@@ -27,12 +27,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.VertexGroup;
+import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -64,6 +67,12 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     private AtomicInteger requestedParallelism = new AtomicInteger(-1);
     
     private int estimatedParallelism = -1;
+
+    // This is the parallelism of the vertex, it take account of:
+    // 1. default_parallel
+    // 2. -1 parallelism for one_to_one edge
+    // 3. -1 parallelism for sort/skewed join
+    private int vertexParallelism = -1;
 
     // TODO: When constructing Tez vertex, we have to specify how much resource
     // the vertex will need. So we need to estimate these values while compiling
@@ -123,6 +132,8 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     // If true, we will use secondary key sort in the job
     private boolean useSecondaryKey = false;
 
+    private String crossKey = null;
+
     // Types of blocking operators. For now, we only support the following ones.
     private static enum OPER_FEATURE {
         NONE,
@@ -149,6 +160,46 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     private VertexGroupInfo vertexGroupInfo;
     // Mapping of OperatorKey of POStore OperatorKey to vertexGroup TezOperator
     private Map<OperatorKey, OperatorKey> vertexGroupStores = null;
+
+    public static class LoaderInfo {
+        private List<POLoad> loads = null;
+        private ArrayList<FileSpec> inp = new ArrayList<FileSpec>();
+        private ArrayList<String> inpSignatureLists = new ArrayList<String>();
+        private ArrayList<Long> inpLimits = new ArrayList<Long>();
+        private InputSplitInfo inputSplitInfo = null;
+        public List<POLoad> getLoads() {
+            return loads;
+        }
+        public void setLoads(List<POLoad> loads) {
+            this.loads = loads;
+        }
+        public ArrayList<FileSpec> getInp() {
+            return inp;
+        }
+        public void setInp(ArrayList<FileSpec> inp) {
+            this.inp = inp;
+        }
+        public ArrayList<String> getInpSignatureLists() {
+            return inpSignatureLists;
+        }
+        public void setInpSignatureLists(ArrayList<String> inpSignatureLists) {
+            this.inpSignatureLists = inpSignatureLists;
+        }
+        public ArrayList<Long> getInpLimits() {
+            return inpLimits;
+        }
+        public void setInpLimits(ArrayList<Long> inpLimits) {
+            this.inpLimits = inpLimits;
+        }
+        public InputSplitInfo getInputSplitInfo() {
+            return inputSplitInfo;
+        }
+        public void setInputSplitInfo(InputSplitInfo inputSplitInfo) {
+            this.inputSplitInfo = inputSplitInfo;
+        }
+    }
+
+    private LoaderInfo loaderInfo = new LoaderInfo();
 
     public TezOperator(OperatorKey k) {
         super(k);
@@ -442,6 +493,26 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     public boolean combineSmallSplits() {
         return combineSmallSplits;
+    }
+
+    public void setCrossKey(String key) {
+        crossKey = key;
+    }
+
+    public String getCrossKey() {
+        return crossKey;
+    }
+
+    public int getVertexParallelism() {
+        return vertexParallelism;
+    }
+
+    public void setVertexParallelism(int vertexParallelism) {
+        this.vertexParallelism = vertexParallelism;
+    }
+
+    public LoaderInfo getLoaderInfo() {
+        return loaderInfo;
     }
 
     public static class VertexGroupInfo {

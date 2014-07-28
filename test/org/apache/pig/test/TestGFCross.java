@@ -20,8 +20,7 @@ package org.apache.pig.test;
 import static org.junit.Assert.assertEquals;
 
 import org.apache.hadoop.conf.Configuration;
-
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
@@ -41,7 +40,7 @@ public class TestGFCross {
         t.set(0, 2);
         t.set(1, 0);
 
-        GFCross cross = new GFCross();
+        GFCross cross = new GFCross("1");
         DataBag bag = cross.exec(t);
         assertEquals(10, bag.size());
     }
@@ -50,14 +49,14 @@ public class TestGFCross {
     @Test
     public void testSerial() throws Exception {
         Configuration cfg = new Configuration();
-        cfg.set(MRConfiguration.REDUCE_TASKS, "1");
+        cfg.set(PigConfiguration.PIG_CROSS_PARALLELISM_HINT + ".1", "1");
         UDFContext.getUDFContext().addJobConf(cfg);
         Tuple t = TupleFactory.getInstance().newTuple(2);
 
         t.set(0, 2);
         t.set(1, 0);
 
-        GFCross cross = new GFCross();
+        GFCross cross = new GFCross("1");
         DataBag bag = cross.exec(t);
         assertEquals(1, bag.size());
     }
@@ -66,14 +65,14 @@ public class TestGFCross {
     @Test
     public void testParallelSet() throws Exception {
         Configuration cfg = new Configuration();
-        cfg.set(MRConfiguration.REDUCE_TASKS, "10");
+        cfg.set(PigConfiguration.PIG_CROSS_PARALLELISM_HINT + ".1", "10");
         UDFContext.getUDFContext().addJobConf(cfg);
         Tuple t = TupleFactory.getInstance().newTuple(2);
 
         t.set(0, 2);
         t.set(1, 0);
 
-        GFCross cross = new GFCross();
+        GFCross cross = new GFCross("1");
         DataBag bag = cross.exec(t);
         assertEquals(4, bag.size());
     }

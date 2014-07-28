@@ -41,7 +41,9 @@ import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.Launcher;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.tez.optimizers.LoaderProcessor;
 import org.apache.pig.backend.hadoop.executionengine.tez.optimizers.NoopFilterRemover;
+import org.apache.pig.backend.hadoop.executionengine.tez.optimizers.ParallelismSetter;
 import org.apache.pig.backend.hadoop.executionengine.tez.optimizers.UnionOptimizer;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
@@ -321,6 +323,14 @@ public class TezLauncher extends Launcher {
         if (isUnionOpt) {
             UnionOptimizer uo = new UnionOptimizer(tezPlan);
             uo.visit();
+        }
+
+        if (!pc.inExplain && !pc.inDumpSchema) {
+            LoaderProcessor loaderStorer = new LoaderProcessor(tezPlan, pc);
+            loaderStorer.visit();
+    
+            ParallelismSetter parallelismSetter = new ParallelismSetter(tezPlan, pc);
+            parallelismSetter.visit();
         }
 
         return comp.getPlanContainer();

@@ -47,6 +47,8 @@ import org.apache.pig.backend.hadoop.executionengine.tez.TezJobCompiler;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezLocalExecType;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezOperator;
+import org.apache.pig.backend.hadoop.executionengine.tez.optimizers.LoaderProcessor;
+import org.apache.pig.backend.hadoop.executionengine.tez.optimizers.ParallelismSetter;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.Pair;
@@ -290,6 +292,10 @@ public class TestTezJobControlCompiler {
         TezJobCompiler jobComp = new TezJobCompiler(pc, new Configuration());
         MultiQueryOptimizerTez mqOptimizer = new MultiQueryOptimizerTez(tezPlan);
         mqOptimizer.visit();
+        LoaderProcessor loaderStorer = new LoaderProcessor(tezPlan, pc);
+        loaderStorer.visit();
+        ParallelismSetter parallelismSetter = new ParallelismSetter(tezPlan, pc);
+        parallelismSetter.visit();
         DAG dag = jobComp.buildDAG(tezPlan, new HashMap<String, LocalResource>());
         return new Pair<TezOperPlan, DAG>(tezPlan, dag);
     }
