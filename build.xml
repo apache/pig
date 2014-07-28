@@ -555,7 +555,7 @@
         </copy>
     </target>
 
-    <target name="compile-test" depends="compile, ivy-test">
+    <target name="compile-test" depends="jar, ivy-test">
         <echo>*** Building Test Sources ***</echo>
         <echo>*** To compile with all warnings enabled, supply -Dall.warnings=1 on command line ***</echo>
         <echo>*** Else, you will only be warned about deprecations ***</echo>
