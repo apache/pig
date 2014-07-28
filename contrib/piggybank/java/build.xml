@@ -33,8 +33,6 @@
     <property name="build.classes" value="${build.dir}/classes" />
     <property name="build.docs" value="${build.dir}/docs" />
     <property name="build.javadoc" value="${build.docs}/api" />
-    <property name="pigjar" value="../../../pig.jar" />
-    <property name="pigjar-withouthadoop" value="../../../pig-withouthadoop.jar" />
     <property name="pigtest" value="../../../build/test/classes" />
     <property name="udfjar" value="piggybank.jar" />
     <property name="src.dir" value="src/main/java/org/apache/pig/piggybank" />
@@ -47,7 +45,11 @@
     <condition property="test.classes.excludes" value="**/TestHadoopJobHistoryLoader.java" else="">
         <equals arg1="${hadoopversion}" arg2="23"/>
     </condition>
-	
+
+    <condition property="hadoopsuffix" value="2" else="1">
+        <equals arg1="${hadoopversion}" arg2="23"/>
+    </condition>
+
     <!-- jar properties -->
     <property name=".javadoc" value="${build.docs}/api" />
     
@@ -62,7 +64,9 @@
     <path id="pigudf.classpath">
         <pathelement location="../../../build/classes"/>
         <pathelement location="${build.classes}"/>
-        <pathelement location="${pigjar-withouthadoop}"/>
+        <fileset dir="../../..">
+            <include name="pig-*-core-h${hadoopsuffix}.jar"/>
+        </fileset>
         <pathelement location="${pigtest}"/>
         <fileset dir="../../../build/ivy/lib">
             <include name="**/*.jar"/>
