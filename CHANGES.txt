@@ -50,6 +50,9 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4071: Fix TestStore.testSetStoreSchema, TestParamSubPreproc.testGruntWithParamSub,
+ TestJobSubmission.testReducerNumEstimation (daijy)
+
 PIG-4074: mapreduce.client.submit.file.replication is not honored in cached files (cheolsoo)
 
 PIG-4052: TestJobControlSleep, TestInvokerSpeed are unreliable (daijy)

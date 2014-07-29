@@ -30,6 +30,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.StringReader;
+import java.io.Writer;
 import java.text.ParseException;
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -531,13 +532,13 @@ public class Main {
                 // Interactive
                 mode = ExecMode.SHELL;
               //Reader is created by first loading "pig.load.default.statements" or .pigbootup file if available
-                ConsoleReader reader = new ConsoleReader(Utils.getCompositeStream(System.in, properties), new OutputStreamWriter(System.out));
+                ConsoleReader reader = new ConsoleReaderWithParamSub(Utils.getCompositeStream(System.in, properties), new OutputStreamWriter(System.out), pigContext);
                 reader.setDefaultPrompt("grunt> ");
                 final String HISTORYFILE = ".pig_history";
                 String historyFile = System.getProperty("user.home") + File.separator  + HISTORYFILE;
                 reader.setHistory(new History(new File(historyFile)));
                 ConsoleReaderInputStream inputStream = new ConsoleReaderInputStream(reader);
-                grunt = new Grunt(new BufferedReaderWithParamSub(new InputStreamReader(inputStream), pigContext), pigContext);
+                grunt = new Grunt(new BufferedReader(new InputStreamReader(inputStream)), pigContext);
                 grunt.setConsoleReader(reader);
                 gruntCalled = true;
                 grunt.run();
@@ -1042,10 +1043,10 @@ public class Main {
                         : ReturnCode.SUCCESS;
     }
 
-    static class BufferedReaderWithParamSub extends BufferedReader {
+    static class ConsoleReaderWithParamSub extends ConsoleReader {
         PigContext pc;
-        BufferedReaderWithParamSub(Reader in, PigContext pigContext) {
-            super(in);
+        ConsoleReaderWithParamSub(InputStream in, Writer out, PigContext pigContext) throws IOException {
+            super(in, out);
             pc = pigContext;
         }
 
