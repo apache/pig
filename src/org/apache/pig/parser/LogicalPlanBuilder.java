@@ -1293,7 +1293,7 @@ public class LogicalPlanBuilder {
 
     void setParallel(LogicalRelationalOperator op, Integer parallel) {
         if( parallel != null ) {
-            op.setRequestedParallelism( pigContext.getExecType() == ExecType.LOCAL ? 1 : parallel );
+            op.setRequestedParallelism( parallel );
         }
     }
 
