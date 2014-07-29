@@ -50,6 +50,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4078: Port more mini cluster tests to Tez - part 6 (rohini)
+
 PIG-4071: Fix TestStore.testSetStoreSchema, TestParamSubPreproc.testGruntWithParamSub,
  TestJobSubmission.testReducerNumEstimation (daijy)
 

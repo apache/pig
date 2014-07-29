@@ -18,8 +18,6 @@
 
 package org.apache.pig.test;
 
-import static org.apache.pig.ExecType.LOCAL;
-import static org.apache.pig.ExecType.MAPREDUCE;
 import static org.junit.Assert.assertEquals;
 
 import java.io.File;
@@ -27,35 +25,26 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
-import junit.framework.Assert;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.pig.ExecType;
-import org.apache.pig.ExecTypeProvider;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
-import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.relational.LOCogroup;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
-import org.apache.pig.newplan.logical.visitor.CastLineageSetter;
-import org.apache.pig.newplan.logical.visitor.ColumnAliasConversionVisitor;
-import org.apache.pig.newplan.logical.visitor.SchemaAliasVisitor;
-import org.apache.pig.newplan.logical.visitor.TypeCheckingRelVisitor;
-import org.apache.pig.newplan.logical.visitor.UnionOnSchemaSetter;
 import org.apache.pig.parser.ParserException;
 import org.apache.pig.parser.ParserTestingUtils;
 import org.apache.pig.test.utils.NewLogicalPlanUtil;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -64,38 +53,21 @@ public class TestProjectRange  {
 
     protected final Log log = LogFactory.getLog(getClass());
 
-    protected static ExecType execType = LOCAL;
 
-    private static MiniCluster cluster;
+    private static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
     protected static PigServer pigServer;
     private static final String INP_FILE_5FIELDS = "TestProjectRange_5fields";
 
 
     @BeforeClass
     public static void oneTimeSetUp() throws Exception {
-
-        String execTypeString = System.getProperty("test.exectype");
-
-        if(execTypeString!=null && execTypeString.length()>0){
-            execType = ExecTypeProvider.fromString(execTypeString);
-        }
-
         String[] input = {"10\t20\t30\t40\t50", "11\t21\t31\t41\t51"};
-        Util.createLocalInputFile(INP_FILE_5FIELDS, input);
-
-        if(execType == MAPREDUCE) {
-            cluster = MiniCluster.buildCluster();
-            Util.copyFromLocalToCluster(cluster, INP_FILE_5FIELDS, INP_FILE_5FIELDS);
-        }
+        Util.createInputFile(cluster, INP_FILE_5FIELDS, input);
     }
 
     @Before
-    public void setup() throws ExecException{
-        if(execType == MAPREDUCE) {
-            pigServer = new PigServer(MAPREDUCE, cluster.getProperties());
-        } else {
-            pigServer = new PigServer(LOCAL);
-        }
+    public void setup() throws ExecException {
+        pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
     }
 
     @After
@@ -1087,11 +1059,11 @@ public class TestProjectRange  {
         List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
-                            "((30,40,50),{(10,20,30,40,50)})",
-                            "((31,41,51),{(11,21,31,41,51)})",
+                            "((30,40,50),{(10,20L,30,40,50)})",
+                            "((31,41,51),{(11,21L,31,41,51)})",
                     });
         Iterator<Tuple> it = pigServer.openIterator("lim");
-        Util.checkQueryOutputs(it, expectedRes);
+        Util.checkQueryOutputsAfterSort(it, expectedRes);
     }
 
 

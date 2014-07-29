@@ -93,6 +93,7 @@ public class TezLauncher extends Launcher {
         tezStats = new TezStats(pc);
         PigStats.start(tezStats);
 
+        conf.set(TezConfiguration.TEZ_USE_CLUSTER_HADOOP_LIBS, "true");
         TezJobCompiler jc = new TezJobCompiler(pc, conf);
         TezPlanContainer tezPlanContainer = compile(php, pc);
 
@@ -328,7 +329,7 @@ public class TezLauncher extends Launcher {
         if (!pc.inExplain && !pc.inDumpSchema) {
             LoaderProcessor loaderStorer = new LoaderProcessor(tezPlan, pc);
             loaderStorer.visit();
-    
+
             ParallelismSetter parallelismSetter = new ParallelismSetter(tezPlan, pc);
             parallelismSetter.visit();
         }

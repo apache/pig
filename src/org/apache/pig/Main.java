@@ -88,6 +88,16 @@ import org.apache.pig.tools.timer.PerformanceTimerFactory;
 @InterfaceStability.Stable
 public class Main {
 
+    static {
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+
+            @Override
+            public void run() {
+                FileLocalizer.deleteTempResourceFiles();
+            }
+        });
+    }
+
     private final static Log log = LogFactory.getLog(Main.class);
 
     private static final String LOG4J_CONF = "log4jconf";
@@ -652,7 +662,6 @@ public class Main {
             if (deleteTempFiles) {
                 // clear temp files
                 FileLocalizer.deleteTempFiles();
-                FileLocalizer.deleteTempResourceFiles();
             }
             PerformanceTimerFactory.getPerfTimerFactory().dumpTimers();
         }

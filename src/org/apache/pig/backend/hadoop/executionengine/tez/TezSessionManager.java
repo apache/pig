@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -50,6 +51,9 @@ public class TezSessionManager {
             }
         });
     }
+
+    private static ReentrantReadWriteLock sessionPoolLock = new ReentrantReadWriteLock();
+    private static boolean shutdown = false;
 
     private TezSessionManager() {
     }
@@ -98,69 +102,123 @@ public class TezSessionManager {
     }
 
     static TezClient getClient(Configuration conf, Map<String, LocalResource> requestedAMResources, Credentials creds) throws TezException, IOException {
-        synchronized (sessionPool) {
-            List<SessionInfo> sessionsToRemove = new ArrayList<SessionInfo>();
-            for (SessionInfo sessionInfo : sessionPool) {
-                TezAppMasterStatus appMasterStatus = sessionInfo.session.getAppMasterStatus();
-                if (appMasterStatus.equals(TezAppMasterStatus.SHUTDOWN)) {
-                    sessionsToRemove.add(sessionInfo);
-                } else if (!sessionInfo.inUse && appMasterStatus.equals(TezAppMasterStatus.READY) &&
-                        validateSessionResources(sessionInfo, requestedAMResources)) {
-                    sessionInfo.inUse = true;
-                    return sessionInfo.session;
-                }
+        List<SessionInfo> sessionsToRemove = new ArrayList<SessionInfo>();
+        SessionInfo newSession = null;
+        sessionPoolLock.readLock().lock();
+        try {
+            if (shutdown == true) {
+                throw new IOException("TezSessionManager is shut down");
             }
 
+            for (SessionInfo sessionInfo : sessionPool) {
+                synchronized (sessionInfo) {
+                    TezAppMasterStatus appMasterStatus = sessionInfo.session
+                            .getAppMasterStatus();
+                    if (appMasterStatus.equals(TezAppMasterStatus.SHUTDOWN)) {
+                        sessionsToRemove.add(sessionInfo);
+                    } else if (!sessionInfo.inUse
+                            && appMasterStatus.equals(TezAppMasterStatus.READY)
+                            && validateSessionResources(sessionInfo,requestedAMResources)) {
+                        sessionInfo.inUse = true;
+                        return sessionInfo.session;
+                    }
+                }
+            }
+        } finally {
+            sessionPoolLock.readLock().unlock();
+        }
+        // We cannot find available AM, create new one
+        // Create session outside of locks so that getClient/freeSession is not
+        // blocked for parallel embedded pig runs
+        newSession = createSession(conf, requestedAMResources, creds);
+        newSession.inUse = true;
+        sessionPoolLock.writeLock().lock();
+        try {
+            if (shutdown == true) {
+                newSession.session.stop();
+                throw new IOException("TezSessionManager is shut down");
+            }
+            sessionPool.add(newSession);
             for (SessionInfo sessionToRemove : sessionsToRemove) {
                 sessionPool.remove(sessionToRemove);
             }
-
-            // We cannot find available AM, create new one
-            SessionInfo sessionInfo = createSession(conf, requestedAMResources, creds);
-            sessionInfo.inUse = true;
-            sessionPool.add(sessionInfo);
-            return sessionInfo.session;
+            return newSession.session;
+        } finally {
+            sessionPoolLock.writeLock().unlock();
         }
     }
 
     static void freeSession(TezClient session) {
-        synchronized (sessionPool) {
+        sessionPoolLock.readLock().lock();
+        try {
             for (SessionInfo sessionInfo : sessionPool) {
-                if (sessionInfo.session == session) {
-                    sessionInfo.inUse = false;
-                    break;
+                synchronized (sessionInfo) {
+                    if (sessionInfo.session == session) {
+                        sessionInfo.inUse = false;
+                        break;
+                    }
                 }
             }
+        } finally {
+            sessionPoolLock.readLock().unlock();
         }
     }
 
     static void stopSession(TezClient session) throws TezException, IOException {
-        synchronized (sessionPool) {
-            Iterator<SessionInfo> iter = sessionPool.iterator();
+        Iterator<SessionInfo> iter = sessionPool.iterator();
+        SessionInfo sessionToRemove = null;
+        sessionPoolLock.readLock().lock();
+        try {
             while (iter.hasNext()) {
                 SessionInfo sessionInfo = iter.next();
-                if (sessionInfo.session == session) {
-                    log.info("Shutting down Tez session " + session);
-                    session.stop();
-                    iter.remove();
-                    break;
+                synchronized (sessionInfo) {
+                    if (sessionInfo.session == session) {
+                        log.info("Stopping Tez session " + session);
+                        session.stop();
+                        sessionToRemove = sessionInfo;
+                        break;
+                    }
                 }
+            }
+        } finally {
+            sessionPoolLock.readLock().unlock();
+        }
+        if (sessionToRemove != null) {
+            sessionPoolLock.writeLock().lock();
+            try {
+                sessionPool.remove(sessionToRemove);
+            } finally {
+                sessionPoolLock.writeLock().unlock();
             }
         }
     }
 
     @VisibleForTesting
     public static void shutdown() {
-        synchronized (sessionPool) {
+        try {
+            sessionPoolLock.writeLock().lock();
+            shutdown = true;
             for (SessionInfo sessionInfo : sessionPool) {
-                try {
-                    log.info("Shutting down Tez session " + sessionInfo.session);
-                    sessionInfo.session.stop();
-                } catch (Exception e) {
-                    log.error("Error shutting down Tez session "  + sessionInfo.session, e);
+                synchronized (sessionInfo) {
+                    try {
+                        if (sessionInfo.session.getAppMasterStatus().equals(
+                                TezAppMasterStatus.SHUTDOWN)) {
+                            log.info("Tez session is already shutdown "
+                                    + sessionInfo.session);
+                            continue;
+                        }
+                        log.info("Shutting down Tez session "
+                                + sessionInfo.session);
+                        sessionInfo.session.stop();
+                    } catch (Exception e) {
+                        log.error("Error shutting down Tez session "
+                                + sessionInfo.session, e);
+                    }
                 }
             }
             sessionPool.clear();
+        } finally {
+            sessionPoolLock.writeLock().unlock();
         }
     }
 }

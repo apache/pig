@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.fs.Path;
-import org.apache.pig.ExecType;
 import org.apache.pig.PigRunner;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
@@ -38,12 +37,13 @@ import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStatsUtil;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestScriptLanguage {
 
-    static MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
@@ -71,7 +71,7 @@ public class TestScriptLanguage {
         String scriptName = name + "_testScript.py";
         Util.createLocalInputFile(scriptName, script);
         ScriptEngine scriptEngine = ScriptEngine.getInstance("jython");
-        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
         Map<String, List<PigStats>> statsMap = scriptEngine.run(pigServer.getPigContext(), scriptName);
         return statsMap;
     }
@@ -88,7 +88,7 @@ public class TestScriptLanguage {
     private PigStats runPigRunner(String name, String[] script, boolean shouldSucceed) throws Exception {
         String scriptName = createScript(name, script);
 
-        String[] args = { "-g", "jython", scriptName };
+        String[] args = { "-x", cluster.getExecType().name().toLowerCase(), "-g", "jython", scriptName };
 
         PigStats mainStats = PigRunner.run(args, new TestPigRunner.TestNotificationListener());
         if (shouldSucceed) {
@@ -599,7 +599,7 @@ public class TestScriptLanguage {
     // See PIG-2291
     @Test
     public void testIllustrateInScript() throws Exception {
-
+        Assume.assumeTrue("Skip this test for TEZ. See PIG-3993", Util.isMapredExecType(cluster.getExecType()));
         String[] script = { "#!/usr/bin/python",
                 "from org.apache.pig.scripting import *",
                 "Pig.fs(\"rmr simple_out\")",
@@ -634,7 +634,7 @@ public class TestScriptLanguage {
         assertEquals(0, statsMap.size());
 
    }
-    
+
     @Test
     public void testSysArguments() throws Exception {
         String[] script = {
@@ -649,32 +649,32 @@ public class TestScriptLanguage {
         String file1 = "/tmp/sysarg_1";
         String file2 = "/tmp/sysarg_2";
         createEmptyFiles(file1, file2);
-        
+
         File scriptFile = Util.createInputFile("sysarg", ".py", script);
         // ExecMode.STRING
         PigStats stats = PigRunner.run(new String[] { scriptFile.getAbsolutePath(),
                 file1 + "," + file2 }, null);
         assertEquals(null, stats.getErrorMessage());
         assertFileNotExists(file1, file2);
-        
+
         createEmptyFiles(file1, file2);
         // Clear stats from previous execution
         PigStatsUtil.getEmptyPigStats();
-        
+
         // ExecMode.FILE
-        stats = PigRunner.run(new String[] { "-f", scriptFile.getAbsolutePath(), "arg0", 
+        stats = PigRunner.run(new String[] { "-f", scriptFile.getAbsolutePath(), "arg0",
                 file1 + "," + file2 }, null);
         assertEquals(null, stats.getErrorMessage());
         assertFileNotExists(file1, file2);
     }
-    
+
     private void createEmptyFiles(String... filenames) throws IOException {
         for (String file : filenames) {
             Util.createInputFile(cluster, file, new String[]{""});
             assertTrue(cluster.getFileSystem().exists(new Path(file)));
         }
     }
-    
+
     private void assertFileNotExists(String... filenames) throws IOException {
         for (String file : filenames) {
             assertFalse(cluster.getFileSystem().exists(new Path(file)));

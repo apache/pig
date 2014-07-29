@@ -98,20 +98,22 @@ public abstract class HExecutionEngine implements ExecutionEngine {
         return jc;
     }
 
+    @Override
     public DataStorage getDataStorage() {
         return this.ds;
     }
 
+    @Override
     public void init() throws ExecException {
         init(this.pigContext.getProperties());
     }
 
-    public JobConf getLocalConf(Properties properties) {
+    public JobConf getLocalConf() {
         JobConf jc = new JobConf(false);
 
+        jc.addResource(CORE_DEFAULT_SITE);
         jc.addResource(MAPRED_DEFAULT_SITE);
         jc.addResource(YARN_DEFAULT_SITE);
-        jc.addResource(CORE_DEFAULT_SITE);
 
         return jc;
     }
@@ -181,7 +183,7 @@ public abstract class HExecutionEngine implements ExecutionEngine {
             properties.setProperty(FILE_SYSTEM_LOCATION, "file:///");
             properties.setProperty(ALTERNATIVE_FILE_SYSTEM_LOCATION, "file:///");
 
-            jc = getLocalConf(properties);
+            jc = getLocalConf();
         }
 
         // the method below alters the properties object by overriding the
@@ -260,7 +262,8 @@ public abstract class HExecutionEngine implements ExecutionEngine {
         }
         return result;
     }
-    
+
+    @Override
     public PigStats launchPig(LogicalPlan lp, String grpName, PigContext pc)
             throws FrontendException, ExecException {
 
@@ -285,6 +288,7 @@ public abstract class HExecutionEngine implements ExecutionEngine {
         }
     }
 
+    @Override
     public void explain(LogicalPlan lp, PigContext pc, PrintStream ps,
             String format, boolean verbose, File file, String suffix)
                     throws PlanException, VisitorException, IOException,
@@ -318,25 +322,30 @@ public abstract class HExecutionEngine implements ExecutionEngine {
         }
     }
 
+    @Override
     public Properties getConfiguration() {
         Properties properties = new Properties();
         properties.putAll(pigContext.getProperties());
         return properties;
     }
 
+    @Override
     public void setConfiguration(Properties newConfiguration) throws ExecException {
         init(newConfiguration);
     }
 
+    @Override
     public void setProperty(String property, String value) {
         Properties properties = pigContext.getProperties();
         properties.put(property, value);
     }
 
+    @Override
     public ExecutableManager getExecutableManager() {
         return new HadoopExecutableManager();
     }
 
+    @Override
     public void killJob(String jobID) throws BackendException {
         if (launcher != null) {
             launcher.killJob(jobID, getJobConf());

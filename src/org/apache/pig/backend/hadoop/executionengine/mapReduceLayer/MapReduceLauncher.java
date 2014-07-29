@@ -155,7 +155,7 @@ public class MapReduceLauncher extends Launcher{
 
         MRExecutionEngine exe = (MRExecutionEngine) pc.getExecutionEngine();
         Properties defaultProperties = new Properties();
-        JobConf defaultJobConf = exe.getLocalConf(defaultProperties);
+        JobConf defaultJobConf = exe.getLocalConf();
         Utils.recomputeProperties(defaultJobConf, defaultProperties);
 
         // This is a generic JobClient for checking progress of the jobs
