@@ -1,4 +1,4 @@
-MapReduce(1,GFCross) - -29:
+MapReduce(1,GFCross('1')) - -29:
 |   Store(DummyFil:DummyLdr) - -3725681661758899536
 |   |
 |   |---New For Each(false)[tuple] - -1346588723849924960
