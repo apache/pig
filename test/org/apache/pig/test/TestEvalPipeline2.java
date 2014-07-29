@@ -1051,7 +1051,6 @@ public class TestEvalPipeline2 {
     // See PIG-1787
     @Test
     public void testOrderByLimitJoin() throws Exception{
-        Assume.assumeTrue("Skip this test for TEZ till TEZ-1257 is fixed", Util.isMapredExecType(cluster.getExecType()));
         String[] input1 = {
                 "1\t1",
                 "1\t2"
@@ -1579,7 +1578,6 @@ public class TestEvalPipeline2 {
     // See PIG-2237
     @Test
     public void testLimitAutoReducer() throws Exception{
-        Assume.assumeTrue("Skip this test for TEZ till TEZ-1257 is fixed", Util.isMapredExecType(cluster.getExecType()));
         String[] input = {
                 "1\tA",
                 "4\tB",

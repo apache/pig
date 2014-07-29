@@ -5,6 +5,7 @@
 **/TestBinaryExpressionOps.java
 **/TestBuiltin.java
 **/TestCharArrayToNumeric.java
+**/TestCollectedGroup.java
 **/TestCombiner.java
 **/TestCompressedFiles.java
 **/TestCustomPartitioner.java
@@ -35,10 +36,12 @@
 **/TestPigServerWithMacros.java
 **/TestPigSplit.java
 **/TestPigStorage.java
+**/TestProjectRange.java
 **/TestRegisteredJarVisibility.java
 **/TestSample.java
 **/TestScalarAliases.java
 **/TestSchema.java
+**/TestScriptLanguage.java
 **/TestScriptLanguageJavaScript.java
 **/TestScriptUDF.java
 **/TestSkewedJoin.java
@@ -51,7 +54,7 @@
 **/TestUDF.java
 **/TestUDFContext.java
 **/TestSecondarySortTez.java
+**/TestTezAutoParallelism.java
 **/TestTezCompiler.java
 **/TestTezJobControlCompiler.java
 **/TestTezLauncher.java
-**/TestTezAutoParallelism.java

@@ -440,9 +440,7 @@ public class FileLocalizer {
         new ThreadLocal<ContainerDescriptor>() {
     };
 
-    private static ThreadLocal<ContainerDescriptor> resourcePath =
-        new ThreadLocal<ContainerDescriptor>() {
-    };
+    private static ContainerDescriptor resourcePath;
 
     /**
      * This method is only used by test code to reset state.
@@ -485,10 +483,10 @@ public class FileLocalizer {
      */
     public static synchronized ContainerDescriptor getTemporaryResourcePath(final PigContext pigContext)
             throws DataStorageException {
-        if (resourcePath.get() == null) {
-            resourcePath.set(getTempContainer(pigContext));
+        if (resourcePath == null) {
+            resourcePath = getTempContainer(pigContext);
         }
-        return resourcePath.get();
+        return resourcePath;
     }
 
     private static synchronized ContainerDescriptor getTempContainer(final PigContext pigContext)
@@ -534,9 +532,9 @@ public class FileLocalizer {
     }
 
     public static void deleteTempResourceFiles() {
-        if (resourcePath.get() != null) {
+        if (resourcePath != null) {
             try {
-                resourcePath.get().delete();
+                resourcePath.delete();
             } catch (IOException e) {
                 log.error(e);
             }

@@ -151,8 +151,10 @@
     </condition>
 	
     <target name="setTezEnv">
+        <propertyreset name="test.timeout" value="900000" />
         <propertyreset name="hadoopversion" value="23" />
         <propertyreset name="isHadoop23" value="true" />
+        <propertyreset name="hbase.hadoop.version" value="hadoop2" />
         <propertyreset name="src.shims.dir" value="${basedir}/shims/src/hadoop${hadoopversion}" />
         <propertyreset name="src.shims.test.dir" value="${basedir}/shims/test/hadoop${hadoopversion}" />
         <propertyreset name="src.exclude.dir" value="" />

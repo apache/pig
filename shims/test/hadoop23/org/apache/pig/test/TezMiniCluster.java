@@ -21,12 +21,14 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Map.Entry;
 
 import org.apache.commons.io.filefilter.RegexFileFilter;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
-import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.v2.MiniMRYarnCluster;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.pig.ExecType;
@@ -34,6 +36,7 @@ import org.apache.pig.PigConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezExecType;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezSessionManager;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 
 public class TezMiniCluster extends MiniGenericCluster {
@@ -43,6 +46,7 @@ public class TezMiniCluster extends MiniGenericCluster {
     private static final File CORE_CONF_FILE = new File(CONF_DIR, "core-site.xml");
     private static final File HDFS_CONF_FILE = new File(CONF_DIR, "hdfs-site.xml");
     private static final File MAPRED_CONF_FILE = new File(CONF_DIR, "mapred-site.xml");
+    private static final File YARN_CONF_FILE = new File(CONF_DIR, "yarn-site.xml");
     private static final ExecType TEZ = new TezExecType();
 
     protected MiniMRYarnCluster m_mr = null;
@@ -74,12 +78,18 @@ public class TezMiniCluster extends MiniGenericCluster {
             //Create user home directory
             m_fileSys.mkdirs(m_fileSys.getWorkingDirectory());
 
-            m_dfs_conf.writeXml(new FileOutputStream(HDFS_CONF_FILE));
-            m_fileSys.copyFromLocalFile(
-                    new Path(HDFS_CONF_FILE.getAbsoluteFile().toString()),
-                    new Path("/pigtest/conf/hdfs-site.xml"));
-            Job job = Job.getInstance(m_dfs_conf);
-            job.addFileToClassPath(new Path("/pigtest/conf/hdfs-site.xml"));
+            // Write core-site.xml
+            Configuration core_site = new Configuration(false);
+            core_site.set(FileSystem.FS_DEFAULT_NAME_KEY, m_dfs_conf.get(FileSystem.FS_DEFAULT_NAME_KEY));
+            core_site.writeXml(new FileOutputStream(CORE_CONF_FILE));
+
+            Configuration hdfs_site = new Configuration(false);
+            for (Entry<String, String> conf : m_dfs_conf) {
+                if (ArrayUtils.contains(m_dfs_conf.getPropertySources(conf.getKey()), "programatically")) {
+                    hdfs_site.set(conf.getKey(), m_dfs_conf.getRaw(conf.getKey()));
+                }
+            }
+            hdfs_site.writeXml(new FileOutputStream(HDFS_CONF_FILE));
 
             // Build mini YARN cluster
             m_mr = new MiniMRYarnCluster("PigMiniCluster", 2);
@@ -90,30 +100,29 @@ public class TezMiniCluster extends MiniGenericCluster {
             m_mr_conf.set(YarnConfiguration.YARN_APPLICATION_CLASSPATH,
                     System.getProperty("java.class.path"));
 
-            m_mr_conf.writeXml(new FileOutputStream(MAPRED_CONF_FILE));
-            m_fileSys.copyFromLocalFile(
-                    new Path(MAPRED_CONF_FILE.getAbsoluteFile().toString()),
-                    new Path("/pigtest/conf/mapred-site.xml"));
-            job.addFileToClassPath(new Path("/pigtest/conf/mapred-site.xml"));
+            Configuration mapred_site = new Configuration(false);
+            Configuration yarn_site = new Configuration(false);
+            for (Entry<String, String> conf : m_mr_conf) {
+                if (ArrayUtils.contains(m_mr_conf.getPropertySources(conf.getKey()), "programatically")) {
+                    if (conf.getKey().contains("yarn")) {
+                        yarn_site.set(conf.getKey(), m_mr_conf.getRaw(conf.getKey()));
+                    } else if (!conf.getKey().startsWith("dfs")){
+                        mapred_site.set(conf.getKey(), m_mr_conf.getRaw(conf.getKey()));
+                    }
+                }
+            }
 
-            // Write core-site.xml
-            m_conf = m_mr_conf;
-            m_conf.writeXml(new FileOutputStream(CORE_CONF_FILE));
-            m_fileSys.copyFromLocalFile(
-                    new Path(CORE_CONF_FILE.getAbsoluteFile().toString()),
-                    new Path("/pigtest/conf/core-site.xml"));
-            job.addFileToClassPath(new Path("/pigtest/conf/core-site.xml"));
+            mapred_site.writeXml(new FileOutputStream(MAPRED_CONF_FILE));
+            yarn_site.writeXml(new FileOutputStream(YARN_CONF_FILE));
 
             // Write tez-site.xml
             Configuration tez_conf = new Configuration(false);
             // TODO PIG-3659 - Remove this once memory management is fixed
             tez_conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, "20");
             tez_conf.set("tez.lib.uris", "hdfs:///tez,hdfs:///tez/lib");
+            // Set to a lower value so that tests don't get stuck for long because of 1 AM running at a time
+            tez_conf.set(TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS, "20");
             tez_conf.writeXml(new FileOutputStream(TEZ_CONF_FILE));
-            m_fileSys.copyFromLocalFile(
-                    new Path(TEZ_CONF_FILE.getAbsoluteFile().toString()),
-                    new Path("/pigtest/conf/tez-site.xml"));
-            job.addFileToClassPath(new Path("/pigtest/conf/tez-site.xml"));
 
             // Copy tez jars to hdfs
             m_fileSys.mkdirs(new Path("/tez/lib"));
@@ -131,6 +140,7 @@ public class TezMiniCluster extends MiniGenericCluster {
                 }
             }
 
+            m_conf = m_mr_conf;
             // Turn FetchOptimizer off so that we can actually test Tez
             m_conf.set(PigConfiguration.OPT_FETCH, System.getProperty("test.opt.fetch", "false"));
 
@@ -168,6 +178,9 @@ public class TezMiniCluster extends MiniGenericCluster {
         }
         if(MAPRED_CONF_FILE.exists()) {
             MAPRED_CONF_FILE.delete();
+        }
+        if(YARN_CONF_FILE.exists()) {
+            YARN_CONF_FILE.delete();
         }
     }
 }
