@@ -852,7 +852,7 @@ public class TestMRCompiler {
         php.connect(fe4,grpChain2.getRoots().get(0));
 
         udfs.clear();
-        udfs.add(GFCross.class.getName());
+        udfs.add(GFCross.class.getName() + "('1')");
         POForEach fe5 = GenPhyOp.topForEachOPWithUDF(udfs);
         php.addAsLeaf(fe5);
 
