@@ -25,6 +25,12 @@
     value="${pig.dir}/build/ivy/lib/Pig/jython-standalone-${jython.version}.jar"/>
   <property name="jruby.jar"
     value="${pig.dir}/build/ivy/lib/Pig/jruby-complete-${jruby.version}.jar"/>
+  <property name="hive.lib.dir"
+	value="${pig.dir}/build/ivy/lib/Pig"/>
+
+  <condition property="hive.hadoop.shims.version" value="0.23" else="0.20S">
+    <equals arg1="${hadoopversion}" arg2="23" />
+  </condition>
 
   <!-- Separate property name for udfs' build.xml -->
   <property name="udf.dir" value="${basedir}/udfs"/>
@@ -275,6 +281,9 @@
       <env key="PH_CLUSTER_BIN" value="${harness.cluster.bin}"/>
       <env key="PH_JYTHON_JAR" value="${jython.jar}"/>
       <env key="PH_JRUBY_JAR" value="${jruby.jar}"/>
+      <env key="PH_HIVE_LIB_DIR" value="${hive.lib.dir}"/>
+      <env key="PH_HIVE_VERSION" value="${hive.version}"/>
+      <env key="PH_HIVE_SHIMS_VERSION" value="${hive.hadoop.shims.version}"/>
       <env key="JRUBY_OPTS" value="--1.9"/>
       <env key="HARNESS_CONF" value="${harness.conf.file}"/>
       <env key="HADOOP_HOME" value="${harness.hadoop.home}"/>
@@ -306,6 +315,7 @@
       <arg value="${test.location}/tests/bigdata.conf"/>
       <arg value="${test.location}/tests/grunt.conf"/>
       <arg value="${test.location}/tests/macro.conf"/>
+      <arg value="${test.location}/tests/orc.conf"/>
       <arg value="${test.location}/tests/hcat.conf"/>
     </exec>
   </target>
