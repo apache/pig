@@ -30,6 +30,7 @@ import junit.framework.Assert;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
@@ -218,11 +219,8 @@ public class TestJobSubmission {
 
     @Test
     public void testReducerNumEstimation() throws Exception{
-        // skip this test for 23 until HBASE-4850
-        if (Util.isHadoop23() || Util.isHadoop2_0())
-            return;
         // use the estimation
-        Configuration conf = cluster.getConfiguration();
+        Configuration conf = HBaseConfiguration.create(new Configuration());
         HBaseTestingUtility util = new HBaseTestingUtility(conf);
         int clientPort = util.startMiniZKCluster().getClientPort();
         util.startMiniHBaseCluster(1, 1);

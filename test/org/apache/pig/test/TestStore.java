@@ -439,6 +439,8 @@ public class TestStore {
             if(execType == cluster.getExecType()) {
                 ps = new PigServer(cluster.getExecType(),
                         cluster.getProperties());
+                filesToVerify.put(DummyOutputCommitter.FILE_SETUPJOB_CALLED, Boolean.TRUE);
+                filesToVerify.put(DummyOutputCommitter.FILE_COMMITJOB_CALLED, Boolean.TRUE);
             } else {
                 Properties props = new Properties();
                 props.setProperty(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
