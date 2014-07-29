@@ -78,6 +78,9 @@ sub replaceParameters
     $cmd =~ s/:RUNID:/$testCmd->{'UID'}/g;
     $cmd =~ s/:USRHOMEPATH:/$testCmd->{'userhomePath'}/g;
     $cmd =~ s/:MAPREDJARS:/$testCmd->{'mapredjars'}/g;
+    $cmd =~ s/:HIVELIBDIR:/$testCmd->{'hivelibdir'}/g;
+    $cmd =~ s/:HIVEVERSION:/$testCmd->{'hiveversion'}/g;
+    $cmd =~ s/:HIVESHIMSVERSION:/$testCmd->{'hiveshimsversion'}/g;
     $cmd =~ s/:SCRIPTHOMEPATH:/$testCmd->{'scriptPath'}/g;
     $cmd =~ s/:DBUSER:/$testCmd->{'dbuser'}/g;
     $cmd =~ s/:DBNAME:/$testCmd->{'dbdb'}/g;
