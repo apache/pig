@@ -79,7 +79,9 @@ public class TezSessionManager {
 
     private static List<SessionInfo> sessionPool = new ArrayList<SessionInfo>();
 
-    private static SessionInfo createSession(Configuration conf, Map<String, LocalResource> requestedAMResources, Credentials creds) throws TezException, IOException {
+    private static SessionInfo createSession(Configuration conf,
+            Map<String, LocalResource> requestedAMResources, Credentials creds)
+            throws TezException, IOException, InterruptedException {
         TezConfiguration amConf = MRToTezHelper.getDAGAMConfFromMRConf(conf);
         String jobName = conf.get(PigContext.JOB_NAME, "pig");
         TezClient tezClient = new TezClient(jobName, amConf, true, requestedAMResources, creds);
@@ -92,7 +94,9 @@ public class TezSessionManager {
         return new SessionInfo(tezClient, requestedAMResources);
     }
 
-    private static boolean validateSessionResources(SessionInfo currentSession, Map<String, LocalResource> requestedAMResources) throws TezException, IOException {
+    private static boolean validateSessionResources(SessionInfo currentSession,
+            Map<String, LocalResource> requestedAMResources)
+            throws TezException, IOException {
         for (Map.Entry<String, LocalResource> entry : requestedAMResources.entrySet()) {
             if (!currentSession.resources.entrySet().contains(entry)) {
                 return false;
@@ -101,7 +105,8 @@ public class TezSessionManager {
         return true;
     }
 
-    static TezClient getClient(Configuration conf, Map<String, LocalResource> requestedAMResources, Credentials creds) throws TezException, IOException {
+    static TezClient getClient(Configuration conf, Map<String, LocalResource> requestedAMResources,
+            Credentials creds) throws TezException, IOException, InterruptedException {
         List<SessionInfo> sessionsToRemove = new ArrayList<SessionInfo>();
         SessionInfo newSession = null;
         sessionPoolLock.readLock().lock();

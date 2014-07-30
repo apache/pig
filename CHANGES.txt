@@ -52,6 +52,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4082: TEZ-1278 broke hadoop 2 compilation in trunk (cheolsoo)
+
 PIG-4079: Parallel clause is not honored in local mode (cheolsoo)
 
 PIG-4078: Port more mini cluster tests to Tez - part 6 (rohini)
