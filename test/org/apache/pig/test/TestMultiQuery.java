@@ -203,7 +203,7 @@ public class TestMultiQuery {
 
         myPig.registerQuery("A = load '" + INPUT_FILE
                 + "' as (a:int, b, c);");
-        myPig.registerQuery("A1 = Order A by a desc parallel 3;");
+        myPig.registerQuery("A1 = Order A by a desc;");
         myPig.registerQuery("A2 = limit A1 2;");
         myPig.registerQuery("store A1 into 'output1';");
         myPig.registerQuery("store A2 into 'output2';");
