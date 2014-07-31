@@ -52,6 +52,9 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4089: TestMultiQuery.testMultiQueryJiraPig1169 fails in trunk after
+PIG-4079 in Hadoop 1 (cheolsoo)
+
 PIG-4085: TEZ-1303 broke hadoop 2 compilation in trunk (cheolsoo)
 
 PIG-4082: TEZ-1278 broke hadoop 2 compilation in trunk (cheolsoo)
