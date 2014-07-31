@@ -52,6 +52,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4085: TEZ-1303 broke hadoop 2 compilation in trunk (cheolsoo)
+
 PIG-4082: TEZ-1278 broke hadoop 2 compilation in trunk (cheolsoo)
 
 PIG-4079: Parallel clause is not honored in local mode (cheolsoo)
