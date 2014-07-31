@@ -53,8 +53,8 @@ import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.mapreduce.output.MROutput;
+import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.LogicalIOProcessor;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.TezProcessorContext;
@@ -64,7 +64,7 @@ import org.apache.tez.runtime.library.api.KeyValueReader;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Ints;
 
-public class PigProcessor implements LogicalIOProcessor {
+public class PigProcessor extends AbstractLogicalIOProcessor {
 
     private static final Log LOG = LogFactory.getLog(PigProcessor.class);
     // Names of the properties that store serialized physical plans
@@ -93,17 +93,16 @@ public class PigProcessor implements LogicalIOProcessor {
     private Configuration conf;
     private PigHadoopLogger pigHadoopLogger;
 
-    private TezProcessorContext processorContext;
-
     public static String sampleVertex;
     public static Map<String, Object> sampleMap;
 
+    public PigProcessor(TezProcessorContext context) {
+        super(context);
+    }
+
     @SuppressWarnings("unchecked")
     @Override
-    public void initialize(TezProcessorContext processorContext)
-            throws Exception {
-        this.processorContext = processorContext;
-
+    public void initialize() throws Exception {
         // Reset any static variables to avoid conflict in container-reuse.
         sampleVertex = null;
         sampleMap = null;
@@ -114,14 +113,14 @@ public class PigProcessor implements LogicalIOProcessor {
         PhysicalOperator.reporter = new ThreadLocal<PigProgressable>();
         PigMapReduce.sJobConfInternal = new ThreadLocal<Configuration>();
 
-        byte[] payload = processorContext.getUserPayload();
+        byte[] payload = getContext().getUserPayload();
         conf = TezUtils.createConfFromUserPayload(payload);
         PigContext.setPackageImportList((ArrayList<String>) ObjectSerializer
                 .deserialize(conf.get("udf.import.list")));
         PigContext pc = (PigContext) ObjectSerializer.deserialize(conf.get("pig.pigContext"));
 
         // To determine front-end in UDFContext
-        conf.set(MRConfiguration.JOB_APPLICATION_ATTEMPT_ID, processorContext.getUniqueIdentifier());
+        conf.set(MRConfiguration.JOB_APPLICATION_ATTEMPT_ID, getContext().getUniqueIdentifier());
         UDFContext.getUDFContext().addJobConf(conf);
         UDFContext.getUDFContext().deserialize();
 
@@ -136,7 +135,7 @@ public class PigProcessor implements LogicalIOProcessor {
 
         boolean aggregateWarning = "true".equalsIgnoreCase(pc.getProperties().getProperty("aggregate.warning"));
         PigStatusReporter pigStatusReporter = PigStatusReporter.getInstance();
-        pigStatusReporter.setContext(new TezTaskContext(processorContext));
+        pigStatusReporter.setContext(new TezTaskContext(getContext()));
         pigHadoopLogger = PigHadoopLogger.getInstance();
         pigHadoopLogger.setReporter(pigStatusReporter);
         pigHadoopLogger.setAggregate(aggregateWarning);
@@ -144,7 +143,7 @@ public class PigProcessor implements LogicalIOProcessor {
 
         LinkedList<TezTaskConfigurable> tezTCs = PlanHelper.getPhysicalOperators(execPlan, TezTaskConfigurable.class);
         for (TezTaskConfigurable tezTC : tezTCs){
-            tezTC.initialize(processorContext);
+            tezTC.initialize(getContext());
         }
     }
 
@@ -227,7 +226,7 @@ public class PigProcessor implements LogicalIOProcessor {
                         sortingVertex, Ints.toByteArray(parallelism));
                 List<Event> events = Lists.newArrayListWithCapacity(1);
                 events.add(vmEvent);
-                processorContext.sendEvents(events);
+                getContext().sendEvents(events);
             }
         } catch (Exception e) {
             abortOutput();
