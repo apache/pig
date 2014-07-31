@@ -43,16 +43,18 @@ import com.google.common.primitives.Ints;
  * partition in the previous setting routes to the new vertex setting
  */
 public class PartitionerDefinedVertexManager extends VertexManagerPlugin {
-
-    private VertexManagerPluginContext context;
-    private boolean isParallelismSet = false;
-    private int dynamicParallelism = -1;
-    
     private static final Log LOG = LogFactory.getLog(PartitionerDefinedVertexManager.class);
 
+    private boolean isParallelismSet = false;
+    private int dynamicParallelism = -1;
+
+    public PartitionerDefinedVertexManager(VertexManagerPluginContext context) {
+        super(context);
+    }
+
     @Override
-    public void initialize(VertexManagerPluginContext context) {
-        this.context = context;
+    public void initialize() {
+        // Nothing to do
     }
 
     @Override
@@ -80,19 +82,19 @@ public class PartitionerDefinedVertexManager extends VertexManagerPlugin {
         } else {
             return;
         }
-        int currentParallelism = context.getVertexNumTasks(context.getVertexName());
+        int currentParallelism = getContext().getVertexNumTasks(getContext().getVertexName());
         if (dynamicParallelism != -1) {
             if (dynamicParallelism!=currentParallelism) {
                 LOG.info("Pig Partitioner Defined Vertex Manager: reset parallelism to " + dynamicParallelism
                         + " from " + currentParallelism);
                 Map<String, EdgeManagerDescriptor> edgeManagers =
                     new HashMap<String, EdgeManagerDescriptor>();
-                for(String vertex : context.getInputVertexEdgeProperties().keySet()) {
+                for(String vertex : getContext().getInputVertexEdgeProperties().keySet()) {
                     EdgeManagerDescriptor edgeManagerDescriptor =
                             new EdgeManagerDescriptor(ScatterGatherEdgeManager.class.getName());
                     edgeManagers.put(vertex, edgeManagerDescriptor);
                 }
-                context.setVertexParallelism(dynamicParallelism, null, edgeManagers, null);
+                getContext().setVertexParallelism(dynamicParallelism, null, edgeManagers, null);
             }
         }
     }
@@ -104,7 +106,7 @@ public class PartitionerDefinedVertexManager extends VertexManagerPlugin {
             for (int i=0; i<dynamicParallelism; ++i) {
                 tasksToStart.add(new TaskWithLocationHint(new Integer(i), null));
             }
-            context.scheduleVertexTasks(tasksToStart);
+            getContext().scheduleVertexTasks(tasksToStart);
         }
     }
 }
