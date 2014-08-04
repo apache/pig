@@ -85,7 +85,7 @@ abstract public class MiniGenericCluster {
         return INSTANCE;
     }
 
-    abstract protected ExecType getExecType();
+    abstract public ExecType getExecType();
 
     abstract protected void setupMiniDfsAndMrClusters();
 

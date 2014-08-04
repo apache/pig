@@ -39,6 +39,7 @@ import org.apache.pig.newplan.logical.rules.LogicalExpressionSimplifier;
 import org.apache.pig.newplan.logical.rules.MergeFilter;
 import org.apache.pig.newplan.logical.rules.MergeForEach;
 import org.apache.pig.newplan.logical.rules.PartitionFilterOptimizer;
+import org.apache.pig.newplan.logical.rules.PredicatePushdownOptimizer;
 import org.apache.pig.newplan.logical.rules.PushDownForEachFlatten;
 import org.apache.pig.newplan.logical.rules.PushUpFilter;
 import org.apache.pig.newplan.logical.rules.SplitFilter;
@@ -128,6 +129,15 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
         s = new HashSet<Rule>();
         // Optimize partition filter
         r = new PartitionFilterOptimizer("PartitionFilterOptimizer");
+        checkAndAddRule(s, r);
+        if (!s.isEmpty())
+            ls.add(s);
+
+        // Predicate pushdown set
+        // This set of rules push filter conditions to LoadFunc
+        s = new HashSet<Rule>();
+        // Optimize partition filter
+        r = new PredicatePushdownOptimizer("PredicatePushdownOptimizer");
         checkAndAddRule(s, r);
         if (!s.isEmpty())
             ls.add(s);

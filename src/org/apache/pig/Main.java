@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.io.Reader;
 import java.io.StringReader;
 import java.io.Writer;
 import java.text.ParseException;
@@ -872,7 +871,8 @@ public class Main {
             System.out.println("            ColumnMapKeyPrune - Remove unused data");
             System.out.println("            AddForEach - Add ForEach to remove unneeded columns");
             System.out.println("            MergeForEach - Merge adjacent ForEach");
-            System.out.println("            GroupByConstParallelSetter - Force parallel 1 for \"group all\" statement");
+            System.out.println("            PartitionFilterOptimizer - Pushdown partition filter conditions to loader implementing LoadMetaData");
+            System.out.println("            PredicatePushdownOptimizer - Pushdown filter predicates to loader implementing LoadPredicatePushDown");
             System.out.println("            All - Disable all optimizations");
             System.out.println("        All optimizations listed here are enabled by default. Optimization values are case insensitive.");
             System.out.println("    -v, -verbose - Print all error messages to screen");

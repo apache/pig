@@ -17,6 +17,8 @@
  */
 package org.apache.pig;
 
+import java.util.List;
+
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 
@@ -47,6 +49,14 @@ public abstract class Expression {
         OP_LE(" <= "),
         OP_MATCH(" matches "),
 
+        //Only used by PredicatePushdown, not used by PartitionPushdown
+        OP_IN (" in "),
+        OP_BETWEEN (" between "),
+
+        //unary ops
+        OP_NULL(" is null"),
+        OP_NOT(" not"),
+
         //binary logical
         OP_AND(" and "),
         OP_OR(" or "),
@@ -76,8 +86,86 @@ public abstract class Expression {
         return opType;
     }
 
+    //TODO: Apply a optimizer to Expression from PredicatePushdownOptimizer and
+    // convert OR clauses to BETWEEN OR IN
+    public static class BetweenExpression extends Expression {
 
+        private Object lower;
+        private Object upper;
 
+        public BetweenExpression(Object lower, Object upper) {
+            this.opType = OpType.OP_BETWEEN;
+            this.lower = lower;
+            this.upper = upper;
+        }
+
+        public Object getLower() {
+            return lower;
+        }
+
+        public Object getUpper() {
+            return upper;
+        }
+
+        @Override
+        public String toString() {
+            return " between " + lower + " and " + upper;
+        }
+
+    }
+
+    public static class InExpression extends Expression {
+
+        private List<Object> values;
+
+        public InExpression(List<Object> values) {
+            this.opType = OpType.OP_IN;
+            this.values = values;
+        }
+
+        public List<Object> getValues() {
+            return values;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            sb.append(" in (");
+            for (Object value : values) {
+                if (value instanceof String) {
+                    sb.append("'").append(value).append("', ");
+                } else {
+                    sb.append(value).append(", ");
+                }
+            }
+            sb.deleteCharAt(sb.length() - 1);
+            sb.append(")");
+            return sb.toString();
+        }
+
+    }
+
+    public static class UnaryExpression extends Expression {
+
+        Expression expr;
+
+        public UnaryExpression(Expression expr, OpType opType) {
+            this.opType = opType;
+            this.expr = expr;
+        }
+
+        public Expression getExpression() {
+            return expr;
+        }
+
+        @Override
+        public String toString() {
+            // TODO: Change toString() for OP_NOT to say (col is not null)
+            // instead of ((col is null) not). If any one relies on expr.toString() might be useful
+            return "(" + expr.toString() + opType.toString() + ")";
+        }
+
+    }
 
     public static class BinaryExpression extends Expression {
 

@@ -18,10 +18,13 @@
 package org.apache.pig.builtin;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -34,6 +37,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.io.orc.CompressionKind;
 import org.apache.hadoop.hive.ql.io.orc.OrcFile;
@@ -43,7 +47,10 @@ import org.apache.hadoop.hive.ql.io.orc.OrcSerde;
 import org.apache.hadoop.hive.ql.io.orc.OrcStruct;
 import org.apache.hadoop.hive.ql.io.orc.Reader;
 import org.apache.hadoop.hive.ql.io.orc.OrcFile.Version;
+import org.apache.hadoop.hive.ql.io.sarg.SearchArgument;
+import org.apache.hadoop.hive.ql.io.sarg.SearchArgument.Builder;
 import org.apache.hadoop.hive.serde2.ColumnProjectionUtils;
+import org.apache.hadoop.hive.serde2.io.DateWritable;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.StructTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
@@ -56,13 +63,21 @@ import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.pig.Expression;
+import org.apache.pig.Expression.BetweenExpression;
+import org.apache.pig.Expression.Column;
+import org.apache.pig.Expression.Const;
+import org.apache.pig.Expression.InExpression;
+import org.apache.pig.Expression.OpType;
+import org.apache.pig.Expression.UnaryExpression;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.LoadMetadata;
+import org.apache.pig.LoadPredicatePushdown;
 import org.apache.pig.LoadPushDown;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.StoreFunc;
+import org.apache.pig.Expression.BinaryExpression;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.ResourceStatistics;
 import org.apache.pig.StoreFuncInterface;
@@ -75,6 +90,9 @@ import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.impl.util.orc.OrcUtils;
+import org.joda.time.DateTime;
+
+import com.google.common.annotations.VisibleForTesting;
 
 /**
  * A load function and store function for ORC file.
@@ -92,7 +110,11 @@ import org.apache.pig.impl.util.orc.OrcUtils;
  * <li><code>-v, --version</code> Sets the version of the file that will be written
  * </ul>
  **/
-public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMetadata, LoadPushDown {
+public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMetadata, LoadPushDown, LoadPredicatePushdown {
+
+    //TODO Make OrcInputFormat.SARG_PUSHDOWN visible
+    private static final String SARG_PUSHDOWN = "sarg.pushdown";
+
     protected RecordReader in = null;
     protected RecordWriter writer = null;
     private TypeInfo typeInfo = null;
@@ -114,6 +136,7 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
 
     private static final String SchemaSignatureSuffix = "_schema";
     private static final String RequiredColumnsSuffix = "_columns";
+    private static final String SearchArgsSuffix = "_sarg";
 
     static {
         validOptions = new Options();
@@ -267,28 +290,67 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
         if (typeInfo != null && oi == null) {
             oi = OrcStruct.createObjectInspector(typeInfo);
         }
-        if (!UDFContext.getUDFContext().isFrontend() &&
-                p.getProperty(signature+RequiredColumnsSuffix)!=null) {
-            mRequiredColumns = (boolean[])ObjectSerializer.deserialize(p.getProperty(signature+RequiredColumnsSuffix));
-            job.getConfiguration().setBoolean(ColumnProjectionUtils.READ_ALL_COLUMNS, false);
-            job.getConfiguration().set(ColumnProjectionUtils.READ_COLUMN_IDS_CONF_STR,
-                    getReqiredColumnIdString(mRequiredColumns));
+        if (!UDFContext.getUDFContext().isFrontend()) {
+            if (p.getProperty(signature + RequiredColumnsSuffix) != null) {
+                mRequiredColumns = (boolean[]) ObjectSerializer.deserialize(p
+                        .getProperty(signature + RequiredColumnsSuffix));
+                job.getConfiguration().setBoolean(ColumnProjectionUtils.READ_ALL_COLUMNS, false);
+                job.getConfiguration().set(ColumnProjectionUtils.READ_COLUMN_IDS_CONF_STR,
+                        getReqiredColumnIdString(mRequiredColumns));
+                if (p.getProperty(signature + SearchArgsSuffix) != null) {
+                    // Bug in setSearchArgument which always expects READ_COLUMN_NAMES_CONF_STR to be set
+                    job.getConfiguration().set(ColumnProjectionUtils.READ_COLUMN_NAMES_CONF_STR,
+                            getReqiredColumnNamesString(getSchema(location, job), mRequiredColumns));
+                }
+            } else if (p.getProperty(signature + SearchArgsSuffix) != null) {
+                // Bug in setSearchArgument which always expects READ_COLUMN_NAMES_CONF_STR to be set
+                job.getConfiguration().set(ColumnProjectionUtils.READ_COLUMN_NAMES_CONF_STR,
+                        getReqiredColumnNamesString(getSchema(location, job)));
+            }
+            if (p.getProperty(signature + SearchArgsSuffix) != null) {
+                job.getConfiguration().set(SARG_PUSHDOWN, p.getProperty(signature + SearchArgsSuffix));
+            }
+
         }
         FileInputFormat.setInputPaths(job, location);
     }
 
-    private static String getReqiredColumnIdString(boolean[] requiredColumns) {
-        String result = "";
-        for (int i=0;i<requiredColumns.length;i++) {
+    private String getReqiredColumnIdString(boolean[] requiredColumns) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < requiredColumns.length; i++) {
             if (requiredColumns[i]) {
-                result += i;
-                result += ",";
+                sb.append(i).append(",");
             }
         }
-        if(result.endsWith(",")) {
-            result = result.substring(0, result.length()-1);
+        if (sb.charAt(sb.length() - 1) == ',') {
+            sb.deleteCharAt(sb.length() - 1);
         }
-        return result;
+        return sb.toString();
+    }
+
+    private String getReqiredColumnNamesString(ResourceSchema schema) {
+        StringBuilder sb = new StringBuilder();
+        for (ResourceFieldSchema field : schema.getFields()) {
+            sb.append(field.getName()).append(",");
+        }
+        if(sb.charAt(sb.length() -1) == ',') {
+            sb.deleteCharAt(sb.length() - 1);
+        }
+        return sb.toString();
+    }
+
+    private String getReqiredColumnNamesString(ResourceSchema schema, boolean[] requiredColumns) {
+        StringBuilder sb = new StringBuilder();
+        ResourceFieldSchema[] fields = schema.getFields();
+        for (int i = 0; i < requiredColumns.length; i++) {
+            if (requiredColumns[i]) {
+                sb.append(fields[i]).append(",");
+            }
+        }
+        if(sb.charAt(sb.length() - 1) == ',') {
+            sb.deleteCharAt(sb.length() - 1);
+        }
+        return sb.toString();
     }
 
     @Override
@@ -342,19 +404,6 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
         return p;
     }
 
-    private static TypeInfo getTypeInfoFromLocation(String location, Job job) throws IOException {
-        FileSystem fs = FileSystem.get(job.getConfiguration());
-        Path path = getFirstFile(location, fs);
-        if (path == null) {
-            log.info("Cannot find any ORC files from " + location +
-                    ". Probably multiple load store in script.");
-            return null;
-        }
-        Reader reader = OrcFile.createReader(fs, path);
-        ObjectInspector oip = (ObjectInspector)reader.getObjectInspector();
-        return TypeInfoUtils.getTypeInfoFromObjectInspector(oip);
-    }
-
     @Override
     public ResourceSchema getSchema(String location, Job job)
             throws IOException {
@@ -372,17 +421,27 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
 
     private TypeInfo getTypeInfo(String location, Job job) throws IOException {
         Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass());
-        String serializedStr = p.getProperty(signature + SchemaSignatureSuffix);
-        TypeInfo typeInfo = null;
-        if (serializedStr != null) {
-            typeInfo = (TypeInfo) ObjectSerializer.deserialize(serializedStr);
-        } else {
+        TypeInfo typeInfo = (TypeInfo) ObjectSerializer.deserialize(p.getProperty(signature + SchemaSignatureSuffix));
+        if (typeInfo == null) {
             typeInfo = getTypeInfoFromLocation(location, job);
         }
         if (typeInfo != null) {
             p.setProperty(signature + SchemaSignatureSuffix, ObjectSerializer.serialize(typeInfo));
         }
         return typeInfo;
+    }
+
+    private TypeInfo getTypeInfoFromLocation(String location, Job job) throws IOException {
+        FileSystem fs = FileSystem.get(job.getConfiguration());
+        Path path = getFirstFile(location, fs);
+        if (path == null) {
+            log.info("Cannot find any ORC files from " + location +
+                    ". Probably multiple load store in script.");
+            return null;
+        }
+        Reader reader = OrcFile.createReader(fs, path);
+        ObjectInspector oip = (ObjectInspector)reader.getObjectInspector();
+        return TypeInfoUtils.getTypeInfoFromObjectInspector(oip);
     }
 
     @Override
@@ -429,6 +488,201 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
             }
         }
         return new RequiredFieldResponse(true);
+    }
+
+    @Override
+    public List<String> getPredicateFields(String location, Job job) throws IOException {
+        ResourceSchema schema = getSchema(location, job);
+        List<String> predicateFields = new ArrayList<String>();
+        for (ResourceFieldSchema field : schema.getFields()) {
+            switch(field.getType()) {
+            case DataType.BOOLEAN:
+                //TODO: Need to find what to set for boolean. Throws error if SearchArgument value is set as boolean
+                break;
+            case DataType.INTEGER:
+            case DataType.LONG:
+            case DataType.FLOAT:
+            case DataType.DOUBLE:
+            case DataType.DATETIME:
+            case DataType.BYTEARRAY:
+            case DataType.CHARARRAY:
+            case DataType.BIGINTEGER:
+            case DataType.BIGDECIMAL:
+                predicateFields.add(field.getName());
+                break;
+            default:
+                // Skip DataType.TUPLE, DataType.MAP and DataType.BAG
+                break;
+            }
+        }
+        return predicateFields;
+    }
+
+    @Override
+    public List<OpType> getSupportedExpressionTypes() {
+        List<OpType> types = new ArrayList<OpType>();
+        types.add(OpType.OP_EQ);
+        types.add(OpType.OP_NE);
+        types.add(OpType.OP_GT);
+        types.add(OpType.OP_GE);
+        types.add(OpType.OP_LT);
+        types.add(OpType.OP_LE);
+        types.add(OpType.OP_IN);
+        types.add(OpType.OP_BETWEEN);
+        types.add(OpType.OP_NULL);
+        types.add(OpType.OP_NOT);
+        types.add(OpType.OP_AND);
+        types.add(OpType.OP_OR);
+        return types;
+    }
+
+    @Override
+    public void setPushdownPredicate(Expression expr) throws IOException {
+        SearchArgument sArg = getSearchArgument(expr);
+        if (sArg != null) {
+            log.info("Pushdown predicate expression is " + expr);
+            log.info("Pushdown predicate SearchArgument is:\n" + sArg);
+            Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass());
+            try {
+                p.setProperty(signature + SearchArgsSuffix, sArg.toKryo());
+            } catch (Exception e) {
+                throw new IOException("Cannot serialize SearchArgument: " + sArg);
+            }
+        }
+    }
+
+    @VisibleForTesting
+    SearchArgument getSearchArgument(Expression expr) {
+        if (expr == null) {
+            return null;
+        }
+        Builder builder = SearchArgument.FACTORY.newBuilder();
+        boolean beginWithAnd = !(expr.getOpType().equals(OpType.OP_AND) || expr.getOpType().equals(OpType.OP_OR) || expr.getOpType().equals(OpType.OP_NOT));
+        if (beginWithAnd) {
+            builder.startAnd();
+        }
+        buildSearchArgument(expr, builder);
+        if (beginWithAnd) {
+            builder.end();
+        }
+        SearchArgument sArg = builder.build();
+        return sArg;
+    }
+
+    private void buildSearchArgument(Expression expr, Builder builder) {
+        if (expr instanceof BinaryExpression) {
+            Expression lhs = ((BinaryExpression) expr).getLhs();
+            Expression rhs = ((BinaryExpression) expr).getRhs();
+            switch (expr.getOpType()) {
+            case OP_AND:
+                builder.startAnd();
+                buildSearchArgument(lhs, builder);
+                buildSearchArgument(rhs, builder);
+                builder.end();
+                break;
+            case OP_OR:
+                builder.startOr();
+                buildSearchArgument(lhs, builder);
+                buildSearchArgument(rhs, builder);
+                builder.end();
+                break;
+            case OP_EQ:
+                builder.equals(getColumnName(lhs), getExpressionValue(rhs));
+                break;
+            case OP_NE:
+                builder.startNot();
+                builder.equals(getColumnName(lhs), getExpressionValue(rhs));
+                builder.end();
+                break;
+            case OP_LT:
+                builder.lessThan(getColumnName(lhs), getExpressionValue(rhs));
+                break;
+            case OP_LE:
+                builder.lessThanEquals(getColumnName(lhs), getExpressionValue(rhs));
+                break;
+            case OP_GT:
+                builder.startNot();
+                builder.lessThanEquals(getColumnName(lhs), getExpressionValue(rhs));
+                builder.end();
+                break;
+            case OP_GE:
+                builder.startNot();
+                builder.lessThan(getColumnName(lhs), getExpressionValue(rhs));
+                builder.end();
+                break;
+            case OP_BETWEEN:
+                BetweenExpression between = (BetweenExpression) rhs;
+                builder.between(getColumnName(lhs), getSearchArgObjValue(between.getLower()),  getSearchArgObjValue(between.getUpper()));
+            case OP_IN:
+                InExpression in = (InExpression) rhs;
+                builder.in(getColumnName(lhs), getSearchArgObjValues(in.getValues()).toArray());
+            default:
+                throw new RuntimeException("Unsupported binary expression type: " + expr.getOpType() + " in " + expr);
+            }
+        } else if (expr instanceof UnaryExpression) {
+            Expression unaryExpr = ((UnaryExpression) expr).getExpression();
+            switch (expr.getOpType()) {
+            case OP_NULL:
+                builder.isNull(getColumnName(unaryExpr));
+                break;
+            case OP_NOT:
+                builder.startNot();
+                buildSearchArgument(unaryExpr, builder);
+                builder.end();
+                break;
+            default:
+                throw new RuntimeException("Unsupported unary expression type: " +
+                        expr.getOpType() + " in " + expr);
+            }
+        } else {
+            throw new RuntimeException("Unsupported expression type: " + expr.getOpType() + " in " + expr);
+        }
+    }
+
+    private String getColumnName(Expression expr) {
+        try {
+            return ((Column) expr).getName();
+        } catch (ClassCastException e) {
+            throw new RuntimeException("Expected a Column but found " + expr.getClass().getName() +
+                    " in expression " + expr, e);
+        }
+    }
+
+    private Object getExpressionValue(Expression expr) {
+        switch(expr.getOpType()) {
+        case TERM_COL:
+            return ((Column) expr).getName();
+        case TERM_CONST:
+            return getSearchArgObjValue(((Const) expr).getValue());
+        default:
+            throw new RuntimeException("Unsupported expression type: " + expr.getOpType() + " in " + expr);
+        }
+    }
+
+    private List<Object> getSearchArgObjValues(List<Object> values) {
+        if (!(values.get(0) instanceof BigInteger || values.get(0) instanceof BigDecimal || values.get(0) instanceof DateTime)) {
+            return values;
+        }
+        List<Object> newValues = new ArrayList<Object>(values.size());
+        for (Object value : values) {
+            newValues.add(getSearchArgObjValue(value));
+        }
+        return values;
+    }
+
+    private Object getSearchArgObjValue(Object value) {
+           // TODO Test BigInteger, BigInteger and DateTime
+        if (value instanceof BigInteger) {
+            return HiveDecimal.create(((BigInteger)value));
+        } else if (value instanceof BigDecimal) {
+            return HiveDecimal.create(((BigDecimal)value), false);
+        } else if (value instanceof DateTime) {
+            //TODO is this right based on what DateTimeWritable.dateToDays() does? What about pig.datetime.default.tz?
+            return new DateWritable((int)(((DateTime)value).getMillis() / TimeUnit.DAYS.toMillis(1)));
+        } else {
+            //TODO compare to Orc schema and change type for varchar, typecast for byte, short
+            return value;
+        }
     }
 
 }

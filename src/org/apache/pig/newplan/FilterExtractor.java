@@ -18,7 +18,6 @@
 
 package org.apache.pig.newplan;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -29,11 +28,13 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.logical.expression.AddExpression;
 import org.apache.pig.newplan.logical.expression.AndExpression;
 import org.apache.pig.newplan.logical.expression.BinaryExpression;
+import org.apache.pig.newplan.logical.expression.CastExpression;
 import org.apache.pig.newplan.logical.expression.ConstantExpression;
 import org.apache.pig.newplan.logical.expression.DivideExpression;
 import org.apache.pig.newplan.logical.expression.EqualExpression;
 import org.apache.pig.newplan.logical.expression.GreaterThanEqualExpression;
 import org.apache.pig.newplan.logical.expression.GreaterThanExpression;
+import org.apache.pig.newplan.logical.expression.IsNullExpression;
 import org.apache.pig.newplan.logical.expression.LessThanEqualExpression;
 import org.apache.pig.newplan.logical.expression.LessThanExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpression;
@@ -41,29 +42,16 @@ import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.expression.ModExpression;
 import org.apache.pig.newplan.logical.expression.MultiplyExpression;
 import org.apache.pig.newplan.logical.expression.NotEqualExpression;
+import org.apache.pig.newplan.logical.expression.NotExpression;
 import org.apache.pig.newplan.logical.expression.OrExpression;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
 import org.apache.pig.newplan.logical.expression.RegexExpression;
 import org.apache.pig.newplan.logical.expression.SubtractExpression;
+import org.apache.pig.newplan.logical.expression.UnaryExpression;
 
-/**
- * This is a rewrite of {@code PColFilterExtractor}
- *
- * We traverse the expression plan bottom up and separate it into two plans
- * - pushdownExprPlan, plan that can be pushed down to the loader and
- * - filterExprPlan, remaining plan that needs to be evaluated by pig
- *
- */
-public class FilterExtractor {
+public abstract class FilterExtractor {
 
-    private static final Log LOG = LogFactory.getLog(FilterExtractor.class);
-
-    /**
-     * partition columns associated with the table
-     * present in the load on which the filter whose
-     * inner plan is being visited is applied
-     */
-    private List<String> partitionCols;
+    protected final Log LOG = LogFactory.getLog(getClass());
 
     /**
      * We visit this plan to create the filteredPlan
@@ -83,12 +71,12 @@ public class FilterExtractor {
     /**
      * Final filterExpr after we are done
      */
-    private LogicalExpression filterExpr = null;
+    protected LogicalExpression filterExpr = null;
 
     /**
      * @{code Expression} to pushdown
      */
-    private Expression pushdownExpr = null;
+    protected Expression pushdownExpr = null;
 
     /**
      *
@@ -96,10 +84,8 @@ public class FilterExtractor {
      * @param partitionCols list of partition columns of the table which is
      * being loaded in the LOAD statement which is input to the filter
      */
-    public FilterExtractor(LogicalExpressionPlan plan,
-            List<String> partitionCols) {
+    public FilterExtractor(LogicalExpressionPlan plan) {
         this.originalPlan = plan;
-        this.partitionCols = new ArrayList<String>(partitionCols);
         this.filteredPlan = new LogicalExpressionPlan();
         this.pushdownExprPlan = new LogicalExpressionPlan();
     }
@@ -141,20 +127,19 @@ public class FilterExtractor {
     }
 
     /**
-     * @return the condition on partition columns extracted from filter
+     * @return the push condition from the filter
      */
-    public  Expression getPColCondition(){
+    public  Expression getPushDownExpression(){
         return pushdownExpr;
     }
 
-    private class KeyState {
+    protected class KeyState {
         LogicalExpression pushdownExpr;
         LogicalExpression filterExpr;
     }
 
-    private KeyState checkPushDown(LogicalExpression op) throws FrontendException {
-        // Note: Currently, Expression interface only understands 3 Expression Types
-        // (Look at getExpression below) BinaryExpression, ProjectExpression and ConstantExpression
+    protected KeyState checkPushDown(LogicalExpression op) throws FrontendException {
+        // Note: Currently, Expression interface only understands following Expression Types
         if(op instanceof ProjectExpression) {
             return checkPushDown((ProjectExpression)op);
         } else if (op instanceof BinaryExpression) {
@@ -165,6 +150,10 @@ public class FilterExtractor {
             state.pushdownExpr = op;
             state.filterExpr = null;
             return state;
+        } else if(op instanceof CastExpression) {
+            return checkPushDown(((CastExpression)op).getExpression());
+        } else if (op instanceof UnaryExpression) {
+            return checkPushDown((UnaryExpression) op);
         } else {
             KeyState state = new KeyState();
             state.pushdownExpr = null;
@@ -173,7 +162,7 @@ public class FilterExtractor {
         }
     }
 
-    private LogicalExpression addToFilterPlan(LogicalExpression op) throws FrontendException {
+    protected LogicalExpression addToFilterPlan(LogicalExpression op) throws FrontendException {
         // This copies the whole tree underneath op
         LogicalExpression newOp = op.deepCopy(filteredPlan);
         return newOp;
@@ -213,8 +202,14 @@ public class FilterExtractor {
         return orOp;
     }
 
-    private KeyState checkPushDown(BinaryExpression binExpr) throws FrontendException {
+    protected KeyState checkPushDown(BinaryExpression binExpr) throws FrontendException {
         KeyState state = new KeyState();
+
+        if (!isSupportedOpType(binExpr)) {
+            state.filterExpr = addToFilterPlan(binExpr);
+            state.pushdownExpr = null;
+            return state;
+        }
         KeyState leftState = checkPushDown(binExpr.getLhs());
         KeyState rightState = checkPushDown(binExpr.getRhs());
 
@@ -273,18 +268,31 @@ public class FilterExtractor {
         return state;
     }
 
-    private KeyState checkPushDown(ProjectExpression project) throws FrontendException {
-        String fieldName = project.getFieldSchema().alias;
+    protected KeyState checkPushDown(UnaryExpression unaryExpr) throws FrontendException {
         KeyState state = new KeyState();
-        if(partitionCols.contains(fieldName)) {
-            state.filterExpr = null;
-            state.pushdownExpr = project;
+        if (isSupportedOpType(unaryExpr)) {
+            if (unaryExpr instanceof IsNullExpression) {
+                state.pushdownExpr = unaryExpr;
+                state.filterExpr = null;
+            } else if (unaryExpr instanceof NotExpression) {
+                state.pushdownExpr = unaryExpr;
+                state.filterExpr = null;
+            } else {
+                state.filterExpr = addToFilterPlan(unaryExpr);
+                state.pushdownExpr = null;
+            }
         } else {
-            state.filterExpr = addToFilterPlan(project);
+            state.filterExpr = addToFilterPlan(unaryExpr);
             state.pushdownExpr = null;
         }
         return state;
     }
+
+    protected abstract KeyState checkPushDown(ProjectExpression project) throws FrontendException;
+
+    protected abstract boolean isSupportedOpType(BinaryExpression binOp);
+
+    protected abstract boolean isSupportedOpType(UnaryExpression unaryOp);
 
     /**
      * Assume that the given operator is already disconnected from its predecessors.
@@ -311,7 +319,7 @@ public class FilterExtractor {
         filteredPlan.remove( op );
     }
 
-    public static Expression getExpression(LogicalExpression op) throws FrontendException
+    public Expression getExpression(LogicalExpression op) throws FrontendException
     {
         if(op == null) {
             return null;
@@ -323,11 +331,7 @@ public class FilterExtractor {
             ProjectExpression projExpr = (ProjectExpression)op;
             String fieldName = projExpr.getFieldSchema().alias;
             return new Expression.Column(fieldName);
-        } else {
-            if( !( op instanceof BinaryExpression ) ) {
-                LOG.error("Unsupported conversion of LogicalExpression to Expression: " + op.getName());
-                throw new FrontendException("Unsupported conversion of LogicalExpression to Expression: " + op.getName());
-            }
+        } else if(op instanceof BinaryExpression) {
             BinaryExpression binOp = (BinaryExpression)op;
             if(binOp instanceof AddExpression) {
                 return getExpression( binOp, OpType.OP_PLUS );
@@ -358,15 +362,35 @@ public class FilterExtractor {
             } else if(binOp instanceof RegexExpression) {
                 return getExpression(binOp, OpType.OP_MATCH);
             } else {
-                LOG.error("Unsupported conversion of LogicalExpression to Expression: " + op.getName());
-                throw new FrontendException("Unsupported conversion of LogicalExpression to Expression: " + op.getName());
+                LOG.error("Unsupported conversion of BinaryExpression to Expression: " + op.getName());
+                throw new FrontendException("Unsupported conversion of BinaryExpression to Expression: " + op.getName());
             }
+        } else if(op instanceof UnaryExpression) {
+            UnaryExpression unaryOp = (UnaryExpression)op;
+            if(unaryOp instanceof IsNullExpression) {
+                return getExpression(unaryOp, OpType.OP_NULL);
+            } else if(unaryOp instanceof NotExpression) {
+                return getExpression(unaryOp, OpType.OP_NOT);
+            } else if(unaryOp instanceof CastExpression) {
+                return getExpression(unaryOp.getExpression());
+            } else {
+                LOG.error("Unsupported conversion of UnaryExpression to Expression: " + op.getName());
+                throw new FrontendException("Unsupported conversion of UnaryExpression to Expression: " + op.getName());
+            }
+        } else {
+            LOG.error("Unsupported conversion of LogicalExpression to Expression: " + op.getName());
+            throw new FrontendException("Unsupported conversion of LogicalExpression to Expression: " + op.getName());
         }
     }
 
-    private static Expression getExpression(BinaryExpression binOp, OpType
+    protected Expression getExpression(BinaryExpression binOp, OpType
             opType) throws FrontendException {
         return new Expression.BinaryExpression(getExpression(binOp.getLhs())
                 , getExpression(binOp.getRhs()), opType);
+    }
+
+    protected Expression getExpression(UnaryExpression unaryOp, OpType
+            opType) throws FrontendException {
+        return new Expression.UnaryExpression(getExpression(unaryOp.getExpression()), opType);
     }
 }

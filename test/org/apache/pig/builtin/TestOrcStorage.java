@@ -65,6 +65,7 @@ import org.joda.time.DateTime;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestOrcStorage {
@@ -82,13 +83,8 @@ public class TestOrcStorage {
     private static PigServer pigServer = null;
     private static FileSystem fs;
 
-    @Before
-    public void setup() throws ExecException, IOException {
-        pigServer = new PigServer(ExecType.LOCAL);
-        fs = FileSystem.get(ConfigurationUtil.toConfiguration(pigServer.getPigContext().getProperties()));
-        deleteTestFiles();
-        pigServer.mkdirs(outbasedir);
-        generateInputFiles();
+    @BeforeClass
+    public static void oneTimeSetup(){
         if(Util.WINDOWS){
             INPUT1 = INPUT1.replace("\\", "/");
             OUTPUT1 = OUTPUT1.replace("\\", "/");
@@ -96,6 +92,15 @@ public class TestOrcStorage {
             OUTPUT3 = OUTPUT3.replace("\\", "/");
             OUTPUT4 = OUTPUT4.replace("\\", "/");
         }
+    }
+
+    @Before
+    public void setup() throws ExecException, IOException {
+        pigServer = new PigServer(ExecType.LOCAL);
+        fs = FileSystem.get(ConfigurationUtil.toConfiguration(pigServer.getPigContext().getProperties()));
+        deleteTestFiles();
+        pigServer.mkdirs(outbasedir);
+        generateInputFiles();
     }
 
     @After
@@ -234,7 +239,6 @@ public class TestOrcStorage {
         fs.delete(new Path(OUTPUT4, "_SUCCESS"), true);
 
         pigServer.registerQuery("A = load '" + OUTPUT4 + "' using OrcStorage();" );
-        Schema s = pigServer.dumpSchema("A");
         Iterator<Tuple> iter = pigServer.openIterator("A");
         Tuple t = iter.next();
         assertTrue(t.toString().startsWith("(false,1,1024,65536,9223372036854775807,1.0,-15.0," +
@@ -313,6 +317,7 @@ public class TestOrcStorage {
 
     }
 
+    @SuppressWarnings("rawtypes")
     private void compareData(Object expected, Object actual) {
         if (expected instanceof Text) {
             assertEquals(String.class, actual.getClass());

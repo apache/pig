@@ -54,7 +54,7 @@ public class TezMiniCluster extends MiniGenericCluster {
     private Configuration m_mr_conf = null;
 
     @Override
-    protected ExecType getExecType() {
+    public ExecType getExecType() {
         return TEZ;
     }
 

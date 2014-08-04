@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4091: Predicate pushdown for ORC (rohini via daijy)
+
 PIG-4077: Some fixes and e2e test for OrcStorage (rohini)
 
 PIG-4054: Do not create job.jar when submitting job (daijy)
