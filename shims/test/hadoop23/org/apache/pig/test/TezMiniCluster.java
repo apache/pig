@@ -122,6 +122,9 @@ public class TezMiniCluster extends MiniGenericCluster {
             tez_conf.set("tez.lib.uris", "hdfs:///tez,hdfs:///tez/lib");
             // Set to a lower value so that tests don't get stuck for long because of 1 AM running at a time
             tez_conf.set(TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS, "20");
+            // Lower the max task attempts to 2 so that negative tests fail
+            // faster. By default, tasks retry 4 times
+            tez_conf.set(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS, "2");
             tez_conf.writeXml(new FileOutputStream(TEZ_CONF_FILE));
 
             // Copy tez jars to hdfs
