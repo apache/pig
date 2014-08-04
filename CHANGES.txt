@@ -52,6 +52,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4099: "ant copypom" failed with "could not find file $PIG_HOME/ivy/pig.pom to copy" (fang fang chen via cheolsoo)
+
 PIG-4098: Vertex Location Hint api update after TEZ-1041 (jeagles via cheolsoo)
 
 PIG-4088: TEZ-1346 breaks hadoop 2 compilation in trunk (cheolsoo)
