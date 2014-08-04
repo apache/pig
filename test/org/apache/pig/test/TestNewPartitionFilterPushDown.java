@@ -45,7 +45,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.Utils;
-import org.apache.pig.newplan.FilterExtractor;
+import org.apache.pig.newplan.PartitionFilterExtractor;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.logical.expression.AndExpression;
@@ -454,9 +454,8 @@ public class TestNewPartitionFilterPushDown {
             Operator op = newLogicalPlan.getSinks().get(0);
             LOFilter filter = (LOFilter)newLogicalPlan.getPredecessors(op).get(0);
 
-            String actual =
-                    FilterExtractor.getExpression((LogicalExpression) filter.getFilterPlan().
-                            getSources().get(0)).toString();
+            String actual = new PartitionFilterExtractor(null, new ArrayList<String>())
+                    .getExpression((LogicalExpression) filter.getFilterPlan().getSources().get(0)).toString();
             Assert.assertEquals("checking trimmed filter expression:",
                     filterExpr, actual);
         } else {
@@ -687,30 +686,30 @@ public class TestNewPartitionFilterPushDown {
     }
 
     //// helper methods ///////
-    private FilterExtractor test(String query, List<String> partitionCols,
+    private PartitionFilterExtractor test(String query, List<String> partitionCols,
             String expPartFilterString, String expFilterString)
                     throws Exception {
         return test(query, partitionCols, expPartFilterString, expFilterString, false);
     }
 
-    private FilterExtractor test(String query, List<String> partitionCols,
+    private PartitionFilterExtractor test(String query, List<String> partitionCols,
             String expPartFilterString, String expFilterString, boolean unsupportedExpression)
                     throws Exception {
         PigServer pigServer = new PigServer( pc );
         LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);
         Operator op = newLogicalPlan.getSinks().get(0);
         LOFilter filter = (LOFilter)newLogicalPlan.getPredecessors(op).get(0);
-        FilterExtractor pColExtractor = new FilterExtractor(
+        PartitionFilterExtractor pColExtractor = new PartitionFilterExtractor(
                 filter.getFilterPlan(), partitionCols);
         pColExtractor.visit();
 
         if(expPartFilterString == null) {
             Assert.assertEquals("Checking partition column filter:", null,
-                    pColExtractor.getPColCondition());
+                    pColExtractor.getPushDownExpression());
         } else  {
             Assert.assertEquals("Checking partition column filter:",
                     expPartFilterString,
-                    pColExtractor.getPColCondition().toString());
+                    pColExtractor.getPushDownExpression().toString());
         }
 
         if (expFilterString == null) {
@@ -721,7 +720,7 @@ public class TestNewPartitionFilterPushDown {
                 String actual = getTestExpression((LogicalExpression)pColExtractor.getFilteredPlan().getSources().get(0)).toString();
                 Assert.assertEquals("checking trimmed filter expression:", expFilterString, actual);
             } else {
-                String actual = FilterExtractor.getExpression((LogicalExpression)pColExtractor.getFilteredPlan().getSources().get(0)).toString();
+                String actual = pColExtractor.getExpression((LogicalExpression)pColExtractor.getFilteredPlan().getSources().get(0)).toString();
                 Assert.assertEquals("checking trimmed filter expression:", expFilterString, actual);
             }
         }
@@ -735,7 +734,7 @@ public class TestNewPartitionFilterPushDown {
         LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);
         Operator op = newLogicalPlan.getSinks().get(0);
         LOFilter filter = (LOFilter)newLogicalPlan.getPredecessors(op).get(0);
-        FilterExtractor extractor = new FilterExtractor(
+        PartitionFilterExtractor extractor = new PartitionFilterExtractor(
                 filter.getFilterPlan(), partitionCols);
         extractor.visit();
         Assert.assertFalse(extractor.canPushDown());
@@ -808,6 +807,7 @@ public class TestNewPartitionFilterPushDown {
             super( p, iterations, new HashSet<String>() );
         }
 
+        @Override
         protected List<Set<Rule>> buildRuleSets() {
             List<Set<Rule>> ls = new ArrayList<Set<Rule>>();
 

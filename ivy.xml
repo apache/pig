@@ -420,6 +420,8 @@
       conf="hadoop20->master" />
     <dependency org="org.iq80.snappy" name="snappy" rev="${snappy.version}"
       conf="test->master" />
+    <dependency org="com.esotericsoftware.kryo" name="kryo" rev="${kryo.version}"
+      conf="test->master" />
 
     <dependency org="org.vafer" name="jdeb" rev="${jdeb.version}"
       conf="compile->master">

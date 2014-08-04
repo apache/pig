@@ -54,7 +54,7 @@ public class MiniCluster extends MiniGenericCluster {
     }
 
     @Override
-    protected ExecType getExecType() {
+    public ExecType getExecType() {
         return ExecType.MAPREDUCE;
     }
 

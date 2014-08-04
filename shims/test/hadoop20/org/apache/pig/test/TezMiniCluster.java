@@ -29,7 +29,7 @@ public class TezMiniCluster extends MiniGenericCluster {
     }
 
     @Override
-    protected ExecType getExecType() {
+    public ExecType getExecType() {
         throw new UnsupportedOperationException();
     }
 

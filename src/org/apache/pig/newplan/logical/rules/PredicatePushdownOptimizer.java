@@ -28,14 +28,14 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.Expression;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.LoadMetadata;
+import org.apache.pig.LoadPredicatePushdown;
 import org.apache.pig.Expression.BinaryExpression;
 import org.apache.pig.Expression.Column;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.newplan.FilterExtractor;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.OperatorSubPlan;
-import org.apache.pig.newplan.PartitionFilterExtractor;
+import org.apache.pig.newplan.PredicatePushDownFilterExtractor;
 import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
@@ -44,62 +44,53 @@ import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.optimizer.Rule;
 import org.apache.pig.newplan.optimizer.Transformer;
 
-public class PartitionFilterOptimizer extends Rule {
-    private String[] partitionKeys;
+public class PredicatePushdownOptimizer extends Rule {
 
-    /**
-     * a reference to the LoadMetada implementation
-     */
-    private LoadMetadata loadMetadata;
-
-    /**
-     * a reference to the LoadFunc implementation
-     */
-    private LoadFunc loadFunc;
-
-    private LOLoad loLoad;
-    private LOFilter loFilter;
-
-    /**
-     * a map between column names as reported in
-     * {@link LoadMetadata#getSchema(String, org.apache.hadoop.conf.Configuration)}
-     * and as present in {@link LOLoad#getSchema()}. The two will be different
-     * when the user has provided a schema in the load statement
-     */
-    private Map<String, String> colNameMap = new HashMap<String, String>();
-
-    /**
-     * a map between column nameas as present in {@link LOLoad#getSchema()} and
-     * as reported in
-     * {@link LoadMetadata#getSchema(String, org.apache.hadoop.conf.Configuration)}.
-     * The two will be different when the user has provided a schema in the
-     * load statement.
-     */
-    private Map<String, String> reverseColNameMap = new HashMap<String, String>();
-
-    public PartitionFilterOptimizer(String name) {
-        super( name, false );
+    public PredicatePushdownOptimizer(String name) {
+        super(name, false);
     }
 
     @Override
     protected OperatorPlan buildPattern() {
-        // match each foreach.
         LogicalPlan plan = new LogicalPlan();
-        LogicalRelationalOperator load = new LOLoad (null, plan);
-        plan.add( load );
-//        LogicalRelationalOperator filter = new LOFilter( plan );
-//        plan.add( filter );
-//        plan.connect( load, filter );
+        LogicalRelationalOperator load = new LOLoad(null, plan);
+        plan.add(load);
         return plan;
     }
 
     @Override
     public Transformer getNewTransformer() {
-        return new PartitionFilterPushDownTransformer();
+        return new PredicatePushDownTransformer();
     }
 
-    public class PartitionFilterPushDownTransformer extends Transformer {
-        protected OperatorSubPlan subPlan;
+    class PredicatePushDownTransformer extends Transformer {
+
+        private LOLoad loLoad;
+        private LOFilter loFilter;
+
+        private LoadFunc loadFunc;
+        private LoadPredicatePushdown loadPredPushdown;
+
+        private List<String> predicateFields;
+
+        /**
+         * a map between column names as reported in
+         * {@link LoadMetadata#getSchema(String, org.apache.hadoop.conf.Configuration)}
+         * and as present in {@link LOLoad#getSchema()}. The two will be different
+         * when the user has provided a schema in the load statement
+         */
+        private Map<String, String> colNameMap = new HashMap<String, String>();
+
+        /**
+         * a map between column nameas as present in {@link LOLoad#getSchema()} and
+         * as reported in
+         * {@link LoadMetadata#getSchema(String, org.apache.hadoop.conf.Configuration)}.
+         * The two will be different when the user has provided a schema in the
+         * load statement.
+         */
+        private Map<String, String> reverseColNameMap = new HashMap<String, String>();
+
+        private OperatorSubPlan subPlan;
 
         @Override
         public boolean check(OperatorPlan matched) throws FrontendException {
@@ -108,26 +99,26 @@ public class PartitionFilterOptimizer extends Rule {
             List<Operator> succeds = currentPlan.getSuccessors( loLoad );
             if( succeds == null || succeds.size() == 0 || !( succeds.get(0) instanceof LOFilter ) )
                 return false;
-            loFilter =  (LOFilter)succeds.get(0);
+            loFilter = (LOFilter) succeds.get(0);
 
             // Filter has dependency other than load, skip optimization
-            if (currentPlan.getSoftLinkPredecessors(loFilter)!=null)
+            if (currentPlan.getSoftLinkPredecessors(loFilter) != null)
                 return false;
 
-            // we have to check more only if LoadFunc implements LoadMetada
+            // we have to check more only if LoadFunc implements LoadPredicatePushdown
             loadFunc = loLoad.getLoadFunc();
-            if(!( loadFunc instanceof LoadMetadata ) ) {
+            if (!(loadFunc instanceof LoadPredicatePushdown)) {
                 return false;
             }
 
-            loadMetadata = (LoadMetadata)loadFunc;
+            loadPredPushdown = (LoadPredicatePushdown) loadFunc;
             try {
-				partitionKeys = loadMetadata.getPartitionKeys(
-						loLoad.getFileSpec().getFileName(), new Job( loLoad.getConfiguration() ) );
-			} catch (IOException e) {
-				throw new FrontendException( e );
-			}
-            if( partitionKeys == null || partitionKeys.length == 0 ) {
+                predicateFields = loadPredPushdown.getPredicateFields(loLoad.getFileSpec()
+                        .getFileName(), new Job(loLoad.getConfiguration()));
+            } catch (IOException e) {
+                throw new FrontendException(e);
+            }
+            if (predicateFields == null || predicateFields.size() == 0) {
                 return false;
             }
 
@@ -136,35 +127,33 @@ public class PartitionFilterOptimizer extends Rule {
 
         @Override
         public OperatorPlan reportChanges() {
-            return subPlan;
+            // Return null in case predicate pushdown is just a hint which means the plan hasn't changed.
+            // If not return the modified plan which has filters removed.
+            return null;
+            //return subPlan; TODO: implement filter removal
         }
 
         @Override
         public void transform(OperatorPlan matched) throws FrontendException {
-        	subPlan = new OperatorSubPlan( currentPlan );
+            subPlan = new OperatorSubPlan( currentPlan );
 
-        	setupColNameMaps();
+            setupColNameMaps();
 
-            FilterExtractor filterFinder = new PartitionFilterExtractor(loFilter.getFilterPlan(),
-                    getMappedKeys(partitionKeys));
+            PredicatePushDownFilterExtractor filterFinder = new PredicatePushDownFilterExtractor(
+                    loFilter.getFilterPlan(), getMappedKeys( predicateFields ), loadPredPushdown.getSupportedExpressionTypes() );
             filterFinder.visit();
-            Expression partitionFilter = filterFinder.getPushDownExpression();
+            Expression pushDownPredicate = filterFinder.getPushDownExpression();
 
-            if(partitionFilter != null) {
+            if(pushDownPredicate != null) {
                 // the column names in the filter may be the ones provided by
                 // the user in the schema in the load statement - we may need
                 // to replace them with partition column names as given by
                 // LoadFunc.getSchema()
-                updateMappedColNames(partitionFilter);
+                updateMappedColNames(pushDownPredicate);
                 try {
-                    loadMetadata.setPartitionFilter(partitionFilter);
+                    loadPredPushdown.setPushdownPredicate(pushDownPredicate);
                 } catch (IOException e) {
                     throw new FrontendException( e );
-                }
-                if(filterFinder.isFilterRemovable()) {
-                    currentPlan.removeAndReconnect( loFilter );
-                } else {
-                    loFilter.setFilterPlan(filterFinder.getFilteredPlan());
                 }
             }
         }
@@ -185,13 +174,13 @@ public class PartitionFilterOptimizer extends Rule {
          * The user may have renamed these by providing a schema with different names
          * in the load statement - this method will replace the former names with
          * the latter names.
-         * @param partitionKeys
+         * @param predicateFields
          * @return
          */
-        protected List<String> getMappedKeys(String[] partitionKeys) {
-            List<String> mappedKeys = new ArrayList<String>(partitionKeys.length);
-            for (int i = 0; i < partitionKeys.length; i++) {
-                mappedKeys.add(colNameMap.get(partitionKeys[i]));
+        protected List<String> getMappedKeys(List<String> predicateFields) {
+            List<String> mappedKeys = new ArrayList<String>(predicateFields.size());
+            for (int i = 0; i < predicateFields.size(); i++) {
+                mappedKeys.add(colNameMap.get(predicateFields.get(i)));
             }
             return mappedKeys;
         }

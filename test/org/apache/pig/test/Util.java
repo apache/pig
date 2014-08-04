@@ -84,7 +84,6 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
-import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanPrinter;
 import org.apache.pig.newplan.logical.optimizer.SchemaResetter;
@@ -93,15 +92,9 @@ import org.apache.pig.newplan.logical.relational.LogToPhyTranslationVisitor;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
-import org.apache.pig.newplan.logical.visitor.CastLineageSetter;
-import org.apache.pig.newplan.logical.visitor.ColumnAliasConversionVisitor;
 import org.apache.pig.newplan.logical.visitor.DanglingNestedNodeRemover;
-import org.apache.pig.newplan.logical.visitor.ScalarVisitor;
-import org.apache.pig.newplan.logical.visitor.SchemaAliasVisitor;
 import org.apache.pig.newplan.logical.visitor.SortInfoSetter;
 import org.apache.pig.newplan.logical.visitor.StoreAliasSetter;
-import org.apache.pig.newplan.logical.visitor.TypeCheckingRelVisitor;
-import org.apache.pig.newplan.logical.visitor.UnionOnSchemaSetter;
 import org.apache.pig.parser.ParserException;
 import org.apache.pig.parser.QueryParserDriver;
 import org.apache.pig.tools.grunt.GruntParser;
@@ -509,6 +502,25 @@ public class Util {
          }
          Assert.assertEquals(expectedResults.size(), count);
      }
+
+     /**
+      * Helper function to check if the result of a Pig Query is in line with
+      * expected results.
+      *
+      * @param actualResults Result of the executed Pig query
+      * @param expectedResults Expected results List to validate against
+      */
+      static public void checkQueryOutputs(Iterator<Tuple> actualResults,
+            Iterator<Tuple> expectedResults) {
+          while (expectedResults.hasNext()) {
+              Tuple expected = expectedResults.next();
+              Assert.assertTrue("Actual result has less records than expected results", actualResults.hasNext());
+              Tuple actual = actualResults.next();
+              System.out.println("Rohini: expected : "  + expected.toString());
+              Assert.assertEquals(expected.toString(), actual.toString());
+          }
+          Assert.assertFalse("Actual result has more records than expected results", actualResults.hasNext());
+      }
 
     /**
      * Helper function to check if the result of a Pig Query is in line with
@@ -1071,7 +1083,7 @@ public class Util {
     throws Exception {
         LogicalPlan lp = buildLp( pigServer, query );
         lp.optimize(pigServer.getPigContext());
-        return ((HExecutionEngine)pigServer.getPigContext().getExecutionEngine()).compile(lp, 
+        return ((HExecutionEngine)pigServer.getPigContext().getExecutionEngine()).compile(lp,
                 pigServer.getPigContext().getProperties());
     }
 
@@ -1314,6 +1326,7 @@ public class Util {
         final String suffix = System.getProperty("hadoopversion").equals("20") ? "1" : "2";
         File baseDir = new File(".");
         String[] jarNames = baseDir.list(new FilenameFilter() {
+            @Override
             public boolean accept(File dir, String name) {
                 if (!name.matches("pig.*h" + suffix + "\\.jar")) {
                     return false;
