@@ -1707,7 +1707,7 @@
         <checksum file="${build.ivy.maven.jar}" algorithm="md5"/>
      </target>
 
-     <target name="copypom" depends="ivy-init-dirs">
+     <target name="copypom" depends="set-version, ivy-init-dirs">
         <presetdef name="expandingcopy">
            <copy overwrite="true">
               <filterchain>
