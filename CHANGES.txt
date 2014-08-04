@@ -153,6 +153,8 @@ PIG-3882: Multiquery off mode execution is not done in batch and very inefficien
  
 BUG FIXES
 
+PIG-4083: TestAccumuloPigCluster always failed with timeout error (fang+fang+chen via daijy)
+
 PIG-4036: Fix e2e failures - JobManagement_3, CmdErrors_3 and BigData_4 (daijy)
 
 PIG-4037: TestHBaseStorage, TestAccumuloPigCluster has failures with hadoopversion=23 (daijy)
