@@ -52,6 +52,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4098: Vertex Location Hint api update after TEZ-1041 (jeagles via cheolsoo)
+
 PIG-4088: TEZ-1346 breaks hadoop 2 compilation in trunk (cheolsoo)
 
 PIG-4089: TestMultiQuery.testMultiQueryJiraPig1169 fails in trunk after

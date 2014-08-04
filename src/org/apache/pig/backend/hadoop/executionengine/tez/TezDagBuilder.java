@@ -116,6 +116,7 @@ import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.VertexGroup;
+import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
 import org.apache.tez.mapreduce.combine.MRCombiner;
@@ -590,7 +591,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
             // TODO: These should get the globalConf, or a merged version that
             // keeps settings like pig.maxCombinedSplitSize
-            vertex.setTaskLocationsHint(tezOp.getLoaderInfo().getInputSplitInfo().getTaskLocationHints());
+            vertex.setLocationHint(new VertexLocationHint(tezOp.getLoaderInfo().getInputSplitInfo().getTaskLocationHints()));
             vertex.addDataSource(ld.getOperatorKey().toString(),
                     new InputDescriptor(MRInput.class.getName())
                             .setUserPayload(MRHelpers.createMRInputPayload(
