@@ -753,6 +753,8 @@
             <fileset dir="${ivy.lib.dir}" includes="avro-mapred-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="hive-shims-0.*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="hbase-*hadoop2.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="tez-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="commons-collections4-*.jar"/>
         </copy>
         <copy file="${output.jarfile.core}" tofile="${output.jarfile.backcompat-core-h2}"/>
         <mkdir dir="${legacy.dir}" />
