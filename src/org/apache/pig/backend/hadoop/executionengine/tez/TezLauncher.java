@@ -60,6 +60,7 @@ import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 
 /**
  * Main class that launches pig for Tez
@@ -74,6 +75,11 @@ public class TezLauncher extends Launcher {
 
     @Override
     public PigStats launchPig(PhysicalPlan php, String grpName, PigContext pc) throws Exception {
+        if (pc.getExecType().isLocal()) {
+            pc.getProperties().setProperty(TezConfiguration.TEZ_LOCAL_MODE, "true");
+            pc.getProperties().setProperty(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, "true");
+            pc.getProperties().setProperty("tez.ignore.lib.uris", "true");
+        }
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties(), true);
         if (pc.defaultParallel == -1 && !conf.getBoolean(PigConfiguration.TEZ_AUTO_PARALLELISM, true)) {
             pc.defaultParallel = 1;
