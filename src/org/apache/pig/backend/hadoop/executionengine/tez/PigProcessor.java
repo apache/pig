@@ -207,7 +207,11 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
                 throw new VisitorException(msg, errCode, PigException.BUG, e);
             }
 
+            while (!getContext().canCommit()) {
+                Thread.sleep(100);
+            }
             for (MROutput fileOutput : fileOutputs){
+                fileOutput.flush();
                 if (fileOutput.isCommitRequired()) {
                     fileOutput.commit();
                 }

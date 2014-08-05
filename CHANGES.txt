@@ -54,6 +54,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4086: Fix Orc e2e tests for tez (daijy)
+
 PIG-4101: Lower tez.am.task.max.failed.attempts to 2 from 4 in Tez mini cluster (cheolsoo)
 
 PIG-4099: "ant copypom" failed with "could not find file $PIG_HOME/ivy/pig.pom to copy" (fang fang chen via cheolsoo)
