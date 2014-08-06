@@ -104,6 +104,8 @@ import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.DAG;
+import org.apache.tez.dag.api.DataSinkDescriptor;
+import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeManagerDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -222,8 +224,8 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 POStore store = tezOp.getVertexGroupInfo().getStore();
                 if (store != null) {
                     vertexGroup.addDataSink(store.getOperatorKey().toString(),
-                            tezOp.getVertexGroupInfo().getStoreOutputDescriptor(),
-                            new OutputCommitterDescriptor(MROutputCommitter.class.getName()));
+                            new DataSinkDescriptor(tezOp.getVertexGroupInfo().getStoreOutputDescriptor(),
+                            new OutputCommitterDescriptor(MROutputCommitter.class.getName()), dag.getCredentials()));
                 }
             }
         }
@@ -593,11 +595,11 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             // keeps settings like pig.maxCombinedSplitSize
             vertex.setLocationHint(new VertexLocationHint(tezOp.getLoaderInfo().getInputSplitInfo().getTaskLocationHints()));
             vertex.addDataSource(ld.getOperatorKey().toString(),
-                    new InputDescriptor(MRInput.class.getName())
+                    new DataSourceDescriptor(new InputDescriptor(MRInput.class.getName())
                             .setUserPayload(MRHelpers.createMRInputPayload(
                                     userPayload,
                                     tezOp.getLoaderInfo().getInputSplitInfo().getSplitsProto())),
-                    new InputInitializerDescriptor(MRInputSplitDistributor.class.getName()));
+                    new InputInitializerDescriptor(MRInputSplitDistributor.class.getName()), dag.getCredentials()));
         }
 
         for (POStore store : stores) {
@@ -624,7 +626,9 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 }
             }
             vertex.addDataSink(store.getOperatorKey().toString(),
-                    storeOutDescriptor, new OutputCommitterDescriptor(MROutputCommitter.class.getName()));
+                    new DataSinkDescriptor(storeOutDescriptor,
+                    new OutputCommitterDescriptor(MROutputCommitter.class.getName()),
+                    dag.getCredentials()));
         }
 
         // LoadFunc and StoreFunc add delegation tokens to Job Credentials in
