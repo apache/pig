@@ -871,6 +871,7 @@ public class Main {
             System.out.println("            ColumnMapKeyPrune - Remove unused data");
             System.out.println("            AddForEach - Add ForEach to remove unneeded columns");
             System.out.println("            MergeForEach - Merge adjacent ForEach");
+            System.out.println("            GroupByConstParallelSetter - Force parallel 1 for \"group all\" statement");
             System.out.println("            PartitionFilterOptimizer - Pushdown partition filter conditions to loader implementing LoadMetaData");
             System.out.println("            PredicatePushdownOptimizer - Pushdown filter predicates to loader implementing LoadPredicatePushDown");
             System.out.println("            All - Disable all optimizations");

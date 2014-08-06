@@ -62,13 +62,15 @@ public class TestOrcStoragePushdown {
 
     private static List<OpType> supportedOpTypes;
     private static MiniGenericCluster cluster;
-    private PigServer pigServer;
+    private static PigServer pigServer;
     private String query = "a = load 'foo' as (srcid:int, mrkt:chararray, dstid:int, name:chararray, " +
             "age:int, browser:map[], location:tuple(country:chararray, zip:int));";
     private OrcStorage orcStorage;
 
     private static final String basedir = "test/org/apache/pig/builtin/orc/";
-    private static final String outbasedir = System.getProperty("user.dir") + "/build/test/TestOrcStorage/";
+    private static final String inpbasedir = System.getProperty("user.dir") + "/build/test/TestOrcStorage_in/";
+    private static final String outbasedir = System.getProperty("user.dir") + "/build/test/TestOrcStorage_out/";
+    private static String INPUT = inpbasedir + "TestOrcStorage_1";
     private static String OUTPUT1 = outbasedir + "TestOrcStorage_1";
     private static String OUTPUT2 = outbasedir + "TestOrcStorage_2";
     private static String OUTPUT3 = outbasedir + "TestOrcStorage_3";
@@ -77,9 +79,10 @@ public class TestOrcStoragePushdown {
     private static File logFile;
 
     @BeforeClass
-    public static void oneTimeSetup() throws IOException{
+    public static void oneTimeSetup() throws Exception{
         cluster = MiniGenericCluster.buildCluster();
         Util.copyFromLocalToCluster(cluster, basedir + "orc-file-11-format.orc", basedir + "orc-file-11-format.orc");
+        createInputData();
 
         if(Util.WINDOWS){
             OUTPUT1 = OUTPUT1.replace("\\", "/");
@@ -111,9 +114,45 @@ public class TestOrcStoragePushdown {
         logger.addAppender(appender);
     }
 
+    private static void createInputData() throws Exception {
+        pigServer = new PigServer(ExecType.LOCAL);
+
+        new File(inpbasedir).mkdirs();
+        new File(outbasedir).mkdirs();
+        String inputTxtFile = inpbasedir + File.separator + "input.txt";
+        BufferedWriter bw = new BufferedWriter(new FileWriter(inputTxtFile));
+        long[] lVal = new long[] {100L, 200L, 300L};
+        float[] fVal = new float[] {50.0f, 100.0f, 200.0f, 300.0f};
+        double[] dVal = new double[] {1000.11, 2000.22, 3000.33};
+        StringBuilder sb = new StringBuilder();
+        for (int i=1; i <= 10000; i++) {
+            sb.append((i > 900 && i < 1100) ? true : false).append("\t"); //boolean
+            sb.append((i > 1000 && i < 3000) ? 1 : 5).append("\t"); //byte
+            sb.append((i > 2500 && i <= 4500) ? 100 : 200).append("\t"); //short
+            sb.append(i).append("\t"); //int
+            sb.append(lVal[i%3]).append("\t"); //long
+            sb.append(fVal[i%4]).append("\t"); //float
+            sb.append((i > 2500 && i < 3500) ? dVal[i%3] : dVal[i%1]).append("\t"); //double
+            sb.append((i%2 == 1 ? "" : RandomStringUtils.random(100))).append("\t"); //bytearray
+            sb.append((i%2 == 0 ? "" : RandomStringUtils.random(100))).append("\n"); //string
+            //sb.append("").append("\t"); //datetime
+            //sb.append("").append("\n"); //bigdecimal
+            bw.write(sb.toString());
+            sb.setLength(0);
+        }
+        bw.close();
+
+        // Store only 1000 rows in each row block (MIN_ROW_INDEX_STRIDE is 1000. So can't use less than that)
+        pigServer.registerQuery("A = load '" + inputTxtFile + "' as (f1:boolean, f2:int, f3:int, f4:int, f5:long, f6:float, f7:double, f8:bytearray, f9:chararray);");//, f10:datetime, f11:bigdecimal);");
+        pigServer.registerQuery("store A into '" + INPUT +"' using OrcStorage('-r 1000');");
+        Util.copyFromLocalToCluster(cluster, INPUT, INPUT);
+    }
+
     @AfterClass
     public static void tearDownAfterClass() throws Exception {
+        Util.deleteDirectory(new File(inpbasedir));
         if (cluster != null) {
+            Util.deleteFile(cluster, inpbasedir);
             cluster.shutDown();
         }
     }
@@ -134,6 +173,26 @@ public class TestOrcStoragePushdown {
         if (cluster != null) {
             Util.deleteFile(cluster, outbasedir);
         }
+    }
+
+    @Test
+    public void testColumnPruning() throws Exception {
+        Util.resetStateForExecModeSwitch();
+        pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
+
+        pigServer.registerQuery("A = load '" + basedir + "orc-file-11-format.orc' using OrcStorage();");
+        ExecJob job = pigServer.store("A", OUTPUT1);
+        JobStats stats = (JobStats) job.getStatistics().getJobGraph().getSources().get(0);
+        long bytesWithoutPushdown = stats.getHdfsBytesRead();
+
+        pigServer.registerQuery("PRUNE = load '" + basedir + "orc-file-11-format.orc' using OrcStorage();");
+        pigServer.registerQuery("PRUNE = foreach PRUNE generate boolean1;");
+        job = pigServer.store("PRUNE", OUTPUT2);
+        Util.checkLogFileMessage(logFile, new String[]{"Columns pruned for PRUNE: $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13"}, true);
+        stats = (JobStats) job.getStatistics().getJobGraph().getSources().get(0);
+        long bytesWithPushdown = stats.getHdfsBytesRead();
+
+        assertTrue((bytesWithoutPushdown - bytesWithPushdown) > 300000);
     }
 
     @Test
@@ -184,7 +243,6 @@ public class TestOrcStoragePushdown {
         String q = query + "b = filter a by srcid == 10 or srcid == 11;" + "store b into 'out';";
         Expression expr = getExpressionForTest(q, Arrays.asList("srcid"));
         SearchArgument sarg = orcStorage.getSearchArgument(expr);
-        System.out.println(sarg);
         assertEquals("leaf-0 = (EQUALS srcid 10)\n" +
                 "leaf-1 = (EQUALS srcid 11)\n" +
                 "expr = (or leaf-0 leaf-1)", sarg.toString());
@@ -232,70 +290,35 @@ public class TestOrcStoragePushdown {
                 "expr = leaf-0", sarg.toString());
     }
 
-    // Minicluster tests which verify stats
-
-    @Test
-    public void testColumnPruneBytesRead() throws Exception {
-        Util.resetStateForExecModeSwitch();
-        pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
-
-        pigServer.registerQuery("A = load '" + basedir + "orc-file-11-format.orc' using OrcStorage();");
-        ExecJob job = pigServer.store("A", OUTPUT1);
-        JobStats stats = (JobStats) job.getStatistics().getJobGraph().getSources().get(0);
-        long bytesWithoutPushdown = stats.getHdfsBytesRead();
-
-        pigServer.registerQuery("PRUNE = load '" + basedir + "orc-file-11-format.orc' using OrcStorage();");
-        pigServer.registerQuery("PRUNE = foreach PRUNE generate boolean1;");
-        job = pigServer.store("PRUNE", OUTPUT2);
-        Util.checkLogFileMessage(logFile, new String[]{"Columns pruned for PRUNE: $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13"}, true);
-        stats = (JobStats) job.getStatistics().getJobGraph().getSources().get(0);
-        long bytesWithPushdown = stats.getHdfsBytesRead();
-
-        assertTrue((bytesWithoutPushdown - bytesWithPushdown) > 300000);
+    //@Test
+    public void testPredicatePushdownBoolean() throws Exception {
+        testPredicatePushdownLocal("f1 == true", 10);
     }
 
     @Test
-    public void testPredicatePushdownBytesRead() throws Exception {
-        new File(outbasedir).mkdirs();
-        BufferedWriter bw = new BufferedWriter(new FileWriter(OUTPUT1));
-        long[] f2 = new long[] {100L, 200L, 300L};
-        for (int i=1; i <= 10000; i++) {
-            bw.write(i + "\t" + f2[i%3] + "\t" + (i%2 == 0 ? "" : RandomStringUtils.random(100))+ "\n");
-        }
-        bw.close();
+    public void testPredicatePushdownByteShort() throws Exception {
+        //TODO: BytesWithoutPushdown was 2373190 and bytesWithPushdown was 1929669
+        // Expected to see more difference only when 3 out of 10 blocks are read. Other tests too.
+        // Investigate why.
+        testPredicatePushdown("f2 != 5 or f3 == 100", 3500, 400000);
+    }
 
-        // Store only 1000 rows in each row block (MIN_ROW_INDEX_STRIDE is 1000. So can't use less than that)
-        pigServer.registerQuery("A = load '" + OUTPUT1 + "' as (f1:int, f2:long, f3:chararray);");
-        pigServer.registerQuery("store A into '" + OUTPUT2 +"' using OrcStorage('-r 1000');");
-        Util.copyFromLocalToCluster(cluster, OUTPUT2, OUTPUT2);
+    @Test
+    public void testPredicatePushdownIntLongString() throws Exception {
+        testPredicatePushdown("f4 >= 980 and f4 < 1010 and (f5 == 100 or f9 is not null)", 20, 800000);
+    }
 
-        Util.resetStateForExecModeSwitch();
-        pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
+    @Test
+    public void testPredicatePushdownFloatDouble() throws Exception {
+        testPredicatePushdown("f6 == 100.0 and f7 > 2000.00000001", 167, 800000);
+    }
 
-        // Test with PredicatePushdownOptimizer disabled. All 3 blocks will be read
-        HashSet<String> disabledOptimizerRules = new HashSet<String>();
-        disabledOptimizerRules.add("PredicatePushdownOptimizer");
-        pigServer.getPigContext().getProperties().setProperty(PigImplConstants.PIG_OPTIMIZER_RULES_KEY,
-                ObjectSerializer.serialize(disabledOptimizerRules));
-        pigServer.registerQuery("B = load '" + OUTPUT2 + "' using OrcStorage();");
-        pigServer.registerQuery("C = filter B by f1 > 980 and f1 < 1010 and (f2 == 100 or f3 is not null);");
-        ExecJob job = pigServer.store("C", OUTPUT3);
-        JobStats stats = (JobStats) job.getStatistics().getJobGraph().getSources().get(0);
-        assertEquals(20, stats.getRecordWrittern());
-        long bytesWithoutPushdown = stats.getHdfsBytesRead();
+    //@Test
+    public void testPredicatePushdownBigDecimal() throws Exception {
+    }
 
-        // Test with PredicatePushdownOptimizer enabled. Only 2 blocks should be read
-        pigServer.getPigContext().getProperties().remove(PigImplConstants.PIG_OPTIMIZER_RULES_KEY);
-        pigServer.registerQuery("D = load '" + OUTPUT2 + "' using OrcStorage();");
-        pigServer.registerQuery("E = filter D by f1 > 980 and f1 < 1010 and (f2 == 100 or f3 is not null);");
-        job = pigServer.store("E", OUTPUT4);
-        stats = (JobStats) job.getStatistics().getJobGraph().getSources().get(0);
-        assertEquals(20, stats.getRecordWrittern());
-        long bytesWithPushdown = stats.getHdfsBytesRead();
-
-        assertTrue((bytesWithoutPushdown - bytesWithPushdown) > 300000);
-        //Verify that results are same
-        Util.checkQueryOutputs(pigServer.openIterator("C"), pigServer.openIterator("E"));
+    //@Test
+    public void testPredicatePushdownTimestamp() throws Exception {
     }
 
     private Expression getExpressionForTest(String query, List<String> predicateCols) throws Exception {
@@ -306,5 +329,67 @@ public class TestOrcStoragePushdown {
         filterExtractor.visit();
         return filterExtractor.getPushDownExpression();
     }
+
+    // For eclipse debugging
+    private void testPredicatePushdownLocal(String filterStmt, int expectedRows) throws IOException {
+
+        PigServer pigServer_disabledRule = new PigServer(ExecType.LOCAL);
+        // Test with PredicatePushdownOptimizer disabled.
+        HashSet<String> disabledOptimizerRules = new HashSet<String>();
+        disabledOptimizerRules.add("PredicatePushdownOptimizer");
+        pigServer_disabledRule.getPigContext().getProperties().setProperty(PigImplConstants.PIG_OPTIMIZER_RULES_KEY,
+                ObjectSerializer.serialize(disabledOptimizerRules));
+        pigServer_disabledRule.registerQuery("B = load '" + INPUT + "' using OrcStorage();");
+        pigServer_disabledRule.registerQuery("C = filter B by " + filterStmt + ";");
+
+        // Test with PredicatePushdownOptimizer enabled.
+        pigServer.registerQuery("D = load '" + INPUT + "' using OrcStorage();");
+        pigServer.registerQuery("E = filter D by " + filterStmt + ";");
+
+        //Verify that results are same
+        Util.checkQueryOutputs(pigServer_disabledRule.openIterator("C"), pigServer.openIterator("E"), expectedRows);
+    }
+
+    private void testPredicatePushdown(String filterStmt, int expectedRows, int expectedBytesReadDiff) throws IOException {
+
+        Util.resetStateForExecModeSwitch();
+        // Minicluster is required to get hdfs bytes read counter value
+        pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
+        PigServer pigServer_disabledRule = new PigServer(cluster.getExecType(), cluster.getProperties());
+
+        // Test with PredicatePushdownOptimizer disabled. All 3 blocks will be read
+        HashSet<String> disabledOptimizerRules = new HashSet<String>();
+        disabledOptimizerRules.add("PredicatePushdownOptimizer");
+        pigServer_disabledRule.getPigContext().getProperties().setProperty(PigImplConstants.PIG_OPTIMIZER_RULES_KEY,
+                ObjectSerializer.serialize(disabledOptimizerRules));
+        pigServer_disabledRule.registerQuery("B = load '" + INPUT + "' using OrcStorage();");
+        pigServer_disabledRule.registerQuery("C = filter B by " + filterStmt + ";");
+        ExecJob job = pigServer_disabledRule.store("C", OUTPUT3);
+        //Util.copyFromClusterToLocal(cluster, OUTPUT3 + "/part-m-00000", OUTPUT3);
+        JobStats stats = (JobStats) job.getStatistics().getJobGraph().getSources().get(0);
+        assertEquals(expectedRows, stats.getRecordWrittern());
+        long bytesWithoutPushdown = stats.getHdfsBytesRead();
+
+        // Test with PredicatePushdownOptimizer enabled. Only 2 blocks should be read
+        pigServer.registerQuery("D = load '" + INPUT + "' using OrcStorage();");
+        pigServer.registerQuery("E = filter D by " + filterStmt + ";");
+        job = pigServer.store("E", OUTPUT4);
+        //Util.copyFromClusterToLocal(cluster, OUTPUT4 + "/part-m-00000", OUTPUT4);
+        stats = (JobStats) job.getStatistics().getJobGraph().getSources().get(0);
+        assertEquals(expectedRows, stats.getRecordWrittern());
+        long bytesWithPushdown = stats.getHdfsBytesRead();
+
+        System.out.println("bytesWithoutPushdown was " + bytesWithoutPushdown +
+                " and bytesWithPushdown was " + bytesWithPushdown);
+        assertTrue("BytesWithoutPushdown was " + bytesWithoutPushdown +
+                " and bytesWithPushdown was " + bytesWithPushdown,
+                (bytesWithoutPushdown - bytesWithPushdown) > expectedBytesReadDiff);
+        // Verify that results are same
+        Util.checkQueryOutputs(pigServer_disabledRule.openIterator("C"), pigServer.openIterator("E"), expectedRows);
+        pigServer_disabledRule.shutdown();
+
+    }
+
+
 
 }

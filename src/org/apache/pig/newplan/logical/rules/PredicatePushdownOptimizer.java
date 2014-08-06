@@ -92,6 +92,8 @@ public class PredicatePushdownOptimizer extends Rule {
 
         private OperatorSubPlan subPlan;
 
+        private boolean planChanged;
+
         @Override
         public boolean check(OperatorPlan matched) throws FrontendException {
             loLoad = (LOLoad)matched.getSources().get(0);
@@ -127,10 +129,10 @@ public class PredicatePushdownOptimizer extends Rule {
 
         @Override
         public OperatorPlan reportChanges() {
-            // Return null in case predicate pushdown is just a hint which means the plan hasn't changed.
+            // Return null in case there is no predicate pushdown filter extracted or it is just
+            // a hint which means the plan hasn't changed.
             // If not return the modified plan which has filters removed.
-            return null;
-            //return subPlan; TODO: implement filter removal
+            return planChanged ? subPlan : null;
         }
 
         @Override
@@ -155,6 +157,18 @@ public class PredicatePushdownOptimizer extends Rule {
                 } catch (IOException e) {
                     throw new FrontendException( e );
                 }
+
+                //TODO: PIG-4093
+                /*
+                if (loadPredPushdown.removeFilterPredicateFromPlan()) {
+                    planChanged = true;
+                    if(filterFinder.isFilterRemovable()) {
+                        currentPlan.removeAndReconnect( loFilter );
+                    } else {
+                        loFilter.setFilterPlan(filterFinder.getFilteredPlan());
+                    }
+                }
+                */
             }
         }
 

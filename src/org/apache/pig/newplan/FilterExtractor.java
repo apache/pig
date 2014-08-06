@@ -49,6 +49,11 @@ import org.apache.pig.newplan.logical.expression.RegexExpression;
 import org.apache.pig.newplan.logical.expression.SubtractExpression;
 import org.apache.pig.newplan.logical.expression.UnaryExpression;
 
+/**
+ *
+ * Extracts filter predicates for interfaces implementing {@code LoadPredicatePushdown}
+ *
+ */
 public abstract class FilterExtractor {
 
     protected final Log LOG = LogFactory.getLog(getClass());
@@ -150,8 +155,6 @@ public abstract class FilterExtractor {
             state.pushdownExpr = op;
             state.filterExpr = null;
             return state;
-        } else if(op instanceof CastExpression) {
-            return checkPushDown(((CastExpression)op).getExpression());
         } else if (op instanceof UnaryExpression) {
             return checkPushDown((UnaryExpression) op);
         } else {
@@ -269,8 +272,12 @@ public abstract class FilterExtractor {
     }
 
     protected KeyState checkPushDown(UnaryExpression unaryExpr) throws FrontendException {
+
         KeyState state = new KeyState();
         if (isSupportedOpType(unaryExpr)) {
+            if (unaryExpr instanceof CastExpression) {
+                return checkPushDown(unaryExpr.getExpression());
+            }
             if (unaryExpr instanceof IsNullExpression) {
                 state.pushdownExpr = unaryExpr;
                 state.filterExpr = null;
