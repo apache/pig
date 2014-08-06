@@ -40,6 +40,7 @@ import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.util.Utils;
 import org.apache.pig.impl.util.avro.AvroBagWrapper;
 import org.apache.pig.impl.util.avro.AvroMapWrapper;
 import org.apache.pig.impl.util.avro.AvroTupleWrapper;
@@ -311,7 +312,15 @@ public class TestAvroStorage {
         if(Util.WINDOWS){
             outbasedir = outbasedir.replace('\\','/');
         }
-        return outbasedir + st[2].getMethodName();
+
+        int index;
+        if (Utils.isVendorIBM()) {
+            index = 3;
+        } else {
+            index = 2;
+        }
+
+        return outbasedir + st[index].getMethodName();
     }
 
     @Test public void testLoadRecords() throws Exception {

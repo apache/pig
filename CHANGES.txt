@@ -56,6 +56,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4105: Fix TestAvroStorage with ibm jdk (fang fang chen via daijy)
+
 PIG-4108: Pig -Dhadoopversion=23 compile fail after TEZ-1317 (daijy)
 
 PIG-4086: Fix Orc e2e tests for tez (daijy)
