@@ -56,6 +56,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4106: Describe shouldn't trigger execution in batch mode (cheolsoo)
+
 PIG-4105: Fix TestAvroStorage with ibm jdk (fang fang chen via daijy)
 
 PIG-4108: Pig -Dhadoopversion=23 compile fail after TEZ-1317 (daijy)
