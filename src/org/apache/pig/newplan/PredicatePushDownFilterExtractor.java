@@ -25,6 +25,7 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.logical.expression.AddExpression;
 import org.apache.pig.newplan.logical.expression.AndExpression;
 import org.apache.pig.newplan.logical.expression.BinaryExpression;
+import org.apache.pig.newplan.logical.expression.CastExpression;
 import org.apache.pig.newplan.logical.expression.DivideExpression;
 import org.apache.pig.newplan.logical.expression.EqualExpression;
 import org.apache.pig.newplan.logical.expression.GreaterThanEqualExpression;
@@ -125,7 +126,9 @@ public class PredicatePushDownFilterExtractor extends FilterExtractor {
 
     @Override
     protected boolean isSupportedOpType(UnaryExpression unaryOp) {
-        if(unaryOp instanceof IsNullExpression) {
+        if (unaryOp instanceof CastExpression) {
+            return true;
+        } else if(unaryOp instanceof IsNullExpression) {
             return supportedOpTypes.contains(OpType.OP_NULL);
         } else if(unaryOp instanceof NotExpression) {
             return supportedOpTypes.contains(OpType.OP_NOT);

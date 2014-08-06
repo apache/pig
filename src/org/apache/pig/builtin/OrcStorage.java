@@ -497,21 +497,20 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
         for (ResourceFieldSchema field : schema.getFields()) {
             switch(field.getType()) {
             case DataType.BOOLEAN:
-                //TODO: Need to find what to set for boolean. Throws error if SearchArgument value is set as boolean
+                // TODO: ORC does not seem to support it
                 break;
             case DataType.INTEGER:
             case DataType.LONG:
             case DataType.FLOAT:
             case DataType.DOUBLE:
             case DataType.DATETIME:
-            case DataType.BYTEARRAY:
             case DataType.CHARARRAY:
             case DataType.BIGINTEGER:
             case DataType.BIGDECIMAL:
                 predicateFields.add(field.getName());
                 break;
             default:
-                // Skip DataType.TUPLE, DataType.MAP and DataType.BAG
+                // Skip DataType.BYTEARRAY, DataType.TUPLE, DataType.MAP and DataType.BAG
                 break;
             }
         }
@@ -680,7 +679,6 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
             //TODO is this right based on what DateTimeWritable.dateToDays() does? What about pig.datetime.default.tz?
             return new DateWritable((int)(((DateTime)value).getMillis() / TimeUnit.DAYS.toMillis(1)));
         } else {
-            //TODO compare to Orc schema and change type for varchar, typecast for byte, short
             return value;
         }
     }

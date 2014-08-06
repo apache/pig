@@ -511,15 +511,19 @@ public class Util {
       * @param expectedResults Expected results List to validate against
       */
       static public void checkQueryOutputs(Iterator<Tuple> actualResults,
-            Iterator<Tuple> expectedResults) {
+            Iterator<Tuple> expectedResults, Integer expectedRows) {
+          int count = 0;
           while (expectedResults.hasNext()) {
               Tuple expected = expectedResults.next();
               Assert.assertTrue("Actual result has less records than expected results", actualResults.hasNext());
               Tuple actual = actualResults.next();
-              System.out.println("Rohini: expected : "  + expected.toString());
               Assert.assertEquals(expected.toString(), actual.toString());
+              count++;
           }
           Assert.assertFalse("Actual result has more records than expected results", actualResults.hasNext());
+          if (expectedRows != null) {
+              Assert.assertEquals((int)expectedRows, count);
+          }
       }
 
     /**

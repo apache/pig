@@ -28,11 +28,9 @@ import org.apache.pig.newplan.logical.expression.ProjectExpression;
 import org.apache.pig.newplan.logical.expression.UnaryExpression;
 
 /**
- * This is a rewrite of {@code PColFilterExtractor}
  *
- * We traverse the expression plan bottom up and separate it into two plans
- * - pushdownExprPlan, plan that can be pushed down to the loader and
- * - filterExprPlan, remaining plan that needs to be evaluated by pig
+ * This is a rewrite of {@code PColFilterExtractor}
+ * Extracts partition filters for interfaces implementing LoadMetaData
  *
  */
 public class PartitionFilterExtractor extends FilterExtractor {
