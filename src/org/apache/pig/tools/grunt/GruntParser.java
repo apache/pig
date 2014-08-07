@@ -294,7 +294,9 @@ public class GruntParser extends PigScriptParser {
         String nestedAlias = null;
         if(mExplain == null) { // process only if not in "explain" mode
 
-            executeBatch();
+            if (mPigServer.isBatchOn()) {
+                mPigServer.parseAndBuild();
+            }
 
             if(alias==null) {
                 alias = mPigServer.getPigContext().getLastAlias();

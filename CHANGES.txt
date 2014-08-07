@@ -18,6 +18,19 @@
 
 Pig Change Log
 
+Release 0.13.1 - Unreleased
+
+INCOMPATIBLE CHANGES
+ 
+IMPROVEMENTS
+
+OPTIMIZATIONS
+ 
+BUG FIXES
+
+PIG-4106: Describe shouldn't trigger execution in batch mode (cheolsoo)
+
+
 Release 0.13.0 (2014-06-09)
  
 INCOMPATIBLE CHANGES
