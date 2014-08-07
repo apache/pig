@@ -56,8 +56,6 @@ OPTIMIZATIONS
  
 BUG FIXES
 
-PIG-4106: Describe shouldn't trigger execution in batch mode (cheolsoo)
-
 PIG-4105: Fix TestAvroStorage with ibm jdk (fang fang chen via daijy)
 
 PIG-4108: Pig -Dhadoopversion=23 compile fail after TEZ-1317 (daijy)
@@ -191,7 +189,21 @@ PIG-3971: Pig on tez fails to run in Oozie in secure cluster (rohini)
 
 PIG-3968: OperatorPlan.serialVersionUID is not defined (daijy)
 
-Release 0.13.0 - Unreleased
+
+Release 0.13.1 - Unreleased
+
+INCOMPATIBLE CHANGES
+ 
+IMPROVEMENTS
+
+OPTIMIZATIONS
+ 
+BUG FIXES
+
+PIG-4106: Describe shouldn't trigger execution in batch mode (cheolsoo)
+
+
+Release 0.13.0
  
 INCOMPATIBLE CHANGES
 
