@@ -597,7 +597,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             vertex.addDataSource(ld.getOperatorKey().toString(),
                     new DataSourceDescriptor(new InputDescriptor(MRInput.class.getName())
                             .setUserPayload(MRHelpers.createMRInputPayload(
-                                    userPayload,
+                                    payloadConf,
                                     tezOp.getLoaderInfo().getInputSplitInfo().getSplitsProto())),
                     new InputInitializerDescriptor(MRInputSplitDistributor.class.getName()), dag.getCredentials()));
         }
