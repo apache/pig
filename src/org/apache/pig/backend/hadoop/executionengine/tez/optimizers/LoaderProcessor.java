@@ -130,7 +130,7 @@ public class LoaderProcessor extends TezOpPlanVisitor {
             tezOp.getLoaderInfo().setInpLimits(inpLimits);
             // Not using MRInputAMSplitGenerator because delegation tokens are
             // fetched in FileInputFormat
-            tezOp.getLoaderInfo().setInputSplitInfo(MRHelpers.generateInputSplitsToMem(conf));
+            tezOp.getLoaderInfo().setInputSplitInfo(MRHelpers.generateInputSplitsToMem(conf, false, 0));
         }
         return lds;
     }
