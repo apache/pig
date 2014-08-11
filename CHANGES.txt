@@ -56,6 +56,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4112: NPE in packager when union + group-by followed by replicated join in Tez (rohini via cheolsoo)
+
 PIG-4113: TEZ-1386 breaks hadoop 2 compilation in trunk (cheolsoo)
 
 PIG-4110: TEZ-1382 breaks Hadoop 2 compilation (cheolsoo)
