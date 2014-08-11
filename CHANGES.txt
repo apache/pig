@@ -56,6 +56,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4116: Update Pig doc about Hadoop 2 Streaming Python UDF support (cheolsoo)
+
 PIG-4112: NPE in packager when union + group-by followed by replicated join in Tez (rohini via cheolsoo)
 
 PIG-4113: TEZ-1386 breaks hadoop 2 compilation in trunk (cheolsoo)

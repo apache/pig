@@ -1953,7 +1953,6 @@ class GroovyUDFs {
 <section id="python-udfs">
 <title>Writing Python UDFs</title>
 <p>Here Python UDFs means C Python UDFs. It uses python command line to run the Python UDFs. It is different than Jython, which relies on Jython library. Instead, it streams the data in and out of the python process. The implementation mechanism is completely different than Jython.</p>
-<p><strong>Note:</strong> <em>Python UDFs are an experimental feature. It does not work with Hadoop 2.</em></p>
 
 <!-- ++++++++++++++++++++++++++++++++++++++++++++++++ -->
 <section id="register-python">
