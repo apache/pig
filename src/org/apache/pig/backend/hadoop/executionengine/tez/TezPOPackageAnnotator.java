@@ -140,7 +140,7 @@ public class TezPOPackageAnnotator extends TezOpPlanVisitor {
         @Override
         public void visitLocalRearrange(POLocalRearrange lrearrange) throws VisitorException {
             POLocalRearrangeTez lr = (POLocalRearrangeTez) lrearrange;
-            if (!lr.getOutputKey().equals(pkgTezOp.getOperatorKey().toString())) {
+            if (!(lr.isConnectedToPackage() && lr.getOutputKey().equals(pkgTezOp.getOperatorKey().toString()))) {
                 return;
             }
             loRearrangeFound++;

@@ -137,9 +137,6 @@ public class TezLauncher extends Launcher {
             task.setUncaughtExceptionHandler(jctExceptionHandler);
             task.setContextClassLoader(PigContext.getClassLoader());
 
-            // TezJobControl always holds a single TezJob. We use JobControl
-            // only because it is convenient to launch the job via
-            // ControlledJob.submit().
             tezStats.setTezJob(runningJob);
 
             // Mark the times that the jobs were submitted so it's reflected in job
