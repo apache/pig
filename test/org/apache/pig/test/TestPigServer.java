@@ -69,6 +69,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.tools.grunt.Grunt;
@@ -979,6 +980,17 @@ public class TestPigServer {
         }
 
         assertTrue(validationExceptionCaptured);
+    }
+
+    @Test
+    // See PIG-4109
+    public void testRegisterJarRemoteScript() throws Throwable {
+        if (Util.WINDOWS) {
+            properties.setProperty("pig.jars.relative.to.dfs", "true");
+            String jarName = JarManager.findContainingJar(org.codehaus.jackson.JsonParser.class);
+            PigServer pig = new PigServer(cluster.getExecType(), properties);
+            pig.registerJar(jarName);
+        }
     }
 
     private void _testSkipParseInRegisterForBatch(boolean skipParseInRegisterForBatch,
