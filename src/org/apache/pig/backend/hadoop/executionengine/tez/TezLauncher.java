@@ -58,6 +58,7 @@ import org.apache.pig.tools.pigstats.tez.TezStats;
 import org.apache.pig.tools.pigstats.tez.TezTaskStats;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
@@ -217,8 +218,8 @@ public class TezLauncher extends Launcher {
         public void notifyStarted() throws IOException {
             for (Vertex v : runningJob.getDAG().getVertices()) {
                 TezTaskStats tts = tezStats.getVertexStats(v.getName());
-                byte[] bb = v.getProcessorDescriptor().getUserPayload();
-                Configuration conf = TezUtils.createConfFromUserPayload(bb);
+                UserPayload payload = v.getProcessorDescriptor().getUserPayload();
+                Configuration conf = TezUtils.createConfFromUserPayload(payload);
                 tts.setConf(conf);
                 tts.setId(v.getName());
                 tezScriptState.emitJobStartedNotification(v.getName());
