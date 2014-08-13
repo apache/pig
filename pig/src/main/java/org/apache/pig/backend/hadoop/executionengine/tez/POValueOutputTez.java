@@ -40,7 +40,7 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.tez.runtime.api.LogicalOutput;
-import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 
 public class POValueOutputTez extends PhysicalOperator implements TezOutput, TezTaskConfigurable {
@@ -81,7 +81,7 @@ public class POValueOutputTez extends PhysicalOperator implements TezOutput, Tez
     }
 
     @Override
-    public void initialize(TezProcessorContext processorContext)
+    public void initialize(ProcessorContext processorContext)
             throws ExecException {
         taskIndex = processorContext.getTaskIndex();
     }

@@ -107,7 +107,7 @@ import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DataSinkDescriptor;
 import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.Edge;
-import org.apache.tez.dag.api.EdgeManagerDescriptor;
+import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.GroupInputEdge;
@@ -129,6 +129,7 @@ import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
+import org.apache.tez.mapreduce.protos.MRRuntimeProtos;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.input.ConcatenatedMergedKeyValueInput;
 import org.apache.tez.runtime.library.input.ShuffledMergedInput;
@@ -342,7 +343,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         if (edge.dataMovementType!=DataMovementType.BROADCAST && to.getEstimatedParallelism()!=-1 && (to.isGlobalSort()||to.isSkewedJoin())) {
             // Use custom edge
-            return new EdgeProperty((EdgeManagerDescriptor)null,
+            return new EdgeProperty((EdgeManagerPluginDescriptor)null,
                     edge.dataSourceType, edge.schedulingType, out, in);
             }
 
@@ -596,9 +597,9 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             vertex.setLocationHint(new VertexLocationHint(tezOp.getLoaderInfo().getInputSplitInfo().getTaskLocationHints()));
             vertex.addDataSource(ld.getOperatorKey().toString(),
                     new DataSourceDescriptor(new InputDescriptor(MRInput.class.getName())
-                            .setUserPayload(MRHelpers.createMRInputPayload(
-                                    payloadConf,
-                                    tezOp.getLoaderInfo().getInputSplitInfo().getSplitsProto())),
+                            .setUserPayload(MRRuntimeProtos.MRInputUserPayloadProto.newBuilder()
+                            .setConfigurationBytes(TezUtils.createByteStringFromConf(payloadConf))
+                            .setSplits(tezOp.getLoaderInfo().getInputSplitInfo().getSplitsProto()).build().toByteArray()),
                     new InputInitializerDescriptor(MRInputSplitDistributor.class.getName()), dag.getCredentials()));
         }
 

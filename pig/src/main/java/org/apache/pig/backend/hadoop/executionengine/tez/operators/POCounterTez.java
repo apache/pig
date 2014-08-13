@@ -36,7 +36,7 @@ import org.apache.pig.backend.hadoop.executionengine.tez.TezTaskConfigurable;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.tez.runtime.api.LogicalOutput;
-import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 
 public class POCounterTez extends POCounter implements TezOutput, TezTaskConfigurable {
@@ -56,7 +56,7 @@ public class POCounterTez extends POCounter implements TezOutput, TezTaskConfigu
     }
 
     @Override
-    public void initialize(TezProcessorContext processorContext)
+    public void initialize(ProcessorContext processorContext)
             throws ExecException {
         this.setTaskId(processorContext.getTaskIndex());
     }

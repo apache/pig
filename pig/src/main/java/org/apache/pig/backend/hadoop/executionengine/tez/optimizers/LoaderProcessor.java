@@ -41,7 +41,7 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.UDFContext;
-import org.apache.tez.mapreduce.hadoop.MRHelpers;
+import org.apache.tez.mapreduce.hadoop.MRInputHelpers;
 
 public class LoaderProcessor extends TezOpPlanVisitor {
     private Configuration conf;
@@ -130,7 +130,7 @@ public class LoaderProcessor extends TezOpPlanVisitor {
             tezOp.getLoaderInfo().setInpLimits(inpLimits);
             // Not using MRInputAMSplitGenerator because delegation tokens are
             // fetched in FileInputFormat
-            tezOp.getLoaderInfo().setInputSplitInfo(MRHelpers.generateInputSplitsToMem(conf, false, 0));
+            tezOp.getLoaderInfo().setInputSplitInfo(MRInputHelpers.generateInputSplitsToMem(conf, false, 0));
         }
         return lds;
     }

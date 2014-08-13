@@ -798,6 +798,8 @@ public class FileLocalizer {
         FileSystem srcFs;
         if ( (!"true".equals(properties.getProperty("pig.jars.relative.to.dfs"))
                 && uri.getScheme() == null )||
+                // For Windows local files
+                (uri.getScheme() == null && uri.getPath().matches("^/[A-Za-z]:.*")) ||
                 uri.getScheme().equals("local") ) {
             srcFs = localFs;
         } else {

@@ -24,6 +24,10 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4117: Implement merge cogroup in Tez (daijy)
+
+PIG-4119: Add message at end of each testcase with timestamp in Pig system tests (nmaheshwari via daijy)
+
 PIG-4008: Pig code change to enable Tez Local mode (airbots via daijy)
 
 PIG-4091: Predicate pushdown for ORC (rohini via daijy)
@@ -55,6 +59,12 @@ PIG-3970: Merge Tez branch into trunk (daijy)
 OPTIMIZATIONS
  
 BUG FIXES
+
+PIG-4061: Make Streaming UDF work in Tez (daijy)
+
+PIG-4118: Fix hadoopversion 23 compilation due to TEZ-1237/TEZ-1407 (daijy)
+
+PIG-4109: register local jar fail on Windows when Pig script is remote (daijy)
 
 PIG-4116: Update Pig doc about Hadoop 2 Streaming Python UDF support (cheolsoo)
 

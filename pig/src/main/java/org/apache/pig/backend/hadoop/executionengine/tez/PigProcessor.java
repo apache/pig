@@ -57,7 +57,7 @@ import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
-import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 
@@ -96,7 +96,7 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
     public static String sampleVertex;
     public static Map<String, Object> sampleMap;
 
-    public PigProcessor(TezProcessorContext context) {
+    public PigProcessor(ProcessorContext context) {
         super(context);
     }
 

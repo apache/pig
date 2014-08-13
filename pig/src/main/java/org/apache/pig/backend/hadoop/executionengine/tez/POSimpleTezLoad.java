@@ -25,13 +25,17 @@ import java.util.Set;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.tez.mapreduce.input.MRInput;
+import org.apache.tez.mapreduce.lib.MRReader;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 
@@ -78,6 +82,12 @@ public class POSimpleTezLoad extends POLoad implements TezInput {
         input = (MRInput) logInput;
         try {
             reader = input.getReader();
+            // Set split index, MergeCoGroup need it. And this input is the only input of the
+            // MergeCoGroup vertex.
+            if (reader instanceof MRReader) {
+                int splitIndex = ((PigSplit)((MRReader)reader).getSplit()).getSplitIndex();
+                PigMapReduce.sJobContext.getConfiguration().setInt(PigImplConstants.PIG_SPLIT_INDEX, splitIndex);
+            }
         } catch (IOException e) {
             throw new ExecException(e);
         }

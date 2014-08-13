@@ -41,4 +41,9 @@ public class PigImplConstants {
      * Used by pig to indicate that current job has been converted to run in local mode
      */
     public static final String CONVERTED_TO_LOCAL = "pig.job.converted.local";
+
+    /**
+     * Indicate the split index of the task. Used by merge cogroup
+     */
+    public static final String PIG_SPLIT_INDEX = "pig.split.index";
 }
