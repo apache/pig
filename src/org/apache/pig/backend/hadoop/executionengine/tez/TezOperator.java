@@ -150,7 +150,9 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         // Indicate if this job is a cogroup job
         COGROUP,
         // Indicate if this job is a regular join job
-        HASHJOIN;
+        HASHJOIN,
+        // Indicate if this job is a native job
+        NATIVE;
     };
 
     OPER_FEATURE feature = OPER_FEATURE.NONE;
@@ -299,6 +301,14 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     public void markRegularJoin() {
         feature = OPER_FEATURE.HASHJOIN;
+    }
+
+    public boolean isNative() {
+        return (feature == OPER_FEATURE.NATIVE);
+    }
+
+    public void markNative() {
+        feature = OPER_FEATURE.NATIVE;
     }
 
     public boolean isUnion() {

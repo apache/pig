@@ -2,16 +2,16 @@
 # There are 1 DAGs in the session
 #--------------------------------------------------
 #--------------------------------------------------
-# TEZ DAG plan: scope-62
+# TEZ DAG plan: scope-56
 #--------------------------------------------------
-Tez vertex scope-40	->	Tez vertex group scope-58,Tez vertex group scope-59,
-Tez vertex scope-46	->	Tez vertex group scope-58,Tez vertex group scope-59,
+Tez vertex scope-40	->	Tez vertex group scope-59,Tez vertex group scope-60,
+Tez vertex scope-46	->	Tez vertex group scope-59,Tez vertex group scope-60,
 Tez vertex group scope-59
-Tez vertex group scope-58
+Tez vertex group scope-60
 
 Tez vertex scope-40
 # Plan on vertex
-1-2: Split - scope-57
+1-2: Split - scope-58
 |   |
 |   a2: Store(file:///tmp/output/a2:org.apache.pig.builtin.PigStorage) - scope-14
 |   |
@@ -25,7 +25,7 @@ Tez vertex scope-40
 |       |       |
 |       |       |---Constant(100) - scope-11
 |   |
-|   1-3: Split - scope-60
+|   1-3: Split - scope-61
 |   |   |
 |   |   d: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-33
 |   |   |
@@ -70,7 +70,7 @@ Tez vertex scope-40
     |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
 Tez vertex scope-46
 # Plan on vertex
-1-3: Split - scope-61
+1-3: Split - scope-62
 |   |
 |   d: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-33
 |   |
@@ -107,5 +107,5 @@ Tez vertex scope-46
     |---b: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-19
 Tez vertex group scope-59	<-	 [scope-40, scope-46]	->	 null
 # No plan on vertex group
-Tez vertex group scope-58	<-	 [scope-40, scope-46]	->	 null
+Tez vertex group scope-60	<-	 [scope-40, scope-46]	->	 null
 # No plan on vertex group

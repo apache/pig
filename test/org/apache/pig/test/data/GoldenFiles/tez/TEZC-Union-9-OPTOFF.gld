@@ -2,7 +2,7 @@
 # There are 1 DAGs in the session
 #--------------------------------------------------
 #--------------------------------------------------
-# TEZ DAG plan: scope-121
+# TEZ DAG plan: scope-119
 #--------------------------------------------------
 Tez vertex scope-109	->	Tez vertex scope-110,
 Tez vertex scope-103	->	Tez vertex scope-110,
@@ -25,7 +25,7 @@ POValueOutputTez - scope-113	->	 [scope-110]
     |---b: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-82
 Tez vertex scope-103
 # Plan on vertex
-1-12: Split - scope-120
+1-12: Split - scope-121
 |   |
 |   a2: Store(file:///tmp/output/a2:org.apache.pig.builtin.PigStorage) - scope-77
 |   |
@@ -62,7 +62,7 @@ Tez vertex scope-103
     |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-63
 Tez vertex scope-110
 # Plan on vertex
-1-13: Split - scope-119
+1-13: Split - scope-120
 |   |
 |   d: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-96
 |   |

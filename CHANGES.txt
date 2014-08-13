@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4114: Add Native operator to tez (daijy)
+
 PIG-4117: Implement merge cogroup in Tez (daijy)
 
 PIG-4119: Add message at end of each testcase with timestamp in Pig system tests (nmaheshwari via daijy)

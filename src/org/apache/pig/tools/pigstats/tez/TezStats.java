@@ -28,7 +28,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobClient;
+import org.apache.hadoop.mapred.JobID;
 import org.apache.pig.PigRunner.ReturnCode;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.NativeMapReduceOper;
+import org.apache.pig.backend.hadoop.executionengine.tez.NativeTezOper;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezExecType;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezJob;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezOpPlanVisitor;
@@ -41,6 +44,7 @@ import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.tools.pigstats.InputStats;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
+import org.apache.pig.tools.pigstats.mapreduce.MRJobStats;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.DAGCounter;
@@ -122,6 +126,13 @@ public class TezStats extends PigStats {
     public void finish() {
         super.stop();
         display();
+    }
+
+    public TezTaskStats addTezJobStatsForNative(NativeTezOper tezOper, boolean success) {
+        TezTaskStats js = tezOpVertexMap.get(tezOper.getOperatorKey().toString());
+        js.setId(tezOper.getJobId());
+        js.setSuccessful(success);
+        return js;
     }
 
     private void display() {

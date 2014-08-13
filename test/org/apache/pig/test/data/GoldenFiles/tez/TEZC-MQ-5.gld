@@ -2,7 +2,7 @@
 # There are 1 DAGs in the session
 #--------------------------------------------------
 #--------------------------------------------------
-# TEZ DAG plan: scope-59
+# TEZ DAG plan: scope-57
 #--------------------------------------------------
 Tez vertex scope-43	->	Tez vertex scope-44,
 Tez vertex scope-44
@@ -26,7 +26,7 @@ b: Local Rearrange[tuple]{int}(false) - scope-10	->	 scope-44
     |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
 Tez vertex scope-44
 # Plan on vertex
-b: Split - scope-58
+b: Split - scope-59
 |   |
 |   b: Store(file:///tmp/output/b:org.apache.pig.builtin.PigStorage) - scope-15
 |   |
@@ -42,7 +42,7 @@ b: Split - scope-58
 |       |   |
 |       |   |---Project[bag][1] - scope-21
 |   |
-|   d: Split - scope-57
+|   d: Split - scope-58
 |   |   |
 |   |   d: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-34
 |   |   |

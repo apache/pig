@@ -86,11 +86,13 @@ public class TezCompilerUtil {
 
     static public TezEdgeDescriptor connect(TezOperPlan plan, TezOperator from, TezOperator to) throws PlanException {
         plan.connect(from, to);
-        PhysicalOperator leaf = from.plan.getLeaves().get(0);
-        // It could be POStoreTez incase of sampling job in order by
-        if (leaf instanceof POLocalRearrangeTez) {
-            POLocalRearrangeTez lr = (POLocalRearrangeTez) leaf;
-            lr.setOutputKey(to.getOperatorKey().toString());
+        if (!from.plan.isEmpty()) {
+            PhysicalOperator leaf = from.plan.getLeaves().get(0);
+            // It could be POStoreTez incase of sampling job in order by
+            if (leaf instanceof POLocalRearrangeTez) {
+                POLocalRearrangeTez lr = (POLocalRearrangeTez) leaf;
+                lr.setOutputKey(to.getOperatorKey().toString());
+            }
         }
         // Add edge descriptors to old and new operators
         TezEdgeDescriptor edge = new TezEdgeDescriptor();

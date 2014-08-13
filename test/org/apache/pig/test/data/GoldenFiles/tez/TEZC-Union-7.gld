@@ -2,35 +2,35 @@
 # There are 1 DAGs in the session
 #--------------------------------------------------
 #--------------------------------------------------
-# TEZ DAG plan: scope-73
+# TEZ DAG plan: scope-50
 #--------------------------------------------------
-Tez vertex scope-20	->	Tez vertex group scope-51,Tez vertex group scope-52,
-Tez vertex scope-21	->	Tez vertex group scope-51,Tez vertex group scope-52,
-Tez vertex group scope-52	->	Tez vertex scope-34,
+Tez vertex scope-20	->	Tez vertex group scope-52,Tez vertex group scope-53,
+Tez vertex scope-21	->	Tez vertex group scope-52,Tez vertex group scope-53,
+Tez vertex group scope-53	->	Tez vertex scope-34,
 Tez vertex scope-34	->	Tez vertex scope-44,
-Tez vertex group scope-51	->	Tez vertex scope-44,
+Tez vertex group scope-52	->	Tez vertex scope-44,
 Tez vertex scope-44	->	Tez vertex scope-46,
 Tez vertex scope-46
 
 Tez vertex scope-20
 # Plan on vertex
-Local Rearrange[tuple]{tuple}(false) - scope-54	->	 scope-34
+Local Rearrange[tuple]{tuple}(false) - scope-55	->	 scope-34
 |   |
-|   Constant(DummyVal) - scope-55
+|   Constant(DummyVal) - scope-56
 |
-|---New For Each(false,true)[tuple] - scope-62
+|---New For Each(false,true)[tuple] - scope-63
     |   |
-    |   Project[int][0] - scope-59
+    |   Project[int][0] - scope-60
     |   |
-    |   POUserFunc(org.apache.pig.impl.builtin.GetMemNumRows)[tuple] - scope-61
+    |   POUserFunc(org.apache.pig.impl.builtin.GetMemNumRows)[tuple] - scope-62
     |   |
-    |   |---Project[tuple][*] - scope-60
+    |   |---Project[tuple][*] - scope-61
     |
-    |---ReservoirSample - scope-53
+    |---ReservoirSample - scope-54
         |
-        |---d: Local Rearrange[tuple]{int}(false) - scope-57	->	 scope-44
+        |---d: Local Rearrange[tuple]{int}(false) - scope-58	->	 scope-44
             |   |
-            |   Project[int][0] - scope-58
+            |   Project[int][0] - scope-59
             |
             |---a: New For Each(false,false)[bag] - scope-7
                 |   |
@@ -45,23 +45,23 @@ Local Rearrange[tuple]{tuple}(false) - scope-54	->	 scope-34
                 |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
 Tez vertex scope-21
 # Plan on vertex
-Local Rearrange[tuple]{tuple}(false) - scope-64	->	 scope-34
+Local Rearrange[tuple]{tuple}(false) - scope-65	->	 scope-34
 |   |
-|   Constant(DummyVal) - scope-65
+|   Constant(DummyVal) - scope-66
 |
-|---New For Each(false,true)[tuple] - scope-72
+|---New For Each(false,true)[tuple] - scope-73
     |   |
-    |   Project[int][0] - scope-69
+    |   Project[int][0] - scope-70
     |   |
-    |   POUserFunc(org.apache.pig.impl.builtin.GetMemNumRows)[tuple] - scope-71
+    |   POUserFunc(org.apache.pig.impl.builtin.GetMemNumRows)[tuple] - scope-72
     |   |
-    |   |---Project[tuple][*] - scope-70
+    |   |---Project[tuple][*] - scope-71
     |
-    |---ReservoirSample - scope-63
+    |---ReservoirSample - scope-64
         |
-        |---d: Local Rearrange[tuple]{int}(false) - scope-67	->	 scope-44
+        |---d: Local Rearrange[tuple]{int}(false) - scope-68	->	 scope-44
             |   |
-            |   Project[int][0] - scope-68
+            |   Project[int][0] - scope-69
             |
             |---c: New For Each(false,false)[bag] - scope-15
                 |   |
@@ -74,7 +74,7 @@ Local Rearrange[tuple]{tuple}(false) - scope-64	->	 scope-34
                 |   |---Project[bytearray][0] - scope-12
                 |
                 |---b: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-8
-Tez vertex group scope-52	<-	 [scope-20, scope-21]	->	 scope-34
+Tez vertex group scope-53	<-	 [scope-20, scope-21]	->	 scope-34
 # No plan on vertex group
 Tez vertex scope-34
 # Plan on vertex
@@ -93,11 +93,11 @@ POValueOutputTez - scope-43	->	 [scope-44]
         |   Project[bag][1] - scope-36
         |
         |---Package(Packager)[tuple]{bytearray} - scope-35
-Tez vertex group scope-51	<-	 [scope-20, scope-21]	->	 scope-44
+Tez vertex group scope-52	<-	 [scope-20, scope-21]	->	 scope-44
 # No plan on vertex group
 Tez vertex scope-44
 # Plan on vertex
-POIdentityInOutTez - scope-45	<-	 scope-51	->	 scope-46
+POIdentityInOutTez - scope-45	<-	 scope-52	->	 scope-46
 |   |
 |   Project[int][0] - scope-17
 Tez vertex scope-46

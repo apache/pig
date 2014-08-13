@@ -2,7 +2,7 @@
 # There are 1 DAGs in the session
 #--------------------------------------------------
 #--------------------------------------------------
-# TEZ DAG plan: scope-416
+# TEZ DAG plan: scope-393
 #--------------------------------------------------
 Tez vertex scope-318	->	Tez vertex scope-320,Tez vertex scope-331,Tez vertex scope-342,
 Tez vertex scope-320	->	Tez vertex scope-323,Tez vertex scope-336,Tez vertex scope-347,
@@ -11,9 +11,9 @@ Tez vertex scope-376	->	Tez vertex scope-379,
 Tez vertex scope-379	->	Tez vertex scope-383,Tez vertex scope-387,
 Tez vertex scope-383
 Tez vertex scope-342	->	Tez vertex scope-345,Tez vertex scope-385,
-Tez vertex scope-385	->	Tez vertex group scope-413,
-Tez vertex scope-387	->	Tez vertex group scope-413,
-Tez vertex group scope-413
+Tez vertex scope-385	->	Tez vertex group scope-414,
+Tez vertex scope-387	->	Tez vertex group scope-414,
+Tez vertex group scope-414
 Tez vertex scope-331	->	Tez vertex scope-334,Tez vertex scope-339,
 Tez vertex scope-339	->	Tez vertex scope-341,
 Tez vertex scope-341
@@ -113,15 +113,15 @@ POValueOutputTez - scope-344	->	 [scope-385, scope-345]
         |---POValueInputTez - scope-343	<-	 scope-318
 Tez vertex scope-385
 # Plan on vertex
-f2: Store(file:///tmp/output/f2:org.apache.pig.builtin.PigStorage) - scope-414
+f2: Store(file:///tmp/output/f2:org.apache.pig.builtin.PigStorage) - scope-415
 |
 |---POValueInputTez - scope-386	<-	 scope-342
 Tez vertex scope-387
 # Plan on vertex
-f2: Store(file:///tmp/output/f2:org.apache.pig.builtin.PigStorage) - scope-415
+f2: Store(file:///tmp/output/f2:org.apache.pig.builtin.PigStorage) - scope-416
 |
 |---POValueInputTez - scope-388	<-	 scope-379
-Tez vertex group scope-413	<-	 [scope-385, scope-387]	->	 null
+Tez vertex group scope-414	<-	 [scope-385, scope-387]	->	 null
 # No plan on vertex group
 Tez vertex scope-331
 # Plan on vertex
@@ -138,38 +138,38 @@ POValueOutputTez - scope-333	->	 [scope-339, scope-334]
     |---POValueInputTez - scope-332	<-	 scope-318
 Tez vertex scope-339
 # Plan on vertex
-c2: Local Rearrange[tuple]{int}(false) - scope-405	->	 scope-341
+c2: Local Rearrange[tuple]{int}(false) - scope-406	->	 scope-341
 |   |
-|   Project[int][0] - scope-407
+|   Project[int][0] - scope-408
 |
-|---c3: New For Each(false,false)[bag] - scope-393
+|---c3: New For Each(false,false)[bag] - scope-394
     |   |
-    |   Project[int][0] - scope-394
+    |   Project[int][0] - scope-395
     |   |
-    |   POUserFunc(org.apache.pig.builtin.AlgebraicMathBase$Initial)[tuple] - scope-395
+    |   POUserFunc(org.apache.pig.builtin.AlgebraicMathBase$Initial)[tuple] - scope-396
     |   |
-    |   |---Project[bag][0] - scope-396
+    |   |---Project[bag][0] - scope-397
     |       |
-    |       |---Project[bag][1] - scope-397
+    |       |---Project[bag][1] - scope-398
     |
-    |---Pre Combiner Local Rearrange[tuple]{Unknown} - scope-408
+    |---Pre Combiner Local Rearrange[tuple]{Unknown} - scope-409
         |
         |---POValueInputTez - scope-340	<-	 scope-331
 Tez vertex scope-341
 # Combine plan on edge <scope-339>
-c2: Local Rearrange[tuple]{int}(false) - scope-409	->	 scope-341
+c2: Local Rearrange[tuple]{int}(false) - scope-410	->	 scope-341
 |   |
-|   Project[int][0] - scope-411
+|   Project[int][0] - scope-412
 |
-|---c3: New For Each(false,false)[bag] - scope-398
+|---c3: New For Each(false,false)[bag] - scope-399
     |   |
-    |   Project[int][0] - scope-399
+    |   Project[int][0] - scope-400
     |   |
-    |   POUserFunc(org.apache.pig.builtin.LongSum$Intermediate)[tuple] - scope-400
+    |   POUserFunc(org.apache.pig.builtin.LongSum$Intermediate)[tuple] - scope-401
     |   |
-    |   |---Project[bag][1] - scope-401
+    |   |---Project[bag][1] - scope-402
     |
-    |---c2: Package(CombinerPackager)[tuple]{int} - scope-404
+    |---c2: Package(CombinerPackager)[tuple]{int} - scope-405
 # Plan on vertex
 c3: Store(file:///tmp/output/c1:org.apache.pig.builtin.PigStorage) - scope-280
 |
@@ -179,7 +179,7 @@ c3: Store(file:///tmp/output/c1:org.apache.pig.builtin.PigStorage) - scope-280
     |   |
     |   POUserFunc(org.apache.pig.builtin.LongSum$Final)[long] - scope-277
     |   |
-    |   |---Project[bag][1] - scope-402
+    |   |---Project[bag][1] - scope-403
     |
     |---c2: Package(CombinerPackager)[tuple]{int} - scope-270
 Tez vertex scope-323

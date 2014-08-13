@@ -21,8 +21,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -291,22 +293,32 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
      * @throws PlanException 
      */
     public void moveTree(E root, OperatorPlan<E> newPlan) throws PlanException {
-        newPlan.add(root);
-        if (getSuccessors(root) == null) {
-            remove(root);
-            return;
+        Deque<E> queue = new ArrayDeque<E>();
+        queue.addLast(root);
+        while (!queue.isEmpty()) {
+            E node = queue.poll();
+            if (getSuccessors(node)!=null) {
+                for (E succ : getSuccessors(node)) {
+                    if (!queue.contains(succ)) {
+                        queue.addLast(succ);
+                    }
+                }
+            }
+            newPlan.add(node);
         }
-        
-        List<E> succs = new ArrayList<E>();
-        succs.addAll(getSuccessors(root));
-        
-        for (E succ : succs) {
-            moveTree(succ, newPlan);
+
+        for (E from : mFromEdges.keySet()) {
+            if (newPlan.mOps.containsKey(from)) {
+                for (E to : mFromEdges.get(from)) {
+                    if (newPlan.mOps.containsKey(to)) {
+                        newPlan.connect(from, to);
+                    }
+                }
+            }
         }
+            
+        trimBelow(root);
         remove(root);
-        for (E succ : succs) {
-            newPlan.connect(root, succ);
-        }
     }
 
     /**
