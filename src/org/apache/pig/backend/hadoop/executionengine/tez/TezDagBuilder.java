@@ -116,6 +116,7 @@ import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.OutputCommitterDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.VertexGroup;
 import org.apache.tez.dag.api.VertexLocationHint;
@@ -559,7 +560,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         }
 
         // Take our assembled configuration and create a vertex
-        byte[] userPayload = TezUtils.createUserPayloadFromConf(payloadConf);
+        UserPayload userPayload = TezUtils.createUserPayloadFromConf(payloadConf);
         procDesc.setUserPayload(userPayload);
 
         Vertex vertex = new Vertex(tezOp.getOperatorKey().toString(), procDesc, tezOp.getVertexParallelism(),
@@ -597,9 +598,9 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             vertex.setLocationHint(new VertexLocationHint(tezOp.getLoaderInfo().getInputSplitInfo().getTaskLocationHints()));
             vertex.addDataSource(ld.getOperatorKey().toString(),
                     new DataSourceDescriptor(new InputDescriptor(MRInput.class.getName())
-                            .setUserPayload(MRRuntimeProtos.MRInputUserPayloadProto.newBuilder()
+                            .setUserPayload(new UserPayload(MRRuntimeProtos.MRInputUserPayloadProto.newBuilder()
                             .setConfigurationBytes(TezUtils.createByteStringFromConf(payloadConf))
-                            .setSplits(tezOp.getLoaderInfo().getInputSplitInfo().getSplitsProto()).build().toByteArray()),
+                            .setSplits(tezOp.getLoaderInfo().getInputSplitInfo().getSplitsProto()).build().toByteArray())),
                     new InputInitializerDescriptor(MRInputSplitDistributor.class.getName()), dag.getCredentials()));
         }
 

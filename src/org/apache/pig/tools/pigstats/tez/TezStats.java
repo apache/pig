@@ -49,6 +49,7 @@ import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DAG;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGStatus;
 
@@ -204,8 +205,8 @@ public class TezStats extends PigStats {
         for (String name : tezOpVertexMap.keySet()) {
             Vertex v = dag.getVertex(name);
             if (v != null) {
-                byte[] bb = v.getProcessorDescriptor().getUserPayload();
-                Configuration conf = TezUtils.createConfFromUserPayload(bb);
+                UserPayload payload = v.getProcessorDescriptor().getUserPayload();
+                Configuration conf = TezUtils.createConfFromUserPayload(payload);
                 addVertexStats(name, conf, succeeded, tezJob.getVertexCounters(name));
             }
         }

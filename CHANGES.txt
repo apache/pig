@@ -60,6 +60,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4122: Fix hadoopversion 23 compilation due to TEZ-1194 (daijy)
+
 PIG-4061: Make Streaming UDF work in Tez (daijy)
 
 PIG-4118: Fix hadoopversion 23 compilation due to TEZ-1237/TEZ-1407 (daijy)

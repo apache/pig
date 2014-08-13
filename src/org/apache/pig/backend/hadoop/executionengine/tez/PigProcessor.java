@@ -52,6 +52,7 @@ import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.Event;
@@ -113,7 +114,7 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
         PhysicalOperator.reporter = new ThreadLocal<PigProgressable>();
         PigMapReduce.sJobConfInternal = new ThreadLocal<Configuration>();
 
-        byte[] payload = getContext().getUserPayload();
+        UserPayload payload = getContext().getUserPayload();
         conf = TezUtils.createConfFromUserPayload(payload);
         PigContext.setPackageImportList((ArrayList<String>) ObjectSerializer
                 .deserialize(conf.get("udf.import.list")));
