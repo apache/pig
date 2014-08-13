@@ -43,7 +43,6 @@ import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigTupleWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompilerException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MergeJoinIndexer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.ScalarPhyFinder;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.UDFFinder;
@@ -583,7 +582,7 @@ public class TezCompiler extends PhyPlanVisitor {
         } catch (IOException e) {
             int errCode = 2034;
             String msg = "Error compiling operator " + op.getClass().getSimpleName();
-            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
+            throw new TezCompilerException(msg, errCode, PigException.BUG, e);
         }
 
         try{
@@ -592,7 +591,7 @@ public class TezCompiler extends PhyPlanVisitor {
         }catch(Exception e){
             int errCode = 2034;
             String msg = "Error compiling operator " + op.getClass().getSimpleName();
-            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
+            throw new TezCompilerException(msg, errCode, PigException.BUG, e);
         }
     }
 
@@ -874,10 +873,185 @@ public class TezCompiler extends PhyPlanVisitor {
     }
 
     @Override
-    public void visitMergeCoGroup(POMergeCogroup op) throws VisitorException {
-        int errCode = 2034;
-        String msg = "Cannot compile " + op.getClass().getSimpleName();
-        throw new TezCompilerException(msg, errCode, PigException.BUG);
+    public void visitMergeCoGroup(POMergeCogroup poCoGrp) throws VisitorException {
+        if(compiledInputs.length < 2){
+            int errCode=2251;
+            String errMsg = "Merge Cogroup work on two or more relations." +
+                    "To use map-side group-by on single relation, use 'collected' qualifier.";
+            throw new TezCompilerException(errMsg, errCode);
+        }
+
+        List<FuncSpec> funcSpecs = new ArrayList<FuncSpec>(compiledInputs.length-1);
+        List<String> fileSpecs = new ArrayList<String>(compiledInputs.length-1);
+        List<String> loaderSigns = new ArrayList<String>(compiledInputs.length-1);
+
+        try{
+            poCoGrp.setEndOfRecordMark(POStatus.STATUS_NULL);
+
+            // Iterate through all the TezOpererators, disconnect side TezOperators from
+            // TezOperator and collect all the information needed in different lists.
+
+            for(int i=0 ; i < compiledInputs.length; i++){
+
+                TezOperator tezOper = compiledInputs[i];
+                PhysicalPlan plan = tezOper.plan;
+                if(plan.getRoots().size() != 1){
+                    int errCode = 2171;
+                    String errMsg = "Expected one but found more then one root physical operator in physical plan.";
+                    throw new TezCompilerException(errMsg,errCode,PigException.BUG);
+                }
+
+                PhysicalOperator rootPOOp = plan.getRoots().get(0);
+                if(! (rootPOOp instanceof POLoad)){
+                    int errCode = 2172;
+                    String errMsg = "Expected physical operator at root to be POLoad. Found : "+rootPOOp.getClass().getCanonicalName();
+                    throw new TezCompilerException(errMsg,errCode);
+                }
+
+                POLoad sideLoader = (POLoad)rootPOOp;
+                FileSpec loadFileSpec = sideLoader.getLFile();
+                FuncSpec funcSpec = loadFileSpec.getFuncSpec();
+                LoadFunc loadfunc = sideLoader.getLoadFunc();
+                if(i == 0){
+
+                    if(!(CollectableLoadFunc.class.isAssignableFrom(loadfunc.getClass()))){
+                        int errCode = 2252;
+                        throw new TezCompilerException("Base loader in Cogroup must implement CollectableLoadFunc.", errCode);
+                    }
+
+                    ((CollectableLoadFunc)loadfunc).ensureAllKeyInstancesInSameSplit();
+                    continue;
+                }
+                if(!(IndexableLoadFunc.class.isAssignableFrom(loadfunc.getClass()))){
+                    int errCode = 2253;
+                    throw new TezCompilerException("Side loaders in cogroup must implement IndexableLoadFunc.", errCode);
+                }
+
+                funcSpecs.add(funcSpec);
+                fileSpecs.add(loadFileSpec.getFileName());
+                loaderSigns.add(sideLoader.getSignature());
+                tezPlan.remove(tezOper);
+            }
+
+            poCoGrp.setSideLoadFuncs(funcSpecs);
+            poCoGrp.setSideFileSpecs(fileSpecs);
+            poCoGrp.setLoaderSignatures(loaderSigns);
+
+            // Use tez operator of base relation for the cogroup operation.
+            TezOperator baseMROp = phyToTezOpMap.get(poCoGrp.getInputs().get(0));
+            if(baseMROp.isClosed()){
+                int errCode = 2254;
+                throw new TezCompilerException("Currently merged cogroup is not supported after blocking operators.", errCode);
+            }
+
+            // Create new map-reduce operator for indexing job and then configure it.
+            TezOperator indexerTezOp = getTezOp();
+            FileSpec idxFileSpec = getIndexingJob(indexerTezOp, baseMROp, poCoGrp.getLRInnerPlansOf(0));
+            poCoGrp.setIdxFuncSpec(idxFileSpec.getFuncSpec());
+            poCoGrp.setIndexFileName(idxFileSpec.getFileName());
+
+            baseMROp.plan.addAsLeaf(poCoGrp);
+            for (FuncSpec funcSpec : funcSpecs)
+                baseMROp.UDFs.add(funcSpec.toString());
+
+            phyToTezOpMap.put(poCoGrp,baseMROp);
+            // Going forward, new operators should be added in baseMRop. To make
+            // sure, reset curMROp.
+            curTezOp = baseMROp;
+        }
+        catch (ExecException e){
+           throw new TezCompilerException(e.getDetailedMessage(),e.getErrorCode(),e.getErrorSource(),e);
+        }
+        catch (TezCompilerException mrce){
+            throw(mrce);
+        }
+        catch (CloneNotSupportedException e) {
+            throw new TezCompilerException(e);
+        }
+        catch(PlanException e){
+            int errCode = 2034;
+            String msg = "Error compiling operator " + poCoGrp.getClass().getCanonicalName();
+            throw new TezCompilerException(msg, errCode, PigException.BUG, e);
+        }
+        catch (IOException e){
+            int errCode = 3000;
+            String errMsg = "IOException caught while compiling POMergeCoGroup";
+            throw new TezCompilerException(errMsg, errCode,e);
+        }
+    }
+
+    // Sets up the indexing job for map-side cogroups.
+    private FileSpec getIndexingJob(TezOperator indexerTezOp,
+            final TezOperator baseTezOp, final List<PhysicalPlan> mapperLRInnerPlans)
+        throws TezCompilerException, PlanException, ExecException, IOException, CloneNotSupportedException {
+
+        // First replace loader with  MergeJoinIndexer.
+        PhysicalPlan basePlan = baseTezOp.plan;
+        POLoad baseLoader = (POLoad)basePlan.getRoots().get(0);
+        FileSpec origLoaderFileSpec = baseLoader.getLFile();
+        FuncSpec funcSpec = origLoaderFileSpec.getFuncSpec();
+        LoadFunc loadFunc = baseLoader.getLoadFunc();
+
+        if (! (OrderedLoadFunc.class.isAssignableFrom(loadFunc.getClass()))){
+            int errCode = 1104;
+            String errMsg = "Base relation of merge-coGroup must implement " +
+            "OrderedLoadFunc interface. The specified loader "
+            + funcSpec + " doesn't implement it";
+            throw new TezCompilerException(errMsg,errCode);
+        }
+
+        String[] indexerArgs = new String[6];
+        indexerArgs[0] = funcSpec.toString();
+        indexerArgs[1] = ObjectSerializer.serialize((Serializable)mapperLRInnerPlans);
+        indexerArgs[3] = baseLoader.getSignature();
+        indexerArgs[4] = baseLoader.getOperatorKey().scope;
+        indexerArgs[5] = Boolean.toString(false); // we care for nulls.
+
+        PhysicalPlan phyPlan;
+        if (basePlan.getSuccessors(baseLoader) == null
+                || basePlan.getSuccessors(baseLoader).isEmpty()){
+         // Load-Load-Cogroup case.
+            phyPlan = null;
+        }
+
+        else{ // We got something. Yank it and set it as inner plan.
+            phyPlan = basePlan.clone();
+            PhysicalOperator root = phyPlan.getRoots().get(0);
+            phyPlan.disconnect(root, phyPlan.getSuccessors(root).get(0));
+            phyPlan.remove(root);
+
+        }
+        indexerArgs[2] = ObjectSerializer.serialize(phyPlan);
+
+        POLoad idxJobLoader = new POLoad(new OperatorKey(scope,nig.getNextNodeId(scope)));
+        idxJobLoader.setPc(pigContext);
+        idxJobLoader.setIsTmpLoad(true);
+        idxJobLoader.setLFile(new FileSpec(origLoaderFileSpec.getFileName(),
+                new FuncSpec(MergeJoinIndexer.class.getName(), indexerArgs)));
+        indexerTezOp.plan.add(idxJobLoader);
+        indexerTezOp.UDFs.add(baseLoader.getLFile().getFuncSpec().toString());
+
+        // Loader of mro will return a tuple of form -
+        // (key1, key2, .. , WritableComparable, splitIndex). See MergeJoinIndexer for details.
+
+        // After getting an index entry in each mapper, send all of them to one
+        // vertex where they will be sorted on the way by Hadoop.
+        TezOperator indexAggrOper = getTezOp();
+        tezPlan.add(indexAggrOper);
+        tezPlan.add(indexerTezOp);
+        TezCompilerUtil.simpleConnectTwoVertex(tezPlan, indexerTezOp, indexAggrOper, scope, nig);
+        TezCompilerUtil.connect(tezPlan, indexAggrOper, baseTezOp);
+        indexAggrOper.segmentBelow = true;
+
+        indexerTezOp.setRequestedParallelism(1); // we need exactly one reducer for indexing job.
+
+        POStore st = TezCompilerUtil.getStore(scope, nig);
+        FileSpec strFile = getTempFileSpec();
+        st.setSFile(strFile);
+        indexAggrOper.plan.addAsLeaf(st);
+        indexAggrOper.setClosed(true);
+
+        return strFile;
     }
 
     /** Since merge-join works on two inputs there are exactly two TezOper predecessors identified  as left and right.
@@ -902,7 +1076,7 @@ public class TezCompiler extends PhyPlanVisitor {
             joinOp.setEndOfRecordMark(POStatus.STATUS_NULL);
             if(compiledInputs.length != 2 || joinOp.getInputs().size() != 2){
                 int errCode=1101;
-                throw new MRCompilerException("Merge Join must have exactly two inputs. Found : "+compiledInputs.length, errCode);
+                throw new TezCompilerException("Merge Join must have exactly two inputs. Found : "+compiledInputs.length, errCode);
             }
 
             curTezOp = phyToTezOpMap.get(joinOp.getInputs().get(0));
@@ -922,14 +1096,14 @@ public class TezCompiler extends PhyPlanVisitor {
                 if(rightPlan.getRoots().size() != 1){
                     int errCode = 2171;
                     String errMsg = "Expected one but found more then one root physical operator in physical plan.";
-                    throw new MRCompilerException(errMsg,errCode,PigException.BUG);
+                    throw new TezCompilerException(errMsg,errCode,PigException.BUG);
                 }
 
                 PhysicalOperator rightLoader = rightPlan.getRoots().get(0);
                 if(! (rightLoader instanceof POLoad)){
                     int errCode = 2172;
                     String errMsg = "Expected physical operator at root to be POLoad. Found : "+rightLoader.getClass().getCanonicalName();
-                    throw new MRCompilerException(errMsg,errCode);
+                    throw new TezCompilerException(errMsg,errCode);
                 }
 
                 if (rightPlan.getSuccessors(rightLoader) == null || rightPlan.getSuccessors(rightLoader).isEmpty())
@@ -988,7 +1162,7 @@ public class TezCompiler extends PhyPlanVisitor {
                                 int errCode = 1106;
                                 String errMsg = "Merge join is possible only for simple column or '*' join keys when using " +
                                 rightLoader.getLFile().getFuncSpec() + " as the loader";
-                                throw new MRCompilerException(errMsg, errCode, PigException.INPUT);
+                                throw new TezCompilerException(errMsg, errCode, PigException.INPUT);
                             }
                         }
                     }
@@ -1003,7 +1177,7 @@ public class TezCompiler extends PhyPlanVisitor {
                     int errCode = 1104;
                     String errMsg = "Right input of merge-join must implement IndexableLoadFunc. " +
                     "The specified loader " + loadFunc + " doesn't implement it";
-                    throw new MRCompilerException(errMsg,errCode);
+                    throw new TezCompilerException(errMsg,errCode);
                 }
 
                 // Replace POLoad with  indexer.
@@ -1013,7 +1187,7 @@ public class TezCompiler extends PhyPlanVisitor {
                     String errMsg = "Right input of merge-join must implement " +
                     "OrderedLoadFunc interface. The specified loader "
                     + loadFunc + " doesn't implement it";
-                    throw new MRCompilerException(errMsg,errCode);
+                    throw new TezCompilerException(errMsg,errCode);
                 }
 
                 String[] indexerArgs = new String[6];
@@ -1083,17 +1257,17 @@ public class TezCompiler extends PhyPlanVisitor {
         catch(PlanException e){
             int errCode = 2034;
             String msg = "Error compiling operator " + joinOp.getClass().getCanonicalName();
-            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
+            throw new TezCompilerException(msg, errCode, PigException.BUG, e);
         }
        catch (IOException e){
            int errCode = 3000;
            String errMsg = "IOException caught while compiling POMergeJoin";
-            throw new MRCompilerException(errMsg, errCode,e);
+            throw new TezCompilerException(errMsg, errCode,e);
         }
        catch(CloneNotSupportedException e){
            int errCode = 2127;
            String errMsg = "Cloning exception caught while compiling POMergeJoin";
-           throw new MRCompilerException(errMsg, errCode, PigException.BUG, e);
+           throw new TezCompilerException(errMsg, errCode, PigException.BUG, e);
        }
     }
 

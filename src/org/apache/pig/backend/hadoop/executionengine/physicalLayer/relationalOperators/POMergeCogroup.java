@@ -22,8 +22,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Properties;
@@ -51,14 +49,12 @@ import org.apache.pig.data.InternalCachedBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.util.IdentityHashSet;
 import org.apache.pig.impl.util.Pair;
-import org.apache.pig.pen.util.ExampleTuple;
-import org.apache.pig.pen.util.LineageTracer;
 
 public class POMergeCogroup extends PhysicalOperator {
 
@@ -107,6 +103,8 @@ public class POMergeCogroup extends PhysicalOperator {
     // call or not.
     private transient boolean workingOnNewKey;
 
+    private byte endOfRecordMark = POStatus.STATUS_EOP;
+
     public POMergeCogroup(OperatorKey k,List<PhysicalOperator> inpPOs, 
             POLocalRearrange[] lrs, int parallel) {
 
@@ -114,6 +112,14 @@ public class POMergeCogroup extends PhysicalOperator {
         this.LRs = lrs;
         for(int i=0; i < lrs.length; i++)
             LRs[i].setStripKeyFromValue(false);
+    }
+    
+    // Set to POStatus.STATUS_EOP (default) for MR and POStatus.STATUS_NULL for Tez.
+    // This is because:
+    // For MR, we send EOP at the end of every record
+    // For Tez, we only use a global EOP, so send NULL for end of record
+    public void setEndOfRecordMark(byte endOfRecordMark) {
+        this.endOfRecordMark = endOfRecordMark;
     }
 
     @Override
@@ -240,7 +246,7 @@ public class POMergeCogroup extends PhysicalOperator {
                     if( (null != tuple) && (Byte)tuple.get(0) == 0){
                         // Is key null for both tuples.
                         if(prevTopOfHeap.get(1) == null && tuple.get(1) == null){
-                            return new Result(POStatus.STATUS_EOP,null); 
+                            return new Result(endOfRecordMark,null); 
                         }
                         // Does key change from non-null to null or from one
                         // non-null to another non-null.
@@ -250,7 +256,7 @@ public class POMergeCogroup extends PhysicalOperator {
                     }
                     // Either top of heap is from different relation or it is
                     // from left relation but having the same key.
-                    return new Result(POStatus.STATUS_EOP,null); 
+                    return new Result(endOfRecordMark,null); 
                 }
                 
                 Tuple nxtTuple = sideLoaders.get(relIdx-1).getNext();
@@ -317,7 +323,12 @@ public class POMergeCogroup extends PhysicalOperator {
     private void setup(Tuple firstRearrangedTup) throws IOException{
 
         // Read our own split Index.
-        int  curSplitIdx = ((PigSplit)((Context)PigMapReduce.sJobContext).getInputSplit()).getSplitIndex();
+        int  curSplitIdx = 0;
+        if (PigMapReduce.sJobContext.getConfiguration().get(PigImplConstants.PIG_SPLIT_INDEX)!=null) {
+            curSplitIdx = Integer.parseInt(PigMapReduce.sJobContext.getConfiguration().get(PigImplConstants.PIG_SPLIT_INDEX));
+        } else {
+            curSplitIdx = ((PigSplit)((Context)PigMapReduce.sJobContext).getInputSplit()).getSplitIndex();
+        }
         Object firstBaseKey = firstRearrangedTup.get(1);
         List<Pair<Integer,Tuple>> index = readIndex();
 
