@@ -32,7 +32,7 @@ import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.runtime.api.LogicalOutput;
-import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 
 /**
@@ -70,7 +70,7 @@ public class POStoreTez extends POStore implements TezOutput, TezTaskConfigurabl
     }
 
     @Override
-    public void initialize(TezProcessorContext processorContext)
+    public void initialize(ProcessorContext processorContext)
             throws ExecException {
         if (isMultiStore()) {
             CounterGroup multiStoreGroup = processorContext.getCounters()

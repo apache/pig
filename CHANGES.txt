@@ -58,6 +58,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4118: Fix hadoopversion 23 compilation due to TEZ-1237/TEZ-1407 (daijy)
+
 PIG-4109: register local jar fail on Windows when Pig script is remote (daijy)
 
 PIG-4116: Update Pig doc about Hadoop 2 Streaming Python UDF support (cheolsoo)

@@ -19,7 +19,7 @@
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.api.ProcessorContext;
 
 /**
  * This interface is implemented by PhysicalOperators that can need to access
@@ -28,6 +28,6 @@ import org.apache.tez.runtime.api.TezProcessorContext;
 
 public interface TezTaskConfigurable {
 
-    public void initialize(TezProcessorContext processorContext) throws ExecException;
+    public void initialize(ProcessorContext processorContext) throws ExecException;
 
 }

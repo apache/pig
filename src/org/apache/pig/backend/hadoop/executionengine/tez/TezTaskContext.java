@@ -21,17 +21,17 @@ import org.apache.hadoop.mapreduce.Counter;
 import org.apache.pig.backend.hadoop.executionengine.TaskContext;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.mapreduce.hadoop.mapred.MRCounters.MRCounter;
-import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.api.ProcessorContext;
 
-public class TezTaskContext extends TaskContext<TezProcessorContext> {
-    private TezProcessorContext context;
+public class TezTaskContext extends TaskContext<ProcessorContext> {
+    private ProcessorContext context;
 
-    public TezTaskContext(TezProcessorContext context) {
+    public TezTaskContext(ProcessorContext context) {
         this.context = context;
     }
 
     @Override
-    public TezProcessorContext get() {
+    public ProcessorContext get() {
         return context;
     }
 
