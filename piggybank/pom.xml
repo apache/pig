@@ -1,0 +1,181 @@
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.apache.pig</groupId>
+        <artifactId>pig-main</artifactId>
+        <version>0.14.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>piggybank</artifactId>
+    <packaging>jar</packaging>
+    <version>0.14.0-SNAPSHOT</version>
+
+    <properties>
+        <name>piggybank</name>
+
+        <!--Test Configurations-->
+        <skipTests>true</skipTests>
+        <test.extra.path></test.extra.path>
+        <test.exec.type>mr</test.exec.type>
+        <ssh.gateway></ssh.gateway>
+        <hod.server></hod.server>
+        <debugArgs></debugArgs>
+        <test.junit.output.format>plain</test.junit.output.format>
+
+        <test.log.dir>${basedir}/target</test.log.dir>
+        <test.timeout>7200000</test.timeout>
+
+    </properties>
+
+    <profiles>
+
+        <profile>
+            <id>hadoop1</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <hadoopversion>20</hadoopversion>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>hadoop2</id>
+            <properties>
+                <hadoopversion>23</hadoopversion>
+            </properties>
+        </profile>
+
+    </profiles>
+
+    <build>
+        <plugins>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.17</version>
+                <configuration>
+                    <skipTests>true</skipTests>
+                    <excludes>
+                        <exclude>**</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.4</version>
+                <configuration>
+                    <outputDirectory>${basedir}</outputDirectory>
+                    <finalName>${name}</finalName>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>2.17</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+
+                <configuration>
+                    <skipTests>${skipTests}</skipTests>
+
+                    <reuseForks>false</reuseForks>
+
+                    <includes>
+                        <include>**/*.java</include>
+                    </includes>
+
+                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
+
+                    <additionalClasspathElements>
+                        <additionalClasspathElement>${project.basedir}/piggybank.jar</additionalClasspathElement>
+                        <additionalClasspathElement>${project.basedir}/</additionalClasspathElement>
+                        <additionalClasspathElement>${project.basedir}/build/classes</additionalClasspathElement>
+                        <additionalClasspathElement>${project.build.directory}</additionalClasspathElement>
+                    </additionalClasspathElements>
+
+                    <printSummary>true</printSummary>
+
+                    <environmentVariables>
+                        <PATH>${env.PATH}${test.extra.path}</PATH>
+                        <MALLOC_ARENA_MAX>4</MALLOC_ARENA_MAX>
+                    </environmentVariables>
+
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-clean-plugin</artifactId>
+                <version>2.5</version>
+                <configuration>
+                    <filesets>
+                        <fileset>
+                            <directory>${project.basedir}/build/</directory>
+                            <includes>
+                                <include>**/*</include>
+                            </includes>
+                            <followSymlinks>false</followSymlinks>
+                        </fileset>
+                        <fileset>
+                            <directory>${project.basedir}/</directory>
+                            <includes>
+                                <include>${name}.jar</include>
+                            </includes>
+                            <followSymlinks>false</followSymlinks>
+                        </fileset>
+                    </filesets>
+                </configuration>
+            </plugin>
+
+        </plugins>
+
+    </build>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.apache.pig</groupId>
+            <artifactId>pig</artifactId>
+            <version>0.14.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.pig</groupId>
+            <artifactId>pig</artifactId>
+            <version>0.14.0-SNAPSHOT</version>
+            <classifier>tests</classifier>
+        </dependency>
+
+    </dependencies>
+
+</project>
