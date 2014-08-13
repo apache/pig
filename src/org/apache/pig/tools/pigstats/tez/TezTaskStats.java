@@ -115,6 +115,9 @@ public class TezTaskStats extends JobStats {
         }
 
         for (POStore sto : stores) {
+            if (sto.isTmpStore()) {
+                continue;
+            }
             long records = -1;
             long hdfsBytesWritten = JobStats.getOutputSize(sto, conf);
             String filename = sto.getSFile().getFileName();

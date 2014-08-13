@@ -68,7 +68,7 @@ public class TestMapSideCogroup {
     private static final String EMPTY_FILE = "empty.txt";
     private static final String DATA_WITH_NULL_KEYS = "null.txt";
 
-    private static MiniCluster cluster = MiniCluster.buildCluster();
+    private static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
 
     @Before
     public void setUp() throws Exception {
@@ -148,7 +148,7 @@ public class TestMapSideCogroup {
     @Test
     public void testCompilation(){
         try{
-            PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+            PigServer pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
             String query = "A = LOAD 'data1' using "+ DummyCollectableLoader.class.getName() +"() as (id, name, grade);" + 
             "B = LOAD 'data2' using "+ DummyIndexableLoader.class.getName() +"() as (id, name, grade);" +
             "D = LOAD 'data2' using "+ DummyIndexableLoader.class.getName() +"() as (id, name, grade);" +
@@ -218,7 +218,7 @@ public class TestMapSideCogroup {
     
     @Test
     public void testFailure2() throws Exception{
-        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
         String query = "A = LOAD 'data1' using "+ DummyCollectableLoader.class.getName() +"() as (id, name, grade);" +
         "B = LOAD 'data2' using "+ DummyIndexableLoader.class.getName() +"() as (id, name, grade);" +
         "D = LOAD 'data2' using "+ DummyIndexableLoader.class.getName() +"() as (id, name, grade);" +
@@ -243,7 +243,7 @@ public class TestMapSideCogroup {
     @Test
     public void testSimple() throws Exception{
 
-        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE1 + "' using "+ DummyCollectableLoader.class.getName() +"() as (c1:chararray,c2:int);");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE2 + "' using "+ DummyIndexableLoader.class.getName()   +"() as (c1:chararray,c2:int);");
 
@@ -273,7 +273,7 @@ public class TestMapSideCogroup {
     @Test
     public void test3Way() throws Exception{
 
-        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE1 + "' using "+ DummyCollectableLoader.class.getName() +"() as (c1:chararray,c2:int);");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE2 + "' using "+ DummyIndexableLoader.class.getName()   +"() as (c1:chararray,c2:int);");
         pigServer.registerQuery("E = LOAD '" + INPUT_FILE3 + "' using "+ DummyIndexableLoader.class.getName()   +"() as (c1:chararray,c2:int);");
@@ -307,7 +307,7 @@ public class TestMapSideCogroup {
     @Test
     public void testMultiSplits() throws Exception{
 
-        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE1 + "," + INPUT_FILE4 + "' using "+ DummyCollectableLoader.class.getName() +"() as (c1:chararray,c2:int);");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE5 + "' using "+ DummyIndexableLoader.class.getName()   +"() as (c1:chararray,c2:int);");
 
@@ -346,7 +346,7 @@ public class TestMapSideCogroup {
     @Test
     public void testCogrpOnMultiKeys() throws Exception{
 
-        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE1 + "' using "+ DummyCollectableLoader.class.getName() +"() as (c1:chararray,c2:chararray);");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE2 + "' using "+ DummyIndexableLoader.class.getName()   +"() as (c1:chararray,c2:chararray);");
 
@@ -382,7 +382,7 @@ public class TestMapSideCogroup {
     @Test
     public void testEmptyDeltaFile() throws Exception{
 
-        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE1 + "' using "+ DummyCollectableLoader.class.getName() +"() as (c1:chararray,c2:int);");
         pigServer.registerQuery("B = LOAD '" + EMPTY_FILE + "' using "+ DummyIndexableLoader.class.getName()   +"() as (c1:chararray,c2:int);");
 
@@ -413,7 +413,7 @@ public class TestMapSideCogroup {
     @Test
     public void testDataWithNullKeys() throws Exception{
 
-        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
         pigServer.registerQuery("A = LOAD '" + DATA_WITH_NULL_KEYS + "' using "+ DummyCollectableLoader.class.getName() +"() as (c1:chararray,c2:int);");
         pigServer.registerQuery("B = LOAD '" + DATA_WITH_NULL_KEYS + "' using "+ DummyIndexableLoader.class.getName()   +"() as (c1:chararray,c2:int);");
 

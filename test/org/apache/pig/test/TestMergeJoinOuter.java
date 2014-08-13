@@ -60,14 +60,14 @@ public class TestMergeJoinOuter {
     private static final String INPUT_FILE1 = "testMergeJoinInput.txt";
     private static final String INPUT_FILE2 = "testMergeJoinInput2.txt";
     private PigServer pigServer;
-    private static MiniCluster cluster = MiniCluster.buildCluster();
+    private static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
     
     public TestMergeJoinOuter() throws ExecException{
         
         Properties props = cluster.getProperties();
         props.setProperty(MRConfiguration.MAP_MAX_ATTEMPTS, "1");
         props.setProperty(MRConfiguration.REDUCE_MAX_ATTEMPTS, "1");
-        pigServer = new PigServer(ExecType.MAPREDUCE, props);
+        pigServer = new PigServer(cluster.getExecType(), props);
     }
     
     @Before
