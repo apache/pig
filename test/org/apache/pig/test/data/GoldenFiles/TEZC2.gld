@@ -2,28 +2,28 @@
 # There are 1 DAGs in the session
 #--------------------------------------------------
 #--------------------------------------------------
-# TEZ DAG plan: scope-41
+# TEZ DAG plan: scope-22
 #--------------------------------------------------
 Tez vertex scope-20	->	Tez vertex scope-21,
 Tez vertex scope-21
 
 Tez vertex scope-20
 # Plan on vertex
-b: Local Rearrange[tuple]{int}(false) - scope-34	->	 scope-21
+b: Local Rearrange[tuple]{int}(false) - scope-35	->	 scope-21
 |   |
-|   Project[int][0] - scope-36
+|   Project[int][0] - scope-37
 |
-|---c: New For Each(false,false)[bag] - scope-22
+|---c: New For Each(false,false)[bag] - scope-23
     |   |
-    |   Project[int][0] - scope-23
+    |   Project[int][0] - scope-24
     |   |
-    |   POUserFunc(org.apache.pig.builtin.COUNT$Initial)[tuple] - scope-24
+    |   POUserFunc(org.apache.pig.builtin.COUNT$Initial)[tuple] - scope-25
     |   |
-    |   |---Project[bag][0] - scope-25
+    |   |---Project[bag][0] - scope-26
     |       |
-    |       |---Project[bag][1] - scope-26
+    |       |---Project[bag][1] - scope-27
     |
-    |---Pre Combiner Local Rearrange[tuple]{Unknown} - scope-37
+    |---Pre Combiner Local Rearrange[tuple]{Unknown} - scope-38
         |
         |---a: New For Each(false,false)[bag] - scope-7
             |   |
@@ -38,19 +38,19 @@ b: Local Rearrange[tuple]{int}(false) - scope-34	->	 scope-21
             |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
 Tez vertex scope-21
 # Combine plan on edge <scope-20>
-b: Local Rearrange[tuple]{int}(false) - scope-38	->	 scope-21
+b: Local Rearrange[tuple]{int}(false) - scope-39	->	 scope-21
 |   |
-|   Project[int][0] - scope-40
+|   Project[int][0] - scope-41
 |
-|---c: New For Each(false,false)[bag] - scope-27
+|---c: New For Each(false,false)[bag] - scope-28
     |   |
-    |   Project[int][0] - scope-28
+    |   Project[int][0] - scope-29
     |   |
-    |   POUserFunc(org.apache.pig.builtin.COUNT$Intermediate)[tuple] - scope-29
+    |   POUserFunc(org.apache.pig.builtin.COUNT$Intermediate)[tuple] - scope-30
     |   |
-    |   |---Project[bag][1] - scope-30
+    |   |---Project[bag][1] - scope-31
     |
-    |---b: Package(CombinerPackager)[tuple]{int} - scope-33
+    |---b: Package(CombinerPackager)[tuple]{int} - scope-34
 # Plan on vertex
 c: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-19
 |
@@ -60,6 +60,6 @@ c: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-19
     |   |
     |   POUserFunc(org.apache.pig.builtin.COUNT$Final)[long] - scope-16
     |   |
-    |   |---Project[bag][1] - scope-31
+    |   |---Project[bag][1] - scope-32
     |
     |---b: Package(CombinerPackager)[tuple]{int} - scope-9

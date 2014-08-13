@@ -23,6 +23,7 @@ import java.util.Map;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.tez.NativeTezOper;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezEdgeDescriptor;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezOpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezOperDependencyParallelismEstimator;
@@ -47,6 +48,9 @@ public class ParallelismSetter extends TezOpPlanVisitor {
 
     @Override
     public void visitTezOp(TezOperator tezOp) throws VisitorException {
+        if (tezOp instanceof NativeTezOper) {
+            return;
+        }
         try {
             // Can only set parallelism here if the parallelism isn't derived from
             // splits
