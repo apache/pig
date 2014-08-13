@@ -27,7 +27,9 @@
 **/TestLimitAdjuster.java
 **/TestLimitVariable.java
 **/TestMapReduce.java
+**/TestMapSideCogroup.java
 **/TestMapReduce2.java
+**/TestMergeJoinOuter.java
 **/TestNestedForeach.java
 **/TestNewPlanImplicitSplit.java
 **/TestParser.java
