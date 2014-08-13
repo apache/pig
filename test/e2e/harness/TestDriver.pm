@@ -717,8 +717,7 @@ sub runTestGroup() {
 					$testStatuses->{$testName} = $failedStr;
 
 				}
-				$msg= "$msg at " . time . "\n";
-				#print $msg;
+                                $msg .= "\nEnding test $testName at " . time ."\n";
 				print $subLog $msg;
 				$duration = $endTime - $beginTime;
 				$dbinfo{'duration'} = $duration;
@@ -728,6 +727,7 @@ sub runTestGroup() {
 
 			if ($@) {
 				$msg= "ERROR $subName at : ".__LINE__." Failed to run test $testName <$@>\n";
+                                $msg .= "\nEnding test $testName at " . time ."\n";
 				#print $msg;
 				print $subLog $msg;
 				$testStatuses->{$testName} = $abortedStr;
