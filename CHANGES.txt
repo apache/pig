@@ -62,6 +62,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4123: Increase memory for TezMiniCluster (daijy)
+
 PIG-4122: Fix hadoopversion 23 compilation due to TEZ-1194 (daijy)
 
 PIG-4061: Make Streaming UDF work in Tez (daijy)
