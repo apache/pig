@@ -23,7 +23,7 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.tez.dag.api.EdgeManagerDescriptor;
+import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
@@ -87,11 +87,11 @@ public class PartitionerDefinedVertexManager extends VertexManagerPlugin {
             if (dynamicParallelism!=currentParallelism) {
                 LOG.info("Pig Partitioner Defined Vertex Manager: reset parallelism to " + dynamicParallelism
                         + " from " + currentParallelism);
-                Map<String, EdgeManagerDescriptor> edgeManagers =
-                    new HashMap<String, EdgeManagerDescriptor>();
+                Map<String, EdgeManagerPluginDescriptor> edgeManagers =
+                    new HashMap<String, EdgeManagerPluginDescriptor>();
                 for(String vertex : getContext().getInputVertexEdgeProperties().keySet()) {
-                    EdgeManagerDescriptor edgeManagerDescriptor =
-                            new EdgeManagerDescriptor(ScatterGatherEdgeManager.class.getName());
+                    EdgeManagerPluginDescriptor edgeManagerDescriptor =
+                            new EdgeManagerPluginDescriptor(ScatterGatherEdgeManager.class.getName());
                     edgeManagers.put(vertex, edgeManagerDescriptor);
                 }
                 getContext().setVertexParallelism(dynamicParallelism, null, edgeManagers, null);
