@@ -66,7 +66,13 @@ public class ScriptingOutputCapturer {
         
         String jobId = conf.get(MRConfiguration.JOB_ID);
         String taskId = conf.get(MRConfiguration.TASK_ID);
-        String hadoopLogDir = System.getProperty("hadoop.log.dir");
+        String hadoopLogDir = System.getProperty("yarn.app.container.log.dir");
+        if (hadoopLogDir == null) {
+            hadoopLogDir = conf.get("yarn.app.container.log.dir");
+        }
+        if (hadoopLogDir == null) {
+            hadoopLogDir = System.getProperty("hadoop.log.dir");
+        }
         if (hadoopLogDir == null) {
             hadoopLogDir = conf.get("hadoop.log.dir");
         }
