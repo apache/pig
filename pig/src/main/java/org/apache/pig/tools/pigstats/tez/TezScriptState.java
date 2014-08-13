@@ -218,6 +218,9 @@ public class TezScriptState extends ScriptState {
             if (tezOp.isUnion()) {
                 feature.set(PIG_FEATURE.UNION.ordinal());
             }
+            if (tezOp.isNative()) {
+                feature.set(PIG_FEATURE.NATIVE.ordinal());
+            }
             try {
                 new FeatureVisitor(tezOp.plan, feature).visit();
             } catch (VisitorException e) {

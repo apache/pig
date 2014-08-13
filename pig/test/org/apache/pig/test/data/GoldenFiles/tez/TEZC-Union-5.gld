@@ -2,18 +2,18 @@
 # There are 1 DAGs in the session
 #--------------------------------------------------
 #--------------------------------------------------
-# TEZ DAG plan: scope-130
+# TEZ DAG plan: scope-125
 #--------------------------------------------------
-Tez vertex scope-119	->	Tez vertex group scope-125,
-Tez vertex scope-120	->	Tez vertex group scope-125,
-Tez vertex group scope-125	->	Tez vertex scope-118,
+Tez vertex scope-119	->	Tez vertex group scope-126,
+Tez vertex scope-120	->	Tez vertex group scope-126,
+Tez vertex group scope-126	->	Tez vertex scope-118,
 Tez vertex scope-118
 
 Tez vertex scope-119
 # Plan on vertex
-Local Rearrange[tuple]{int}(false) - scope-126	->	 scope-118
+Local Rearrange[tuple]{int}(false) - scope-127	->	 scope-118
 |   |
-|   Project[int][0] - scope-127
+|   Project[int][0] - scope-128
 |
 |---a: New For Each(false,false)[bag] - scope-99
     |   |
@@ -28,9 +28,9 @@ Local Rearrange[tuple]{int}(false) - scope-126	->	 scope-118
     |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-92
 Tez vertex scope-120
 # Plan on vertex
-Local Rearrange[tuple]{int}(false) - scope-128	->	 scope-118
+Local Rearrange[tuple]{int}(false) - scope-129	->	 scope-118
 |   |
-|   Project[int][0] - scope-129
+|   Project[int][0] - scope-130
 |
 |---c: New For Each(false,false)[bag] - scope-107
     |   |
@@ -43,13 +43,13 @@ Local Rearrange[tuple]{int}(false) - scope-128	->	 scope-118
     |   |---Project[bytearray][0] - scope-104
     |
     |---b: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-100
-Tez vertex group scope-125	<-	 [scope-119, scope-120]	->	 scope-118
+Tez vertex group scope-126	<-	 [scope-119, scope-120]	->	 scope-118
 # No plan on vertex group
 Tez vertex scope-118
 # Plan on vertex
 e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-117
 |
-|---e: FRJoin[tuple] - scope-111	<-	 scope-125
+|---e: FRJoin[tuple] - scope-111	<-	 scope-126
     |   |
     |   Project[int][0] - scope-109
     |   |

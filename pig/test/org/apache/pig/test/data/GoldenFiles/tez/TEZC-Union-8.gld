@@ -2,13 +2,13 @@
 # There are 1 DAGs in the session
 #--------------------------------------------------
 #--------------------------------------------------
-# TEZ DAG plan: scope-46
+# TEZ DAG plan: scope-41
 #--------------------------------------------------
 Tez vertex scope-23	->	Tez vertex scope-25,
-Tez vertex scope-25	->	Tez vertex group scope-41,
+Tez vertex scope-25	->	Tez vertex group scope-42,
 Tez vertex scope-28	->	Tez vertex scope-30,
-Tez vertex scope-30	->	Tez vertex group scope-41,
-Tez vertex group scope-41	->	Tez vertex scope-38,
+Tez vertex scope-30	->	Tez vertex group scope-42,
+Tez vertex group scope-42	->	Tez vertex scope-38,
 Tez vertex scope-38
 
 Tez vertex scope-23
@@ -20,9 +20,9 @@ POValueOutputTez - scope-24	->	 [scope-25]
     |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
 Tez vertex scope-25
 # Plan on vertex
-POValueOutputTez - scope-42	->	 [scope-38]
+POValueOutputTez - scope-43	->	 [scope-38]
 |
-|---d: Limit - scope-43
+|---d: Limit - scope-44
     |
     |---a: New For Each(false,false)[bag] - scope-9
         |   |
@@ -48,9 +48,9 @@ POValueOutputTez - scope-29	->	 [scope-30]
     |---b: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-10
 Tez vertex scope-30
 # Plan on vertex
-POValueOutputTez - scope-44	->	 [scope-38]
+POValueOutputTez - scope-45	->	 [scope-38]
 |
-|---d: Limit - scope-45
+|---d: Limit - scope-46
     |
     |---c: New For Each(false,false)[bag] - scope-19
         |   |
@@ -67,7 +67,7 @@ POValueOutputTez - scope-44	->	 [scope-38]
             |---Limit - scope-32
                 |
                 |---POValueInputTez - scope-31	<-	 scope-28
-Tez vertex group scope-41	<-	 [scope-25, scope-30]	->	 scope-38
+Tez vertex group scope-42	<-	 [scope-25, scope-30]	->	 scope-38
 # No plan on vertex group
 Tez vertex scope-38
 # Plan on vertex
@@ -75,4 +75,4 @@ d: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-22
 |
 |---d: Limit - scope-40
     |
-    |---POValueInputTez - scope-39	<-	 scope-41
+    |---POValueInputTez - scope-39	<-	 scope-42

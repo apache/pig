@@ -37,6 +37,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfigurat
 import org.apache.pig.backend.hadoop.executionengine.tez.TezExecType;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezSessionManager;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 
 public class TezMiniCluster extends MiniGenericCluster {
@@ -99,6 +100,8 @@ public class TezMiniCluster extends MiniGenericCluster {
             m_mr_conf.set(MRConfiguration.FRAMEWORK_NAME, "yarn-tez");
             m_mr_conf.set(YarnConfiguration.YARN_APPLICATION_CLASSPATH,
                     System.getProperty("java.class.path"));
+            m_mr_conf.set(MRJobConfig.MAP_JAVA_OPTS, "-Xmx2048m");
+            m_mr_conf.set(MRJobConfig.REDUCE_JAVA_OPTS, "-Xmx2048m");
 
             Configuration mapred_site = new Configuration(false);
             Configuration yarn_site = new Configuration(false);

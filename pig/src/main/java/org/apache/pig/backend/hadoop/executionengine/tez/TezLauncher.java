@@ -48,6 +48,7 @@ import org.apache.pig.backend.hadoop.executionengine.tez.optimizers.UnionOptimiz
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.UDFContext;
@@ -58,6 +59,7 @@ import org.apache.pig.tools.pigstats.tez.TezStats;
 import org.apache.pig.tools.pigstats.tez.TezTaskStats;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
@@ -112,54 +114,64 @@ public class TezLauncher extends Launcher {
 
         TezOperPlan tezPlan;
         while ((tezPlan=tezPlanContainer.getNextPlan(processedPlans)) != null) {
+            optimize(tezPlan, pc);
             processedPlans.add(tezPlan);
-
-            TezPOPackageAnnotator pkgAnnotator = new TezPOPackageAnnotator(tezPlan);
-            pkgAnnotator.visit();
-
-            tezStats.initialize(tezPlan);
-            runningJob = jc.compile(tezPlan, grpName, tezPlanContainer);
-
-            tezScriptState.emitInitialPlanNotification(tezPlan);
-            tezScriptState.emitLaunchStartedNotification(tezPlan.size());
-
-            // Set the thread UDFContext so registered classes are available.
-            final UDFContext udfContext = UDFContext.getUDFContext();
-            Thread task = new Thread(runningJob) {
-                @Override
-                public void run() {
-                    UDFContext.setUdfContext(udfContext.clone());
-                    super.run();
-                }
-            };
-
-            JobControlThreadExceptionHandler jctExceptionHandler = new JobControlThreadExceptionHandler();
-            task.setUncaughtExceptionHandler(jctExceptionHandler);
-            task.setContextClassLoader(PigContext.getClassLoader());
-
-            tezStats.setTezJob(runningJob);
-
-            // Mark the times that the jobs were submitted so it's reflected in job
-            // history props
-            long scriptSubmittedTimestamp = System.currentTimeMillis();
-            // Job.getConfiguration returns the shared configuration object
-            Configuration jobConf = runningJob.getConfiguration();
-            jobConf.set("pig.script.submitted.timestamp",
-                    Long.toString(scriptSubmittedTimestamp));
-            jobConf.set("pig.job.submitted.timestamp",
-                    Long.toString(System.currentTimeMillis()));
-
-            Future<?> future = executor.schedule(task, timeToSleep, TimeUnit.MILLISECONDS);
             ProgressReporter reporter = new ProgressReporter();
-            tezScriptState.emitJobsSubmittedNotification(1);
-            reporter.notifyStarted();
+            tezStats.initialize(tezPlan);
+            if (tezPlan.size()==1 && tezPlan.getRoots().get(0) instanceof NativeTezOper) {
+                // Native Tez Plan
+                NativeTezOper nativeOper = (NativeTezOper)tezPlan.getRoots().get(0);
+                tezScriptState.emitInitialPlanNotification(tezPlan);
+                tezScriptState.emitLaunchStartedNotification(tezPlan.size());
+                tezScriptState.emitJobsSubmittedNotification(1);
+                nativeOper.runJob();
+            } else {
+                TezPOPackageAnnotator pkgAnnotator = new TezPOPackageAnnotator(tezPlan);
+                pkgAnnotator.visit();
 
-            while (!future.isDone()) {
-                reporter.notifyUpdate();
-                Thread.sleep(1000);
+                runningJob = jc.compile(tezPlan, grpName, tezPlanContainer);
+    
+                tezScriptState.emitInitialPlanNotification(tezPlan);
+                tezScriptState.emitLaunchStartedNotification(tezPlan.size());
+    
+                // Set the thread UDFContext so registered classes are available.
+                final UDFContext udfContext = UDFContext.getUDFContext();
+                Thread task = new Thread(runningJob) {
+                    @Override
+                    public void run() {
+                        UDFContext.setUdfContext(udfContext.clone());
+                        super.run();
+                    }
+                };
+    
+                JobControlThreadExceptionHandler jctExceptionHandler = new JobControlThreadExceptionHandler();
+                task.setUncaughtExceptionHandler(jctExceptionHandler);
+                task.setContextClassLoader(PigContext.getClassLoader());
+    
+                tezStats.setTezJob(runningJob);
+    
+                // Mark the times that the jobs were submitted so it's reflected in job
+                // history props
+                long scriptSubmittedTimestamp = System.currentTimeMillis();
+                // Job.getConfiguration returns the shared configuration object
+                Configuration jobConf = runningJob.getConfiguration();
+                jobConf.set("pig.script.submitted.timestamp",
+                        Long.toString(scriptSubmittedTimestamp));
+                jobConf.set("pig.job.submitted.timestamp",
+                        Long.toString(System.currentTimeMillis()));
+    
+                Future<?> future = executor.schedule(task, timeToSleep, TimeUnit.MILLISECONDS);
+                
+                tezScriptState.emitJobsSubmittedNotification(1);
+                reporter.notifyStarted();
+    
+                while (!future.isDone()) {
+                    reporter.notifyUpdate();
+                    Thread.sleep(1000);
+                }
+    
+                tezStats.accumulateStats(runningJob);
             }
-
-            tezStats.accumulateStats(runningJob);
             tezScriptState.emitProgressUpdatedNotification(100);
             tezPlanContainer.updatePlan(tezPlan, reporter.notifyFinishedOrFailed());
         }
@@ -217,8 +229,8 @@ public class TezLauncher extends Launcher {
         public void notifyStarted() throws IOException {
             for (Vertex v : runningJob.getDAG().getVertices()) {
                 TezTaskStats tts = tezStats.getVertexStats(v.getName());
-                byte[] bb = v.getProcessorDescriptor().getUserPayload();
-                Configuration conf = TezUtils.createConfFromUserPayload(bb);
+                UserPayload payload = v.getProcessorDescriptor().getUserPayload();
+                Configuration conf = TezUtils.createConfFromUserPayload(payload);
                 tts.setConf(conf);
                 tts.setId(v.getName());
                 tezScriptState.emitJobStartedNotification(v.getName());
@@ -269,6 +281,10 @@ public class TezLauncher extends Launcher {
             VisitorException, IOException {
         log.debug("Entering TezLauncher.explain");
         TezPlanContainer tezPlanContainer = compile(php, pc);
+        for (Map.Entry<OperatorKey,TezPlanContainerNode> entry : tezPlanContainer.getKeys().entrySet()) {
+            TezOperPlan tezPlan = entry.getValue().getNode();
+            optimize(tezPlan, pc);
+        }
 
         if (format.equals("text")) {
             TezPlanContainerPrinter printer = new TezPlanContainerPrinter(ps, tezPlanContainer);
@@ -280,11 +296,9 @@ public class TezLauncher extends Launcher {
         }
     }
 
-    public TezPlanContainer compile(PhysicalPlan php, PigContext pc)
-            throws PlanException, IOException, VisitorException {
+    public static void optimize(TezOperPlan tezPlan, PigContext pc) throws VisitorException {
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
-        TezCompiler comp = new TezCompiler(php, pc);
-        TezOperPlan tezPlan = comp.compile();
+        boolean aggregateWarning = conf.getBoolean("aggregate.warning", false);
 
         NoopFilterRemover filter = new NoopFilterRemover(tezPlan);
         filter.visit();
@@ -336,7 +350,12 @@ public class TezLauncher extends Launcher {
             ParallelismSetter parallelismSetter = new ParallelismSetter(tezPlan, pc);
             parallelismSetter.visit();
         }
+    }
 
+    public TezPlanContainer compile(PhysicalPlan php, PigContext pc)
+            throws PlanException, IOException, VisitorException {
+        TezCompiler comp = new TezCompiler(php, pc);
+        comp.compile();
         return comp.getPlanContainer();
     }
 
