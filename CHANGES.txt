@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4119: Add message at end of each testcase with timestamp in Pig system tests (nmaheshwari via daijy)
+
 PIG-4008: Pig code change to enable Tez Local mode (airbots via daijy)
 
 PIG-4091: Predicate pushdown for ORC (rohini via daijy)
