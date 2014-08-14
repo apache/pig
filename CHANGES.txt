@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4124: Command for Python streaming udf should be configurable (cheolsoo)
+
 PIG-4114: Add Native operator to tez (daijy)
 
 PIG-4117: Implement merge cogroup in Tez (daijy)

@@ -115,6 +115,12 @@ public class PigConfiguration {
     public static final String PIG_STREAMING_ENVIRONMENT = "pig.streaming.environment";
 
     /**
+     * This key can be used to configure the python command for python streaming
+     * udf. For eg, python2.7.
+     */
+    public static final String PIG_STREAMING_UDF_PYTHON_COMMAND = "pig.streaming.udf.python.command";
+
+    /**
      * This key is used to define the default load func. Pig will fallback on PigStorage
      * as default in case this is undefined.
      */
