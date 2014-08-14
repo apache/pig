@@ -341,7 +341,7 @@ public class StreamingUDF extends EvalFunc<Object> {
     }
 
     private boolean isPython() {
-        return language.toLowerCase().equals("python");
+        return language.toLowerCase().startsWith("python");
     }
 
     /**
