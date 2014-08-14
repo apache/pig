@@ -564,10 +564,10 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         procDesc.setUserPayload(userPayload);
 
         Vertex vertex = new Vertex(tezOp.getOperatorKey().toString(), procDesc, tezOp.getVertexParallelism(),
-                isMap ? MRHelpers.getMapResource(globalConf) : MRHelpers.getReduceResource(globalConf));
+                isMap ? MRHelpers.getResourceForMRMapper(globalConf) : MRHelpers.getResourceForMRReducer(globalConf));
 
         Map<String, String> taskEnv = new HashMap<String, String>();
-        MRHelpers.updateEnvironmentForMRTasks(globalConf, taskEnv, isMap);
+        MRHelpers.updateEnvBasedOnMRTaskEnv(globalConf, taskEnv, isMap);
         vertex.setTaskEnvironment(taskEnv);
 
         // All these classes are @InterfaceAudience.Private in Hadoop. Switch to Tez methods in TEZ-1012
@@ -580,8 +580,8 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         MRApps.setupDistributedCache(globalConf, localResources);
         vertex.setTaskLocalFiles(localResources);
 
-        vertex.setTaskLaunchCmdOpts(isMap ? MRHelpers.getMapJavaOpts(globalConf)
-                : MRHelpers.getReduceJavaOpts(globalConf));
+        vertex.setTaskLaunchCmdOpts(isMap ? MRHelpers.getJavaOptsForMRMapper(globalConf)
+                : MRHelpers.getJavaOptsForMRReducer(globalConf));
 
         log.info("For vertex - " + tezOp.getOperatorKey().toString()
                 + ": parallelism=" + tezOp.getVertexParallelism()

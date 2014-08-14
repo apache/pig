@@ -62,6 +62,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4125: TEZ-1347 broke the build
+
 PIG-4123: Increase memory for TezMiniCluster (daijy)
 
 PIG-4122: Fix hadoopversion 23 compilation due to TEZ-1194 (daijy)

@@ -102,7 +102,7 @@ public class MRToTezHelper {
 
         dagAMConf.setIfUnset(TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS,
                 org.apache.tez.mapreduce.hadoop.MRHelpers
-                        .getMRAMJavaOpts(tezConf));
+                        .getJavaOptsForMRAM(tezConf));
 
         String queueName = tezConf.get(JobContext.QUEUE_NAME,
                 YarnConfiguration.DEFAULT_QUEUE_NAME);
