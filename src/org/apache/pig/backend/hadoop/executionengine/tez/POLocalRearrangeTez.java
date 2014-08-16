@@ -38,8 +38,8 @@ import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 
 /**
- * POLocalRearrangeTez is used to write to a Tez OnFileSortedOutput
- * (shuffle) or OnFileUnorderedKVOutput (broadcast)
+ * POLocalRearrangeTez is used to write to a Tez OrderedPartitionedKVOutput
+ * (shuffle) or UnorderedKVOutput (broadcast)
  */
 public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
 

@@ -90,9 +90,9 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
             }
 
             // We need to adjust numInputs because it's possible for both
-            // ShuffledMergedInputs and non-ShuffledMergedInputs to be attached
+            // OrderedGroupedKVInput and non-OrderedGroupedKVInput to be attached
             // to the same vertex. If so, we're only interested in
-            // ShuffledMergedInputs. So we ignore the others.
+            // OrderedGroupedKVInputs. So we ignore the others.
             this.numInputs = this.inputs.size();
 
             readOnce = new boolean[numInputs];

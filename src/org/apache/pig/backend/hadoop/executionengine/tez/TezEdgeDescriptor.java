@@ -22,8 +22,8 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
-import org.apache.tez.runtime.library.input.ShuffledMergedInput;
-import org.apache.tez.runtime.library.output.OnFileSortedOutput;
+import org.apache.tez.runtime.library.input.OrderedGroupedKVInput;
+import org.apache.tez.runtime.library.output.OrderedPartitionedKVOutput;
 
 /**
  * Descriptor for Tez edge. It holds combine plan as well as edge properties.
@@ -55,8 +55,8 @@ public class TezEdgeDescriptor {
         combinePlan = new PhysicalPlan();
 
         // The default is shuffle edge.
-        inputClassName = ShuffledMergedInput.class.getName();
-        outputClassName = OnFileSortedOutput.class.getName();
+        inputClassName = OrderedGroupedKVInput.class.getName();
+        outputClassName = OrderedPartitionedKVOutput.class.getName();
         partitionerClass = null;
         schedulingType = SchedulingType.SEQUENTIAL;
         dataSourceType = DataSourceType.PERSISTED;

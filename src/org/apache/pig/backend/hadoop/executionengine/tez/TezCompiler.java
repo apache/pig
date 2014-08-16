@@ -107,9 +107,9 @@ import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
-import org.apache.tez.runtime.library.input.ShuffledMergedInput;
-import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
-import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
+import org.apache.tez.runtime.library.input.OrderedGroupedKVInput;
+import org.apache.tez.runtime.library.input.UnorderedKVInput;
+import org.apache.tez.runtime.library.output.UnorderedKVOutput;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -730,8 +730,8 @@ public class TezCompiler extends PhyPlanVisitor {
 
                     // Configure broadcast edges for replicated tables
                     edge.dataMovementType = DataMovementType.BROADCAST;
-                    edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
-                    edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
+                    edge.outputClassName = UnorderedKVOutput.class.getName();
+                    edge.inputClassName = UnorderedKVInput.class.getName();
                 } else {
                     int errCode = 2022;
                     String msg = "The current operator is closed. This is unexpected while compiling.";
@@ -816,10 +816,10 @@ public class TezCompiler extends PhyPlanVisitor {
             if (this.plan.getPredecessors(op).get(0) instanceof POSort) {
                 output.setTaskIndexWithRecordIndexAsKey(true);
                 // POValueOutputTez will write key (task index, record index) in
-                // sorted order. So using OnFileUnorderedKVOutput instead of OnFileSortedOutput.
-                // But input needs to be merged in sorter order and requires ShuffledMergedInput
-                edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
-                edge.inputClassName = ShuffledMergedInput.class.getName();
+                // sorted order. So using UnorderedKVOutput instead of OrderedPartitionedKVOutput.
+                // But input needs to be merged in sorter order and requires OrderedGroupedKVInput
+                edge.outputClassName = UnorderedKVOutput.class.getName();
+                edge.inputClassName = OrderedGroupedKVInput.class.getName();
                 edge.setIntermediateOutputKeyClass(TezCompilerUtil.TUPLE_CLASS);
                 edge.setIntermediateOutputKeyComparatorClass(PigTupleWritableComparator.class.getName());
             }
@@ -1623,8 +1623,8 @@ public class TezCompiler extends PhyPlanVisitor {
             // TODO: Convert to unsorted shuffle after TEZ-661
             // Use 1-1 edge
             edge.dataMovementType = DataMovementType.ONE_TO_ONE;
-            edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
-            edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
+            edge.outputClassName = UnorderedKVOutput.class.getName();
+            edge.inputClassName = UnorderedKVInput.class.getName();
             // If prevOp.requestedParallelism changes based on no. of input splits
             // it will reflect for joinJobs[0] so that 1-1 edge will work.
             joinJobs[0].setRequestedParallelismByReference(prevOp);
@@ -2206,8 +2206,8 @@ public class TezCompiler extends PhyPlanVisitor {
 
             // Use 1-1 edge
             edge.dataMovementType = DataMovementType.ONE_TO_ONE;
-            edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
-            edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
+            edge.outputClassName = UnorderedKVOutput.class.getName();
+            edge.inputClassName = UnorderedKVInput.class.getName();
             // If prevOper.requestedParallelism changes based on no. of input splits
             // it will reflect for sortOpers[0] so that 1-1 edge will work.
             sortOpers[0].setRequestedParallelismByReference(prevOper);
@@ -2218,8 +2218,8 @@ public class TezCompiler extends PhyPlanVisitor {
 
             /*
             // TODO: Convert to unsorted shuffle after TEZ-661
-            // edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
-            // edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
+            // edge.outputClassName = UnorderedKVOutput.class.getName();
+            // edge.inputClassName = UnorderedKVInput.class.getName();
             edge.partitionerClass = RoundRobinPartitioner.class;
             sortOpers[0].setRequestedParallelism(quantJobParallelismPair.second);
             sortOpers[1].setRequestedParallelism(quantJobParallelismPair.second);
@@ -2264,16 +2264,16 @@ public class TezCompiler extends PhyPlanVisitor {
 
                 edge = TezCompilerUtil.connect(tezPlan, sortOpers[1], limitOper);
                 // LIMIT in this case should be ordered. So we output unordered with key as task index
-                // and on the input we use ShuffledMergedInput to do ordered merge to retain sorted order.
+                // and on the input we use OrderedGroupedKVInput to do ordered merge to retain sorted order.
                 output.addOutputKey(limitOper.getOperatorKey().toString());
                 output.setTaskIndexWithRecordIndexAsKey(true);
                 edge = curTezOp.inEdges.get(sortOpers[1].getOperatorKey());
                 TezCompilerUtil.configureValueOnlyTupleOutput(edge, DataMovementType.SCATTER_GATHER);
                 // POValueOutputTez will write key (task index, record index) in
-                // sorted order. So using OnFileUnorderedKVOutput instead of OnFileSortedOutput.
-                // But input needs to be merged in sorter order and requires ShuffledMergedInput
-                edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
-                edge.inputClassName = ShuffledMergedInput.class.getName();
+                // sorted order. So using UnorderedKVOutput instead of OrderedPartitionedKVOutput.
+                // But input needs to be merged in sorter order and requires OrderedGroupedKVInput
+                edge.outputClassName = UnorderedKVOutput.class.getName();
+                edge.inputClassName = OrderedGroupedKVInput.class.getName();
                 edge.setIntermediateOutputKeyClass(TezCompilerUtil.TUPLE_CLASS);
                 edge.setIntermediateOutputKeyComparatorClass(PigTupleWritableComparator.class.getName());
 

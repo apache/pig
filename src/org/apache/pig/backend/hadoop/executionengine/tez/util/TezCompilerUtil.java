@@ -26,9 +26,9 @@ import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
-import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
-import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
-import org.apache.tez.runtime.library.output.OnFileUnorderedPartitionedKVOutput;
+import org.apache.tez.runtime.library.input.UnorderedKVInput;
+import org.apache.tez.runtime.library.output.UnorderedKVOutput;
+import org.apache.tez.runtime.library.output.UnorderedPartitionedKVOutput;
 
 import com.google.common.collect.Lists;
 
@@ -159,11 +159,11 @@ public class TezCompilerUtil {
     static public void configureValueOnlyTupleOutput(TezEdgeDescriptor edge, DataMovementType dataMovementType) {
         edge.dataMovementType = dataMovementType;
         if (dataMovementType == DataMovementType.BROADCAST || dataMovementType == DataMovementType.ONE_TO_ONE) {
-            edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
-            edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
+            edge.outputClassName = UnorderedKVOutput.class.getName();
+            edge.inputClassName = UnorderedKVInput.class.getName();
         } else if (dataMovementType == DataMovementType.SCATTER_GATHER) {
-            edge.outputClassName = OnFileUnorderedPartitionedKVOutput.class.getName();
-            edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
+            edge.outputClassName = UnorderedPartitionedKVOutput.class.getName();
+            edge.inputClassName = UnorderedKVInput.class.getName();
             edge.partitionerClass = RoundRobinPartitioner.class;
         }
         edge.setIntermediateOutputKeyClass(POValueOutputTez.EmptyWritable.class.getName());
