@@ -133,8 +133,8 @@ import org.apache.tez.mapreduce.partition.MRPartitioner;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.input.ConcatenatedMergedKeyValueInput;
-import org.apache.tez.runtime.library.input.ShuffledMergedInput;
-import org.apache.tez.runtime.library.input.SortedGroupedMergedInput;
+import org.apache.tez.runtime.library.input.OrderedGroupedKVInput;
+import org.apache.tez.runtime.library.input.OrderedGroupedMergedKVInput;
 
 /**
  * A visitor to construct DAG out of Tez plan.
@@ -240,11 +240,11 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         String groupInputClass = ConcatenatedMergedKeyValueInput.class.getName();
 
-        // In case of SCATTER_GATHER and ShuffledUnorderedKVInput it will still be
+        // In case of SCATTER_GATHER and UnorderedKVInput it will still be
         // ConcatenatedMergedKeyValueInput
         if(edgeProperty.getDataMovementType().equals(DataMovementType.SCATTER_GATHER)
-                && edgeProperty.getEdgeDestination().getClassName().equals(ShuffledMergedInput.class.getName())) {
-            groupInputClass = SortedGroupedMergedInput.class.getName();
+                && edgeProperty.getEdgeDestination().getClassName().equals(OrderedGroupedKVInput.class.getName())) {
+            groupInputClass = OrderedGroupedMergedKVInput.class.getName();
         }
 
         return new GroupInputEdge(from, to, edgeProperty,

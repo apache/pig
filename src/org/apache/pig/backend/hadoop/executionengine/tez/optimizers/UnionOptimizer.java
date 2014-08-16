@@ -40,8 +40,8 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.ReverseDependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
-import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
-import org.apache.tez.runtime.library.output.OnFileUnorderedPartitionedKVOutput;
+import org.apache.tez.runtime.library.input.UnorderedKVInput;
+import org.apache.tez.runtime.library.output.UnorderedPartitionedKVOutput;
 
 /**
  * Optimizes union by removing the intermediate union vertex and making the
@@ -206,8 +206,8 @@ public class UnionOptimizer extends TezOpPlanVisitor {
                 if (edge.dataMovementType == DataMovementType.ONE_TO_ONE) {
                     edge.dataMovementType = DataMovementType.SCATTER_GATHER;
                     edge.partitionerClass = RoundRobinPartitioner.class;
-                    edge.outputClassName = OnFileUnorderedPartitionedKVOutput.class.getName();
-                    edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
+                    edge.outputClassName = UnorderedPartitionedKVOutput.class.getName();
+                    edge.inputClassName = UnorderedKVInput.class.getName();
                 }
                 TezOperator vertexGroupOp = outputVertexGroupOps[unionOutputKeys.indexOf(entry.getKey().toString())];
                 for (OperatorKey predKey : vertexGroupOp.getVertexGroupMembers()) {
