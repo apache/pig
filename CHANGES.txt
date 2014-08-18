@@ -64,6 +64,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4129: Pig -Dhadoopversion=23 compile fail after TEZ-1426 (daijy)
+
 PIG-4127: Build failure due to TEZ-1132 and TEZ-1416 (lbendig)
 
 PIG-4125: TEZ-1347 broke the build

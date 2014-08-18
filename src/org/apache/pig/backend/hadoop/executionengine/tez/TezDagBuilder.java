@@ -667,11 +667,11 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                     VertexManagerPluginDescriptor vmPluginDescriptor = new VertexManagerPluginDescriptor(
                             ShuffleVertexManager.class.getName());
                     Configuration vmPluginConf = ConfigurationUtil.toConfiguration(pc.getProperties(), false);
-                    vmPluginConf.setBoolean(ShuffleVertexManager.TEZ_AM_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL, true);
+                    vmPluginConf.setBoolean(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL, true);
                     if (vmPluginConf.getLong(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM,
                             InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER)!=
                                     InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER) {
-                        vmPluginConf.setLong(ShuffleVertexManager.TEZ_AM_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE,
+                        vmPluginConf.setLong(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE,
                                 vmPluginConf.getLong(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM,
                                         InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER));
                     }
