@@ -18,6 +18,7 @@
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -228,7 +229,7 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
                 // Should contain only 1 output for sampleAggregation job
                 LOG.info("Sending numParallelism " + parallelism + " to " + sortingVertex);
                 VertexManagerEvent vmEvent = VertexManagerEvent.create(
-                        sortingVertex, Ints.toByteArray(parallelism));
+                        sortingVertex, ByteBuffer.wrap(Ints.toByteArray(parallelism)));
                 List<Event> events = Lists.newArrayListWithCapacity(1);
                 events.add(vmEvent);
                 getContext().sendEvents(events);
