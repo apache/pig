@@ -77,8 +77,8 @@ public class PartitionerDefinedVertexManager extends VertexManagerPlugin {
         }
         isParallelismSet = true;
         // Need to distinguish from VertexManagerEventPayloadProto emitted by OrderedPartitionedKVOutput
-        if (vmEvent.getUserPayload().length==4) {
-            dynamicParallelism = Ints.fromByteArray(vmEvent.getUserPayload());
+        if (vmEvent.getUserPayload().limit()==4) {
+            dynamicParallelism = Ints.fromByteArray(vmEvent.getUserPayload().array());
         } else {
             return;
         }
