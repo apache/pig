@@ -91,7 +91,7 @@ public class PartitionerDefinedVertexManager extends VertexManagerPlugin {
                     new HashMap<String, EdgeManagerPluginDescriptor>();
                 for(String vertex : getContext().getInputVertexEdgeProperties().keySet()) {
                     EdgeManagerPluginDescriptor edgeManagerDescriptor =
-                            new EdgeManagerPluginDescriptor(ScatterGatherEdgeManager.class.getName());
+                            EdgeManagerPluginDescriptor.create(ScatterGatherEdgeManager.class.getName());
                     edgeManagers.put(vertex, edgeManagerDescriptor);
                 }
                 getContext().setVertexParallelism(dynamicParallelism, null, edgeManagers, null);

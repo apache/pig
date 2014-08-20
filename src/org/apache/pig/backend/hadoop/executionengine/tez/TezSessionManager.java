@@ -84,7 +84,7 @@ public class TezSessionManager {
             throws TezException, IOException, InterruptedException {
         TezConfiguration amConf = MRToTezHelper.getDAGAMConfFromMRConf(conf);
         String jobName = conf.get(PigContext.JOB_NAME, "pig");
-        TezClient tezClient = new TezClient(jobName, amConf, true, requestedAMResources, creds);
+        TezClient tezClient = TezClient.create(jobName, amConf, true, requestedAMResources, creds);
         tezClient.start();
         TezAppMasterStatus appMasterStatus = tezClient.getAppMasterStatus();
         if (appMasterStatus.equals(TezAppMasterStatus.SHUTDOWN)) {

@@ -227,7 +227,7 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
                 String sortingVertex = conf.get(SORT_VERTEX);
                 // Should contain only 1 output for sampleAggregation job
                 LOG.info("Sending numParallelism " + parallelism + " to " + sortingVertex);
-                VertexManagerEvent vmEvent = new VertexManagerEvent(
+                VertexManagerEvent vmEvent = VertexManagerEvent.create(
                         sortingVertex, Ints.toByteArray(parallelism));
                 List<Event> events = Lists.newArrayListWithCapacity(1);
                 events.add(vmEvent);
