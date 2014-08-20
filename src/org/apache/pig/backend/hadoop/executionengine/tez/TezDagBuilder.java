@@ -209,7 +209,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                             groupMembers[i] = from;
                         } else {
                             EdgeProperty prop = newEdge(pred, tezOp);
-                            Edge edge = new Edge(from, to, prop);
+                            Edge edge = Edge.create(from, to, prop);
                             dag.addEdge(edge);
                         }
                     }
@@ -227,7 +227,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 if (store != null) {
                     vertexGroup.addDataSink(store.getOperatorKey().toString(),
                             new DataSinkDescriptor(tezOp.getVertexGroupInfo().getStoreOutputDescriptor(),
-                            new OutputCommitterDescriptor(MROutputCommitter.class.getName()), dag.getCredentials()));
+                            OutputCommitterDescriptor.create(MROutputCommitter.class.getName()), dag.getCredentials()));
                 }
             }
         }
@@ -247,8 +247,8 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             groupInputClass = OrderedGroupedMergedKVInput.class.getName();
         }
 
-        return new GroupInputEdge(from, to, edgeProperty,
-                new InputDescriptor(groupInputClass).setUserPayload(edgeProperty.getEdgeDestination().getUserPayload()));
+        return GroupInputEdge.create(from, to, edgeProperty,
+                InputDescriptor.create(groupInputClass).setUserPayload(edgeProperty.getEdgeDestination().getUserPayload()));
     }
 
     /**
@@ -264,8 +264,8 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         TezEdgeDescriptor edge = to.inEdges.get(from.getOperatorKey());
         PhysicalPlan combinePlan = edge.combinePlan;
 
-        InputDescriptor in = new InputDescriptor(edge.inputClassName);
-        OutputDescriptor out = new OutputDescriptor(edge.outputClassName);
+        InputDescriptor in = InputDescriptor.create(edge.inputClassName);
+        OutputDescriptor out = OutputDescriptor.create(edge.outputClassName);
 
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties(), false);
         if (!combinePlan.isEmpty()) {
@@ -344,11 +344,11 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         if (edge.dataMovementType!=DataMovementType.BROADCAST && to.getEstimatedParallelism()!=-1 && (to.isGlobalSort()||to.isSkewedJoin())) {
             // Use custom edge
-            return new EdgeProperty((EdgeManagerPluginDescriptor)null,
+            return EdgeProperty.create((EdgeManagerPluginDescriptor)null,
                     edge.dataSourceType, edge.schedulingType, out, in);
             }
 
-        return new EdgeProperty(edge.dataMovementType, edge.dataSourceType,
+        return EdgeProperty.create(edge.dataMovementType, edge.dataSourceType,
                 edge.schedulingType, out, in);
     }
 
@@ -380,7 +380,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
     private Vertex newVertex(TezOperator tezOp, boolean isMap) throws IOException,
             ClassNotFoundException, InterruptedException {
-        ProcessorDescriptor procDesc = new ProcessorDescriptor(
+        ProcessorDescriptor procDesc = ProcessorDescriptor.create(
                 tezOp.getProcessorName());
 
         // Pass physical plans to vertex as user payload.
@@ -563,7 +563,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         UserPayload userPayload = TezUtils.createUserPayloadFromConf(payloadConf);
         procDesc.setUserPayload(userPayload);
 
-        Vertex vertex = new Vertex(tezOp.getOperatorKey().toString(), procDesc, tezOp.getVertexParallelism(),
+        Vertex vertex = Vertex.create(tezOp.getOperatorKey().toString(), procDesc, tezOp.getVertexParallelism(),
                 isMap ? MRHelpers.getResourceForMRMapper(globalConf) : MRHelpers.getResourceForMRReducer(globalConf));
 
         Map<String, String> taskEnv = new HashMap<String, String>();
@@ -595,13 +595,13 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
             // TODO: These should get the globalConf, or a merged version that
             // keeps settings like pig.maxCombinedSplitSize
-            vertex.setLocationHint(new VertexLocationHint(tezOp.getLoaderInfo().getInputSplitInfo().getTaskLocationHints()));
+            vertex.setLocationHint(VertexLocationHint.create(tezOp.getLoaderInfo().getInputSplitInfo().getTaskLocationHints()));
             vertex.addDataSource(ld.getOperatorKey().toString(),
-                    new DataSourceDescriptor(new InputDescriptor(MRInput.class.getName())
-                            .setUserPayload(new UserPayload(MRRuntimeProtos.MRInputUserPayloadProto.newBuilder()
-                            .setConfigurationBytes(TezUtils.createByteStringFromConf(payloadConf))
-                            .setSplits(tezOp.getLoaderInfo().getInputSplitInfo().getSplitsProto()).build().toByteArray())),
-                    new InputInitializerDescriptor(MRInputSplitDistributor.class.getName()), dag.getCredentials()));
+                    DataSourceDescriptor.create(InputDescriptor.create(MRInput.class.getName())
+                          .setUserPayload(UserPayload.create(MRRuntimeProtos.MRInputUserPayloadProto.newBuilder()
+                          .setConfigurationBytes(TezUtils.createByteStringFromConf(payloadConf))
+                          .setSplits(tezOp.getLoaderInfo().getInputSplitInfo().getSplitsProto()).build().toByteString().asReadOnlyByteBuffer())),
+                    InputInitializerDescriptor.create(MRInputSplitDistributor.class.getName()), dag.getCredentials()));
         }
 
         for (POStore store : stores) {
@@ -616,7 +616,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             outputPayLoad.set(JobControlCompiler.PIG_REDUCE_STORES,
                     ObjectSerializer.serialize(singleStore));
 
-            OutputDescriptor storeOutDescriptor = new OutputDescriptor(
+            OutputDescriptor storeOutDescriptor = OutputDescriptor.create(
                     MROutput.class.getName()).setUserPayload(TezUtils
                     .createUserPayloadFromConf(outputPayLoad));
             if (tezOp.getVertexGroupStores() != null) {
@@ -629,7 +629,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             }
             vertex.addDataSink(store.getOperatorKey().toString(),
                     new DataSinkDescriptor(storeOutDescriptor,
-                    new OutputCommitterDescriptor(MROutputCommitter.class.getName()),
+                    OutputCommitterDescriptor.create(MROutputCommitter.class.getName()),
                     dag.getCredentials()));
         }
 
@@ -647,7 +647,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 // Set VertexManagerPlugin to PartitionerDefinedVertexManager, which is able
                 // to decrease/increase parallelism of sorting vertex dynamically
                 // based on the numQuantiles calculated by sample aggregation vertex
-                vertex.setVertexManagerPlugin(new VertexManagerPluginDescriptor(
+                vertex.setVertexManagerPlugin(VertexManagerPluginDescriptor.create(
                         PartitionerDefinedVertexManager.class.getName()));
                 log.info("Set VertexManagerPlugin to PartitionerDefinedParallelismVertexManager for vertex " + tezOp.getOperatorKey().toString());
             } else {
@@ -664,7 +664,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 if (containScatterGather && !containCustomPartitioner) {
                     // Use auto-parallelism feature of ShuffleVertexManager to dynamically
                     // reduce the parallelism of the vertex
-                    VertexManagerPluginDescriptor vmPluginDescriptor = new VertexManagerPluginDescriptor(
+                    VertexManagerPluginDescriptor vmPluginDescriptor = VertexManagerPluginDescriptor.create(
                             ShuffleVertexManager.class.getName());
                     Configuration vmPluginConf = ConfigurationUtil.toConfiguration(pc.getProperties(), false);
                     vmPluginConf.setBoolean(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL, true);
