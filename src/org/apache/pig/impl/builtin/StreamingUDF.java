@@ -26,8 +26,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -342,21 +340,6 @@ public class StreamingUDF extends EvalFunc<Object> {
 
     private boolean isPython() {
         return language.toLowerCase().startsWith("python");
-    }
-
-    /**
-     * Returns a list of file names (relative to root of pig jar) of files that need to be
-     * included in the jar shipped to the cluster.
-     *
-     * Will need to be smarter as more languages are added and the controller files are large.
-     *
-     * @return
-     */
-    public static List<String> getResourcesForJar() {
-        List<String> files = new ArrayList<String>();
-        files.add(PYTHON_CONTROLLER_JAR_PATH);
-        files.add(PYTHON_PIG_UTIL_PATH);
-        return files;
     }
 
     private Object getOutput(Tuple input) throws ExecException {

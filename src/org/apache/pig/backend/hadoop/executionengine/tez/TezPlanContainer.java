@@ -30,7 +30,6 @@ import java.util.Set;
 
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.builtin.StreamingUDF;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.OperatorPlan;
@@ -92,11 +91,6 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
                 }
                 URI jarUri = new File(jarName).toURI();
                 jarLists.add(jarUri);
-                if ("StreamingUDF".equals(clazz.getSimpleName())) {
-                    for (String fileName : StreamingUDF.getResourcesForJar()) {
-                        jarLists.add(new File(fileName).toURI());
-                    }
-                }
             }
         }
 
