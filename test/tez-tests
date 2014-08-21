@@ -52,6 +52,7 @@
 **/TestStoreInstances.java
 **/TestStoreOld.java
 **/TestStreaming.java
+**/TestStreamingUDF.java
 **/TestToolsPigServer.java
 **/TestUDF.java
 **/TestUDFContext.java

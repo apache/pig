@@ -32,21 +32,27 @@ import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.test.MiniCluster;
+import org.apache.pig.test.MiniGenericCluster;
 import org.apache.pig.test.Util;
 import org.joda.time.DateTime;
+import org.junit.Before;
 import org.junit.Test;
 
 public class TestStreamingUDF {
     private static PigServer pigServerLocal = null;
     private static PigServer pigServerMapReduce = null;
-    
+
     private TupleFactory tf = TupleFactory.getInstance();
-    private static MiniCluster cluster = MiniCluster.buildCluster();
-    
+    private static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
+
+    @Before
+    public void setUp() throws Exception {
+        Util.resetStateForExecModeSwitch();
+    }
+
     @Test
     public void testPythonUDF_onCluster() throws Exception {
-        pigServerMapReduce = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pigServerMapReduce = new PigServer(cluster.getExecType(), cluster.getProperties());
 
         String[] pythonScript = {
                 "from pig_util import outputSchema",
