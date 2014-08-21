@@ -163,6 +163,8 @@ if [ "$includeHCatalog" == "true" ]; then
   if [ "$HCAT_HOME" == "" ]; then
     if [ -d "/usr/lib/hcatalog" ]; then
       HCAT_HOME=/usr/lib/hcatalog
+    elif [ -d "/usr/lib/hive-hcatalog" ]; then
+      HCAT_HOME=/usr/lib/hive-hcatalog
     else
       echo "Please initialize HCAT_HOME"
       exit -1
