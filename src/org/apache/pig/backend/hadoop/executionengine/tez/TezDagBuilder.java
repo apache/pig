@@ -578,7 +578,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         ClientDistributedCacheManager.getDelegationTokens(globalConf,
                 job.getCredentials());
         MRApps.setupDistributedCache(globalConf, localResources);
-        vertex.setTaskLocalFiles(localResources);
+        vertex.addTaskLocalFiles(localResources);
 
         vertex.setTaskLaunchCmdOpts(isMap ? MRHelpers.getJavaOptsForMRMapper(globalConf)
                 : MRHelpers.getJavaOptsForMRReducer(globalConf));

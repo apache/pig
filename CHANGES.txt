@@ -64,6 +64,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4137: Fix hadoopversion 23 compilation due to TEZ-1469 (daijy)
+
 PIG-4135: Fetch optimization should be disabled if plan contains no limit (cheolsoo)
 
 PIG-4061: Make Streaming UDF work in Tez (hotfix PIG-4061-3.patch)
