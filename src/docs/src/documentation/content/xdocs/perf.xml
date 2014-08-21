@@ -1065,6 +1065,7 @@ Fetching will be disabled in case of:
 </p>
 <ul>
   <li>the presence of other operators, <a href="http://pig.apache.org/docs/r0.13.0/api/org/apache/pig/impl/builtin/SampleLoader.html">sample loaders</a> and scalar expressions</li>
+  <li>no <a href="basic.html#limit">LIMIT</a> operator</li>
   <li>implicit splits</li>
 </ul>
 
