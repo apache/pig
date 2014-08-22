@@ -399,9 +399,7 @@ sub getPigCmd($$$)
 	if(Util::isWindows()||Util::isCygwin()) {
 	    $separator = ";";
 	}
-	my $pcp .= $testCmd->{'jythonjar'} if (defined($testCmd->{'jythonjar'}));
-    $pcp .= $separator . $testCmd->{'jrubyjar'} if (defined($testCmd->{'jrubyjar'}));
-    $pcp .= $separator . $testCmd->{'classpath'} if (defined($testCmd->{'classpath'}));
+    my $pcp .= $separator . $testCmd->{'classpath'} if (defined($testCmd->{'classpath'}));
 
     # Set it in our current environment.  It will get inherited by the IPC::Run
     # command.
