@@ -36,7 +36,6 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.client.Durability;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -978,7 +977,7 @@ public class TestHBaseStorage {
 
         Object key = "somekey";
         byte type = DataType.CHARARRAY;
-        Assert.assertEquals(hbaseStorage.createPut(key, type).getDurability(), Durability.SKIP_WAL);
+        Assert.assertFalse(hbaseStorage.createPut(key, type).getWriteToWAL());
     }
 
     /**
@@ -992,7 +991,7 @@ public class TestHBaseStorage {
 
         Object key = "somekey";
         byte type = DataType.CHARARRAY;
-        Assert.assertEquals(hbaseStorage.createPut(key, type).getDurability(), Durability.USE_DEFAULT);
+        Assert.assertTrue(hbaseStorage.createPut(key, type).getWriteToWAL());
     }
 
     /**
