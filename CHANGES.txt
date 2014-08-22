@@ -66,6 +66,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4136: No special handling jythonjar/jrubyjar in e2e tests after PIG-4047 (daijy)
+
 PIG-4137: Fix hadoopversion 23 compilation due to TEZ-1469 (daijy)
 
 PIG-4135: Fetch optimization should be disabled if plan contains no limit (cheolsoo)
