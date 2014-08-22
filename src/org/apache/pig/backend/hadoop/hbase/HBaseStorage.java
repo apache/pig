@@ -65,7 +65,6 @@ import org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil;
 import org.apache.hadoop.hbase.mapreduce.TableOutputFormat;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.InputFormat;
@@ -974,7 +973,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         Put put = new Put(objToBytes(key, type));
 
         if(noWAL_) {
-            put.setDurability(Durability.SKIP_WAL);
+            put.setWriteToWAL(false);
         }
 
         return put;
