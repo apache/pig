@@ -248,6 +248,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4139: pig query throws error java.lang.NoSuchFieldException: jobsInProgress on MRv1 (satish via cheolsoo)
+
 PIG-4133: Need to update the default $HCAT_HOME dir in the PIG script (mnarayan via cheolsoo)
 
 PIG-4106: Describe shouldn't trigger execution in batch mode (cheolsoo)
