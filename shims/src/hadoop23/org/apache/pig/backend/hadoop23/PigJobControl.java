@@ -72,7 +72,7 @@ public class PigJobControl extends JobControl {
 
       initSuccesful = true;
     } catch (Exception e) {
-      log.warn("falling back to default JobControl (not using hadoop 0.23 ?)", e);
+      log.debug("falling back to default JobControl (not using hadoop 0.23 ?)", e);
       initSuccesful = false;
     }
   }
