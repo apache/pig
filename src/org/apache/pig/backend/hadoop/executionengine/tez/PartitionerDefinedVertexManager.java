@@ -33,7 +33,6 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 
 import com.google.common.collect.Lists;
-import com.google.common.primitives.Ints;
 
 /**
  * VertexManagerPlugin used by sorting job of order by and skewed join. 
@@ -78,7 +77,7 @@ public class PartitionerDefinedVertexManager extends VertexManagerPlugin {
         isParallelismSet = true;
         // Need to distinguish from VertexManagerEventPayloadProto emitted by OrderedPartitionedKVOutput
         if (vmEvent.getUserPayload().limit()==4) {
-            dynamicParallelism = Ints.fromByteArray(vmEvent.getUserPayload().array());
+            dynamicParallelism = vmEvent.getUserPayload().getInt();
         } else {
             return;
         }

@@ -64,6 +64,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4140: VertexManagerEvent.getUserPayload returns ReadOnlyBuffer after TEZ-1449 (daijy)
+
 PIG-4136: No special handling jythonjar/jrubyjar in e2e tests after PIG-4047 (daijy)
 
 PIG-4137: Fix hadoopversion 23 compilation due to TEZ-1469 (daijy)
