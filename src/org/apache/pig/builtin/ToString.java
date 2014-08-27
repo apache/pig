@@ -69,5 +69,9 @@ public class ToString extends EvalFunc<String> {
         funcList.add(new FuncSpec(this.getClass().getName(), s));
         return funcList;
     }
-    
+
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

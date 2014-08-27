@@ -93,4 +93,9 @@ public class GetSecond extends EvalFunc<Integer> {
 
         return funcList;
     }
+
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

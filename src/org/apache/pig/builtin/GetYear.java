@@ -94,5 +94,9 @@ public class GetYear extends EvalFunc<Integer> {
         return funcList;
     }
 
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }
 

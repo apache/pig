@@ -50,4 +50,8 @@ public class ConstantSize extends EvalFunc<Long> {
         return new Schema(new Schema.FieldSchema(null, DataType.LONG)); 
     }
 
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

@@ -29,4 +29,9 @@ public class BigDecimalAbs extends EvalFunc<BigDecimal> {
     public BigDecimal exec(Tuple input) throws IOException {
         return ((BigDecimal)input.get(0)).abs();
     }
+
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

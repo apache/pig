@@ -113,9 +113,6 @@ public class Main {
 
     private enum ExecMode {STRING, FILE, SHELL, UNKNOWN}
 
-    private static final String PROP_FILT_SIMPL_OPT
-        = "pig.exec.filterLogicExpressionSimplifier";
-
     protected static final String PROGRESS_NOTIFICATION_LISTENER_KEY = "pig.notification.listener";
 
     protected static final String PROGRESS_NOTIFICATION_LISTENER_ARG_KEY = "pig.notification.listener.arg";
@@ -401,11 +398,6 @@ public class Main {
 
             deleteTempFiles = Boolean.valueOf(properties.getProperty(
                     PigConfiguration.PIG_DELETE_TEMP_FILE, "true"));
-
-            if( ! Boolean.valueOf(properties.getProperty(PROP_FILT_SIMPL_OPT, "false"))){
-                //turn off if the user has not explicitly turned on this optimization
-                disabledOptimizerRules.add("FilterLogicExpressionSimplifier");
-            }
 
             pigContext.getProperties().setProperty(PigImplConstants.PIG_OPTIMIZER_RULES_KEY,
                     ObjectSerializer.serialize(disabledOptimizerRules));
@@ -863,6 +855,7 @@ public class Main {
             System.out.println("    -p, -param - Key value pair of the form param=val");
             System.out.println("    -r, -dryrun - Produces script with substituted parameters. Script is not executed.");
             System.out.println("    -t, -optimizer_off - Turn optimizations off. The following values are supported:");
+            System.out.println("            ConstantCalculator - Calculate constants at compile time");
             System.out.println("            SplitFilter - Split filter conditions");
             System.out.println("            PushUpFilter - Filter as early as possible");
             System.out.println("            MergeFilter - Merge filter conditions");
@@ -918,8 +911,6 @@ public class Main {
             System.out.println("        pig.exec.mapPartAgg.minReduction=<min aggregation factor>. Default is 10.");
             System.out.println("            If the in-map partial aggregation does not reduce the output num records");
             System.out.println("            by this factor, it gets disabled.");
-            System.out.println("        " + PROP_FILT_SIMPL_OPT + "=true|false; Default is false.");
-            System.out.println("            Enable optimizer rules to simplify filter expressions.");
             System.out.println("    Miscellaneous:");
             System.out.println("        exectype=mapreduce|local; default is mapreduce. This property is the same as -x switch");
             System.out.println("        pig.additional.jars=<colon seperated list of jars>. Used in place of register command.");

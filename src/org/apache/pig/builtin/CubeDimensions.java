@@ -126,4 +126,9 @@ public class CubeDimensions extends EvalFunc<DataBag> {
             throw new RuntimeException(e);
         }
     }
+
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

@@ -38,4 +38,8 @@ public class ToDateISO extends EvalFunc<DateTime> {
         return ToDate.extractDateTime(dtStr);
     }
 
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

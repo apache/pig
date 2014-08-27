@@ -30,4 +30,9 @@ public abstract class Base extends EvalFunc<Double>{
 	public Schema outputSchema(Schema input) {
         return new Schema(new Schema.FieldSchema(getSchemaName(this.getClass().getName().toLowerCase(), input), DataType.DOUBLE));
 	}
+
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

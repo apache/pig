@@ -44,4 +44,8 @@ public class ToDate3ARGS extends EvalFunc<DateTime> {
         return dtf.withZone(dtz).parseDateTime(DataType.toString(input.get(0)));
     }
 
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

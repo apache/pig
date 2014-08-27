@@ -21,7 +21,6 @@ package org.apache.pig.builtin;
 import java.io.IOException;
 import java.util.List;
 import java.util.ArrayList;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
@@ -95,5 +94,10 @@ public class DoubleRoundTo extends EvalFunc<Double>{
         funcList.add(new FuncSpec(this.getClass().getName(), s_dbl_3));
 
         return funcList;
+    }
+
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
     }
 }

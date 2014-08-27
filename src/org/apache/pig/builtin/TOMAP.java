@@ -61,4 +61,8 @@ public class TOMAP extends EvalFunc<Map> {
         return new Schema(new Schema.FieldSchema(null, DataType.MAP));
     }
 
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

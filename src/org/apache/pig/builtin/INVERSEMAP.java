@@ -113,4 +113,8 @@ public class INVERSEMAP extends EvalFunc<Map> {
         return inverseMap;
     }
 
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

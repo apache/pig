@@ -92,4 +92,9 @@ public class AddDuration extends EvalFunc<DateTime> {
         funcList.add(new FuncSpec(this.getClass().getName(), s));
         return funcList;
     }
+
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

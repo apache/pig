@@ -27,6 +27,8 @@ import java.util.List;
 
 import org.apache.pig.PigConstants;
 import org.apache.pig.PigException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.data.SchemaTupleBackend;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -263,9 +265,15 @@ public class LogicalPlan extends BaseOperatorPlan {
             disabledOptimizerRules.add("GroupByConstParallelSetter");
         }
 
+        try {
+            SchemaTupleBackend.initialize(ConfigurationUtil.toConfiguration(pigContext.getProperties(), true),
+                    pigContext);
+        } catch (IOException e) {
+            throw new FrontendException(e);
+        }
         // run optimizer
         LogicalPlanOptimizer optimizer = new LogicalPlanOptimizer(this, 100,
-                disabledOptimizerRules);
+                disabledOptimizerRules, pigContext);
         optimizer.optimize();
     }
 }

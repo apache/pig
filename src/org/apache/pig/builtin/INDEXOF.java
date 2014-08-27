@@ -20,7 +20,6 @@ package org.apache.pig.builtin;
 
 import java.io.IOException;
 
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.EvalFunc;
@@ -72,4 +71,8 @@ public class INDEXOF extends EvalFunc<Integer> {
         return new Schema(new Schema.FieldSchema(null, DataType.INTEGER));
     }
 
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

@@ -37,6 +37,10 @@ public class CurrentTime extends EvalFunc<DateTime> {
 
     @Override
     public DateTime exec(Tuple input) throws IOException {
+        // If we are doing compile time calculation
+        if (UDFContext.getUDFContext().isFrontend()) {
+            return new DateTime();
+        }
         if (!isInitialized) {
             String dateTimeValue = UDFContext.getUDFContext().getJobConf().get("pig.job.submitted.timestamp");
             if (dateTimeValue == null) {
@@ -46,5 +50,10 @@ public class CurrentTime extends EvalFunc<DateTime> {
             isInitialized  = true;
         }
         return dateTime;
+    }
+
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
     }
 }

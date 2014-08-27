@@ -341,4 +341,14 @@ public abstract class EvalFunc<T>  {
         return SchemaType.NORMAL;
     }
 
+    /**
+     * Whether the UDF should be evaluated at compile time if all inputs are constant.
+     * This is applicable for most UDF, however, if a UDF will access hdfs file which
+     * is not available at compile time, it has to be false
+     * @return Whether or not compile time calculation is allowed, default to false
+     * to ensure legacy UDF will get the right behavior
+     */
+    public boolean allowCompileTimeCalculation() {
+        return false;
+    }
 }

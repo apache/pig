@@ -31,24 +31,29 @@ import org.apache.pig.data.Tuple;
 
 public class EqualsIgnoreCase extends FilterFunc {
 
-@Override
-public Boolean exec(Tuple input) throws IOException {
-	    if (input == null || input.size() == 0) {
-	        return null;
-	    }
-	    try{
-	    	String firstStr = input.get(0).toString();
-	    	String secondStr = input.get(1).toString();
-	    	if (firstStr == null) {
-	    		throw new ExecException("First String is NULL");
-	    	}
-	    	if (secondStr == null) {
-	    		throw new ExecException("Second String is NULL");
-	    	}
-	    	return new Boolean(firstStr.equalsIgnoreCase(secondStr));
-	    }	catch(Exception e){
-	    	throw new ExecException(e.getMessage());
-	 }
-	}
+    @Override
+    public Boolean exec(Tuple input) throws IOException {
+        if (input == null || input.size() == 0) {
+            return null;
+        }
+        try {
+            String firstStr = input.get(0).toString();
+            String secondStr = input.get(1).toString();
+            if (firstStr == null) {
+                throw new ExecException("First String is NULL");
+            }
+            if (secondStr == null) {
+                throw new ExecException("Second String is NULL");
+            }
+            return new Boolean(firstStr.equalsIgnoreCase(secondStr));
+        } catch (Exception e) {
+            throw new ExecException(e.getMessage());
+        }
+    }
+
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }
 	

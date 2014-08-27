@@ -29,4 +29,9 @@ public class BigIntegerAbs extends EvalFunc<BigInteger> {
     public BigInteger exec(Tuple input) throws IOException {
         return ((BigInteger)input.get(0)).abs();
     }
+
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

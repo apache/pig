@@ -79,4 +79,8 @@ public class ABS extends EvalFunc<Double>{
         return funcList;
     }
 
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

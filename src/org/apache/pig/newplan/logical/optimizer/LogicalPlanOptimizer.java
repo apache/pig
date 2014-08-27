@@ -28,14 +28,16 @@ import com.google.common.collect.TreeMultimap;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.logical.rules.AddForEach;
 import org.apache.pig.newplan.logical.rules.ColumnMapKeyPrune;
 import org.apache.pig.newplan.logical.rules.FilterAboveForeach;
+import org.apache.pig.newplan.logical.rules.FilterConstantCalculator;
+import org.apache.pig.newplan.logical.rules.ForEachConstantCalculator;
 import org.apache.pig.newplan.logical.rules.GroupByConstParallelSetter;
 import org.apache.pig.newplan.logical.rules.LimitOptimizer;
 import org.apache.pig.newplan.logical.rules.LoadTypeCastInserter;
-import org.apache.pig.newplan.logical.rules.LogicalExpressionSimplifier;
 import org.apache.pig.newplan.logical.rules.MergeFilter;
 import org.apache.pig.newplan.logical.rules.MergeForEach;
 import org.apache.pig.newplan.logical.rules.PartitionFilterOptimizer;
@@ -53,16 +55,23 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
     private Set<String> mRulesOff = null;
     private boolean allRulesDisabled = false;
     private SetMultimap<RulesReportKey, String> rulesReport = TreeMultimap.create();
+    private PigContext pc = null;
 
+    public LogicalPlanOptimizer(OperatorPlan p, int iterations, Set<String> turnOffRules) {
+        this(p, iterations, turnOffRules, null);
+    }
     /**
      * Create a new LogicalPlanOptimizer.
      * @param p               Plan to optimize.
      * @param iterations      Maximum number of optimizer iterations.
      * @param turnOffRules    Optimization rules to disable. "all" disables all non-mandatory
      *                        rules. null enables all rules.
+     * @param pc              PigContext object
      */
-    public LogicalPlanOptimizer(OperatorPlan p, int iterations, Set<String> turnOffRules) {
+    public LogicalPlanOptimizer(OperatorPlan p, int iterations, Set<String> turnOffRules, PigContext
+            pc) {
         super(p, null, iterations);
+        this.pc = pc;
         mRulesOff = turnOffRules == null ? new HashSet<String>() : turnOffRules;
         if (mRulesOff.contains("all")) {
             allRulesDisabled = true;
@@ -78,8 +87,11 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
 
         // Logical expression simplifier
         Set <Rule> s = new HashSet<Rule>();
-        // add logical expression simplification rule
-        Rule r = new LogicalExpressionSimplifier("FilterLogicExpressionSimplifier");
+        // add constant calculator rule
+        Rule r = new FilterConstantCalculator("ConstantCalculator", pc);
+        checkAndAddRule(s, r);
+        ls.add(s);
+        r = new ForEachConstantCalculator("ConstantCalculator", pc);
         checkAndAddRule(s, r);
         ls.add(s);
 

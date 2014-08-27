@@ -87,4 +87,9 @@ public class CONCAT extends EvalFunc<DataByteArray> {
     public SchemaType getSchemaType() {
         return SchemaType.VARARG;
     }
+
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

@@ -67,4 +67,8 @@ public class TRIM extends EvalFunc<String> {
         return funcList;
     }
 
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

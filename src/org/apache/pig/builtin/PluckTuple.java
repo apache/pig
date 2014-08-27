@@ -117,4 +117,9 @@ public class PluckTuple extends EvalFunc<Tuple> {
             throw new RuntimeException(e); // Should never happen
         }
     }
+
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

@@ -15,39 +15,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.builtin;
+package org.apache.pig.newplan.logical.rules;
 
-import java.io.IOException;
+import org.apache.pig.impl.PigContext;
+import org.apache.pig.newplan.OperatorPlan;
+import org.apache.pig.newplan.logical.relational.LOForEach;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 
-import org.apache.pig.EvalFunc;
-import org.apache.pig.FilterFunc;
-import org.apache.pig.data.Tuple;
+public class ForEachConstantCalculator extends ConstantCalculator {
 
-/**
- * 
- *
- */
-public class Assert extends EvalFunc<Boolean>
-{
-  @Override
-  public Boolean exec(Tuple tuple)
-      throws IOException
-  {
-    if (!(Boolean) tuple.get(0)) {
-      if (tuple.size() > 1) {
-        throw new IOException("Assertion violated: " + tuple.get(1).toString());
-      }
-      else {
-        throw new IOException("Assertion violated. ");
-      }
+    public ForEachConstantCalculator(String n, PigContext pc) {
+        super(n, pc);
     }
-    else {
-      return true;
-    }
-  }
 
-  @Override
-  public boolean allowCompileTimeCalculation() {
-      return true;
-  }
+    @Override
+    protected OperatorPlan buildPattern() {
+        LogicalPlan plan = new LogicalPlan();
+        LogicalRelationalOperator op = new LOForEach(plan);
+        plan.add(op);
+        return plan;
+    }
+
 }

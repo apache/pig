@@ -95,4 +95,9 @@ public class KEYSET extends EvalFunc<DataBag> {
         return bagSchema;
 
     }
+
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

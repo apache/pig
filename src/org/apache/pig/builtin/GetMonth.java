@@ -93,4 +93,9 @@ public class GetMonth extends EvalFunc<Integer> {
 
         return funcList;
     }
+
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

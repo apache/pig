@@ -94,4 +94,9 @@ public class ToMilliSeconds extends EvalFunc<Long> {
 
         return funcList;
     }
+
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

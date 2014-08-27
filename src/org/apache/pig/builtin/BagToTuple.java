@@ -142,4 +142,8 @@ public class BagToTuple extends EvalFunc<Tuple> {
 		}
 	}
 
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

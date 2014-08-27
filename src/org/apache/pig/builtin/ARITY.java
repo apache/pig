@@ -49,4 +49,9 @@ public class ARITY extends EvalFunc<Integer> {
     public Schema outputSchema(Schema input) {
         return new Schema(new Schema.FieldSchema(null, DataType.INTEGER)); 
     }
+
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }
