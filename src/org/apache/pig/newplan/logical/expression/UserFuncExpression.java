@@ -403,4 +403,11 @@ public class UserFuncExpression extends LogicalExpression {
     public boolean isViaDefine() {
         return viaDefine;
     }
+
+    public EvalFunc<?> getEvalFunc() {
+        if (ef==null) {
+            ef = (EvalFunc<?>) PigContext.instantiateFuncFromSpec(mFuncSpec);
+        }
+        return ef;
+    }
 }

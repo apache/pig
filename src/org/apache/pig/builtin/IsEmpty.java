@@ -52,4 +52,8 @@ public class IsEmpty extends FilterFunc {
         }
     }
 
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

@@ -63,4 +63,9 @@ public class StringConcat extends EvalFunc<String> {
     public SchemaType getSchemaType() {
         return SchemaType.VARARG;
     }
+
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

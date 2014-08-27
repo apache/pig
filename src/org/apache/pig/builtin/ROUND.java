@@ -74,4 +74,9 @@ public class ROUND extends EvalFunc<Long>{
         funcList.add(new FuncSpec(FloatRound.class.getName(),   new Schema(new Schema.FieldSchema(null, DataType.FLOAT))));
         return funcList;
     }
+
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

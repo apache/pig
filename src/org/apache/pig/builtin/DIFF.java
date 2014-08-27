@@ -98,6 +98,10 @@ public class DIFF extends EvalFunc<DataBag> {
         for (Tuple t : s2) if (!s1.contains(t)) emitTo.add(t);
 
     }
-    
+
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
     
 }

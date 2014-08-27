@@ -94,4 +94,8 @@ public class SUBTRACT extends EvalFunc<DataBag> {
         return set;
     }
 
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

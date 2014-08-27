@@ -82,4 +82,9 @@ public class LAST_INDEX_OF extends EvalFunc<Integer> {
         funcList.add(new FuncSpec(this.getClass().getName(), s));
         return funcList;
     }
+
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

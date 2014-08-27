@@ -138,4 +138,8 @@ public class BagToString extends EvalFunc<String> {
 		}
 	}
 
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

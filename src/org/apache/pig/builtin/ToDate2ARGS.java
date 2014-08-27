@@ -48,4 +48,8 @@ public class ToDate2ARGS extends EvalFunc<DateTime> {
         //}
     }
 
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

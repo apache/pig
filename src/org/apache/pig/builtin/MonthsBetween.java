@@ -106,4 +106,9 @@ public class MonthsBetween extends EvalFunc<Long> {
         funcList.add(new FuncSpec(this.getClass().getName(), s));
         return funcList;
     }
+
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

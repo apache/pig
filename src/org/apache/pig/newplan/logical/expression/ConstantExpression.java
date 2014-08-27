@@ -19,10 +19,8 @@
 package org.apache.pig.newplan.logical.expression;
 
 import org.apache.pig.PigException;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
@@ -38,7 +36,9 @@ public class ConstantExpression extends ColumnExpression {
     
     // Stupid Java needs a union
     Object val;
-    
+
+    // Remember data type when the value is null
+    byte type = DataType.NULL;
     /**
      * Adds expression to the plan 
      * @param plan LogicalExpressionPlan this constant is a part of.
@@ -101,14 +101,25 @@ public class ConstantExpression extends ColumnExpression {
             );
         }
         uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
+        if (type != DataType.NULL && fieldSchema.type == DataType.BYTEARRAY && val == null) {
+            fieldSchema.type = type;
+        }
         return fieldSchema;
     }
  
     @Override
     public LogicalExpression deepCopy(LogicalExpressionPlan lgExpPlan) throws FrontendException{
-        LogicalExpression copy = new ConstantExpression(lgExpPlan, this.getValue());
+        ConstantExpression copy = new ConstantExpression(lgExpPlan, this.getValue());
+        copy.type = this.type;
         copy.setLocation( new SourceLocation( location ) );
         return copy;
     }
  
+    public void inheritSchema(LogicalExpression expr) throws FrontendException {
+        fieldSchema = expr.getFieldSchema();
+        uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
+        if (fieldSchema.type != DataType.NULL) {
+            type = fieldSchema.type;
+        }
+    }
 }

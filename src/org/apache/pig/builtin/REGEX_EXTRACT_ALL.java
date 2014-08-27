@@ -113,5 +113,10 @@ public class REGEX_EXTRACT_ALL extends EvalFunc<Tuple> {
         funcList.add(new FuncSpec(this.getClass().getName(), s));
         return funcList;
     }
+
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }
 

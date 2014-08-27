@@ -18,7 +18,6 @@
 package org.apache.pig.builtin;
 
 import java.io.IOException;
-
 import java.util.Formatter;
 
 import org.apache.pig.EvalFunc;
@@ -26,7 +25,6 @@ import org.apache.pig.PigException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-
 import org.apache.pig.backend.executionengine.ExecException;
 
 /**
@@ -79,5 +77,10 @@ public class SPRINTF extends EvalFunc<String> {
     @Override
     public SchemaType getSchemaType() {
         return SchemaType.VARARG;
+    }
+
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
     }
 }

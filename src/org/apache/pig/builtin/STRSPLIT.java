@@ -18,7 +18,6 @@
 package org.apache.pig.builtin;
 
 import java.io.IOException;
-
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
@@ -108,5 +107,10 @@ public class STRSPLIT extends EvalFunc<Tuple> {
         funcList.add(new FuncSpec(this.getClass().getName(), s1));
         funcList.add(new FuncSpec(this.getClass().getName(), s2));
         return funcList;
+    }
+
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
     }
 }

@@ -20,7 +20,9 @@ package org.apache.pig.newplan;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -479,4 +481,50 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
         return false;
     }
 
+    /**
+     * Move everything below a given operator to the new operator plan.  The specified operator will
+     * be moved and will be the root of the new operator plan
+     * @param root Operator to move everything after
+     * @param newPlan new operator plan to move things into
+     * @throws PlanException 
+     */
+    public void moveTree(Operator root, BaseOperatorPlan newPlan) throws FrontendException {
+        Deque<Operator> queue = new ArrayDeque<Operator>();
+        newPlan.add(root);
+        root.setPlan(newPlan);
+        queue.addLast(root);
+        while (!queue.isEmpty()) {
+            Operator node = queue.poll();
+            if (getSuccessors(node)!=null) {
+                for (Operator succ : getSuccessors(node)) {
+                    if (!queue.contains(succ)) {
+                        queue.addLast(succ);
+                        newPlan.add(succ);
+                        succ.setPlan(newPlan);
+                        newPlan.connect(node, succ);
+                    }
+                }
+            }
+        }
+
+        trimBelow(root);
+    }
+    
+    /**
+     * Trim everything below a given operator.  The specified operator will
+     * NOT be removed.
+     * @param op Operator to trim everything after.
+     * @throws FrontendException 
+     */
+    public void trimBelow(Operator op) throws FrontendException {
+        if (getSuccessors(op) != null) {
+            List<Operator> succs = new ArrayList<Operator>();
+            succs.addAll(getSuccessors(op));
+            for (Operator succ : succs) {
+                disconnect(op, succ);
+                trimBelow(succ);
+                remove(succ);
+            }
+        }
+    }
 }

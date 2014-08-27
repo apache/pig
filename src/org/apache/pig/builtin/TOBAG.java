@@ -159,7 +159,10 @@ public class TOBAG extends EvalFunc<DataBag> {
         }
         return Schema.equals(currentSchema, newSchema, false, true);
     }
-    
 
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }
 

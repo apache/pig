@@ -18,6 +18,7 @@
 package org.apache.pig.builtin;
 
 import java.io.IOException;
+
 import org.apache.pig.EvalFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -51,4 +52,8 @@ public class BagSize extends EvalFunc<Long> {
         return new Schema(new Schema.FieldSchema(null, DataType.LONG)); 
     }
 
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

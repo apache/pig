@@ -93,4 +93,9 @@ public class GetMinute extends EvalFunc<Integer> {
 
         return funcList;
     }
+
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

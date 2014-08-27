@@ -77,4 +77,9 @@ public class LOWER extends EvalFunc<String> {
         return funcList;
      }
 
+     @Override
+     public boolean allowCompileTimeCalculation() {
+         return true;
+     }
+
 }

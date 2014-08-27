@@ -123,4 +123,9 @@ public class ToDate extends EvalFunc<DateTime> {
     public static DateTime extractDateTime(String dtStr) {
         return isoDateTimeFormatter.parseDateTime(dtStr);
     }
+
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
+    }
 }

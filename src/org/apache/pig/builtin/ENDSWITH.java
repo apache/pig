@@ -20,6 +20,7 @@ package org.apache.pig.builtin;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigWarning;
@@ -71,5 +72,10 @@ public class ENDSWITH extends EvalFunc<Boolean> {
         s.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
         funcList.add(new FuncSpec(this.getClass().getName(), s));
         return funcList;
+    }
+
+    @Override
+    public boolean allowCompileTimeCalculation() {
+        return true;
     }
 }
