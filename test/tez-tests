@@ -61,3 +61,7 @@
 **/TestTezCompiler.java
 **/TestTezJobControlCompiler.java
 **/TestTezLauncher.java
+**/TestAccumuloPigCluster.java
+**/TestBigTypeSort.java
+**/TestCurrentTime.java
+**/TestInvokerGenerator.java
