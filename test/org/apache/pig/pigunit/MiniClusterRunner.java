@@ -12,7 +12,7 @@
  */
 package org.apache.pig.pigunit;
 
-import org.apache.pig.test.MiniCluster;
+import org.apache.pig.test.MiniGenericCluster;
 
 
 /**
@@ -41,6 +41,6 @@ import org.apache.pig.test.MiniCluster;
 public class MiniClusterRunner {
   public static void main(String[] args) {
     System.setProperty("hadoop.log.dir", "/tmp/pigunit");
-    MiniCluster.buildCluster();
+    MiniGenericCluster.buildCluster();
   }
 }
