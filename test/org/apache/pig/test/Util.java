@@ -58,6 +58,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.SimpleLayout;
 import org.apache.pig.ExecType;
+import org.apache.pig.ExecTypeProvider;
 import org.apache.pig.LoadCaster;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
@@ -735,7 +736,7 @@ public class Util {
         }
         if (context.getExecType() == ExecType.MAPREDUCE || context.getExecType().name().equals("TEZ")) {
             return FileLocalizer.hadoopify(filename, context);
-        } else if (context.getExecType() == ExecType.LOCAL) {
+        } else if (context.getExecType().isLocal()) {
             return filename;
         } else {
             throw new IllegalStateException("ExecType: " + context.getExecType());
@@ -1345,5 +1346,14 @@ public class Util {
             throw new RuntimeException("Cannot find pig.jar");
         }
         return jarNames[0];
+    }
+
+    public static ExecType getLocalTestMode() throws Exception {
+        String execType = System.getProperty("test.exec.type");
+        if (execType!=null && execType.equals("tez")) {
+            return ExecTypeProvider.fromString("tez_local");
+        } else {
+            return ExecTypeProvider.fromString("local");
+        }
     }
 }
