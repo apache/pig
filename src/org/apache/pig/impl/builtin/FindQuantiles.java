@@ -172,7 +172,7 @@ public class FindQuantiles extends EvalFunc<Map<String, Object>>{
                 samples = (DataBag)in.get(1);
             }
             long numSamples = samples.size();
-            long toSkip = numSamples / numQuantiles;
+            double toSkip = (double)numSamples / numQuantiles;
             if(toSkip == 0) {
                 // numSamples is < numQuantiles;
                 // set numQuantiles to numSamples
@@ -180,9 +180,10 @@ public class FindQuantiles extends EvalFunc<Map<String, Object>>{
                 toSkip = 1;
             }
             
-            long ind=0, j=-1, nextQuantile = toSkip-1;
+            long ind=0, j=-1;
+            double nextQuantile = toSkip-1;
             for (Tuple it : samples) {
-                if (ind==nextQuantile){
+                if (ind==(long)nextQuantile){
                     ++j;
                     quantilesList.add(it);
                     nextQuantile+=toSkip;

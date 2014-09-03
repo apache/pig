@@ -70,6 +70,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4149: Rounding issue in FindQuantiles (daijy)
+
 PIG-4145: Port local mode tests to Tez - part1 (daijy)
 
 PIG-4076: Fix pom file (daijy)

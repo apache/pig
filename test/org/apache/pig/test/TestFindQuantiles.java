@@ -20,13 +20,18 @@ package org.apache.pig.test;
 
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.DiscreteProbabilitySampleGenerator;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.InternalMap;
+import org.apache.pig.data.NonSpillableDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.builtin.FindQuantiles;
@@ -35,7 +40,7 @@ import org.junit.Test;
 public class TestFindQuantiles {
     
     private static TupleFactory tFact = TupleFactory.getInstance();
-    private static final float epsilon = 0.00001f;
+    private static final float epsilon = 0.0001f;
     
     @Test
     public void testFindQuantiles() throws Exception {
@@ -43,7 +48,7 @@ public class TestFindQuantiles {
        final int numReducers = 1009;
        float sum = getProbVecSum(numSamples, numReducers);
        System.out.println("sum: " + sum);
-       assertTrue(sum > (1+epsilon));
+       assertTrue(sum > (1-epsilon) && sum < (1+epsilon));
     }
     
     @Test
@@ -52,9 +57,34 @@ public class TestFindQuantiles {
        final int numReducers = 3000;
        float sum = getProbVecSum(numSamples, numReducers);
        System.out.println("sum: " + sum);
-       assertTrue(sum < (1-epsilon));
+       assertTrue(sum > (1-epsilon) && sum < (1+epsilon));
     }
-    
+
+    @Test
+    public void testFindQuantilesRemainder() throws Exception {
+       final int numSamples = 1900;
+       final int numReducers = 300;
+       DataBag samples = generateRandomSortedSamples(numSamples, 365);
+       Map<String, Object> findQuantilesResult = getFindQuantilesResult(samples, numReducers);
+       DataBag quantilesBag = (DataBag)findQuantilesResult.get(FindQuantiles.QUANTILES_LIST);
+       Iterator<Tuple> iter = quantilesBag.iterator();
+       Tuple lastQuantile = null;
+       while (iter.hasNext()) {
+           lastQuantile = iter.next();
+       }
+       int lastQuantileNum = (Integer)lastQuantile.get(0);
+       int count = 0;
+       iter = samples.iterator();
+       while (iter.hasNext()) {
+           Tuple t = iter.next();
+           int num = (Integer)t.get(0);
+           if (num >= lastQuantileNum) {
+               count++;
+           }
+       }
+       assertTrue((double)count/numSamples <= 1.0/365 + 0.001);
+    }
+
     private float[] getProbVec(Tuple values) throws Exception {
         float[] probVec = new float[values.size()];        
         for(int i = 0; i < values.size(); i++) {
@@ -62,22 +92,46 @@ public class TestFindQuantiles {
         }
         return probVec;
     }
-    
-    private float getProbVecSum(int numSamples, int numReduceres) throws Exception {
-        Tuple in = tFact.newTuple(2);
+
+    private DataBag generateRandomSortedSamples(int numSamples, int max) throws Exception {
+        Random rand = new Random(1000);
+        List<Tuple> samples = new ArrayList<Tuple>(); 
+        for (int i=0; i<numSamples; i++) {
+            Tuple t = tFact.newTuple(1);
+            t.set(0, rand.nextInt(max));
+            samples.add(t);
+        }
+        Collections.sort(samples);
+        return new NonSpillableDataBag(samples);
+    }
+
+    private DataBag generateUniqueSamples(int numSamples) throws Exception {
         DataBag samples = BagFactory.getInstance().newDefaultBag(); 
         for (int i=0; i<numSamples; i++) {
             Tuple t = tFact.newTuple(1);
             t.set(0, new Integer(23));
             samples.add(t);
         }
+        return samples;
+    }
+
+    private Map<String, Object> getFindQuantilesResult(DataBag samples,
+            int numReduceres) throws Exception {
+        Tuple in = tFact.newTuple(2);
+
         in.set(0, new Integer(numReduceres));
         in.set(1, samples);
         
         FindQuantiles fq = new FindQuantiles();
         
         Map<String, Object> res = fq.exec(in);
-        
+        return res;
+    }
+
+    private float getProbVecSum(int numSamples, int numReduceres) throws Exception {
+        DataBag samples = generateUniqueSamples(numSamples);
+        Map<String, Object> res = getFindQuantilesResult(samples, numReduceres);
+
         InternalMap weightedPartsData = (InternalMap) res.get(FindQuantiles.WEIGHTED_PARTS);
         Iterator<Object> it = weightedPartsData.values().iterator();
         float[] probVec = getProbVec((Tuple)it.next());
