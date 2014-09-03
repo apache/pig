@@ -25,7 +25,7 @@ import org.apache.commons.logging.LogFactory;
 public class DiscreteProbabilitySampleGenerator {
     Random rGen;
     float[] probVec;
-    float epsilon = 0.00001f;
+    float epsilon = 0.0001f;
         
     private static final Log LOG = LogFactory.getLog(DiscreteProbabilitySampleGenerator.class);
     
