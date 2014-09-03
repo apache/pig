@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4146: Create a target to run mr and tez unit test in one shot (daijy)
+
 PIG-4144: Make pigunit.PigTest work in tez mode (daijy)
 
 PIG-4128: New logical optimizer rule: ConstantCalculator (daijy)
