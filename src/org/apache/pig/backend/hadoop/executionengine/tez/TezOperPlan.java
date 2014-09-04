@@ -24,15 +24,21 @@ import java.io.PrintStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.pig.backend.hadoop.executionengine.tez.util.TezCompilerUtil;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.OperatorPlan;
+import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.Pair;
 
 /**
  * A Plan used to create the plan of Tez operators which can be converted into
@@ -156,5 +162,65 @@ public class TezOperPlan extends OperatorPlan<TezOperator> {
         return super.disconnect(from, to);
     }
 
+    
+    /**
+     * Move everything below a given operator to the new operator plan.  The specified operator will
+     * be moved and will be the root of the new operator plan
+     * @param root Operator to move everything under including the root operator
+     * @param newPlan new operator plan to move things into
+     * @throws PlanException 
+     */
+    public void moveTree(TezOperator root, TezOperPlan newPlan) throws PlanException {
+        List<TezOperator> list = new ArrayList<TezOperator>();
+        list.add(root);
+        int prevSize = 0;
+        int pos = 0;
+        while (list.size() > prevSize) {
+            prevSize = list.size();
+            TezOperator node = list.get(pos);
+            if (getSuccessors(node)!=null) {
+                for (TezOperator succ : getSuccessors(node)) {
+                    if (!list.contains(succ)) {
+                        list.add(succ);
+                    }
+                }
+            }
+            if (getPredecessors(node)!=null) {
+                for (TezOperator pred : getPredecessors(node)) {
+                    if (!list.contains(pred)) {
+                        list.add(pred);
+                    }
+                }
+            }
+            pos++;
+        }
+
+        for (TezOperator node: list) {
+            newPlan.add(node);
+        }
+
+        Set<Pair<TezOperator, TezOperator>> toReconnect = new HashSet<Pair<TezOperator, TezOperator>>();
+        for (TezOperator from : mFromEdges.keySet()) {
+            List<TezOperator> tos = mFromEdges.get(from);
+            for (TezOperator to : tos) {
+                if (list.contains(from) || list.contains(to)) {
+                    toReconnect.add(new Pair<TezOperator, TezOperator>(from, to));
+                }
+            }
+        }
+
+        for (Pair<TezOperator, TezOperator> pair : toReconnect) {
+            if (list.contains(pair.first) && list.contains(pair.second)) {
+                // Need to reconnect in newPlan
+                TezEdgeDescriptor edge = pair.second.inEdges.get(pair.first.getOperatorKey());
+                TezCompilerUtil.connect(newPlan, pair.first, pair.second, edge);
+            }
+        }
+
+        for (TezOperator node : list) {
+            // Simply remove from plan, don't deal with inEdges/outEdges
+            super.remove(node);
+        }
+    }
 }
 

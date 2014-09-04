@@ -37,31 +37,28 @@ import org.apache.hadoop.hbase.MiniHBaseCluster;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
-import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.util.ConfigurationValidator;
 import org.apache.pig.test.utils.GenPhyOp;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
-public class TestJobSubmission {
+@Ignore
+abstract public class TestJobSubmission {
 
 
     static PigContext pc;
@@ -75,11 +72,11 @@ public class TestJobSubmission {
     String curDir;
     String inpDir;
     String golDir;
-    static MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
 
     @BeforeClass
     public static void onetimeSetUp() throws Exception {
-        pc = new PigContext(ExecType.MAPREDUCE, cluster.getProperties());
+        pc = new PigContext(cluster.getExecType(), cluster.getProperties());
         try {
             pc.connect();
         } catch (ExecException e) {
@@ -115,55 +112,27 @@ public class TestJobSubmission {
 
     @Test
     public void testJobControlCompilerErr() throws Exception {
-        String query = "a = load 'input';" + "b = order a by $0;" + "store b into 'output';";
-        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        String query = "a = load '/passwd' as (a1:bag{(t:chararray)});" + "b = order a by a1;" + "store b into 'output';";
+        PigServer pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
         PhysicalPlan pp = Util.buildPp(pigServer, query);
-        POStore store = GenPhyOp.dummyPigStorageOp();
-        pp.addAsLeaf(store);
-        MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
-
-        for(MapReduceOper mro: mrPlan.getLeaves()) {
-            if(mro.reducePlan != null) {
-                PhysicalOperator po = mro.reducePlan.getRoots().get(0);
-                if (po instanceof POPackage) {
-                    ((POPackage) po).getPkgr().setKeyType(DataType.BAG);
-                    mro.setGlobalSort(true);
-                }
-            }
-        }
-
-        ConfigurationValidator.validatePigProperties(pc.getProperties());
-        Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
-        JobControlCompiler jcc = new JobControlCompiler(pc, conf);
-        try {
-            jcc.compile(mrPlan, "Test");
-        } catch (JobCreationException jce) {
-            assertTrue(jce.getErrorCode() == 1068);
-        }
+        checkJobControlCompilerErrResult(pp, pc);
     }
+
+    abstract protected void checkJobControlCompilerErrResult(PhysicalPlan pp, PigContext pc) throws Exception;
 
     @Test
     public void testDefaultParallel() throws Throwable {
         pc.defaultParallel = 100;
 
-        String query = "a = load 'input';" + "b = group a by $0;" + "store b into 'output';";
-        PigServer ps = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        String query = "a = load '/passwd';" + "b = group a by $0;" + "store b into 'output';";
+        PigServer ps = new PigServer(cluster.getExecType(), cluster.getProperties());
         PhysicalPlan pp = Util.buildPp(ps, query);
-        MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
-
-        ConfigurationValidator.validatePigProperties(pc.getProperties());
-        Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
-        JobControlCompiler jcc = new JobControlCompiler(pc, conf);
-
-        JobControl jobControl = jcc.compile(mrPlan, "Test");
-        Job job = jobControl.getWaitingJobs().get(0);
-        int parallel = job.getJobConf().getNumReduceTasks();
-
-        assertEquals(100, parallel);
-        Util.assertParallelValues(100, -1, -1, 100, job.getJobConf());
+        checkDefaultParallelResult(pp, pc);
 
         pc.defaultParallel = -1;
     }
+
+    abstract protected void checkDefaultParallelResult(PhysicalPlan pp, PigContext pc) throws Exception;
 
     @Test
     public void testDefaultParallelInSort() throws Throwable {
@@ -171,7 +140,7 @@ public class TestJobSubmission {
         // more thorough tests can be found in TestNumberOfReducers.java
 
         String query = "a = load 'input';" + "b = order a by $0 parallel 100;" + "store b into 'output';";
-        PigServer ps = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer ps = new PigServer(cluster.getExecType(), cluster.getProperties());
         PhysicalPlan pp = Util.buildPp(ps, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
@@ -198,7 +167,7 @@ public class TestJobSubmission {
                 "b = load 'input';" +
                 "c = join a by $0, b by $0 using 'skewed' parallel 100;" +
                 "store c into 'output';";
-        PigServer ps = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer ps = new PigServer(cluster.getExecType(), cluster.getProperties());
         PhysicalPlan pp = Util.buildPp(ps, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
@@ -219,6 +188,10 @@ public class TestJobSubmission {
 
     @Test
     public void testReducerNumEstimation() throws Exception{
+        // Skip the test for Tez. Tez use a different mechanism.
+        // Equivalent test is in TestTezAutoParallelism
+        Assume.assumeTrue("Skip this test for TEZ",
+                Util.isMapredExecType(cluster.getExecType()));
         // use the estimation
         Configuration conf = HBaseConfiguration.create(new Configuration());
         HBaseTestingUtility util = new HBaseTestingUtility(conf);
@@ -228,7 +201,7 @@ public class TestJobSubmission {
         String query = "a = load '/passwd';" +
                 "b = group a by $0;" +
                 "store b into 'output';";
-        PigServer ps = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer ps = new PigServer(cluster.getExecType(), cluster.getProperties());
         PhysicalPlan pp = Util.buildPp(ps, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
@@ -295,6 +268,10 @@ public class TestJobSubmission {
 
     @Test
     public void testReducerNumEstimationForOrderBy() throws Exception{
+        // Skip the test for Tez. Tez use a different mechanism.
+        // Equivalent test is in TestTezAutoParallelism
+        Assume.assumeTrue("Skip this test for TEZ",
+                Util.isMapredExecType(cluster.getExecType()));
         // use the estimation
         pc.getProperties().setProperty("pig.exec.reducers.bytes.per.reducer", "100");
         pc.getProperties().setProperty("pig.exec.reducers.max", "10");
@@ -302,7 +279,7 @@ public class TestJobSubmission {
         String query = "a = load '/passwd';" +
                 "b = order a by $0;" +
                 "store b into 'output';";
-        PigServer ps = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer ps = new PigServer(cluster.getExecType(), cluster.getProperties());
         PhysicalPlan pp = Util.buildPp(ps, query);
 
         MROperPlan mrPlan = Util.buildMRPlanWithOptimizer(pp, pc);

@@ -29,6 +29,7 @@ public class TezTaskStats extends JobStats {
     private static final Log LOG = LogFactory.getLog(TezTaskStats.class);
 
     private String vertexName;
+    private int parallelism;
     private List<POStore> stores = null;
     private List<FileSpec> loads = null;
 
@@ -38,6 +39,10 @@ public class TezTaskStats extends JobStats {
 
     public void setId(String vertexName) {
         this.vertexName = vertexName;
+    }
+
+    public void setParallelism(int p) {
+        this.parallelism = p;
     }
 
     @Override
@@ -251,6 +256,10 @@ public class TezTaskStats extends JobStats {
     @Deprecated
     public Map<String, Long> getMultiInputCounters() {
         throw new UnsupportedOperationException();
+    }
+
+    public int getParallelism() {
+        return parallelism;
     }
 
     public boolean hasLoadOrStore() {

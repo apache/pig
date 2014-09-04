@@ -31,6 +31,8 @@ import junit.framework.Assert;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.apache.pig.ExecType;
+import org.apache.pig.ExecTypeProvider;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -62,7 +64,7 @@ public class PigTest {
   private static ThreadLocal<Cluster> cluster = new ThreadLocal<Cluster>();
 
   private static final Logger LOG = Logger.getLogger(PigTest.class);
-  private static final String EXEC_CLUSTER = "pigunit.exectype.cluster";
+  private static final String EXEC_CLUSTER = "pigunit.exectype";
 
   /**
    * Initializes the Pig test.
@@ -120,16 +122,30 @@ public class PigTest {
    * @throws ExecException If the PigServer can't be started.
    */
   public static Cluster getCluster() throws ExecException {
-    if (cluster.get() == null) {
-      if (System.getProperties().containsKey(EXEC_CLUSTER)) {
-        LOG.info("Using cluster mode");
-        pig.set(new PigServer(ExecType.MAPREDUCE));
-      } else {
-        LOG.info("Using default local mode");
-        pig.set(new PigServer(ExecType.LOCAL));
+    try {
+      if (cluster.get() == null) {
+        ExecType execType = ExecType.LOCAL;
+        if (System.getProperties().containsKey(EXEC_CLUSTER)) {
+          if (System.getProperties().getProperty(EXEC_CLUSTER).equalsIgnoreCase("mr")) {
+            LOG.info("Using mr cluster mode");
+            execType = ExecType.MAPREDUCE;
+          } else if (System.getProperties().getProperty(EXEC_CLUSTER).equalsIgnoreCase("tez")) {
+            LOG.info("Using tez cluster mode");
+            execType = ExecTypeProvider.fromString("tez");
+          } else if (System.getProperties().getProperty(EXEC_CLUSTER).equalsIgnoreCase("tez_local")) {
+            LOG.info("Using tez local mode");
+            execType = ExecTypeProvider.fromString("tez_local");
+          } else {
+            LOG.info("Using default local mode");
+          }
+        } else {
+          LOG.info("Using default local mode");
+        }
+        pig.set(new PigServer(execType));
+        cluster.set(new Cluster(pig.get().getPigContext()));
       }
-
-      cluster.set(new Cluster(pig.get().getPigContext()));
+    } catch (PigException e) {
+      throw new ExecException(e);
     }
 
     return cluster.get();

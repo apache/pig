@@ -433,19 +433,19 @@
 
     <!-- for Tez integration -->
     <dependency org="org.apache.tez" name="tez" rev="${tez.version}"
-       conf="hadoop23->master" changing="true"/>
+       conf="hadoop23->master"/>
     <dependency org="org.apache.tez" name="tez-common" rev="${tez.version}"
-       conf="hadoop23->master" changing="true"/>
+       conf="hadoop23->master"/>
     <dependency org="org.apache.tez" name="tez-api" rev="${tez.version}"
-       conf="hadoop23->master" changing="true"/>
+       conf="hadoop23->master"/>
     <dependency org="org.apache.tez" name="tez-dag" rev="${tez.version}"
-       conf="hadoop23->master" changing="true"/>
+       conf="hadoop23->master"/>
     <dependency org="org.apache.tez" name="tez-runtime-internals" rev="${tez.version}"
-       conf="hadoop23->master" changing="true"/>
+       conf="hadoop23->master"/>
     <dependency org="org.apache.tez" name="tez-runtime-library" rev="${tez.version}"
-       conf="hadoop23->master" changing="true"/>
+       conf="hadoop23->master"/>
     <dependency org="org.apache.tez" name="tez-mapreduce" rev="${tez.version}"
-       conf="hadoop23->master" changing="true"/>
+       conf="hadoop23->master"/>
     <dependency org="org.apache.commons" name="commons-collections4" rev="${commons-collections4.version}"
       conf="hadoop23->master"/>
     <dependency org="org.codehaus.jettison" name="jettison" rev="${jettison.version}"
