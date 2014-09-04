@@ -31,8 +31,18 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.ConfigurationValidator;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.apache.pig.tools.pigstats.mapreduce.MRJobStats;
+import org.junit.Assume;
+import org.junit.BeforeClass;
 
 public class TestGroupConstParallelMR extends TestGroupConstParallel {
+
+    @BeforeClass
+    public static void oneTimeSetup() throws Exception{
+        String execType = System.getProperty("test.exec.type");
+        Assume.assumeTrue("This test suite should only run in mr mode", execType.equalsIgnoreCase("mr"));
+        TestGroupConstParallel.oneTimeSetup();
+    }
+
     @Override
     public void checkGroupAllWithParallelGraphResult(JobGraph jGraph) {
         assertEquals(1, jGraph.size());

@@ -32,8 +32,17 @@ import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.apache.pig.tools.pigstats.tez.TezTaskStats;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Vertex;
+import org.junit.Assume;
+import org.junit.BeforeClass;
 
 public class TestGroupConstParallelTez extends TestGroupConstParallel {
+
+    @BeforeClass
+    public static void oneTimeSetup() throws Exception{
+        String execType = System.getProperty("test.exec.type");
+        Assume.assumeTrue("This test suite should only run in tez mode", execType.equalsIgnoreCase("tez"));
+        TestGroupConstParallel.oneTimeSetup();
+    }
 
     @Override
     public void checkGroupAllWithParallelGraphResult(JobGraph jGraph) {
@@ -51,7 +60,7 @@ public class TestGroupConstParallelTez extends TestGroupConstParallel {
         ParallelismSetter parallelismSetter = new ParallelismSetter(tezPlan, pc);
         parallelismSetter.visit();
 
-        DAG tezDag = new DAG("test");
+        DAG tezDag = DAG.create("test");
         TezDagBuilder dagBuilder = new TezDagBuilder(pc, tezPlan, tezDag, null);
         dagBuilder.visit();
         for (Vertex v : tezDag.getVertices()) {
@@ -71,7 +80,7 @@ public class TestGroupConstParallelTez extends TestGroupConstParallel {
         ParallelismSetter parallelismSetter = new ParallelismSetter(tezPlan, pc);
         parallelismSetter.visit();
 
-        DAG tezDag = new DAG("test");
+        DAG tezDag = DAG.create("test");
         TezDagBuilder dagBuilder = new TezDagBuilder(pc, tezPlan, tezDag, null);
         dagBuilder.visit();
         for (Vertex v : tezDag.getVertices()) {

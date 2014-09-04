@@ -53,7 +53,6 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -72,10 +71,10 @@ abstract public class TestJobSubmission {
     String curDir;
     String inpDir;
     String golDir;
-    static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
+    static MiniGenericCluster cluster = null;
 
-    @BeforeClass
-    public static void onetimeSetUp() throws Exception {
+    public static void oneTimeSetUp() throws Exception {
+        cluster = MiniGenericCluster.buildCluster();
         pc = new PigContext(cluster.getExecType(), cluster.getProperties());
         try {
             pc.connect();
@@ -85,9 +84,6 @@ abstract public class TestJobSubmission {
         }
         GenPhyOp.setPc(pc);
         Util.copyFromLocalToCluster(cluster, "test/org/apache/pig/test/data/passwd", "/passwd");
-
-        Configuration conf = cluster.getConfiguration();
-
     }
 
     @Before
@@ -107,7 +103,9 @@ abstract public class TestJobSubmission {
 
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
-        cluster.shutDown();
+        if (cluster!=null) {
+            cluster.shutDown();
+        }
     }
 
     @Test
