@@ -47,7 +47,7 @@ public class TestJobSubmissionTez extends TestJobSubmission {
         ParallelismSetter parallelismSetter = new ParallelismSetter(tezPlan, pc);
         parallelismSetter.visit();
 
-        DAG tezDag = new DAG("test");
+        DAG tezDag = DAG.create("test");
         TezDagBuilder dagBuilder = new TezDagBuilder(pc, tezPlan, tezDag, null);
         try {
             dagBuilder.visit();
@@ -66,7 +66,7 @@ public class TestJobSubmissionTez extends TestJobSubmission {
         ParallelismSetter parallelismSetter = new ParallelismSetter(tezPlan, pc);
         parallelismSetter.visit();
 
-        DAG tezDag = new DAG("test");
+        DAG tezDag = DAG.create("test");
         TezDagBuilder dagBuilder = new TezDagBuilder(pc, tezPlan, tezDag, null);
         dagBuilder.visit();
         for (Vertex v : tezDag.getVertices()) {
