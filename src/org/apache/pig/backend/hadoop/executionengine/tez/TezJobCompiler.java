@@ -56,7 +56,7 @@ public class TezJobCompiler {
     public DAG buildDAG(TezOperPlan tezPlan, Map<String, LocalResource> localResources)
             throws IOException, YarnException {
         String jobName = pigContext.getProperties().getProperty(PigContext.JOB_NAME, "pig");
-        DAG tezDag = new DAG(jobName + "-" + dagIdentifier);
+        DAG tezDag = DAG.create(jobName + "-" + dagIdentifier);
         dagIdentifier++;
         tezDag.setCredentials(new Credentials());
         TezDagBuilder dagBuilder = new TezDagBuilder(pigContext, tezPlan, tezDag, localResources);
