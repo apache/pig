@@ -1270,7 +1270,7 @@ public class Util {
         assertConfLong(conf, MRConfiguration.REDUCE_TASKS, runtimeParallel);
     }
 
-    private static void assertConfLong(Configuration conf, String param, long expected) {
+    public static void assertConfLong(Configuration conf, String param, long expected) {
         assertEquals("Unexpected value found in configs for " + param, expected, conf.getLong(param, -1));
     }
 
