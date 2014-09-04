@@ -32,7 +32,7 @@ import org.junit.Test;
 
 public class TestPigProgressReporting {
 
-    static MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
 
     @Test
     public void testProgressReportingWithStatusMessage() throws Exception {
@@ -46,7 +46,7 @@ public class TestPigProgressReporting {
 
             Util.createInputFile(cluster, "a.txt", new String[] { "dummy"});
 
-            PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+            PigServer pig = new PigServer(cluster.getExecType(), cluster.getProperties());
 
             String filename = prepareTempFile();
             filename = filename.replace("\\", "\\\\");

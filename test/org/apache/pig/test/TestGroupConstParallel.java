@@ -17,44 +17,32 @@
  */
 package org.apache.pig.test;
 
-import static org.junit.Assert.assertEquals;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapred.jobcontrol.Job;
-import org.apache.hadoop.mapred.jobcontrol.JobControl;
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
-import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.util.ConfigurationValidator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
 import org.apache.pig.newplan.logical.rules.GroupByConstParallelSetter;
 import org.apache.pig.newplan.optimizer.Rule;
-import org.apache.pig.test.utils.GenPhyOp;
-import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
-import org.apache.pig.tools.pigstats.mapreduce.MRJobStats;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
-public class TestGroupConstParallel {
+@Ignore
+public abstract class TestGroupConstParallel {
 
     private static final String INPUT_FILE = "TestGroupConstParallelInp";
-    private static MiniCluster cluster = MiniCluster.buildCluster();
+    private static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
 
     
     @BeforeClass
@@ -79,7 +67,7 @@ public class TestGroupConstParallel {
      */
     @Test
     public void testGroupAllWithParallel() throws Exception {
-        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster
+        PigServer pigServer = new PigServer(cluster.getExecType(), cluster
                 .getProperties());
         
         
@@ -95,42 +83,30 @@ public class TestGroupConstParallel {
             Util.checkQueryOutputsAfterSort(iter, expectedRes);
             
             JobGraph jGraph = PigStats.get().getJobGraph();
-            assertEquals(1, jGraph.size());
-            // find added map-only concatenate job 
-            MRJobStats js = (MRJobStats)jGraph.getSources().get(0);
-            assertEquals(1, js.getNumberMaps());   
-            assertEquals(1, js.getNumberReduces()); 
+            checkGroupAllWithParallelGraphResult(jGraph);
         }
-
     }
-    
-    
+
+    abstract protected void checkGroupAllWithParallelGraphResult(JobGraph jGraph);
+
     /**
      * Test parallelism for group by constant
      * @throws Throwable
      */
     @Test
     public void testGroupConstWithParallel() throws Throwable {
-        PigContext pc = new PigContext(ExecType.MAPREDUCE, cluster.getProperties());
+        PigContext pc = new PigContext(cluster.getExecType(), cluster.getProperties());
         pc.defaultParallel = 100;
         pc.connect();
         
-        String query = "a = load 'input';\n" + "b = group a by 1;" + "store b into 'output';";
-        PigServer pigServer = new PigServer( ExecType.MAPREDUCE, cluster.getProperties() );
+        String query = "a = load '" + INPUT_FILE + "';\n" + "b = group a by 1;" + "store b into 'output';";
+        PigServer pigServer = new PigServer( cluster.getExecType(), cluster.getProperties() );
         PhysicalPlan pp = Util.buildPp( pigServer, query );
-        
-        MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
-        ConfigurationValidator.validatePigProperties(pc.getProperties());
-        Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
-        JobControlCompiler jcc = new JobControlCompiler(pc, conf);
-        
-        JobControl jobControl = jcc.compile(mrPlan, "Test");
-        Job job = jobControl.getWaitingJobs().get(0);
-        int parallel = job.getJobConf().getNumReduceTasks();
-
-        assertEquals("parallism", 1, parallel);
+        checkGroupConstWithParallelResult(pp, pc);
     }
+
+    abstract protected void checkGroupConstWithParallelResult(PhysicalPlan pp, PigContext pc) throws Exception;
     
     /**
      *  Test parallelism for group by column
@@ -138,26 +114,19 @@ public class TestGroupConstParallel {
      */
     @Test
     public void testGroupNonConstWithParallel() throws Throwable {
-        PigContext pc = new PigContext(ExecType.MAPREDUCE, cluster.getProperties());
+        PigContext pc = new PigContext(cluster.getExecType(), cluster.getProperties());
         pc.defaultParallel = 100;
         pc.connect();
         
-        PigServer pigServer = new PigServer( ExecType.MAPREDUCE, cluster.getProperties() );
-        String query =  "a = load 'input';\n" + "b = group a by $0;" + "store b into 'output';";
+        PigServer pigServer = new PigServer( cluster.getExecType(), cluster.getProperties() );
+        String query =  "a = load '" + INPUT_FILE + "';\n" + "b = group a by $0;" + "store b into 'output';";
         
         PhysicalPlan pp = Util.buildPp( pigServer, query );
-        MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
-        ConfigurationValidator.validatePigProperties(pc.getProperties());
-        Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
-        JobControlCompiler jcc = new JobControlCompiler(pc, conf);
-        
-        JobControl jobControl = jcc.compile(mrPlan, "Test");
-        Job job = jobControl.getWaitingJobs().get(0);
-        int parallel = job.getJobConf().getNumReduceTasks();
-        
-        assertEquals("parallism", 100, parallel);
+        checkGroupNonConstWithParallelResult(pp, pc);
     }
+
+    abstract protected void checkGroupNonConstWithParallelResult(PhysicalPlan pp, PigContext pc) throws Exception;
 
     public class MyPlanOptimizer extends LogicalPlanOptimizer {
 

@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +36,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigException;
 import org.apache.pig.impl.util.MultiMap;
+import org.apache.pig.impl.util.Pair;
 
 
 //import org.apache.commons.collections.map.MultiValueMap;
@@ -283,42 +285,6 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
                 remove(op);
             }
         }
-    }
-    
-    /**
-     * Move everything below a given operator to the new operator plan.  The specified operator will
-     * be moved and will be the root of the new operator plan
-     * @param root Operator to move everything after
-     * @param newPlan new operator plan to move things into
-     * @throws PlanException 
-     */
-    public void moveTree(E root, OperatorPlan<E> newPlan) throws PlanException {
-        Deque<E> queue = new ArrayDeque<E>();
-        queue.addLast(root);
-        while (!queue.isEmpty()) {
-            E node = queue.poll();
-            if (getSuccessors(node)!=null) {
-                for (E succ : getSuccessors(node)) {
-                    if (!queue.contains(succ)) {
-                        queue.addLast(succ);
-                    }
-                }
-            }
-            newPlan.add(node);
-        }
-
-        for (E from : mFromEdges.keySet()) {
-            if (newPlan.mOps.containsKey(from)) {
-                for (E to : mFromEdges.get(from)) {
-                    if (newPlan.mOps.containsKey(to)) {
-                        newPlan.connect(from, to);
-                    }
-                }
-            }
-        }
-            
-        trimBelow(root);
-        remove(root);
     }
 
     /**

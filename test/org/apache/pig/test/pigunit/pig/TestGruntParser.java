@@ -19,10 +19,10 @@ import java.util.Map;
 
 import junit.framework.Assert;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.pigunit.pig.GruntParser;
 import org.apache.pig.pigunit.pig.PigServer;
+import org.apache.pig.test.Util;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -33,12 +33,12 @@ public class TestGruntParser {
 
   @SuppressWarnings("serial")
   @Before
-  public void setUp() throws ExecException {
+  public void setUp() throws Exception {
     override = new HashMap<String, String>() {{
       put("STORE", "");
       put("DUMP", "");
     }};
-    PigServer pigServer = new PigServer(ExecType.LOCAL);
+    PigServer pigServer = new PigServer(Util.getLocalTestMode());
     parser = new GruntParser(new StringReader(""), pigServer, override);
   }
 

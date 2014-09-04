@@ -218,7 +218,7 @@ public class TezStats extends PigStats {
             if (v != null) {
                 UserPayload payload = v.getProcessorDescriptor().getUserPayload();
                 Configuration conf = TezUtils.createConfFromUserPayload(payload);
-                addVertexStats(name, conf, succeeded, tezJob.getVertexCounters(name));
+                addVertexStats(name, conf, succeeded, v.getParallelism(), tezJob.getVertexCounters(name));
             }
         }
         if (!succeeded) {
@@ -226,12 +226,13 @@ public class TezStats extends PigStats {
         }
     }
 
-    private void addVertexStats(String tezOpName, Configuration conf, boolean succeeded,
+    private void addVertexStats(String tezOpName, Configuration conf, boolean succeeded, int parallelism,
             Map<String, Map<String, Long>> map) {
         TezTaskStats stats = tezOpVertexMap.get(tezOpName);
         stats.setConf(conf);
         stats.setId(tezOpName);
         stats.setSuccessful(succeeded);
+        stats.setParallelism(parallelism);
         if (map == null) {
             if (stats.hasLoadOrStore()) {
                 LOG.warn("Unable to get input(s)/output(s) of the job");

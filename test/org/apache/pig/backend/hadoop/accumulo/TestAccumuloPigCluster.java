@@ -33,12 +33,10 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.commons.io.FileUtils;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.test.MiniCluster;
+import org.apache.pig.test.Util;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
@@ -89,7 +87,7 @@ public class TestAccumuloPigCluster {
 
     @Before
     public void beforeTest() throws Exception {
-        pig = new PigServer(ExecType.LOCAL);
+        pig = new PigServer(Util.getLocalTestMode());
     }
 
     @AfterClass

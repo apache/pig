@@ -117,7 +117,6 @@
     <!-- test configuration, use ${user.home}/build.properties to configure values  -->
     <property name="ssh.gateway" value="" />
     <property name="hod.server" value="" />
-    <property name="test.log.dir" value="${basedir}/test/logs"/>
     <property name="test.output" value="no"/>
 
     <!-- e2e test properties -->
@@ -867,23 +866,28 @@
     <!-- Run unit tests                                                     -->
     <!-- ================================================================== -->
     <target name="test-core" depends="setWindowsPath,setLinuxPath,compile-test,jar,debugger.check,jackson-pig-3039-test-download" description="Run full set of unit tests">
-        <macro-test-runner test.file="${test.all.file}" />
+        <macro-test-runner test.file="${test.all.file}" tests.failed="test-core.failed" />
+        <fail if="test-core.failed">Tests failed!</fail>
     </target>
 
     <target name="test-commit" depends="setWindowsPath,setLinuxPath,compile-test,jar,debugger.check" description="Run approximate 10-minute set of unit tests prior to commiting">
-        <macro-test-runner test.file="${test.commit.file}" />
+        <macro-test-runner test.file="${test.commit.file}" tests.failed="test-commit.failed"/>
+        <fail if="test-commit.failed">Tests failed!</fail>
     </target>
 
     <target name="test-unit" depends="setWindowsPath,setLinuxPath,compile-test,jar,debugger.check" description="Run all true unit tests">
-        <macro-test-runner test.file="${test.unit.file}" />
+        <macro-test-runner test.file="${test.unit.file}" tests.failed="test-unit.failed"/>
+        <fail if="test-unit.failed">Tests failed!</fail>
     </target>
 
     <target name="test-smoke" depends="setWindowsPath,setLinuxPath,compile-test,jar,debugger.check" description="Run 30 min smoke tests">
-        <macro-test-runner test.file="${test.smoke.file}" />
+        <macro-test-runner test.file="${test.smoke.file}" tests.failed="test-smoke.failed"/>
+        <fail if="test-smoke.failed">Tests failed!</fail>
     </target>
 
     <target name="test-tez" depends="setTezEnv,setWindowsPath,setLinuxPath,compile-test,jar,debugger.check,jackson-pig-3039-test-download" description="Run tez unit tests">
-        <macro-test-runner test.file="${test.tez.file}" />
+        <macro-test-runner test.file="${test.tez.file}" tests.failed="test-tez.failed"/>
+        <fail if="test-tez.failed">Tests failed!</fail>
     </target>
 	
     <target name="debugger.check" depends="debugger.set,debugger.unset"/>
@@ -897,12 +901,13 @@
 
     <macrodef name="macro-test-runner">
       <attribute name="test.file" />
+      <attribute name="tests.failed" />
       <sequential>
         <delete dir="${test.log.dir}"/>
         <mkdir dir="${test.log.dir}"/>
         <tempfile property="junit.tmp.dir" prefix="pig_junit_tmp" destDir="${java.io.tmpdir}" />
         <mkdir dir="${junit.tmp.dir}/"/>
-        <junit showoutput="${test.output}" printsummary="yes" haltonfailure="no" fork="yes" maxmemory="2048m" dir="${basedir}" timeout="${test.timeout}" errorProperty="tests.failed" failureProperty="tests.failed">
+        <junit showoutput="${test.output}" printsummary="yes" haltonfailure="no" fork="yes" maxmemory="2048m" dir="${basedir}" timeout="${test.timeout}" errorProperty="@{tests.failed}" failureProperty="@{tests.failed}">
             <sysproperty key="hadoopversion" value="${hadoopversion}" />
             <sysproperty key="test.exec.type" value="${test.exec.type}" />
             <sysproperty key="ssh.gateway" value="${ssh.gateway}" />
@@ -950,12 +955,42 @@
 
         </junit>
         <delete dir="${junit.tmp.dir}/"/>
-        <fail if="tests.failed">Tests failed!</fail>
       </sequential>
     </macrodef>
 
     <target name="test" description="to call the test-core and test-contrib target">
         <antcall target="test-core" inheritRefs="true" inheritall="true"/>
+    </target>
+
+    <target name="test-core-mrtez" description="run core tests on both mr and tez mode"
+            depends="setWindowsPath,setLinuxPath,compile-test,jar,debugger.check,jackson-pig-3039-test-download">
+        <fail message="hadoopversion must be set to 23 when invoking test-core-mrtez">
+          <condition>
+            <not>
+              <equals arg1="${hadoopversion}" arg2="23" />
+            </not>
+          </condition>
+        </fail>
+        <echo message="=======================" />
+        <echo message="Running MR tests" />
+        <echo message="=======================" />
+        <propertyreset name="test.exec.type" value="mr" />
+        <propertyreset name="test.log.dir" value="${test.build.dir}/logs/${test.exec.type}" />
+        <macro-test-runner test.file="${test.all.file}" tests.failed="test.mr.failed"/>
+        <echo />
+        <echo message="=======================" />
+        <echo message="Running Tez tests" />
+        <echo message="=======================" />
+        <propertyreset name="test.exec.type" value="tez" />
+        <propertyreset name="test.log.dir" value="${test.build.dir}/logs/${test.exec.type}" />
+        <macro-test-runner test.file="${test.tez.file}" tests.failed="test.tez.failed"/>
+        <condition property="any.tests.failed">
+          <or>
+            <isset property="test.mr.failed"/>
+            <isset property="test.tez.failed"/>
+          </or>
+        </condition>
+        <fail if="any.tests.failed">Tests failed!</fail>
     </target>
 
     <!-- ================================================================== -->
