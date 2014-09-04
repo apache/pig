@@ -34,7 +34,6 @@ import org.apache.pig.newplan.optimizer.Rule;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -42,11 +41,10 @@ import org.junit.Test;
 public abstract class TestGroupConstParallel {
 
     private static final String INPUT_FILE = "TestGroupConstParallelInp";
-    private static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
+    private static MiniGenericCluster cluster = null;
 
-    
-    @BeforeClass
     public static void oneTimeSetup() throws Exception{
+        cluster = MiniGenericCluster.buildCluster();
         String[] input = {
                 "two",
                 "one",
@@ -58,7 +56,9 @@ public abstract class TestGroupConstParallel {
 
     @AfterClass
     public static void tearDownAfterClass() throws Exception {
-        cluster.shutDown();
+        if (cluster!=null) {
+            cluster.shutDown();
+        }
     }
 
     /**
