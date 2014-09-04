@@ -403,20 +403,6 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             payloadConf.set(PigProcessor.SORT_VERTEX, tezOp.sortOperator.getOperatorKey().toString());
         }
 
-        String tmp;
-        long maxCombinedSplitSize = 0;
-        if (!tezOp.combineSmallSplits() || pc.getProperties().getProperty(PigConfiguration.PIG_SPLIT_COMBINATION, "true").equals("false"))
-            payloadConf.setBoolean(PigConfiguration.PIG_NO_SPLIT_COMBINATION, true);
-        else if ((tmp = pc.getProperties().getProperty(PigConfiguration.PIG_MAX_COMBINED_SPLIT_SIZE, null)) != null) {
-            try {
-                maxCombinedSplitSize = Long.parseLong(tmp);
-            } catch (NumberFormatException e) {
-                log.warn("Invalid numeric format for pig.maxCombinedSplitSize; use the default maximum combined split size");
-            }
-        }
-        if (maxCombinedSplitSize > 0)
-            payloadConf.setLong("pig.maxCombinedSplitSize", maxCombinedSplitSize);
-
         payloadConf.set("pig.inputs", ObjectSerializer.serialize(tezOp.getLoaderInfo().getInp()));
         payloadConf.set("pig.inpSignatures", ObjectSerializer.serialize(tezOp.getLoaderInfo().getInpSignatureLists()));
         payloadConf.set("pig.inpLimits", ObjectSerializer.serialize(tezOp.getLoaderInfo().getInpLimits()));
@@ -558,6 +544,11 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             payloadConf.setBoolean(PigProcessor.ESTIMATE_PARALLELISM, true);
             log.info("Estimate quantile for sample aggregation vertex " + tezOp.getOperatorKey().toString());
         }
+
+        // set various parallelism into the job conf for later analysis, PIG-2779
+        payloadConf.setInt("pig.info.reducers.default.parallel", pc.defaultParallel);
+        payloadConf.setInt("pig.info.reducers.requested.parallel", tezOp.getRequestedParallelism());
+        payloadConf.setInt("pig.info.reducers.estimated.parallel", tezOp.getEstimatedParallelism());
 
         // Take our assembled configuration and create a vertex
         UserPayload userPayload = TezUtils.createUserPayloadFromConf(payloadConf);

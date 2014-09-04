@@ -21,10 +21,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigInputFormat;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -46,6 +49,7 @@ import org.apache.tez.mapreduce.hadoop.MRInputHelpers;
 public class LoaderProcessor extends TezOpPlanVisitor {
     private Configuration conf;
     private PigContext pc;
+    private static final Log log = LogFactory.getLog(LoaderProcessor.class);
     public LoaderProcessor(TezOperPlan plan, PigContext pigContext) {
         super(plan, new DependencyOrderWalker<TezOperator, TezOperPlan>(plan));
         this.pc = pigContext;
@@ -125,6 +129,19 @@ public class LoaderProcessor extends TezOpPlanVisitor {
             conf.set("pig.inpTargets", ObjectSerializer.serialize(inpTargets));
             conf.set("pig.inpSignatures", ObjectSerializer.serialize(inpSignatureLists));
             conf.set("pig.inpLimits", ObjectSerializer.serialize(inpLimits));
+            String tmp;
+            long maxCombinedSplitSize = 0;
+            if (!tezOp.combineSmallSplits() || pc.getProperties().getProperty(PigConfiguration.PIG_SPLIT_COMBINATION, "true").equals("false"))
+                conf.setBoolean(PigConfiguration.PIG_NO_SPLIT_COMBINATION, true);
+            else if ((tmp = pc.getProperties().getProperty(PigConfiguration.PIG_MAX_COMBINED_SPLIT_SIZE, null)) != null) {
+                try {
+                    maxCombinedSplitSize = Long.parseLong(tmp);
+                } catch (NumberFormatException e) {
+                    log.warn("Invalid numeric format for pig.maxCombinedSplitSize; use the default maximum combined split size");
+                }
+            }
+            if (maxCombinedSplitSize > 0)
+                conf.setLong("pig.maxCombinedSplitSize", maxCombinedSplitSize);
             tezOp.getLoaderInfo().setInpSignatureLists(inpSignatureLists);
             tezOp.getLoaderInfo().setInp(inp);
             tezOp.getLoaderInfo().setInpLimits(inpLimits);

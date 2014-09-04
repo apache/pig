@@ -22,6 +22,7 @@ import java.io.IOException;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.tools.pigstats.PigStatusReporter;
 
 public class ReportingUDF extends EvalFunc<Integer> {
 
@@ -30,7 +31,8 @@ public class ReportingUDF extends EvalFunc<Integer> {
         
         try {
             Thread.sleep(7500);
-            getReporter().progress("Progressing");
+            PigStatusReporter reporter = PigStatusReporter.getInstance();
+            reporter.progress();
             Thread.sleep(7500);
         } catch (InterruptedException e) {
         }

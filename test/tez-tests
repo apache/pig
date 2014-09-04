@@ -65,3 +65,8 @@
 **/TestBigTypeSort.java
 **/TestCurrentTime.java
 **/TestInvokerGenerator.java
+**/TestGroupConstParallelTez.java
+**/TestJobSubmissionTez.java
+**/TestMergeJoin.java
+**/TestNativeMapReduce.java
+**/TestPigProgressReporting.java
