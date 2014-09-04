@@ -30,8 +30,18 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROper
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.ConfigurationValidator;
+import org.junit.Assume;
+import org.junit.BeforeClass;
 
 public class TestJobSubmissionMR extends TestJobSubmission {
+
+    @BeforeClass
+    public static void oneTimeSetup() throws Exception{
+        String execType = System.getProperty("test.exec.type");
+        Assume.assumeTrue("This test suite should only run in mr mode", execType.equalsIgnoreCase("mr"));
+        TestJobSubmission.oneTimeSetUp();
+    }
+
     @Override
     public void checkJobControlCompilerErrResult(PhysicalPlan pp, PigContext pc) throws Exception {
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);

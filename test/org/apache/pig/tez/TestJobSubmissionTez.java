@@ -35,8 +35,18 @@ import org.apache.pig.test.Util;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Vertex;
+import org.junit.Assume;
+import org.junit.BeforeClass;
 
 public class TestJobSubmissionTez extends TestJobSubmission {
+
+    @BeforeClass
+    public static void oneTimeSetup() throws Exception{
+        String execType = System.getProperty("test.exec.type");
+        Assume.assumeTrue("This test suite should only run in tez mode", execType.equalsIgnoreCase("tez"));
+        TestJobSubmission.oneTimeSetUp();
+    }
+
     @Override
     public void checkJobControlCompilerErrResult(PhysicalPlan pp, PigContext pc) throws Exception {
         TezOperPlan tezPlan = buildTezPlan(pp, pc);
