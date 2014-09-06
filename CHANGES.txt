@@ -70,6 +70,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4158: TestAssert is broken in trunk (cheolsoo)
+
 PIG-4143: Port more mini cluster tests to Tez - part 7 (daijy)
 
 PIG-4149: Rounding issue in FindQuantiles (daijy)
