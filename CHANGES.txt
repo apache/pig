@@ -70,6 +70,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4157: Pig compilation failure due to HIVE-7208 (daijy)
+
 PIG-4158: TestAssert is broken in trunk (cheolsoo)
 
 PIG-4143: Port more mini cluster tests to Tez - part 7 (daijy)
