@@ -70,6 +70,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4154: ScriptState#setScript(File) does not close resources (lars_francke via daijy)
+
 PIG-4155: Quitting grunt shell using CTRL-D character throws exception (abhishek.agarwal via daijy)
 
 PIG-4157: Pig compilation failure due to HIVE-7208 (daijy)

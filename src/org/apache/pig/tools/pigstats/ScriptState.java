@@ -273,10 +273,19 @@ public abstract class ScriptState {
     }
 
     public void setScript(File file) {
+        BufferedReader reader = null;
         try {
-            setScript(new BufferedReader(new FileReader(file)));
+            reader = new BufferedReader(new FileReader(file));
+            setScript(reader);
         } catch (FileNotFoundException e) {
             LOG.warn("unable to find the file", e);
+        } finally {
+            if (reader != null) {
+              try {
+                  reader.close();
+              } catch (IOException ignored) {
+              }
+            }
         }
     }
 
