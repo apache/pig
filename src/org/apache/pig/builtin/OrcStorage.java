@@ -49,6 +49,7 @@ import org.apache.hadoop.hive.ql.io.orc.Reader;
 import org.apache.hadoop.hive.ql.io.orc.OrcFile.Version;
 import org.apache.hadoop.hive.ql.io.sarg.SearchArgument;
 import org.apache.hadoop.hive.ql.io.sarg.SearchArgument.Builder;
+import org.apache.hadoop.hive.ql.io.sarg.SearchArgumentFactory;
 import org.apache.hadoop.hive.serde2.ColumnProjectionUtils;
 import org.apache.hadoop.hive.serde2.io.DateWritable;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
@@ -555,7 +556,7 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
         if (expr == null) {
             return null;
         }
-        Builder builder = SearchArgument.FACTORY.newBuilder();
+        Builder builder = SearchArgumentFactory.newBuilder();
         boolean beginWithAnd = !(expr.getOpType().equals(OpType.OP_AND) || expr.getOpType().equals(OpType.OP_OR) || expr.getOpType().equals(OpType.OP_NOT));
         if (beginWithAnd) {
             builder.startAnd();
