@@ -70,6 +70,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4159: TestGroupConstParallelTez and TestJobSubmissionTez should be excluded in Hadoop 20 unit tests (cheolsoo)
+
 PIG-4154: ScriptState#setScript(File) does not close resources (lars_francke via daijy)
 
 PIG-4155: Quitting grunt shell using CTRL-D character throws exception (abhishek.agarwal via daijy)
