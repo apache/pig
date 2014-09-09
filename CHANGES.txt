@@ -70,6 +70,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4156: [PATCH] fix NPE when running scripts stored on hdfs:// (acoliver via daijy)
+
 PIG-4159: TestGroupConstParallelTez and TestJobSubmissionTez should be excluded in Hadoop 20 unit tests (cheolsoo)
 
 PIG-4154: ScriptState#setScript(File) does not close resources (lars_francke via daijy)
