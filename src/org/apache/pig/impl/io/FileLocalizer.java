@@ -800,7 +800,8 @@ public class FileLocalizer {
                 && uri.getScheme() == null )||
                 // For Windows local files
                 (uri.getScheme() == null && uri.getPath().matches("^/[A-Za-z]:.*")) ||
-                uri.getScheme().equals("local") ) {
+                (uri.getScheme() != null && uri.getScheme().equals("local")) 
+            ) {
             srcFs = localFs;
         } else {
             srcFs = path.getFileSystem(conf);
