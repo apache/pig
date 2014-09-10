@@ -115,11 +115,12 @@ public class TestAssert {
 
       pigServer.registerQuery("A = LOAD 'foo' USING mock.Storage() AS (i:int);");
       pigServer.registerQuery("ASSERT A BY i > 1 , 'i should be greater than 1';");
-      
+
       try {
           pigServer.openIterator("A");
       } catch (FrontendException fe) {
-            Assert.assertTrue(fe.getCause().getCause().getMessage().contains("Assertion violated"));
+          Assert.assertTrue(fe.getCause().getMessage().contains(
+                  "Job terminated with anomalous status FAILED"));
       }
   }
 
@@ -141,8 +142,6 @@ public class TestAssert {
       pigServer.registerQuery("A = LOAD 'foo' USING mock.Storage() AS (i:int);");
       pigServer.registerQuery("ASSERT A BY i > 1 , 'i should be greater than 1';");
 
-      Properties props = pigServer.getPigContext().getProperties();
-      props.setProperty(PigConfiguration.OPT_FETCH, "false");
       try {
           pigServer.openIterator("A");
       } catch (FrontendException fe) {
@@ -150,7 +149,7 @@ public class TestAssert {
                   "Job terminated with anomalous status FAILED"));
       }
   }
-  
+
   /**
    * Verify that alias is not assignable to the ASSERT operator
    * @throws Exception
