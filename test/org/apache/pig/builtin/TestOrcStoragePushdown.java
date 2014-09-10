@@ -24,12 +24,14 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
 import org.apache.commons.lang.RandomStringUtils;
+import org.apache.commons.lang.math.RandomUtils;
 import org.apache.hadoop.hive.ql.io.sarg.SearchArgument;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
@@ -51,6 +53,8 @@ import org.apache.pig.newplan.logical.rules.ColumnPruneVisitor;
 import org.apache.pig.test.MiniGenericCluster;
 import org.apache.pig.test.Util;
 import org.apache.pig.tools.pigstats.JobStats;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -126,25 +130,41 @@ public class TestOrcStoragePushdown {
         double[] dVal = new double[] {1000.11, 2000.22, 3000.33};
         StringBuilder sb = new StringBuilder();
         for (int i=1; i <= 10000; i++) {
-            sb.append((i > 900 && i < 1100) ? true : false).append("\t"); //boolean
+            sb.append((i > 6500 && i <= 9000) ? true : false).append("\t"); //boolean
             sb.append((i > 1000 && i < 3000) ? 1 : 5).append("\t"); //byte
             sb.append((i > 2500 && i <= 4500) ? 100 : 200).append("\t"); //short
             sb.append(i).append("\t"); //int
             sb.append(lVal[i%3]).append("\t"); //long
             sb.append(fVal[i%4]).append("\t"); //float
             sb.append((i > 2500 && i < 3500) ? dVal[i%3] : dVal[i%1]).append("\t"); //double
-            sb.append((i%2 == 1 ? "" : RandomStringUtils.random(100))).append("\t"); //bytearray
-            sb.append((i%2 == 0 ? "" : RandomStringUtils.random(100))).append("\n"); //string
-            //sb.append("").append("\t"); //datetime
-            //sb.append("").append("\n"); //bigdecimal
+            sb.append((i%2 == 1 ? "" : RandomStringUtils.random(100).replaceAll("\t", " ")
+                    .replaceAll("\n", " ").replaceAll("\r", " "))).append("\t"); //bytearray
+            sb.append((i%2 == 0 ? "" : RandomStringUtils.random(100).replaceAll("\t", " ")
+                    .replaceAll("\n", " ").replaceAll("\r", " "))).append("\t"); //string
+            int year;
+            if (i > 5000 && i <= 8000) { //datetime
+                year = RandomUtils.nextInt(4)+2010;
+            } else {
+                year = RandomUtils.nextInt(10)+2000;
+            }
+            sb.append(new DateTime(year, RandomUtils.nextInt(12)+1,
+                    RandomUtils.nextInt(28)+1, RandomUtils.nextInt(24), RandomUtils.nextInt(60),
+                    DateTimeZone.UTC).toString()).append("\t"); // datetime
+            String bigString;
+            if (i>7500) {
+                bigString = RandomStringUtils.randomNumeric(9) + "." + RandomStringUtils.randomNumeric(5);
+            } else {
+                bigString = "1" + RandomStringUtils.randomNumeric(9) + "." + RandomStringUtils.randomNumeric(5);
+            }
+            sb.append(new BigDecimal(bigString)).append("\n"); //bigdecimal
             bw.write(sb.toString());
             sb.setLength(0);
         }
         bw.close();
 
         // Store only 1000 rows in each row block (MIN_ROW_INDEX_STRIDE is 1000. So can't use less than that)
-        pigServer.registerQuery("A = load '" + inputTxtFile + "' as (f1:boolean, f2:int, f3:int, f4:int, f5:long, f6:float, f7:double, f8:bytearray, f9:chararray);");//, f10:datetime, f11:bigdecimal);");
-        pigServer.registerQuery("store A into '" + INPUT +"' using OrcStorage('-r 1000');");
+        pigServer.registerQuery("A = load '" + inputTxtFile + "' as (f1:boolean, f2:int, f3:int, f4:int, f5:long, f6:float, f7:double, f8:bytearray, f9:chararray, f10:datetime, f11:bigdecimal);");
+        pigServer.registerQuery("store A into '" + INPUT +"' using OrcStorage('-r 1000 -s 100000');");
         Util.copyFromLocalToCluster(cluster, INPUT, INPUT);
     }
 
@@ -290,35 +310,34 @@ public class TestOrcStoragePushdown {
                 "expr = leaf-0", sarg.toString());
     }
 
-    //@Test
+    @Test
     public void testPredicatePushdownBoolean() throws Exception {
-        testPredicatePushdownLocal("f1 == true", 10);
+        testPredicatePushdown("f1 == true", 2500, 1200000);
     }
 
     @Test
     public void testPredicatePushdownByteShort() throws Exception {
-        //TODO: BytesWithoutPushdown was 2373190 and bytesWithPushdown was 1929669
-        // Expected to see more difference only when 3 out of 10 blocks are read. Other tests too.
-        // Investigate why.
-        testPredicatePushdown("f2 != 5 or f3 == 100", 3500, 400000);
+        testPredicatePushdown("f2 != 5 or f3 == 100", 3500, 1200000);
     }
 
     @Test
     public void testPredicatePushdownIntLongString() throws Exception {
-        testPredicatePushdown("f4 >= 980 and f4 < 1010 and (f5 == 100 or f9 is not null)", 20, 800000);
+        testPredicatePushdown("f4 >= 980 and f4 < 1010 and (f5 == 100 or f9 is not null)", 20, 1200000);
     }
 
     @Test
     public void testPredicatePushdownFloatDouble() throws Exception {
-        testPredicatePushdown("f6 == 100.0 and f7 > 2000.00000001", 167, 800000);
+        testPredicatePushdown("f6 == 100.0 and f7 > 2000.00000001", 167, 1600000);
     }
 
-    //@Test
+    @Test
     public void testPredicatePushdownBigDecimal() throws Exception {
+        testPredicatePushdown("f11 < (bigdecimal)'1000000000';", 2500, 1600000);
     }
 
-    //@Test
+    @Test
     public void testPredicatePushdownTimestamp() throws Exception {
+        testPredicatePushdown("f10 >= ToDate('20100101', 'yyyyMMdd', 'UTC')", 3000, 400000);
     }
 
     private Expression getExpressionForTest(String query, List<String> predicateCols) throws Exception {

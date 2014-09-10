@@ -731,6 +731,7 @@
             <fileset dir="${ivy.lib.dir}" includes="zookeeper-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="accumulo-*.jar" excludes="accumulo-minicluster*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="json-simple-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="kryo-*.jar"/>
         </copy>
     </target>
 

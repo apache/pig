@@ -421,7 +421,7 @@
     <dependency org="org.iq80.snappy" name="snappy" rev="${snappy.version}"
       conf="test->master" />
     <dependency org="com.esotericsoftware.kryo" name="kryo" rev="${kryo.version}"
-      conf="test->master" />
+      conf="compile->master" />
 
     <dependency org="org.vafer" name="jdeb" rev="${jdeb.version}"
       conf="compile->master">

@@ -20,11 +20,11 @@ package org.apache.pig.builtin;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -37,7 +37,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.io.orc.CompressionKind;
 import org.apache.hadoop.hive.ql.io.orc.OrcFile;
@@ -51,7 +50,6 @@ import org.apache.hadoop.hive.ql.io.sarg.SearchArgument;
 import org.apache.hadoop.hive.ql.io.sarg.SearchArgument.Builder;
 import org.apache.hadoop.hive.ql.io.sarg.SearchArgumentFactory;
 import org.apache.hadoop.hive.serde2.ColumnProjectionUtils;
-import org.apache.hadoop.hive.serde2.io.DateWritable;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.StructTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
@@ -498,8 +496,6 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
         for (ResourceFieldSchema field : schema.getFields()) {
             switch(field.getType()) {
             case DataType.BOOLEAN:
-                // TODO: ORC does not seem to support it
-                break;
             case DataType.INTEGER:
             case DataType.LONG:
             case DataType.FLOAT:
@@ -671,14 +667,12 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
     }
 
     private Object getSearchArgObjValue(Object value) {
-           // TODO Test BigInteger, BigInteger and DateTime
         if (value instanceof BigInteger) {
-            return HiveDecimal.create(((BigInteger)value));
+            return new BigDecimal((BigInteger)value);
         } else if (value instanceof BigDecimal) {
-            return HiveDecimal.create(((BigDecimal)value), false);
+            return value;
         } else if (value instanceof DateTime) {
-            //TODO is this right based on what DateTimeWritable.dateToDays() does? What about pig.datetime.default.tz?
-            return new DateWritable((int)(((DateTime)value).getMillis() / TimeUnit.DAYS.toMillis(1)));
+            return new Timestamp(((DateTime)value).getMillis());
         } else {
             return value;
         }

@@ -70,6 +70,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4102: Adding e2e tests and several improvements for Orc predicate pushdown (daijy)
+
 PIG-4156: [PATCH] fix NPE when running scripts stored on hdfs:// (acoliver via daijy)
 
 PIG-4159: TestGroupConstParallelTez and TestJobSubmissionTez should be excluded in Hadoop 20 unit tests (cheolsoo)
