@@ -248,12 +248,15 @@
     <dependency org="org.antlr" name="antlr" rev="${antlr.version}" conf="compile->master"/>
     <dependency org="org.antlr" name="antlr-runtime" rev="${antlr.version}" conf="compile->default"/>
     <dependency org="org.antlr" name="ST4" rev="${stringtemplate.version}" conf="compile->default"/>
-    <dependency org="org.apache.zookeeper" name="zookeeper" rev="${zookeeper.version}" conf="compile->master"/>
-    <dependency org="org.jboss.netty" name="netty" rev="3.2.2.Final" conf="test->master"/>
+    <dependency org="org.apache.zookeeper" name="zookeeper" rev="${zookeeper.version}" conf="compile->master">
+    	<exclude org="org.jboss.netty" module="netty"/>
+    </dependency>
+
+    <!-- dependency org="org.jboss.netty" name="netty" rev="3.2.2.Final" conf="test->master"/ -->
     <dependency org="dk.brics.automaton" name="automaton" rev="1.11-8" conf="compile->default"/>
 
     <dependency org="org.jruby" name="jruby-complete" rev="${jruby.version}" conf="compile->master"/>
-    <dependency org="asm" name="asm" rev="${asm.version}" conf="compile->default"/>
+    <!-- dependency org="asm" name="asm" rev="${asm.version}" conf="compile->default"/ -->
 
     <!-- HBase dependency in format for releases up to 0.94 (including) -->
     <dependency org="org.apache.hbase" name="hbase" rev="${hbase94.version}" conf="hbase94->master">
@@ -430,6 +433,11 @@
     <dependency org="org.mockito" name="mockito-all" rev="${mockito.version}" conf="compile->default"/>
 
     <dependency org="com.twitter" name="parquet-pig-bundle" rev="${parquet-pig-bundle.version}" conf="compile->master"/>
+
+    <!-- for Spark integration -->
+    <dependency org="org.apache.spark" name="spark-core_2.10" rev="0.9.0-incubating" conf="compile->default">
+        <exclude org="org.eclipse.jetty.orbit" module="javax.servlet"/>
+    </dependency>
 
     <!-- for Tez integration -->
     <dependency org="org.apache.tez" name="tez" rev="${tez.version}"
