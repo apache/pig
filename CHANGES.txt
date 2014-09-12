@@ -70,6 +70,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4169: NPE in ConstantCalculator (cheolsoo)
+
 PIG-4161: check for latest Hive snapshot dependencies (daijy)
 
 PIG-4102: Adding e2e tests and several improvements for Orc predicate pushdown (daijy)
