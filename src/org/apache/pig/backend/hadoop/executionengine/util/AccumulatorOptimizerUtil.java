@@ -5,6 +5,8 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.Accumulator;
+import org.apache.pig.PigConfiguration;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.BinaryExpressionOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
@@ -26,6 +28,17 @@ import org.apache.pig.impl.PigContext;
 
 public class AccumulatorOptimizerUtil {
     private static final Log LOG = LogFactory.getLog(AccumulatorOptimizerUtil.class);
+
+    public static int getAccumulativeBatchSize() {
+        int batchSize = 20000;
+        if (PigMapReduce.sJobConfInternal.get() != null) {
+            String size = PigMapReduce.sJobConfInternal.get().get(PigConfiguration.ACCUMULATIVE_BATCHSIZE);
+            if (size != null) {
+                batchSize = Integer.parseInt(size);
+            }
+        }
+        return batchSize;
+    }
 
     public static void addAccumulator(PhysicalPlan plan) {
         // See if this is a map-reduce job

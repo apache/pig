@@ -70,6 +70,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4104: Accumulator UDF throws OOM in Tez (rohini)
+
 PIG-4169: NPE in ConstantCalculator (cheolsoo)
 
 PIG-4161: check for latest Hive snapshot dependencies (daijy)

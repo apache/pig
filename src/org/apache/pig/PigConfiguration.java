@@ -35,6 +35,9 @@ public class PigConfiguration {
      */
     public static final String PROP_CACHEDBAG_MEMUSAGE = "pig.cachedbag.memusage";
 
+
+    public static final String ACCUMULATIVE_BATCHSIZE = "pig.accumulative.batchsize";
+
     /**
      * Controls whether partial aggregation is turned on
      */
@@ -276,7 +279,7 @@ public class PigConfiguration {
      * This key is used to turns off use of task reports in job statistics.
      */
     public static final String PIG_NO_TASK_REPORT = "pig.stats.notaskreport";
-    
+
     public static final String PIG_CROSS_PARALLELISM_HINT = "pig.cross.parallelism.hint";
 
     public static final String REDUCER_ESTIMATOR_KEY = "pig.exec.reducer.estimator";
