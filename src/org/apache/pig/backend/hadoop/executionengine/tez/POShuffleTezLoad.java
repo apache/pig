@@ -20,6 +20,7 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,7 +31,9 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.AccumulativeTupleBuffer;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
+import org.apache.pig.backend.hadoop.executionengine.util.AccumulatorOptimizerUtil;
 import org.apache.pig.data.AccumulativeBag;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.InternalCachedBag;
@@ -56,6 +59,7 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
     private boolean isSkewedJoin = false;
 
     private transient Configuration conf;
+    private transient int accumulativeBatchSize;
 
     public POShuffleTezLoad(POPackage pack) {
         super(pack);
@@ -107,11 +111,17 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
         } catch (Exception e) {
             throw new ExecException(e);
         }
+        accumulativeBatchSize = AccumulatorOptimizerUtil.getAccumulativeBatchSize();
     }
 
     @Override
     public Result getNextTuple() throws ExecException {
         Result res = pkgr.getNext();
+        TezAccumulativeTupleBuffer buffer = null;
+
+        if (isAccumulative()) {
+            buffer = new TezAccumulativeTupleBuffer(accumulativeBatchSize);
+        }
 
         while (res.returnStatus == POStatus.STATUS_EOP) {
             boolean hasData = false;
@@ -148,46 +158,28 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
             key = pkgr.getKey(min);
             keyWritable = min;
 
-            DataBag[] bags = new DataBag[numInputs];
-            POPackageTupleBuffer buffer = new POPackageTupleBuffer();
-            List<NullableTuple> nTups = new ArrayList<NullableTuple>();
-
             try {
-                for (int i = 0; i < numInputs; i++) {
+                DataBag[] bags = new DataBag[numInputs];
+                if (isAccumulative()) {
 
-                    DataBag bag = null;
+                    buffer.setCurrentKey(min);
+                    buffer.setCurrentKeyIndex(minIndex);
+                    for (int i = 0; i < numInputs; i++) {
+                        bags[i] = new AccumulativeBag(buffer, i);
+                    }
 
-                    if (!finished[i]) {
-                        cur = readers.get(i).getCurrentKey();
-                        // We need to loop in case of Grouping Comparators
-                        while (comparator.compare(min, cur) == 0 && (!min.isNull() ||
-                                min.isNull() && i==minIndex)) {
-                            Iterable<Object> vals = readers.get(i).getCurrentValues();
-                            if (isAccumulative()) {
-                                // TODO: POPackageTupleBuffer expects the
-                                // iterator for all the values from 1st to ith
-                                // inputs. Ideally, we should directly pass
-                                // iterators returned by getCurrentValues()
-                                // instead of copying objects. But if we pass
-                                // iterators directly, reuse of iterators causes
-                                // a tez runtime error. For now, we copy objects
-                                // into a new list and pass the iterator of this
-                                // new list.
-                                for (Object val : vals) {
-                                    // Make a copy of key and val and avoid reference.
-                                    // getCurrentKey() or value iterator resets value
-                                    // on the same object by calling readFields() again.
-                                    nTups.add(new NullableTuple((NullableTuple) val));
-                                }
-                                // Attach input to POPackageTupleBuffer
-                                buffer.setIterator(nTups.iterator());
-                                if(bags[i] == null) {
-                                    buffer.setKey(cur);
-                                    bag = new AccumulativeBag(buffer, i);
-                                } else {
-                                    bag = bags[i];
-                                }
-                            } else {
+                } else {
+
+                    for (int i = 0; i < numInputs; i++) {
+
+                        DataBag bag = null;
+
+                        if (!finished[i]) {
+                            cur = readers.get(i).getCurrentKey();
+                            // We need to loop in case of Grouping Comparators
+                            while (comparator.compare(min, cur) == 0
+                                    && (!min.isNull() || (min.isNull() && i == minIndex))) {
+                                Iterable<Object> vals = readers.get(i).getCurrentValues();
                                 bag = bags[i] == null ? new InternalCachedBag(numInputs) : bags[i];
                                 for (Object val : vals) {
                                     NullableTuple nTup = (NullableTuple) val;
@@ -195,31 +187,29 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
                                     Tuple tup = pkgr.getValueTuple(keyWritable, nTup, index);
                                     bag.add(tup);
                                 }
+                                bags[i] = bag;
+                                finished[i] = !readers.get(i).next();
+                                if (finished[i]) {
+                                    break;
+                                }
+                                cur = readers.get(i).getCurrentKey();
                             }
-                            bags[i] = bag;
-                            finished[i] = !readers.get(i).next();
-                            if (finished[i]) {
-                                break;
-                            }
-                            cur = readers.get(i).getCurrentKey();
                         }
-                    }
 
-                    if (bag == null) {
-                        if (isAccumulative()) {
-                            bags[i] = new AccumulativeBag(buffer, i);
-                        } else {
+                        if (bag == null) {
                             bags[i] = new InternalCachedBag(numInputs);
                         }
                     }
                 }
+
+                pkgr.attachInput(key, bags, readOnce);
+                res = pkgr.getNext();
+
             } catch (IOException e) {
                 throw new ExecException(e);
             }
-
-            pkgr.attachInput(key, bags, readOnce);
-            res = pkgr.getNext();
         }
+
         return res;
     }
 
@@ -242,6 +232,133 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
     @Override
     public boolean supportsMultipleInputs() {
         return true;
+    }
+
+    private class TezAccumulativeTupleBuffer implements AccumulativeTupleBuffer {
+
+        private int batchSize;
+        private List<Tuple>[] bags;
+        private PigNullableWritable min;
+        private int minIndex;
+        private boolean clearedCurrent = true;
+
+        @SuppressWarnings("unchecked")
+        public TezAccumulativeTupleBuffer(int batchSize) {
+            this.batchSize = batchSize;
+            this.bags = new List[numInputs];
+            for (int i = 0; i < numInputs; i++) {
+                this.bags[i] = new ArrayList<Tuple>(batchSize);
+            }
+        }
+
+        public void setCurrentKey(PigNullableWritable curKey) {
+            if (!clearedCurrent) {
+                // If buffer.clear() is not called from POForEach ensure it is called here.
+                clear();
+            }
+            this.min = curKey;
+            clearedCurrent = false;
+        }
+
+        public void setCurrentKeyIndex(int curKeyIndex) {
+            this.minIndex = curKeyIndex;
+        }
+
+        @Override
+        public boolean hasNextBatch() {
+            Object cur = null;
+            try {
+                for (int i = 0; i < numInputs; i++) {
+                    if (!finished[i]) {
+                        cur = readers.get(i).getCurrentKey();
+                        if (comparator.compare(min, cur) == 0
+                                && (!min.isNull() || (min.isNull() && i == minIndex))) {
+                            return true;
+                        }
+                    }
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(
+                        "Error while checking for next Accumulator batch", e);
+            }
+            return false;
+        }
+
+        @Override
+        public void nextBatch() throws IOException {
+            Object cur = null;
+            for (int i = 0; i < bags.length; i++) {
+                bags[i].clear();
+            }
+            try {
+                for (int i = 0; i < numInputs; i++) {
+                    if (!finished[i]) {
+                        cur = readers.get(i).getCurrentKey();
+                        int batchCount = 0;
+                        while (comparator.compare(min, cur) == 0 && (!min.isNull() ||
+                                min.isNull() && i==minIndex)) {
+                            Iterator<Object> iter = readers.get(i).getCurrentValues().iterator();
+                            while (iter.hasNext() && batchCount < batchSize) {
+                                bags[i].add(pkgr.getValueTuple(keyWritable, (NullableTuple) iter.next(), i));
+                                batchCount++;
+                            }
+                            if (batchCount == batchSize) {
+                                if (!iter.hasNext()) {
+                                    // Move to next key and update finished
+                                    finished[i] = !readers.get(i).next();
+                                }
+                                break;
+                            }
+                            finished[i] = !readers.get(i).next();
+                            if (finished[i]) {
+                                break;
+                            }
+                            cur = readers.get(i).getCurrentKey();
+                        }
+                    }
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(
+                        "Error while reading next Accumulator batch", e);
+            }
+        }
+
+        @Override
+        public void clear() {
+            for (int i = 0; i < bags.length; i++) {
+                bags[i].clear();
+            }
+            // Skip through current keys and its values not processed because of
+            // early termination of accumulator
+            Object cur = null;
+            try {
+                for (int i = 0; i < numInputs; i++) {
+                    if (!finished[i]) {
+                        cur = readers.get(i).getCurrentKey();
+                        while (comparator.compare(min, cur) == 0 && (!min.isNull() ||
+                                min.isNull() && i==minIndex)) {
+                            finished[i] = !readers.get(i).next();
+                            if (finished[i]) {
+                                break;
+                            }
+                            cur = readers.get(i).getCurrentKey();
+                        }
+                    }
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(
+                        "Error while cleaning up for next Accumulator batch", e);
+            }
+            clearedCurrent = true;
+        }
+
+        @Override
+        public Iterator<Tuple> getTuples(int index) {
+            return bags[index].iterator();
+        }
+
+        //TODO: illustratorMarkup
+
     }
 
 }

@@ -274,8 +274,9 @@ public class POForEach extends PhysicalOperator {
                                 throw new ExecException(e);
                             }
                         }else{
-                            inpTuple = ((POPackage.POPackageTupleBuffer) buffer).illustratorMarkup(null, inpTuple, 0);
-                            //                       buffer.clear();
+                            if (buffer instanceof POPackage.POPackageTupleBuffer) {
+                                inpTuple = ((POPackage.POPackageTupleBuffer) buffer).illustratorMarkup(null, inpTuple, 0);
+                            }
                             setAccumEnd();
                         }
 
@@ -293,7 +294,7 @@ public class POForEach extends PhysicalOperator {
                             break;
                         }
                     }
-
+                    buffer.clear();
                 } else {
                     res = processPlan();
                 }
