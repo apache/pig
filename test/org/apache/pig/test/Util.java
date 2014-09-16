@@ -611,7 +611,7 @@ public class Util {
      }
 
      static private String getMkDirCommandForHadoop2_0(String fileName) {
-         if (Util.isHadoop23() || Util.isHadoop2_0()) {
+         if (org.apache.pig.impl.util.Utils.isHadoop23() || org.apache.pig.impl.util.Utils.isHadoop2()) {
              Path parentDir = new Path(fileName).getParent();
              String mkdirCommand = parentDir.getName().isEmpty() ? "" : "fs -mkdir -p " + parentDir + "\n";
              return mkdirCommand;
@@ -1231,13 +1231,6 @@ public class Util {
         return plan.replaceAll("','','[^']*','scope','true'\\)\\)", "','','','scope','true'))");
     }
 
-    public static boolean isHadoop23() {
-        String version = org.apache.hadoop.util.VersionInfo.getVersion();
-        if (version.matches("\\b0\\.23\\..+\\b"))
-            return true;
-        return false;
-    }
-
     public static boolean isHadoop203plus() {
         String version = org.apache.hadoop.util.VersionInfo.getVersion();
         if (version.matches("\\b0\\.20\\.2\\b"))
@@ -1272,13 +1265,6 @@ public class Util {
 
     public static void assertConfLong(Configuration conf, String param, long expected) {
         assertEquals("Unexpected value found in configs for " + param, expected, conf.getLong(param, -1));
-    }
-
-    public static boolean isHadoop2_0() {
-        String version = org.apache.hadoop.util.VersionInfo.getVersion();
-        if (version.matches("\\b2\\.\\d\\..+"))
-            return true;
-        return false;
     }
 
     /**

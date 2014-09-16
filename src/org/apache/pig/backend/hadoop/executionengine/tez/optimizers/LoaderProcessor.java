@@ -117,6 +117,8 @@ public class LoaderProcessor extends TezOpPlanVisitor {
                 POSimpleTezLoad tezLoad = new POSimpleTezLoad(ld.getOperatorKey(), ld.getLFile());
                 tezLoad.setInputKey(ld.getOperatorKey().toString());
                 tezLoad.copyAliasFrom(ld);
+                tezLoad.setCacheFiles(ld.getCacheFiles());
+                tezLoad.setShipFiles(ld.getShipFiles());
                 tezOp.plan.add(tezLoad);
                 for (PhysicalOperator sucs : ldSucs) {
                     tezOp.plan.connect(tezLoad, sucs);

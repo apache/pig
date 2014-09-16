@@ -67,7 +67,8 @@ public class POUserFunc extends ExpressionOperator {
 
     private transient String counterGroup;
     private transient EvalFunc func;
-    private transient String[] cacheFiles = null;
+    private transient List<String> cacheFiles = null;
+    private transient List<String> shipFiles = null;
 
     FuncSpec funcSpec;
     FuncSpec origFSpec;
@@ -556,12 +557,20 @@ public class POUserFunc extends ExpressionOperator {
         instantiateFunc(funcSpec);
     }
 
-    public String[] getCacheFiles() {
+    public List<String> getCacheFiles() {
         return cacheFiles;
     }
 
-    public void setCacheFiles(String[] cf) {
+    public void setCacheFiles(List<String> cf) {
         cacheFiles = cf;
+    }
+
+    public List<String> getShipFiles() {
+        return shipFiles;
+    }
+
+    public void setShipFiles(List<String> sf) {
+        shipFiles = sf;
     }
 
     public boolean combinable() {

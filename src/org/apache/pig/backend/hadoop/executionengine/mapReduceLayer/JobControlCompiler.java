@@ -18,8 +18,6 @@
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -77,9 +75,9 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.UdfCacheShipFilesVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeCogroup;
@@ -546,6 +544,100 @@ public class JobControlCompiler{
                 nwJob.setNumReduceTasks(0);
             }
 
+            if (!pigContext.inIllustrator && ! pigContext.getExecType().isLocal())
+            {
+                if (okToRunLocal(nwJob, mro, lds)) {
+                    log.info(SMALL_JOB_LOG_MSG);
+                    // override with the default conf to run in local mode
+                    for (Entry<String, String> entry : defaultConf) {
+                        String key = entry.getKey();
+                        if (key.equals(MRConfiguration.REDUCE_TASKS) || key.equals(MRConfiguration.JOB_REDUCES)) {
+                            // this must not be set back to the default in case it has been set to 0 for example.
+                            continue;
+                        }
+                        if (key.startsWith("fs.")) {
+                            // we don't want to change fs settings back
+                            continue;
+                        }
+                        if (key.startsWith("io.")) {
+                            // we don't want to change io settings back
+                            continue;
+                        }
+                        String value = entry.getValue();
+                        if (conf.get(key) == null || !conf.get(key).equals(value)) {
+                            conf.set(key, value);
+                        }
+                    }
+
+                    conf.setBoolean(PigImplConstants.CONVERTED_TO_LOCAL, true);
+                } else {
+                    log.info(BIG_JOB_LOG_MSG);
+                    // Search to see if we have any UDF/LoadFunc/StoreFunc that need to pack things into the
+                    // distributed cache.
+                    List<String> cacheFiles = new ArrayList<String>();
+                    List<String> shipFiles = new ArrayList<String>();
+                    UdfCacheShipFilesVisitor mapUdfCacheFileVisitor = new UdfCacheShipFilesVisitor(mro.mapPlan);
+                    mapUdfCacheFileVisitor.visit();
+                    cacheFiles.addAll(mapUdfCacheFileVisitor.getCacheFiles());
+                    shipFiles.addAll(mapUdfCacheFileVisitor.getShipFiles());
+
+                    UdfCacheShipFilesVisitor reduceUdfCacheFileVisitor = new UdfCacheShipFilesVisitor(mro.reducePlan);
+                    reduceUdfCacheFileVisitor.visit();
+                    cacheFiles.addAll(reduceUdfCacheFileVisitor.getCacheFiles());
+                    shipFiles.addAll(reduceUdfCacheFileVisitor.getShipFiles());
+
+                    setupDistributedCache(pigContext, conf, cacheFiles.toArray(new String[]{}), false);
+
+                    // Setup the DistributedCache for this job
+                    List<URL> allJars = new ArrayList<URL>();
+
+                    for (URL extraJar : pigContext.extraJars) {
+                        if (!allJars.contains(extraJar)) {
+                            allJars.add(extraJar);
+                        }
+                    }
+
+                    for (String scriptJar : pigContext.scriptJars) {
+                        URL jar = new File(scriptJar).toURI().toURL();
+                        if (!allJars.contains(jar)) {
+                            allJars.add(jar);
+                        }
+                    }
+
+                    for (String shipFile : shipFiles) {
+                        URL jar = new File(shipFile).toURI().toURL();
+                        if (!allJars.contains(jar)) {
+                            allJars.add(jar);
+                        }
+                    }
+
+                    for (String defaultJar : JarManager.getDefaultJars()) {
+                        URL jar = new File(defaultJar).toURI().toURL();
+                        if (!allJars.contains(jar)) {
+                            allJars.add(jar);
+                        }
+                    }
+
+                    for (URL jar : allJars) {
+                        boolean predeployed = false;
+                        for (String predeployedJar : pigContext.predeployedJars) {
+                            if (predeployedJar.contains(new File(jar.toURI()).getName())) {
+                                predeployed = true;
+                            }
+                        }
+                        if (!predeployed) {
+                            log.info("Adding jar to DistributedCache: " + jar);
+                            putJarOnClassPathThroughDistributedCache(pigContext, conf, jar);
+                        }
+                    }
+
+                    File scriptUDFJarFile = JarManager.createPigScriptUDFJar(pigContext);
+                    if (scriptUDFJarFile != null) {
+                        putJarOnClassPathThroughDistributedCache(pigContext, conf, scriptUDFJarFile.toURI().toURL());
+                    }
+                }
+            }
+
             for (String udf : mro.UDFs) {
                 if (udf.contains("GFCross")) {
                     Object func = pigContext.instantiateFuncFromSpec(new FuncSpec(udf));
@@ -579,77 +671,6 @@ public class JobControlCompiler{
                     //Remove the POLoad from the plan
                     if (!pigContext.inIllustrator)
                         mro.mapPlan.remove(ld);
-                }
-            }
-
-            if (!pigContext.inIllustrator && ! pigContext.getExecType().isLocal())
-            {
-                if (okToRunLocal(nwJob, mro, lds)) {
-                    log.info(SMALL_JOB_LOG_MSG);
-                    // override with the default conf to run in local mode
-                    for (Entry<String, String> entry : defaultConf) {
-                        String key = entry.getKey();
-                        if (key.equals(MRConfiguration.REDUCE_TASKS) || key.equals(MRConfiguration.JOB_REDUCES)) {
-                            // this must not be set back to the default in case it has been set to 0 for example.
-                            continue;
-                        }
-                        if (key.startsWith("fs.")) {
-                            // we don't want to change fs settings back
-                            continue;
-                        }
-                        if (key.startsWith("io.")) {
-                            // we don't want to change io settings back
-                            continue;
-                        }
-                        String value = entry.getValue();
-                        if (conf.get(key) == null || !conf.get(key).equals(value)) {
-                            conf.set(key, value);
-                        }
-                    }
-
-                    conf.setBoolean(PigImplConstants.CONVERTED_TO_LOCAL, true);
-                } else {
-                    log.info(BIG_JOB_LOG_MSG);
-                    // Setup the DistributedCache for this job
-                    List<URL> allJars = new ArrayList<URL>();
-
-                    for (URL extraJar : pigContext.extraJars) {
-                        if (!allJars.contains(extraJar)) {
-                            allJars.add(extraJar);
-                        }
-                    }
-
-                    for (String scriptJar : pigContext.scriptJars) {
-                        URL jar = new File(scriptJar).toURI().toURL();
-                        if (!allJars.contains(jar)) {
-                            allJars.add(jar);
-                        }
-                    }
-
-                    for (String defaultJar : JarManager.getDefaultJars()) {
-                        URL jar = new File(defaultJar).toURI().toURL();
-                        if (!allJars.contains(jar)) {
-                            allJars.add(jar);
-                        }
-                    }
-
-                    for (URL jar : allJars) {
-                        boolean predeployed = false;
-                        for (String predeployedJar : pigContext.predeployedJars) {
-                            if (predeployedJar.contains(new File(jar.toURI()).getName())) {
-                                predeployed = true;
-                            }
-                        }
-                        if (!predeployed) {
-                            log.info("Adding jar to DistributedCache: " + jar);
-                            putJarOnClassPathThroughDistributedCache(pigContext, conf, jar);
-                        }
-                    }
-
-                    File scriptUDFJarFile = JarManager.createPigScriptUDFJar(pigContext);
-                    if (scriptUDFJarFile != null) {
-                        putJarOnClassPathThroughDistributedCache(pigContext, conf, scriptUDFJarFile.toURI().toURL());
-                    }
                 }
             }
 
@@ -778,10 +799,6 @@ public class JobControlCompiler{
             // within the MR plans, must be called before the plans are
             // serialized
             setupDistributedCacheForJoin(mro, pigContext, conf);
-
-            // Search to see if we have any UDFs that need to pack things into the
-            // distributed cache.
-            setupDistributedCacheForUdfs(mro, pigContext, conf);
 
             SchemaTupleFrontend.copyAllGeneratedToDistributedCache(pigContext, conf);
 
@@ -1478,13 +1495,6 @@ public class JobControlCompiler{
         .visit();
     }
 
-    private void setupDistributedCacheForUdfs(MapReduceOper mro,
-            PigContext pigContext,
-            Configuration conf) throws IOException {
-        new UdfDistributedCacheVisitor(mro.mapPlan, pigContext, conf).visit();
-        new UdfDistributedCacheVisitor(mro.reducePlan, pigContext, conf).visit();
-    }
-
     private static void setupDistributedCache(PigContext pigContext,
             Configuration conf,
             Properties properties, String key,
@@ -1637,7 +1647,6 @@ public class JobControlCompiler{
         Path pathInHDFS = shipToHDFS(pigContext, conf, url);
         // and add to the DistributedCache
         DistributedCache.addFileToClassPath(pathInHDFS, conf);
-        pigContext.addSkipJar(url.getPath());
     }
 
     private static Path getCacheStagingDir(Configuration conf) throws IOException {
@@ -1849,41 +1858,6 @@ public class JobControlCompiler{
             } catch (IOException e) {
                 String msg = "Internal error. Distributed cache could not " +
                         "be set up for merge cogrp index file";
-                throw new VisitorException(msg, e);
-            }
-        }
-    }
-
-    private static class UdfDistributedCacheVisitor extends PhyPlanVisitor {
-
-        private PigContext pigContext = null;
-        private Configuration conf = null;
-
-        public UdfDistributedCacheVisitor(PhysicalPlan plan,
-                PigContext pigContext,
-                Configuration conf) {
-            super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(
-                    plan));
-            this.pigContext = pigContext;
-            this.conf = conf;
-        }
-
-        @Override
-        public void visitUserFunc(POUserFunc func) throws VisitorException {
-
-            // XXX Hadoop currently doesn't support distributed cache in local mode.
-            // This line will be removed after the support is added
-            if (Utils.isLocal(pigContext, conf)) return;
-
-            // set up distributed cache for files indicated by the UDF
-            String[] files = func.getCacheFiles();
-            if (files == null) return;
-
-            try {
-                setupDistributedCache(pigContext, conf, files, false);
-            } catch (IOException e) {
-                String msg = "Internal error. Distributed cache could not " +
-                        "be set up for the requested files";
                 throw new VisitorException(msg, e);
             }
         }

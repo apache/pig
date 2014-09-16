@@ -68,8 +68,6 @@ public class JarManager {
         AUTOMATON(Automaton.class),
         ANTLR(CommonTokenStream.class),
         GUAVA(Multimaps.class),
-        JACKSON_CORE(JsonPropertyOrder.class),
-        JACKSON_MAPPER(JacksonStdImpl.class),
         JODATIME(DateTime.class);
 
         private final Class pkgClass;

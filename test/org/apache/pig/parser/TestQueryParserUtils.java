@@ -72,7 +72,7 @@ public class TestQueryParserUtils {
         QueryParserUtils.setHdfsServers("hello://nn1/tmp", pc);
         assertEquals(null, props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
 
-        if(Util.isHadoop23() || Util.isHadoop2_0()) {
+        if(org.apache.pig.impl.util.Utils.isHadoop23() || org.apache.pig.impl.util.Utils.isHadoop2()) {
             // webhdfs
             props.remove(MRConfiguration.JOB_HDFS_SERVERS);
             QueryParserUtils.setHdfsServers("webhdfs://nn1/tmp", pc);

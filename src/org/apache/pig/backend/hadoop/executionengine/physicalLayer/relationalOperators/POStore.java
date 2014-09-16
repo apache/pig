@@ -81,6 +81,9 @@ public class POStore extends PhysicalOperator {
 
     private String signature;
 
+    private transient List<String> cacheFiles = null;
+    private transient List<String> shipFiles = null;
+
     public POStore(OperatorKey k) {
         this(k, -1, null);
     }
@@ -312,5 +315,21 @@ public class POStore extends PhysicalOperator {
 
     public void setStoreFunc(StoreFuncInterface storeFunc) {
         this.storer = storeFunc;
+    }
+
+    public List<String> getCacheFiles() {
+        return cacheFiles;
+    }
+
+    public void setCacheFiles(List<String> cf) {
+        cacheFiles = cf;
+    }
+
+    public List<String> getShipFiles() {
+        return shipFiles;
+    }
+
+    public void setShipFiles(List<String> sf) {
+        shipFiles = sf;
     }
 }

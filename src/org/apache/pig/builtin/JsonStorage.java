@@ -19,17 +19,15 @@ package org.apache.pig.builtin;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
-import org.joda.time.DateTime;
-
 import org.codehaus.jackson.JsonEncoding;
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonGenerator;
-
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
@@ -38,24 +36,17 @@ import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
-
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.ResourceStatistics;
 import org.apache.pig.StoreMetadata;
 import org.apache.pig.StoreFunc;
+import org.apache.pig.StoreResources;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.util.Utils;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.TreeMap;
 
 /**
  * A JSON Pig store function.  Each Pig tuple is stored on one line (as one
@@ -66,7 +57,7 @@ import java.util.TreeMap;
  * with mapping between JSON and Pig types. The schema file share the same format
  * as the one we use in PigStorage.
  */
-public class JsonStorage extends StoreFunc implements StoreMetadata {
+public class JsonStorage extends StoreFunc implements StoreMetadata, StoreResources {
 
     protected RecordWriter writer = null;
     protected ResourceSchema schema = null;
@@ -318,4 +309,14 @@ public class JsonStorage extends StoreFunc implements StoreMetadata {
       return s;
     }
 
+    @Override
+    public List<String> getShipFiles() {
+        Class[] classList = new Class[] {JsonFactory.class};
+        return FuncUtils.getShipFiles(classList);
+    }
+
+    @Override
+    public List<String> getCacheFiles() {
+        return null;
+    }
 }

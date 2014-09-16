@@ -105,7 +105,9 @@ public class PigContext implements Serializable {
      * Resources for the job (jars, scripting udf files, cached macro abstract syntax trees)
      */
 
-    // extra jar files that are needed to run a job
+    // Jar files that are global to the whole Pig script, includes
+    // 1. registered jars
+    // 2. Jars defined in -Dpig.additional.jars
     transient public List<URL> extraJars = new LinkedList<URL>();
 
     // original paths each extra jar came from
@@ -114,10 +116,6 @@ public class PigContext implements Serializable {
 
     // jars needed for scripting udfs - jython.jar etc
     transient public List<String> scriptJars = new ArrayList<String>(2);
-
-    // jars that should not be merged in.
-    // (some functions may come from pig.jar and we don't want the whole jar file.)
-    transient public Vector<String> skipJars = new Vector<String>(2);
 
     // jars that are predeployed to the cluster and thus should not be merged in at all (even subsets).
     transient public Vector<String> predeployedJars = new Vector<String>(2);
@@ -260,13 +258,6 @@ public class PigContext implements Serializable {
         this.properties = properties;
 
         this.properties.setProperty("exectype", this.execType.name());
-        String pigJar = JarManager.findContainingJar(Main.class);
-        String hadoopJar = JarManager.findContainingJar(FileSystem.class);
-        if (pigJar != null) {
-            addSkipJar(pigJar);
-            if (!pigJar.equals(hadoopJar))
-                addSkipJar(hadoopJar);
-        }
 
         this.executionEngine = execType.getExecutionEngine(this);
 
@@ -342,12 +333,6 @@ public class PigContext implements Serializable {
     public void addScriptJar(String path) {
         if (path != null && !scriptJars.contains(path)) {
             scriptJars.add(path);
-        }
-    }
-
-    public void addSkipJar(String path) {
-        if (path != null && !skipJars.contains(path)) {
-            skipJars.add(path);
         }
     }
 

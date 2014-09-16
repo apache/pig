@@ -34,7 +34,6 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.util.JarManager;
-import org.apache.pig.newplan.logical.rules.ColumnPruneVisitor;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -58,22 +57,22 @@ public class TestPredeployedJar {
         pigServer.getPigContext().getProperties().put(PigConfiguration.OPT_FETCH, "false");
         String[] inputData = new String[] { "hello", "world" };
         Util.createInputFile(cluster, "a.txt", inputData);
-        String jacksonJar = JarManager.findContainingJar(org.codehaus.jackson.JsonParser.class);
+        String guavaJar = JarManager.findContainingJar(com.google.common.collect.Multimaps.class);
 
         pigServer.registerQuery("a = load 'a.txt' as (line:chararray);");
         Iterator<Tuple> it = pigServer.openIterator("a");
 
         String content = FileUtils.readFileToString(logFile);
-        Assert.assertTrue(content.contains(jacksonJar));
+        Assert.assertTrue(content.contains(guavaJar));
         
         logFile = File.createTempFile("log", "");
         
-        // Now let's mark the jackson jar as predeployed.
-        pigServer.getPigContext().markJarAsPredeployed(jacksonJar);
+        // Now let's mark the guava jar as predeployed.
+        pigServer.getPigContext().markJarAsPredeployed(guavaJar);
         it = pigServer.openIterator("a");
 
         content = FileUtils.readFileToString(logFile);
-        Assert.assertFalse(content.contains(jacksonJar));
+        Assert.assertFalse(content.contains(guavaJar));
     }
     
     @Test
