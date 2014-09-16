@@ -107,6 +107,7 @@ public class TezOperPlan extends OperatorPlan<TezOperator> {
         TezPOUserFuncVisitor udfVisitor = new TezPOUserFuncVisitor(this);
         udfVisitor.visit();
 
+        addShipResources(udfVisitor.getShipFiles());
         addCacheResources(udfVisitor.getCacheFiles());
 
         return TezResourceManager.getInstance().getTezResources(extraResources.keySet());

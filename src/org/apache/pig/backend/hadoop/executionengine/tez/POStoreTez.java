@@ -54,6 +54,8 @@ public class POStoreTez extends POStore implements TezOutput, TezTaskConfigurabl
     public POStoreTez(POStore copy) {
         super(copy);
         this.outputKey = copy.getOperatorKey().toString();
+        this.setCacheFiles(copy.getCacheFiles());
+        this.setShipFiles(copy.getShipFiles());
     }
 
     public String getOutputKey() {

@@ -18,6 +18,7 @@
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -65,6 +66,9 @@ public class POLoad extends PhysicalOperator {
     private boolean isTmpLoad;
     
     private long limit=-1;
+
+    private transient List<String> cacheFiles = null;
+    private transient List<String> shipFiles = null;
     
     public POLoad(OperatorKey k) {
         this(k,-1, null);
@@ -251,5 +255,21 @@ public class POLoad extends PhysicalOperator {
 
     public void setLimit(long limit) {
         this.limit = limit;
+    }
+
+    public List<String> getCacheFiles() {
+        return cacheFiles;
+    }
+
+    public void setCacheFiles(List<String> cf) {
+        cacheFiles = cf;
+    }
+
+    public List<String> getShipFiles() {
+        return shipFiles;
+    }
+
+    public void setShipFiles(List<String> sf) {
+        shipFiles = sf;
     }
 }

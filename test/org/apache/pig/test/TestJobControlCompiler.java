@@ -126,7 +126,7 @@ public class TestJobControlCompiler {
 
     // verifying the jar gets on distributed cache
     Path[] fileClassPaths = DistributedCache.getFileClassPaths(jobConf);
-    Assert.assertEquals("size for "+Arrays.toString(fileClassPaths), 8, fileClassPaths.length);
+    Assert.assertEquals("size for "+Arrays.toString(fileClassPaths), 6, fileClassPaths.length);
     Path distributedCachePath = fileClassPaths[0];
     Assert.assertEquals("ends with jar name: "+distributedCachePath, distributedCachePath.getName(), tmpFile.getName());
     // hadoop bug requires path to not contain hdfs://hotname in front

@@ -49,11 +49,13 @@ import org.apache.hadoop.hive.ql.io.orc.OrcFile.Version;
 import org.apache.hadoop.hive.ql.io.sarg.SearchArgument;
 import org.apache.hadoop.hive.ql.io.sarg.SearchArgument.Builder;
 import org.apache.hadoop.hive.ql.io.sarg.SearchArgumentFactory;
+import org.apache.hadoop.hive.serde2.AbstractSerDe;
 import org.apache.hadoop.hive.serde2.ColumnProjectionUtils;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.StructTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
+import org.apache.hadoop.hive.shims.HadoopShimsSecure;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
@@ -80,6 +82,7 @@ import org.apache.pig.Expression.BinaryExpression;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.ResourceStatistics;
 import org.apache.pig.StoreFuncInterface;
+import org.apache.pig.StoreResources;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.DataType;
@@ -109,7 +112,7 @@ import com.google.common.annotations.VisibleForTesting;
  * <li><code>-v, --version</code> Sets the version of the file that will be written
  * </ul>
  **/
-public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMetadata, LoadPushDown, LoadPredicatePushdown {
+public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMetadata, LoadPushDown, LoadPredicatePushdown, StoreResources {
 
     //TODO Make OrcInputFormat.SARG_PUSHDOWN visible
     private static final String SARG_PUSHDOWN = "sarg.pushdown";
@@ -380,6 +383,25 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
             throw new ExecException(errMsg, errCode,
                     PigException.REMOTE_ENVIRONMENT, e);
         }
+    }
+
+    @Override
+    public List<String> getShipFiles() {
+        List<String> cacheFiles = new ArrayList<String>();
+        String hadoopVersion = "20S";
+        if (Utils.isHadoop23() || Utils.isHadoop2()) {
+            hadoopVersion = "23";
+        }
+        Class hadoopVersionShimsClass;
+        try {
+            hadoopVersionShimsClass = Class.forName("org.apache.hadoop.hive.shims.Hadoop" +
+                    hadoopVersion + "Shims");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("Cannot find Hadoop" + hadoopVersion + "ShimsClass in classpath");
+        }
+        Class[] classList = new Class[] {OrcFile.class, HiveConf.class, AbstractSerDe.class,
+                org.apache.hadoop.hive.shims.HadoopShims.class, HadoopShimsSecure.class, hadoopVersionShimsClass};
+        return FuncUtils.getShipFiles(classList);
     }
 
     private static Path getFirstFile(String location, FileSystem fs) throws IOException {

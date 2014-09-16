@@ -94,8 +94,21 @@ public class Utils {
     public static boolean isVendorIBM() {    	
     	  return System.getProperty("java.vendor").contains("IBM");
     }
-    
-    
+
+    public static boolean isHadoop23() {
+        String version = org.apache.hadoop.util.VersionInfo.getVersion();
+        if (version.matches("\\b0\\.23\\..+\\b"))
+            return true;
+        return false;
+    }
+
+    public static boolean isHadoop2() {
+        String version = org.apache.hadoop.util.VersionInfo.getVersion();
+        if (version.matches("\\b2\\.\\d+\\..+"))
+            return true;
+        return false;
+    }
+
     /**
      * This method is a helper for classes to implement {@link java.lang.Object#equals(java.lang.Object)}
      * checks if two objects are equals - two levels of checks are

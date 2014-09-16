@@ -17,19 +17,16 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.UdfCacheShipFilesVisitor;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.VisitorException;
 
 public class TezPOUserFuncVisitor extends TezOpPlanVisitor {
     private Set<String> cacheFiles = new HashSet<String>();
+    private Set<String> shipFiles = new HashSet<String>();
 
     public TezPOUserFuncVisitor(TezOperPlan plan) {
         super(plan, new DepthFirstWalker<TezOperator, TezOperPlan>(plan));
@@ -38,26 +35,18 @@ public class TezPOUserFuncVisitor extends TezOpPlanVisitor {
     @Override
     public void visitTezOp(TezOperator tezOp) throws VisitorException {
         if(!tezOp.plan.isEmpty()) {
-            UdfCacheFileVisitor udfCacheFileVisitor = new UdfCacheFileVisitor(tezOp.plan);
+            UdfCacheShipFilesVisitor udfCacheFileVisitor = new UdfCacheShipFilesVisitor(tezOp.plan);
             udfCacheFileVisitor.visit();
-        }
-    }
-
-    class UdfCacheFileVisitor extends PhyPlanVisitor {
-
-        public UdfCacheFileVisitor(PhysicalPlan plan) {
-            super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(plan));
-        }
-
-        public void visitUserFunc(POUserFunc udf) throws VisitorException {
-            String[] files = udf.getCacheFiles();
-            if (files != null) {
-                cacheFiles.addAll(Arrays.asList(files));
-            }
+            cacheFiles.addAll(udfCacheFileVisitor.getCacheFiles());
+            shipFiles.addAll(udfCacheFileVisitor.getShipFiles());
         }
     }
 
     public Set<String> getCacheFiles() {
         return cacheFiles;
+    }
+
+    public Set<String> getShipFiles() {
+        return shipFiles;
     }
 }

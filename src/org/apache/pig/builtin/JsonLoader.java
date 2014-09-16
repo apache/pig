@@ -19,28 +19,23 @@ package org.apache.pig.builtin;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.math.BigDecimal;
-import java.math.BigInteger;
 
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 import org.joda.time.format.ISODateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
-
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.JsonToken;
-
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
-
 import org.apache.pig.Expression;
 import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
@@ -56,6 +51,7 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.parser.ParserException;
@@ -371,5 +367,12 @@ public class JsonLoader extends LoadFunc implements LoadMetadata {
     public void setPartitionFilter(Expression partitionFilter)
     throws IOException {
         // We don't have partitions
+    }
+
+    @Override
+    public List<String> getShipFiles() {
+        List<String> cacheFiles = new ArrayList<String>();
+        Class[] classList = new Class[] {JsonFactory.class};
+        return FuncUtils.getShipFiles(classList);
     }
 }

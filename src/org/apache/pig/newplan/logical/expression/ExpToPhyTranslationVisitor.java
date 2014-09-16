@@ -512,7 +512,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
             }
             List<String> cacheFiles = ((EvalFunc)f).getCacheFiles();
             if (cacheFiles != null) {
-                ((POUserFunc)p).setCacheFiles(cacheFiles.toArray(new String[cacheFiles.size()]));
+                ((POUserFunc)p).setCacheFiles(cacheFiles);
             }
         } else {
             p = new POUserComparisonFunc(new OperatorKey(DEFAULT_SCOPE, nodeGen

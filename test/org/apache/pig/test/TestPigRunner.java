@@ -633,7 +633,7 @@ public class TestPigRunner {
     @Test
     public void classLoaderTest() throws Exception {
         // Skip in hadoop 23 test, see PIG-2449
-        if (Util.isHadoop23() || Util.isHadoop2_0())
+        if (org.apache.pig.impl.util.Utils.isHadoop23() || org.apache.pig.impl.util.Utils.isHadoop2())
             return;
         PrintWriter w = new PrintWriter(new FileWriter(PIG_FILE));
         w.println("register test/org/apache/pig/test/data/pigtestloader.jar");
