@@ -57,6 +57,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.builtin.SampleLoader;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.VisitorException;
@@ -102,8 +103,10 @@ public class FetchOptimizer {
             // entire input to the client. That can be dangerous.
             boolean isFetchable = fpv.isPlanFetchable() && 
                     PlanHelper.containsPhysicalOperator(pp, POLimit.class);
-            if (isFetchable)
+            if (isFetchable) {
+                pc.getProperties().setProperty(PigImplConstants.CONVERTED_TO_FETCH, "true");
                 init(pp);
+            }
             return isFetchable;
         }
         return false;
