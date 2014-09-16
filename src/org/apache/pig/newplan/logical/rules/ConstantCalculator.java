@@ -26,8 +26,8 @@ import java.util.Map;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigHadoopLogger;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -149,15 +149,14 @@ public abstract class ConstantCalculator extends Rule {
                     PhysicalOperator root = expPhysicalPlan.getLeaves().get(0);
                     try {
                         UDFContext.getUDFContext().addJobConf(ConfigurationUtil.toConfiguration(pc.getProperties(), true));
-                        Result ret= root.getNext(root.getResultType());
-                        if (ret.result != null) {
-                            val = ret.result;
-                            valSet = true;
-                        }
+                        PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
+                        PhysicalOperator.setPigLogger(pigHadoopLogger);
+                        val = root.getNext(root.getResultType()).result;
                         UDFContext.getUDFContext().addJobConf(null);
                     } catch (ExecException e) {
                         throw new FrontendException(e);
                     }
+                    valSet = true;
                 } else if (op instanceof UserFuncExpression) {
                     // If solo UDF, calculate UDF
                     UserFuncExpression udf = (UserFuncExpression)op;
