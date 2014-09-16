@@ -70,6 +70,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4170: Multiquery with different type of key gives wrong result (daijy)
+
 PIG-4104: Accumulator UDF throws OOM in Tez (rohini)
 
 PIG-4169: NPE in ConstantCalculator (cheolsoo)

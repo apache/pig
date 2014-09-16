@@ -242,9 +242,15 @@ public class MultiQueryPackager extends Packager {
 
     @Override
     public Tuple getValueTuple(PigNullableWritable keyWritable,
-            NullableTuple ntup, int index) throws ExecException {
+            NullableTuple ntup, int origIndex) throws ExecException {
         this.keyWritable = keyWritable;
-        return packagers.get(((int) index) & idxPart).getValueTuple(
-                keyWritable, ntup, index);
+        int index = origIndex & idxPart;
+        PigNullableWritable newKey = keyWritable;
+        if (!sameMapKeyType && !inCombiner && isKeyWrapped.get(index)) {                                       
+            Tuple tup = (Tuple)this.keyWritable.getValueAsPigType();
+            newKey = HDataType.getWritableComparableTypes(tup.get(0), packagers.get(index).getKeyType());
+            newKey.setIndex((byte)origIndex);
+        }
+        return packagers.get(index).getValueTuple(newKey, ntup, origIndex);
     }
 }
