@@ -70,6 +70,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4171: Streaming UDF fails when direct fetch optimization is enabled (cheolsoo)
+
 PIG-4170: Multiquery with different type of key gives wrong result (daijy)
 
 PIG-4104: Accumulator UDF throws OOM in Tez (rohini)
