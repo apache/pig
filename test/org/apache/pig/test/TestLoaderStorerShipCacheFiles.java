@@ -26,8 +26,10 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.Utils;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
+@Ignore
 public abstract class TestLoaderStorerShipCacheFiles {
     private static PigServer pigServer;
 
