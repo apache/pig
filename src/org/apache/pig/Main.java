@@ -51,6 +51,7 @@ import org.antlr.runtime.RecognitionException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -354,6 +355,9 @@ public class Main {
 
                 case 'x':
                     properties.setProperty("exectype", opts.getValStr());
+                    if (opts.getValStr().toLowerCase().contains("local")) {
+                        UserGroupInformation.setConfiguration(new Configuration(false));
+                    }
                     break;
 
                 case 'P':
