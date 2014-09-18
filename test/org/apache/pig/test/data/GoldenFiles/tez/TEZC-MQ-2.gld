@@ -150,7 +150,7 @@ POValueOutputTez - scope-157	->	 [scope-158]
 |
 |---New For Each(false)[tuple] - scope-156
     |   |
-    |   POUserFunc(org.apache.pig.backend.hadoop.executionengine.tez.FindQuantilesTez)[tuple] - scope-155
+    |   POUserFunc(org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.FindQuantilesTez)[tuple] - scope-155
     |   |
     |   |---Project[tuple][*] - scope-154
     |

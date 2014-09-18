@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-3838: Organize tez code into subpackages (rohini)
+
 PIG-4069: Limit reduce task should start as soon as one map task finishes (rohini)
 
 PIG-4141: Ship UDF/LoadFunc/StoreFunc dependent jar automatically (daijy)

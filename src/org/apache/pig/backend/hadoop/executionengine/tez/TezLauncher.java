@@ -41,10 +41,21 @@ import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.Launcher;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
-import org.apache.pig.backend.hadoop.executionengine.tez.optimizers.LoaderProcessor;
-import org.apache.pig.backend.hadoop.executionengine.tez.optimizers.NoopFilterRemover;
-import org.apache.pig.backend.hadoop.executionengine.tez.optimizers.ParallelismSetter;
-import org.apache.pig.backend.hadoop.executionengine.tez.optimizers.UnionOptimizer;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezCompiler;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPOPackageAnnotator;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPlanContainer;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPlanContainerNode;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPlanContainerPrinter;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.NativeTezOper;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer.AccumulatorOptimizer;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer.CombinerOptimizer;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer.LoaderProcessor;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer.MultiQueryOptimizerTez;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer.NoopFilterRemover;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer.ParallelismSetter;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer.SecondaryKeyOptimizerTez;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer.UnionOptimizer;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
@@ -130,10 +141,10 @@ public class TezLauncher extends Launcher {
                 pkgAnnotator.visit();
 
                 runningJob = jc.compile(tezPlan, grpName, tezPlanContainer);
-    
+
                 tezScriptState.emitInitialPlanNotification(tezPlan);
                 tezScriptState.emitLaunchStartedNotification(tezPlan.size());
-    
+
                 // Set the thread UDFContext so registered classes are available.
                 final UDFContext udfContext = UDFContext.getUDFContext();
                 Thread task = new Thread(runningJob) {
@@ -143,13 +154,13 @@ public class TezLauncher extends Launcher {
                         super.run();
                     }
                 };
-    
+
                 JobControlThreadExceptionHandler jctExceptionHandler = new JobControlThreadExceptionHandler();
                 task.setUncaughtExceptionHandler(jctExceptionHandler);
                 task.setContextClassLoader(PigContext.getClassLoader());
-    
+
                 tezStats.setTezJob(runningJob);
-    
+
                 // Mark the times that the jobs were submitted so it's reflected in job
                 // history props
                 long scriptSubmittedTimestamp = System.currentTimeMillis();
@@ -159,17 +170,17 @@ public class TezLauncher extends Launcher {
                         Long.toString(scriptSubmittedTimestamp));
                 jobConf.set("pig.job.submitted.timestamp",
                         Long.toString(System.currentTimeMillis()));
-    
+
                 Future<?> future = executor.schedule(task, timeToSleep, TimeUnit.MILLISECONDS);
-                
+
                 tezScriptState.emitJobsSubmittedNotification(1);
                 reporter.notifyStarted();
-    
+
                 while (!future.isDone()) {
                     reporter.notifyUpdate();
                     Thread.sleep(1000);
                 }
-    
+
                 tezStats.accumulateStats(runningJob);
             }
             tezScriptState.emitProgressUpdatedNotification(100);
