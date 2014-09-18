@@ -74,6 +74,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3507: Pig fails to run in local mode on a Kerberos enabled Hadoop cluster (kellyzly via rohini)
+
 PIG-4171: Streaming UDF fails when direct fetch optimization is enabled (cheolsoo)
 
 PIG-4170: Multiquery with different type of key gives wrong result (daijy)
