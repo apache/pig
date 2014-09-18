@@ -20,16 +20,18 @@ package org.apache.pig.test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.newplan.logical.visitor.ScalarVariableValidator;
 import org.junit.AfterClass;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -114,6 +116,34 @@ public class TestLimitVariable {
         List<Tuple> expectedResE = Util.getTuplesFromConstantTupleStrings(new String[] {
                 "(1,11)", "(2,3)", "(3,10)", "(4,11)", "(5,10)", "(6,15)" });
         Util.checkQueryOutputs(itE, expectedResE);
+    }
+
+    @Test
+    public void testLimitVariable4() throws IOException {
+        String query =
+            "a = load '" + inputFile.getName() + "' as (x:int, y:int);" +
+            "b = group a all;" +
+            "c = foreach b generate COUNT(a) as sum;" +
+            "d = order a by $0 DESC;" +
+            "e = filter d by $0 != 4;" +
+            "f = limit e c.sum/2;" // return top half of the tuples
+            ;
+
+        try {
+            HashSet<String> disabledOptimizerRules = new HashSet<String>();
+            disabledOptimizerRules.add("PushUpFilter");
+            pigServer.getPigContext().getProperties().setProperty(PigImplConstants.PIG_OPTIMIZER_RULES_KEY,
+                    ObjectSerializer.serialize(disabledOptimizerRules));
+            Util.registerMultiLineQuery(pigServer, query);
+            Iterator<Tuple> it = pigServer.openIterator("f");
+
+            // Even if push up filter is disabled order should be retained
+            List<Tuple> expectedRes = Util.getTuplesFromConstantTupleStrings(new String[] {
+                    "(6,15)", "(5,10)", "(3,10)" });
+            Util.checkQueryOutputs(it, expectedRes);
+        } finally {
+            pigServer.getPigContext().getProperties().remove(PigImplConstants.PIG_OPTIMIZER_RULES_KEY);
+        }
     }
 
     @Test(expected=FrontendException.class)

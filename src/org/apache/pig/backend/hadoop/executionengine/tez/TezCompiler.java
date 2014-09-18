@@ -280,6 +280,9 @@ public class TezCompiler extends PhyPlanVisitor {
                         from.plan.remove(from.plan.getOperator(store.getOperatorKey()));
                         from.plan.addAsLeaf(output);
                         storeSeen.put(store, output);
+
+                        //Remove unused store filename
+                        userFunc.getInputs().remove(1);
                     }
 
                     TezEdgeDescriptor edge = TezCompilerUtil.connect(tezPlan, from, tezOp);
@@ -341,7 +344,7 @@ public class TezCompiler extends PhyPlanVisitor {
                     POValueOutputTez valueOutput = new POValueOutputTez(new OperatorKey(scope,nig.getNextNodeId(scope)));
                     oper.plan.addAsLeaf(valueOutput);
                     oper.setSplitter(true);
-    
+
                     // Create a splittee of store only
                     TezOperator storeOnlyTezOperator = getTezOp();
                     PhysicalPlan storeOnlyPhyPlan = new PhysicalPlan();
@@ -352,14 +355,14 @@ public class TezCompiler extends PhyPlanVisitor {
                     storeOnlyTezOperator.plan = storeOnlyPhyPlan;
                     tezPlan.add(storeOnlyTezOperator);
                     phyToTezOpMap.put(store, storeOnlyTezOperator);
-    
+
                     // Create new operator as second splittee
                     curTezOp = getTezOp();
                     POValueInputTez valueInput2 = new POValueInputTez(new OperatorKey(scope,nig.getNextNodeId(scope)));
                     valueInput2.setInputKey(oper.getOperatorKey().toString());
                     curTezOp.plan.add(valueInput2);
                     tezPlan.add(curTezOp);
-    
+
                     // Connect splitter to splittee
                     TezEdgeDescriptor edge = TezCompilerUtil.connect(tezPlan, oper, storeOnlyTezOperator);
                     TezCompilerUtil.configureValueOnlyTupleOutput(edge,  DataMovementType.ONE_TO_ONE);
@@ -780,6 +783,8 @@ public class TezCompiler extends PhyPlanVisitor {
                 phyToTezOpMap.put(op, curTezOp);
             }
 
+            boolean limitAfterSort = curTezOp.isGlobalSort();
+
             // If the parallelism of the current vertex is one and it doesn't do a LOAD (whose
             // parallelism is determined by the InputFormat), we don't need another vertex.
             if (curTezOp.getRequestedParallelism() == 1) {
@@ -791,6 +796,11 @@ public class TezCompiler extends PhyPlanVisitor {
                     }
                 }
                 if (canStop) {
+                    if (limitAfterSort) {
+                        curTezOp.markLimitAfterSort();
+                    } else {
+                        curTezOp.markLimit();
+                    }
                     return;
                 }
             }
@@ -813,7 +823,8 @@ public class TezCompiler extends PhyPlanVisitor {
             TezCompilerUtil.configureValueOnlyTupleOutput(edge, DataMovementType.SCATTER_GATHER);
 
             // Limit after order by with scalar expression
-            if (this.plan.getPredecessors(op).get(0) instanceof POSort) {
+            if (limitAfterSort) {
+                curTezOp.markLimitAfterSort();
                 output.setTaskIndexWithRecordIndexAsKey(true);
                 // POValueOutputTez will write key (task index, record index) in
                 // sorted order. So using UnorderedKVOutput instead of OrderedPartitionedKVOutput.
@@ -822,6 +833,8 @@ public class TezCompiler extends PhyPlanVisitor {
                 edge.inputClassName = OrderedGroupedKVInput.class.getName();
                 edge.setIntermediateOutputKeyClass(TezCompilerUtil.TUPLE_CLASS);
                 edge.setIntermediateOutputKeyComparatorClass(PigTupleWritableComparator.class.getName());
+            } else {
+                curTezOp.markLimit();
             }
 
             // Then add a POValueInputTez to the start of the new tezOp.
@@ -1645,7 +1658,7 @@ public class TezCompiler extends PhyPlanVisitor {
                 edge.partitionerClass = SkewedPartitionerTez.class;
             }
 
-            joinJobs[2].setSkewedJoin(true);
+            joinJobs[2].markSkewedJoin();
             sampleJobPair.first.sortOperator = joinJobs[2];
 
             if (rp == -1) {
@@ -2073,13 +2086,11 @@ public class TezCompiler extends PhyPlanVisitor {
         oper1.markSampleBasedPartitioner();
 
         TezOperator oper2 = getTezOp();
-        oper2.setGlobalSort(true);
+        oper2.markGlobalSort();
         opers[1] = oper2;
         tezPlan.add(oper2);
 
         long limit = sort.getLimit();
-        //TODO: TezOperator limit not used at all
-        oper2.limit = limit;
 
         boolean[] sortOrder;
 
@@ -2261,6 +2272,7 @@ public class TezCompiler extends PhyPlanVisitor {
 
                 // Explicitly set the parallelism for the new vertex to 1.
                 limitOper.setRequestedParallelism(1);
+                limitOper.markLimitAfterSort();
 
                 edge = TezCompilerUtil.connect(tezPlan, sortOpers[1], limitOper);
                 // LIMIT in this case should be ordered. So we output unordered with key as task index
@@ -2367,7 +2379,7 @@ public class TezCompiler extends PhyPlanVisitor {
             // which unions input from the two predecessor vertices
             TezOperator unionTezOp = getTezOp();
             tezPlan.add(unionTezOp);
-            unionTezOp.setUnion();
+            unionTezOp.markUnion();
             unionTezOp.setRequestedParallelism(op.getRequestedParallelism());
             POShuffledValueInputTez unionInput =  new POShuffledValueInputTez(OperatorKey.genOpKey(scope));
             unionTezOp.plan.addAsLeaf(unionInput);
