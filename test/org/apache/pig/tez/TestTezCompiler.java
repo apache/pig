@@ -142,7 +142,31 @@ public class TestTezCompiler {
                 "c = foreach b generate y;" +
                 "store c into 'file:///tmp/output';";
 
-        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC4.gld");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Limit-1.gld");
+    }
+
+    @Test
+    public void testLimitOrderby() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' as (x:int, y:int);" +
+                "b = order a by x, y;" +
+                "c = limit b 10;" +
+                "store c into 'file:///tmp/output';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Limit-2.gld");
+    }
+
+    @Test
+    public void testLimitScalarOrderby() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' as (x:int, y:int);" +
+                "b = order a by x, y;" +
+                "g = group a all;" +
+                "h = foreach g generate COUNT(a) as sum;" +
+                "c = limit b h.sum/2;" +
+                "store c into 'file:///tmp/output';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Limit-3.gld");
     }
 
     @Test

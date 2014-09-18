@@ -19,6 +19,7 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,7 +66,7 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     // even when parallelism of source vertex changes.
     // Can change to int and set to -1 if TEZ-800 gets fixed.
     private AtomicInteger requestedParallelism = new AtomicInteger(-1);
-    
+
     private int estimatedParallelism = -1;
 
     // This is the parallelism of the vertex, it take account of:
@@ -94,24 +95,9 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     // The result is two or more DAG connected DAG inside the same plan container
     boolean segmentBelow = false;
 
-    // Indicates if this is a limit after a sort
-    boolean limitAfterSort = false;
-
-    //Indicates if this job is an order by job
-    boolean globalSort = false;
-
-    //Indicate if this job is a union job 
-    boolean union = false;
-
     //The sort order of the columns;
     //asc is true and desc is false
     boolean[] sortOrder;
-
-    // Last POLimit value in this map reduce operator, needed by LimitAdjuster
-    // to add additional map reduce operator with 1 reducer after this
-    long limit = -1;
-
-    private boolean skewedJoin = false;
 
     // Flag to indicate if the small input splits need to be combined to form a larger
     // one in order to reduce the number of mappers. For merge join, both tables
@@ -136,7 +122,6 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     // Types of blocking operators. For now, we only support the following ones.
     private static enum OPER_FEATURE {
-        NONE,
         // Indicate if this job is a merge indexer
         INDEXER,
         // Indicate if this job is a sampling job
@@ -145,17 +130,30 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         SAMPLE_AGGREGATOR,
         // Indicate if this job is a sample based partition job (order by/skewed join)
         SAMPLE_BASED_PARTITIONER,
+        // Indicate if this job is a global sort
+        GLOBAL_SORT,
         // Indicate if this job is a group by job
         GROUPBY,
         // Indicate if this job is a cogroup job
         COGROUP,
         // Indicate if this job is a regular join job
         HASHJOIN,
+        // Indicate if this job is a skewed join job
+        SKEWEDJOIN,
+        // Indicate if this job is a limit job
+        LIMIT,
+        // Indicate if this job is a limit job after sort
+        LIMIT_AFTER_SORT,
+        // Indicate if this job is a union job
+        UNION,
         // Indicate if this job is a native job
         NATIVE;
     };
 
-    OPER_FEATURE feature = OPER_FEATURE.NONE;
+    // Features in the job/vertex. Mostly will be only one feature.
+    // But in some cases can have more than one.
+    // For eg: a vertex can be both GLOBAL SORT and LIMIT if parallelism is 1
+    BitSet feature = new BitSet();
 
     private List<OperatorKey> vertexGroupMembers;
     // For union
@@ -279,76 +277,108 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         this.closed = closed;
     }
 
-    public boolean isGroupBy() {
-        return (feature == OPER_FEATURE.GROUPBY);
-    }
-
-    public void markGroupBy() {
-        feature = OPER_FEATURE.GROUPBY;
-    }
-
-    public boolean isCogroup() {
-        return (feature == OPER_FEATURE.COGROUP);
-    }
-
-    public void markCogroup() {
-        feature = OPER_FEATURE.COGROUP;
-    }
-
-    public boolean isRegularJoin() {
-        return (feature == OPER_FEATURE.HASHJOIN);
-    }
-
-    public void markRegularJoin() {
-        feature = OPER_FEATURE.HASHJOIN;
-    }
-
-    public boolean isNative() {
-        return (feature == OPER_FEATURE.NATIVE);
-    }
-
-    public void markNative() {
-        feature = OPER_FEATURE.NATIVE;
-    }
-
-    public boolean isUnion() {
-        return union;
-    }
-
-    public void setUnion() {
-        union = true;
-    }
-
     public boolean isIndexer() {
-        return (feature == OPER_FEATURE.INDEXER);
+        return feature.get(OPER_FEATURE.INDEXER.ordinal());
     }
 
     public void markIndexer() {
-        feature = OPER_FEATURE.INDEXER;
+        feature.set(OPER_FEATURE.INDEXER.ordinal());
     }
 
     public boolean isSampler() {
-        return (feature == OPER_FEATURE.SAMPLER);
+        return feature.get(OPER_FEATURE.SAMPLER.ordinal());
     }
 
     public void markSampler() {
-        feature = OPER_FEATURE.SAMPLER;
+        feature.set(OPER_FEATURE.SAMPLER.ordinal());
     }
 
     public boolean isSampleAggregation() {
-        return (feature == OPER_FEATURE.SAMPLE_AGGREGATOR);
+        return feature.get(OPER_FEATURE.SAMPLE_AGGREGATOR.ordinal());
     }
 
     public void markSampleAggregation() {
-        feature = OPER_FEATURE.SAMPLE_AGGREGATOR;
+        feature.set(OPER_FEATURE.SAMPLE_AGGREGATOR.ordinal());
     }
-    
+
     public boolean isSampleBasedPartitioner() {
-        return (feature == OPER_FEATURE.SAMPLE_BASED_PARTITIONER);
+        return feature.get(OPER_FEATURE.SAMPLE_BASED_PARTITIONER.ordinal());
     }
 
     public void markSampleBasedPartitioner() {
-        feature = OPER_FEATURE.SAMPLE_BASED_PARTITIONER;
+        feature.set(OPER_FEATURE.SAMPLE_BASED_PARTITIONER.ordinal());
+    }
+
+    public boolean isGlobalSort() {
+        return feature.get(OPER_FEATURE.GLOBAL_SORT.ordinal());
+    }
+
+    public void markGlobalSort() {
+        feature.set(OPER_FEATURE.GLOBAL_SORT.ordinal());
+    }
+
+    public boolean isGroupBy() {
+        return feature.get(OPER_FEATURE.GROUPBY.ordinal());
+    }
+
+    public void markGroupBy() {
+        feature.set(OPER_FEATURE.GROUPBY.ordinal());
+    }
+
+    public boolean isCogroup() {
+        return feature.get(OPER_FEATURE.COGROUP.ordinal());
+    }
+
+    public void markCogroup() {
+        feature.set(OPER_FEATURE.COGROUP.ordinal());
+    }
+
+    public boolean isRegularJoin() {
+        return feature.get(OPER_FEATURE.HASHJOIN.ordinal());
+    }
+
+    public void markRegularJoin() {
+        feature.set(OPER_FEATURE.HASHJOIN.ordinal());
+    }
+
+    public boolean isSkewedJoin() {
+        return feature.get(OPER_FEATURE.SKEWEDJOIN.ordinal());
+    }
+
+    public void markSkewedJoin() {
+        feature.set(OPER_FEATURE.SKEWEDJOIN.ordinal());
+    }
+
+    public boolean isLimit() {
+        return feature.get(OPER_FEATURE.LIMIT.ordinal());
+    }
+
+    public void markLimit() {
+        feature.set(OPER_FEATURE.LIMIT.ordinal());
+    }
+
+    public boolean isLimitAfterSort() {
+        return feature.get(OPER_FEATURE.LIMIT_AFTER_SORT.ordinal());
+    }
+
+    public void markLimitAfterSort() {
+        feature.set(OPER_FEATURE.LIMIT_AFTER_SORT.ordinal());
+    }
+
+    public boolean isUnion() {
+        return feature.get(OPER_FEATURE.UNION.ordinal());
+    }
+
+    public void markUnion() {
+        feature.set(OPER_FEATURE.UNION.ordinal());
+    }
+
+    public boolean isNative() {
+        return feature.get(OPER_FEATURE.NATIVE.ordinal());
+    }
+
+    public void markNative() {
+        feature.set(OPER_FEATURE.NATIVE.ordinal());
     }
 
     public void setNeedEstimatedQuantile(boolean needEstimateParallelism) {
@@ -471,30 +501,6 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     public boolean[] getSortOrder() {
         return sortOrder;
-    }
-
-    public void setGlobalSort(boolean globalSort) {
-        this.globalSort = globalSort;
-    }
-
-    public boolean isGlobalSort() {
-        return globalSort;
-    }
-
-    public void setLimitAfterSort(boolean limitAfterSort) {
-        this.limitAfterSort = limitAfterSort;
-    }
-
-    public boolean isLimitAfterSort() {
-        return limitAfterSort;
-    }
-
-    public void setSkewedJoin(boolean skewedJoin) {
-        this.skewedJoin = skewedJoin;
-    }
-
-    public boolean isSkewedJoin() {
-        return skewedJoin;
     }
 
     protected void noCombineSmallSplits() {

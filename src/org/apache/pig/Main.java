@@ -79,6 +79,11 @@ import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStatsUtil;
 import org.apache.pig.tools.pigstats.ScriptState;
 import org.apache.pig.tools.timer.PerformanceTimerFactory;
+import org.joda.time.DateTime;
+import org.joda.time.Duration;
+import org.joda.time.Period;
+import org.joda.time.PeriodType;
+import org.joda.time.format.PeriodFormat;
 
 /**
  * Main class for Pig engine.
@@ -161,7 +166,18 @@ public class Main {
      * @throws IOException
      */
     public static void main(String args[]) {
-        System.exit(run(args, null));
+        DateTime startTime = new DateTime();
+
+        int exitcode = run(args, null);
+
+        DateTime endTime = new DateTime();
+        Duration duration = new Duration(startTime, endTime);
+        Period period = duration.toPeriod().normalizedStandard(PeriodType.time());
+        log.info("Pig script completed in "
+                + PeriodFormat.getDefault().print(period)
+                + " (" + duration.getMillis() + " ms)");
+
+        System.exit(exitcode);
     }
 
     static int run(String args[], PigProgressNotificationListener listener) {
