@@ -83,7 +83,7 @@ POValueOutputTez - scope-52	->	 [scope-53, scope-35]
 |
 |---New For Each(false)[tuple] - scope-51
     |   |
-    |   POUserFunc(org.apache.pig.backend.hadoop.executionengine.tez.PartitionSkewedKeysTez)[tuple] - scope-50
+    |   POUserFunc(org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.PartitionSkewedKeysTez)[tuple] - scope-50
     |   |
     |   |---Project[tuple][*] - scope-49
     |

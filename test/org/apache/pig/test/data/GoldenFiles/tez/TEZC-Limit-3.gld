@@ -68,7 +68,7 @@ POValueOutputTez - scope-59	->	 [scope-60]
 |
 |---New For Each(false)[tuple] - scope-58
     |   |
-    |   POUserFunc(org.apache.pig.backend.hadoop.executionengine.tez.FindQuantilesTez)[tuple] - scope-57
+    |   POUserFunc(org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.FindQuantilesTez)[tuple] - scope-57
     |   |
     |   |---Project[tuple][*] - scope-56
     |
@@ -119,7 +119,7 @@ POValueOutputTez - scope-66	->	 [scope-67]
     |   |
     |   Divide[long] - scope-31
     |   |
-    |   |---POUserFunc(org.apache.pig.backend.hadoop.executionengine.tez.ReadScalarsTez)[long] - scope-28
+    |   |---POUserFunc(org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.ReadScalarsTez)[long] - scope-28
     |   |   |
     |   |   |---Constant(0) - scope-26
     |   |
@@ -140,7 +140,7 @@ c: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-32
     |   |
     |   Divide[long] - scope-31
     |   |
-    |   |---POUserFunc(org.apache.pig.backend.hadoop.executionengine.tez.ReadScalarsTez)[long] - scope-28
+    |   |---POUserFunc(org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.ReadScalarsTez)[long] - scope-28
     |   |   |
     |   |   |---Constant(0) - scope-26
     |   |

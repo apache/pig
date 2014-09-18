@@ -22,9 +22,9 @@ import java.util.List;
 
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezLauncher;
-import org.apache.pig.backend.hadoop.executionengine.tez.TezOperPlan;
-import org.apache.pig.backend.hadoop.executionengine.tez.TezPOUserFuncVisitor;
-import org.apache.pig.backend.hadoop.executionengine.tez.TezPlanContainer;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPOUserFuncVisitor;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPlanContainer;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.test.TestLoaderStorerShipCacheFiles;

@@ -21,11 +21,11 @@ package org.apache.pig.tez;
 import static org.junit.Assert.assertEquals;
 
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.tez.TezCompiler;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezDagBuilder;
-import org.apache.pig.backend.hadoop.executionengine.tez.TezOperPlan;
-import org.apache.pig.backend.hadoop.executionengine.tez.optimizers.LoaderProcessor;
-import org.apache.pig.backend.hadoop.executionengine.tez.optimizers.ParallelismSetter;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezCompiler;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer.LoaderProcessor;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer.ParallelismSetter;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.test.TestGroupConstParallel;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;

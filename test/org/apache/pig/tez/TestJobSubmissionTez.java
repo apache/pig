@@ -23,11 +23,11 @@ import static org.junit.Assert.assertTrue;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.tez.TezCompiler;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezDagBuilder;
-import org.apache.pig.backend.hadoop.executionengine.tez.TezOperPlan;
-import org.apache.pig.backend.hadoop.executionengine.tez.optimizers.LoaderProcessor;
-import org.apache.pig.backend.hadoop.executionengine.tez.optimizers.ParallelismSetter;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezCompiler;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer.LoaderProcessor;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer.ParallelismSetter;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.test.TestJobSubmission;
@@ -69,7 +69,7 @@ public class TestJobSubmissionTez extends TestJobSubmission {
     @Override
     public void checkDefaultParallelResult(PhysicalPlan pp, PigContext pc) throws Exception {
         TezOperPlan tezPlan = buildTezPlan(pp, pc);
-        
+
         LoaderProcessor loaderStorer = new LoaderProcessor(tezPlan, pc);
         loaderStorer.visit();
 

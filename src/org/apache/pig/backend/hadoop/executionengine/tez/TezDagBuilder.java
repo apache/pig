@@ -88,7 +88,18 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
-import org.apache.pig.backend.hadoop.executionengine.tez.TezPOPackageAnnotator.LoRearrangeDiscoverer;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezEdgeDescriptor;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOpPlanVisitor;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperator;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPOPackageAnnotator.LoRearrangeDiscoverer;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POIdentityInOutTez;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POLocalRearrangeTez;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POShuffleTezLoad;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POValueInputTez;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.ReadScalarsTez;
+import org.apache.pig.backend.hadoop.executionengine.tez.runtime.PartitionerDefinedVertexManager;
+import org.apache.pig.backend.hadoop.executionengine.tez.runtime.PigProcessor;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.MRToTezHelper;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.SecurityHelper;
 import org.apache.pig.data.DataType;
@@ -394,12 +405,12 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         Job job = new Job(payloadConf);
         payloadConf = (JobConf) job.getConfiguration();
 
-        if (tezOp.sampleOperator != null) {
-            payloadConf.set(PigProcessor.SAMPLE_VERTEX, tezOp.sampleOperator.getOperatorKey().toString());
+        if (tezOp.getSampleOperator() != null) {
+            payloadConf.set(PigProcessor.SAMPLE_VERTEX, tezOp.getSampleOperator().getOperatorKey().toString());
         }
 
-        if (tezOp.sortOperator != null) {
-            payloadConf.set(PigProcessor.SORT_VERTEX, tezOp.sortOperator.getOperatorKey().toString());
+        if (tezOp.getSortOperator() != null) {
+            payloadConf.set(PigProcessor.SORT_VERTEX, tezOp.getSortOperator().getOperatorKey().toString());
         }
 
         payloadConf.set("pig.inputs", ObjectSerializer.serialize(tezOp.getLoaderInfo().getInp()));
@@ -454,7 +465,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             // backend.
             Map<Integer, String> localRearrangeMap = new TreeMap<Integer, String>();
             for (TezOperator pred : mPlan.getPredecessors(tezOp)) {
-                if (tezOp.sampleOperator != null && tezOp.sampleOperator == pred) {
+                if (tezOp.getSampleOperator() != null && tezOp.getSampleOperator() == pred) {
                     // skip sample vertex input
                 } else {
                     String inputKey = pred.getOperatorKey().toString();
