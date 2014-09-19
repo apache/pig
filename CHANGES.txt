@@ -76,6 +76,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4177: BigData_1 fail after PIG-4149 (daijy)
+
 PIG-3507: Pig fails to run in local mode on a Kerberos enabled Hadoop cluster (kellyzly via rohini)
 
 PIG-4171: Streaming UDF fails when direct fetch optimization is enabled (cheolsoo)
