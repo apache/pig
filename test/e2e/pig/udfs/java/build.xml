@@ -26,10 +26,10 @@
     <!-- <fileset dir="lib">
             <include name="**/*.jar"/> 
     </fileset>-->
-        <fileset dir="${pig.dir}/build/ivy/lib/Pig">
+        <fileset dir="${pig.base.dir}/build/ivy/lib/Pig">
             <include name="*.jar"/>
         </fileset>
-        <fileset dir="${pig.dir}">
+        <fileset dir="${pig.base.dir}">
             <include name="pig*-core-*.jar"/>
         </fileset>
     </path>

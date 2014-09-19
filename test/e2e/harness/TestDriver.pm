@@ -717,7 +717,7 @@ sub runTestGroup() {
 					$testStatuses->{$testName} = $failedStr;
 
 				}
-                                $msg .= "\nEnding test $testName at " . time ."\n";
+                $msg .= " at " . time . "\nEnding test $testName at " . time ."\n";
 				print $subLog $msg;
 				$duration = $endTime - $beginTime;
 				$dbinfo{'duration'} = $duration;
