@@ -173,7 +173,7 @@ public class FindQuantiles extends EvalFunc<Map<String, Object>>{
             }
             long numSamples = samples.size();
             double toSkip = (double)numSamples / numQuantiles;
-            if(toSkip == 0) {
+            if(toSkip < 1) {
                 // numSamples is < numQuantiles;
                 // set numQuantiles to numSamples
                 numQuantiles = (int)numSamples;
