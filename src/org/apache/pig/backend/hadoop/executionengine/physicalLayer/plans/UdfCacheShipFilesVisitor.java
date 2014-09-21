@@ -20,10 +20,13 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.pig.LoadFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POCast;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.VisitorException;
 
@@ -61,6 +64,22 @@ public class UdfCacheShipFilesVisitor extends PhyPlanVisitor {
         }
         if (udf.getShipFiles() != null) {
             shipFiles.addAll(udf.getShipFiles());
+        }
+    }
+
+    @Override
+    public void visitCast(POCast cast) {
+        if (cast.getFuncSpec()!=null) {
+            Object obj = PigContext.instantiateFuncFromSpec(cast.getFuncSpec());
+            if (obj instanceof LoadFunc) {
+                LoadFunc loadFunc = (LoadFunc)obj;
+                if (loadFunc.getCacheFiles()!=null) {
+                    cacheFiles.addAll(loadFunc.getCacheFiles());
+                }
+                if (loadFunc.getShipFiles()!=null) {
+                    shipFiles.addAll(loadFunc.getShipFiles());
+                }
+            }
         }
     }
 

@@ -94,6 +94,7 @@ import org.apache.pig.impl.util.Utils;
 import org.apache.pig.impl.util.orc.OrcUtils;
 import org.joda.time.DateTime;
 
+import com.esotericsoftware.kryo.io.Input;
 import com.google.common.annotations.VisibleForTesting;
 
 /**
@@ -400,7 +401,8 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
             throw new RuntimeException("Cannot find Hadoop" + hadoopVersion + "ShimsClass in classpath");
         }
         Class[] classList = new Class[] {OrcFile.class, HiveConf.class, AbstractSerDe.class,
-                org.apache.hadoop.hive.shims.HadoopShims.class, HadoopShimsSecure.class, hadoopVersionShimsClass};
+                org.apache.hadoop.hive.shims.HadoopShims.class, HadoopShimsSecure.class, hadoopVersionShimsClass,
+                Input.class};
         return FuncUtils.getShipFiles(classList);
     }
 
