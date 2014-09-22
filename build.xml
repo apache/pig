@@ -1005,6 +1005,10 @@
         <ant dir="${test.e2e.dir}" target="test-tez"/>
     </target>
 
+	<target name="test-e2e-spark" depends="jar, piggybank" description="run end-to-end tests in tez mode">
+	        <ant dir="${test.e2e.dir}" target="test-spark"/>
+	</target>
+
     <target name="test-e2e-deploy" depends="jar" description="deploy end-to-end tests to existing cluster">
         <ant dir="${test.e2e.dir}" target="deploy"/>
     </target>
