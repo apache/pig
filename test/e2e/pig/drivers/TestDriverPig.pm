@@ -280,10 +280,13 @@ sub runPigCmdLine
     if ($testCmd->{'exectype'} eq "tez") {
         push(@baseCmd, ("-x", "tez"));
     }
+    if ($testCmd->{'exectype'} eq "spark") {
+        push(@baseCmd, ("-x", "spark"));
+    }
     my @cmd = @baseCmd;
 
     # Add option -l giving location for secondary logs
-    ##!!! Should that even be here? 
+    ##!!! Should that even be here?
     my $locallog = $testCmd->{'localpath'} . $testCmd->{'group'} . "_" . $testCmd->{'num'} . ".log";
     push(@cmd, "-logfile");
     push(@cmd, $locallog);
@@ -505,6 +508,9 @@ sub runPig
     my @baseCmd = $self->getPigCmd($testCmd, $log);
     if ($testCmd->{'exectype'} eq "tez") {
         push(@baseCmd, ("-x", "tez"));
+    }
+    if ($testCmd->{'exectype'} eq "spark") {
+        push(@baseCmd, ("-x", "spark"));
     }
     my @cmd = @baseCmd;
 
