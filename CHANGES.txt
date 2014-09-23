@@ -78,6 +78,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4194: ReadToEndLoader does not call setConf on pigSplit in initializeReader (shadanan via rohini)
+
 PIG-4187: Fix Orc e2e tests (daijy)
 
 PIG-4177: BigData_1 fail after PIG-4149 (daijy)
