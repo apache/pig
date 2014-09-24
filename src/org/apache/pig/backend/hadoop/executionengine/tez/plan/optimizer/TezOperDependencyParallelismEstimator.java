@@ -42,7 +42,8 @@ import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperator;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POLocalRearrangeTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POValueOutputTez;
-import org.apache.pig.backend.hadoop.executionengine.util.ParallelConstantVisitor;
+import org.apache.pig.backend.hadoop.executionengine.tez.util.TezCompilerUtil;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
@@ -64,6 +65,15 @@ public class TezOperDependencyParallelismEstimator implements TezParallelismEsti
     static final double DEFAULT_FILTER_FACTOR = 0.7;
     static final double DEFAULT_LIMIT_FACTOR = 0.1;
 
+    static final int DEFAULT_MAX_INTERMEDIATE_REDUCER_COUNT_PARAM = 2999;
+
+    private PigContext pc;
+
+    @Override
+    public void setPigContext(PigContext pc) {
+        this.pc = pc;
+    }
+
     @Override
     public int estimateParallelism(TezOperPlan plan, TezOperator tezOper, Configuration conf) throws IOException {
 
@@ -71,11 +81,13 @@ public class TezOperDependencyParallelismEstimator implements TezParallelismEsti
             return -1;
         }
 
+        boolean intermediateReducer = TezCompilerUtil.isIntermediateReducer(tezOper);
+
         maxTaskCount = conf.getInt(PigReducerEstimator.MAX_REDUCER_COUNT_PARAM,
                 PigReducerEstimator.DEFAULT_MAX_REDUCER_COUNT_PARAM);
 
         // If parallelism is set explicitly, respect it
-        if (tezOper.getRequestedParallelism()!=-1) {
+        if (!intermediateReducer && tezOper.getRequestedParallelism()!=-1) {
             return tezOper.getRequestedParallelism();
         }
 
@@ -115,28 +127,26 @@ public class TezOperDependencyParallelismEstimator implements TezParallelismEsti
         }
 
         int roundedEstimatedParallelism = (int)Math.ceil(estimatedParallelism);
-        if (tezOper.isSampler()) {
-            TezOperator sampleAggregationOper = null;
-            TezOperator rangePartionerOper = null;
-            TezOperator sortOper = null;
-            for (TezOperator succ : plan.getSuccessors(tezOper)) {
-                if (succ.isSampleAggregation()) {
-                    sampleAggregationOper = succ;
-                } else if (succ.isSampleBasedPartitioner()) {
-                    rangePartionerOper = succ;
-                }
-            }
-            sortOper = plan.getSuccessors(rangePartionerOper).get(0);
 
-            if (sortOper.getRequestedParallelism()!=-1) {
-
-                ParallelConstantVisitor visitor =
-                        new ParallelConstantVisitor(sampleAggregationOper.plan, roundedEstimatedParallelism);
-                visitor.visit();
+        if (intermediateReducer) {
+            // Estimated reducers should not be more than the configured limit
+            roundedEstimatedParallelism = Math.min(roundedEstimatedParallelism, Math.max(DEFAULT_MAX_INTERMEDIATE_REDUCER_COUNT_PARAM, maxTaskCount));
+            int userSpecifiedParallelism = pc.defaultParallel;
+            if (tezOper.getRequestedParallelism() != -1) {
+                userSpecifiedParallelism = tezOper.getRequestedParallelism();
             }
+            int intermediateParallelism = Math.max(userSpecifiedParallelism, roundedEstimatedParallelism);
+            if (userSpecifiedParallelism != -1 && intermediateParallelism > (2 * userSpecifiedParallelism)) {
+                // Estimated reducers shall not be more than 2x of requested parallelism
+                // when we are overriding user specified values
+                intermediateParallelism = 2 * userSpecifiedParallelism;
+            }
+            roundedEstimatedParallelism = intermediateParallelism;
+        } else {
+            roundedEstimatedParallelism = Math.min(roundedEstimatedParallelism, maxTaskCount);
         }
 
-        return Math.min(roundedEstimatedParallelism, maxTaskCount);
+        return roundedEstimatedParallelism;
     }
 
     private static TezOperator getPredecessorWithKey(TezOperPlan plan, TezOperator tezOper, String inputKey) {

@@ -167,26 +167,17 @@ public class Main {
      * @throws IOException
      */
     public static void main(String args[]) {
-        DateTime startTime = new DateTime();
-
-        int exitcode = run(args, null);
-
-        DateTime endTime = new DateTime();
-        Duration duration = new Duration(startTime, endTime);
-        Period period = duration.toPeriod().normalizedStandard(PeriodType.time());
-        log.info("Pig script completed in "
-                + PeriodFormat.getDefault().print(period)
-                + " (" + duration.getMillis() + " ms)");
-
-        System.exit(exitcode);
+        System.exit(run(args, null));
     }
 
     static int run(String args[], PigProgressNotificationListener listener) {
+        DateTime startTime = new DateTime();
         int rc = 1;
         boolean verbose = false;
         boolean gruntCalled = false;
         boolean deleteTempFiles = true;
         String logFileName = null;
+        boolean printScriptRunTime = true;
 
         try {
             Configuration conf = new Configuration(false);
@@ -301,6 +292,7 @@ public class Main {
                     return ReturnCode.SUCCESS;
 
                 case 'i':
+                    printScriptRunTime = false;
                     System.out.println(getVersionString());
                     return ReturnCode.SUCCESS;
 
@@ -670,6 +662,9 @@ public class Main {
                 LogUtils.writeLog(e, logFileName, log, verbose, "Error before Pig is launched");
             }
         } finally {
+            if (printScriptRunTime) {
+                printScriptRunTime(startTime);
+            }
             if (deleteTempFiles) {
                 // clear temp files
                 FileLocalizer.deleteTempFiles();
@@ -678,6 +673,15 @@ public class Main {
         }
 
         return rc;
+    }
+
+    private static void printScriptRunTime(DateTime startTime) {
+        DateTime endTime = new DateTime();
+        Duration duration = new Duration(startTime, endTime);
+        Period period = duration.toPeriod().normalizedStandard(PeriodType.time());
+        log.info("Pig script completed in "
+                + PeriodFormat.getDefault().print(period)
+                + " (" + duration.getMillis() + " ms)");
     }
 
     protected static PigProgressNotificationListener makeListener(Properties properties) {

@@ -270,7 +270,11 @@ public class TezLauncher extends Launcher {
                     TezTaskStats tts = tezStats.getVertexStats(v.getName());
                     tezScriptState.emitjobFinishedNotification(tts);
                     Map<String, Map<String, Long>> counterGroups = runningJob.getVertexCounters(v.getName());
-                    computeWarningAggregate(counterGroups, warningAggMap);
+                    if (counterGroups == null) {
+                        log.warn("Counters are not available for vertex " + v.getName() + ". Not computing warning aggregates.");
+                    } else {
+                        computeWarningAggregate(counterGroups, warningAggMap);
+                    }
                 }
                 if (aggregateWarning) {
                     CompilationMessageCollector.logAggregate(warningAggMap, MessageType.Warning, log);

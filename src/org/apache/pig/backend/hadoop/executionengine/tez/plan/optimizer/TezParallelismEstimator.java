@@ -22,7 +22,12 @@ import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperator;
+import org.apache.pig.impl.PigContext;
 
 public interface TezParallelismEstimator {
-    public int estimateParallelism(TezOperPlan plan, TezOperator tezOper, Configuration conf) throws IOException;
+
+    public void setPigContext(PigContext pc);
+
+    public int estimateParallelism(TezOperPlan plan, TezOperator tezOper,
+            Configuration conf) throws IOException;
 }

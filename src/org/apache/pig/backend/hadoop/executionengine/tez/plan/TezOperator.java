@@ -70,6 +70,10 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     private int estimatedParallelism = -1;
 
+    // Do not estimate parallelism for specific vertices like limit, indexer,
+    // etc which should always be one
+    private boolean dontEstimateParallelism = false;
+
     // This is the parallelism of the vertex, it take account of:
     // 1. default_parallel
     // 2. -1 parallelism for one_to_one edge
@@ -251,7 +255,17 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     }
 
     public int getEffectiveParallelism() {
-        return getRequestedParallelism()!=-1? getRequestedParallelism() : getEstimatedParallelism();
+        // PIG-4162: For intermediate reducers, use estimated parallelism over user set parallelism.
+        return getEstimatedParallelism() == -1 ? getRequestedParallelism()
+                : getEstimatedParallelism();
+    }
+
+    public boolean isDontEstimateParallelism() {
+        return dontEstimateParallelism;
+    }
+
+    public void setDontEstimateParallelism(boolean dontEstimateParallelism) {
+        this.dontEstimateParallelism = dontEstimateParallelism;
     }
 
     public OperatorKey getSplitParent() {
