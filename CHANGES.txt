@@ -78,6 +78,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4197: Fix typo in Job Stats header: MinMapTIme => MinMapTime (jmartell7 via daijy)
+
 PIG-4194: ReadToEndLoader does not call setConf on pigSplit in initializeReader (shadanan via rohini)
 
 PIG-4187: Fix Orc e2e tests (daijy)
