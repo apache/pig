@@ -17,17 +17,21 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer;
 
-import java.io.IOException;
+import java.util.LinkedList;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.PigConfiguration;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezEdgeDescriptor;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperator;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.NativeTezOper;
+import org.apache.pig.backend.hadoop.executionengine.tez.util.TezCompilerUtil;
 import org.apache.pig.backend.hadoop.executionengine.util.ParallelConstantVisitor;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
@@ -36,12 +40,26 @@ import org.apache.pig.impl.plan.VisitorException;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 
 public class ParallelismSetter extends TezOpPlanVisitor {
-    Configuration conf;
-    PigContext pc;
+    private Configuration conf;
+    private PigContext pc;
+    private TezParallelismEstimator estimator;
+    private boolean autoParallelismEnabled;
+
     public ParallelismSetter(TezOperPlan plan, PigContext pigContext) {
         super(plan, new DependencyOrderWalker<TezOperator, TezOperPlan>(plan));
         this.pc = pigContext;
         this.conf = ConfigurationUtil.toConfiguration(pc.getProperties());
+        this.autoParallelismEnabled = conf.getBoolean(PigConfiguration.TEZ_AUTO_PARALLELISM, true);
+        try {
+            this.estimator = conf.get(PigConfiguration.REDUCER_ESTIMATOR_KEY) == null ? new TezOperDependencyParallelismEstimator()
+            : PigContext.instantiateObjectFromParams(conf,
+                    PigConfiguration.REDUCER_ESTIMATOR_KEY, PigConfiguration.REDUCER_ESTIMATOR_ARG_KEY,
+                    TezParallelismEstimator.class);
+            this.estimator.setPigContext(pc);
+
+        } catch (ExecException e) {
+            throw new RuntimeException("Error instantiating TezParallelismEstimator", e);
+        }
     }
 
     @Override
@@ -53,6 +71,11 @@ public class ParallelismSetter extends TezOpPlanVisitor {
             // Can only set parallelism here if the parallelism isn't derived from
             // splits
             int parallelism = -1;
+            boolean intermediateReducer = false;
+            LinkedList<POStore> stores = PlanHelper.getPhysicalOperators(tezOp.plan, POStore.class);
+            if (stores.size() <= 0) {
+                intermediateReducer = true;
+            }
             if (tezOp.getLoaderInfo().getLoads() != null && tezOp.getLoaderInfo().getLoads().size() > 0) {
                 // TODO: Can be set to -1 if TEZ-601 gets fixed and getting input
                 // splits can be moved to if(loads) block below
@@ -61,6 +84,8 @@ public class ParallelismSetter extends TezOpPlanVisitor {
             } else {
                 int prevParallelism = -1;
                 boolean isOneToOneParallelism = false;
+                intermediateReducer = TezCompilerUtil.isIntermediateReducer(tezOp);
+
                 for (Map.Entry<OperatorKey,TezEdgeDescriptor> entry : tezOp.inEdges.entrySet()) {
                     if (entry.getValue().dataMovementType == DataMovementType.ONE_TO_ONE) {
                         TezOperator pred = mPlan.getOperator(entry.getKey());
@@ -71,24 +96,29 @@ public class ParallelismSetter extends TezOpPlanVisitor {
                             throw new VisitorException("one to one sources parallelism for vertex "
                                     + tezOp.getOperatorKey().toString() + " are not equal");
                         }
-                        if (pred.getRequestedParallelism()!=-1) {
-                            tezOp.setRequestedParallelism(pred.getRequestedParallelism());
-                        } else {
-                            tezOp.setEstimatedParallelism(pred.getEstimatedParallelism());
-                        }
+                        tezOp.setRequestedParallelism(pred.getRequestedParallelism());
+                        tezOp.setEstimatedParallelism(pred.getEstimatedParallelism());
                         isOneToOneParallelism = true;
                         parallelism = -1;
                     }
                 }
                 if (!isOneToOneParallelism) {
-                    if (tezOp.getRequestedParallelism()!=-1) {
+                    if (tezOp.getRequestedParallelism() != -1) {
                         parallelism = tezOp.getRequestedParallelism();
-                    } else if (pc.defaultParallel!=-1) {
+                    } else if (pc.defaultParallel != -1) {
                         parallelism = pc.defaultParallel;
-                    } else {
-                        parallelism = estimateParallelism(mPlan, tezOp);
-                        tezOp.setEstimatedParallelism(parallelism);
-                        if (tezOp.isGlobalSort()||tezOp.isSkewedJoin()) {
+                    }
+                    if (autoParallelismEnabled &&
+                            ((parallelism == -1 || intermediateReducer) && !tezOp.isDontEstimateParallelism())) {
+                        if (tezOp.getEstimatedParallelism() == -1) {
+                            // Override user specified parallelism with the estimated value
+                            // if it is intermediate reducer
+                            parallelism = estimator.estimateParallelism(mPlan, tezOp, conf);
+                            tezOp.setEstimatedParallelism(parallelism);
+                        } else {
+                            parallelism = tezOp.getEstimatedParallelism();
+                        }
+                        if (tezOp.isGlobalSort() || tezOp.isSkewedJoin()) {
                             // Vertex manager will set parallelism
                             parallelism = -1;
                         }
@@ -98,7 +128,7 @@ public class ParallelismSetter extends TezOpPlanVisitor {
 
             // Once we decide the parallelism of the sampler, propagate to
             // downstream operators if necessary
-            if (tezOp.isSampler()) {
+            if (tezOp.isSampler() && autoParallelismEnabled) {
                 // There could be multiple sampler and share the same sample aggregation job
                 // and partitioner job
                 TezOperator sampleAggregationOper = null;
@@ -116,7 +146,7 @@ public class ParallelismSetter extends TezOpPlanVisitor {
                 }
                 sortOper = mPlan.getSuccessors(sampleBasedPartionerOper).get(0);
 
-                if (sortOper.getRequestedParallelism()==-1 && pc.defaultParallel==-1) {
+                if ((sortOper.getRequestedParallelism() == -1 && pc.defaultParallel == -1) || TezCompilerUtil.isIntermediateReducer(sortOper)) {
                     // set estimate parallelism for order by/skewed join to sampler parallelism
                     // that include:
                     // 1. sort operator
@@ -125,6 +155,7 @@ public class ParallelismSetter extends TezOpPlanVisitor {
                     ParallelConstantVisitor visitor =
                             new ParallelConstantVisitor(sampleAggregationOper.plan, parallelism);
                     visitor.visit();
+                    sampleAggregationOper.setNeedEstimatedQuantile(true);
                 }
             }
 
@@ -139,14 +170,4 @@ public class ParallelismSetter extends TezOpPlanVisitor {
         }
     }
 
-    private int estimateParallelism(TezOperPlan tezPlan, TezOperator tezOp) throws IOException {
-
-        TezParallelismEstimator estimator = conf.get(PigConfiguration.REDUCER_ESTIMATOR_KEY) == null ? new TezOperDependencyParallelismEstimator()
-                : PigContext.instantiateObjectFromParams(conf,
-                        PigConfiguration.REDUCER_ESTIMATOR_KEY, PigConfiguration.REDUCER_ESTIMATOR_ARG_KEY,
-                        TezParallelismEstimator.class);
-
-        int numberOfReducers = estimator.estimateParallelism(tezPlan, tezOp, conf);
-        return numberOfReducers;
-    }
 }

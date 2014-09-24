@@ -1039,9 +1039,9 @@ public class JobControlCompiler{
         Configuration conf = nwJob.getConfiguration();
 
         // set various parallelism into the job conf for later analysis, PIG-2779
-        conf.setInt("pig.info.reducers.default.parallel", pigContext.defaultParallel);
-        conf.setInt("pig.info.reducers.requested.parallel", mro.requestedParallelism);
-        conf.setInt("pig.info.reducers.estimated.parallel", mro.estimatedParallelism);
+        conf.setInt(PigImplConstants.REDUCER_DEFAULT_PARALLELISM, pigContext.defaultParallel);
+        conf.setInt(PigImplConstants.REDUCER_REQUESTED_PARALLELISM, mro.requestedParallelism);
+        conf.setInt(PigImplConstants.REDUCER_ESTIMATED_PARALLELISM, mro.estimatedParallelism);
 
         // this is for backward compatibility, and we encourage to use runtimeParallelism at runtime
         mro.requestedParallelism = jobParallelism;

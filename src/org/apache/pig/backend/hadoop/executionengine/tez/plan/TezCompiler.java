@@ -810,6 +810,7 @@ public class TezCompiler extends PhyPlanVisitor {
                     }
                 }
                 if (canStop) {
+                    curTezOp.setDontEstimateParallelism(true);
                     if (limitAfterSort) {
                         curTezOp.markLimitAfterSort();
                     } else {
@@ -830,6 +831,7 @@ public class TezCompiler extends PhyPlanVisitor {
 
             // Explicitly set the parallelism for the new vertex to 1.
             curTezOp.setRequestedParallelism(1);
+            curTezOp.setDontEstimateParallelism(true);
 
             output.addOutputKey(curTezOp.getOperatorKey().toString());
             // LIMIT does not make any ordering guarantees and this is unsorted shuffle.
@@ -1094,6 +1096,7 @@ public class TezCompiler extends PhyPlanVisitor {
         indexAggrOper.segmentBelow = true;
 
         indexerTezOp.setRequestedParallelism(1); // we need exactly one reducer for indexing job.
+        indexerTezOp.setDontEstimateParallelism(true);
 
         POStore st = TezCompilerUtil.getStore(scope, nig);
         FileSpec strFile = getTempFileSpec();
@@ -1261,6 +1264,7 @@ public class TezCompiler extends PhyPlanVisitor {
                 tezPlan.add(rightTezOprAggr);
                 TezCompilerUtil.simpleConnectTwoVertex(tezPlan, rightTezOpr, rightTezOprAggr, scope, nig);
                 rightTezOprAggr.setRequestedParallelism(1); // we need exactly one task for indexing job.
+                rightTezOprAggr.setDontEstimateParallelism(true);
 
                 POStore st = TezCompilerUtil.getStore(scope, nig);
                 FileSpec strFile = getTempFileSpec();
@@ -1401,6 +1405,7 @@ public class TezCompiler extends PhyPlanVisitor {
             POCounterStatsTez counterStatsTez = new POCounterStatsTez(OperatorKey.genOpKey(scope));
             statsOper.plan.addAsLeaf(counterStatsTez);
             statsOper.setRequestedParallelism(1);
+            statsOper.setDontEstimateParallelism(true);
 
             //Construct Vertex 3
             TezOperator rankOper = getTezOp();
@@ -2037,6 +2042,7 @@ public class TezCompiler extends PhyPlanVisitor {
         oper.setClosed(true);
 
         oper.setRequestedParallelism(1);
+        oper.setDontEstimateParallelism(true);
         oper.markSampleAggregation();
         return new Pair<TezOperator, Integer>(oper, rp);
     }
@@ -2286,6 +2292,7 @@ public class TezCompiler extends PhyPlanVisitor {
 
                 // Explicitly set the parallelism for the new vertex to 1.
                 limitOper.setRequestedParallelism(1);
+                limitOper.setDontEstimateParallelism(true);
                 limitOper.markLimitAfterSort();
 
                 edge = TezCompilerUtil.connect(tezPlan, sortOpers[1], limitOper);

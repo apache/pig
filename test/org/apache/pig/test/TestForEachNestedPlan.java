@@ -59,7 +59,7 @@ public class TestForEachNestedPlan {
     @Test
     public void testInnerOrderBy() throws Exception {
         for (int i = 0; i < nullFlags.length; i++) {
-            System.err.println("Running testInnerOrderBy with nullFlags set to :"
+            System.out.println("Running testInnerOrderBy with nullFlags set to :"
                             + nullFlags[i]);
             File tmpFile = genDataSetFile1(nullFlags[i]);
             pig.registerQuery("a = load '"

@@ -38,18 +38,16 @@ public class ParallelConstantVisitor extends PhyPlanVisitor {
 
     @Override
     public void visitConstant(ConstantExpression cnst) throws VisitorException {
-        if (cnst.getRequestedParallelism() == -1) {
-            Object obj = cnst.getValue();
-            if (obj instanceof Integer) {
-                if (replaced) {
-                    // sample job should have only one ConstantExpression
-                    throw new VisitorException("Invalid reduce plan: more " +
-                            "than one ConstantExpression found in sampling job");
-                }
-                cnst.setValue(rp);
-                cnst.setRequestedParallelism(rp);
-                replaced = true;
+        Object obj = cnst.getValue();
+        if (obj instanceof Integer) {
+            if (replaced) {
+                // sample job should have only one ConstantExpression
+                throw new VisitorException("Invalid reduce plan: more " +
+                        "than one ConstantExpression found in sampling job");
             }
+            cnst.setValue(rp);
+            cnst.setRequestedParallelism(rp);
+            replaced = true;
         }
     }
 }

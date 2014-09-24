@@ -478,15 +478,15 @@ public class FileLocalizer {
      * since resourthPath should be available in the entire session
      *
      * @param pigContext
-     * @return
+     * @return temporary resource path
      * @throws DataStorageException
      */
-    public static synchronized ContainerDescriptor getTemporaryResourcePath(final PigContext pigContext)
+    public static synchronized Path getTemporaryResourcePath(final PigContext pigContext)
             throws DataStorageException {
         if (resourcePath == null) {
             resourcePath = getTempContainer(pigContext);
         }
-        return resourcePath;
+        return ((HPath)resourcePath).getPath();
     }
 
     private static synchronized ContainerDescriptor getTempContainer(final PigContext pigContext)
@@ -800,7 +800,7 @@ public class FileLocalizer {
                 && uri.getScheme() == null )||
                 // For Windows local files
                 (uri.getScheme() == null && uri.getPath().matches("^/[A-Za-z]:.*")) ||
-                (uri.getScheme() != null && uri.getScheme().equals("local")) 
+                (uri.getScheme() != null && uri.getScheme().equals("local"))
             ) {
             srcFs = localFs;
         } else {

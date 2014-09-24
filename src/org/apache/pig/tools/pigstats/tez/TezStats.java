@@ -230,14 +230,8 @@ public class TezStats extends PigStats {
         stats.setId(tezOpName);
         stats.setSuccessful(succeeded);
         stats.setParallelism(parallelism);
-        if (map == null) {
-            if (stats.hasLoadOrStore()) {
-                LOG.warn("Unable to get input(s)/output(s) of the job");
-            }
-        } else {
-            stats.addInputStatistics(map);
-            stats.addOutputStatistics(map);
-        }
+        stats.addInputStatistics(map);
+        stats.addOutputStatistics(map);
     }
 
     private static String getDisplayString(TezJob tezJob) {

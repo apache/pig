@@ -29,6 +29,7 @@ import java.util.TreeMap;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.WritableComparable;
@@ -88,6 +89,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezEdgeDescriptor;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
@@ -102,8 +104,10 @@ import org.apache.pig.backend.hadoop.executionengine.tez.runtime.PartitionerDefi
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.PigProcessor;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.MRToTezHelper;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.SecurityHelper;
+import org.apache.pig.backend.hadoop.executionengine.tez.util.TezCompilerUtil;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.NullablePartitionWritable;
 import org.apache.pig.impl.io.NullableTuple;
@@ -156,6 +160,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
     private Map<String, LocalResource> localResources;
     private PigContext pc;
     private Configuration globalConf;
+    private long intermediateTaskInputSize;
 
     public TezDagBuilder(PigContext pc, TezOperPlan plan, DAG dag,
             Map<String, LocalResource> localResources) {
@@ -172,6 +177,19 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         } catch (IOException e) {
             throw new RuntimeException("Error while fetching delegation tokens", e);
         }
+
+        try {
+            intermediateTaskInputSize = HadoopShims.getDefaultBlockSize(FileSystem.get(globalConf), FileLocalizer.getTemporaryResourcePath(pc));
+        } catch (Exception e) {
+            log.warn("Unable to get the block size for temporary directory, defaulting to 128MB", e);
+            intermediateTaskInputSize = 134217728L;
+        }
+        // At least 128MB. Else we will end up with too many tasks
+        intermediateTaskInputSize = Math.max(intermediateTaskInputSize, 134217728L);
+        intermediateTaskInputSize = Math.min(intermediateTaskInputSize,
+                globalConf.getLong(
+                        InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM,
+                        InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER));
     }
 
     @Override
@@ -410,7 +428,19 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         }
 
         if (tezOp.getSortOperator() != null) {
+            // Required by Sample Aggregation job for estimating quantiles
             payloadConf.set(PigProcessor.SORT_VERTEX, tezOp.getSortOperator().getOperatorKey().toString());
+            // PIG-4162: Order by/Skew Join in intermediate stage.
+            // Increasing order by parallelism may not be required as it is
+            // usually followed by limit other than store. But would benefit
+            // cases like skewed join followed by group by.
+            if (tezOp.getSortOperator().getEstimatedParallelism() != -1
+                    && TezCompilerUtil.isIntermediateReducer(tezOp.getSortOperator())) {
+                payloadConf.setLong(
+                        InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM,
+                        intermediateTaskInputSize);
+            }
+
         }
 
         payloadConf.set("pig.inputs", ObjectSerializer.serialize(tezOp.getLoaderInfo().getInp()));
@@ -453,8 +483,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             tezOp.plan.remove(pack);
             payloadConf.set("pig.reduce.package", ObjectSerializer.serialize(pack));
             setIntermediateOutputKeyValue(keyType, payloadConf, tezOp);
-            POShuffleTezLoad newPack;
-            newPack = new POShuffleTezLoad(pack);
+            POShuffleTezLoad newPack = new POShuffleTezLoad(pack);
             if (tezOp.isSkewedJoin()) {
                 newPack.setSkewedJoins(true);
             }
@@ -556,9 +585,9 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         }
 
         // set various parallelism into the job conf for later analysis, PIG-2779
-        payloadConf.setInt("pig.info.reducers.default.parallel", pc.defaultParallel);
-        payloadConf.setInt("pig.info.reducers.requested.parallel", tezOp.getRequestedParallelism());
-        payloadConf.setInt("pig.info.reducers.estimated.parallel", tezOp.getEstimatedParallelism());
+        payloadConf.setInt(PigImplConstants.REDUCER_DEFAULT_PARALLELISM, pc.defaultParallel);
+        payloadConf.setInt(PigImplConstants.REDUCER_REQUESTED_PARALLELISM, tezOp.getRequestedParallelism());
+        payloadConf.setInt(PigImplConstants.REDUCER_ESTIMATED_PARALLELISM, tezOp.getEstimatedParallelism());
 
         // Take our assembled configuration and create a vertex
         UserPayload userPayload = TezUtils.createUserPayloadFromConf(payloadConf);
@@ -670,8 +699,12 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                     vmPluginName = ShuffleVertexManager.class.getName();
                     vmPluginConf = (vmPluginConf == null) ? ConfigurationUtil.toConfiguration(pc.getProperties(), false) : vmPluginConf;
                     vmPluginConf.setBoolean(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL, true);
-                    if (vmPluginConf.getLong(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM,
-                            InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER)!=
+                    if (stores.size() <= 0) {
+                        // Intermediate reduce. Set the bytes per reducer to be block size.
+                        vmPluginConf.setLong(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE,
+                                        intermediateTaskInputSize);
+                    } else if (vmPluginConf.getLong(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM,
+                                    InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER) !=
                                     InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER) {
                         vmPluginConf.setLong(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE,
                                 vmPluginConf.getLong(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM,
