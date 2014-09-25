@@ -80,6 +80,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4201: Native e2e tests fail when run against old version of pig (rohini)
+
 PIG-4197: Fix typo in Job Stats header: MinMapTIme => MinMapTime (jmartell7 via daijy)
 
 PIG-4194: ReadToEndLoader does not call setConf on pigSplit in initializeReader (shadanan via rohini)
