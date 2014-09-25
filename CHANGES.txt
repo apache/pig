@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4080: Add Preprocessor commands and more to the black/whitelisting feature (prkommireddi via daijy)
+
 PIG-4162: Intermediate reducer parallelism in Tez should be higher (rohini)
 
 PIG-4186: Fix e2e run against new build of pig and some enhancements (rohini)

@@ -287,7 +287,7 @@ void Parse() throws IOException : {}
 void input() throws IOException  :
 {
     String s;
-    Token strTok;
+    Token strTok = null;
 }
 {
     strTok = <PIG>
@@ -296,14 +296,16 @@ void input() throws IOException  :
         out.append(strTok.image );
     }
     |
-    <DECLARE> 
+    strTok = <DECLARE> 
     (
         param_value(true) // overwrite=true
+        { pc.validate(strTok.toString()); }
     )
     |
-    <PIGDEFAULT>
+    strTok = <PIGDEFAULT>
     (
         param_value(false) // overwrite=false
+        { pc.validate(strTok.toString()); }
     )
     |
     s = paramString(){}

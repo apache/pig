@@ -354,7 +354,7 @@ public class GruntParser extends PigScriptParser {
                                   List<String> params, List<String> files,
                                   boolean dontPrintOutput)
         throws IOException, ParseException {
-
+        filter.validate(PigCommandFilter.Command.EXPLAIN);
         if (null != mExplain) {
             return;
         }
@@ -496,6 +496,11 @@ public class GruntParser extends PigScriptParser {
     protected void processScript(String script, boolean batch,
                                  List<String> params, List<String> files)
         throws IOException, ParseException {
+        if(batch) {
+            filter.validate(PigCommandFilter.Command.EXEC);
+        } else {
+            filter.validate(PigCommandFilter.Command.RUN);
+        }
 
         if(mExplain == null) { // process only if not in "explain" mode
             if (script == null) {
