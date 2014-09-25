@@ -80,6 +80,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4195: Support loading char/varchar data in OrcStorage (daijy)
+
 PIG-4201: Native e2e tests fail when run against old version of pig (rohini)
 
 PIG-4197: Fix typo in Job Stats header: MinMapTIme => MinMapTime (jmartell7 via daijy)

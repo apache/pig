@@ -27,7 +27,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.hive.common.type.HiveChar;
 import org.apache.hadoop.hive.common.type.HiveDecimal;
+import org.apache.hadoop.hive.common.type.HiveVarchar;
 import org.apache.hadoop.hive.serde2.io.HiveDecimalWritable;
 import org.apache.hadoop.hive.serde2.io.TimestampWritable;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
@@ -125,6 +127,12 @@ public class OrcUtils {
         case STRING:
             result = poi.getPrimitiveJavaObject(obj);
             break;
+        case CHAR:
+            result = ((HiveChar)poi.getPrimitiveJavaObject(obj)).getValue();
+            break;
+        case VARCHAR:
+            result = ((HiveVarchar)poi.getPrimitiveJavaObject(obj)).getValue();
+            break;
         case BYTE:
             result = (int)(Byte)poi.getPrimitiveJavaObject(obj);
             break;
@@ -220,6 +228,12 @@ public class OrcUtils {
                 fieldSchema.setType(DataType.BYTEARRAY);
                 break;
             case STRING:
+                fieldSchema.setType(DataType.CHARARRAY);
+                break;
+            case VARCHAR:
+                fieldSchema.setType(DataType.CHARARRAY);
+                break;
+            case CHAR:
                 fieldSchema.setType(DataType.CHARARRAY);
                 break;
             case TIMESTAMP:

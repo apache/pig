@@ -86,6 +86,7 @@ public class TestOrcStoragePushdown {
     public static void oneTimeSetup() throws Exception{
         cluster = MiniGenericCluster.buildCluster();
         Util.copyFromLocalToCluster(cluster, basedir + "orc-file-11-format.orc", basedir + "orc-file-11-format.orc");
+        Util.copyFromLocalToCluster(cluster, basedir + "charvarchar.orc", basedir + "charvarchar.orc");
         createInputData();
 
         if(Util.WINDOWS){
@@ -312,32 +313,32 @@ public class TestOrcStoragePushdown {
 
     @Test
     public void testPredicatePushdownBoolean() throws Exception {
-        testPredicatePushdown("f1 == true", 2500, 1200000);
+        testPredicatePushdown(INPUT, "f1 == true", 2500, 1200000);
     }
 
     @Test
     public void testPredicatePushdownByteShort() throws Exception {
-        testPredicatePushdown("f2 != 5 or f3 == 100", 3500, 1200000);
+        testPredicatePushdown(INPUT, "f2 != 5 or f3 == 100", 3500, 1200000);
     }
 
     @Test
     public void testPredicatePushdownIntLongString() throws Exception {
-        testPredicatePushdown("f4 >= 980 and f4 < 1010 and (f5 == 100 or f9 is not null)", 20, 1200000);
+        testPredicatePushdown(INPUT, "f4 >= 980 and f4 < 1010 and (f5 == 100 or f9 is not null)", 20, 1200000);
     }
 
     @Test
     public void testPredicatePushdownFloatDouble() throws Exception {
-        testPredicatePushdown("f6 == 100.0 and f7 > 2000.00000001", 167, 1600000);
+        testPredicatePushdown(INPUT, "f6 == 100.0 and f7 > 2000.00000001", 167, 1600000);
     }
 
     @Test
     public void testPredicatePushdownBigDecimal() throws Exception {
-        testPredicatePushdown("f11 < (bigdecimal)'1000000000';", 2500, 1600000);
+        testPredicatePushdown(INPUT, "f11 < (bigdecimal)'1000000000';", 2500, 1600000);
     }
 
     @Test
     public void testPredicatePushdownTimestamp() throws Exception {
-        testPredicatePushdown("f10 >= ToDate('20100101', 'yyyyMMdd', 'UTC')", 3000, 400000);
+        testPredicatePushdown(INPUT, "f10 >= ToDate('20100101', 'yyyyMMdd', 'UTC')", 3000, 400000);
     }
 
     private Expression getExpressionForTest(String query, List<String> predicateCols) throws Exception {
@@ -369,7 +370,7 @@ public class TestOrcStoragePushdown {
         Util.checkQueryOutputs(pigServer_disabledRule.openIterator("C"), pigServer.openIterator("E"), expectedRows);
     }
 
-    private void testPredicatePushdown(String filterStmt, int expectedRows, int expectedBytesReadDiff) throws IOException {
+    private void testPredicatePushdown(String inputFile, String filterStmt, int expectedRows, int expectedBytesReadDiff) throws IOException {
 
         Util.resetStateForExecModeSwitch();
         // Minicluster is required to get hdfs bytes read counter value
@@ -381,7 +382,7 @@ public class TestOrcStoragePushdown {
         disabledOptimizerRules.add("PredicatePushdownOptimizer");
         pigServer_disabledRule.getPigContext().getProperties().setProperty(PigImplConstants.PIG_OPTIMIZER_RULES_KEY,
                 ObjectSerializer.serialize(disabledOptimizerRules));
-        pigServer_disabledRule.registerQuery("B = load '" + INPUT + "' using OrcStorage();");
+        pigServer_disabledRule.registerQuery("B = load '" + inputFile + "' using OrcStorage();");
         pigServer_disabledRule.registerQuery("C = filter B by " + filterStmt + ";");
         ExecJob job = pigServer_disabledRule.store("C", OUTPUT3);
         //Util.copyFromClusterToLocal(cluster, OUTPUT3 + "/part-m-00000", OUTPUT3);
@@ -390,7 +391,7 @@ public class TestOrcStoragePushdown {
         long bytesWithoutPushdown = stats.getHdfsBytesRead();
 
         // Test with PredicatePushdownOptimizer enabled. Only 2 blocks should be read
-        pigServer.registerQuery("D = load '" + INPUT + "' using OrcStorage();");
+        pigServer.registerQuery("D = load '" + inputFile + "' using OrcStorage();");
         pigServer.registerQuery("E = filter D by " + filterStmt + ";");
         job = pigServer.store("E", OUTPUT4);
         //Util.copyFromClusterToLocal(cluster, OUTPUT4 + "/part-m-00000", OUTPUT4);
@@ -409,6 +410,13 @@ public class TestOrcStoragePushdown {
 
     }
 
+    @Test
+    public void testPredicatePushdownChar() throws Exception {
+        testPredicatePushdown(basedir + "charvarchar.orc", "$0 == 'ulysses thompson'", 18, 18000);
+    }
 
-
+    @Test
+    public void testPredicatePushdownVarchar() throws Exception {
+        testPredicatePushdown(basedir + "charvarchar.orc", "$1 == 'alice allen         '", 19, 18000);
+    }
 }
