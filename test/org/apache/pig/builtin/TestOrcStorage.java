@@ -57,6 +57,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.data.BinSedesTuple;
 import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -150,6 +151,28 @@ public class TestOrcStorage {
             count++;
         }
         assertEquals(count, 10);
+    }
+
+    @Test
+    // See PIG-4195
+    public void testCharVarchar() throws Exception {
+        pigServer.registerQuery("A = load '" + basedir + "charvarchar.orc'" + " using OrcStorage();" );
+        Schema schema = pigServer.dumpSchema("A");
+        assertEquals(schema.size(), 2);
+        assertEquals(schema.getField(0).type, DataType.CHARARRAY);
+        assertEquals(schema.getField(1).type, DataType.CHARARRAY);
+        Iterator<Tuple> iter = pigServer.openIterator("A");
+        int count=0;
+        Tuple t=null;
+        while (iter.hasNext()) {
+            t = iter.next();
+            assertEquals(t.size(), 2);
+            assertTrue(t.get(0) instanceof String);
+            assertTrue(t.get(1) instanceof String);
+            assertEquals(((String)t.get(1)).length(), 20);
+            count++;
+        }
+        assertEquals(count, 10000);
     }
 
     @Test
