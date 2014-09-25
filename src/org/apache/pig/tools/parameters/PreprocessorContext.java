@@ -36,6 +36,11 @@ import java.util.regex.Pattern;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.util.Shell;
+import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.validator.BlackAndWhitelistFilter;
+import org.apache.pig.validator.PigCommandFilter;
+import org.python.google.common.base.Preconditions;
 
 public class PreprocessorContext {
 
@@ -44,6 +49,8 @@ public class PreprocessorContext {
     // used internally to detect when a param is set multiple times,
     // but it set with the same value so it's ok not to log a warning
     private Map<String, String> param_source;
+    
+    private PigContext pigContext;
 
     public Map<String, String> getParamVal() {
         return param_val;
@@ -65,6 +72,10 @@ public class PreprocessorContext {
         param_source = new Hashtable<String, String>(paramVal);
     }
 
+    public void setPigContext(PigContext context) {
+        this.pigContext = context;
+    }
+
     /*
     public  void processLiteral(String key, String val) {
         processLiteral(key, val, true);
@@ -76,7 +87,7 @@ public class PreprocessorContext {
      * @param key - parameter name
      * @param val - string containing command to be executed
      */
-    public  void processShellCmd(String key, String val)  throws ParameterSubstitutionException {
+    public  void processShellCmd(String key, String val)  throws ParameterSubstitutionException, FrontendException {
         processShellCmd(key, val, true);
     }
 
@@ -112,13 +123,17 @@ public class PreprocessorContext {
      * @param key - parameter name
      * @param val - string containing command to be executed
      */
-    public  void processShellCmd(String key, String val, Boolean overwrite)  throws ParameterSubstitutionException {
+    public  void processShellCmd(String key, String val, Boolean overwrite)  throws ParameterSubstitutionException, FrontendException {
+        Preconditions.checkState(pigContext != null);
+        BlackAndWhitelistFilter filter = new BlackAndWhitelistFilter(pigContext);
+        filter.validate(PigCommandFilter.Command.SH);
 
         if (param_val.containsKey(key)) {
             if (param_source.get(key).equals(val) || !overwrite) {
                 return;
             } else {
-                log.warn("Warning : Multiple values found for " + key + ". Using value " + val);
+                log.warn("Warning : Multiple values found for " + key
+                        + ". Using value " + val);
             }
         }
 
@@ -130,6 +145,23 @@ public class PreprocessorContext {
         param_val.put(key, sub_val);
     }
 
+    public void validate(String preprocessorCmd) throws FrontendException {
+        Preconditions.checkState(pigContext != null);
+
+        final BlackAndWhitelistFilter filter = new BlackAndWhitelistFilter(pigContext);
+        final String declareToken = "%declare";
+        final String defaultToken = "%default";
+
+        if (preprocessorCmd.equals(declareToken)) {
+            filter.validate(PigCommandFilter.Command.DECLARE);
+        } else if (preprocessorCmd.equals(defaultToken)) {
+            filter.validate(PigCommandFilter.Command.DEFAULT);
+        } else {
+            throw new IllegalArgumentException("Pig Internal Error. Invalid preprocessor command specified : "
+                            + preprocessorCmd);
+        }
+    }
+    
     /**
      * This method generates value for the specified key by
      * performing substitution if needed within the value first.
