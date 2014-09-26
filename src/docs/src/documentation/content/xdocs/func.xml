@@ -4358,7 +4358,70 @@ For example, given the string (open:source:software), STRSPLIT (string, ':',2) w
 </section>
 </section> 
 
-<!-- ======================================================== -->  
+<!-- ======================================================== -->
+    <section id="strsplittobag">
+        <title>STRSPLITTOBAG</title>
+        <p>Splits a string around matches of a given regular expression and returns a databag</p>
+        <section>
+            <title>Syntax</title>
+            <table>
+                <tr>
+                    <td>
+                        <p>STRSPLITTOBAG(string, regex, limit)</p>
+                    </td>
+                </tr>
+            </table>
+        </section>
+        <section>
+            <title>Terms</title>
+            <table>
+                <tr>
+                    <td>
+                        <p>string</p>
+                    </td>
+                    <td>
+                        <p>The string to be split.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <p>regex</p>
+                    </td>
+                    <td>
+                        <p>The regular expression.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <p>limit</p>
+                    </td>
+                    <td>
+                        <p>If the value is positive, the pattern (the compiled representation of the regular expression)
+                            is applied at most limit-1 times, therefore the value of the argument means the maximum size
+                            of the result bag. The last tuple of the result bag will contain all input after the last
+                            match.
+                        </p>
+                        <p>If the value is negative, no limit is applied to the size of the result bag.</p>
+                        <p>If the value is zero, no limit is applied to the size of the result bag too, and trailing
+                            empty strings (if any) will be removed.
+                        </p>
+                    </td>
+                </tr>
+            </table>
+        </section>
+        <section>
+            <title>Usage</title>
+            <p>
+                Use the STRSPLITTOBAG function to split a string around matches of a given regular expression.
+            </p>
+            <p>
+                For example, given the string (open:source:software), STRSPLITTOBAG (string, ':',2) will return
+                {(open),(source:software)} and STRSPLITTOBAG (string, ':',3) will return {(open),(source),(software)}.
+            </p>
+        </section>
+    </section>
+
+    <!-- ======================================================== -->
  <section id="substring">
    <title>SUBSTRING</title>
    <p>Returns a substring from a given string. </p>

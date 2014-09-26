@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-3870: STRSPLITTOBAG UDF (cryptoe via daijy)
+
 PIG-4080: Add Preprocessor commands and more to the black/whitelisting feature (prkommireddi via daijy)
 
 PIG-4162: Intermediate reducer parallelism in Tez should be higher (rohini)
