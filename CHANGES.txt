@@ -84,6 +84,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4176: Fix tez e2e test Bloom_[1-3] (daijy)
+
 PIG-4164: After Pig job finish, Pig client spend too much time retry to connect to AM (daijy)
 
 PIG-4195: Support loading char/varchar data in OrcStorage (daijy)
