@@ -32,7 +32,6 @@ import org.apache.hadoop.mapred.TIPStatus;
 import org.apache.hadoop.mapred.TaskReport;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
-import org.apache.hadoop.mapreduce.Cluster;
 import org.apache.hadoop.mapreduce.ContextFactory;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.JobID;
@@ -121,8 +120,7 @@ public class HadoopShims {
 
     public static Counters getCounters(Job job) throws IOException {
         try {
-            Cluster cluster = new Cluster(job.getJobConf());
-            return new Counters(cluster.getJob(job.getAssignedJobID()).getCounters());
+            return new Counters(job.getJob().getCounters());
         } catch (Exception ir) {
             throw new IOException(ir);
         }
@@ -221,9 +219,8 @@ public class HadoopShims {
             LOG.info("TaskReports are disabled for job: " + job.getAssignedJobID());
             return null;
         }
-        Cluster cluster = new Cluster(job.getJobConf());
+        org.apache.hadoop.mapreduce.Job mrJob = job.getJob();
         try {
-            org.apache.hadoop.mapreduce.Job mrJob = cluster.getJob(job.getAssignedJobID());
             org.apache.hadoop.mapreduce.TaskReport[] reports = mrJob.getTaskReports(type);
             return DowngradeHelper.downgradeTaskReports(reports);
         } catch (InterruptedException ir) {
