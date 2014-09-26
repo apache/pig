@@ -32,11 +32,13 @@ import org.apache.pig.builtin.REPLACE;
 import org.apache.pig.builtin.STARTSWITH;
 import org.apache.pig.builtin.ENDSWITH;
 import org.apache.pig.builtin.STRSPLIT;
+import org.apache.pig.builtin.STRSPLITTOBAG;
 import org.apache.pig.builtin.SUBSTRING;
 import org.apache.pig.builtin.TRIM;
 import org.apache.pig.builtin.LTRIM;
 import org.apache.pig.builtin.RTRIM;
 import org.apache.pig.builtin.EqualsIgnoreCase;
+import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.junit.Test;
@@ -224,6 +226,77 @@ public class TestStringUDFs {
         assertEquals(2, splits.size());
         assertEquals("foo", splits.get(0));
         assertEquals("bar:baz", splits.get(1));
+    }
+
+    @Test
+    public void testSplitToBag() throws IOException {
+        STRSPLITTOBAG bagSplit = new STRSPLITTOBAG();
+
+        //test no delims in input
+        Tuple testTuple = Util.buildTuple("1 2 3", "4");
+        DataBag outputBag = bagSplit.exec(testTuple);
+        assertEquals("No of records split should be 1", 1, outputBag.size());
+        assertEquals("Split string should match the input string", "(1 2 3)", outputBag.iterator().next().toString());
+
+        //test default delimiter
+        testTuple = Util.buildTuple("1 2 3");
+        outputBag = bagSplit.exec(testTuple);
+        String[] assertionArray = {"1", "2", "3"};
+        assertEquals("No of record split should be " + assertionArray.length, assertionArray.length, outputBag.size());
+
+        int i = 0;
+        for (Tuple t : outputBag) {
+            assertEquals("Assertion tests on split strings", "(" + assertionArray[i] + ")", t.toString());
+            i++;
+        }
+
+        //test split on specified delimiter
+        testTuple = Util.buildTuple("1:2:3", ":");
+        outputBag = bagSplit.exec(testTuple);
+        assertEquals("No of record split should be " + assertionArray.length, assertionArray.length, outputBag.size());
+        i = 0;
+        for (Tuple t : outputBag) {
+            assertEquals("Assertion tests on split strings", "(" + assertionArray[i] + ")", t.toString());
+            i++;
+        }
+
+        // test limiting results with limit
+        testTuple = Util.buildTuple("1:2:3", ":", 2);
+        outputBag = bagSplit.exec(testTuple);
+        assertionArray = new String[]{"1", "2:3"};
+        assertEquals("No of record split should be " + assertionArray.length, assertionArray.length, outputBag.size());
+        i = 0;
+        for (Tuple t : outputBag) {
+            assertEquals("Matched records in split results with limit", "(" + assertionArray[i] + ")", t.toString());
+            i++;
+        }
+
+        // test trimming of whitespace
+        testTuple = Util.buildTuple("1 2    ");
+        outputBag = bagSplit.exec(testTuple);
+        assertionArray = new String[]{"1", "2"};
+        assertEquals("No of record split should be " + assertionArray.length, assertionArray.length, outputBag.size());
+        i = 0;
+        for (Tuple t : outputBag) {
+            assertEquals("Matched records in split results with trimming of whitespaces", "(" + assertionArray[i] + ")", t.toString());
+            i++;
+        }
+
+        // test forcing null matches with length param
+        testTuple = Util.buildTuple("1:2:::", ":", 10);
+        outputBag = bagSplit.exec(testTuple);
+        assertionArray = new String[]{"1", "2", "", "", ""};
+        assertEquals("No of record split should be " + assertionArray.length, assertionArray.length, outputBag.size());
+        i = 0;
+        for (Tuple t : outputBag) {
+            assertEquals("Matched records in split results with forcing null matched with limit", "(" + assertionArray[i] + ")", t.toString());
+            i++;
+        }
+
+        //test wrong schemas
+        testTuple = Util.buildTuple(1, 2, 3);
+        outputBag = bagSplit.exec(testTuple);
+        assertEquals("Wrong Schema checks", null, outputBag);
     }
 
     @Test

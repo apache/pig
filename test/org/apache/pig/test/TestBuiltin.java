@@ -2731,14 +2731,16 @@ public class TestBuiltin {
         pigServer.registerQuery("=> load '" + Util.encodeEscape(inputFile.getAbsolutePath()) + "' as (name: chararray);");
         pigServer.registerQuery("B = foreach @ generate SUBSTRING(name, 0, 3), " +
             "INDEXOF(name, 'a'), INDEXOF(name, 'a', 3), LAST_INDEX_OF(name, 'a'), REPLACE(name, 'a', 'b'), " +
-            "STRSPLIT(name), STRSPLIT(name, ' '), STRSPLIT(name, ' ', 0), TRIM(name);");
+                "STRSPLIT(name), STRSPLIT(name, ' '), STRSPLIT(name, ' ', 0), STRSPLITTOBAG(name), STRSPLITTOBAG(name,' ')" +
+                ", STRSPLITTOBAG(name,' ',0), TRIM(name);");
 
         Iterator<Tuple> it = pigServer.openIterator("B");
         assertTrue(it.hasNext());
         Tuple t = it.next();
         Tuple expected = Util.buildTuple("amy", "smith");
+        DataBag expectedBag = Util.createBag(new Tuple[]{Util.buildTuple("amy"), Util.buildTuple("smith")});
         assertTrue(!it.hasNext());
-        assertEquals(9, t.size());
+        assertEquals(12, t.size());
         assertEquals("amy", t.get(0));
         assertEquals(0, t.get(1));
         assertEquals(-1, t.get(2));
@@ -2747,7 +2749,10 @@ public class TestBuiltin {
         assertEquals(expected, t.get(5));
         assertEquals(expected, t.get(6));
         assertEquals(expected, t.get(7));
-        assertEquals("amy smith", t.get(8));
+        assertEquals(expectedBag, t.get(8));
+        assertEquals(expectedBag, t.get(9));
+        assertEquals(expectedBag, t.get(10));
+        assertEquals("amy smith", t.get(11));
 
         // test untyped data
         pigServer.registerQuery("=> load '" + Util.encodeEscape(inputFile.getAbsolutePath()) + "' as (name);");
