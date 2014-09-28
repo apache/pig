@@ -215,23 +215,14 @@
 
   <!-- Check that the necessary properties are setup -->
   <target name="property-check">
-    <fail message="Please set the property harness.cluster.conf to the conf directory of your hadoop installation or harness.hadoop.home to HADOOP_HOME for your Hadoop installation.">
+    <fail message="Please set the property harness.cluster.conf to the conf directory of your hadoop installation,harness.hadoop.home to HADOOP_HOME for your Hadoop installation and harness.cluster.bin to the binary executable of your hadoop installation.">
         <condition>
             <not>
-                <or>
+                <and>
                 <isset property="harness.cluster.conf"/>
                 <isset property="harness.hadoop.home"/>
-                </or>
-            </not>
-        </condition>
-    </fail>
-    <fail message="Please set the property harness.cluster.bin to the binary executable of your hadoop installation or harness.hadoop.home to HADOOP_HOME for your Hadoop installation.">
-        <condition>
-            <not>
-                <or>
                 <isset property="harness.cluster.bin"/>
-                <isset property="harness.hadoop.home"/>
-                </or>
+                </and>
             </not>
         </condition>
     </fail>
