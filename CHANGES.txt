@@ -84,6 +84,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4050: HadoopShims.getTaskReports() can cause OOM with Hadoop 2 (rohini)
+
 PIG-4176: Fix tez e2e test Bloom_[1-3] (daijy)
 
 PIG-4195: Support loading char/varchar data in OrcStorage (daijy)
