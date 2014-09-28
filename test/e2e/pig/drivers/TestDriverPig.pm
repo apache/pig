@@ -666,6 +666,9 @@ sub generateBenchmark
         if ((Util::isWindows()||Util::isCygwin()) && $testCmd->{'pig_win'}) {
            $modifiedTestCmd{'pig'} = $testCmd->{'pig_win'};
        }
+	   if ( $testCmd->{'hadoopversion'} == '23' && $testCmd->{'pig23'}) {
+           $modifiedTestCmd{'pig'} = $testCmd->{'pig23'};
+       }
 		# Change so we're looking at the old version of Pig
                 if (defined $testCmd->{'oldpigpath'} && $testCmd->{'oldpigpath'} ne "") {
 		    $modifiedTestCmd{'pigpath'} = $testCmd->{'oldpigpath'};

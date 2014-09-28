@@ -84,6 +84,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4180: e2e test Native_3 fail on Hadoop 2 (daijy)
+
 PIG-4178: HCatDDL_[1-3] fail on Windows (daijy)
 
 PIG-4046: PiggyBank DBStorage DATETIME should use setTimestamp with java.sql.Timestamp (sinchii via daijy)
