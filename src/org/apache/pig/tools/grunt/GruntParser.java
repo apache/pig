@@ -1208,10 +1208,16 @@ public class GruntParser extends PigScriptParser {
     }
 
     public static int runSQLCommand(String hcatBin, String cmd, boolean mInteractive) throws IOException {
-        String[] tokens = new String[3];
-        tokens[0] = hcatBin;
-        tokens[1] = "-e";
-        tokens[2] = cmd.substring(cmd.indexOf("sql")).substring(4);
+        List<String> tokensList = new ArrayList<String>();
+		if (hcatBin.endsWith(".py")) {
+			tokensList.add("python");
+			tokensList.add(hcatBin);
+		} else {
+			tokensList.add(hcatBin);
+		}
+		tokensList.add("-e");
+		tokensList.add(cmd.substring(cmd.indexOf("sql")).substring(4).replaceAll("\n", " "));
+		String[] tokens = tokensList.toArray(new String[]{});
 
         // create new environment = environment - HADOOP_CLASSPATH
         // This is because of antlr version conflict between Pig and Hive
@@ -1223,7 +1229,7 @@ public class GruntParser extends PigScriptParser {
             }
         }
 
-        log.info("Going to run hcat command: " + tokens[2]);
+        log.info("Going to run hcat command: " + tokens[tokens.length-1]);
         Process executor = Runtime.getRuntime().exec(tokens, envSet.toArray(new String[0]));
         StreamPrinter outPrinter = new StreamPrinter(executor.getInputStream(), null, System.out);
         StreamPrinter errPrinter = new StreamPrinter(executor.getErrorStream(), null, System.err);
