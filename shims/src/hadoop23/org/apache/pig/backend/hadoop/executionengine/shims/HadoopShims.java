@@ -19,6 +19,7 @@ package org.apache.pig.backend.hadoop.executionengine.shims;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.util.Iterator;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -214,7 +215,7 @@ public class HadoopShims {
         }
     }
 
-    public static TaskReport[] getTaskReports(Job job, TaskType type) throws IOException {
+    public static Iterator<TaskReport> getTaskReports(Job job, TaskType type) throws IOException {
         if (job.getJobConf().getBoolean(PigConfiguration.PIG_NO_TASK_REPORT, false)) {
             LOG.info("TaskReports are disabled for job: " + job.getAssignedJobID());
             return null;
@@ -227,7 +228,7 @@ public class HadoopShims {
             throw new IOException(ir);
         }
     }
-    
+
     public static boolean isHadoopYARN() {
         return true;
     }
