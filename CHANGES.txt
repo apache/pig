@@ -18,7 +18,7 @@
 
 Pig Change Log
 
-Trunk (unreleased changes)
+Release 0.14.0 - Unreleased
  
 INCOMPATIBLE CHANGES
  
