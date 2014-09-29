@@ -92,6 +92,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4202: Reset UDFContext state before OutputCommitter invocations in Tez (rohini)
+
 PIG-4205: e2e test property-check does not check all prerequisites (kellyzly via daijy)
 
 PIG-4180: e2e test Native_3 fail on Hadoop 2 (daijy)
