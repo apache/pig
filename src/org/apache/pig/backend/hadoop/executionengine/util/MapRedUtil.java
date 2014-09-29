@@ -172,7 +172,7 @@ public class MapRedUtil {
         UDFContext udfc = UDFContext.getUDFContext();
         udfc.addJobConf(job);
         // don't deserialize in front-end
-        if (!udfc.isFrontend()) {
+        if (udfc.isUDFConfEmpty()) {
             udfc.deserialize();
         }
     }
