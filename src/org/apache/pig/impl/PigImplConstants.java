@@ -58,4 +58,9 @@ public class PigImplConstants {
     public static final String REDUCER_DEFAULT_PARALLELISM = "pig.info.reducers.default.parallel";
     public static final String REDUCER_REQUESTED_PARALLELISM = "pig.info.reducers.requested.parallel";
     public static final String REDUCER_ESTIMATED_PARALLELISM = "pig.info.reducers.estimated.parallel";
+
+    /**
+     * Parallelism to be used for CROSS operation by GFCross UDF
+     */
+    public static final String PIG_CROSS_PARALLELISM = "pig.cross.parallelism";
 }
