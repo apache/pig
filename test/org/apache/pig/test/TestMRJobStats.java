@@ -27,6 +27,8 @@ import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
@@ -126,8 +128,8 @@ public class TestMRJobStats {
         getJobStatsMethod("setId", JobID.class).invoke(jobStats, jobID);
         jobStats.setSuccessful(true);
 
-        getJobStatsMethod("addMapReduceStatistics", TaskReport[].class, TaskReport[].class)
-            .invoke(jobStats, mapTaskReports, reduceTaskReports);
+        getJobStatsMethod("addMapReduceStatistics", Iterator.class, Iterator.class)
+            .invoke(jobStats, Arrays.asList(mapTaskReports).iterator(), Arrays.asList(reduceTaskReports).iterator());
         String msg = (String)getJobStatsMethod("getDisplayString")
             .invoke(jobStats);
 
@@ -156,8 +158,8 @@ public class TestMRJobStats {
         getJobStatsMethod("setId", JobID.class).invoke(jobStats, jobID);
         jobStats.setSuccessful(true);
 
-        getJobStatsMethod("addMapReduceStatistics", TaskReport[].class, TaskReport[].class)
-            .invoke(jobStats, mapTaskReports, reduceTaskReports);
+        getJobStatsMethod("addMapReduceStatistics", Iterator.class, Iterator.class)
+            .invoke(jobStats, Arrays.asList(mapTaskReports).iterator(), Arrays.asList(reduceTaskReports).iterator());
         String msg = (String)getJobStatsMethod("getDisplayString")
             .invoke(jobStats);
         System.out.println(JobStats.SUCCESS_HEADER);
