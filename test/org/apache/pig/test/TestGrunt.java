@@ -50,6 +50,7 @@ import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.util.JavaCompilerHelper;
 import org.apache.pig.test.Util.ProcessReturnInfo;
 import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.tools.pigscript.parser.ParseException;
@@ -1444,5 +1445,63 @@ public class TestGrunt {
         new Grunt(new BufferedReader(reader), pc).exec();
 
         assertEquals(Level.INFO.toString(),  pc.getLog4jProperties().getProperty("log4j.logger.org.apache.pig"));
+    }
+
+    @Test
+    public void testAutoShipUDFContainingJar() throws Throwable {
+
+        String FILE_SEPARATOR = System.getProperty("file.separator");
+        File tmpDir = File.createTempFile("test", "");
+        tmpDir.delete();
+        tmpDir.mkdir();
+
+        File udfDir = new File(tmpDir.getAbsolutePath() + FILE_SEPARATOR + "com" + FILE_SEPARATOR
+                + "xxx" + FILE_SEPARATOR + "udf");
+        udfDir.mkdirs();
+
+        String udfSrc = new String("package com.xxx.udf;\n" +
+                "import java.io.IOException;\n" +
+                "import org.apache.pig.EvalFunc;\n" +
+                "import org.apache.pig.data.Tuple;\n" +
+                "public class TestUDF extends EvalFunc<Integer>{\n" +
+                "public Integer exec(Tuple input) throws IOException {\n" +
+                "return 1;}\n" +
+                "}");
+
+        // compile
+        JavaCompilerHelper javaCompilerHelper = new JavaCompilerHelper();
+        javaCompilerHelper.compile(tmpDir.getAbsolutePath(),
+                new JavaCompilerHelper.JavaSourceFromString("com.xxx.udf.TestUDF", udfSrc));
+        
+        String jarName = "TestUDFJar.jar";
+        String jarFile = tmpDir.getAbsolutePath() + FILE_SEPARATOR + jarName;
+        int status = Util.executeJavaCommand("jar -cf " + jarFile +
+                " -C " + tmpDir.getAbsolutePath() + " " + "com");
+        assertEquals(0, status);
+
+        Util.createInputFile(cluster, "table_testAutoShipUDFContainingJar", new String[] { "1" });
+        File scriptFile = Util.createFile(new String[] {
+                "a = load 'table_testAutoShipUDFContainingJar' as (a0:int);" +
+                "b = foreach a generate com.xxx.udf.TestUDF(a0);" +
+                "store b into 'output_testAutoShipUDFContainingJar';"
+                });
+        String scriptFileName = scriptFile.getAbsolutePath();
+        String execTypeOptions = "-x " + cluster.getExecType() + " ";
+        String cmd = "java -cp " + System.getProperty("java.class.path") + ":" + jarFile +
+                " org.apache.pig.Main " + execTypeOptions + scriptFileName;
+        ProcessReturnInfo  pri  = Util.executeJavaCommandAndReturnInfo(cmd);
+        assertEquals(pri.exitCode, 0);
+        String[] lines = pri.stderrContents.split(System.getProperty("line.separator"));
+        boolean found = false;
+        for (String line : lines) {
+            if (line.matches(".*Adding jar to DistributedCache.*" + jarName + ".*")) {
+                // MR mode
+                found = true;
+            } else if (line.matches(".*Local resource.*" + jarName + ".*")) {
+                // Tez mode
+                found = true;
+            }
+        }
+        assertTrue(found);
     }
 }
