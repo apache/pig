@@ -92,6 +92,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4196: Auto ship udf jar is broken (daijy)
+
 PIG-4214: Fix unit test fail TestMRJobStats (daijy)
 
 PIG-4217: Fix documentation in BuildBloom (praveenr019 via daijy)

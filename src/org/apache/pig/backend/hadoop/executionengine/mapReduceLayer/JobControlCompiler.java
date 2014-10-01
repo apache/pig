@@ -597,6 +597,18 @@ public class JobControlCompiler{
                         }
                     }
 
+                    for (String udf : mro.UDFs) {
+                        Class clazz = pigContext.getClassForAlias(udf);
+                        if (clazz != null) {
+                            String jar = JarManager.findContainingJar(clazz);
+                            if (jar!=null) {
+                                URL jarURL = new File(jar).toURI().toURL();
+                                if (!allJars.contains(jarURL)) {
+                                    allJars.add(jarURL);
+                                }
+                        }
+                    }
+
                     for (String scriptJar : pigContext.scriptJars) {
                         URL jar = new File(scriptJar).toURI().toURL();
                         if (!allJars.contains(jar)) {
