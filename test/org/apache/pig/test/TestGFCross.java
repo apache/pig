@@ -20,16 +20,16 @@ package org.apache.pig.test;
 import static org.junit.Assert.assertEquals;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.pig.PigConfiguration;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.builtin.GFCross;
 import org.apache.pig.impl.util.UDFContext;
 import org.junit.Test;
 
 public class TestGFCross {
-    
+
     // Test GFCross returns the correct number of default
     // join groups
     @Test
@@ -49,7 +49,7 @@ public class TestGFCross {
     @Test
     public void testSerial() throws Exception {
         Configuration cfg = new Configuration();
-        cfg.set(PigConfiguration.PIG_CROSS_PARALLELISM_HINT + ".1", "1");
+        cfg.set(PigImplConstants.PIG_CROSS_PARALLELISM + ".1", "1");
         UDFContext.getUDFContext().addJobConf(cfg);
         Tuple t = TupleFactory.getInstance().newTuple(2);
 
@@ -65,7 +65,7 @@ public class TestGFCross {
     @Test
     public void testParallelSet() throws Exception {
         Configuration cfg = new Configuration();
-        cfg.set(PigConfiguration.PIG_CROSS_PARALLELISM_HINT + ".1", "10");
+        cfg.set(PigImplConstants.PIG_CROSS_PARALLELISM + ".1", "10");
         UDFContext.getUDFContext().addJobConf(cfg);
         Tuple t = TupleFactory.getInstance().newTuple(2);
 
