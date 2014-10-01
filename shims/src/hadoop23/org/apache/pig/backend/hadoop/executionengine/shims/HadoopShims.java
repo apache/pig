@@ -33,6 +33,7 @@ import org.apache.hadoop.mapred.TIPStatus;
 import org.apache.hadoop.mapred.TaskReport;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
+import org.apache.hadoop.mapreduce.Cluster;
 import org.apache.hadoop.mapreduce.ContextFactory;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.JobID;
@@ -121,7 +122,12 @@ public class HadoopShims {
 
     public static Counters getCounters(Job job) throws IOException {
         try {
-            return new Counters(job.getJob().getCounters());
+            Cluster cluster = new Cluster(job.getJobConf());
+            org.apache.hadoop.mapreduce.Job mrJob = cluster.getJob(job.getAssignedJobID());
+            if (mrJob == null) { // In local mode, mrJob will be null
+                mrJob = job.getJob();
+            }
+            return new Counters(mrJob.getCounters());
         } catch (Exception ir) {
             throw new IOException(ir);
         }
@@ -220,8 +226,12 @@ public class HadoopShims {
             LOG.info("TaskReports are disabled for job: " + job.getAssignedJobID());
             return null;
         }
-        org.apache.hadoop.mapreduce.Job mrJob = job.getJob();
+        Cluster cluster = new Cluster(job.getJobConf());
         try {
+            org.apache.hadoop.mapreduce.Job mrJob = cluster.getJob(job.getAssignedJobID());
+            if (mrJob == null) { // In local mode, mrJob will be null
+                mrJob = job.getJob();
+            }
             org.apache.hadoop.mapreduce.TaskReport[] reports = mrJob.getTaskReports(type);
             return DowngradeHelper.downgradeTaskReports(reports);
         } catch (InterruptedException ir) {
