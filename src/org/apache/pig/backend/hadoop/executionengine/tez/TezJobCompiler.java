@@ -103,6 +103,9 @@ public class TezJobCompiler {
                     TezResourceManager.getInstance().addTezResource(new Path(new URI(file.trim())).toUri());
                 }
             }
+            for (Map.Entry<String, LocalResource> entry : localResources.entrySet()) {
+                log.info("Local resource: " + entry.getKey());
+            }
             DAG tezDag = buildDAG(tezPlan, localResources);
             return new TezJob(tezConf, tezDag, localResources);
         } catch (Exception e) {
