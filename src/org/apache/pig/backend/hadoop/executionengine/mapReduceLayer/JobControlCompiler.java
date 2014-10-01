@@ -640,16 +640,11 @@ public class JobControlCompiler{
 
             for (String udf : mro.UDFs) {
                 if (udf.contains("GFCross")) {
-                    Object func = pigContext.instantiateFuncFromSpec(new FuncSpec(udf));
+                    Object func = PigContext.instantiateFuncFromSpec(new FuncSpec(udf));
                     if (func instanceof GFCross) {
                         String crossKey = ((GFCross)func).getCrossKey();
-                        // If non GFCross has been processed yet
-                        if (pigContext.getProperties().get(PigConfiguration.PIG_CROSS_PARALLELISM_HINT + "." + crossKey)==null) {
-                            pigContext.getProperties().setProperty(PigConfiguration.PIG_CROSS_PARALLELISM_HINT + "." + crossKey,
-                                    Integer.toString(nwJob.getNumReduceTasks()));
-                        }
                         conf.set(PigConfiguration.PIG_CROSS_PARALLELISM_HINT + "." + crossKey,
-                                (String)pigContext.getProperties().get(PigConfiguration.PIG_CROSS_PARALLELISM_HINT + "." + crossKey));
+                                Integer.toString(mro.getRequestedParallelism()));
                     }
                 }
             }
