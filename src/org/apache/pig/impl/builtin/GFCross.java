@@ -22,13 +22,12 @@ import java.util.Random;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.EvalFunc;
-import org.apache.pig.PigConfiguration;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.util.UDFContext;
 
 
@@ -56,7 +55,7 @@ public class GFCross extends EvalFunc<DataBag> {
             parallelism = DEFAULT_PARALLELISM;
             Configuration cfg = UDFContext.getUDFContext().getJobConf();
             if (cfg != null) {
-                String s = cfg.get(PigConfiguration.PIG_CROSS_PARALLELISM_HINT + "." + crossKey);
+                String s = cfg.get(PigImplConstants.PIG_CROSS_PARALLELISM + "." + crossKey);
                 if (s == null) {
                     throw new IOException("Unable to get parallelism hint from job conf");
                 }
@@ -65,7 +64,7 @@ public class GFCross extends EvalFunc<DataBag> {
 
             numInputs = (Integer)input.get(0);
             myNumber = (Integer)input.get(1);
-        
+
             numGroupsPerInput = (int) Math.ceil(Math.pow(parallelism, 1.0/numInputs));
             numGroupsGoingTo = (int) Math.pow(numGroupsPerInput,numInputs - 1);
         }
@@ -73,21 +72,21 @@ public class GFCross extends EvalFunc<DataBag> {
         DataBag output = mBagFactory.newDefaultBag();
 
         try{
-               
+
             int[] digits = new int[numInputs];
             digits[myNumber] = r.nextInt(numGroupsPerInput);
 
             for (int i=0; i<numGroupsGoingTo; i++){
                 output.add(toTuple(digits));
                 next(digits);
-            }            
-    
+            }
+
             return output;
         }catch(ExecException e){
             throw e;
         }
     }
-    
+
     private Tuple toTuple(int[] digits) throws IOException, ExecException{
         Tuple t = mTupleFactory.newTuple(numInputs);
         for (int i=0; i<numInputs; i++){
@@ -95,7 +94,7 @@ public class GFCross extends EvalFunc<DataBag> {
         }
         return t;
     }
-    
+
     private void next(int[] digits){
         for (int i=0; i<numInputs; i++){
             if (i== myNumber)

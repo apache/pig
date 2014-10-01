@@ -656,7 +656,7 @@ public class JobControlCompiler{
                     Object func = PigContext.instantiateFuncFromSpec(new FuncSpec(udf));
                     if (func instanceof GFCross) {
                         String crossKey = ((GFCross)func).getCrossKey();
-                        conf.set(PigConfiguration.PIG_CROSS_PARALLELISM_HINT + "." + crossKey,
+                        conf.set(PigImplConstants.PIG_CROSS_PARALLELISM + "." + crossKey,
                                 Integer.toString(mro.getRequestedParallelism()));
                     }
                 }

@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -55,8 +56,6 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.test.utils.Identity;
-import org.apache.pig.tools.pigstats.JobStats;
-import org.apache.pig.tools.pigstats.mapreduce.MRJobStats;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -1613,6 +1612,7 @@ public class TestEvalPipeline2 {
         Assert.assertFalse(iter.hasNext());
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testCrossAfterGroupAll() throws Exception{
         String[] input = {
@@ -1626,7 +1626,7 @@ public class TestEvalPipeline2 {
 
         try {
             pigServer.getPigContext().getProperties().setProperty("pig.exec.reducers.bytes.per.reducer", "40");
-            pigServer.registerQuery("A = load 'table_testCrossAfterGroupAll' as (a0, a1);");
+            pigServer.registerQuery("A = load 'table_testCrossAfterGroupAll' as (a0:int, a1:chararray);");
             pigServer.registerQuery("B = group A all;");
             pigServer.registerQuery("C = foreach B generate COUNT(A);");
             pigServer.registerQuery("D = cross A, C;");
@@ -1644,13 +1644,18 @@ public class TestEvalPipeline2 {
             });
             // auto-parallelism is 2 in MR, 20 in Tez, so check >=2
             Assert.assertTrue(partFiles.length >= 2);
-            // Check the count of output
+            // Check the output
             Iterator<Tuple> iter = job.getResults();
-            iter.next();
-            iter.next();
-            iter.next();
-            iter.next();
-            Assert.assertFalse(iter.hasNext());
+            List<Tuple> results = new ArrayList<Tuple>();
+            while (iter.hasNext()) {
+                results.add(iter.next());
+            }
+            Collections.sort(results);
+            Assert.assertEquals(4, results.size());
+            Assert.assertEquals("(1,A,4)", results.get(0).toString());
+            Assert.assertEquals("(2,B,4)", results.get(1).toString());
+            Assert.assertEquals("(3,C,4)", results.get(2).toString());
+            Assert.assertEquals("(4,D,4)", results.get(3).toString());
         } finally {
             pigServer.getPigContext().getProperties().remove("pig.exec.reducers.bytes.per.reducer");
         }
