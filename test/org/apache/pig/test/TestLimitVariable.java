@@ -20,6 +20,7 @@ package org.apache.pig.test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -208,5 +209,21 @@ public class TestLimitVariable {
         List<Tuple> expectedRes = Util.getTuplesFromConstantTupleStrings(new String[] {
                 "(1,11)", "(2,3)", "(3,10)", "(6,15)" });
         Util.checkQueryOutputsAfterSort(it, expectedRes);
+    }
+
+    @Test
+    public void testZeroLimitVariable() throws Throwable {
+        String query =
+            "a = load '" + inputFile.getName() + "';" +
+            "b = group a all;" +
+            "c = foreach b generate COUNT(a) as sum;" +
+            "d = limit a c.sum - c.sum; "
+            ;
+
+        Util.registerMultiLineQuery(pigServer, query);
+        Iterator<Tuple> it = pigServer.openIterator("d");
+
+        List<Tuple> emptyresult = new ArrayList<Tuple>(0);
+        Util.checkQueryOutputsAfterSort(it, emptyresult);
     }
 }
