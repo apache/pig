@@ -84,6 +84,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4217: Fix documentation in BuildBloom (praveenr019 via daijy)
+
 PIG-4215: Fix unit test failure TestParamSubPreproc and TestMacroExpansion (daijy)
 
 PIG-4175: PIG CROSS operation follow by STORE produces non-deterministic results each run (daijy)
