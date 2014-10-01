@@ -34,6 +34,7 @@ import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.NativeTez
 import org.apache.pig.backend.hadoop.executionengine.tez.util.TezCompilerUtil;
 import org.apache.pig.backend.hadoop.executionengine.util.ParallelConstantVisitor;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
@@ -162,7 +163,7 @@ public class ParallelismSetter extends TezOpPlanVisitor {
             tezOp.setVertexParallelism(parallelism);
 
             if (tezOp.getCrossKey()!=null) {
-                pc.getProperties().put(PigConfiguration.PIG_CROSS_PARALLELISM_HINT + "." + tezOp.getCrossKey(),
+                pc.getProperties().put(PigImplConstants.PIG_CROSS_PARALLELISM + "." + tezOp.getCrossKey(),
                         Integer.toString(tezOp.getVertexParallelism()));
             }
         } catch (Exception e) {
