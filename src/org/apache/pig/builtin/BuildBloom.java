@@ -39,15 +39,15 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  * define bb BuildBloom('jenkins', '100', '0.1');
  * A = load 'foo' as (x, y);
  * B = group A all;
- * C = foreach B generate BuildBloom(A.x);
+ * C = foreach B generate bb(A.x);
  * store C into 'mybloom';
  * The bloom filter can be on multiple keys by passing more than one field
  * (or the entire bag) to BuildBloom.
  * The resulting file can then be used in a Bloom filter as:
- * define bloom Bloom(mybloom);
+ * define bloom Bloom('mybloom');
  * A = load 'foo' as (x, y);
  * B = load 'bar' as (z);
- * C = filter B by Bloom(z);
+ * C = filter B by bloom(z);
  * D = join C by z, A by x;
  * It uses {@link org.apache.hadoop.util.bloom.BloomFilter}.
  */
