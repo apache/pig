@@ -176,6 +176,16 @@ public class TestOrcStorage {
     }
 
     @Test
+    // See PIG-4218
+    public void testNullMapKey() throws Exception {
+        pigServer.registerQuery("A = load '" + basedir + "nullmapkey.orc'" + " using OrcStorage();" );
+        Iterator<Tuple> iter = pigServer.openIterator("A");
+        assertEquals(iter.next().toString(), "([hello#world])");
+        assertEquals(iter.next().toString(), "([])");
+        assertFalse(iter.hasNext());
+    }
+
+    @Test
     public void testSimpleStore() throws Exception {
         pigServer.registerQuery("A = load '" + INPUT1 + "' as (a0:int, a1:chararray);");
         pigServer.store("A", OUTPUT1, "OrcStorage");

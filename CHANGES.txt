@@ -84,6 +84,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4218: Pig OrcStorage fail to load a map with null key (daijy)
+
 PIG-4164: After Pig job finish, Pig client spend too much time retry to connect to AM (daijy)
 
 PIG-4212: Allow LIMIT of 0 for variableLimit (constant 0 is already allowed) (knoguchi)
