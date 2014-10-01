@@ -606,6 +606,7 @@ public class JobControlCompiler{
                                 if (!allJars.contains(jarURL)) {
                                     allJars.add(jarURL);
                                 }
+                            }
                         }
                     }
 
