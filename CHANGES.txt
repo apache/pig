@@ -92,6 +92,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4214: Fix unit test fail TestMRJobStats (daijy)
+
 PIG-4217: Fix documentation in BuildBloom (praveenr019 via daijy)
 
 PIG-4215: Fix unit test failure TestParamSubPreproc and TestMacroExpansion (daijy)
