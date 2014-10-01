@@ -124,9 +124,10 @@ public class PreprocessorContext {
      * @param val - string containing command to be executed
      */
     public  void processShellCmd(String key, String val, Boolean overwrite)  throws ParameterSubstitutionException, FrontendException {
-        Preconditions.checkState(pigContext != null);
-        BlackAndWhitelistFilter filter = new BlackAndWhitelistFilter(pigContext);
-        filter.validate(PigCommandFilter.Command.SH);
+        if (pigContext != null) {
+            BlackAndWhitelistFilter filter = new BlackAndWhitelistFilter(pigContext);
+            filter.validate(PigCommandFilter.Command.SH);
+        }
 
         if (param_val.containsKey(key)) {
             if (param_source.get(key).equals(val) || !overwrite) {
@@ -146,7 +147,9 @@ public class PreprocessorContext {
     }
 
     public void validate(String preprocessorCmd) throws FrontendException {
-        Preconditions.checkState(pigContext != null);
+        if (pigContext == null) {
+            return;
+        }
 
         final BlackAndWhitelistFilter filter = new BlackAndWhitelistFilter(pigContext);
         final String declareToken = "%declare";
