@@ -634,6 +634,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                     List<PhysicalPlan> fePlans = Arrays.asList(fep1, fep2);
 
                     POForEach fe = new POForEach(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), cross.getRequestedParallelism(), fePlans, flattenLst );
+                    fe.setMapSideOnly(true);
                     fe.addOriginalLocation(cross.getAlias(), cross.getLocation());
                     currentPlan.add(fe);
                     currentPlan.connect(logToPhyMap.get(op), fe);

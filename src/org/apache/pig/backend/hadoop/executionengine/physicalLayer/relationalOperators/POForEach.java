@@ -92,6 +92,10 @@ public class POForEach extends PhysicalOperator {
 
     protected Tuple inpTuple;
 
+    // Indicate the foreach statement can only in map side
+    // Currently only used in MR cross (See PIG-4175)
+    protected boolean mapSideOnly = false;
+
     private Schema schema;
 
     public POForEach(OperatorKey k) {
@@ -781,5 +785,13 @@ public class POForEach extends PhysicalOperator {
         } else {
             return (Tuple) out;
         }
+    }
+
+    public void setMapSideOnly(boolean mapSideOnly) {
+        this.mapSideOnly = mapSideOnly;
+    }
+
+    public boolean isMapSideOnly() {
+        return mapSideOnly;
     }
 }
