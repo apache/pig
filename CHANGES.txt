@@ -84,6 +84,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4212: Allow LIMIT of 0 for variableLimit (constant 0 is already allowed) (knoguchi)
+
 PIG-4196: Auto ship udf jar is broken (daijy)
 
 PIG-4214: Fix unit test fail TestMRJobStats (daijy)

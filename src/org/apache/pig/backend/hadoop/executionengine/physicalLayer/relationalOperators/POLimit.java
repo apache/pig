@@ -108,8 +108,8 @@ public class POLimit extends PhysicalOperator {
             default:
                 throw new RuntimeException("Limit requires an integer parameter");
             }
-            if (variableLimit <= 0)
-                throw new RuntimeException("Limit requires a positive integer parameter");
+            if (variableLimit < 0)
+                throw new RuntimeException("Limit requires a zero or a positive integer parameter");
             this.setLimit(variableLimit);
         }
         Result inp = null;
