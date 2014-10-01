@@ -50,6 +50,7 @@ import org.apache.hadoop.hive.serde2.typeinfo.StructTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.io.BytesWritable;
+import org.apache.pig.PigWarning;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -59,6 +60,7 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.tools.pigstats.PigStatusReporter;
 import org.joda.time.DateTime;
 
 public class OrcUtils {
@@ -94,7 +96,14 @@ public class OrcUtils {
             for (Map.Entry<Object, Object> entry : m.entrySet()) {
                 Object convertedKey = convertOrcToPig(entry.getKey(), keyObjectInspector, null);
                 Object convertedValue = convertOrcToPig(entry.getValue(), valueObjectInspector, null);
-                ((Map)result).put(convertedKey.toString(), convertedValue);
+                if (convertedKey!=null) {
+                    ((Map)result).put(convertedKey.toString(), convertedValue);
+                } else {
+                    PigStatusReporter reporter = PigStatusReporter.getInstance();
+                    if (reporter != null) {
+                       reporter.incrCounter(PigWarning.UDF_WARNING_1, 1);
+                    }
+                }
             }
             break;
         case LIST:
