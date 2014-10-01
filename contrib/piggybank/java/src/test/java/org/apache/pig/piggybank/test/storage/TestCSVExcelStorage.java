@@ -58,6 +58,7 @@ public class TestCSVExcelStorage  {
         "1st Field,\"A poem that continues\n" +
         "for several lines\n" +
         "do we\n" +
+        "(even with \r)" +
         "handle that?\",Good,Fairy\n";
 
     String[] testStrCommaArray =
@@ -69,7 +70,7 @@ public class TestCSVExcelStorage  {
             "\"Conrad\nEmil\",Dinger,40",
                 "Emil,\"\nDinger\",40",
                 "Quote problem,\"My \"\"famous\"\"\nsong\",60",
-            "1st Field,\"A poem that continues\nfor several lines\ndo we\nhandle that?\",Good,Fairy",
+            "1st Field,\"A poem that continues\nfor several lines\ndo we\n(even with \r)handle that?\",Good,Fairy",
     };
 
     @SuppressWarnings("serial")
@@ -83,7 +84,7 @@ public class TestCSVExcelStorage  {
             add(Util.createTuple(new String[] {"Conrad\nEmil", "Dinger", "40"}));
             add(Util.createTuple(new String[] {"Emil", "\nDinger", "40"}));
             add(Util.createTuple(new String[] {"Quote problem", "My \"famous\"\nsong", "60"}));
-            add(Util.createTuple(new String[] {"1st Field", "A poem that continues\nfor several lines\ndo we\nhandle that?", "Good", "Fairy"}));
+            add(Util.createTuple(new String[] {"1st Field", "A poem that continues\nfor several lines\ndo we\n(even with \r)handle that?", "Good", "Fairy"}));
         }
     };
 
@@ -104,7 +105,7 @@ public class TestCSVExcelStorage  {
             add(Util.createTuple(new String[] {"1st Field", "A poem that continues"}));
             add(Util.createTuple(new String[] {"for several lines"}));
             add(Util.createTuple(new String[] {"do we"}));
-            add(Util.createTuple(new String[] {"handle that?,Good,Fairy"})); // Trailing double quote eats rest of line
+            add(Util.createTuple(new String[] {"(even with \r)handle that?,Good,Fairy"})); // Trailing double quote eats rest of line
         }
     };
 
@@ -161,6 +162,7 @@ public class TestCSVExcelStorage  {
                 "1,,,,\"",
                 "qwe",
                 "rty\", uiop",
+                "1,10,2.718,3.14159,qwe\rrty,uiop",
                 "1,,,,\"qwe,rty\",uiop",
                 "1,,,,\"q\"\"wert\"\"y\", uiop",
                 "1,,,,qwerty,\"u\"\"io\"\"p\""
@@ -338,6 +340,7 @@ public class TestCSVExcelStorage  {
             "(1,10,,3.15159,,uiop)",             // extra field (input data has "moose" after "uiop")
             "(1,,2.718,,qwerty,uiop)",           // quoted regular fields (2.718, qwerty, and uiop in quotes)
             "(1,,,,\nqwe\nrty, uiop)",           // newlines in quotes
+            "(1,10,2.718,3.14159,qwe\rrty,uiop)",// \r in text
             "(1,,,,qwe,rty,uiop)",               // commas in quotes
             "(1,,,,q\"wert\"y, uiop)",           // quotes in quotes
             "(1,,,,qwerty,u\"io\"p)"             // quotes in quotes at the end of a line
@@ -384,6 +387,7 @@ public class TestCSVExcelStorage  {
             "(1,,,,\")",                            // since we are just using TextLoader for verification
             "(qwe)",                                // it treats the linebreaks as meaning separate records
             "(rty\", uiop)",                        // but as shown in the load() test, CSVExcelStorage will read these properly
+            "1,10,2.718,3.14159,\"qwe\rrty\",uiop", // If \r is found text will be quoted
             "(1,,,,\"qwe,rty\",uiop)",
             "(1,,,,\"q\"\"wert\"\"y\", uiop)",
             "(1,,,,qwerty,\"u\"\"io\"\"p\")"

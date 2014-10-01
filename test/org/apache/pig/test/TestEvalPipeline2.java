@@ -31,10 +31,15 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.PathFilter;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
+import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -44,11 +49,14 @@ import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigImplConstants;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.test.utils.Identity;
+import org.apache.pig.tools.pigstats.JobStats;
+import org.apache.pig.tools.pigstats.mapreduce.MRJobStats;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -1603,5 +1611,48 @@ public class TestEvalPipeline2 {
         Assert.assertTrue(t.toString().equals("(2,C)"));
 
         Assert.assertFalse(iter.hasNext());
+    }
+
+    @Test
+    public void testCrossAfterGroupAll() throws Exception{
+        String[] input = {
+                "1\tA",
+                "2\tB",
+                "3\tC",
+                "4\tD",
+        };
+
+        Util.createInputFile(cluster, "table_testCrossAfterGroupAll", input);
+
+        try {
+            pigServer.getPigContext().getProperties().setProperty("pig.exec.reducers.bytes.per.reducer", "40");
+            pigServer.registerQuery("A = load 'table_testCrossAfterGroupAll' as (a0, a1);");
+            pigServer.registerQuery("B = group A all;");
+            pigServer.registerQuery("C = foreach B generate COUNT(A);");
+            pigServer.registerQuery("D = cross A, C;");
+            Path output = FileLocalizer.getTemporaryPath(pigServer.getPigContext());
+            ExecJob job = pigServer.store("D", output.toString());
+            FileSystem fs = output.getFileSystem(cluster.getConfiguration());
+            FileStatus[] partFiles = fs.listStatus(output, new PathFilter() {
+                @Override
+                public boolean accept(Path path) {
+                    if (path.getName().startsWith("part")) {
+                        return true;
+                    }
+                    return false;
+                }
+            });
+            // auto-parallelism is 2 in MR, 20 in Tez, so check >=2
+            Assert.assertTrue(partFiles.length >= 2);
+            // Check the count of output
+            Iterator<Tuple> iter = job.getResults();
+            iter.next();
+            iter.next();
+            iter.next();
+            iter.next();
+            Assert.assertFalse(iter.hasNext());
+        } finally {
+            pigServer.getPigContext().getProperties().remove("pig.exec.reducers.bytes.per.reducer");
+        }
     }
 }
