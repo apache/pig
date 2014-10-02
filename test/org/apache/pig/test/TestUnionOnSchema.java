@@ -492,7 +492,7 @@ public class TestUnionOnSchema  {
                                 "(4,5,6,null)",
                         });
         
-        Util.compareActualAndExpectedResults(list1, expectedRes);
+        Util.checkQueryOutputsAfterSort(list1, expectedRes);
         
         assertEquals(0, list2.size());
     }
@@ -852,6 +852,7 @@ public class TestUnionOnSchema  {
      * Udf that has schema of tuple column with no inner schema 
      */
     public static class UDFTupleNullSchema extends EvalFunc <Tuple> {
+        @Override
         public Tuple exec(Tuple input) {
             return input;
         }

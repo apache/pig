@@ -53,6 +53,12 @@ public class TestRank3 {
 
             data = resetData(pigServer);
             data.set("empty");
+            data.set("testsplit",
+                    tuple(1, 2),
+                    tuple(1, 2),
+                    tuple(3, 1),
+                    tuple(2, 4),
+                    tuple(2, 3));
             data.set(
                     "testcascade",
                     tuple(3,2,3),
@@ -154,6 +160,39 @@ public class TestRank3 {
 
       Set<Tuple> expected = ImmutableSet.of();
       verifyExpected(data.get("empty_result"), expected);
+    }
+
+    @Test
+    public void testRankWithSplitInMap() throws Exception {
+        String query = "R1 = LOAD 'testsplit' USING mock.Storage() AS (a:int,b:int);"
+            + "R2 = rank R1 by a ;"
+            + "R3 = rank R1 ;"
+            + "R4 = union R2, R3;"
+            + "store R4 into 'R4' using mock.Storage();";
+
+        Util.registerMultiLineQuery(pigServer, query);
+        List<Tuple> expectedResults = Util
+                .getTuplesFromConstantTupleStrings(new String[] { "(1L,1,2)",
+                        "(2L,1,2)", "(3L,3,1)", "(4L,2,4)", "(5L,2,3)", "(1L,1,2)",
+                        "(1L,1,2)", "(3L,2,3)", "(3L,2,4)", "(5L,3,1)" });
+        Util.checkQueryOutputsAfterSort(data.get("R4"), expectedResults);
+    }
+
+    @Test
+    public void testRankWithSplitInReduce() throws Exception {
+        String query = "R1 = LOAD 'testsplit' USING mock.Storage() AS (a:int,b:int);"
+            + "R1 = ORDER R1 by b;"
+            + "R2 = rank R1 by a ;"
+            + "R3 = rank R1;"
+            + "R4 = union R2, R3;"
+            + "store R4 into 'R4' using mock.Storage();";
+
+        Util.registerMultiLineQuery(pigServer, query);
+        List<Tuple> expectedResults = Util
+                .getTuplesFromConstantTupleStrings(new String[] { "(1L,3,1)",
+                        "(2L,1,2)", "(3L,1,2)", "(4L,2,3)", "(5L,2,4)", "(1L,1,2)",
+                        "(1L,1,2)", "(3L,2,4)", "(3L,2,3)", "(5L,3,1)" });
+        Util.checkQueryOutputsAfterSort(data.get("R4"), expectedResults);
     }
 
     public void verifyExpected(List<Tuple> out, Set<Tuple> expected) {
