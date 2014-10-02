@@ -540,14 +540,10 @@ public class Util {
          while(actualResultsIt.hasNext()){
              actualResList.add(actualResultsIt.next());
          }
-
-         compareActualAndExpectedResults(actualResList, expectedResList);
-
+         checkQueryOutputsAfterSort(actualResList, expectedResList);
      }
 
-
-
-     static public void compareActualAndExpectedResults(
+     static public void checkQueryOutputsAfterSort(
             List<Tuple> actualResList, List<Tuple> expectedResList) {
          Collections.sort(actualResList);
          Collections.sort(expectedResList);

@@ -121,6 +121,11 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                         + " uses customPartitioner, do not merge it");
                 continue;
             }
+            if (successor.isCounterOperation()) {
+                log.debug("Splittee " + successor.getOperatorKey().getId()
+                        + " has POCounter, do not merge it");
+                continue;
+            }
             if (isMapOnly(successor)) {
                 if (isSingleLoadMapperPlan(successor.mapPlan)
                         && isSinglePredecessor(successor)) {

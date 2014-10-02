@@ -17,7 +17,8 @@
  */
 package org.apache.pig.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -324,7 +325,7 @@ public class TestPOPartialAgg {
 
             res = partAggOp.getNextTuple();
             assertEquals(POStatus.STATUS_EOP, res.returnStatus);
-            Util.compareActualAndExpectedResults(outputs, expectedOuts);
+            Util.checkQueryOutputsAfterSort(outputs, expectedOuts);
         } else {
             while (true) {
                 Result res = partAggOp.getNextTuple();
@@ -332,7 +333,7 @@ public class TestPOPartialAgg {
                     break;
                 }
             }
-            Util.compareActualAndExpectedResults(outputs, expectedOuts);
+            Util.checkQueryOutputsAfterSort(outputs, expectedOuts);
         }
 
     }
