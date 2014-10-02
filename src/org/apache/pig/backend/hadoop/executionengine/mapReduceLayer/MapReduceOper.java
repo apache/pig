@@ -21,6 +21,7 @@ import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROpPlanVisitor;
@@ -28,6 +29,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCounter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORank;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.Operator;
@@ -523,23 +525,32 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
     }
 
     private POCounter getCounterOperation() {
+        POCounter counter = getCounterOperation(this.mapPlan);
+        if (counter == null) {
+            counter = getCounterOperation(this.reducePlan);
+        }
+        return counter;
+    }
+
+    private POCounter getCounterOperation(PhysicalPlan plan) {
         PhysicalOperator operator;
-        Iterator<PhysicalOperator> it =  this.mapPlan.getLeaves().iterator();
+        Iterator<PhysicalOperator> it = plan.getLeaves().iterator();
 
-        while(it.hasNext()) {
+        while (it.hasNext()) {
             operator = it.next();
-            if(operator instanceof POCounter)
+            if (operator instanceof POCounter) {
                 return (POCounter) operator;
+            } else if (operator instanceof POStore) {
+                List<PhysicalOperator> preds = plan.getPredecessors(operator);
+                if (preds != null) {
+                    for (PhysicalOperator pred : preds) {
+                        if (pred instanceof POCounter) {
+                            return (POCounter) pred;
+                        }
+                    }
+                }
+            }
         }
-
-        it =  this.reducePlan.getLeaves().iterator();
-
-        while(it.hasNext()) {
-            operator = it.next();
-            if(operator instanceof POCounter)
-                return (POCounter) operator;
-        }
-
         return null;
     }
 }
