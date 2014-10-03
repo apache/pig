@@ -1015,7 +1015,8 @@ public class TestGrunt {
                         +"store a into 'baz';"
                         +"cd /;"
                         +"fs -ls .;"
-                        +"fs -rmr /fstmp/foo/baz;";
+                        +"fs -rmr /fstmp/foo/baz;"
+                        +"cd";
 
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
