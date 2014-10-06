@@ -84,6 +84,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4220: MapReduce-based Rank failing with NPE due to missing Counters (knoguchi)
+
 PIG-3985: Multiquery execution of RANK with RANK BY causes NPE (rohini)
 
 PIG-4218: Pig OrcStorage fail to load a map with null key (daijy)
