@@ -60,6 +60,13 @@ public class PigMapReduceCounter {
                     pOperator = mp.getPredecessors(pOperator).get(0);
                 }
             }
+
+            PigStatusReporter reporter = PigStatusReporter.getInstance();
+            if (reporter != null) {
+                reporter.incrCounter(
+                        JobControlCompiler.PIG_MAP_RANK_NAME
+                        + context.getJobID().toString(), taskID, 0);
+            }
         }
 
         /**
@@ -69,15 +76,11 @@ public class PigMapReduceCounter {
         public void collect(Context context, Tuple tuple)
         throws InterruptedException, IOException {
             context.write(null, tuple);
-            try {
-                PigStatusReporter reporter = PigStatusReporter.getInstance();
-                if (reporter != null) {
-                    reporter.incrCounter(
-                            JobControlCompiler.PIG_MAP_RANK_NAME
-                            + context.getJobID().toString(), taskID, 1);
-                }
-            } catch (Exception ex) {
-                log.error("Error on incrementer of PigMapCounter");
+            PigStatusReporter reporter = PigStatusReporter.getInstance();
+            if (reporter != null) {
+                reporter.incrCounter(
+                        JobControlCompiler.PIG_MAP_RANK_NAME
+                        + context.getJobID().toString(), taskID, 1);
             }
         }
     }
@@ -116,6 +119,7 @@ public class PigMapReduceCounter {
             }
 
             this.context = context;
+            incrementCounter(0L);
         }
 
         /**
@@ -127,21 +131,14 @@ public class PigMapReduceCounter {
          * @param increment is the value to add to the corresponding global counter.
          **/
         public static void incrementCounter(Long increment) {
-            try {
-                PigStatusReporter reporter = PigStatusReporter.getInstance();
-                if (reporter != null) {
-
-                    if(leaf instanceof POCounter){
-                        reporter.incrCounter(
-                                JobControlCompiler.PIG_MAP_RANK_NAME
-                                + context.getJobID().toString(), taskID, increment);
-                    }
-
+            PigStatusReporter reporter = PigStatusReporter.getInstance();
+            if (reporter != null) {
+                if(leaf instanceof POCounter){
+                    reporter.incrCounter(
+                            JobControlCompiler.PIG_MAP_RANK_NAME
+                            + context.getJobID().toString(), taskID, increment);
                 }
-            } catch (Exception ex) {
-                log.error("Error on incrementer of PigReduceCounter");
             }
-
         }
     }
 }
