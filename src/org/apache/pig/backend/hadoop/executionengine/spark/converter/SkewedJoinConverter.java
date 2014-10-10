@@ -140,9 +140,8 @@ public class SkewedJoinConverter implements
     }
 
     private static class ToValueFunction
-            extends
-            FlatMapFunction<Iterator<Tuple2<Object, Tuple2<Tuple, Tuple>>>, Tuple>
-            implements Serializable {
+            implements
+            FlatMapFunction<Iterator<Tuple2<Object, Tuple2<Tuple, Tuple>>>, Tuple>, Serializable {
 
         private class Tuple2TransformIterable implements Iterable<Tuple> {
 

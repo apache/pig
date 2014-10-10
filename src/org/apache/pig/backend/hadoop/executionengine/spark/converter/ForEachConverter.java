@@ -1,6 +1,7 @@
 package org.apache.pig.backend.hadoop.executionengine.spark.converter;
 
 import java.io.Serializable;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.pig.backend.executionengine.ExecException;
@@ -8,10 +9,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.data.Tuple;
-
-import scala.collection.Iterator;
-import scala.collection.JavaConversions;
-import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.rdd.RDD;
 
 /**
@@ -26,12 +24,11 @@ public class ForEachConverter implements POConverter<Tuple, Tuple, POForEach> {
         SparkUtil.assertPredecessorSize(predecessors, physicalOperator, 1);
         RDD<Tuple> rdd = predecessors.get(0);
         ForEachFunction forEachFunction = new ForEachFunction(physicalOperator);
-        return rdd.mapPartitions(forEachFunction, true,
-                SparkUtil.getManifest(Tuple.class));
+        return rdd.toJavaRDD().mapPartitions(forEachFunction, true).rdd();
     }
 
-    private static class ForEachFunction extends
-            Function<Iterator<Tuple>, Iterator<Tuple>> implements Serializable {
+    private static class ForEachFunction implements
+            FlatMapFunction<Iterator<Tuple>, Tuple>, Serializable {
 
         private POForEach poForEach;
 
@@ -39,11 +36,14 @@ public class ForEachConverter implements POConverter<Tuple, Tuple, POForEach> {
             this.poForEach = poForEach;
         }
 
-        public Iterator<Tuple> call(Iterator<Tuple> i) {
-            final java.util.Iterator<Tuple> input = JavaConversions
-                    .asJavaIterator(i);
-            Iterator<Tuple> output = JavaConversions
-                    .asScalaIterator(new POOutputConsumerIterator(input) {
+        public Iterable<Tuple> call(final Iterator<Tuple> input) {
+
+            return new Iterable<Tuple>() {
+
+                @Override
+                public Iterator<Tuple> iterator() {
+                    return new POOutputConsumerIterator(input) {
+
                         protected void attach(Tuple tuple) {
                             poForEach.setInputs(null);
                             poForEach.attachInput(tuple);
@@ -52,8 +52,9 @@ public class ForEachConverter implements POConverter<Tuple, Tuple, POForEach> {
                         protected Result getNextResult() throws ExecException {
                             return poForEach.getNextTuple();
                         }
-                    });
-            return output;
+                    };
+                }
+            };
         }
     }
 }

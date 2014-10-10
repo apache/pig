@@ -14,6 +14,8 @@ import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.spark.HashPartitioner;
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.rdd.CoGroupedRDD;
 import org.apache.spark.rdd.RDD;
@@ -23,7 +25,6 @@ import scala.Tuple2;
 import scala.collection.JavaConversions;
 import scala.collection.Seq;
 //import scala.reflect.ClassManifest;
-import scala.reflect.ClassTag;
 
 @SuppressWarnings({ "serial" })
 public class GlobalRearrangeConverter implements
@@ -40,7 +41,7 @@ public class GlobalRearrangeConverter implements
     private static final GroupTupleFunction GROUP_TUPLE_FUNCTION = new GroupTupleFunction();
     private static final ToGroupKeyValueFunction TO_GROUP_KEY_VALUE_FUNCTION = new ToGroupKeyValueFunction();
 
-    @Override
+  @Override
     public RDD<Tuple> convert(List<RDD<Tuple>> predecessors,
             POGlobalRearrange physicalOperator) throws IOException {
         SparkUtil.assertPredecessorSizeGreaterThan(predecessors,
@@ -56,25 +57,16 @@ public class GlobalRearrangeConverter implements
 
         if (predecessors.size() == 1) {
             // GROUP
-            return predecessors
-                    .get(0)
-                    // group by key
-                    .groupBy(GET_KEY_FUNCTION, parallelism,
-                            SparkUtil.getManifest(Object.class))
-                    // convert result to a tuple (key, { values })
-                    .map(GROUP_TUPLE_FUNCTION,
-                            SparkUtil.getManifest(Tuple.class));
+            JavaRDD<Tuple> jrdd = predecessors.get(0).toJavaRDD();
+            JavaPairRDD<Object, Iterable<Tuple>> prdd = jrdd.groupBy(GET_KEY_FUNCTION, parallelism);
+            JavaRDD<Tuple> jrdd2 = prdd.map(GROUP_TUPLE_FUNCTION);
+            return jrdd2.rdd();
         } else {
-            // COGROUP
-            // each pred returns (index, key, value)
-            ClassTag<Tuple2<Object, Tuple>> tuple2ClassManifest = SparkUtil
-                    .<Object, Tuple> getTuple2Manifest();
-
-            List<RDD<Tuple2<Object, Tuple>>> rddPairs = new ArrayList();
+            List<RDD<Tuple2<Object, Tuple>>> rddPairs = new ArrayList<RDD<Tuple2<Object, Tuple>>>();
             for (RDD<Tuple> rdd : predecessors) {
-                RDD<Tuple2<Object, Tuple>> rddPair = rdd.map(
-                        TO_KEY_VALUE_FUNCTION, tuple2ClassManifest);
-                rddPairs.add(rddPair);
+                JavaRDD<Tuple> jrdd = JavaRDD.fromRDD(rdd, SparkUtil.getManifest(Tuple.class));
+                JavaRDD<Tuple2<Object, Tuple>> rddPair = jrdd.map(TO_KEY_VALUE_FUNCTION);
+                rddPairs.add(rddPair.rdd());
             }
 
             // Something's wrong with the type parameters of CoGroupedRDD
@@ -84,16 +76,14 @@ public class GlobalRearrangeConverter implements
                             .asScalaBuffer(rddPairs).toSeq()),
                     new HashPartitioner(parallelism));
 
-            RDD<Tuple2<Object, Seq<Seq<Tuple>>>> rdd = (RDD<Tuple2<Object, Seq<Seq<Tuple>>>>) (Object) coGroupedRDD;
-            return rdd.map(TO_GROUP_KEY_VALUE_FUNCTION,
-                    SparkUtil.getManifest(Tuple.class));
+            RDD<Tuple2<Object, Seq<Seq<Tuple>>>> rdd =
+                (RDD<Tuple2<Object, Seq<Seq<Tuple>>>>) (Object) coGroupedRDD;
+            return rdd.toJavaRDD().map(TO_GROUP_KEY_VALUE_FUNCTION).rdd();
         }
     }
 
-    private static class GetKeyFunction extends Function<Tuple, Object>
-            implements Serializable {
+    private static class GetKeyFunction implements Function<Tuple, Object>, Serializable {
 
-        @Override
         public Object call(Tuple t) {
             try {
                 LOG.debug("GetKeyFunction in " + t);
@@ -107,17 +97,15 @@ public class GlobalRearrangeConverter implements
         }
     }
 
-    private static class GroupTupleFunction extends
-            Function<Tuple2<Object, Seq<Tuple>>, Tuple> implements Serializable {
+    private static class GroupTupleFunction implements Function<Tuple2<Object, Iterable<Tuple>>, Tuple>,
+        Serializable {
 
-        @Override
-        public Tuple call(Tuple2<Object, Seq<Tuple>> v1) {
+        public Tuple call(Tuple2<Object, Iterable<Tuple>> v1) {
             try {
                 LOG.debug("GroupTupleFunction in " + v1);
                 Tuple tuple = tf.newTuple(2);
                 tuple.set(0, v1._1()); // the (index, key) tuple
-                tuple.set(1, JavaConversions.asJavaCollection(v1._2())
-                        .iterator()); // the Seq<Tuple> aka bag of values
+                tuple.set(1, v1._2().iterator()); // the Seq<Tuple> aka bag of values
                 LOG.debug("GroupTupleFunction out " + tuple);
                 return tuple;
             } catch (ExecException e) {
@@ -126,8 +114,8 @@ public class GlobalRearrangeConverter implements
         }
     }
 
-    private static class ToKeyValueFunction extends
-            Function<Tuple, Tuple2<Object, Tuple>> implements Serializable {
+    private static class ToKeyValueFunction implements
+            Function<Tuple, Tuple2<Object, Tuple>>, Serializable {
 
         @Override
         public Tuple2<Object, Tuple> call(Tuple t) {
@@ -147,21 +135,21 @@ public class GlobalRearrangeConverter implements
         }
     }
 
-    private static class ToGroupKeyValueFunction extends
-            Function<Tuple2<Object, Seq<Seq<Tuple>>>, Tuple> implements
-            Serializable {
+    private static class ToGroupKeyValueFunction implements
+            Function<Tuple2<Object, Seq<Seq<Tuple>>>, Tuple>, Serializable {
 
         @Override
         public Tuple call(Tuple2<Object, Seq<Seq<Tuple>>> input) {
             try {
                 LOG.debug("ToGroupKeyValueFunction2 in " + input);
                 final Object key = input._1();
-                Seq<Seq<Tuple>> bags = input._2();
-                Iterable<Seq<Tuple>> bagsList = JavaConversions
-                        .asJavaIterable(bags);
+                Object obj = input._2();
+                // XXX this is a hack for Spark 1.1.0: the type is an Array, not Seq
+                Seq<Tuple>[] bags = (Seq<Tuple>[])obj;
                 int i = 0;
-                List<Iterator<Tuple>> tupleIterators = new ArrayList();
-                for (Seq<Tuple> bag : bagsList) {
+                List<Iterator<Tuple>> tupleIterators = new ArrayList<Iterator<Tuple>>();
+                for (int j=0; j<bags.length; j++) {
+                    Seq<Tuple> bag = bags[j];
                     Iterator<Tuple> iterator = JavaConversions
                             .asJavaCollection(bag).iterator();
                     final int index = i;

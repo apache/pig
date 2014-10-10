@@ -435,9 +435,17 @@
     <dependency org="com.twitter" name="parquet-pig-bundle" rev="${parquet-pig-bundle.version}" conf="compile->master"/>
 
     <!-- for Spark integration -->
-    <dependency org="org.apache.spark" name="spark-core_2.10" rev="0.9.0-incubating" conf="compile->default">
+    <dependency org="org.apache.spark" name="spark-core_2.10" rev="${spark.version}" conf="compile->default">
         <exclude org="org.eclipse.jetty.orbit" module="javax.servlet"/>
+        <exclude org="org.eclipse.jetty.orbit" module="javax.transaction"/>
+        <exclude org="org.eclipse.jetty.orbit" module="javax.mail.glassfish"/>
+        <exclude org="org.eclipse.jetty.orbit" module="javax.activation"/>
     </dependency>
+    <dependency org="asm" name="asm" rev="${asm.version}" conf="compile->master">
+    </dependency>
+    <dependency org="javax.servlet" name="javax.servlet-api" rev="3.0.1"
+             conf="compile->master"/>
+
 
     <!-- for Tez integration -->
     <dependency org="org.apache.tez" name="tez" rev="${tez.version}"

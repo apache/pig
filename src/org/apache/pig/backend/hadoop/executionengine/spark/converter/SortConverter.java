@@ -45,9 +45,8 @@ public class SortConverter implements POConverter<Tuple, Tuple, POSort> {
         return mapped.rdd();
     }
 
-    private static class ToValueFunction extends
-            FlatMapFunction<Iterator<Tuple2<Tuple, Object>>, Tuple> implements
-            Serializable {
+    private static class ToValueFunction implements
+            FlatMapFunction<Iterator<Tuple2<Tuple, Object>>, Tuple>, Serializable {
 
         private class Tuple2TransformIterable implements Iterable<Tuple> {
 
