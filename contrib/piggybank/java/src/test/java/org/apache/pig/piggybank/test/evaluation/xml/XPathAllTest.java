@@ -14,7 +14,6 @@
 package org.apache.pig.piggybank.test.evaluation.xml;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -24,6 +23,7 @@ import org.apache.commons.lang.math.RandomUtils;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.piggybank.evaluation.xml.XPathAll;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class XPathAllTest {
@@ -36,19 +36,21 @@ public class XPathAllTest {
         final Tuple tuple = mock(Tuple.class);
 
         when(tuple.get(0)).thenReturn(
-                "<book id=\"bk101\">" + "<author>Gambardella, Matthew</author>"
-                        + "<title>XML Developer's Guide</title>" + "<genre>Computer</genre>" + "<price>44.95</price>"
-                        + "<publish_date>2000-10-01</publish_date>"
-                        + "<description>An in-depth look at creating applications with XML.</description>" + "</book>");
+                		"<book id=\"bk101\">" 
+                				+ "<author>Gambardella, Matthew</author>"
+                				+ "<title>XML Developer's Guide</title>" 
+                				+ "<genre>Computer</genre>" 
+                				+ "<price>44.95</price>"
+                				+ "<publish_date>2000-10-01</publish_date>"
+                				+ "<description>An in-depth look at creating applications with XML.</description>" 
+                        + "</book>");
 
         when(tuple.size()).thenReturn(2);
-
         when(tuple.get(1)).thenReturn("book");
-        Tuple responseTuple = xpath.exec(tuple);
         
         assertEquals(
                 "Gambardella, Matthew, XML Developer's Guide, Computer, 44.95, 2000-10-01, An in-depth look at creating applications with XML.",
-                responseTuple.get(0));
+                xpath.exec(tuple).get(0));
     }
 
     @Test
@@ -59,17 +61,23 @@ public class XPathAllTest {
         final Tuple tuple = mock(Tuple.class);
 
         when(tuple.get(0)).thenReturn(
-                "<book id=\"bk101\">" + "<authors>" + "<author_1>Gambardella</author_1>"
-                        + "<author_2>Matthew</author_2>" + "<author_2>Mike</author_2>" + "</authors>"
-                        + "<title>XML Developer's Guide</title>" + "<genre>Computer</genre>" + "<price>44.95</price>"
+                "<book id=\"bk101\">" 
+                		+ "<authors>" 
+	                		+ "<author_1>Gambardella</author_1>"
+	                        + "<author_2>Matthew</author_2>" 
+	                		+ "<author_2>Mike</author_2>" 
+                        + "</authors>"
+                        + "<title>XML Developer's Guide</title>" 
+                        + "<genre>Computer</genre>" 
+                        + "<price>44.95</price>"
                         + "<publish_date>2000-10-01</publish_date>"
-                        + "<description>An in-depth look at creating applications with XML.</description>" + "</book>");
+                        + "<description>An in-depth look at creating applications with XML.</description>" 
+                + "</book>");
 
         when(tuple.size()).thenReturn(2);
-
         when(tuple.get(1)).thenReturn("book/authors");
-        Tuple responseTuple = xpath.exec(tuple);
-        assertEquals("Gambardella, Matthew, Mike", responseTuple.get(0));
+        
+        assertEquals("Gambardella, Matthew, Mike", xpath.exec(tuple).get(0));
     }
 
     @Test
@@ -95,8 +103,8 @@ public class XPathAllTest {
                 + "</book>"
                 + "<book id=\"bk102\">"
                     + "<authors>"
-                        + "<author_1>Gambardella1</author_1>"
-                        + "<author_2>Matthew1</author_2>" 
+                        + "<author_1>Kent</author_1>"
+                        + "<author_2>Beck</author_2>" 
                     + "</authors>"
                     + "<title>HTML Developer's</title>"
                     + "<genre>Computer</genre>" 
@@ -107,12 +115,11 @@ public class XPathAllTest {
           + "</bookstore>");
 
         when(tuple.size()).thenReturn(4);
-
         when(tuple.get(2)).thenReturn(true);
         when(tuple.get(3)).thenReturn(true);
         
-       when(tuple.get(1)).thenReturn("bookstore/book");
-       assertEquals(2, xpath.exec(tuple).getAll().size());
+        when(tuple.get(1)).thenReturn("bookstore/book");
+        assertEquals(2, xpath.exec(tuple).getAll().size());
         assertEquals(
              ", XML Developer's Guide, Computer, 44.95, 2000-10-01, An in-depth look at creating applications with XML.",
              xpath.exec(tuple).get(0));
@@ -123,7 +130,7 @@ public class XPathAllTest {
         when(tuple.get(1)).thenReturn("bookstore/book/authors");
         assertEquals(2, xpath.exec(tuple).getAll().size());
         assertEquals("Gambardella, Matthew, Mike", xpath.exec(tuple).get(0));
-        assertEquals("Gambardella1, Matthew1", xpath.exec(tuple).get(1));
+        assertEquals("Kent, Beck", xpath.exec(tuple).get(1));
      
     }
 
@@ -135,10 +142,14 @@ public class XPathAllTest {
         final Tuple tuple = mock(Tuple.class);
 
         when(tuple.get(0)).thenReturn(
-                "<book id=\"bk101\">" + "<author>Gambardella, Matthew</author>"
-                        + "<title>XML Developer's Guide</title>" + "<genre>Computer</genre>" + "<price>44.95</price>"
+                "<book id=\"bk101\">" 
+                		+ "<author>Gambardella, Matthew</author>"
+                        + "<title>XML Developer's Guide</title>" 
+                		+ "<genre>Computer</genre>" 
+                        + "<price>44.95</price>"
                         + "<publish_date>2000-10-01</publish_date>"
-                        + "<description>An in-depth look at creating applications with XML.</description>" + "</book>");
+                        + "<description>An in-depth look at creating applications with XML.</description>" 
+                + "</book>");
 
         when(tuple.size()).thenReturn(2);
 
@@ -194,7 +205,8 @@ public class XPathAllTest {
 
     }
 
-    //@Test
+    @Ignore
+    @Test    
     public void testCacheBenefit() throws Exception {
 
         final XPathAll xpath = new XPathAll();
@@ -224,18 +236,20 @@ public class XPathAllTest {
         final Tuple tuple = mock(Tuple.class);
 
         when(tuple.get(0)).thenReturn(
-                "<ann:book id=\"bk101\">" + "<author>Gambardella, Matthew</author>"
-                        + "<title>XML Developer's Guide</title>" + "<genre>Computer</genre>" + "<price>44.95</price>"
+                "<ann:book id=\"bk101\">" 
+                		+ "<author>Gambardella, Matthew</author>"
+                        + "<title>XML Developer's Guide</title>" 
+                		+ "<genre>Computer</genre>" 
+                        + "<price>44.95</price>"
                         + "<publish_date>2000-10-01</publish_date>"
                         + "<description>An in-depth look at creating applications with XML.</description>"
-                        + "</ann:book>");
+                + "</ann:book>");
 
         when(tuple.size()).thenReturn(4);
-
-        when(tuple.get(1)).thenReturn("book");
         when(tuple.get(2)).thenReturn(true);
         when(tuple.get(3)).thenReturn(true);
-
+        
+        when(tuple.get(1)).thenReturn("book");
         assertEquals(1, xpath.exec(tuple).getAll().size());
         assertEquals(
                 "Gambardella, Matthew, XML Developer's Guide, Computer, 44.95, 2000-10-01, An in-depth look at creating applications with XML.",
@@ -244,7 +258,7 @@ public class XPathAllTest {
     }
 
     @Test
-    public void testExecTupleWithElementNodeWithComplexAnnotation() throws Exception {
+    public void testExecTupleWithElementNodeWithComplexNameSpace() throws Exception {
 
         final XPathAll xpath = new XPathAll();
 
@@ -252,53 +266,59 @@ public class XPathAllTest {
 
         when(tuple.get(0)).thenReturn(
 
-                "<ccdyn:main>"
-                        +"<pci:ProductConsumableInfo>"
-                            + "<dd:NumOfUserReplaceableConsumables>1</dd:NumOfUserReplaceableConsumables>"
-                            + "<dd:NumOfNonUserReplaceableConsumables>23</dd:NumOfNonUserReplaceableConsumables>"
-                            + "<dd:AlignmentMode>semiAutomatic</dd:AlignmentMode>"
-                            + "<ccdyn:CartridgeChipInfo>enabled</ccdyn:CartridgeChipInfo>"
-                            + "<dd:ConsumableSlotDirection>leftToRight</dd:ConsumableSlotDirection>"
-                            + "<dd:IK>282</dd:IK>"
-                            + "<ccdyn:SingleCartridgeMode>enabled</ccdyn:SingleCartridgeMode>"
-                            + "<dd:AntiTheftMode>disabled</dd:AntiTheftMode>"
-                            + "<ccdyn:RewardsRegistrationStatus>"
-                                + "<dd:OptedIn>false</dd:OptedIn>"
-                                + "<dd:AutoSendData>false</dd:AutoSendData>"
-                                + "<dd:PromptAutoSendData>false</dd:PromptAutoSendData>"
-                            + "</ccdyn:RewardsRegistrationStatus>"
-                        + "</pci:ProductConsumableInfo>"
-                        + "<pci:ProductConsumableInfo>"
-                            + "<dd:NumOfUserReplaceableConsumables>2</dd:NumOfUserReplaceableConsumables>"
-                            + "<dd:NumOfNonUserReplaceableConsumables>0</dd:NumOfNonUserReplaceableConsumables>"
-                            + "<dd:AlignmentMode>fullyAutomatic</dd:AlignmentMode>"
-                            + "<ccdyn:CartridgeChipInfo>disabled</ccdyn:CartridgeChipInfo>"
-                            + "<dd:ConsumableSlotDirection>leftToRight</dd:ConsumableSlotDirection>"
-                            + "<dd:IK>283</dd:IK>"
-                            + "<ccdyn:SingleCartridgeMode>enabled</ccdyn:SingleCartridgeMode>"
-                            + "<dd:AntiTheftMode>disabled</dd:AntiTheftMode>"
-                            + "<ccdyn:RewardsRegistrationStatus>"
-                                + "<dd:OptedIn>true</dd:OptedIn>"
-                                + "<dd:AutoSendData>false</dd:AutoSendData>"
-                                + "<dd:PromptAutoSendData>true</dd:PromptAutoSendData>"
-                            + "</ccdyn:RewardsRegistrationStatus>"
-                        + "</pci:ProductConsumableInfo></ccdyn:main>");
+                "<cbs:bookstore>"
+                        +"<cbs:book>"
+                            + "<bsbi:authors>"
+                                + "<bsbi:author_1>Gambardella</bsbi:author_1>"
+                                + "<bsbi:author_2>Matthew</bsbi:author_2>"
+                                + "<bsbi:author_3>Mike</bsbi:author_3>"
+                            + "</bsbi:authors>"
+                            + "<bsbi:title>23</bsbi:title>"
+                            + "<bsbi:genre>semiAutomatic</bsbi:genre>"
+                            + "<bsbi:price>enabled</bsbi:price>"
+                            + "<bsbi:publish_date>leftToRight</bsbi:publish_date>"
+                            + "<bsbi:description>282</bsbi:description>"
+                            + "<bsbi:reviews>"
+                                + "<review_1>4 stars</review_1>"
+                                + "<review_2>3.5 stars</review_2>"
+                                + "<review_3>4 stars</review_3>"
+                                + "<review_4>4.2 stars</review_4>"
+                                + "<review_5>3.5 stars</review_5>"
+                            + "</bsbi:reviews>"
+                        + "</cbs:book>"
+                        + "<cbs:book>"
+                        + "<bsbi:authors>"
+                            + "<bsbi:author_1>O'Brien</bsbi:author_1>"
+                            + "<bsbi:author_2>Tim</bsbi:author_2>"
+                        + "</bsbi:authors>"
+                        + "<bsbi:title>23</bsbi:title>"
+                        + "<bsbi:genre>semiAutomatic</bsbi:genre>"
+                        + "<bsbi:price>enabled</bsbi:price>"
+                        + "<bsbi:publish_date>leftToRight</bsbi:publish_date>"
+                        + "<bsbi:description>282</bsbi:description>"
+                        + "<bsbi:reviews>"
+                            + "<bsbi:review_1>3.5 stars</bsbi:review_1>"
+                            + "<bsbi:review_2>4 stars</bsbi:review_2>"
+                            + "<bsbi:review_3>3.5 stars</bsbi:review_3>"
+                            + "<bsbi:review_4>4.2 stars</bsbi:review_4>"
+                            + "<bsbi:review_5>4 stars</bsbi:review_5>"
+                            
+                        + "</bsbi:reviews>"
+                        + "</cbs:book></cbs:bookstore>");
 
         when(tuple.size()).thenReturn(4);
-
-        when(tuple.get(1)).thenReturn("ProductConsumableInfo/RewardsRegistrationStatus");
         when(tuple.get(2)).thenReturn(true);
         when(tuple.get(3)).thenReturn(true);
 
+        when(tuple.get(1)).thenReturn("bookstore/book/authors");
         assertEquals(2, xpath.exec(tuple).getAll().size());
-        assertEquals("false, false, false", xpath.exec(tuple).get(0));
-        assertEquals("true, false, true", xpath.exec(tuple).get(1));
+        assertEquals("Gambardella, Matthew, Mike", xpath.exec(tuple).get(0));
+        assertEquals("O'Brien, Tim", xpath.exec(tuple).get(1));
 
-        when(tuple.get(1)).thenReturn("main/ProductConsumableInfo/AlignmentMode");
-
+        when(tuple.get(1)).thenReturn("bookstore/book/reviews");
         assertEquals(2, xpath.exec(tuple).getAll().size());
-        assertEquals("semiAutomatic", xpath.exec(tuple).get(0));
-        assertEquals("fullyAutomatic", xpath.exec(tuple).get(1));
+        assertEquals("4 stars, 3.5 stars, 4 stars, 4.2 stars, 3.5 stars", xpath.exec(tuple).get(0));
+        assertEquals("3.5 stars, 4 stars, 3.5 stars, 4.2 stars, 4 stars", xpath.exec(tuple).get(1));
 
     }
 

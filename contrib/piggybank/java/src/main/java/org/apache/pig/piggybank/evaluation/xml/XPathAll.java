@@ -76,26 +76,37 @@ public class XPathAll extends EvalFunc<Tuple> {
      * input should contain: 1) xml 2) xpath 3) optional cache xml doc flag 4)
      * optional ignore namespace flag
      * 
-     * Usage: 1) XPath(xml, xpath) 
-     *        2) XPath(xml, xpath, false, false)
+     * The optional fourth parameter (IGNORE_NAMESPACE), if set true will remove
+     * the namespace from xPath For example xpath /html:body/html:div will be
+     * considered as /body/div
      * 
-     * @param 1st element should to be the xml 2nd element should be the xpath
-     *        3rd optional boolean cache flag (default true) 4th optional
-     *        boolean ignore namespace flag(default true)
+     * Usage: 	1) XPathAll(xml, xpath) 
+     * 			2) XPathAll(xml, xpath, false)
+     * 			3) XPathAll(xml, xpath, false, false)
+     * 
+     * @param input
+     * 		  1st element should to be the xml 2nd element should be the xpath
+     *        3rd optional boolean cache flag (default true) 
+     *        4th optional boolean ignore namespace flag(default true)
      * 
      *        This UDF will cache the last xml document. This is helpful when
-     *        multiple consecutive xpath calls are made for the same xml
+     *        multiple consecutive xpathAll calls are made for the same xml
      *        document. Caching can be turned off to ensure that the UDF's
      *        recreates the internal javax.xml.xpath.XPathAll for every call
+     *        
+     *        This UDF will also support ignoring the namespace in the xml tags.
+     *        This will help to search xpath items by ignoring its namespace.
+     *        Ignoring of the namespace can be turned off for special cases using
+     *        a fourth argument in the UDF. 
+     *        
      * 
      * @return Tuple result or null if no match
      */
     @Override
     public Tuple exec(final Tuple input) throws IOException {
 
-        if(!isArgsValid(input))// Validates arguments
-        {
-        	return null;
+        if (!isArgsValid(input)) { // Validate arguments
+            return null;
         }
 
         try {
@@ -159,30 +170,28 @@ public class XPathAll extends EvalFunc<Tuple> {
                 boolean dataFlag = false;
 
                 for (int i = 0; i < childNodes.getLength(); i++) {
-                	try
-                	{
-	                    Node subNode = childNodes.item(i);
-	                    if (subNode.getNodeType() == Node.ELEMENT_NODE) {
-	                    	if(subNode.getFirstChild().getNodeValue() == null){
-	                    		// If There is no direct element, return blank
-	                    		 nodeData = nodeData.concat(ELEMENT_NODE_SEPARATOR);
-	                             nodeData = nodeData.concat(EMPTY_STRING);
-	                             dataFlag = true;
-	                    		 continue;
-	                    	}
-	                        nodeData = nodeData.concat(ELEMENT_NODE_SEPARATOR);
-	                        nodeData = nodeData.concat(subNode.getFirstChild().getNodeValue());
-	                        dataFlag = true;
-	                    } else if (subNode.getNodeType() == Node.TEXT_NODE || subNode.getNodeType() == Node.ATTRIBUTE_NODE) {
-	                        nodeData = nodeData.concat(ELEMENT_NODE_SEPARATOR);
-	                        nodeData = nodeData.concat(subNode.getNodeValue());
-	                        dataFlag = true;
-	                    }
-                	}
-                	catch(Exception ex)
-                	{
-                		continue;
-                	}
+                    try {
+                        Node subNode = childNodes.item(i);
+                        if (subNode.getNodeType() == Node.ELEMENT_NODE) {
+                            if (subNode.getFirstChild().getNodeValue() == null) {
+                                // If There is no direct element, return blank
+                                nodeData = nodeData.concat(ELEMENT_NODE_SEPARATOR);
+                                nodeData = nodeData.concat(EMPTY_STRING);
+                                dataFlag = true;
+                                continue;
+                            }
+                            nodeData = nodeData.concat(ELEMENT_NODE_SEPARATOR);
+                            nodeData = nodeData.concat(subNode.getFirstChild().getNodeValue());
+                            dataFlag = true;
+                        } else if (subNode.getNodeType() == Node.TEXT_NODE
+                                || subNode.getNodeType() == Node.ATTRIBUTE_NODE) {
+                            nodeData = nodeData.concat(ELEMENT_NODE_SEPARATOR);
+                            nodeData = nodeData.concat(subNode.getNodeValue());
+                            dataFlag = true;
+                        }
+                    } catch (Exception ex) {
+                        continue;
+                    }
                 }
 
                 if (dataFlag) {
@@ -200,48 +209,47 @@ public class XPathAll extends EvalFunc<Tuple> {
     
     
     /**
-     * Validates input parameters.
+     * Validates values of the input parameters.
      * 
-     * @param input
+     * @param Tuple
      * @return boolean
      */
-	private boolean isArgsValid(final Tuple input) {
-		if (input == null || input.size() <= 1) {
-			warn("Error processing input, not enough parameters or null input" + input, PigWarning.UDF_WARNING_1);
-			return false;
-		}
+    private boolean isArgsValid(final Tuple input) {
+        if (input == null || input.size() <= 1) {
+            warn("Error processing input, not enough parameters or null input" + input, PigWarning.UDF_WARNING_1);
+            return false;
+        }
 
-		if (input.size() > 4) {
-			warn("Error processing input, too many parameters" + input, PigWarning.UDF_WARNING_1);
-			return false;
-		}
+        if (input.size() > 4) {
+            warn("Error processing input, too many parameters" + input, PigWarning.UDF_WARNING_1);
+            return false;
+        }
 
-		try {
-			if (input.size() > 2) { // 3rd Parameter - CACHE
-				if (!(input.get(ARGUMENTS.CACHE.getPosition()) instanceof Boolean)) {
-					warn("Error processing input, invalid value in 3rd parameter" + input, PigWarning.UDF_WARNING_1);
-					return false;
-				}
-			}
+        try {
+            // 3rd Parameter - CACHE
+            if (input.size() > 2 && !(input.get(ARGUMENTS.CACHE.getPosition()) instanceof Boolean)) {
+                warn("Error processing input, invalid value in 3rd parameter" + input, PigWarning.UDF_WARNING_1);
+                return false;
+            }
 
-			if (input.size() > 3) { // 4rd Parameter IGNORE_NAMESPACE
-				if (!(input.get(ARGUMENTS.IGNORE_NAMESPACE.getPosition()) instanceof Boolean)) {
-					warn("Error processing input, invalid value in 4th parameter" + input, PigWarning.UDF_WARNING_1);
-					return false;
-				}
-			}
-		} catch (Exception ex) {
-			return false;
-		}
+            // 4rd Parameter IGNORE_NAMESPACE
+            if (input.size() > 3 && !(input.get(ARGUMENTS.IGNORE_NAMESPACE.getPosition()) instanceof Boolean)) {
+                warn("Error processing input, invalid value in 4th parameter" + input, PigWarning.UDF_WARNING_1);
+                return false;
+            }
+        } catch (Exception ex) {
+            return false;
+        }
 
-		return true;
-	}
+        return true;
+    }
 
     /**
-     * Modifies the xPathQuery so that name space is ignored while parsing.
+     * Returns a new the xPathString by adding additional parameters 
+     * in the existing xPathString for ignoring the namespace during compilation.
      * 
-     * @param xpathString
-     * @return
+     * @param String xpathString
+     * @return String modified xpathString
      */
     private String createNameSpaceIgnoreXpathString(final String xpathString) {
         final String QUERY_PREFIX = "//*";
@@ -264,6 +272,12 @@ public class XPathAll extends EvalFunc<Tuple> {
         }
     }
 
+    /**
+     * Returns argument schemas of the UDF.
+     * 
+     * @return List
+     */
+    
     @Override
     public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
 
@@ -278,7 +292,17 @@ public class XPathAll extends EvalFunc<Tuple> {
 
         funcList.add(new FuncSpec(this.getClass().getName(), twoArgInSchema));
 
-        /* or two chararray and two a boolean arguments */
+        /* or two chararray and a boolean argument */
+        fields = new ArrayList<FieldSchema>();
+        fields.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
+        fields.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
+        fields.add(new Schema.FieldSchema(null, DataType.BOOLEAN));
+
+        Schema threeArgInSchema = new Schema(fields);
+
+        funcList.add(new FuncSpec(this.getClass().getName(), threeArgInSchema));
+
+        /* or two chararray and two boolean arguments */
         fields = new ArrayList<FieldSchema>();
         fields.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
         fields.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
