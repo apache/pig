@@ -92,6 +92,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4226: Upgrade Tez to 0.5.1 (daijy)
+
 PIG-4220: MapReduce-based Rank failing with NPE due to missing Counters (knoguchi)
 
 PIG-3985: Multiquery execution of RANK with RANK BY causes NPE (rohini)
