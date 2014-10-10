@@ -92,6 +92,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4219: When parsing a schema, pig drops tuple inside of Bag if it contains only one field (lbendig via daijy)
+
 PIG-4226: Upgrade Tez to 0.5.1 (daijy)
 
 PIG-4220: MapReduce-based Rank failing with NPE due to missing Counters (knoguchi)
