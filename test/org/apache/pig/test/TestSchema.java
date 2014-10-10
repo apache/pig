@@ -879,10 +879,27 @@ public class TestSchema {
         }
     }
 
-     @Test(expected=ParserException.class)
-     public void testGetStringFromSchemaNegative() throws Exception {
-         String schemaString = "a:int b:long"; // A comma is missing between fields
-         Utils.getSchemaFromString(schemaString);
-         fail("The schema string is invalid, so parsing should fail!");
-     }
+    @Test(expected = ParserException.class)
+    public void testGetStringFromSchemaNegative() throws Exception {
+        String schemaString = "a:int b:long"; // A comma is missing between fields
+        Utils.getSchemaFromString(schemaString);
+        fail("The schema string is invalid, so parsing should fail!");
+    }
+    
+    @Test
+    public void testGetInitialSchemaStringFromSchema() throws ParserException {
+        String[] schemaStrings = {
+                "my_list:{array:(array_element:(num1:int,num2:int))}",
+                "my_list:{array:(array_element:(num1:int,num2:int),c:chararray)}",
+                "bag:{mytuple3:(mytuple2:(mytuple:(f1:int)))}",
+                "bag:{mytuple:(f1:int)}",
+                "{((num1:int,num2:int))}"
+        };
+        for (String schemaString : schemaStrings) {
+            String s1 = Utils.getSchemaFromString(schemaString).toString();
+            //check if we get back the initial schema string
+            String s2 = s1.substring(1, s1.length() - 1).replaceAll("\\s|bag_0:|tuple_0:", "");
+            assertTrue(schemaString.equals(s2));
+        }
+    }
 }
