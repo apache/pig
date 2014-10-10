@@ -1,7 +1,7 @@
 package org.apache.pig.backend.hadoop.executionengine.spark.converter;
 
 import java.io.IOException;
-import java.io.Serializable;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.pig.backend.executionengine.ExecException;
@@ -9,13 +9,8 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLimit;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.data.Tuple;
-
-import scala.collection.Iterator;
-import scala.collection.JavaConversions;
-
-import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.rdd.RDD;
-import org.apache.spark.api.java.JavaSparkContext;
 
 @SuppressWarnings({ "serial" })
 public class LimitConverter implements POConverter<Tuple, Tuple, POLimit> {
@@ -26,13 +21,11 @@ public class LimitConverter implements POConverter<Tuple, Tuple, POLimit> {
         SparkUtil.assertPredecessorSize(predecessors, poLimit, 1);
         RDD<Tuple> rdd = predecessors.get(0);
         LimitFunction limitFunction = new LimitFunction(poLimit);
-        RDD<Tuple> rdd2 = rdd.coalesce(1, false);
-        return rdd2.mapPartitions(limitFunction, false,
-                SparkUtil.getManifest(Tuple.class));
+        RDD<Tuple> rdd2 = rdd.coalesce(1, false, null);
+        return rdd2.toJavaRDD().mapPartitions(limitFunction, false).rdd();
     }
 
-    private static class LimitFunction extends
-            Function<Iterator<Tuple>, Iterator<Tuple>> implements Serializable {
+    private static class LimitFunction implements FlatMapFunction<Iterator<Tuple>, Tuple> {
 
         private final POLimit poLimit;
 
@@ -41,12 +34,12 @@ public class LimitConverter implements POConverter<Tuple, Tuple, POLimit> {
         }
 
         @Override
-        public Iterator<Tuple> call(Iterator<Tuple> i) {
-            final java.util.Iterator<Tuple> tuples = JavaConversions
-                    .asJavaIterator(i);
+        public Iterable<Tuple> call(final Iterator<Tuple> tuples) {
 
-            return JavaConversions
-                    .asScalaIterator(new POOutputConsumerIterator(tuples) {
+            return new Iterable<Tuple>() {
+
+                public Iterator<Tuple> iterator() {
+                    return new POOutputConsumerIterator(tuples) {
 
                         protected void attach(Tuple tuple) {
                             poLimit.setInputs(null);
@@ -56,9 +49,9 @@ public class LimitConverter implements POConverter<Tuple, Tuple, POLimit> {
                         protected Result getNextResult() throws ExecException {
                             return poLimit.getNextTuple();
                         }
-                    });
+                    };
+                }
+            };
         }
-
     }
-
 }

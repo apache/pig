@@ -9,16 +9,15 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODistinct;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.data.Tuple;
+import org.apache.spark.rdd.PairRDDFunctions;
+import org.apache.spark.rdd.RDD;
 
 import scala.Function1;
 import scala.Function2;
 import scala.Tuple2;
-//import scala.reflect.ClassManifest;
 import scala.reflect.ClassTag;
 import scala.runtime.AbstractFunction1;
 import scala.runtime.AbstractFunction2;
-import org.apache.spark.rdd.PairRDDFunctions;
-import org.apache.spark.rdd.RDD;
 
 @SuppressWarnings({ "serial" })
 public class DistinctConverter implements POConverter<Tuple, Tuple, PODistinct> {
@@ -39,9 +38,10 @@ public class DistinctConverter implements POConverter<Tuple, Tuple, PODistinct> 
 
         RDD<Tuple2<Tuple, Object>> rddPairs = rdd.map(TO_KEY_VALUE_FUNCTION,
                 tuple2ClassManifest);
-        PairRDDFunctions<Tuple, Object> pairRDDFunctions = new PairRDDFunctions<Tuple, Object>(
+        PairRDDFunctions<Tuple, Object> pairRDDFunctions
+          = new PairRDDFunctions<Tuple, Object>(
                 rddPairs, SparkUtil.getManifest(Tuple.class),
-                SparkUtil.getManifest(Object.class));
+                SparkUtil.getManifest(Object.class), null);
         int parallelism = SparkUtil.getParallelism(predecessors, poDistinct);
         return pairRDDFunctions.reduceByKey(MERGE_VALUES_FUNCTION, parallelism)
                 .map(TO_VALUE_FUNCTION, SparkUtil.getManifest(Tuple.class));

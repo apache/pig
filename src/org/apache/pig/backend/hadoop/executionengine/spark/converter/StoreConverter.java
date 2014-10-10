@@ -1,10 +1,8 @@
 package org.apache.pig.backend.hadoop.executionengine.spark.converter;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
@@ -17,13 +15,12 @@ import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.ObjectSerializer;
-
-import scala.Tuple2;
-import scala.collection.JavaConversions;
-import scala.runtime.AbstractFunction1;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.function.Function;
 import org.apache.spark.rdd.PairRDDFunctions;
 import org.apache.spark.rdd.RDD;
-import org.apache.spark.api.java.function.Function;
+
+import scala.Tuple2;
 
 import com.google.common.collect.Lists;
 
@@ -48,11 +45,11 @@ public class StoreConverter implements
         SparkUtil.assertPredecessorSize(predecessors, physicalOperator, 1);
         RDD<Tuple> rdd = predecessors.get(0);
         // convert back to KV pairs
-        RDD<Tuple2<Text, Tuple>> rddPairs = rdd.map(FROM_TUPLE_FUNCTION,
-                SparkUtil.<Text, Tuple> getTuple2Manifest());
+        JavaRDD<Tuple2<Text, Tuple>> rddPairs = rdd.toJavaRDD().map(FROM_TUPLE_FUNCTION);
+
         PairRDDFunctions<Text, Tuple> pairRDDFunctions = new PairRDDFunctions<Text, Tuple>(
-                rddPairs, SparkUtil.getManifest(Text.class),
-                SparkUtil.getManifest(Tuple.class));
+                rddPairs.rdd(), SparkUtil.getManifest(Text.class),
+                SparkUtil.getManifest(Tuple.class), null);
 
         JobConf storeJobConf = SparkUtil.newJobConf(pigContext);
         POStore poStore = configureStorer(storeJobConf, physicalOperator);
@@ -61,7 +58,7 @@ public class StoreConverter implements
                 .getFileName(), Text.class, Tuple.class, PigOutputFormat.class,
                 storeJobConf);
 
-        return rddPairs;
+        return rddPairs.rdd();
     }
 
     private static POStore configureStorer(JobConf jobConf,
@@ -82,8 +79,8 @@ public class StoreConverter implements
         return poStore;
     }
 
-    private static class FromTupleFunction extends
-            Function<Tuple, Tuple2<Text, Tuple>> implements Serializable {
+    private static class FromTupleFunction implements
+            Function<Tuple, Tuple2<Text, Tuple>> {
 
         private static Text EMPTY_TEXT = new Text();
 
