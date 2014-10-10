@@ -731,6 +731,22 @@
             <fileset dir="${ivy.lib.dir}" includes="zookeeper-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="accumulo-*.jar" excludes="accumulo-minicluster*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="json-simple-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="spark*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="scala*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="akka*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="jcl-over-slf4j*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="jul-to-slf4j*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="slf4j*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="commons-lang3*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="config*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="netty*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="jetty*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="metrics-core*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="jackson*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="metrics-json-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="json4s-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="javax.servlet-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="reflectasm*.jar"/>
         </copy>
     </target>
 
