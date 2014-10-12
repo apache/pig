@@ -26,6 +26,9 @@ IMPROVEMENTS
  
 BUG FIXES
 
+PIG-4227: Streaming Python UDF handles bag outputs incorrectly (cheolsoo)
+
+
 Release 0.14.0 - Unreleased
  
 INCOMPATIBLE CHANGES
