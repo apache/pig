@@ -26,7 +26,6 @@ IMPROVEMENTS
  
 BUG FIXES
 
-PIG-4227: Streaming Python UDF handles bag outputs incorrectly (cheolsoo)
 
 
 Release 0.14.0 - Unreleased
@@ -94,6 +93,10 @@ PIG-3970: Merge Tez branch into trunk (daijy)
 OPTIMIZATIONS
  
 BUG FIXES
+
+PIG-4199: Mapreduce ACLs should be translated to Tez ACLs (rohini)
+
+PIG-4227: Streaming Python UDF handles bag outputs incorrectly (cheolsoo)
 
 PIG-4219: When parsing a schema, pig drops tuple inside of Bag if it contains only one field (lbendig via daijy)
 
