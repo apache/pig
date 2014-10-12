@@ -314,7 +314,7 @@ def serialize_output(output, utfEncodeAllFields=False):
                 WRAPPED_TUPLE_END)
     elif output_type == list:
         return (WRAPPED_BAG_START +
-                WRAPPED_FIELD_DELIMITER.join([serialize_output(o, utfEncodeAllFields) for o in output]) +
+                WRAPPED_FIELD_DELIMITER.join([(WRAPPED_TUPLE_START + serialize_output(o, utfEncodeAllFields) + WRAPPED_TUPLE_END) for o in output]) +
                 WRAPPED_BAG_END)
     elif output_type == dict:
         return (WRAPPED_MAP_START +
