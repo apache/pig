@@ -84,6 +84,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4199: Mapreduce ACLs should be translated to Tez ACLs (rohini)
+
 PIG-4219: When parsing a schema, pig drops tuple inside of Bag if it contains only one field (lbendig via daijy)
 
 PIG-4226: Upgrade Tez to 0.5.1 (daijy)
