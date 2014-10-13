@@ -99,7 +99,9 @@ public class MultiStorage extends StoreFunc {
    * Constructor
    * 
    * @param parentPathStr
-   *          Parent output dir path
+   *          Parent output dir path (this will be specified in store statement,
+   *            so MultiStorage don't use this parameter in reality. However, we don't
+   *            want to change the construct to break backward compatibility)
    * @param splitFieldIndex
    *          key field index
    * @param compression
