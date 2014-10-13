@@ -94,6 +94,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-2834: MultiStorage requires unused constructor argument (daijy)
+
 PIG-4230: Documentation fix: first nested foreach example is incomplete (lbendig via daijy)
 
 PIG-3979: group all performance, garbage collection, and incremental aggregation (ddreyfus via daijy)
