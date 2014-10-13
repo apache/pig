@@ -94,6 +94,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3979: group all performance, garbage collection, and incremental aggregation (ddreyfus via daijy)
+
 PIG-4199: Mapreduce ACLs should be translated to Tez ACLs (rohini)
 
 PIG-4227: Streaming Python UDF handles bag outputs incorrectly (cheolsoo)
