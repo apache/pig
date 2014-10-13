@@ -6495,12 +6495,14 @@ E = GROUP D BY A::x;
    <title>Example: Nested Block</title>
       <p>In this example a CROSS is performed within the nested block.</p>
 <source>
- user = load 'user' as (uid, age, gender, region);
+user = load 'user' as (uid, age, gender, region);
 session = load 'session' as (uid, region);
 C = cogroup user by uid, session by uid;
 D = foreach C {
     crossed = cross user, session;
-    generate crossed;  
+    generate crossed;
+}
+dump D;  
 </source>
 <p>In this example FOREACH is nested to the second level.</p>
 <source>
