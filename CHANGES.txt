@@ -84,6 +84,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4181: Cannot launch tez e2e test on Windows (daijy)
+
 PIG-2834: MultiStorage requires unused constructor argument (daijy)
 
 PIG-4230: Documentation fix: first nested foreach example is incomplete (lbendig via daijy)
