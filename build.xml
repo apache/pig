@@ -388,6 +388,22 @@
             <include name="trevni-avro-${avro.version}.jar"/>
             <include name="snappy-java-${snappy.version}.jar"/>
             <include name="asm*.jar"/>
+
+            <include name="scala*.jar"/>
+            <include name="akka*.jar"/>
+            <include name="jcl-over-slf4j*.jar"/>
+            <include name="jul-to-slf4j*.jar"/>
+            <include name="slf4j*.jar"/>
+            <include name="commons*.jar"/>
+            <include name="config*.jar"/>
+            <include name="netty*.jar"/>
+            <include name="jetty*.jar"/>
+            <include name="metrics-core*.jar"/>
+            <include name="jackson*.jar"/>
+            <include name="metrics-json-*.jar"/>
+            <include name="json4s-*.jar"/>
+            <include name="javax.servlet-*.jar"/>
+            <include name="reflectasm*.jar"/>
         </patternset>
     </fileset>
 
@@ -747,6 +763,7 @@
             <fileset dir="${ivy.lib.dir}" includes="json4s-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="javax.servlet-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="reflectasm*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="mesos*.jar"/>
         </copy>
     </target>
 
