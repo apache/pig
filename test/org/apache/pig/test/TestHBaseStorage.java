@@ -16,6 +16,7 @@
  */
 package org.apache.pig.test;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
@@ -1099,6 +1100,43 @@ public class TestHBaseStorage {
             index++;
         }
         Assert.assertEquals(index, TEST_ROW_COUNT);
+    }
+
+    @Test
+    // See PIG-4151
+    public void testStoreEmptyMap() throws IOException {
+        String tableName = "emptyMapTest";
+        HTable table;
+        try {
+            deleteAllRows(tableName);
+        } catch (Exception e) {
+            // It's ok, table might not exist.
+        }
+        byte[][] cfs = new byte[2][];
+        cfs[0] = Bytes.toBytes("info");
+        cfs[1] = Bytes.toBytes("friends");
+        try {
+            table = util.createTable(Bytes.toBytesBinary(tableName),
+                    cfs);
+        } catch (Exception e) {
+            table = new HTable(conf, Bytes.toBytesBinary(tableName));
+        }
+
+        File inputFile = Util.createInputFile("test", "tmp", new String[] {"row1;Homer;Morrison;[1#Silvia,2#Stacy]",
+                "row2;Sheila;Fletcher;[1#Becky,2#Salvador,3#Lois]",
+                "row4;Andre;Morton;[1#Nancy]",
+                "row3;Sonja;Webb;[]"
+        });
+        pig.registerQuery("source = LOAD '" + Util.generateURI(Util.encodeEscape(inputFile.toString()), pig.getPigContext())
+                + "' USING PigStorage(';')"
+                + " AS (row:chararray, first_name:chararray, last_name:chararray, friends:map[]);");
+        pig.registerQuery("STORE source INTO 'hbase://" + tableName + "' USING" +
+                " org.apache.pig.backend.hadoop.hbase.HBaseStorage('info:fname info:lname friends:*');");
+        Get get = new Get(Bytes.toBytes("row3"));
+        Result r = table.get(get);
+        Assert.assertEquals(new String(r.getValue(cfs[0], Bytes.toBytes("fname"))), "Sonja");
+        Assert.assertEquals(new String(r.getValue(cfs[0], Bytes.toBytes("lname"))), "Webb");
+        Assert.assertTrue(r.getFamilyMap(cfs[1]).isEmpty());
     }
 
     private void scanTable1(PigServer pig, DataFormat dataFormat) throws IOException {
