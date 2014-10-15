@@ -940,21 +940,25 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
                         DataType.findType(t.get(i)) : fieldSchemas[i].getType()));
             } else {
                 Map<String, Object> cfMap = (Map<String, Object>) t.get(i);
-                for (String colName : cfMap.keySet()) {
-                    if (LOG.isDebugEnabled()) {
-                        LOG.debug("putNext - colName=" + colName +
-                                  ", class: " + colName.getClass());
+                if (cfMap!=null) {
+                    for (String colName : cfMap.keySet()) {
+                        if (LOG.isDebugEnabled()) {
+                            LOG.debug("putNext - colName=" + colName +
+                                      ", class: " + colName.getClass());
+                        }
+                        // TODO deal with the fact that maps can have types now. Currently we detect types at
+                        // runtime in the case of storing to a cf, which is suboptimal.
+                        put.add(columnInfo.getColumnFamily(), Bytes.toBytes(colName.toString()), ts,
+                                objToBytes(cfMap.get(colName), DataType.findType(cfMap.get(colName))));
                     }
-                    // TODO deal with the fact that maps can have types now. Currently we detect types at
-                    // runtime in the case of storing to a cf, which is suboptimal.
-                    put.add(columnInfo.getColumnFamily(), Bytes.toBytes(colName.toString()), ts,
-                            objToBytes(cfMap.get(colName), DataType.findType(cfMap.get(colName))));
                 }
             }
         }
 
         try {
-            writer.write(null, put);
+            if (!put.isEmpty()) {
+                writer.write(null, put);
+            }
         } catch (InterruptedException e) {
             throw new IOException(e);
         }

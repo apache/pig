@@ -84,6 +84,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4151: Pig Cannot Write Empty Maps to HBase (daijy)
+
 PIG-4181: Cannot launch tez e2e test on Windows (daijy)
 
 PIG-2834: MultiStorage requires unused constructor argument (daijy)
