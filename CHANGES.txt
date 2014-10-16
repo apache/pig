@@ -94,6 +94,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4238: Property 'pig.job.converted.fetch' should be unset when fetch finishes (lbendig)
+
 PIG-4151: Pig Cannot Write Empty Maps to HBase (daijy)
 
 PIG-4181: Cannot launch tez e2e test on Windows (daijy)

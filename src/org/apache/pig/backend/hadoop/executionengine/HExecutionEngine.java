@@ -46,6 +46,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.backend.hadoop.streaming.HadoopExecutableManager;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
@@ -296,7 +297,7 @@ public abstract class HExecutionEngine implements ExecutionEngine {
 
         PrintStream pps = ps;
         PrintStream eps = ps;
-
+        boolean isFetchable = false;
         try {
             if (file != null) {
                 pps = new PrintStream(new File(file, "physical_plan-" + suffix));
@@ -307,13 +308,16 @@ public abstract class HExecutionEngine implements ExecutionEngine {
             pp.explain(pps, format, verbose);
 
             MapRedUtil.checkLeafIsStore(pp, pigContext);
-            if (FetchOptimizer.isPlanFetchable(pc, pp)) {
+            isFetchable = FetchOptimizer.isPlanFetchable(pc, pp);
+            if (isFetchable) {
                 new FetchLauncher(pigContext).explain(pp, pc, eps, format);
                 return;
             }
             launcher.explain(pp, pigContext, eps, format, verbose);
         } finally {
             launcher.reset();
+            if (isFetchable)
+                pigContext.getProperties().remove(PigImplConstants.CONVERTED_TO_FETCH);
             //Only close the stream if we opened it.
             if (file != null) {
                 pps.close();
