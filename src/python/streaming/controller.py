@@ -297,6 +297,12 @@ def _deserialize_collection(input_str, return_type, si, ei):
     else:
         return list_result
 
+def wrap_tuple(o, serialized_item):
+    if type(o) != tuple:
+        return WRAPPED_TUPLE_START + serialized_item + WRAPPED_TUPLE_END
+    else:
+        return serialized_item
+
 def serialize_output(output, utfEncodeAllFields=False):
     """
     @param utfEncodeStrings - Generally we want to utf encode only strings.  But for
@@ -314,7 +320,7 @@ def serialize_output(output, utfEncodeAllFields=False):
                 WRAPPED_TUPLE_END)
     elif output_type == list:
         return (WRAPPED_BAG_START +
-                WRAPPED_FIELD_DELIMITER.join([(WRAPPED_TUPLE_START + serialize_output(o, utfEncodeAllFields) + WRAPPED_TUPLE_END) for o in output]) +
+                WRAPPED_FIELD_DELIMITER.join([wrap_tuple(o, serialize_output(o, utfEncodeAllFields)) for o in output]) +
                 WRAPPED_BAG_END)
     elif output_type == dict:
         return (WRAPPED_MAP_START +
