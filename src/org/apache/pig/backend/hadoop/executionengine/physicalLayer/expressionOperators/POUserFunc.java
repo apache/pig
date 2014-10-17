@@ -277,27 +277,6 @@ public class POUserFunc extends ExpressionOperator {
         }
         try {
             if(result.returnStatus == POStatus.STATUS_OK) {
-                Tuple t = (Tuple) result.result;
-
-                // For backward compatibility, we short-circuit tuples whose
-                // size is 1 and field is null. (See PIG-3679)
-                if (t.size() == 1 && t.isNull(0)) {
-                    pigLogger.warn(this, "All the input values are null, skipping the invocation of UDF",
-                            PigWarning.SKIP_UDF_CALL_FOR_NULL);
-                    Schema outputSchema = func.outputSchema(func.getInputSchema());
-                    // If the output schema is tuple (i.e. multiple fields are
-                    // to be returned), we return a tuple where every field is
-                    // null.
-                    if (outputSchema != null && outputSchema.getField(0).type == DataType.TUPLE) {
-                        result.result = tf.newTuple(outputSchema.getField(0).schema.size());
-                    // Otherwise, we simply return null since it can be cast to
-                    // any data type.
-                    } else {
-                        result.result = null;
-                    }
-                    return result;
-                }
-
                 if (isAccumulative()) {
                     if (isAccumStarted()) {
                         if (!haveCheckedIfTerminatingAccumulator) {

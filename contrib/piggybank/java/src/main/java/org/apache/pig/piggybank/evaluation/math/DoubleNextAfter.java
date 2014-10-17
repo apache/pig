@@ -70,6 +70,12 @@ public class DoubleNextAfter extends EvalFunc<Double>{
 	 */
 	@Override
 	public Double exec(Tuple input) throws IOException {
+	    if (input == null || input.size() < 2) {
+	        return null;
+	    }
+        if (input.get(0) == null || input.get(1) == null) {
+            return null;
+        }
 		try{
 			double first = (Double)input.get(0);
 			double second = (Double)input.get(0);
