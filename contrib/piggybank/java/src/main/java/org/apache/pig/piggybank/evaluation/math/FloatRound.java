@@ -68,7 +68,7 @@ public class FloatRound extends EvalFunc<Integer>{
 	 */
 	@Override
 	public Integer exec(Tuple input) throws IOException {
-        if (input == null || input.size() == 0)
+        if (input == null || input.size() == 0 || input.get(0) == null)
             return null;
 
         try{

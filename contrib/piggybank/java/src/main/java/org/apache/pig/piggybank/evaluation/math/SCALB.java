@@ -72,7 +72,9 @@ public class SCALB extends EvalFunc<Double>{
 	public Double exec(Tuple input) throws IOException {
         if (input == null || input.size() < 2)
             return null;
-
+        if (input.get(0) == null || input.get(1) == null) {
+            return null;
+        }
 		try{
 			Double first = DataType.toDouble(input.get(0));
 			Integer second = DataType.toInteger(input.get(1));

@@ -42,7 +42,7 @@ public class ABS extends EvalFunc<Double>{
 	 * @return output returns a single numeric value, absolute value of the argument
 	 */
 	public Double exec(Tuple input) throws IOException {
-        if (input == null || input.size() == 0)
+        if (input == null || input.size() == 0 || input.get(0) == null)
             return null;
 
         Double d;

@@ -88,7 +88,10 @@ public class ISOHoursBetween extends EvalFunc<Long> {
         if (input == null || input.size() < 2) {
             return null;
         }
-        
+
+        if (input.get(0) == null || input.get(1) == null) {
+            return null;
+        }
         // Set the time to default or the output is in UTC
         DateTimeZone.setDefault(DateTimeZone.UTC);
 
