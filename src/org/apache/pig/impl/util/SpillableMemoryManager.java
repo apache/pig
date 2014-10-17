@@ -50,9 +50,7 @@ public class SpillableMemoryManager implements NotificationListener {
     
     private final Log log = LogFactory.getLog(getClass());
     
-    private LinkedList<WeakReference<Spillable>> spillables = new LinkedList<WeakReference<Spillable>>();
-    // String references to spillables
-    private LinkedList<SpillablePtr> spillablesSR = null;
+    LinkedList<WeakReference<Spillable>> spillables = new LinkedList<WeakReference<Spillable>>();
     
     // if we freed at least this much, invoke GC 
     // (default 40 MB - this can be overridden by user supplied property)
@@ -61,6 +59,10 @@ public class SpillableMemoryManager implements NotificationListener {
     // spill file size should be at least this much
     // (default 5MB - this can be overridden by user supplied property)
     private static long spillFileSizeThreshold = 5000000L ;
+    
+    // this will keep track of memory freed across spills
+    // and between GC invocations
+    private static long accumulatedFreeSize = 0L;
     
     // fraction of biggest heap for which we want to get
     // "memory usage threshold exceeded" notifications
@@ -75,6 +77,11 @@ public class SpillableMemoryManager implements NotificationListener {
     
     // log notification on collection threshold exceeded only the first time
     private boolean firstCollectionThreshExceededLogged = false;
+
+    // fraction of the total heap used for the threshold to determine
+    // if we want to perform an extra gc before the spill
+    private static double extraGCThresholdFraction = 0.05;
+    private static long extraGCSpillSizeThreshold  = 0L;
     
     private static volatile SpillableMemoryManager manager;
 
@@ -83,6 +90,7 @@ public class SpillableMemoryManager implements NotificationListener {
         List<MemoryPoolMXBean> mpbeans = ManagementFactory.getMemoryPoolMXBeans();
         MemoryPoolMXBean biggestHeap = null;
         long biggestSize = 0;
+        long totalSize = 0;
         for (MemoryPoolMXBean b: mpbeans) {
             log.debug("Found heap (" + b.getName() +
                 ") of type " + b.getType());
@@ -91,12 +99,14 @@ public class SpillableMemoryManager implements NotificationListener {
                  * heap is the tenured heap
                  */
                 long size = b.getUsage().getMax();
+                totalSize += size;
                 if (size > biggestSize) {
                     biggestSize = size;
                     biggestHeap = b;
                 }
             }
         }
+        extraGCSpillSizeThreshold  = (long) (totalSize * extraGCThresholdFraction);
         if (biggestHeap == null) {
             throw new RuntimeException("Couldn't find heap");
         }
@@ -179,7 +189,6 @@ public class SpillableMemoryManager implements NotificationListener {
             }
 
         }
-        // Remove empty spillables to improve sort speed.
         clearSpillables();
         if (toFree < 0) {
             log.debug("low memory handler returning " + 
@@ -187,31 +196,16 @@ public class SpillableMemoryManager implements NotificationListener {
             return;
         }
         synchronized(spillables) {
-            /**
-             * Store a reference to a spillable and its size into a stable
-             * list so that the sort is stable (a Java 7 contract).
-             * Between the time we sort and we use these spillables, they
-             * may actually change in size.
-             */
-            spillablesSR = new LinkedList<SpillablePtr>();
-            for (Iterator<WeakReference<Spillable>> i = spillables.iterator(); i.hasNext();) {
-                // Check that the object still exists before adding to the Strong Referenced list.
-                Spillable s = i.next().get();
-                if (s == null) {
-                    i.remove();
-                    continue;
-                }
-                // Get a ptr to the spillable and its current size.
-                // we need a stable size for sorting.
-                spillablesSR.add(new SpillablePtr(s, s.getMemorySize()));
-            }
-            log.debug("Spillables list size: " + spillablesSR.size());
-            Collections.sort(spillablesSR, new Comparator<SpillablePtr>() {
-                // Sort the list in descending order. We spill the biggest items first,
-                // and only as many as we need to to reduce memory usage
-                // below the threshold.
+            Collections.sort(spillables, new Comparator<WeakReference<Spillable>>() {
+
+                /**
+                 * We don't lock anything, so this sort may not be stable if a WeakReference suddenly
+                 * becomes null, but it will be close enough.
+                 * Also between the time we sort and we use these spillables, they
+                 * may actually change in size - so this is just best effort
+                 */    
                 @Override
-                public int compare(SpillablePtr o1Ref, SpillablePtr o2Ref) {
+                public int compare(WeakReference<Spillable> o1Ref, WeakReference<Spillable> o2Ref) {
                     Spillable o1 = o1Ref.get();
                     Spillable o2 = o2Ref.get();
                     if (o1 == null && o2 == null) {
@@ -237,64 +231,77 @@ public class SpillableMemoryManager implements NotificationListener {
             });
             long estimatedFreed = 0;
             int numObjSpilled = 0;
-            /*
-             * Before PIG-3979, Pig invoke System.gc inside this hook,
-             * but calling gc from within a gc notification seems to cause a lot of gc activity.
-             * More accurately, on Java implementations in which System.gc() does force a gc,
-             * this causes a lot of looping. On systems in which System.gc() is just a suggestion,
-             * relying on the outcome of the System.gc() call is a mistake.
-             *
-             * Therefore, this version of the code does away with attempts to guess what happens
-             * what we call s.spill(). For POPartionAgg spillables, the call tells the spillable
-             * to reduce itself. No data is necessarily written to disk. 
-             */
-            for (Iterator<SpillablePtr> i = spillablesSR.iterator(); i.hasNext();) {
-                SpillablePtr sPtr = i.next();
-                long toBeFreed = sPtr.getMemorySize();
+            boolean invokeGC = false;
+            boolean extraGCCalled = false;
+            for (Iterator<WeakReference<Spillable>> i = spillables.iterator(); i.hasNext();) {
+                WeakReference<Spillable> weakRef = i.next();
+                Spillable s = weakRef.get();
+                // Still need to check for null here, even after we removed
+                // above, because the reference may have gone bad on us
+                // since the last check.
+                if (s == null) {
+                    i.remove();
+                    continue;
+                }
+                long toBeFreed = s.getMemorySize();
                 log.debug("Memorysize = "+toBeFreed+", spillFilesizethreshold = "+spillFileSizeThreshold+", gcactivationsize = "+gcActivationSize);
                 // Don't keep trying if the rest of files are too small
                 if (toBeFreed < spillFileSizeThreshold) {
                     log.debug("spilling small files - getting out of memory handler");
                     break ;
                 }
-                Spillable s = sPtr.get();
-                if (s != null)
-                    s.spill();
+                // If single Spillable is bigger than the threshold,
+                // we force GC to make sure we really need to keep this
+                // object before paying for the expensive spill().
+                // Done at most once per handleNotification.
+                if( !extraGCCalled && extraGCSpillSizeThreshold != 0
+                    && toBeFreed > extraGCSpillSizeThreshold   ) {
+                    log.debug("Single spillable has size " + toBeFreed + "bytes. Calling extra gc()");
+                    // this extra assignment to null is needed so that gc can free the
+                    // spillable if nothing else is pointing at it
+                    s = null;
+                    System.gc();
+                    extraGCCalled = true;
+                    // checking again to see if this reference is still valid
+                    s = weakRef.get();
+                    if (s == null) {
+                        i.remove();
+                        accumulatedFreeSize = 0;
+                        invokeGC = false;
+                        continue;
+                    }
+                }
+                s.spill();               
                 numObjSpilled++;
                 estimatedFreed += toBeFreed;
-
+                accumulatedFreeSize += toBeFreed;
+                // This should significantly reduce the number of small files
+                // in case that we have a lot of nested bags
+                if (accumulatedFreeSize > gcActivationSize) {
+                    invokeGC = true;
+                }
+                
                 if (estimatedFreed > toFree) {
                     log.debug("Freed enough space - getting out of memory handler");
+                    invokeGC = true;
                     break;
                 }
+            }           
+            /* Poke the GC again to see if we successfully freed enough memory */
+            if(invokeGC) {
+                System.gc();
+                // now that we have invoked the GC, reset accumulatedFreeSize
+                accumulatedFreeSize = 0;
             }
-            // We are done with the strongly referenced list of spillables
-            spillablesSR = null;
-
-            if (estimatedFreed > 0) {
+            if(estimatedFreed > 0){
                 String msg = "Spilled an estimate of " + estimatedFreed +
                 " bytes from " + numObjSpilled + " objects. " + info.getUsage();;
-                log.debug(msg);
+                log.info(msg);
             }
 
         }
     }
     
-    public static class SpillablePtr {
-        private WeakReference<Spillable> spillable;
-        private long size;
-        SpillablePtr(Spillable p, long s) {
-            spillable = new WeakReference<Spillable>(p);
-            size = s;
-        }
-        public Spillable get() {
-            return spillable.get();
-        }
-        public long getMemorySize() {
-            return size;
-        }
-    }
-
     public void clearSpillables() {
         synchronized (spillables) {
             // Walk the list first and remove nulls, otherwise the sort
@@ -315,7 +322,7 @@ public class SpillableMemoryManager implements NotificationListener {
      */
     public void registerSpillable(Spillable s) {
         synchronized(spillables) {
-            // Cleaning the entire list is too expensive.  Just trim off the front while
+            // Cleaing the entire list is too expensive.  Just trim off the front while
             // we can.
             WeakReference<Spillable> first = spillables.peek();
             while (first != null && first.get() == null) {
