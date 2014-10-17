@@ -81,6 +81,9 @@ public class XPath extends EvalFunc<String> {
         try {
 
             final String xml = (String) input.get(0);
+            if (xml == null) {
+                return null;
+            }
             
             if(input.size() > 2)
                 cache = (Boolean) input.get(2);

@@ -34,7 +34,7 @@ public class HashFNV2 extends HashFNV {
             String msg = "HashFNV : Only 2 parameters are allowed.";
             throw new IOException(msg);
         }
-        if (input.get(0)==null)
+        if (input.get(0)==null || input.get(1)==null)
             return null;
         try {
             mMod = (Integer)input.get(1);

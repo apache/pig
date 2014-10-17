@@ -67,7 +67,7 @@ public class LongAbs extends EvalFunc<Long>{
 	 * @param output returns a single numeric value, absolute value of the argument
 	 */
 	public Long exec(Tuple input) throws IOException {
-        if (input == null || input.size() == 0)
+        if (input == null || input.size() == 0 || input.get(0) == null)
             return null;
 
         Long d;
