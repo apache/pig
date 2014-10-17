@@ -62,7 +62,7 @@ public class DoubleSignum extends EvalFunc<Double>{
 	 */
 	@Override
 	public Double exec(Tuple input) throws IOException {
-        if (input == null || input.size() == 0)
+        if (input == null || input.size() == 0 || input.get(0) == null)
             return null;
 
         try{

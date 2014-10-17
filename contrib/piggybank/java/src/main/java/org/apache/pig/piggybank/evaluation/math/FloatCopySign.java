@@ -67,6 +67,9 @@ public class FloatCopySign extends EvalFunc<Float>{
 	public Float exec(Tuple input) throws IOException {
         if (input == null || input.size() < 2)
             return null;
+        if (input.get(0) == null || input.get(1) == null) {
+            return null;
+        }
 		try{
 			float first =  (Float)input.get(0);
 			float second = (Float)input.get(1);

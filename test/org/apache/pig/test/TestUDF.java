@@ -20,6 +20,7 @@ package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -317,6 +318,33 @@ public class TestUDF {
             Schema s1 = new Schema(new Schema.FieldSchema(null,DataType.INTEGER));
             l.add(new FuncSpec(this.getClass().getName(), s1));
             return l;
+        }
+    }
+
+    @Test
+    // See PIG-4184
+    public void testUDFNullInput() throws Exception {
+        PigServer pig = new PigServer(ExecType.LOCAL);
+        File inputFile = Util.createInputFile("tmp", "", 
+                new String[] {"\t", "2\t3"});
+        pig.registerQuery("a = load '"
+                + Util.generateURI(Util.encodeEscape(inputFile.toString()), pig.getPigContext())
+                + "' as (i1:int, i2:int);");
+        pig.registerQuery("b = foreach a generate " + IntToBool.class.getName() + "(i1);");
+
+        Iterator<Tuple> iter = pig.openIterator("b");
+        assertEquals(iter.next().toString(), "(false)");
+        assertEquals(iter.next().toString(), "(true)");
+        assertFalse(iter.hasNext());
+    }
+
+    public static class IntToBool extends EvalFunc<Boolean> {
+        @Override
+        public Boolean exec(Tuple input) throws IOException {
+            if (input == null || input.size() == 0)
+                return null;
+            Integer val = (Integer)input.get(0);
+            return (val == null || val == 0) ? false : true;
         }
     }
 }

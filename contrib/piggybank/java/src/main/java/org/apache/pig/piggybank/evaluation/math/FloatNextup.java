@@ -61,7 +61,7 @@ public class FloatNextup extends EvalFunc<Float>{
      * @param output returns a single numeric value, nextup value of the argument
      */
     public Float exec(Tuple input) throws IOException {
-        if (input == null || input.size() == 0)
+        if (input == null || input.size() == 0 || input.get(0) == null)
             return null;
         Float d;
         try{
