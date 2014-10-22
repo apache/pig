@@ -24,6 +24,8 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.JVMReuseManager;
+import org.apache.pig.StaticDataCleanup;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -100,7 +102,7 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     // Will be used by operators to report status or transmit heartbeat
     // Should be set by the backends to appropriate implementations that
     // wrap their own version of a reporter.
-    public static ThreadLocal<PigProgressable> reporter = new ThreadLocal<PigProgressable>();
+    protected static ThreadLocal<PigProgressable> reporter = new ThreadLocal<PigProgressable>();
 
     // Will be used by operators to aggregate warning messages
     // Should be set by the backends to appropriate implementations that
@@ -119,6 +121,10 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     private transient boolean accumStart;
 
     private List<OriginalLocation> originalLocations =  new ArrayList<OriginalLocation>();
+
+    static {
+        JVMReuseManager.getInstance().registerForStaticDataCleanup(PhysicalOperator.class);
+    }
 
     public PhysicalOperator(OperatorKey k) {
         this(k, -1, null);
@@ -449,6 +455,11 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
      */
     public static void setReporter(PigProgressable reporter) {
         PhysicalOperator.reporter.set(reporter);
+    }
+
+    @StaticDataCleanup
+    public static void staticDataCleanup() {
+        reporter = new ThreadLocal<PigProgressable>();
     }
 
     /**

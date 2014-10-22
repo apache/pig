@@ -21,6 +21,8 @@ package org.apache.pig.tools.pigstats;
 import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.StatusReporter;
 import org.apache.hadoop.util.Progressable;
+import org.apache.pig.JVMReuseManager;
+import org.apache.pig.StaticDataCleanup;
 import org.apache.pig.backend.hadoop.executionengine.TaskContext;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
@@ -33,6 +35,15 @@ public class PigStatusReporter extends StatusReporter implements Progressable {
 
     private TaskContext<?> context = null;
 
+    static {
+        JVMReuseManager.getInstance().registerForStaticDataCleanup(PigStatusReporter.class);
+    }
+
+    @StaticDataCleanup
+    public static void staticDataCleanup() {
+        reporter = null;
+    }
+
     private PigStatusReporter() {
     }
 
@@ -44,10 +55,6 @@ public class PigStatusReporter extends StatusReporter implements Progressable {
             reporter = new PigStatusReporter();
         }
         return reporter;
-    }
-
-    public void destroy() {
-        context = null;
     }
 
     public void setContext(TaskContext<?> context) {
