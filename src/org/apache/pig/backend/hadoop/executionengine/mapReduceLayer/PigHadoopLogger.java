@@ -56,17 +56,11 @@ public final class PigHadoopLogger implements PigLogger {
         return logger;
     }
 
-    public void destroy() {
-        if (reporter != null) {
-            reporter.destroy();
-        }
-        reporter = null;
-    }
-
     public void setReporter(PigStatusReporter reporter) {
         this.reporter = reporter;
     }
 
+    @Override
     @SuppressWarnings("rawtypes")
     public void warn(Object o, String msg, Enum warningEnum) {
         String className = o.getClass().getName();

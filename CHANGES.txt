@@ -34,6 +34,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4039: New interface for resetting static variables for jvm reuse (rohini)
+
 PIG-3870: STRSPLITTOBAG UDF (cryptoe via daijy)
 
 PIG-4080: Add Preprocessor commands and more to the black/whitelisting feature (prkommireddi via daijy)

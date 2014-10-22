@@ -30,7 +30,9 @@ import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.pig.JVMReuseManager;
 import org.apache.pig.PigException;
+import org.apache.pig.StaticDataCleanup;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
@@ -99,6 +101,17 @@ public class PigGenericMapReduce {
     public static Configuration sJobConf = null;
 
     public static ThreadLocal<Configuration> sJobConfInternal = new ThreadLocal<Configuration>();
+
+    static {
+        JVMReuseManager.getInstance().registerForStaticDataCleanup(PigGenericMapReduce.class);
+    }
+
+    @StaticDataCleanup
+    public static void staticDataCleanup() {
+        sJobContext = null;
+        sJobConf = null;
+        sJobConfInternal = new ThreadLocal<Configuration>();
+    }
 
     public static class Map extends PigMapBase {
 
