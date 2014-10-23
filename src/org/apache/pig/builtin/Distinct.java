@@ -22,6 +22,9 @@ import java.io.IOException;
 
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
+import org.apache.pig.JVMReuseManager;
+import org.apache.pig.PigConfiguration;
+import org.apache.pig.StaticDataCleanup;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.data.BagFactory;
@@ -38,35 +41,35 @@ import org.apache.pig.data.TupleFactory;
  */
 public class Distinct  extends EvalFunc<DataBag> implements Algebraic {
 
-    private static BagFactory bagFactory = BagFactory.getInstance();
     private static TupleFactory tupleFactory = TupleFactory.getInstance();
-    /* (non-Javadoc)
-     * @see org.apache.pig.EvalFunc#exec(org.apache.pig.data.Tuple)
-     */
+    private static boolean initialized = false;
+    private static boolean useDefaultBag = false;
+
+    static {
+        JVMReuseManager.getInstance().registerForStaticDataCleanup(Distinct.class);
+    }
+
+    @StaticDataCleanup
+    public static void staticDataCleanup() {
+        initialized = false;
+        useDefaultBag = false;
+    }
+
     @Override
     public DataBag exec(Tuple input) throws IOException {
         return getDistinct(input);
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.Algebraic#getFinal()
-     */
     @Override
     public String getFinal() {
         return Final.class.getName();
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.Algebraic#getInitial()
-     */
     @Override
     public String getInitial() {
         return Initial.class.getName();
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.Algebraic#getIntermed()
-     */
     @Override
     public String getIntermed() {
         return Intermediate.class.getName();
@@ -74,13 +77,10 @@ public class Distinct  extends EvalFunc<DataBag> implements Algebraic {
 
     static public class Initial extends EvalFunc<Tuple> {
 
-        /* (non-Javadoc)
-         * @see org.apache.pig.EvalFunc#exec(org.apache.pig.data.Tuple)
-         */
         @Override
         public Tuple exec(Tuple input) throws IOException {
             // the input has  a single field which is a tuple
-            // representing the data we want to distinct. 
+            // representing the data we want to distinct.
             // unwrap, put in a bag and send down
             try {
                 Tuple single = (Tuple)input.get(0);
@@ -94,9 +94,6 @@ public class Distinct  extends EvalFunc<DataBag> implements Algebraic {
 
     static public class Intermediate extends EvalFunc<Tuple> {
 
-        /* (non-Javadoc)
-         * @see org.apache.pig.EvalFunc#exec(org.apache.pig.data.Tuple)
-         */
         @Override
         public Tuple exec(Tuple input) throws IOException {
             return tupleFactory.newTuple(getDistinctFromNestedBags(input, this));
@@ -105,30 +102,27 @@ public class Distinct  extends EvalFunc<DataBag> implements Algebraic {
 
     static public class Final extends EvalFunc<DataBag> {
 
-        /* (non-Javadoc)
-         * @see org.apache.pig.EvalFunc#exec(org.apache.pig.data.Tuple)
-         */
         @Override
         public DataBag exec(Tuple input) throws IOException {
             return getDistinctFromNestedBags(input, this);
         }
     }
-    
-    static private DataBag createDataBag() {
-    	// by default, we create InternalSortedBag, unless user configures
-		// explicitly to use old bag
-    	String bagType = null;
-        if (PigMapReduce.sJobConfInternal.get() != null) {     
-   			bagType = PigMapReduce.sJobConfInternal.get().get("pig.cachedbag.distinct.type");       			
-   	    }
-                      
-    	if (bagType != null && bagType.equalsIgnoreCase("default")) {        	    	
-        	return BagFactory.getInstance().newDistinctBag();    			
-   	    } else {   	    	
-   	    	return new InternalDistinctBag(3);
-	    }
+
+    private static DataBag createDataBag() {
+        if (!initialized) {
+            initialized = true;
+            if (PigMapReduce.sJobConfInternal.get() != null) {
+                String bagType = PigMapReduce.sJobConfInternal.get().get(PigConfiguration.PIG_CACHEDBAG_DISTINCT_TYPE);
+                if (bagType != null && bagType.equalsIgnoreCase("default")) {
+                    useDefaultBag = true;
+                }
+            }
+        }
+        // by default, we create InternalDistinctBag, unless user configures
+        // explicitly to use old bag
+        return useDefaultBag ? BagFactory.getInstance().newDistinctBag() : new InternalDistinctBag(3);
     }
-    
+
     static private DataBag getDistinctFromNestedBags(Tuple input, EvalFunc evalFunc) throws IOException {
         DataBag result = createDataBag();
         long progressCounter = 0;
@@ -144,7 +138,7 @@ public class Distinct  extends EvalFunc<DataBag> implements Algebraic {
                 for (Tuple t : (DataBag)tuple.get(0)) {
                     result.add(t);
                     ++progressCounter;
-                    if((progressCounter % 1000) == 0){                      
+                    if((progressCounter % 1000) == 0){
                         evalFunc.progress();
                     }
                 }
@@ -154,7 +148,7 @@ public class Distinct  extends EvalFunc<DataBag> implements Algebraic {
         }
         return result;
     }
-    
+
     protected DataBag getDistinct(Tuple input) throws IOException {
         try {
             DataBag inputBg = (DataBag)input.get(0);

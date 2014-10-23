@@ -104,6 +104,8 @@ public class POPartialAgg extends PhysicalOperator implements Spillable {
     private transient MemoryLimits memLimits;
 
     private transient boolean initialized = false;
+    private int minOutputReduction;
+    private float percentUsage;
     private int firstTierThreshold = FIRST_TIER_THRESHOLD;
     private int secondTierThreshold = SECOND_TIER_THRESHOLD;
     private int sizeReduction = 1;
@@ -118,8 +120,22 @@ public class POPartialAgg extends PhysicalOperator implements Spillable {
 
     private void init() throws ExecException {
         ALL_POPARTS.put(this, null);
-        float percent = getPercentUsageFromProp();
-        if (percent <= 0) {
+        percentUsage = 0.2F;
+        if (PigMapReduce.sJobConfInternal.get() != null) {
+            String usage = PigMapReduce.sJobConfInternal.get().get(
+                    PigConfiguration.PIG_CACHEDBAG_MEMUSAGE);
+            if (usage != null) {
+                percentUsage = Float.parseFloat(usage);
+            }
+            minOutputReduction = PigMapReduce.sJobConfInternal.get().getInt(
+                    PigConfiguration.PARTAGG_MINREDUCTION, DEFAULT_MIN_REDUCTION);
+            if (minOutputReduction <= 0) {
+                LOG.info("Specified reduction is < 0 (" + minOutputReduction + "). Using default " +
+                        DEFAULT_MIN_REDUCTION);
+                minOutputReduction = DEFAULT_MIN_REDUCTION;
+            }
+        }
+        if (percentUsage <= 0) {
             LOG.info("No memory allocated to intermediate memory buffers. Turning off partial aggregation.");
             disableMapAgg();
         }
@@ -216,8 +232,7 @@ public class POPartialAgg extends PhysicalOperator implements Spillable {
         if (!mapAggDisabled()) {
             LOG.info("Getting mem limits; considering " + ALL_POPARTS.size() + " POPArtialAgg objects.");
 
-            float percent = getPercentUsageFromProp();
-            memLimits = new MemoryLimits(ALL_POPARTS.size(), percent);
+            memLimits = new MemoryLimits(ALL_POPARTS.size(), percentUsage);
             int estTotalMem = 0;
             int estTuples = 0;
             for (Map.Entry<Object, List<Tuple>> entry : rawInputMap.entrySet()) {
@@ -244,12 +259,11 @@ public class POPartialAgg extends PhysicalOperator implements Spillable {
         aggregateSecondLevel();
         int numAfterReduction = numRecsInProcessedMap + numRecsInRawMap;
         LOG.info("After reduction, processed map: " + numRecsInProcessedMap + "; raw map: " + numRecsInRawMap);
-        int minReduction = getMinOutputReductionFromProp();
         LOG.info("Observed reduction factor: from " + numBeforeReduction +
                 " to " + numAfterReduction +
                 " => " + numBeforeReduction / numAfterReduction + ".");
-        if ( numBeforeReduction / numAfterReduction < minReduction) {
-            LOG.info("Disabling in-memory aggregation, since observed reduction is less than " + minReduction);
+        if ( numBeforeReduction / numAfterReduction < minOutputReduction) {
+            LOG.info("Disabling in-memory aggregation, since observed reduction is less than " + minOutputReduction);
             disableMapAgg();
         }
         sizeReduction = numBeforeReduction / numAfterReduction;
@@ -423,29 +437,6 @@ public class POPartialAgg extends PhysicalOperator implements Spillable {
     public void visit(PhyPlanVisitor v) throws VisitorException {
         v.visitPartialAgg(this);
     }
-
-    private int getMinOutputReductionFromProp() {
-        int minReduction = PigMapReduce.sJobConfInternal.get().getInt(
-                PigConfiguration.PARTAGG_MINREDUCTION, DEFAULT_MIN_REDUCTION);
-        if (minReduction <= 0) {
-            LOG.info("Specified reduction is < 0 (" + minReduction + "). Using default " + DEFAULT_MIN_REDUCTION);
-            minReduction = DEFAULT_MIN_REDUCTION;
-        }
-        return minReduction;
-    }
-
-    private float getPercentUsageFromProp() {
-        float percent = 0.2F;
-        if (PigMapReduce.sJobConfInternal.get() != null) {
-            String usage = PigMapReduce.sJobConfInternal.get().get(
-                    PigConfiguration.PROP_CACHEDBAG_MEMUSAGE);
-            if (usage != null) {
-                percent = Float.parseFloat(usage);
-            }
-        }
-        return percent;
-    }
-
 
     private Result getResult(ExpressionOperator op) throws ExecException {
         Result res;

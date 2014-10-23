@@ -290,7 +290,7 @@ public class TestPOPartialAgg {
 
         PigMapReduce.sJobConfInternal.set(new Configuration());
         if (isMapMemEmpty) {
-            PigMapReduce.sJobConfInternal.get().set(PigConfiguration.PROP_CACHEDBAG_MEMUSAGE,
+            PigMapReduce.sJobConfInternal.get().set(PigConfiguration.PIG_CACHEDBAG_MEMUSAGE,
                     "0");
         }
 
