@@ -33,7 +33,14 @@ public class PigConfiguration {
      * Controls the fraction of total memory that is allowed to be used by
      * cached bags. Default is 0.2.
      */
-    public static final String PROP_CACHEDBAG_MEMUSAGE = "pig.cachedbag.memusage";
+    public static final String PIG_CACHEDBAG_MEMUSAGE = "pig.cachedbag.memusage";
+    
+    /**
+     * Configurations for specifying alternate implementations for cached bags
+     */
+    public static final String PIG_CACHEDBAG_TYPE = "pig.cachedbag.type";
+    public static final String PIG_CACHEDBAG_DISTINCT_TYPE = "pig.cachedbag.distinct.type";
+    public static final String PIG_CACHEDBAG_SORT_TYPE = "pig.cachedbag.sort.type";
 
 
     public static final String ACCUMULATIVE_BATCHSIZE = "pig.accumulative.batchsize";
