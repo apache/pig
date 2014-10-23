@@ -1651,10 +1651,48 @@ public class JobControlCompiler{
         // Turn on the symlink feature
         DistributedCache.createSymlink(conf);
 
-        // REGISTER always copies locally the jar file. see PigServer.registerJar()
-        Path pathInHDFS = shipToHDFS(pigContext, conf, url);
-        // and add to the DistributedCache
-        DistributedCache.addFileToClassPath(pathInHDFS, conf);
+        Path distCachePath = getExistingDistCacheFilePath(conf, url);
+        if (distCachePath != null) {
+            // Path already in dist cache
+            if (!HadoopShims.isHadoopYARN()) {
+                // Mapreduce in YARN includes $PWD/* which will add all *.jar files in classapth.
+                // So don't have to ensure that the jar is separately added to mapreduce.job.classpath.files
+                // But path may only be in 'mapred.cache.files' and not be in
+                // 'mapreduce.job.classpath.files' in Hadoop 1.x. So adding it there
+                DistributedCache.addFileToClassPath(distCachePath, conf, distCachePath.getFileSystem(conf));
+            }
+        }
+        else {
+            // REGISTER always copies locally the jar file. see PigServer.registerJar()
+            Path pathInHDFS = shipToHDFS(pigContext, conf, url);
+            // and add to the DistributedCache
+            DistributedCache.addFileToClassPath(pathInHDFS, conf, FileSystem.get(conf));
+        }
+
+    }
+
+    private static Path getExistingDistCacheFilePath(Configuration conf, URL url) throws IOException {
+        URI[] cacheFileUris = DistributedCache.getCacheFiles(conf);
+        if (cacheFileUris != null) {
+            String fileName = url.getRef() == null ? FilenameUtils.getName(url.getPath()) : url.getRef();
+            for (URI cacheFileUri : cacheFileUris) {
+                Path path = new Path(cacheFileUri);
+                String cacheFileName = cacheFileUri.getFragment() == null ? path.getName() : cacheFileUri.getFragment();
+                // Match
+                //     - if both filenames are same and no symlinks (or)
+                //     - if both symlinks are same (or)
+                //     - symlink of existing cache file is same as the name of the new file to be added.
+                //         That would be the case when hbase-0.98.4.jar#hbase.jar is configured via Oozie
+                // and register hbase.jar is done in the pig script.
+                // If two different files are symlinked to the same name, then there is a conflict
+                // and hadoop itself does not guarantee which file will be symlinked to that name.
+                // So we are good.
+                if (fileName.equals(cacheFileName)) {
+                    return path;
+                }
+            }
+        }
+        return null;
     }
 
     private static Path getCacheStagingDir(Configuration conf) throws IOException {
