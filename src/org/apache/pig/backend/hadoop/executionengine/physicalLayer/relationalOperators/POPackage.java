@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -76,16 +77,14 @@ public class POPackage extends PhysicalOperator {
     protected static final BagFactory mBagFactory = BagFactory.getInstance();
     protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
 
-    private boolean firstTime = true;
-
-    private boolean useDefaultBag = false;
-
     private boolean lastBagReadOnly = true;
 
     protected Packager pkgr;
 
     protected PigNullableWritable keyWritable;
 
+    private transient boolean initialized;
+    private transient boolean useDefaultBag;
     private transient int accumulativeBatchSize;
 
     public POPackage(OperatorKey k) {
@@ -192,11 +191,11 @@ public class POPackage extends PhysicalOperator {
      */
     @Override
     public Result getNextTuple() throws ExecException {
-        if(firstTime){
-            firstTime = false;
+        if (!initialized) {
+            initialized = true;
             if (PigMapReduce.sJobConfInternal.get() != null) {
                 String bagType = PigMapReduce.sJobConfInternal.get().get(
-                        "pig.cachedbag.type");
+                        PigConfiguration.PIG_CACHEDBAG_TYPE);
                 if (bagType != null && bagType.equalsIgnoreCase("default")) {
                     useDefaultBag = true;
                 }

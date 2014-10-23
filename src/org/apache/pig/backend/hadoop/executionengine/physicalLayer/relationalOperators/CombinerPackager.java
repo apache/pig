@@ -20,6 +20,7 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOp
 import java.util.Arrays;
 import java.util.Map;
 
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -48,6 +49,9 @@ public class CombinerPackager extends Packager {
     private Map<Integer, Integer> keyLookup;
 
     private int numBags;
+    
+    private transient boolean initialized;
+    private transient boolean useDefaultBag;
 
     /**
      * A new POPostCombinePackage will be constructed as a near clone of the
@@ -91,15 +95,16 @@ public class CombinerPackager extends Packager {
     }
 
     private DataBag createDataBag(int numBags) {
-        String bagType = null;
-        if (PigMapReduce.sJobConfInternal.get() != null) {
-            bagType = PigMapReduce.sJobConfInternal.get().get("pig.cachedbag.type");
+        if (!initialized) {
+            initialized = true;
+            if (PigMapReduce.sJobConfInternal.get() != null) {
+                String bagType = PigMapReduce.sJobConfInternal.get().get(PigConfiguration.PIG_CACHEDBAG_TYPE);
+                if (bagType != null && bagType.equalsIgnoreCase("default")) {
+                    useDefaultBag = true;
+                }
+            }
         }
-
-        if (bagType != null && bagType.equalsIgnoreCase("default")) {
-            return new NonSpillableDataBag();
-        }
-        return new InternalCachedBag(numBags);
+        return useDefaultBag ? new NonSpillableDataBag() : new InternalCachedBag(numBags);
     }
 
     @Override

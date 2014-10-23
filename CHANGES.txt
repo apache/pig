@@ -34,6 +34,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-3456: Reduce threadlocal conf access in backend for each record (rohini)
+
 PIG-3861: duplicate jars get added to distributed cache (chitnis via rohini)
 
 PIG-4039: New interface for resetting static variables for jvm reuse (rohini)

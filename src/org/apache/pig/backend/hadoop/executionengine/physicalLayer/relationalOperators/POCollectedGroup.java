@@ -19,8 +19,8 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOp
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Iterator;
 
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -38,9 +38,6 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.pen.util.ExampleTuple;
-import org.apache.pig.pen.util.LineageTracer;
-import org.apache.pig.impl.util.IdentityHashSet;
 
 /**
  * The collected group operator is a special operator used when users give
@@ -71,7 +68,7 @@ public class POCollectedGroup extends PhysicalOperator {
 
     private Object prevKey = null;
 
-    private boolean useDefaultBag = false;
+    private transient boolean useDefaultBag;
 
     public POCollectedGroup(OperatorKey k) {
         this(k, -1, null);
@@ -172,7 +169,7 @@ public class POCollectedGroup extends PhysicalOperator {
             if (prevKey == null && outputBag == null) {
 
                 if (PigMapReduce.sJobConfInternal.get() != null) {
-                    String bagType = PigMapReduce.sJobConfInternal.get().get("pig.cachedbag.type");
+                    String bagType = PigMapReduce.sJobConfInternal.get().get(PigConfiguration.PIG_CACHEDBAG_TYPE);
                     if (bagType != null && bagType.equalsIgnoreCase("default")) {
                         useDefaultBag = true;
                     }
