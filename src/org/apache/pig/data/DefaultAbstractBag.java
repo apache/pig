@@ -187,19 +187,18 @@ public abstract class DefaultAbstractBag implements DataBag {
     private long totalSizeFromAvgTupleSize(long avgTupleSize, int numInMem) {
         long used = avgTupleSize * numInMem;
 
-        // add up the overhead for this object and other object variables
-        int bag_fix_size = 8 /* object header */
-        + 4 + 8 + 8 /* mLastContentsSize + mMemSize + mSize */
-        + 8 + 8 /* mContents ref  + mSpillFiles ref*/
-        + 4 /* +4 to round it to eight*/
-        + 36 /* mContents fixed */
-        ;
         long mFields_size =   roundToEight(4 + numInMem*4); /* mContents fixed + per entry */
         // in java hotspot 32bit vm, there seems to be a minimum bag size of 188 bytes
         // some of the extra bytes is probably from a minimum size of this array list
         mFields_size = Math.max(40, mFields_size);
 
-        used += bag_fix_size + mFields_size;
+        // the fixed overhead for this object and other object variables = 84 bytes
+        // 8 - object header
+        // 4 + 8 + 8 - sampled + aggSampleTupleSize + mSize
+        // 8 + 8 - mContents ref  + mSpillFiles ref
+        // 4 - spillableRegistered +4 instead of 1 to round it to eight
+        // 36 - mContents fixed
+        used += 84 + mFields_size;
 
         // add up overhead for mSpillFiles ArrayList, Object[] inside ArrayList,
         // object variable inside ArrayList and references to spill files
