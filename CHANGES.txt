@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-3861: duplicate jars get added to distributed cache (chitnis via rohini)
+
 PIG-4039: New interface for resetting static variables for jvm reuse (rohini)
 
 PIG-3870: STRSPLITTOBAG UDF (cryptoe via daijy)
