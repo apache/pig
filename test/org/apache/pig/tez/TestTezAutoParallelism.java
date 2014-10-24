@@ -225,6 +225,6 @@ public class TestTezAutoParallelism {
                 return false;
             }
         });
-        assertEquals(files.length, 5);
+        assertEquals(files.length, 4);
     }
 }
