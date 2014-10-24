@@ -18,6 +18,7 @@
 package org.apache.pig.builtin;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.pig.impl.util.JarManager;
@@ -29,6 +30,10 @@ public class FuncUtils {
      * @return list of containing jars
      */
     public static List<String> getShipFiles(Class[] classesIdentifyingJars) {
+        return getShipFiles(Arrays.asList(classesIdentifyingJars));
+    }
+
+    public static List<String> getShipFiles(List<Class> classesIdentifyingJars) {
         List<String> cacheFiles = new ArrayList<String>();
 
         for (Class clz : classesIdentifyingJars) {
