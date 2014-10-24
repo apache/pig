@@ -99,6 +99,12 @@ public class TestXMLLoader extends TestCase {
     inlineClosedTags.add(new String[] { "</events>"});
   }
 
+    public static ArrayList<String[]> indentedXmlWithMultilineLineContent = new ArrayList<String[]>();
+    static {
+        indentedXmlWithMultilineLineContent.add(new String[] { "    <page>You have " });
+        indentedXmlWithMultilineLineContent.add(new String[] { "not missed it</page>" });
+    }
+
   public void testShouldReturn0TupleCountIfSearchTagIsNotFound () throws Exception {
     String filename = TestHelper.createTempFile(data, "");
     PigServer pig = new PigServer(LOCAL);
@@ -353,6 +359,27 @@ public class TestXMLLoader extends TestCase {
      }
      assertEquals(4, tupleCount);
    }
+
+    public void testXMLLoaderShouldWorkWithIndentedXmlWithMultilineContent() throws Exception {
+        String filename = TestHelper.createTempFile(indentedXmlWithMultilineLineContent, "");
+        PigServer pig = new PigServer(LOCAL);
+        filename = filename.replace("\\", "\\\\");
+        String query = "A = LOAD '" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('page') as (doc:chararray);";
+        pig.registerQuery(query);
+        Iterator<?> it = pig.openIterator("A");
+        int tupleCount = 0;
+        while (it.hasNext()) {
+            Tuple tuple = (Tuple) it.next();
+            if (tuple == null)
+                break;
+            else {
+                System.out.println(((String) tuple.get(0)));
+                assertTrue(((String) tuple.get(0)).equals("<page>You have not missed it</page>"));
+                tupleCount++;
+            }
+        }
+        assertEquals(1, tupleCount);
+    }
 
    public void testXMLLoaderShouldReturnValidXML() throws Exception {
      String filename = TestHelper.createTempFile(inlineClosedTags, "");

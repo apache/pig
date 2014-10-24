@@ -26,7 +26,8 @@ IMPROVEMENTS
  
 BUG FIXES
 
-
+PIG-4242: For indented xmls with multiline content (e.g. wikipedia) XMLLoader cuts out the begining of every line
+ (holdfenytolvaj via daijy)
 
 Release 0.14.0 - Unreleased
  
