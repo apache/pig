@@ -639,7 +639,6 @@ public class JobControlCompiler{
                             }
                         }
                         if (!predeployed) {
-                            log.info("Adding jar to DistributedCache: " + jar);
                             putJarOnClassPathThroughDistributedCache(pigContext, conf, jar);
                         }
                     }
@@ -1653,6 +1652,8 @@ public class JobControlCompiler{
 
         Path distCachePath = getExistingDistCacheFilePath(conf, url);
         if (distCachePath != null) {
+            log.info("Jar file " + url + " already in DistributedCache as "
+                    + distCachePath + ". Not copying to hdfs and adding again");
             // Path already in dist cache
             if (!HadoopShims.isHadoopYARN()) {
                 // Mapreduce in YARN includes $PWD/* which will add all *.jar files in classapth.
@@ -1665,8 +1666,8 @@ public class JobControlCompiler{
         else {
             // REGISTER always copies locally the jar file. see PigServer.registerJar()
             Path pathInHDFS = shipToHDFS(pigContext, conf, url);
-            // and add to the DistributedCache
             DistributedCache.addFileToClassPath(pathInHDFS, conf, FileSystem.get(conf));
+            log.info("Added jar " + url + " to DistributedCache through " + pathInHDFS);
         }
 
     }
