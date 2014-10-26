@@ -1495,7 +1495,7 @@ public class TestGrunt {
         String[] lines = pri.stderrContents.split(System.getProperty("line.separator"));
         boolean found = false;
         for (String line : lines) {
-            if (line.matches(".*Adding jar to DistributedCache.*" + jarName + ".*")) {
+            if (line.matches(".*Added jar .*" + jarName + ".*")) {
                 // MR mode
                 found = true;
             } else if (line.matches(".*Local resource.*" + jarName + ".*")) {
