@@ -92,12 +92,27 @@ public class InputSizeReducerEstimator implements PigReducerEstimator {
         return reducers;
     }
 
+    static long getTotalInputFileSize(Configuration conf,
+            List<POLoad> lds, Job job) throws IOException {
+        return getTotalInputFileSize(conf, lds, job, Long.MAX_VALUE);
+    }
+
     /**
      * Get the input size for as many inputs as possible. Inputs that do not report
      * their size nor can pig look that up itself are excluded from this size.
+     * 
+     * @param conf Configuration
+     * @param lds List of POLoads
+     * @param job Job
+     * @param max Maximum value of total input size that will trigger exit. Many
+     * times we're only interested whether the total input size is greater than
+     * X or not. In such case, we can exit the function early as soon as the max
+     * is reached.
+     * @return
+     * @throws IOException
      */
     static long getTotalInputFileSize(Configuration conf,
-            List<POLoad> lds, Job job) throws IOException {
+            List<POLoad> lds, Job job, long max) throws IOException {
         long totalInputFileSize = 0;
         for (POLoad ld : lds) {
             long size = getInputSizeFromLoader(ld, job);
@@ -115,8 +130,14 @@ public class InputSizeReducerEstimator implements PigReducerEstimator {
                         FileStatus[] status = fs.globStatus(path);
                         if (status != null) {
                             for (FileStatus s : status) {
-                                totalInputFileSize += MapRedUtil.getPathLength(fs, s);
+                                totalInputFileSize += MapRedUtil.getPathLength(fs, s, max);
+                                if (totalInputFileSize > max) {
+                                    break;
+                                }
                             }
+                        } else {
+                            // If file is not found, we should report -1
+                            return -1;
                         }
                     } else {
                         // If we cannot estimate size of a location, we should report -1
