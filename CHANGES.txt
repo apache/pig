@@ -92,6 +92,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4241: Auto local mode mistakenly converts large jobs to local mode when using with Hive tables (cheolsoo)
+
 PIG-4184: UDF backward compatibility issue after POStatus.STATUS_NULL refactory (daijy)
 
 PIG-4238: Property 'pig.job.converted.fetch' should be unset when fetch finishes (lbendig)
