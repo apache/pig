@@ -445,8 +445,8 @@ public class JobControlCompiler{
             return false;
         }
 
-        long totalInputFileSize = InputSizeReducerEstimator.getTotalInputFileSize(conf, lds, job);
         long inputByteMax = conf.getLong(PigConfiguration.PIG_AUTO_LOCAL_INPUT_MAXBYTES, 100*1000*1000l);
+        long totalInputFileSize = InputSizeReducerEstimator.getTotalInputFileSize(conf, lds, job, inputByteMax);
         log.info("Size of input: " + totalInputFileSize +" bytes. Small job threshold: " + inputByteMax );
         if (totalInputFileSize < 0 || totalInputFileSize > inputByteMax) {
             return false;
@@ -1819,6 +1819,8 @@ public class JobControlCompiler{
             ArrayList<String> replicatedPath = new ArrayList<String>();
 
             FileSpec[] newReplFiles = new FileSpec[replFiles.length];
+            long maxSize = Long.valueOf(pigContext.getProperties().getProperty(
+                    PigConfiguration.PIG_JOIN_REPLICATED_MAX_BYTES, "1000000000"));
 
             // the first input is not replicated
             long sizeOfReplicatedInputs = 0;
@@ -1838,7 +1840,7 @@ public class JobControlCompiler{
                         Path path = new Path(replFiles[i].getFileName());
                         FileSystem fs = path.getFileSystem(conf);
                         sizeOfReplicatedInputs +=
-                                MapRedUtil.getPathLength(fs, fs.getFileStatus(path));
+                                MapRedUtil.getPathLength(fs, fs.getFileStatus(path), maxSize);
                     }
                     newReplFiles[i] = new FileSpec(symlink,
                             (replFiles[i] == null ? null : replFiles[i].getFuncSpec()));
@@ -1846,9 +1848,7 @@ public class JobControlCompiler{
 
                 join.setReplFiles(newReplFiles);
 
-                String maxSize = pigContext.getProperties().getProperty(
-                        PigConfiguration.PIG_JOIN_REPLICATED_MAX_BYTES, "1000000000");
-                if (sizeOfReplicatedInputs > Long.parseLong(maxSize)){
+                if (sizeOfReplicatedInputs > maxSize) {
                     throw new VisitorException("Replicated input files size: "
                             + sizeOfReplicatedInputs + " exceeds " +
                             PigConfiguration.PIG_JOIN_REPLICATED_MAX_BYTES + ": " + maxSize);

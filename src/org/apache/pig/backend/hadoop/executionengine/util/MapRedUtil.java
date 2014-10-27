@@ -293,11 +293,25 @@ public class MapRedUtil {
         }
     };
 
-    /**
-     * Returns the total number of bytes for this file,
-     * or if a directory all files in the directory.
-     */
     public static long getPathLength(FileSystem fs, FileStatus status)
+            throws IOException{
+        return getPathLength(fs, status, Long.MAX_VALUE);
+    }
+
+    /**
+     * Returns the total number of bytes for this file, or if a directory all
+     * files in the directory.
+     * 
+     * @param fs FileSystem
+     * @param status FileStatus
+     * @param max Maximum value of total length that will trigger exit. Many
+     * times we're only interested whether the total length of files is greater
+     * than X or not. In such case, we can exit the function early as soon as
+     * the max is reached.
+     * @return
+     * @throws IOException
+     */
+    public static long getPathLength(FileSystem fs, FileStatus status, long max)
             throws IOException {
         if (!status.isDir()) {
             return status.getLen();
@@ -306,7 +320,8 @@ public class MapRedUtil {
                     status.getPath(), hiddenFileFilter);
             long size = 0;
             for (FileStatus child : children) {
-                size += getPathLength(fs, child);
+                size += getPathLength(fs, child, max);
+                if (size > max) return size;
             }
             return size;
         }
