@@ -92,6 +92,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4252: Tez container reuse fail when using script udf (daijy)
+
 PIG-4241: Auto local mode mistakenly converts large jobs to local mode when using with Hive tables (cheolsoo)
 
 PIG-4184: UDF backward compatibility issue after POStatus.STATUS_NULL refactory (daijy)
