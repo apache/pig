@@ -110,9 +110,11 @@ public class SparkLauncher extends Launcher {
                 && System.getenv("BROADCAST_MASTER_IP") == null) {
             LOG.warn("Missing BROADCAST_POST/BROADCAST_HOST in the environment.");
         } else {
-            bcaster = new BroadCastServer();
-            bcaster.startBroadcastServer(Integer.parseInt(System
-                    .getenv("BROADCAST_PORT")));
+            if (bcaster == null) {
+                bcaster = new BroadCastServer();
+                bcaster.startBroadcastServer(Integer.parseInt(System
+                        .getenv("BROADCAST_PORT")));
+            }
         }
 
         startSparkIfNeeded();
