@@ -12,6 +12,7 @@ import com.google.common.collect.Lists;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.PigConstants;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.BackendException;
@@ -55,6 +56,7 @@ import org.apache.pig.data.SchemaTupleBackend;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.SparkStats;
 
@@ -89,26 +91,24 @@ public class SparkLauncher extends Launcher {
             PigContext pigContext) throws Exception {
         LOG.info("!!!!!!!!!!  Launching Spark (woot) !!!!!!!!!!!!");
         LOG.debug(physicalPlan);
-        Configuration c = SparkUtil.newJobConf(pigContext);
+        JobConf c = SparkUtil.newJobConf(pigContext);
         c.set(PigConstants.LOCAL_CODE_DIR, System.getProperty("java.io.tmpdir"));
 
         SchemaTupleBackend.initialize(c, pigContext);
-        // ///////
-        // stolen from MapReduceLauncher
+
+//        ObjectSerializer.serialize(c);
+        byte[] confBytes = KryoSerializer.serializeJobConf(c);
+
+        // Code pulled from MapReduceLauncher
         MRCompiler mrCompiler = new MRCompiler(physicalPlan, pigContext);
         mrCompiler.compile();
         MROperPlan plan = mrCompiler.getMRPlan();
         POPackageAnnotator pkgAnnotator = new POPackageAnnotator(plan);
         pkgAnnotator.visit();
-        // // this one: not sure
-        // KeyTypeDiscoveryVisitor kdv = new KeyTypeDiscoveryVisitor(plan);
-        // kdv.visit();
-
-        // ///////
 
         if (System.getenv("BROADCAST_PORT") == null
                 && System.getenv("BROADCAST_MASTER_IP") == null) {
-            LOG.error("Missing BROADCAST_POST/BROADCAST_HOST in the environment.");            
+            LOG.warn("Missing BROADCAST_POST/BROADCAST_HOST in the environment.");
         } else {
             bcaster = new BroadCastServer();
             bcaster.startBroadcastServer(Integer.parseInt(System
@@ -125,7 +125,8 @@ public class SparkLauncher extends Launcher {
         convertMap.put(POStore.class, new StoreConverter(pigContext));
         convertMap.put(POForEach.class, new ForEachConverter());
         convertMap.put(POFilter.class, new FilterConverter());
-        convertMap.put(POPackage.class, new PackageConverter());
+        convertMap.put(POPackage.class, new PackageConverter(confBytes
+        ));
         // convertMap.put(POCache.class, cacheConverter);
         convertMap.put(POLocalRearrange.class, new LocalRearrangeConverter());
         convertMap.put(POGlobalRearrange.class, new GlobalRearrangeConverter());
@@ -192,19 +193,20 @@ public class SparkLauncher extends Launcher {
                  */
             }
 
-            // For coarse-grained Mesos mode, tell it an upper bound on how many
-            // cores to grab in total;
-            // we conservatively set this to 32 unless the user set the
-            // SPARK_MAX_CPUS environment variable.
-            if (System.getenv("SPARK_MAX_CPUS") != null) {
-                int maxCores = 32;
-                maxCores = Integer.parseInt(System.getenv("SPARK_MAX_CPUS"));
-                System.setProperty("spark.cores.max", "" + maxCores);
-            }
-            System.setProperty("spark.cores.max", "1");
-            System.setProperty("spark.executor.memory", "" + "512m");
-            System.setProperty("spark.shuffle.memoryFraction", "0.0");
-            System.setProperty("spark.storage.memoryFraction", "0.0");
+//            // For coarse-grained Mesos mode, tell it an upper bound on how many
+//            // cores to grab in total;
+//            // we conservatively set this to 32 unless the user set the
+//            // SPARK_MAX_CPUS environment variable.
+//            if (System.getenv("SPARK_MAX_CPUS") != null) {
+//                int maxCores = 32;
+//                maxCores = Integer.parseInt(System.getenv("SPARK_MAX_CPUS"));
+//                System.setProperty("spark.cores.max", "" + maxCores);
+//            }
+//            System.setProperty("spark.cores.max", "1");
+//            System.setProperty("spark.executor.memory", "" + "512m");
+//            System.setProperty("spark.shuffle.memoryFraction", "0.0");
+//            System.setProperty("spark.storage.memoryFraction", "0.0");
+
             JavaSparkContext javaContext = new JavaSparkContext(master,
                     "Spork", sparkHome, jars.toArray(new String[jars.size()]));
             sparkContext = javaContext.sc();
