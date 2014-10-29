@@ -189,8 +189,6 @@ public class MultiQueryOptimizerTez extends TezOpPlanVisitor {
                 parentOper.outEdges.put(entry.getKey(), entry.getValue());
             }
         }
-        if (subPlanOper.isSampler()) {
-            parentOper.markSampler();
-        }
+        parentOper.copyFeatures(subPlanOper, null);
     }
 }

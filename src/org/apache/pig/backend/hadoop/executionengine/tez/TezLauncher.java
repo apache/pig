@@ -264,6 +264,9 @@ public class TezLauncher extends Launcher {
 
         public boolean notifyFinishedOrFailed() {
             DAGStatus dagStatus = runningJob.getDAGStatus();
+            if (dagStatus == null) {
+                return false;
+            }
             if (dagStatus.getState() == DAGStatus.State.SUCCEEDED) {
                 Map<Enum, Long> warningAggMap = new HashMap<Enum, Long>();
                 for (Vertex v : runningJob.getDAG().getVertices()) {
