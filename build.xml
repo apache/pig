@@ -104,6 +104,7 @@
     <property name="test.smoke.file" value="${test.src.dir}/smoke-tests"/>
     <property name="test.all.file" value="${test.src.dir}/all-tests"/>
     <property name="test.tez.file" value="${test.src.dir}/tez-tests"/>
+    <property name="test.spark.file" value="${test.src.dir}/spark-tests"/>
     <property name="test.exclude.file" value="${test.src.dir}/excluded-tests"/>
     <property name="test.exclude.file.20" value="${test.src.dir}/excluded-tests-20"/>
     <property name="test.exclude.file.23" value="${test.src.dir}/excluded-tests-23"/>
@@ -158,6 +159,10 @@
         <propertyreset name="src.shims.test.dir" value="${basedir}/shims/test/hadoop${hadoopversion}" />
         <propertyreset name="src.exclude.dir" value="" />
         <propertyreset name="test.exec.type" value="tez" />
+    </target>
+
+    <target name="setSparkEnv">
+      <propertyreset name="test.exec.type" value="spark" />
     </target>
 
     <target name="setWindowsPath" if="${isWindows}">
@@ -923,6 +928,11 @@
         <fail if="test-tez.failed">Tests failed!</fail>
     </target>
 	
+    <target name="test-spark" depends="setSparkEnv,setWindowsPath,setLinuxPath,compile-test,jar,debugger.check,jackson-pig-3039-test-download" description="Run spark unit tests">
+        <macro-test-runner test.file="${test.spark.file}" tests.failed="test-spark.failed"/>
+        <fail if="test-spark.failed">Tests failed!</fail>
+     </target>
+
     <target name="debugger.check" depends="debugger.set,debugger.unset"/>
     <target name="debugger.set" if="debugPort">
         <property name="debugArgs" value="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=${debugPort}"/>
