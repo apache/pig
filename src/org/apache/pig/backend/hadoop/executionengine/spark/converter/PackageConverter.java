@@ -7,10 +7,14 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
+import org.apache.pig.backend.hadoop.executionengine.spark.KryoSerializer;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.NullableTuple;
@@ -23,6 +27,13 @@ import org.apache.spark.rdd.RDD;
 public class PackageConverter implements POConverter<Tuple, Tuple, POPackage> {
     private static final Log LOG = LogFactory.getLog(PackageConverter.class);
 
+    private transient JobConf jobConf;
+    private byte[] confBytes;
+
+    public PackageConverter(byte[] confBytes) {
+        this.confBytes = confBytes;
+    }
+
     @Override
     public RDD<Tuple> convert(List<RDD<Tuple>> predecessors,
             POPackage physicalOperator) throws IOException {
@@ -30,7 +41,7 @@ public class PackageConverter implements POConverter<Tuple, Tuple, POPackage> {
         RDD<Tuple> rdd = predecessors.get(0);
         // package will generate the group from the result of the local
         // rearrange
-        return rdd.map(new PackageFunction(physicalOperator),
+        return rdd.map(new PackageFunction(physicalOperator, this.confBytes),
                 SparkUtil.getManifest(Tuple.class));
     }
 
@@ -38,13 +49,23 @@ public class PackageConverter implements POConverter<Tuple, Tuple, POPackage> {
             AbstractFunction1<Tuple, Tuple> implements Serializable {
 
         private final POPackage physicalOperator;
+        private byte[] confBytes;
 
-        public PackageFunction(POPackage physicalOperator) {
+        public PackageFunction(POPackage physicalOperator, byte[] confBytes) {
             this.physicalOperator = physicalOperator;
+            this.confBytes = confBytes;
+        }
+
+        void initializeJobConf() {
+            JobConf jobConf = KryoSerializer.deserializeJobConf(this.confBytes);
+            jobConf.set("pig.cachedbag.type", "default");
+            PigMapReduce.sJobConfInternal.set(jobConf);
         }
 
         @Override
         public Tuple apply(final Tuple t) {
+            initializeJobConf();
+
             // (key, Seq<Tuple>:{(index, key, value without key)})
             if (LOG.isDebugEnabled())
                 LOG.debug("PackageFunction in " + t);
