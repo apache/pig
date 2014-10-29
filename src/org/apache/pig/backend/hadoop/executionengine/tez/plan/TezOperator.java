@@ -125,8 +125,10 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     private String crossKey = null;
 
+    private boolean useMRMapSettings = false;
+
     // Types of blocking operators. For now, we only support the following ones.
-    private static enum OPER_FEATURE {
+    public static enum OPER_FEATURE {
         // Indicate if this job is a merge indexer
         INDEXER,
         // Indicate if this job is a sampling job
@@ -396,6 +398,17 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         feature.set(OPER_FEATURE.NATIVE.ordinal());
     }
 
+    public void copyFeatures(TezOperator copyFrom, List<OPER_FEATURE> excludeFeatures) {
+        for (OPER_FEATURE opf : OPER_FEATURE.values()) {
+            if (excludeFeatures != null && excludeFeatures.contains(opf)) {
+                continue;
+            }
+            if (copyFrom.feature.get(opf.ordinal())) {
+                feature.set(opf.ordinal());
+            }
+        }
+    }
+
     public void setNeedEstimatedQuantile(boolean needEstimateParallelism) {
         this.needEstimateParallelism = needEstimateParallelism;
     }
@@ -548,6 +561,14 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     public String getCrossKey() {
         return crossKey;
+    }
+
+    public boolean isUseMRMapSettings() {
+        return useMRMapSettings;
+    }
+
+    public void setUseMRMapSettings(boolean useMRMapSettings) {
+        this.useMRMapSettings = useMRMapSettings;
     }
 
     public int getVertexParallelism() {
