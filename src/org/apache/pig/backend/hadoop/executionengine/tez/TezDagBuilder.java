@@ -204,8 +204,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         Vertex to = null;
         try {
             if (!tezOp.isVertexGroup()) {
-                boolean isMap = (predecessors == null || predecessors.isEmpty()) ? true : false;
-                to = newVertex(tezOp, isMap);
+                to = newVertex(tezOp);
                 dag.addVertex(to);
             } else {
                 // For union, we construct VertexGroup after iterating the
@@ -409,7 +408,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 .serialize(new byte[] { combRearrange.getKeyType() }));
     }
 
-    private Vertex newVertex(TezOperator tezOp, boolean isMap) throws IOException,
+    private Vertex newVertex(TezOperator tezOp) throws IOException,
             ClassNotFoundException, InterruptedException {
         ProcessorDescriptor procDesc = ProcessorDescriptor.create(
                 tezOp.getProcessorName());
@@ -597,10 +596,10 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         procDesc.setUserPayload(userPayload);
 
         Vertex vertex = Vertex.create(tezOp.getOperatorKey().toString(), procDesc, tezOp.getVertexParallelism(),
-                isMap ? MRHelpers.getResourceForMRMapper(globalConf) : MRHelpers.getResourceForMRReducer(globalConf));
+                tezOp.isUseMRMapSettings() ? MRHelpers.getResourceForMRMapper(globalConf) : MRHelpers.getResourceForMRReducer(globalConf));
 
         Map<String, String> taskEnv = new HashMap<String, String>();
-        MRHelpers.updateEnvBasedOnMRTaskEnv(globalConf, taskEnv, isMap);
+        MRHelpers.updateEnvBasedOnMRTaskEnv(globalConf, taskEnv, tezOp.isUseMRMapSettings());
         vertex.setTaskEnvironment(taskEnv);
 
         // All these classes are @InterfaceAudience.Private in Hadoop. Switch to Tez methods in TEZ-1012
@@ -613,7 +612,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         MRApps.setupDistributedCache(globalConf, localResources);
         vertex.addTaskLocalFiles(localResources);
 
-        vertex.setTaskLaunchCmdOpts(isMap ? MRHelpers.getJavaOptsForMRMapper(globalConf)
+        vertex.setTaskLaunchCmdOpts(tezOp.isUseMRMapSettings() ? MRHelpers.getJavaOptsForMRMapper(globalConf)
                 : MRHelpers.getJavaOptsForMRReducer(globalConf));
 
         log.info("For vertex - " + tezOp.getOperatorKey().toString()
