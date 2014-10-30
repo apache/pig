@@ -787,6 +787,9 @@ public class FileLocalizer {
                                             boolean multipleFiles) throws IOException {
 
         Path path = new Path(filePath);
+        if (path.getName().isEmpty()) {
+            return new FetchFileRet[0];
+        }
         URI uri = path.toUri();
         Configuration conf = new Configuration();
         ConfigurationUtil.mergeConf(conf, ConfigurationUtil.toConfiguration(properties));

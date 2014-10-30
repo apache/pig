@@ -243,12 +243,24 @@ public class PigServer {
     private void addJarsFromProperties() throws ExecException {
         //add jars from properties to extraJars
         String jar_str = pigContext.getProperties().getProperty("pig.additional.jars");
+        if (jar_str==null) {
+            jar_str = "";
+        }
+        jar_str = jar_str.replaceAll(File.pathSeparator, ",");
+        if (!jar_str.isEmpty()) {
+            jar_str += ",";
+        }
+
+        String jar_str_comma = pigContext.getProperties().getProperty("pig.additional.jars.comma");
+        if (jar_str_comma!=null && !jar_str_comma.isEmpty()) {
+            jar_str = jar_str + jar_str_comma;
+        }
 
         if(jar_str != null){
             // Use File.pathSeparator (":" on Linux, ";" on Windows)
             // to correctly handle path aggregates as they are represented
             // on the Operating System.
-            for(String jar : jar_str.split(File.pathSeparator)){
+            for(String jar : jar_str.split(",")){
                 try {
                     registerJar(jar);
                 } catch (IOException e) {

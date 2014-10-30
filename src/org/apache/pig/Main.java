@@ -937,7 +937,7 @@ public class Main {
             System.out.println("            by this factor, it gets disabled.");
             System.out.println("    Miscellaneous:");
             System.out.println("        exectype=mapreduce|local; default is mapreduce. This property is the same as -x switch");
-            System.out.println("        pig.additional.jars=<colon seperated list of jars>. Used in place of register command.");
+            System.out.println("        pig.additional.jars.comma=<comma seperated list of jars>. Used in place of register command.");
             System.out.println("        udf.import.list=<comma seperated list of imports>. Used to avoid package names in UDF.");
             System.out.println("        stop.on.failure=true|false; default is false. Set to true to terminate on the first error.");
             System.out.println("        pig.datetime.default.tz=<UTC time offset>. e.g. +08:00. Default is the default timezone of the host.");
