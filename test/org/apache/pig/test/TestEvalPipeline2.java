@@ -354,7 +354,7 @@ public class TestEvalPipeline2 {
         ps.close();
 
         pigServer.registerQuery("A = LOAD '"
-                + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pigServer
+                + Util.generateURI(tmpFile.toString(), pigServer
                         .getPigContext()) + "' AS (num:int);");
         pigServer.registerQuery("B = order A by num parallel 2;");
         pigServer.registerQuery("C = limit B 10;");
@@ -383,7 +383,7 @@ public class TestEvalPipeline2 {
         ps.close();
 
         pigServer.registerQuery("A = LOAD '"
-                + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pigServer
+                + Util.generateURI(tmpFile.toString(), pigServer
                         .getPigContext()) + "' AS (num:int);");
         pigServer.registerQuery("B = order A by num parallel 2;");
         pigServer.registerQuery("C = limit B 10;");
@@ -416,7 +416,7 @@ public class TestEvalPipeline2 {
         ps.close();
 
         pigServer.registerQuery("A = LOAD '"
-                + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pigServer
+                + Util.generateURI(tmpFile.toString(), pigServer
                         .getPigContext()) + "' AS (num:int);");
         pigServer.registerQuery("B = order A by num desc parallel 2;");
         pigServer.registerQuery("C = limit B 10;");
@@ -463,8 +463,8 @@ public class TestEvalPipeline2 {
         ps2.println("2\t2");
         ps2.close();
 
-        pigServer.registerQuery("A = LOAD '" + Util.generateURI(Util.encodeEscape(tmpFile1.toString()), pigServer.getPigContext()) + "' AS (a0, a1, a2);");
-        pigServer.registerQuery("B = LOAD '" + Util.generateURI(Util.encodeEscape(tmpFile2.toString()), pigServer.getPigContext()) + "' AS (b0, b1);");
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile1.toString(), pigServer.getPigContext()) + "' AS (a0, a1, a2);");
+        pigServer.registerQuery("B = LOAD '" + Util.generateURI(tmpFile2.toString(), pigServer.getPigContext()) + "' AS (b0, b1);");
         pigServer.registerQuery("C = LIMIT B 100;");
         pigServer.registerQuery("D = COGROUP C BY b0, A BY a0 PARALLEL 2;");
         Iterator<Tuple> iter = pigServer.openIterator("D");

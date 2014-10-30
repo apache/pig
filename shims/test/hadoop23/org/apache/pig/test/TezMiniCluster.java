@@ -65,9 +65,7 @@ public class TezMiniCluster extends MiniGenericCluster {
             CONF_DIR.mkdirs();
 
             // Build mini DFS cluster
-            Configuration hdfsConf = new Configuration(false);
-            hdfsConf.addResource("core-default.xml");
-            hdfsConf.addResource("hdfs-default.xml");
+            Configuration hdfsConf = new Configuration();
             m_dfs = new MiniDFSCluster.Builder(hdfsConf)
                     .numDataNodes(2)
                     .format(true)

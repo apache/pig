@@ -133,7 +133,7 @@ public class TestRegisteredJarVisibility {
     @Test
     public void testRegisterJarVisibilityMR() throws IOException {
         PigServer pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
-        testRegisteredJarVisibility(pigServer, INPUT_FILE.getName());
+        testRegisteredJarVisibility(pigServer, INPUT_FILE.getAbsolutePath());
     }
 
     @Test
@@ -144,7 +144,7 @@ public class TestRegisteredJarVisibility {
 
     public void testRegisteredJarVisibility(PigServer pigServer, String inputPath) throws IOException {
         String query = "register " + jarFile.getAbsolutePath() + ";\n"
-                + "a = load '" + inputPath
+                + "a = load '" + Util.generateURI(inputPath, pigServer.getPigContext())
                 + "' using org.apache.pig.test.RegisteredJarVisibilityLoader();\n"
                 // register again to test classloader consistency
                 + "register " +  jarFile.getAbsolutePath() + ";\n"

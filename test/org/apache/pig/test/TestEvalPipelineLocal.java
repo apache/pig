@@ -107,7 +107,7 @@ public class TestEvalPipelineLocal {
         File f1 = createFile(new String[]{"a:1","b:1","a:1"});
 
         pigServer.registerQuery("a = load '"
-                + Util.generateURI(Util.encodeEscape(f1.toString()), pigServer.getPigContext())
+                + Util.generateURI(f1.toString(), pigServer.getPigContext())
                 + "' using " + PigStorage.class.getName() + "(':');");
         pigServer.registerQuery("b = foreach a generate 1-1/1;");
         Iterator<Tuple> iter  = pigServer.openIterator("b");
@@ -125,10 +125,10 @@ public class TestEvalPipelineLocal {
         File f2 = createFile(new String[]{"b","b","a"});
         
         pigServer.registerQuery("a = load '"
-                + Util.generateURI(Util.encodeEscape(f1.toString()), pigServer.getPigContext())
+                + Util.generateURI(f1.toString(), pigServer.getPigContext())
                 + "' using " + PigStorage.class.getName() + "(':');");
         pigServer.registerQuery("b = load '"
-                + Util.generateURI(Util.encodeEscape(f2.toString()), pigServer.getPigContext())
+                + Util.generateURI(f2.toString(), pigServer.getPigContext())
                 + "';");
         pigServer.registerQuery("c = cogroup a by $0, b by $0;");        
         pigServer.registerQuery("d = foreach c generate flatten($1),flatten($2);");
@@ -151,7 +151,7 @@ public class TestEvalPipelineLocal {
         pw.println("a");
         pw.close();
         pigServer.registerQuery("a = foreach (load '"
-                + Util.generateURI(Util.encodeEscape(f.toString()), pigServer.getPigContext())
+                + Util.generateURI(f.toString(), pigServer.getPigContext())
                 + "') generate 1, flatten(" + MyBagFunction.class.getName()
                 + "(*));");
 //        pigServer.registerQuery("b = foreach a generate $0, flatten($1);");
@@ -340,11 +340,11 @@ public class TestEvalPipelineLocal {
         expectedResults.put("conference", 1);
         
         pigServer.registerQuery("newsArticles = LOAD '"
-                + Util.generateURI(Util.encodeEscape(newsFile.toString()), pigServer
+                + Util.generateURI(newsFile.toString(), pigServer
                         .getPigContext()) + "' USING "
                 + TextLoader.class.getName() + "();");
         pigServer.registerQuery("queryLog = LOAD '"
-                + Util.generateURI(Util.encodeEscape(queryLogFile.toString()), pigServer
+                + Util.generateURI(queryLogFile.toString(), pigServer
                         .getPigContext()) + "';");
 
         pigServer.registerQuery("titleNGrams = FOREACH newsArticles GENERATE flatten(" + TitleNGrams.class.getName() + "(*));");
@@ -401,7 +401,7 @@ public class TestEvalPipelineLocal {
         
         String tmpOutputFile = FileLocalizer.getTemporaryPath(pigServer.getPigContext()).toString();
         pigServer.registerQuery("A = LOAD '"
-                + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pigServer
+                + Util.generateURI(tmpFile.toString(), pigServer
                         .getPigContext()) + "';");
         if (eliminateDuplicates){
             pigServer.registerQuery("B = DISTINCT (FOREACH A GENERATE $0) PARALLEL 10;");
@@ -448,7 +448,7 @@ public class TestEvalPipelineLocal {
         ps.close();
 
         pigServer.registerQuery("A = LOAD '"
-                + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pigServer
+                + Util.generateURI(tmpFile.toString(), pigServer
                         .getPigContext()) + "';");
         pigServer.registerQuery("B = group A by $0;");
         String query = "C = foreach B {"
@@ -488,7 +488,7 @@ public class TestEvalPipelineLocal {
         ps.close();
 
         pigServer.registerQuery("A = LOAD '"
-                + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pigServer
+                + Util.generateURI(tmpFile.toString(), pigServer
                         .getPigContext()) + "';");
         pigServer.registerQuery("B = group A by $0;");
         String query = "C = foreach B {"
@@ -530,7 +530,7 @@ public class TestEvalPipelineLocal {
         ps.close();
 
         pigServer.registerQuery("A = LOAD '"
-                + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pigServer
+                + Util.generateURI(tmpFile.toString(), pigServer
                         .getPigContext()) + "';");
         pigServer.registerQuery("B = limit A 5;");
         Iterator<Tuple> iter = pigServer.openIterator("B");
@@ -550,7 +550,7 @@ public class TestEvalPipelineLocal {
                 new String[] {"{(f1, f2),(f3, f4)}\t(1,2)\t[key1#value1,key2#value2]"});
         
         pigServer.registerQuery("a = load '"
-                + Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext())
+                + Util.generateURI(input.toString(), pigServer.getPigContext())
                 + "' using PigStorage() "
                 + "as (b:bag{t:tuple(x,y)}, t2:tuple(a,b), m:map[]);");
         pigServer.registerQuery("b = foreach a generate COUNT(b), t2.a, t2.b, m#'key1', m#'key2';");
@@ -564,7 +564,7 @@ public class TestEvalPipelineLocal {
         
         //test with BinStorage
         pigServer.registerQuery("a = load '"
-                + Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext())
+                + Util.generateURI(input.toString(), pigServer.getPigContext())
                 + "' using PigStorage() "
                 + "as (b:bag{t:tuple(x,y)}, t2:tuple(a,b), m:map[]);");
         String output = "./TestEvalPipeline-testComplexData";
@@ -781,7 +781,7 @@ public class TestEvalPipelineLocal {
         ps.close();
 
         pigServer.registerQuery("A = LOAD '"
-                + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pigServer
+                + Util.generateURI(tmpFile.toString(), pigServer
                         .getPigContext()) + "';");
         pigServer.registerQuery("B = foreach A generate "
                 + MapUDF.class.getName() + "($0) as mymap;"); // the argument
@@ -825,7 +825,7 @@ public class TestEvalPipelineLocal {
         ps.close();
 
         pigServer.registerQuery("A = LOAD '"
-                + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pigServer
+                + Util.generateURI(tmpFile.toString(), pigServer
                         .getPigContext()) + "';");
         pigServer.registerQuery("B = foreach A generate "
                 + MapUDF.class.getName() + "($0) as mymap;"); // the argument
@@ -873,7 +873,7 @@ public class TestEvalPipelineLocal {
         ps.close();
 
         pigServer.registerQuery("A = LOAD '"
-                + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pigServer
+                + Util.generateURI(tmpFile.toString(), pigServer
                         .getPigContext()) + "';");
         pigServer.registerQuery("B = group A by $0;");
         String query = "C = foreach B {"
@@ -916,7 +916,7 @@ public class TestEvalPipelineLocal {
         ps.close();
 
         pigServer.registerQuery("A = LOAD '"
-                + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pigServer
+                + Util.generateURI(tmpFile.toString(), pigServer
                         .getPigContext()) + "';");
         pigServer.registerQuery("B = distinct A;");
         String query = "C = foreach B {"
@@ -964,7 +964,7 @@ public class TestEvalPipelineLocal {
         ps.close();
 
         pigServer.registerQuery("A = LOAD '"
-                + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pigServer
+                + Util.generateURI(tmpFile.toString(), pigServer
                         .getPigContext()) + "';");
         pigServer.registerQuery("B = distinct A;");
         String query = "C = foreach B {"
@@ -1006,7 +1006,7 @@ public class TestEvalPipelineLocal {
         ps.close();
 
         pigServer.registerQuery("A = LOAD '"
-                + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pigServer
+                + Util.generateURI(tmpFile.toString(), pigServer
                         .getPigContext()) + "';");
         pigServer.registerQuery("B = distinct A ;"); //the argument does not matter
         pigServer.registerQuery("C = foreach B generate FLATTEN(" + Identity.class.getName() + "($0, $1));"); //the argument does not matter
@@ -1088,7 +1088,7 @@ public class TestEvalPipelineLocal {
     @Test
     public void testSetLocationCalledInFE() throws Exception {
         File f1 = createFile(new String[]{"a","b"});
-        pigServer.registerQuery("a = load '" + Util.generateURI(Util.encodeEscape(f1.toString()), pigServer.getPigContext())
+        pigServer.registerQuery("a = load '" + Util.generateURI(f1.toString(), pigServer.getPigContext())
                 + "' using " + SetLocationTestLoadFunc.class.getName()
                 + "();");
         pigServer.registerQuery("b = order a by $0;");
@@ -1101,7 +1101,7 @@ public class TestEvalPipelineLocal {
     @Test
     public void testGroupByTuple() throws Exception {
         File f1 = createFile(new String[]{"1\t2\t3","4\t5\t6"});
-        pigServer.registerQuery("a = load '" + Util.generateURI(Util.encodeEscape(f1.toString()), pigServer.getPigContext())
+        pigServer.registerQuery("a = load '" + Util.generateURI(f1.toString(), pigServer.getPigContext())
                 + "' as (x:int, y:int, z:int);");
         pigServer.registerQuery("b = foreach a generate TOTUPLE(x, y) as t, z;");
         pigServer.registerQuery("c = group b by t;");
@@ -1115,7 +1115,7 @@ public class TestEvalPipelineLocal {
     // See PIG-3060
     public void testFlattenEmptyBag() throws Exception {
         File f1 = createFile(new String[]{"2\t{}","3\t{(1),(2)}", "4\t{}"});
-        pigServer.registerQuery("A = load '" + Util.generateURI(Util.encodeEscape(f1.toString()), pigServer.getPigContext())
+        pigServer.registerQuery("A = load '" + Util.generateURI(f1.toString(), pigServer.getPigContext())
                 + "'  as (a0:int, a1:bag{(t:chararray)});");
         pigServer.registerQuery("B = group A by a0;");
         pigServer.registerQuery("C = foreach B { c1 = foreach A generate FLATTEN(a1); generate COUNT(c1);};");

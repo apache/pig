@@ -116,7 +116,7 @@ public class TestBlackAndWhitelistValidator {
 
             StringBuilder script = new StringBuilder();
             script.append("set io.sort.mb 1000;")
-            .append("%declare X `id`; ")
+            .append("%declare X `echo`; ")
             .append("%default input 'foo';")
                     .append("A = LOAD '$input' USING mock.Storage() AS (f1:chararray,f2:int,f3:chararray);")
                     .append("B = order A by f1,f2,f3 DESC;")

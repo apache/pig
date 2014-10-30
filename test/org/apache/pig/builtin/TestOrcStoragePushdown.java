@@ -22,8 +22,10 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -72,8 +74,8 @@ public class TestOrcStoragePushdown {
     private OrcStorage orcStorage;
 
     private static final String basedir = "test/org/apache/pig/builtin/orc/";
-    private static final String inpbasedir = System.getProperty("user.dir") + "/build/test/TestOrcStorage_in/";
-    private static final String outbasedir = System.getProperty("user.dir") + "/build/test/TestOrcStorage_out/";
+    private static final String inpbasedir = "build/test/TestOrcStorage_in/";
+    private static final String outbasedir = "build/test/TestOrcStorage_out/";
     private static String INPUT = inpbasedir + "TestOrcStorage_1";
     private static String OUTPUT1 = outbasedir + "TestOrcStorage_1";
     private static String OUTPUT2 = outbasedir + "TestOrcStorage_2";
@@ -125,7 +127,7 @@ public class TestOrcStoragePushdown {
         new File(inpbasedir).mkdirs();
         new File(outbasedir).mkdirs();
         String inputTxtFile = inpbasedir + File.separator + "input.txt";
-        BufferedWriter bw = new BufferedWriter(new FileWriter(inputTxtFile));
+        BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(inputTxtFile), "UTF-8"));
         long[] lVal = new long[] {100L, 200L, 300L};
         float[] fVal = new float[] {50.0f, 100.0f, 200.0f, 300.0f};
         double[] dVal = new double[] {1000.11, 2000.22, 3000.33};
@@ -164,8 +166,8 @@ public class TestOrcStoragePushdown {
         bw.close();
 
         // Store only 1000 rows in each row block (MIN_ROW_INDEX_STRIDE is 1000. So can't use less than that)
-        pigServer.registerQuery("A = load '" + inputTxtFile + "' as (f1:boolean, f2:int, f3:int, f4:int, f5:long, f6:float, f7:double, f8:bytearray, f9:chararray, f10:datetime, f11:bigdecimal);");
-        pigServer.registerQuery("store A into '" + INPUT +"' using OrcStorage('-r 1000 -s 100000');");
+        pigServer.registerQuery("A = load '" + Util.generateURI(inputTxtFile, pigServer.getPigContext()) + "' as (f1:boolean, f2:int, f3:int, f4:int, f5:long, f6:float, f7:double, f8:bytearray, f9:chararray, f10:datetime, f11:bigdecimal);");
+        pigServer.registerQuery("store A into '" + Util.generateURI(INPUT, pigServer.getPigContext()) +"' using OrcStorage('-r 1000 -s 100000');");
         Util.copyFromLocalToCluster(cluster, INPUT, INPUT);
     }
 
