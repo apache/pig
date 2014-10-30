@@ -328,7 +328,7 @@ public class TestUDF {
         File inputFile = Util.createInputFile("tmp", "", 
                 new String[] {"\t", "2\t3"});
         pig.registerQuery("a = load '"
-                + Util.generateURI(Util.encodeEscape(inputFile.toString()), pig.getPigContext())
+                + Util.generateURI(inputFile.toString(), pig.getPigContext())
                 + "' as (i1:int, i2:int);");
         pig.registerQuery("b = foreach a generate " + IntToBool.class.getName() + "(i1);");
 

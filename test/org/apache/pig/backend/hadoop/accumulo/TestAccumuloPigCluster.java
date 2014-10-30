@@ -93,6 +93,7 @@ public class TestAccumuloPigCluster {
     @AfterClass
     public static void stopClusters() throws Exception {
         accumuloCluster.stop();
+        Thread.sleep(5000);
         FileUtils.deleteDirectory(tmpdir);
     }
 

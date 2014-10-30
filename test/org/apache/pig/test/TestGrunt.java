@@ -1488,11 +1488,11 @@ public class TestGrunt {
                 });
         String scriptFileName = scriptFile.getAbsolutePath();
         String execTypeOptions = "-x " + cluster.getExecType() + " ";
-        String cmd = "java -cp " + System.getProperty("java.class.path") + ":" + jarFile +
+        String cmd = "java -cp " + System.getProperty("java.class.path") + File.pathSeparator + jarFile +
                 " org.apache.pig.Main " + execTypeOptions + scriptFileName;
         ProcessReturnInfo  pri  = Util.executeJavaCommandAndReturnInfo(cmd);
         assertEquals(pri.exitCode, 0);
-        String[] lines = pri.stderrContents.split(System.getProperty("line.separator"));
+        String[] lines = pri.stderrContents.split("\n");
         boolean found = false;
         for (String line : lines) {
             if (line.matches(".*Added jar .*" + jarName + ".*")) {

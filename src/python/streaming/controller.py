@@ -157,7 +157,14 @@ class PythonStreamingController:
         input_str = input_stream.readline()
 
         while input_str.endswith(END_RECORD_DELIM) == False:
-            input_str += input_stream.readline()
+            line = input_stream.readline()
+            if line == '':
+                input_str = ''
+                break
+            input_str += line
+
+        if input_str == '':
+            return END_OF_STREAM
 
         if input_str == TURN_ON_OUTPUT_CAPTURING:
             logging.debug("Turned on Output Capturing")

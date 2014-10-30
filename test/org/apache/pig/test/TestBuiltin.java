@@ -2854,6 +2854,8 @@ public class TestBuiltin {
     public void testURIwithCurlyBrace() throws Exception {
         String inputFileName = "input.txt";
         String inputFileName1 ="part-1";
+        Util.deleteFile(pigServer.getPigContext(), inputFileName);
+        Util.deleteFile(pigServer.getPigContext(), inputFileName1);
         String[] inputData = new String[] {
                 "1",
                 "a",

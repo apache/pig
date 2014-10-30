@@ -91,7 +91,7 @@ public class TestBZip {
         cos.close();
 
         pig.registerQuery("AA = load '"
-                + Util.generateURI(Util.encodeEscape(in.getAbsolutePath()), pig.getPigContext())
+                + Util.generateURI(in.getAbsolutePath(), pig.getPigContext())
                 + "';");
         pig.registerQuery("A = foreach (group (filter AA by $0 > 0) all) generate flatten($1);");
         pig.registerQuery("store A into '" + Util.encodeEscape(clusterOutput) + "';");
@@ -318,7 +318,7 @@ public class TestBZip {
         System.out.println(in.getAbsolutePath());
 
         pig.registerQuery("AA = load '"
-                + Util.generateURI(Util.encodeEscape(in.getAbsolutePath()), pig.getPigContext())
+                + Util.generateURI(in.getAbsolutePath(), pig.getPigContext())
                 + "';");
         pig.registerQuery("A=foreach (group (filter AA by $0 < '0') all) generate flatten($1);");
         pig.registerQuery("store A into '" + Util.encodeEscape(clusterOutputFilePath) + "';");
