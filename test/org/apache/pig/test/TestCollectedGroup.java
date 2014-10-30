@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.pig.CollectableLoadFunc;
+import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompilerException;
@@ -278,6 +279,43 @@ public class TestCollectedGroup {
                 pigServer.registerQuery("D = group A by *;");
                 pigServer.registerQuery("E = foreach D generate group, COUNT(A);");
                 Iterator<Tuple> iter = pigServer.openIterator("E");
+
+                while (iter.hasNext()) {
+                    dbshj.add(iter.next());
+                }
+            }
+            Assert.assertTrue(dbfrj.size()>0 && dbshj.size()>0);
+            Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail(e.getMessage());
+        }
+    }
+
+    @Test
+    public void testMapsideGroupWithMergeJoin() throws IOException{
+        pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
+        pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' using "+DummyCollectableLoader.class.getName() +"() as (id, name, grade);");
+        pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "' using "+DummyCollectableLoader.class.getName() +"() as (id, name, grade);");
+        try {
+            DataBag dbfrj = BagFactory.getInstance().newDefaultBag();
+            DataBag dbshj = BagFactory.getInstance().newDefaultBag();
+            {
+            	pigServer.registerQuery("C = join A by id, B by id using 'merge';");
+                pigServer.registerQuery("D = group C by A::id using 'collected';");
+                pigServer.registerQuery("E = foreach D generate group, COUNT(C);");
+                Iterator<Tuple> iter = pigServer.openIterator("E");
+
+                while (iter.hasNext()) {
+                    dbfrj.add(iter.next());
+                }
+            }
+            {
+            	pigServer.registerQuery("F = join A by id, B by id;");
+                pigServer.registerQuery("G = group F by A::id;");
+                pigServer.registerQuery("H = foreach G generate group, COUNT(F);");
+                Iterator<Tuple> iter = pigServer.openIterator("H");
 
                 while (iter.hasNext()) {
                     dbshj.add(iter.next());
