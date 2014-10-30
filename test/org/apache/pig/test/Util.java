@@ -626,7 +626,11 @@ public class Util {
      static public void copyFromLocalToCluster(MiniGenericCluster cluster,
         String localFileName, String fileNameOnCluster) throws IOException {
         if(Util.WINDOWS){
-            localFileName = localFileName.replace('\\','/');
+            if (!localFileName.contains(":")) {
+                localFileName = localFileName.replace('\\','/');
+            } else {
+                localFileName = localFileName.replace('/','\\');
+            }
             fileNameOnCluster = fileNameOnCluster.replace('\\','/');
         }
         PigServer ps = new PigServer(cluster.getExecType(), cluster.getProperties());
@@ -907,6 +911,38 @@ public class Util {
         return executeJavaCommandAndReturnInfo(cmd).exitCode;
     }
 
+    public static class ReadStream implements Runnable {
+        InputStream is;
+        Thread thread;
+        String message = "";
+        public ReadStream(InputStream is) {
+            this.is = is;
+        }
+        public void start () {
+            thread = new Thread (this);
+            thread.start ();
+        }
+        public void run () {
+            try {
+                InputStreamReader isr = new InputStreamReader (is);
+                BufferedReader br = new BufferedReader (isr);
+                while (true) {
+                    String s = br.readLine ();
+                    if (s == null) break;
+                    if (!message.isEmpty()) {
+                        message += "\n";
+                    }
+                    message += s;
+                }
+                is.close ();
+            } catch (Exception ex) {
+                ex.printStackTrace ();
+            }
+        }
+        public String getMessage() {
+            return message;
+        }
+    }
 
     public static ProcessReturnInfo executeJavaCommandAndReturnInfo(String cmd)
     throws Exception {
@@ -917,24 +953,17 @@ public class Util {
         }
         Process cmdProc = Runtime.getRuntime().exec(cmd);
         ProcessReturnInfo pri = new ProcessReturnInfo();
-        pri.stderrContents = getContents(cmdProc.getErrorStream());
-        pri.stdoutContents = getContents(cmdProc.getInputStream());
+        ReadStream stdoutStream = new ReadStream(cmdProc.getInputStream ());
+        ReadStream stderrStream = new ReadStream(cmdProc.getErrorStream ());
+        stdoutStream.start();
+        stderrStream.start();
         cmdProc.waitFor();
         pri.exitCode = cmdProc.exitValue();
+        pri.stdoutContents = stdoutStream.getMessage();
+        pri.stderrContents = stderrStream.getMessage();
         return pri;
     }
 
-    private static String getContents(InputStream istr) throws IOException {
-        BufferedReader br = new BufferedReader(
-                new InputStreamReader(istr));
-        String s = "";
-        String line;
-        while ( (line = br.readLine()) != null) {
-            s += line + "\n";
-        }
-        return s;
-
-    }
     public static class ProcessReturnInfo {
         public int exitCode;
         public String stderrContents;

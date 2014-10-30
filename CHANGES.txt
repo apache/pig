@@ -92,6 +92,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4235: Fix unit test failures on Windows (daijy)
+
 PIG-4245: 1-1 edge vertices should use same jvm opts (rohini)
 
 PIG-4252: Tez container reuse fail when using script udf (daijy)
