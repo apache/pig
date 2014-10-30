@@ -95,6 +95,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4253: Add a SequenceID UDF (daijy)
+
 PIG-4166: Collected group drops last record when combined with merge join (bridiver via daijy)
 
 PIG-2495: Using merge JOIN from a HBaseStorage produces an error (bridiver via daijy)
