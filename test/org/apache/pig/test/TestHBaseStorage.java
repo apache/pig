@@ -1127,7 +1127,7 @@ public class TestHBaseStorage {
                 "row4;Andre;Morton;[1#Nancy]",
                 "row3;Sonja;Webb;[]"
         });
-        pig.registerQuery("source = LOAD '" + Util.generateURI(Util.encodeEscape(inputFile.toString()), pig.getPigContext())
+        pig.registerQuery("source = LOAD '" + Util.generateURI(inputFile.toString(), pig.getPigContext())
                 + "' USING PigStorage(';')"
                 + " AS (row:chararray, first_name:chararray, last_name:chararray, friends:map[]);");
         pig.registerQuery("STORE source INTO 'hbase://" + tableName + "' USING" +

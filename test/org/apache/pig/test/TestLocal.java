@@ -100,7 +100,7 @@ public class TestLocal {
     public Double bigGroupAll( File tmpFile ) throws Throwable {
 
         String query = "foreach (group (load '"
-                + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pig.getPigContext())
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
                 + "') all) generate " + COUNT.class.getName() + "($1) ;";
         System.out.println(query);
         pig.registerQuery("asdf_id = " + query);
@@ -188,7 +188,7 @@ public class TestLocal {
 
     //Load, Execute and Store query
         String query = "foreach (load '"
-                + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pig.getPigContext())
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
                 + "') generate $0,$1;";
         System.out.println(query);
         pig.registerQuery("asdf_id = " + query);
@@ -239,7 +239,7 @@ public class TestLocal {
 
     // Load, Execute and Store query
         String query = "foreach (load '"
-                + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pig.getPigContext())
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
                 + "') generate $0,$1;";
         System.out.println(query);
         pig.registerQuery("asdf_id = " + query);
@@ -284,7 +284,7 @@ public class TestLocal {
 
         // execute query
         String query = "foreach (group (load '"
-                + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pig.getPigContext())
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
                 + "' using " + MyStorage.class.getName() + "()) by "
                 + MyGroup.class.getName() + "('all')) generate flatten("
                 + MyApply.class.getName() + "($1)) ;";
@@ -323,7 +323,7 @@ public class TestLocal {
 
         // execute query
         String query = "foreach (group (load '"
-                + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pig.getPigContext())
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
                 + "' using " + MyStorage.class.getName() + "()) by "
                 + MyGroup.class.getName() + "('all')) generate flatten("
                 + MyApply.class.getName() + "($1)) ;";
@@ -358,7 +358,7 @@ public class TestLocal {
         pig.registerFunction("foo",
             new FuncSpec(MyApply.class.getName()+"('foo')"));
         String query = "foreach (group (load '"
-                + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pig.getPigContext())
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
                 + "' using " + MyStorage.class.getName() + "()) by "
                 + MyGroup.class.getName()
                 + "('all')) generate flatten(foo($1)) ;";
@@ -406,7 +406,7 @@ public class TestLocal {
         pig.registerFunction("foo",
             new FuncSpec(MyApply.class.getName()+"('foo')"));
         String query = "foreach (group (load '"
-                + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pig.getPigContext())
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
                 + "' using " + MyStorage.class.getName() + "()) by "
                 + MyGroup.class.getName()
                 + "('all')) generate flatten(foo($1)) ;";

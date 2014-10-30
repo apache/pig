@@ -346,7 +346,7 @@ public class TestJsonLoaderStorage {
     tempJsonFile.delete();
 
     // Pig query to run
-    pigServer.registerQuery("IP = load '"+  Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext())
+    pigServer.registerQuery("IP = load '"+  Util.generateURI(input.toString(), pigServer.getPigContext())
         +"' using PigStorage (';') as (ID:chararray,DETAILS:chararray);");
     pigServer.registerQuery(
         "id_details = FOREACH IP GENERATE " +

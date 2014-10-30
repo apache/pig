@@ -95,7 +95,7 @@ public class TestUnion {
         POLoad ld1 = GenPhyOp.topLoadOp();
         String curDir = System.getProperty("user.dir");
         String inpDir = curDir + File.separatorChar + "test/org/apache/pig/test/data/InputFiles/";
-        FileSpec fSpec = new FileSpec(Util.generateURI(Util.encodeEscape(inpDir + "passwd"), pc), new FuncSpec(PigStorage.class.getName() , new String[]{":"}));
+        FileSpec fSpec = new FileSpec(Util.generateURI(inpDir + "passwd", pc), new FuncSpec(PigStorage.class.getName() , new String[]{":"}));
         ld1.setLFile(fSpec);
 
         POLoad ld2 = GenPhyOp.topLoadOp();
@@ -290,8 +290,8 @@ public class TestUnion {
 
         PigServer ps = new PigServer(ExecType.LOCAL, new Properties());
         //PigStorage and TextLoader have different LoadCasters
-        ps.registerQuery("A = load '" + f1.getAbsolutePath() + "' as (a:bytearray);");
-        ps.registerQuery("B = load '" + f2.getAbsolutePath() + "' using TextLoader() as (b:bytearray);");
+        ps.registerQuery("A = load '" + Util.encodeEscape(f1.getAbsolutePath()) + "' as (a:bytearray);");
+        ps.registerQuery("B = load '" + Util.encodeEscape(f2.getAbsolutePath()) + "' using TextLoader() as (b:bytearray);");
         ps.registerQuery("C = union onschema A,B;");
         ps.registerQuery("D = foreach C generate (int)a as a,(chararray)b as b;");
 
@@ -321,9 +321,9 @@ public class TestUnion {
         File f3 = Util.createInputFile("tmp", "i3.txt", new String[] {"1","2","3"});
 
         PigServer ps = new PigServer(ExecType.LOCAL, new Properties());
-        ps.registerQuery("A = load '" + f1.getAbsolutePath() + "' as (a:bytearray);"); // Using PigStorage()
-        ps.registerQuery("B = load '" + f2.getAbsolutePath() + "' using TextLoader() as (i:bytearray);");
-        ps.registerQuery("C = load '" + f3.getAbsolutePath() + "' using TextLoader() as (i:bytearray);");
+        ps.registerQuery("A = load '" + Util.encodeEscape(f1.getAbsolutePath()) + "' as (a:bytearray);"); // Using PigStorage()
+        ps.registerQuery("B = load '" + Util.encodeEscape(f2.getAbsolutePath()) + "' using TextLoader() as (i:bytearray);");
+        ps.registerQuery("C = load '" + Util.encodeEscape(f3.getAbsolutePath()) + "' using TextLoader() as (i:bytearray);");
         ps.registerQuery("B2 = join B by i, A by a;");              //{A::a: bytearray,B::i: bytearray}
         ps.registerQuery("B3 = foreach B2 generate a, B::i as i;"); //{A::a: bytearray,i: bytearray}
         ps.registerQuery("C2 = join C by i, A by a;");              //{A::a: bytearray,C::i: bytearray}
@@ -347,8 +347,8 @@ public class TestUnion {
         PigServer ps = new PigServer(ExecType.LOCAL, new Properties());
         // PigStorage and PigStorageWithStatistics have the same
         // LoadCaster(== Utf8StorageConverter)
-        ps.registerQuery("A = load '" + f1.getAbsolutePath() + "' as (a:bytearray, b:bytearray);");
-        ps.registerQuery("B = load '" + f1.getAbsolutePath() +
+        ps.registerQuery("A = load '" + Util.encodeEscape(f1.getAbsolutePath()) + "' as (a:bytearray, b:bytearray);");
+        ps.registerQuery("B = load '" + Util.encodeEscape(f1.getAbsolutePath()) +
           "' using org.apache.pig.test.PigStorageWithStatistics() as (a:bytearray, b:bytearray);");
         ps.registerQuery("C = union onschema A,B;");
         ps.registerQuery("D = foreach C generate (int)a as a,(chararray)b as b;");

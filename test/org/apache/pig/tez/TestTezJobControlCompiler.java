@@ -190,7 +190,7 @@ public class TestTezJobControlCompiler {
         @Override
         public List<InputSplit> getSplits(JobContext job) throws IOException {
             String inputDir = job.getConfiguration().get(INPUT_DIR, "");
-            String numSplitString = inputDir.substring(inputDir.lastIndexOf(File.separator)+1);
+            String numSplitString = inputDir.substring(inputDir.lastIndexOf("/")+1);
             int numSplit = Integer.parseInt(numSplitString);
             List<InputSplit> splits = new ArrayList<InputSplit>();
             for (int i=0;i<numSplit;i++) {

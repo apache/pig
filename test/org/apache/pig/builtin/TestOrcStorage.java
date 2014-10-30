@@ -230,6 +230,7 @@ public class TestOrcStorage {
         assertEquals(t.get(1), "hello");
 
         assertFalse(iter.hasNext());
+        rows.close();
     }
 
     @Test
@@ -348,6 +349,8 @@ public class TestOrcStorage {
         assertEquals(expectedRows, actualRows);
         assertEquals(expectedTotalRows, actualRows);
 
+        readerExpected.close();
+        readerActual.close();
     }
 
     @SuppressWarnings("rawtypes")
