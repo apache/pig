@@ -76,6 +76,7 @@ import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.pig.CollectableLoadFunc;
 import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.LoadPushDown;
@@ -139,7 +140,8 @@ import com.google.common.collect.Lists;
  * <code>buddies</code> column family in the <code>SampleTableCopy</code> table.
  *
  */
-public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPushDown, OrderedLoadFunc, StoreResources {
+public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPushDown, OrderedLoadFunc, StoreResources,
+        CollectableLoadFunc {
 
     private static final Log LOG = LogFactory.getLog(HBaseStorage.class);
 
@@ -1130,28 +1132,24 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         return new RequiredFieldResponse(true);
     }
 
-    @Override
-    public WritableComparable<InputSplit> getSplitComparable(InputSplit split)
-            throws IOException {
-        return new WritableComparable<InputSplit>() {
-            TableSplit tsplit = new TableSplit();
-
-            @Override
-            public void readFields(DataInput in) throws IOException {
-                tsplit.readFields(in);
-            }
-
-            @Override
-            public void write(DataOutput out) throws IOException {
-                tsplit.write(out);
-            }
-
-            @Override
-            public int compareTo(InputSplit split) {
-                return tsplit.compareTo((TableSplit) split);
-            }
-        };
+    public void ensureAllKeyInstancesInSameSplit() throws IOException {
+        /** 
+         * no-op because hbase keys are unique 
+         * This will also work with things like DelimitedKeyPrefixRegionSplitPolicy
+         * if you need a partial key match to be included in the split
+         */
+        LOG.debug("ensureAllKeyInstancesInSameSplit");
     }
+
+    @Override
+    public WritableComparable<TableSplit> getSplitComparable(InputSplit split) throws IOException {
+        if (split instanceof TableSplit) {
+            return new TableSplitComparable((TableSplit) split);
+        } else {
+            throw new RuntimeException("LoadFunc expected split of type TableSplit but was " + split.getClass().getName());
+        }
+    }
+ 
 
     /**
      * Class to encapsulate logic around which column names were specified in each

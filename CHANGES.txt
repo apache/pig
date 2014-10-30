@@ -105,6 +105,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-2495: Using merge JOIN from a HBaseStorage produces an error (bridiver via daijy)
+
 PIG-4182: e2e tests Scripting_[1-12] fail on Windows (daijy)
 
 PIG-4235: Fix unit test failures on Windows (daijy)
