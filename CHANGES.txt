@@ -37,6 +37,9 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4160: Provide a way to pass local jars in pig.additional.jars when using a
+ remote url for a script (acoliver via daijy)
+
 PIG-4246: HBaseStorage should implement getShipFiles (rohini)
 
 PIG-3456: Reduce threadlocal conf access in backend for each record (rohini)
