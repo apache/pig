@@ -124,18 +124,14 @@ public class POCollectedGroup extends PhysicalOperator {
     @Override
     public Result getNextTuple() throws ExecException {
 
-        // Since the output is buffered, we need to flush the last
-        // set of records when the close method is called by mapper.
-        if (this.parentPlan.endOfAllInput) {
-            return getStreamCloseResult();
-        }
-
         Result inp = null;
         Result res = null;
 
         while (true) {
             inp = processInput();
             if (inp.returnStatus == POStatus.STATUS_EOP) {
+                // Since the output is buffered, we need to flush the last
+                // set of records when the close method is called by mapper.
                 if (this.parentPlan.endOfAllInput) {
                     return getStreamCloseResult();
                 } else {
