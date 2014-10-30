@@ -31,6 +31,7 @@ import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.pig.JVMReuseManager;
+import org.apache.pig.PigConstants;
 import org.apache.pig.PigException;
 import org.apache.pig.StaticDataCleanup;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -319,6 +320,7 @@ public class PigGenericMapReduce {
                 pack = getPack(context);
             Configuration jConf = context.getConfiguration();
             SpillableMemoryManager.configure(ConfigurationUtil.toProperties(jConf));
+            context.getConfiguration().set(PigConstants.TASK_INDEX, Integer.toString(context.getTaskAttemptID().getTaskID().getId()));
             sJobContext = context;
             sJobConfInternal.set(context.getConfiguration());
             sJobConf = context.getConfiguration();

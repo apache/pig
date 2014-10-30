@@ -3129,4 +3129,28 @@ public class TestBuiltin {
         
     }
 
+    @Test
+    public void testSequenceID() throws Exception {
+        Util.resetStateForExecModeSwitch();
+        String inputFileName = "testSequenceID.txt";
+        Util.createInputFile(cluster, inputFileName, new String[]
+            {"1\n2\n3\n4\n5\n1\n2\n3\n4\n5\n"});
+        PigServer pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
+        pigServer.getPigContext().getProperties().setProperty("mapred.max.split.size", "10");
+        pigServer.getPigContext().getProperties().setProperty("pig.noSplitCombination", "true");
+        pigServer.registerQuery("A = load '" + inputFileName + "' as (name);");
+        pigServer.registerQuery("B = foreach A generate name, SequenceID();");
+        Iterator<Tuple> iter = pigServer.openIterator("B");
+        iter.next().get(1).equals("0-0");
+        iter.next().get(1).equals("0-1");
+        iter.next().get(1).equals("0-2");
+        iter.next().get(1).equals("0-3");
+        iter.next().get(1).equals("0-4");
+        iter.next().get(1).equals("1-0");
+        iter.next().get(1).equals("1-1");
+        iter.next().get(1).equals("1-1");
+        iter.next().get(1).equals("1-2");
+        iter.next().get(1).equals("1-3");
+        iter.next().get(1).equals("1-4");
+    }
 }
