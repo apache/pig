@@ -256,7 +256,7 @@ public class PigServer {
             jar_str = jar_str + jar_str_comma;
         }
 
-        if(jar_str != null){
+        if(jar_str != null && !jar_str.isEmpty()){
             // Use File.pathSeparator (":" on Linux, ";" on Windows)
             // to correctly handle path aggregates as they are represented
             // on the Operating System.
