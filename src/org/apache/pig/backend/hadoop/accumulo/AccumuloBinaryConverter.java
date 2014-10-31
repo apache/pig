@@ -172,9 +172,12 @@ public class AccumuloBinaryConverter implements LoadStoreCaster {
 
         len = len ^ 0x80000000;
 
-        dos.writeInt(len);
-        dos.write(bytes);
-        dos.close();
+        try {
+            dos.writeInt(len);
+            dos.write(bytes);
+        } finally {
+            dos.close();
+        }
 
         return ret;
     }

@@ -491,19 +491,25 @@ public class SortedDataBag extends DefaultAbstractBag{
                     // the spill files list.  So I need to append it to my
                     // linked list as well so that it's still there when I
                     // move my linked list back to the spill files.
+                    DataOutputStream out = null;
                     try {
-                        DataOutputStream out = getSpillFile();
+                        out = getSpillFile();
                         ll.add(mSpillFiles.get(mSpillFiles.size() - 1));
                         Tuple t;
                         while ((t = readFromPriorityQ()) != null) {
                             t.write(out);
                         }
                         out.flush();
-                        out.close();
                     } catch (IOException ioe) {
                         String msg = "Unable to find our spill file.";
                         log.fatal(msg, ioe);
                         throw new RuntimeException(msg, ioe);
+                    } finally {
+                        try {
+                            out.close();
+                        } catch (IOException e) {
+                            warn("Error closing spill", PigWarning.UNABLE_TO_CLOSE_SPILL_FILE, e);
+                        }
                     }
                 }
                 // delete files that have been merged into new files

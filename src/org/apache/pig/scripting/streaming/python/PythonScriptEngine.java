@@ -56,7 +56,12 @@ public class PythonScriptEngine extends ScriptEngine {
         }
         
         FileInputStream fin = new FileInputStream(f);
-        List<String[]> functions = getFunctions(fin);
+        List<String[]> functions = null;
+        try {
+            functions = getFunctions(fin);
+        } finally {
+            fin.close();
+        }
         namespace = namespace == null ? "" : namespace + NAMESPACE_SEPARATOR;
         for(String[] functionInfo : functions) {
             String name = functionInfo[0];
@@ -75,7 +80,6 @@ public class PythonScriptEngine extends ScriptEngine {
                                                     execType, isIllustrate
                                         }));
         }
-        fin.close();
     }
 
     @Override

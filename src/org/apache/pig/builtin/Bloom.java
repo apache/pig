@@ -105,7 +105,12 @@ public class Bloom extends FilterFunc {
                 });
 
         String dcFile = dir + "/" + partFiles[0];
-        filter.readFields(new DataInputStream(new FileInputStream(dcFile)));
+        DataInputStream dis = new DataInputStream(new FileInputStream(dcFile));
+        try {
+            filter.readFields(dis);
+        } finally {
+            dis.close();
+        }
     }
 
     /**
