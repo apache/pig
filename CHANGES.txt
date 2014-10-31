@@ -39,8 +39,8 @@ IMPROVEMENTS
 
 PIG-4253: Add a UniqueID UDF (daijy)
 
-PIG-4160: Provide a way to pass local jars in pig.additional.jars when using a
- remote url for a script (acoliver via daijy)
+PIG-4160: Provide a way to pass local jars in pig.additional.jars when using a remote
+ url for a script (acoliver via daijy)
 
 PIG-4246: HBaseStorage should implement getShipFiles (rohini)
 
@@ -109,6 +109,8 @@ PIG-3970: Merge Tez branch into trunk (daijy)
 OPTIMIZATIONS
  
 BUG FIXES
+
+PIG-4259: Fix few issues related to Union, CROSS and auto parallelism in Tez (rohini)
 
 PIG-4250: Fix Security Risks found by Coverity (daijy)
 

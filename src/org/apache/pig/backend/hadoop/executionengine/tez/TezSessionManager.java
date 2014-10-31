@@ -29,8 +29,10 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.pig.backend.hadoop.executionengine.tez.TezJob.TezJobConfig;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.MRToTezHelper;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.util.Utils;
 import org.apache.tez.client.TezAppMasterStatus;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -80,9 +82,11 @@ public class TezSessionManager {
     private static List<SessionInfo> sessionPool = new ArrayList<SessionInfo>();
 
     private static SessionInfo createSession(Configuration conf,
-            Map<String, LocalResource> requestedAMResources, Credentials creds)
-            throws TezException, IOException, InterruptedException {
+            Map<String, LocalResource> requestedAMResources, Credentials creds,
+            TezJobConfig tezJobConf) throws TezException, IOException,
+            InterruptedException {
         TezConfiguration amConf = MRToTezHelper.getDAGAMConfFromMRConf(conf);
+        adjustAMConfig(amConf, tezJobConf);
         String jobName = conf.get(PigContext.JOB_NAME, "pig");
         TezClient tezClient = TezClient.create(jobName, amConf, true, requestedAMResources, creds);
         tezClient.start();
@@ -92,6 +96,56 @@ public class TezSessionManager {
         }
         tezClient.waitTillReady();
         return new SessionInfo(tezClient, requestedAMResources);
+    }
+
+    private static void adjustAMConfig(TezConfiguration amConf, TezJobConfig tezJobConf) {
+        int requiredAMMaxHeap = -1;
+        int requiredAMResourceMB = -1;
+        int configuredAMMaxHeap = Utils.extractHeapSizeInMB(amConf.get(
+                TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS,
+                TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS_DEFAULT));
+        int configuredAMResourceMB = amConf.getInt(
+                TezConfiguration.TEZ_AM_RESOURCE_MEMORY_MB,
+                TezConfiguration.TEZ_AM_RESOURCE_MEMORY_MB_DEFAULT);
+
+        if (tezJobConf.getEstimatedTotalParallelism() > 0) {
+
+            int minAMMaxHeap = 3584;
+            int minAMResourceMB = 4096;
+
+            // Rough estimation. For 5K tasks 1G Xmx and 1.5G resource.mb
+            // Increment by 512 mb for every additional 5K tasks.
+            for (int taskCount = 30000; taskCount >= 5000; taskCount-=5000) {
+                if (tezJobConf.getEstimatedTotalParallelism() > taskCount) {
+                    requiredAMMaxHeap = minAMMaxHeap;
+                    requiredAMResourceMB = minAMResourceMB;
+                    break;
+                }
+                minAMMaxHeap = minAMMaxHeap - 512;
+                minAMResourceMB = minAMResourceMB - 512;
+            }
+
+            if (requiredAMResourceMB > -1 && configuredAMResourceMB < requiredAMResourceMB) {
+                amConf.setInt(TezConfiguration.TEZ_AM_RESOURCE_MEMORY_MB, requiredAMResourceMB);
+                log.info("Increasing "
+                        + TezConfiguration.TEZ_AM_RESOURCE_MEMORY_MB + " from "
+                        + configuredAMResourceMB + " to "
+                        + requiredAMResourceMB
+                        + " as the number of total estimated tasks is "
+                        + tezJobConf.getEstimatedTotalParallelism());
+
+                if (requiredAMMaxHeap > -1 && configuredAMMaxHeap < requiredAMMaxHeap) {
+                    amConf.set(TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS,
+                            amConf.get(TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS)
+                                    + " -Xmx" + requiredAMMaxHeap + "M");
+                    log.info("Increasing Tez AM Heap Size from "
+                            + configuredAMMaxHeap + "M to "
+                            + requiredAMMaxHeap
+                            + "M as the number of total estimated tasks is "
+                            + tezJobConf.getEstimatedTotalParallelism());
+                }
+            }
+        }
     }
 
     private static boolean validateSessionResources(SessionInfo currentSession,
@@ -106,7 +160,7 @@ public class TezSessionManager {
     }
 
     static TezClient getClient(Configuration conf, Map<String, LocalResource> requestedAMResources,
-            Credentials creds) throws TezException, IOException, InterruptedException {
+            Credentials creds, TezJobConfig tezJobConf) throws TezException, IOException, InterruptedException {
         List<SessionInfo> sessionsToRemove = new ArrayList<SessionInfo>();
         SessionInfo newSession = null;
         sessionPoolLock.readLock().lock();
@@ -135,7 +189,7 @@ public class TezSessionManager {
         // We cannot find available AM, create new one
         // Create session outside of locks so that getClient/freeSession is not
         // blocked for parallel embedded pig runs
-        newSession = createSession(conf, requestedAMResources, creds);
+        newSession = createSession(conf, requestedAMResources, creds, tezJobConf);
         newSession.inUse = true;
         sessionPoolLock.writeLock().lock();
         try {

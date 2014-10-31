@@ -93,6 +93,12 @@ public class CombinerOptimizer extends TezOpPlanVisitor {
             PhysicalPlan combinePlan = to.inEdges.get(from.getOperatorKey()).combinePlan;
             CombinerOptimizerUtil.addCombiner(rearrangePlan, to.plan, combinePlan, messageCollector, doMapAgg);
 
+            if(!combinePlan.isEmpty()) {
+                // Override the requested parallelism for intermediate reducers
+                // when combiners are involved so that there are more tasks doing the combine
+                from.setOverrideIntermediateParallelism(true);
+            }
+
         }
     }
 

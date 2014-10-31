@@ -408,9 +408,9 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     }
 
     public Result getNextDataBag() throws ExecException {
-        Result ret = null;
+        Result val = new Result();
         DataBag tmpBag = BagFactory.getInstance().newDefaultBag();
-        for (ret = getNextTuple(); ret.returnStatus != POStatus.STATUS_EOP; ret = getNextTuple()) {
+        for (Result ret = getNextTuple(); ret.returnStatus != POStatus.STATUS_EOP; ret = getNextTuple()) {
             if (ret.returnStatus == POStatus.STATUS_ERR) {
                 return ret;
             } else if (ret.returnStatus == POStatus.STATUS_NULL) {
@@ -419,9 +419,9 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
                 tmpBag.add((Tuple) ret.result);
             }
         }
-        ret.result = tmpBag;
-        ret.returnStatus = (tmpBag.size() == 0)? POStatus.STATUS_EOP : POStatus.STATUS_OK;
-        return ret;
+        val.result = tmpBag;
+        val.returnStatus = (tmpBag.size() == 0)? POStatus.STATUS_EOP : POStatus.STATUS_OK;
+        return val;
     }
 
     public Result getNextBigInteger() throws ExecException {
