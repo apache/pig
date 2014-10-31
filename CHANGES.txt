@@ -110,6 +110,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4250: Fix Security Risks found by Coverity (daijy)
+
 PIG-4258: Fix several e2e tests on Windows (daijy)
 
 PIG-4256: Fix StreamingPythonUDFs e2e test failure on Windows (daijy)

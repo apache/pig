@@ -184,14 +184,22 @@ public class SchemaTupleBackend {
             LOG.info("Attempting to read file: " + s);
             // The string is the symlink into the distributed cache
             File src = new File(s);
-            FileInputStream fin = new FileInputStream(src);
-            FileOutputStream fos = new FileOutputStream(new File(codeDir, s));
-
-            fin.getChannel().transferTo(0, src.length(), fos.getChannel());
-
-            fin.close();
-            fos.close();
-            LOG.info("Successfully copied file to local directory.");
+            FileInputStream fin = null;
+            FileOutputStream fos = null;
+            try {
+                fin = new FileInputStream(src);
+                fos = new FileOutputStream(new File(codeDir, s));
+    
+                fin.getChannel().transferTo(0, src.length(), fos.getChannel());
+                LOG.info("Successfully copied file to local directory.");
+            } finally {
+                if (fin != null) {
+                    fin.close();
+                }
+                if (fos != null) {
+                    fos.close();
+                }
+            }
         }
     }
 

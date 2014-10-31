@@ -596,7 +596,11 @@ public class AvroStorage extends LoadFunc
         } else {
           rr = new AvroRecordReader(s);
         }
-        rr.initialize(is, tc);
+        try {
+            rr.initialize(is, tc);
+        } finally {
+            rr.close();
+        }
         tc.setStatus(is.toString());
         return rr;
       }

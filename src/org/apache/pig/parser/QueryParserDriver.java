@@ -574,6 +574,7 @@ public class QueryParserDriver {
 
             String macroText = null;
             try {
+                in.close();
                 in = new BufferedReader(new StringReader(sb.toString()));
                 macroText = pigContext.doParamSubstitution(in);
             } catch (IOException e) {
