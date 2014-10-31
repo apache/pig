@@ -55,7 +55,7 @@ debug=false
 
 remaining=()
 includeHCatalog="";
-addJarString=-Dpig.additional.jars.comma\=;
+addJarString=-Dpig.additional.jars.uris\=;
 additionalJars="";
 # filter command line parameter
 for f in "$@"; do
@@ -353,12 +353,12 @@ PIG_OPTS="$PIG_OPTS -Dpig.log.dir=$PIG_LOG_DIR"
 PIG_OPTS="$PIG_OPTS -Dpig.log.file=$PIG_LOGFILE"
 PIG_OPTS="$PIG_OPTS -Dpig.home.dir=$PIG_HOME"
 if [ "$includeHCatalog" == "true" ]; then
-  addJars=`echo $PIG_OPTS | awk '{ for (i=1; i<=NF; i++) print $i; }' | grep "\-Dpig.additional.jars.comma=" | sed s/-Dpig.additional.jars.comma=//`
+  addJars=`echo $PIG_OPTS | awk '{ for (i=1; i<=NF; i++) print $i; }' | grep "\-Dpig.additional.jars.uris=" | sed s/-Dpig.additional.jars.uris=//`
   if [ "$addJars" != "" ]; then
     ADDITIONAL_CLASSPATHS=$addJars:$ADDITIONAL_CLASSPATHS
-    PIG_OPTS=`echo $PIG_OPTS | sed 's/-Dpig.additional.jars.comma=[^ ]*//'`
+    PIG_OPTS=`echo $PIG_OPTS | sed 's/-Dpig.additional.jars.uris=[^ ]*//'`
   fi
-  PIG_OPTS="$PIG_OPTS -Dpig.additional.jars.comma=$ADDITIONAL_CLASSPATHS"
+  PIG_OPTS="$PIG_OPTS -Dpig.additional.jars.uris=$ADDITIONAL_CLASSPATHS"
 fi
 
 # run it
