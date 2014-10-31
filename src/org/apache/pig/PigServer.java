@@ -251,7 +251,7 @@ public class PigServer {
             jar_str += ",";
         }
 
-        String jar_str_comma = pigContext.getProperties().getProperty("pig.additional.jars.comma");
+        String jar_str_comma = pigContext.getProperties().getProperty("pig.additional.jars.uris");
         if (jar_str_comma!=null && !jar_str_comma.isEmpty()) {
             jar_str = jar_str + jar_str_comma;
         }
