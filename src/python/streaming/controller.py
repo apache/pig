@@ -96,7 +96,7 @@ class PythonStreamingController:
 
         if is_illustrate or udf_logging.udf_log_level != logging.DEBUG:
             #Only log output for illustrate after we get the flag to capture output.
-            sys.stdout = open("/dev/null", 'w')
+            sys.stdout = open(os.devnull, 'w')
         else:
             sys.stdout = self.output_stream
 
