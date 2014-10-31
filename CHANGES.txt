@@ -37,6 +37,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4253: Add a UniqueID UDF (daijy)
+
 PIG-4160: Provide a way to pass local jars in pig.additional.jars when using a
  remote url for a script (acoliver via daijy)
 
@@ -108,7 +110,7 @@ OPTIMIZATIONS
  
 BUG FIXES
 
-PIG-4253: Add a SequenceID UDF (daijy)
+PIG-4256: Fix StreamingPythonUDFs e2e test failure on Windows (daijy)
 
 PIG-4166: Collected group drops last record when combined with merge join (bridiver via daijy)
 
