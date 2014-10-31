@@ -862,14 +862,20 @@ public class FileLocalizer {
         dest.getParentFile().mkdirs();
         dest.deleteOnExit();
 
-        OutputStream outputStream = new BufferedOutputStream(new FileOutputStream(dest));
-        byte[] buffer = new byte[1024];
-        int len;
-        while ((len=resourceStream.read(buffer)) > 0) {
-          outputStream.write(buffer,0,len);
+        OutputStream outputStream = null;
+        try {
+            outputStream = new BufferedOutputStream(new FileOutputStream(dest));
+            byte[] buffer = new byte[1024];
+            int len;
+            while ((len=resourceStream.read(buffer)) > 0) {
+              outputStream.write(buffer,0,len);
+            }
+        } finally {
+            resourceStream.close();
+            if (outputStream != null) {
+                outputStream.close();
+            }
         }
-        outputStream.close();
-
         localFileRet = new FetchFileRet(dest,false);
       }
       else

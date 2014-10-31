@@ -297,8 +297,6 @@ public class Utils {
             zos.write(arr, 0, read);
             read = is.read(arr);
         }
-        is.close();
-        zos.closeEntry();
     }
 
     public static void jarDir(File dir, String relativePath, ZipOutputStream zos)
@@ -317,7 +315,16 @@ public class Utils {
             zos.closeEntry();
         } else {
             InputStream is = new FileInputStream(manifestFile);
-            copyToZipStream(is, manifestEntry, zos);
+            try {
+                copyToZipStream(is, manifestEntry, zos);
+            } finally {
+                if (is != null) {
+                    is.close();
+                }
+                if (zos != null) {
+                    zos.closeEntry();
+                }
+            }
         }
         zos.closeEntry();
         zipDir(dir, relativePath, zos, true);
@@ -345,7 +352,16 @@ public class Utils {
                     if (!path.equals(JarFile.MANIFEST_NAME)) {
                         ZipEntry anEntry = new ZipEntry(path);
                         InputStream is = new FileInputStream(f);
-                        copyToZipStream(is, anEntry, zos);
+                        try {
+                            copyToZipStream(is, anEntry, zos);
+                        } finally {
+                            if (is != null) {
+                                is.close();
+                            }
+                            if (zos != null) {
+                                zos.closeEntry();
+                            }
+                        }
                     }
                 }
             }
