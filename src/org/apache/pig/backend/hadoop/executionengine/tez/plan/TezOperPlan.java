@@ -52,7 +52,17 @@ public class TezOperPlan extends OperatorPlan<TezOperator> {
 
     private Map<String, Path> extraResources = new HashMap<String, Path>();
 
+    private int estimatedTotalParallelism = -1;
+
     public TezOperPlan() {
+    }
+
+    public int getEstimatedTotalParallelism() {
+        return estimatedTotalParallelism;
+    }
+
+    public void setEstimatedParallelism(int estimatedTotalParallelism) {
+        this.estimatedTotalParallelism = estimatedTotalParallelism;
     }
 
     @Override

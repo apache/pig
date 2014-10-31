@@ -73,6 +73,10 @@ public class UnionOptimizer extends TezOpPlanVisitor {
             return;
         }
 
+        if((tezOp.isLimit() || tezOp.isLimitAfterSort()) && tezOp.getRequestedParallelism() == 1) {
+            return;
+        }
+
         TezOperator unionOp = tezOp;
         String unionOpKey = unionOp.getOperatorKey().toString();
         String scope = unionOp.getOperatorKey().scope;
@@ -264,9 +268,16 @@ public class UnionOptimizer extends TezOpPlanVisitor {
     }
 
     private void copyOperatorProperties(TezOperator pred, TezOperator unionOp) {
-        pred.setUseSecondaryKey(unionOp.isUseSecondaryKey());
         pred.UDFs.addAll(unionOp.UDFs);
         pred.scalars.addAll(unionOp.scalars);
+        // Copy only map side properties. For eg: crossKeys.
+        // Do not copy reduce side specific properties. For eg: useSecondaryKey, segmentBelow, sortOrder, etc
+        // Also ignore parallelism settings
+        if (unionOp.getCrossKeys() != null) {
+            for (String key : unionOp.getCrossKeys()) {
+                pred.addCrossKey(key);
+            }
+        }
         pred.copyFeatures(unionOp, Arrays.asList(new OPER_FEATURE[]{OPER_FEATURE.UNION}));
     }
 

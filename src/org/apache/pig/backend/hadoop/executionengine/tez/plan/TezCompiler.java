@@ -802,7 +802,7 @@ public class TezCompiler extends PhyPlanVisitor {
 
             // If the parallelism of the current vertex is one and it doesn't do a LOAD (whose
             // parallelism is determined by the InputFormat), we don't need another vertex.
-            if (curTezOp.getRequestedParallelism() == 1) {
+            if (curTezOp.getRequestedParallelism() == 1 || curTezOp.isUnion()) {
                 boolean canStop = true;
                 for (PhysicalOperator planOp : curTezOp.plan.getRoots()) {
                     if (planOp instanceof POLoad) {
@@ -811,6 +811,12 @@ public class TezCompiler extends PhyPlanVisitor {
                     }
                 }
                 if (canStop) {
+                    // Let's piggyback on the Union operator. UnionOptimizer
+                    // will skip this union operator as it is a waste to
+                    // do a vertex group followed by another limit in this case
+                    if (curTezOp.isUnion()) {
+                        curTezOp.setRequestedParallelism(1);
+                    }
                     curTezOp.setDontEstimateParallelism(true);
                     if (limitAfterSort) {
                         curTezOp.markLimitAfterSort();
@@ -916,7 +922,7 @@ public class TezCompiler extends PhyPlanVisitor {
             TezCompilerUtil.setCustomPartitioner(op.getCustomPartitioner(), curTezOp);
             curTezOp.setRequestedParallelism(op.getRequestedParallelism());
             if (op.isCross()) {
-                curTezOp.setCrossKey(op.getOperatorKey().toString());
+                curTezOp.addCrossKey(op.getOperatorKey().toString());
             }
             phyToTezOpMap.put(op, curTezOp);
         } catch (Exception e) {

@@ -367,6 +367,7 @@ public class TezLauncher extends Launcher {
 
             ParallelismSetter parallelismSetter = new ParallelismSetter(tezPlan, pc);
             parallelismSetter.visit();
+            tezPlan.setEstimatedParallelism(parallelismSetter.getEstimatedTotalParallelism());
         }
     }
 

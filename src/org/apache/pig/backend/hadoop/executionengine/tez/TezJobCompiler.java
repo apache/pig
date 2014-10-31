@@ -107,7 +107,7 @@ public class TezJobCompiler {
                 log.info("Local resource: " + entry.getKey());
             }
             DAG tezDag = buildDAG(tezPlan, localResources);
-            return new TezJob(tezConf, tezDag, localResources);
+            return new TezJob(tezConf, tezDag, localResources, tezPlan.getEstimatedTotalParallelism());
         } catch (Exception e) {
             int errCode = 2017;
             String msg = "Internal error creating job configuration.";

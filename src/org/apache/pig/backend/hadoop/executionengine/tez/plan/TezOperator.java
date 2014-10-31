@@ -74,6 +74,12 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     // etc which should always be one
     private boolean dontEstimateParallelism = false;
 
+    // Override user specified intermediate parallelism for cases
+    // like skewed join followed by group by + combiner if estimation is higher
+    // In mapreduce group by + combiner runs in map phase and uses more maps (default 128MB per map)
+    // while skewed join reducers process more (default 1G per reducer) which makes MRR a disadvantage
+    private boolean overrideIntermediateParallelism = false;
+
     // This is the parallelism of the vertex, it take account of:
     // 1. default_parallel
     // 2. -1 parallelism for one_to_one edge
@@ -123,7 +129,7 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     // If true, we will use secondary key sort in the job
     private boolean useSecondaryKey = false;
 
-    private String crossKey = null;
+    private List<String> crossKeys = null;
 
     private boolean useMRMapSettings = false;
 
@@ -268,6 +274,15 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     public void setDontEstimateParallelism(boolean dontEstimateParallelism) {
         this.dontEstimateParallelism = dontEstimateParallelism;
+    }
+
+    public boolean isOverrideIntermediateParallelism() {
+        return overrideIntermediateParallelism;
+    }
+
+    public void setOverrideIntermediateParallelism(
+            boolean overrideIntermediateParallelism) {
+        this.overrideIntermediateParallelism = overrideIntermediateParallelism;
     }
 
     public OperatorKey getSplitParent() {
@@ -555,12 +570,15 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         return combineSmallSplits;
     }
 
-    public void setCrossKey(String key) {
-        crossKey = key;
+    public void addCrossKey(String key) {
+        if (crossKeys == null) {
+            crossKeys = new ArrayList<String>();
+        }
+        crossKeys.add(key);
     }
 
-    public String getCrossKey() {
-        return crossKey;
+    public List<String> getCrossKeys() {
+        return crossKeys;
     }
 
     public boolean isUseMRMapSettings() {
