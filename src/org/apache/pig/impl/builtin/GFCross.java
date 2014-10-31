@@ -60,6 +60,9 @@ public class GFCross extends EvalFunc<DataBag> {
                     throw new IOException("Unable to get parallelism hint from job conf");
                 }
                 parallelism = Integer.valueOf(s);
+                if (parallelism < 0) {
+                    throw new IOException(PigImplConstants.PIG_CROSS_PARALLELISM + "." + crossKey  + " was " + parallelism);
+                }
             }
 
             numInputs = (Integer)input.get(0);

@@ -97,6 +97,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4259: Fix few issues related to Union, CROSS and auto parallelism in Tez (rohini)
+
 PIG-4250: Fix Security Risks found by Coverity (daijy)
 
 PIG-4258: Fix several e2e tests on Windows (daijy)

@@ -114,14 +114,16 @@ public class POLimit extends PhysicalOperator {
         }
         Result inp = null;
         while (true) {
+            // illustrator ignore LIMIT before the post processing
+            if ((illustrator == null || illustrator.getOriginalLimit() != -1) && soFar >= mLimit) {
+                inp = RESULT_EOP;
+                break;
+            }
             inp = processInput();
             if (inp.returnStatus == POStatus.STATUS_EOP || inp.returnStatus == POStatus.STATUS_ERR)
                 break;
 
             illustratorMarkup(inp.result, null, 0);
-            // illustrator ignore LIMIT before the post processing
-            if ((illustrator == null || illustrator.getOriginalLimit() != -1) && soFar>=mLimit)
-            	inp.returnStatus = POStatus.STATUS_EOP;
 
             soFar++;
             break;

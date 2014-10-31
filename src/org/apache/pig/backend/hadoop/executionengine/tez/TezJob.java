@@ -68,15 +68,36 @@ public class TezJob implements Runnable {
     private Map<String, Map<String, Map<String, Long>>> vertexCounters;
     // Timer for DAG status reporter
     private Timer timer;
+    private TezJobConfig tezJobConf;
 
-    public TezJob(TezConfiguration conf, DAG dag, Map<String, LocalResource> requestAMResources)
-            throws IOException {
+    public TezJob(TezConfiguration conf, DAG dag,
+            Map<String, LocalResource> requestAMResources,
+            int estimatedTotalParallelism) throws IOException {
         this.conf = conf;
         this.dag = dag;
         this.requestAMResources = requestAMResources;
         this.reuseSession = conf.getBoolean(PigConfiguration.TEZ_SESSION_REUSE, true);
         this.statusGetOpts = EnumSet.of(StatusGetOpts.GET_COUNTERS);
         this.vertexCounters = Maps.newHashMap();
+        tezJobConf = new TezJobConfig(estimatedTotalParallelism);
+    }
+
+    static class TezJobConfig {
+
+        private int estimatedTotalParallelism = -1;
+
+        public TezJobConfig(int estimatedTotalParallelism) {
+            this.estimatedTotalParallelism = estimatedTotalParallelism;
+        }
+
+        public int getEstimatedTotalParallelism() {
+            return estimatedTotalParallelism;
+        }
+
+        public void setEstimatedTotalParallelism(int estimatedTotalParallelism) {
+            this.estimatedTotalParallelism = estimatedTotalParallelism;
+        }
+
     }
 
     public DAG getDAG() {
@@ -129,7 +150,8 @@ public class TezJob implements Runnable {
     @Override
     public void run() {
         try {
-            tezClient = TezSessionManager.getClient(conf, requestAMResources, dag.getCredentials());
+            tezClient = TezSessionManager.getClient(conf, requestAMResources,
+                    dag.getCredentials(), tezJobConf);
             log.info("Submitting DAG " + dag.getName());
             dagClient = tezClient.submitDAG(dag);
             appId = tezClient.getAppMasterApplicationId();
@@ -145,7 +167,7 @@ public class TezJob implements Runnable {
 
         timer = new Timer();
         timer.schedule(new DAGStatusReporter(), 1000, conf.getLong(
-                PigConfiguration.TEZ_DAG_STATUS_REPORT_INTERVAL, 10) * 1000);
+                PigConfiguration.TEZ_DAG_STATUS_REPORT_INTERVAL, 20) * 1000);
 
         while (true) {
             try {
@@ -156,6 +178,7 @@ public class TezJob implements Runnable {
             }
 
             if (dagStatus.isCompleted()) {
+                log.info("DAG Status: " + dagStatus);
                 dagCounters = dagStatus.getDAGCounters();
                 collectVertexCounters();
                 TezSessionManager.freeSession(tezClient);
@@ -182,9 +205,16 @@ public class TezJob implements Runnable {
     }
 
     private class DAGStatusReporter extends TimerTask {
+
+        private final String LINE_SEPARATOR = System.getProperty("line.separator");
+
         @Override
         public void run() {
-            log.info("DAG Status: " + dagStatus);
+            String msg = "status=" + dagStatus.getState()
+              + ", progress=" + dagStatus.getDAGProgress()
+              + ", diagnostics="
+              + StringUtils.join(dagStatus.getDiagnostics(), LINE_SEPARATOR);
+            log.info("DAG Status: " + msg);
         }
     }
 
@@ -193,6 +223,10 @@ public class TezJob implements Runnable {
             String name = v.getName();
             try {
                 VertexStatus s = dagClient.getVertexStatus(name, statusGetOpts);
+                if (s == null) {
+                    log.info("Cannot retrieve counters for vertex " + name);
+                    continue;
+                }
                 TezCounters counters = s.getVertexCounters();
                 Map<String, Map<String, Long>> grpCounters = Maps.newHashMap();
                 Iterator<CounterGroup> grpIt = counters.iterator();
