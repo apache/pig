@@ -27,14 +27,14 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 /**
- * SequenceID generates a unique id for each records in the job. This unique id is
+ * UniqueID generates a unique id for each records in the job. This unique id is
  * stable in task retry. Any arguments to the function are ignored.
  * Example:
  *      A = load 'mydata' as (name);
- *      B = foreach A generate name, SequenceID();
- * SequenceID takes the form "index-sequence"
+ *      B = foreach A generate name, UniqueID();
+ * UniqueID takes the form "index-sequence"
  */
-public class SequenceID extends EvalFunc<String> {
+public class UniqueID extends EvalFunc<String> {
     long sequence = 0;
     @Override
     public String exec(Tuple input) throws IOException {
@@ -46,6 +46,6 @@ public class SequenceID extends EvalFunc<String> {
 
     @Override
     public Schema outputSchema(Schema input) {
-        return new Schema(new Schema.FieldSchema("sequenceid", DataType.CHARARRAY));
+        return new Schema(new Schema.FieldSchema("uniqueid", DataType.CHARARRAY));
     }
 }
