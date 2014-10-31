@@ -45,6 +45,7 @@ import java.util.Set;
 import jline.ConsoleReader;
 import jline.ConsoleReaderInputStream;
 
+import org.apache.commons.io.output.NullOutputStream;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FileSystem;
@@ -390,26 +391,9 @@ public class GruntParser extends PigScriptParser {
         explainCurrentBatch(false);
     }
 
-    /**
-     * A {@link PrintStream} implementation which does not write anything
-     * Used with '-check' command line option to pig Main
-     * (through {@link GruntParser#explainCurrentBatch(boolean) } )
-     */
-    static class NullPrintStream extends PrintStream {
-        public NullPrintStream(String fileName) throws FileNotFoundException {
-            super(fileName);
-        }
-        @Override
-        public void write(byte[] buf, int off, int len) {}
-        @Override
-        public void write(int b) {}
-        @Override
-        public void write(byte [] b) {}
-    }
-
     protected void explainCurrentBatch(boolean dontPrintOutput) throws IOException {
-        PrintStream lp = (dontPrintOutput) ? new NullPrintStream("dummy") : System.out;
-        PrintStream ep = (dontPrintOutput) ? new NullPrintStream("dummy") : System.out;
+        PrintStream lp = (dontPrintOutput) ? new PrintStream(new NullOutputStream()) : System.out;
+        PrintStream ep = (dontPrintOutput) ? new PrintStream(new NullOutputStream()) : System.out;
 
         if (!(mExplain.mLast && mExplain.mCount == 0)) {
             if (mPigServer.isBatchEmpty()) {
@@ -489,7 +473,9 @@ public class GruntParser extends PigScriptParser {
 
         PigContext context = mPigServer.getPigContext();
         BufferedReader reader = new BufferedReader(new FileReader(scriptPath));
-        return context.doParamSubstitution(reader, params, paramFiles);
+        String result = context.doParamSubstitution(reader, params, paramFiles);
+        reader.close();
+        return result;
     }
 
     @Override

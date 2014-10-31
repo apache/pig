@@ -90,9 +90,16 @@ public class JarManager {
         createPigScriptUDFJar(fos, pigContext, contents);
 
         if (!contents.isEmpty()) {
-            FileInputStream fis = new FileInputStream(scriptUDFJarFile);
-            String md5 = org.apache.commons.codec.digest.DigestUtils.md5Hex(fis);
-            fis.close();
+            FileInputStream fis = null;
+            String md5 = null;
+            try {
+                fis = new FileInputStream(scriptUDFJarFile);
+                md5 = org.apache.commons.codec.digest.DigestUtils.md5Hex(fis);
+            } finally {
+                if (fis != null) {
+                    fis.close();
+                }
+            }
             File newScriptUDFJarFile = new File(scriptUDFJarFile.getParent(), "PigScriptUDF-" + md5 + ".jar");
             scriptUDFJarFile.renameTo(newScriptUDFJarFile);
             return newScriptUDFJarFile;
@@ -114,7 +121,11 @@ public class JarManager {
             if (stream==null) {
                 throw new IOException("Cannot find " + path);
             }
-            addStream(jarOutputStream, path, stream, contents, inputFile.lastModified());
+            try {
+                addStream(jarOutputStream, path, stream, contents, inputFile.lastModified());
+            } finally {
+                stream.close();
+            }
         }
         for (Map.Entry<String, File> entry : pigContext.getScriptFiles().entrySet()) {
             log.debug("Adding entry " + entry.getKey() + " to job jar" );
@@ -127,7 +138,11 @@ public class JarManager {
             if (stream==null) {
                 throw new IOException("Cannot find " + entry.getValue().getPath());
             }
-            addStream(jarOutputStream, entry.getKey(), stream, contents, entry.getValue().lastModified());
+            try {
+                addStream(jarOutputStream, entry.getKey(), stream, contents, entry.getValue().lastModified());
+            } finally {
+                stream.close();
+            }
         }
         if (!contents.isEmpty()) {
             jarOutputStream.close();
