@@ -97,6 +97,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4182: e2e tests Scripting_[1-12] fail on Windows (daijy)
+
 PIG-4259: Fix few issues related to Union, CROSS and auto parallelism in Tez (rohini)
 
 PIG-4250: Fix Security Risks found by Coverity (daijy)
