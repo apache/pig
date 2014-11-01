@@ -109,8 +109,6 @@ PIG-4166: Collected group drops last record when combined with merge join (bridi
 
 PIG-2495: Using merge JOIN from a HBaseStorage produces an error (bridiver via daijy)
 
-PIG-4182: e2e tests Scripting_[1-12] fail on Windows (daijy)
-
 PIG-4235: Fix unit test failures on Windows (daijy)
 
 PIG-4245: 1-1 edge vertices should use same jvm opts (rohini)

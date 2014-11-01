@@ -300,7 +300,7 @@ public class JythonScriptEngine extends ScriptEngine {
                                 // determine the relative path that the file should have in the jar
                                 int pos = apath.lastIndexOf(File.separatorChar + name.replace('.', File.separatorChar));
                                 if (pos > 0) {
-                                    files.put(apath.substring(pos + 1), apath);
+                                    files.put(apath.substring(pos), apath);
                                 } else {
                                     files.put(apath, apath);
                                 }
