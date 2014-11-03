@@ -151,7 +151,7 @@ set PIGARGS=
       exit /b 1
   )
   set PIG_CLASSPATH=%PIG_CLASSPATH%;%HCAT_CLASSPATH%;%HIVE_HOME%\conf
-  set PIG_OPTS=%PIG_OPTS% -Dpig.additional.jars.comma=%HCAT_DEPENDCIES%,%PIG_ADDITIONAL_JARS_COMMA%
+  set PIG_OPTS=%PIG_OPTS% -Dpig.additional.jars.uris=%HCAT_DEPENDCIES%,%PIG_ADDITIONAL_JARS_COMMA%
 :HCAT_END
 
   if defined PIG_CLASSPATH (
