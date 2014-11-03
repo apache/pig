@@ -479,7 +479,7 @@ public class TestMapSideCogroup {
 
         @Override
         public void initialize(Configuration conf) throws IOException {
-            is = FileSystem.get(conf).open(new Path(loc));
+            is = FileSystem.get(new Path(loc).toUri(), conf).open(new Path(loc));
         }
 
         @Override
