@@ -42,6 +42,7 @@ public class TezResourceManager {
     private Path stagingDir;
     private FileSystem remoteFs;
     private Configuration conf;
+    private PigContext pigContext;
     public Map<String, Path> resources = new HashMap<String, Path>();
 
     static public TezResourceManager getInstance() {
@@ -56,6 +57,7 @@ public class TezResourceManager {
             this.stagingDir = FileLocalizer.getTemporaryResourcePath(pigContext);
             this.remoteFs = FileSystem.get(conf);
             this.conf = conf;
+            this.pigContext = pigContext;
             this.inited = true;
         }
     }
@@ -76,7 +78,7 @@ public class TezResourceManager {
             }
 
             // Ship the local resource to the staging directory on the remote FS
-            if (uri.toString().startsWith("file:")) {
+            if (!pigContext.getExecType().isLocal() && uri.toString().startsWith("file:")) {
                 Path remoteFsPath = remoteFs.makeQualified(new Path(stagingDir, resourceName));
                 remoteFs.copyFromLocalFile(resourcePath, remoteFsPath);
                 remoteFs.setReplication(remoteFsPath, (short)conf.getInt(Job.SUBMIT_REPLICATION, 3));
