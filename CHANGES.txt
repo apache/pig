@@ -112,6 +112,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4257: Fix several e2e tests on secure cluster (daijy)
+
 PIG-4261: Skip shipping local resources in tez local mode (daijy)
 
 PIG-4182: e2e tests Scripting_[1-12] fail on Windows (daijy)
