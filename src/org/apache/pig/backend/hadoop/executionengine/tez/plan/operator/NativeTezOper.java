@@ -27,26 +27,29 @@ import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.pig.tools.pigstats.tez.TezStats;
+import org.apache.pig.tools.pigstats.tez.TezPigScriptStats;
 
 public class NativeTezOper extends TezOperator {
     private static final long serialVersionUID = 1L;
     private static int countJobs = 0;
     private String nativeTezJar;
     private String[] params;
+    private String jobId;
+
     public NativeTezOper(OperatorKey k, String tezJar, String[] parameters) {
         super(k);
         nativeTezJar = tezJar;
         params = parameters;
+        jobId = nativeTezJar + "_" + getJobNumber();
     }
 
-    public static int getJobNumber() {
+    private static int getJobNumber() {
         countJobs++;
         return countJobs;
     }
 
     public String getJobId() {
-        return nativeTezJar + "_";
+        return jobId;
     }
 
     public String getCommandString() {
@@ -74,24 +77,24 @@ public class NativeTezOper extends TezOperator {
         v.visitTezOp(this);
     }
 
-    public void runJob() throws JobCreationException {
+    public void runJob(String jobStatsKey) throws JobCreationException {
         RunJarSecurityManager secMan = new RunJarSecurityManager();
         try {
             RunJar.main(getNativeTezParams());
-            ((TezStats)PigStats.get()).addTezJobStatsForNative(this, true);
+            ((TezPigScriptStats)PigStats.get()).addTezJobStatsForNative(jobStatsKey, this, true);
         } catch (SecurityException se) {
             if(secMan.getExitInvoked()) {
                 if(secMan.getExitCode() != 0) {
                     throw new JobCreationException("Native job returned with non-zero return code");
                 }
                 else {
-                    ((TezStats)PigStats.get()).addTezJobStatsForNative(this, true);
+                    ((TezPigScriptStats)PigStats.get()).addTezJobStatsForNative(jobStatsKey, this, true);
                 }
             }
         } catch (Throwable t) {
             JobCreationException e = new JobCreationException(
                     "Cannot run native tez job "+ t.getMessage(), t);
-            ((TezStats)PigStats.get()).addTezJobStatsForNative(this, false);
+            ((TezPigScriptStats)PigStats.get()).addTezJobStatsForNative(jobStatsKey, this, false);
             throw e;
         } finally {
             secMan.retire();

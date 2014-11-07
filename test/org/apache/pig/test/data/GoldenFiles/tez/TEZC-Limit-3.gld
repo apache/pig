@@ -2,7 +2,7 @@
 # There are 1 DAGs in the session
 #--------------------------------------------------
 #--------------------------------------------------
-# TEZ DAG plan: scope-71
+# TEZ DAG plan: pig-0_scope-0
 #--------------------------------------------------
 Tez vertex scope-33	->	Tez vertex scope-37,Tez vertex scope-60,Tez vertex scope-49,
 Tez vertex scope-49	->	Tez vertex scope-60,
@@ -13,21 +13,21 @@ Tez vertex scope-67
 
 Tez vertex scope-33
 # Plan on vertex
-a: Split - scope-92
+a: Split - scope-91
 |   |
-|   g: Local Rearrange[tuple]{chararray}(false) - scope-83	->	 scope-37
+|   g: Local Rearrange[tuple]{chararray}(false) - scope-82	->	 scope-37
 |   |   |
-|   |   Project[chararray][0] - scope-85
+|   |   Project[chararray][0] - scope-84
 |   |
-|   |---h: New For Each(false,false)[bag] - scope-72
+|   |---h: New For Each(false,false)[bag] - scope-71
 |       |   |
-|       |   Project[chararray][0] - scope-73
+|       |   Project[chararray][0] - scope-72
 |       |   |
-|       |   POUserFunc(org.apache.pig.builtin.COUNT$Initial)[tuple] - scope-74
+|       |   POUserFunc(org.apache.pig.builtin.COUNT$Initial)[tuple] - scope-73
 |       |   |
-|       |   |---Project[bag][1] - scope-75
+|       |   |---Project[bag][1] - scope-74
 |       |
-|       |---Pre Combiner Local Rearrange[tuple]{Unknown} - scope-86
+|       |---Pre Combiner Local Rearrange[tuple]{Unknown} - scope-85
 |   |
 |   Local Rearrange[tuple]{tuple}(false) - scope-42	->	 scope-49
 |   |   |
@@ -88,19 +88,19 @@ POIdentityInOutTez - scope-61	<-	 scope-33	->	 scope-62
 |   Project[int][1] - scope-12
 Tez vertex scope-37
 # Combine plan on edge <scope-33>
-g: Local Rearrange[tuple]{chararray}(false) - scope-87	->	 scope-37
+g: Local Rearrange[tuple]{chararray}(false) - scope-86	->	 scope-37
 |   |
-|   Project[chararray][0] - scope-89
+|   Project[chararray][0] - scope-88
 |
-|---h: New For Each(false,false)[bag] - scope-76
+|---h: New For Each(false,false)[bag] - scope-75
     |   |
-    |   Project[chararray][0] - scope-77
+    |   Project[chararray][0] - scope-76
     |   |
-    |   POUserFunc(org.apache.pig.builtin.COUNT$Intermediate)[tuple] - scope-78
+    |   POUserFunc(org.apache.pig.builtin.COUNT$Intermediate)[tuple] - scope-77
     |   |
-    |   |---Project[bag][1] - scope-79
+    |   |---Project[bag][1] - scope-78
     |
-    |---g: Package(CombinerPackager)[tuple]{chararray} - scope-82
+    |---g: Package(CombinerPackager)[tuple]{chararray} - scope-81
 # Plan on vertex
 POValueOutputTez - scope-70	->	 [scope-67, scope-62]
 |
@@ -108,7 +108,7 @@ POValueOutputTez - scope-70	->	 [scope-67, scope-62]
     |   |
     |   POUserFunc(org.apache.pig.builtin.COUNT$Final)[long] - scope-21
     |   |
-    |   |---Project[bag][1] - scope-80
+    |   |---Project[bag][1] - scope-79
     |
     |---g: Package(CombinerPackager)[tuple]{chararray} - scope-17
 Tez vertex scope-62

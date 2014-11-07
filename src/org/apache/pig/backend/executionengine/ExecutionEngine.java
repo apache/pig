@@ -193,4 +193,9 @@ public interface ExecutionEngine {
      */
     public void killJob(String jobID) throws BackendException;
 
+    /**
+     * Perform any cleanup operation
+     */
+    public void destroy();
+
 }
