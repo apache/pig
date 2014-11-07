@@ -1231,4 +1231,30 @@ public class TestEvalPipelineLocal {
         Iterator<Tuple> iter = pigServer.openIterator("D");
         Assert.assertEquals(iter.next().toString(), "(lily)");
     }
+
+    public static class TOTUPLENOINNERSCHEMA extends EvalFunc<Tuple> {
+        @Override
+        public Tuple exec(Tuple input) throws IOException {
+           return input;
+        }
+    }
+
+    // see PIG-4298
+    @Test
+    public void testBytesRawComparatorDesc() throws Exception{
+        File f1 = createFile(new String[]{"2", "1", "4", "3"});
+        
+        pigServer.registerQuery("a = load '" + Util.generateURI(f1.toString(), pigServer.getPigContext())
+                + "' as (value:long);");
+        pigServer.registerQuery("b = foreach a generate " + TOTUPLENOINNERSCHEMA.class.getName() + "(value);");
+        pigServer.registerQuery("c = foreach b generate flatten($0);");
+        pigServer.registerQuery("d = order c by $0 desc;");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("d");
+        Assert.assertEquals(iter.next().toString(), "(4)");
+        Assert.assertEquals(iter.next().toString(), "(3)");
+        Assert.assertEquals(iter.next().toString(), "(2)");
+        Assert.assertEquals(iter.next().toString(), "(1)");
+        Assert.assertFalse(iter.hasNext());
+    }
 }
