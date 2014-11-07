@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-3977: Get TezStats working for Oozie (rohini)
+
 PIG-3979: group all performance, garbage collection, and incremental aggregation (rohini)
 
 PIG-4253: Add a UniqueID UDF (daijy)

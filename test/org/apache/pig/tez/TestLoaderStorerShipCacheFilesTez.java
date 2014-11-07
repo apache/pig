@@ -36,7 +36,7 @@ public class TestLoaderStorerShipCacheFilesTez extends TestLoaderStorerShipCache
     protected void checkPlan(PhysicalPlan pp, String[] expectedFiles, int size, PigContext pigContext) throws Exception {
         TezLauncher launcher = new TezLauncher();
         TezPlanContainer tezPlanContainer = launcher.compile(pp, pigContext);
-        assertPlanContains(tezPlanContainer.getRoots().get(0).getNode(), expectedFiles, size);
+        assertPlanContains(tezPlanContainer.getRoots().get(0).getTezOperPlan(), expectedFiles, size);
     }
 
     private void assertPlanContains(TezOperPlan plan, String[] expectedFiles, int size) throws VisitorException {

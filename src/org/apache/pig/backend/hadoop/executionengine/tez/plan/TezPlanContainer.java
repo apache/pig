@@ -31,7 +31,6 @@ import java.util.Set;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezResourceManager;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.PlanException;
@@ -41,9 +40,14 @@ import org.apache.pig.impl.util.JarManager;
 public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
     private static final long serialVersionUID = 1L;
     private PigContext pigContext;
+    private String jobName;
+    private long dagId = 0;
+    //Incrementing static counter if multiple pig scripts have same name
+    private static long scopeId = 0;
 
     public TezPlanContainer(PigContext pigContext) {
         this.pigContext = pigContext;
+        this.jobName = pigContext.getProperties().getProperty(PigContext.JOB_NAME, "pig");
     }
 
     // Add the Pig jar and the UDF jars as AM resources (all DAG's in the planContainer
@@ -103,18 +107,18 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
         return TezResourceManager.getInstance().addTezResources(jarLists);
     }
 
-    public TezOperPlan getNextPlan(List<TezOperPlan> processedPlans) {
+    public TezPlanContainerNode getNextPlan(List<TezOperPlan> processedPlans) {
         synchronized(this) {
             while (getRoots()!=null && !getRoots().isEmpty()) {
                 TezPlanContainerNode currentPlan = null;
                 for (TezPlanContainerNode plan : getRoots()) {
-                    if (!processedPlans.contains(plan.getNode())) {
+                    if (!processedPlans.contains(plan.getTezOperPlan())) {
                         currentPlan = plan;
                         break;
                     }
                 }
                 if (currentPlan!=null) {
-                    return currentPlan.getNode();
+                    return currentPlan;
                 } else {
                     try {
                         wait();
@@ -126,10 +130,15 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
         return null;
     }
 
+    public void addPlan(TezOperPlan plan) throws PlanException {
+        TezPlanContainerNode node = new TezPlanContainerNode(generateNodeOperatorKey(), plan);
+        this.add(node);
+        this.split(node);
+    }
+
     public void updatePlan(TezOperPlan plan, boolean succ) {
-        String scope = getRoots().get(0).getOperatorKey().getScope();
-        TezPlanContainerNode tezPlanContainerNode = new TezPlanContainerNode(new OperatorKey(scope,
-                NodeIdGenerator.getGenerator().getNextNodeId(scope)), plan);
+        TezPlanContainerNode tezPlanContainerNode = new TezPlanContainerNode(
+                generateNodeOperatorKey(), plan);
         synchronized(this) {
             if (succ) {
                 remove(tezPlanContainerNode);
@@ -143,7 +152,7 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
     }
 
     public void split(TezPlanContainerNode planNode) throws PlanException {
-        TezOperPlan tezOperPlan = planNode.getNode();
+        TezOperPlan tezOperPlan = planNode.getTezOperPlan();
         TezOperator operToSegment = null;
         List<TezOperator> succs = new ArrayList<TezOperator>();
         for (TezOperator tezOper : tezOperPlan) {
@@ -162,8 +171,7 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
                     containerSuccs.addAll(getSuccessors(planNode));
                 }
                 tezOperPlan.moveTree(succ, newOperPlan);
-                String scope = operToSegment.getOperatorKey().getScope();
-                TezPlanContainerNode newPlanNode = new TezPlanContainerNode(new OperatorKey(scope, NodeIdGenerator.getGenerator().getNextNodeId(scope)), newOperPlan);
+                TezPlanContainerNode newPlanNode = new TezPlanContainerNode(generateNodeOperatorKey(), newOperPlan);
                 add(newPlanNode);
                 for (TezPlanContainerNode containerNodeSucc : containerSuccs) {
                     disconnect(planNode, containerNodeSucc);
@@ -174,6 +182,17 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
             }
             split(planNode);
         }
+    }
+
+    private synchronized OperatorKey generateNodeOperatorKey() {
+        OperatorKey opKey = new OperatorKey(jobName + "-" + dagId + "_scope", scopeId);
+        scopeId++;
+        dagId++;
+        return opKey;
+    }
+
+    public static void resetScope() {
+        scopeId = 0;
     }
 
     @Override

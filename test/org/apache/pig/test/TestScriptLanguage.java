@@ -662,7 +662,8 @@ public class TestScriptLanguage {
         PigStatsUtil.getEmptyPigStats();
 
         // ExecMode.FILE
-        stats = PigRunner.run(new String[] { "-f", scriptFile.getAbsolutePath(), "arg0",
+        stats = PigRunner.run(new String[] { "-x", cluster.getExecType().name().toLowerCase(),
+                "-f", scriptFile.getAbsolutePath(), "arg0",
                 file1 + "," + file2 }, null);
         assertEquals(null, stats.getErrorMessage());
         assertFileNotExists(file1, file2);
