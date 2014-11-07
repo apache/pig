@@ -2,7 +2,7 @@
 # There are 1 DAGs in the session
 #--------------------------------------------------
 #--------------------------------------------------
-# TEZ DAG plan: scope-49
+# TEZ DAG plan: pig-0_scope-0
 #--------------------------------------------------
 Tez vertex scope-12	->	Tez vertex scope-33,Tez vertex scope-22,
 Tez vertex scope-22	->	Tez vertex scope-33,

@@ -231,13 +231,13 @@ public class PigServer {
         addJarsFromProperties();
         markPredeployedJarsFromProperties();
 
-        PigStats.start(pigContext.getExecutionEngine().instantiatePigStats());
-
         if (ScriptState.get() == null) {
             // If Pig was started via command line, ScriptState should have been
             // already initialized in Main. If so, we should not overwrite it.
             ScriptState.start(pigContext.getExecutionEngine().instantiateScriptState());
         }
+        PigStats.start(pigContext.getExecutionEngine().instantiatePigStats());
+
     }
 
     private void addJarsFromProperties() throws ExecException {

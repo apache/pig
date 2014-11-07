@@ -178,6 +178,7 @@ public class Main {
         boolean deleteTempFiles = true;
         String logFileName = null;
         boolean printScriptRunTime = true;
+        PigContext pigContext = null;
 
         try {
             Configuration conf = new Configuration(false);
@@ -380,7 +381,7 @@ public class Main {
             }
 
             // create the context with the parameter
-            PigContext pigContext = new PigContext(properties);
+            pigContext = new PigContext(properties);
 
             // create the static script state object
             ScriptState scriptState = pigContext.getExecutionEngine().instantiateScriptState();
@@ -668,6 +669,9 @@ public class Main {
             if (deleteTempFiles) {
                 // clear temp files
                 FileLocalizer.deleteTempFiles();
+            }
+            if (pigContext != null) {
+                pigContext.getExecutionEngine().destroy();
             }
             PerformanceTimerFactory.getPerfTimerFactory().dumpTimers();
         }
