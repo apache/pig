@@ -33,6 +33,7 @@ import org.apache.pig.backend.hadoop.executionengine.tez.TezJob.TezJobConfig;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.MRToTezHelper;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.Utils;
+import org.apache.pig.tools.pigstats.tez.TezScriptState;
 import org.apache.tez.client.TezAppMasterStatus;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -86,6 +87,8 @@ public class TezSessionManager {
             TezJobConfig tezJobConf) throws TezException, IOException,
             InterruptedException {
         TezConfiguration amConf = MRToTezHelper.getDAGAMConfFromMRConf(conf);
+        TezScriptState ss = TezScriptState.get();
+        ss.addDAGSettingsToConf(amConf);
         adjustAMConfig(amConf, tezJobConf);
         String jobName = conf.get(PigContext.JOB_NAME, "pig");
         TezClient tezClient = TezClient.create(jobName, amConf, true, requestedAMResources, creds);
@@ -194,6 +197,7 @@ public class TezSessionManager {
         sessionPoolLock.writeLock().lock();
         try {
             if (shutdown == true) {
+                log.info("Shutting down Tez session " + newSession.session);
                 newSession.session.stop();
                 throw new IOException("TezSessionManager is shut down");
             }

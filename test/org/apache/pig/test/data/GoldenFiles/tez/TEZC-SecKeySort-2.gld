@@ -2,52 +2,52 @@
 # There are 1 DAGs in the session
 #--------------------------------------------------
 #--------------------------------------------------
-# TEZ DAG plan: scope-58
+# TEZ DAG plan: pig-0_scope-1
 #--------------------------------------------------
-Tez vertex scope-56	->	Tez vertex scope-57,
-Tez vertex scope-57
+Tez vertex scope-55	->	Tez vertex scope-56,
+Tez vertex scope-56
 
+Tez vertex scope-55
+# Plan on vertex
+b: Local Rearrange[tuple]{int}(false) - scope-42	->	 scope-56
+|   |
+|   Project[int][0] - scope-43
+|
+|---a: New For Each(false,false,false)[bag] - scope-39
+    |   |
+    |   Cast[int] - scope-31
+    |   |
+    |   |---Project[bytearray][0] - scope-30
+    |   |
+    |   Cast[int] - scope-34
+    |   |
+    |   |---Project[bytearray][1] - scope-33
+    |   |
+    |   Cast[int] - scope-37
+    |   |
+    |   |---Project[bytearray][2] - scope-36
+    |
+    |---a: Load(file:///tmp/input:PigStorage(',')) - scope-29
 Tez vertex scope-56
 # Plan on vertex
-b: Local Rearrange[tuple]{int}(false) - scope-43	->	 scope-57
-|   |
-|   Project[int][0] - scope-44
+c: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-54
 |
-|---a: New For Each(false,false,false)[bag] - scope-40
+|---c: New For Each(false,false)[bag] - scope-53
     |   |
-    |   Cast[int] - scope-32
+    |   Project[int][0] - scope-44
     |   |
-    |   |---Project[bytearray][0] - scope-31
+    |   RelationToExpressionProject[bag][*] - scope-46
     |   |
-    |   Cast[int] - scope-35
-    |   |
-    |   |---Project[bytearray][1] - scope-34
-    |   |
-    |   Cast[int] - scope-38
-    |   |
-    |   |---Project[bytearray][2] - scope-37
-    |
-    |---a: Load(file:///tmp/input:PigStorage(',')) - scope-30
-Tez vertex scope-57
-# Plan on vertex
-c: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-55
-|
-|---c: New For Each(false,false)[bag] - scope-54
-    |   |
-    |   Project[int][0] - scope-45
-    |   |
-    |   RelationToExpressionProject[bag][*] - scope-47
-    |   |
-    |   |---f: POSort[bag]() - scope-53
+    |   |---f: POSort[bag]() - scope-52
     |       |   |
-    |       |   Project[int][0] - scope-52
+    |       |   Project[int][0] - scope-51
     |       |
-    |       |---e: POSort[bag]() - scope-51
+    |       |---e: POSort[bag]() - scope-50
     |           |   |
-    |           |   Project[int][1] - scope-50
+    |           |   Project[int][1] - scope-49
     |           |
-    |           |---d: Limit - scope-49
+    |           |---d: Limit - scope-48
     |               |
-    |               |---Project[bag][1] - scope-48
+    |               |---Project[bag][1] - scope-47
     |
-    |---b: Package(Packager)[tuple]{int} - scope-42
+    |---b: Package(Packager)[tuple]{int} - scope-41

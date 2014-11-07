@@ -377,4 +377,11 @@ public abstract class HExecutionEngine implements ExecutionEngine {
         }
     }
 
+    @Override
+    public void destroy() {
+        if (launcher != null) {
+            launcher.destroy();
+        }
+    }
+
 }

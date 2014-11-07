@@ -2,76 +2,76 @@
 # There are 1 DAGs in the session
 #--------------------------------------------------
 #--------------------------------------------------
-# TEZ DAG plan: scope-96
+# TEZ DAG plan: pig-0_scope-1
 #--------------------------------------------------
-Tez vertex scope-88	->	Tez vertex scope-90,
-Tez vertex scope-89	->	Tez vertex scope-90,
-Tez vertex scope-90	->	Tez vertex scope-95,
-Tez vertex scope-94	->	Tez vertex scope-95,
-Tez vertex scope-95
+Tez vertex scope-87	->	Tez vertex scope-89,
+Tez vertex scope-88	->	Tez vertex scope-89,
+Tez vertex scope-89	->	Tez vertex scope-94,
+Tez vertex scope-93	->	Tez vertex scope-94,
+Tez vertex scope-94
 
+Tez vertex scope-87
+# Plan on vertex
+POValueOutputTez - scope-91	->	 [scope-89]
+|
+|---a: New For Each(false,false)[bag] - scope-57
+    |   |
+    |   Cast[int] - scope-52
+    |   |
+    |   |---Project[bytearray][0] - scope-51
+    |   |
+    |   Cast[chararray] - scope-55
+    |   |
+    |   |---Project[bytearray][1] - scope-54
+    |
+    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-50
 Tez vertex scope-88
 # Plan on vertex
-POValueOutputTez - scope-92	->	 [scope-90]
+POValueOutputTez - scope-92	->	 [scope-89]
 |
-|---a: New For Each(false,false)[bag] - scope-58
+|---c: New For Each(false,false)[bag] - scope-65
     |   |
-    |   Cast[int] - scope-53
+    |   Cast[int] - scope-60
     |   |
-    |   |---Project[bytearray][0] - scope-52
+    |   |---Project[bytearray][1] - scope-59
     |   |
-    |   Cast[chararray] - scope-56
+    |   Cast[chararray] - scope-63
     |   |
-    |   |---Project[bytearray][1] - scope-55
+    |   |---Project[bytearray][0] - scope-62
     |
-    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-51
+    |---b: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-58
 Tez vertex scope-89
 # Plan on vertex
-POValueOutputTez - scope-93	->	 [scope-90]
-|
-|---c: New For Each(false,false)[bag] - scope-66
-    |   |
-    |   Cast[int] - scope-61
-    |   |
-    |   |---Project[bytearray][1] - scope-60
-    |   |
-    |   Cast[chararray] - scope-64
-    |   |
-    |   |---Project[bytearray][0] - scope-63
-    |
-    |---b: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-59
-Tez vertex scope-90
-# Plan on vertex
-e: Local Rearrange[tuple]{int}(false) - scope-80	->	 scope-95
+e: Local Rearrange[tuple]{int}(false) - scope-79	->	 scope-94
 |   |
-|   Project[int][0] - scope-81
+|   Project[int][0] - scope-80
 |
-|---POShuffledValueInputTez - scope-91	<-	 [scope-88, scope-89]
+|---POShuffledValueInputTez - scope-90	<-	 [scope-87, scope-88]
+Tez vertex scope-93
+# Plan on vertex
+e: Local Rearrange[tuple]{int}(false) - scope-81	->	 scope-94
+|   |
+|   Project[int][0] - scope-82
+|
+|---d: New For Each(false,false)[bag] - scope-74
+    |   |
+    |   Cast[int] - scope-69
+    |   |
+    |   |---Project[bytearray][0] - scope-68
+    |   |
+    |   Cast[chararray] - scope-72
+    |   |
+    |   |---Project[bytearray][1] - scope-71
+    |
+    |---d: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-67
 Tez vertex scope-94
 # Plan on vertex
-e: Local Rearrange[tuple]{int}(false) - scope-82	->	 scope-95
-|   |
-|   Project[int][0] - scope-83
+e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-86
 |
-|---d: New For Each(false,false)[bag] - scope-75
+|---e: New For Each(true,true)[tuple] - scope-85
     |   |
-    |   Cast[int] - scope-70
+    |   Project[bag][1] - scope-83
     |   |
-    |   |---Project[bytearray][0] - scope-69
-    |   |
-    |   Cast[chararray] - scope-73
-    |   |
-    |   |---Project[bytearray][1] - scope-72
+    |   Project[bag][2] - scope-84
     |
-    |---d: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-68
-Tez vertex scope-95
-# Plan on vertex
-e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-87
-|
-|---e: New For Each(true,true)[tuple] - scope-86
-    |   |
-    |   Project[bag][1] - scope-84
-    |   |
-    |   Project[bag][2] - scope-85
-    |
-    |---e: Package(Packager)[tuple]{int} - scope-79
+    |---e: Package(Packager)[tuple]{int} - scope-78

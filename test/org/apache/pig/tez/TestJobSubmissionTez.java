@@ -26,12 +26,16 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.tez.TezDagBuilder;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezCompiler;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPlanContainerNode;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer.LoaderProcessor;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer.ParallelismSetter;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.test.TestJobSubmission;
 import org.apache.pig.test.Util;
+import org.apache.pig.tools.pigstats.ScriptState;
+import org.apache.pig.tools.pigstats.tez.TezScriptState;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Vertex;
@@ -57,7 +61,7 @@ public class TestJobSubmissionTez extends TestJobSubmission {
         ParallelismSetter parallelismSetter = new ParallelismSetter(tezPlan, pc);
         parallelismSetter.visit();
 
-        DAG tezDag = DAG.create("test");
+        DAG tezDag = getTezDAG(tezPlan, pc);
         TezDagBuilder dagBuilder = new TezDagBuilder(pc, tezPlan, tezDag, null);
         try {
             dagBuilder.visit();
@@ -76,7 +80,7 @@ public class TestJobSubmissionTez extends TestJobSubmission {
         ParallelismSetter parallelismSetter = new ParallelismSetter(tezPlan, pc);
         parallelismSetter.visit();
 
-        DAG tezDag = DAG.create("test");
+        DAG tezDag = getTezDAG(tezPlan, pc);
         TezDagBuilder dagBuilder = new TezDagBuilder(pc, tezPlan, tezDag, null);
         dagBuilder.visit();
         for (Vertex v : tezDag.getVertices()) {
@@ -95,5 +99,14 @@ public class TestJobSubmissionTez extends TestJobSubmission {
         TezCompiler comp = new TezCompiler(pp, pc);
         comp.compile();
         return comp.getTezPlan();
+    }
+
+    private DAG getTezDAG(TezOperPlan tezPlan, PigContext pc) {
+        TezPlanContainerNode tezPlanNode = new TezPlanContainerNode(OperatorKey.genOpKey("DAGName"), tezPlan);
+        TezScriptState scriptState = new TezScriptState("test");
+        ScriptState.start(scriptState);
+        scriptState.setDAGScriptInfo(tezPlanNode);
+        DAG tezDag = DAG.create(tezPlanNode.getOperatorKey().toString());
+        return tezDag;
     }
 }

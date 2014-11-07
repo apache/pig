@@ -637,4 +637,7 @@ public abstract class Launcher {
         return new StackTraceElement(declaringClass, methodName, fileName,
                 lineNumber);
     }
+
+    public void destroy() {
+    }
 }

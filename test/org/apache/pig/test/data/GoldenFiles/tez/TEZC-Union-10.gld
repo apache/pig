@@ -2,19 +2,19 @@
 # There are 1 DAGs in the session
 #--------------------------------------------------
 #--------------------------------------------------
-# TEZ DAG plan: scope-43
+# TEZ DAG plan: pig-0_scope-0
 #--------------------------------------------------
-Tez vertex scope-37	->	Tez vertex group scope-44,
-Tez vertex scope-31	->	Tez vertex group scope-44,
-Tez vertex scope-32	->	Tez vertex group scope-44,
-Tez vertex group scope-44	->	Tez vertex scope-42,
+Tez vertex scope-37	->	Tez vertex group scope-43,
+Tez vertex scope-31	->	Tez vertex group scope-43,
+Tez vertex scope-32	->	Tez vertex group scope-43,
+Tez vertex group scope-43	->	Tez vertex scope-42,
 Tez vertex scope-42
 
 Tez vertex scope-37
 # Plan on vertex
-f: Local Rearrange[tuple]{int}(false) - scope-47	->	 scope-42
+f: Local Rearrange[tuple]{int}(false) - scope-46	->	 scope-42
 |   |
-|   Project[int][0] - scope-48
+|   Project[int][0] - scope-47
 |
 |---d: New For Each(false,false)[bag] - scope-24
     |   |
@@ -29,9 +29,9 @@ f: Local Rearrange[tuple]{int}(false) - scope-47	->	 scope-42
     |---d: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-17
 Tez vertex scope-31
 # Plan on vertex
-f: Local Rearrange[tuple]{int}(false) - scope-50	->	 scope-42
+f: Local Rearrange[tuple]{int}(false) - scope-49	->	 scope-42
 |   |
-|   Project[int][0] - scope-51
+|   Project[int][0] - scope-50
 |
 |---a: New For Each(false,false)[bag] - scope-7
     |   |
@@ -46,9 +46,9 @@ f: Local Rearrange[tuple]{int}(false) - scope-50	->	 scope-42
     |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
 Tez vertex scope-32
 # Plan on vertex
-f: Local Rearrange[tuple]{int}(false) - scope-52	->	 scope-42
+f: Local Rearrange[tuple]{int}(false) - scope-51	->	 scope-42
 |   |
-|   Project[int][0] - scope-53
+|   Project[int][0] - scope-52
 |
 |---c: New For Each(false,false)[bag] - scope-15
     |   |
@@ -61,7 +61,7 @@ f: Local Rearrange[tuple]{int}(false) - scope-52	->	 scope-42
     |   |---Project[bytearray][0] - scope-12
     |
     |---b: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-8
-Tez vertex group scope-44	<-	 [scope-37, scope-31, scope-32]	->	 scope-42
+Tez vertex group scope-43	<-	 [scope-37, scope-31, scope-32]	->	 scope-42
 # No plan on vertex group
 Tez vertex scope-42
 # Plan on vertex

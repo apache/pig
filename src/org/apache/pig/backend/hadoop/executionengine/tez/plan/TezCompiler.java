@@ -209,9 +209,7 @@ public class TezCompiler extends PhyPlanVisitor {
     // Segment a single DAG into a DAG graph
     public TezPlanContainer getPlanContainer() throws PlanException {
         TezPlanContainer tezPlanContainer = new TezPlanContainer(pigContext);
-        TezPlanContainerNode node = new TezPlanContainerNode(OperatorKey.genOpKey(scope), tezPlan);
-        tezPlanContainer.add(node);
-        tezPlanContainer.split(node);
+        tezPlanContainer.addPlan(tezPlan);
         return tezPlanContainer;
     }
 
