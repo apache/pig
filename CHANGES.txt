@@ -101,6 +101,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4299: SpillableMemoryManager assumes tenured heap incorrectly (prkommireddi via daijy)
+
 PIG-4298: Descending order-by is broken in some cases when key is bytearrays (cheolsoo)
 
 PIG-4263: Move tez local mode unit tests to a separate target (daijy)
