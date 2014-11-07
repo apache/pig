@@ -88,30 +88,28 @@ public class SpillableMemoryManager implements NotificationListener {
     private SpillableMemoryManager() {
         ((NotificationEmitter)ManagementFactory.getMemoryMXBean()).addNotificationListener(this, null, null);
         List<MemoryPoolMXBean> mpbeans = ManagementFactory.getMemoryPoolMXBeans();
-        MemoryPoolMXBean biggestHeap = null;
-        long biggestSize = 0;
+        MemoryPoolMXBean tenuredHeap = null;
+        long tenuredHeapSize = 0;
         long totalSize = 0;
-        for (MemoryPoolMXBean b: mpbeans) {
-            log.debug("Found heap (" + b.getName() +
-                ") of type " + b.getType());
-            if (b.getType() == MemoryType.HEAP) {
-                /* Here we are making the leap of faith that the biggest
-                 * heap is the tenured heap
-                 */
-                long size = b.getUsage().getMax();
+        for (MemoryPoolMXBean pool : mpbeans) {
+            log.debug("Found heap (" + pool.getName() + ") of type " + pool.getType());
+            if (pool.getType() == MemoryType.HEAP) {
+                long size = pool.getUsage().getMax();
                 totalSize += size;
-                if (size > biggestSize) {
-                    biggestSize = size;
-                    biggestHeap = b;
+                // CMS Old Gen or "tenured" is the only heap that supports
+                // setting usage threshold.
+                if (pool.isUsageThresholdSupported()) {
+                    tenuredHeapSize = size;
+                    tenuredHeap = pool;
                 }
             }
         }
         extraGCSpillSizeThreshold  = (long) (totalSize * extraGCThresholdFraction);
-        if (biggestHeap == null) {
+        if (tenuredHeap == null) {
             throw new RuntimeException("Couldn't find heap");
         }
         log.debug("Selected heap to monitor (" +
-            biggestHeap.getName() + ")");
+            tenuredHeap.getName() + ")");
 
         // we want to set both collection and usage threshold alerts to be
         // safe. In some local tests after a point only collection threshold
@@ -123,11 +121,11 @@ public class SpillableMemoryManager implements NotificationListener {
 
         /* We set the threshold to be 50% of tenured since that is where
          * the GC starts to dominate CPU time according to Sun doc */
-        biggestHeap.setCollectionUsageThreshold((long)(biggestSize * collectionMemoryThresholdFraction));
+        tenuredHeap.setCollectionUsageThreshold((long)(tenuredHeapSize * collectionMemoryThresholdFraction));
         // we set a higher threshold for usage threshold exceeded notification
         // since this is more likely to be effective sooner and we do not
         // want to be spilling too soon
-        biggestHeap.setUsageThreshold((long)(biggestSize * memoryThresholdFraction));
+        tenuredHeap.setUsageThreshold((long)(tenuredHeapSize * memoryThresholdFraction));
     }
 
     public static SpillableMemoryManager getInstance() {
