@@ -202,12 +202,14 @@ public class POPartialAgg extends PhysicalOperator implements Spillable, Groupin
                     // SpillableMemoryManager requested a spill to reduce memory
                     // consumption. See if we can avoid it.
                     aggregateBothLevels(false, false);
-                    if (shouldSpill()) {
-                        startSpill(false);
-                    } else {
-                        LOG.info("Avoided emitting records during spill memory call.");
-                        doContingentSpill = false;
-                    }
+                    // TODO Need to see if we can optimize here (See PIG-4314)  
+                    // if (shouldSpill()) {
+                    //     startSpill(false);
+                    // } else {
+                    //     LOG.info("Avoided emitting records during spill memory call.");
+                    //     doContingentSpill = false;
+                    // }
+                    startSpill(false);
                 }
             }
             if (doSpill) {
