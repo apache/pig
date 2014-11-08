@@ -35,7 +35,9 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.test.MiniGenericCluster;
 import org.apache.pig.test.Util;
 import org.joda.time.DateTime;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestStreamingUDF {
@@ -43,7 +45,17 @@ public class TestStreamingUDF {
     private static PigServer pigServerMapReduce = null;
 
     private TupleFactory tf = TupleFactory.getInstance();
-    private static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
+    private static MiniGenericCluster cluster;
+
+    @BeforeClass
+    public static void oneTimeSetup() {
+        cluster = MiniGenericCluster.buildCluster();
+    }
+
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
 
     @Before
     public void setUp() throws Exception {
