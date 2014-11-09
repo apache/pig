@@ -17,6 +17,9 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
+import static org.apache.pig.PigConfiguration.PIG_EXEC_REDUCER_ESTIMATOR;
+import static org.apache.pig.PigConfiguration.PIG_EXEC_REDUCER_ESTIMATOR_CONSTRUCTOR_ARG_KEY;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -160,9 +163,6 @@ public class JobControlCompiler{
     public static final String LOG_DIR = "_logs";
 
     public static final String END_OF_INP_IN_MAP = "pig.invoke.close.in.map";
-
-    private static final String REDUCER_ESTIMATOR_KEY = "pig.exec.reducer.estimator";
-    private static final String REDUCER_ESTIMATOR_ARG_KEY =  "pig.exec.reducer.estimator.arg";
 
     public static final String PIG_MAP_COUNTER = "pig.counters.counter_";
     public static final String PIG_MAP_RANK_NAME = "pig.rank_";
@@ -503,7 +503,7 @@ public class JobControlCompiler{
         Path tmpLocation = null;
 
         // add settings for pig statistics
-        String setScriptProp = conf.get(PigConfiguration.INSERT_ENABLED, "true");
+        String setScriptProp = conf.get(PigConfiguration.PIG_SCRIPT_INFO_ENABLED, "true");
         if (setScriptProp.equalsIgnoreCase("true")) {
             MRScriptState ss = MRScriptState.get();
             ss.addSettingsToConf(mro, conf);
@@ -1104,10 +1104,10 @@ public class JobControlCompiler{
             MapReduceOper mapReducerOper) throws IOException {
         Configuration conf = job.getConfiguration();
 
-        PigReducerEstimator estimator = conf.get(REDUCER_ESTIMATOR_KEY) == null ?
+        PigReducerEstimator estimator = conf.get(PIG_EXEC_REDUCER_ESTIMATOR) == null ?
                 new InputSizeReducerEstimator() :
                     PigContext.instantiateObjectFromParams(conf,
-                            REDUCER_ESTIMATOR_KEY, REDUCER_ESTIMATOR_ARG_KEY, PigReducerEstimator.class);
+                            PIG_EXEC_REDUCER_ESTIMATOR, PIG_EXEC_REDUCER_ESTIMATOR_CONSTRUCTOR_ARG_KEY, PigReducerEstimator.class);
 
                 log.info("Using reducer estimator: " + estimator.getClass().getName());
                 int numberOfReducers = estimator.estimateNumberOfReducers(job, mapReducerOper);

@@ -144,7 +144,7 @@ public class TezMiniCluster extends MiniGenericCluster {
 
             m_conf = m_mr_conf;
             // Turn FetchOptimizer off so that we can actually test Tez
-            m_conf.set(PigConfiguration.OPT_FETCH, System.getProperty("test.opt.fetch", "false"));
+            m_conf.set(PigConfiguration.PIG_OPT_FETCH, System.getProperty("test.opt.fetch", "false"));
 
             System.setProperty("junit.hadoop.conf", CONF_DIR.getPath());
             System.setProperty("hadoop.log.dir", "build/test/logs");

@@ -54,7 +54,7 @@ public class TestPredeployedJar {
         logger.addAppender(appender);
         
         PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getConfiguration());
-        pigServer.getPigContext().getProperties().put(PigConfiguration.OPT_FETCH, "false");
+        pigServer.getPigContext().getProperties().put(PigConfiguration.PIG_OPT_FETCH, "false");
         String[] inputData = new String[] { "hello", "world" };
         Util.createInputFile(cluster, "a.txt", inputData);
         String guavaJar = JarManager.findContainingJar(com.google.common.collect.Multimaps.class);

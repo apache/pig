@@ -18,10 +18,10 @@
 
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators;
 
-import static org.apache.pig.PigConfiguration.TIME_UDFS;
-import static org.apache.pig.PigConfiguration.TIME_UDFS_FREQUENCY;
-import static org.apache.pig.PigConstants.TIME_UDFS_INVOCATION_COUNTER;
+import static org.apache.pig.PigConfiguration.PIG_UDF_PROFILE;
+import static org.apache.pig.PigConfiguration.PIG_UDF_PROFILE_FREQUENCY;
 import static org.apache.pig.PigConstants.TIME_UDFS_ELAPSED_TIME_COUNTER;
+import static org.apache.pig.PigConstants.TIME_UDFS_INVOCATION_COUNTER;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -37,7 +37,6 @@ import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
-import org.apache.pig.PigWarning;
 import org.apache.pig.TerminatingAccumulator;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -154,10 +153,10 @@ public class POUserFunc extends ExpressionOperator {
             func.setPigLogger(pigLogger);
             Configuration jobConf = UDFContext.getUDFContext().getJobConf();
             if (jobConf != null) {
-                doTiming = jobConf.getBoolean(TIME_UDFS, false);
+                doTiming = jobConf.getBoolean(PIG_UDF_PROFILE, false);
                 if (doTiming) {
                     counterGroup = funcSpec.toString();
-                    timingFrequency = jobConf.getLong(TIME_UDFS_FREQUENCY, 100L);
+                    timingFrequency = jobConf.getLong(PIG_UDF_PROFILE_FREQUENCY, 100L);
                 }
             }
             // We initialize here instead of instantiateFunc because this is called
@@ -530,7 +529,7 @@ public class POUserFunc extends ExpressionOperator {
     public FuncSpec getFuncSpec() {
         return funcSpec;
     }
-    
+
     public void setFuncSpec(FuncSpec funcSpec) {
         this.funcSpec = funcSpec;
         instantiateFunc(funcSpec);

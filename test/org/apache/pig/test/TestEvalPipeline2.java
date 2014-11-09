@@ -1431,7 +1431,7 @@ public class TestEvalPipeline2 {
     public void testNonStandardDataWithoutFetch() throws Exception{
         Assume.assumeTrue("Skip this test for TEZ. See PIG-3994", Util.isMapredExecType(cluster.getExecType()));
         Properties props = pigServer.getPigContext().getProperties();
-        props.setProperty(PigConfiguration.OPT_FETCH, "false");
+        props.setProperty(PigConfiguration.PIG_OPT_FETCH, "false");
         String[] input1 = {
                 "0",
         };
@@ -1448,7 +1448,7 @@ public class TestEvalPipeline2 {
             }
         }
         finally {
-            props.setProperty(PigConfiguration.OPT_FETCH, "true");
+            props.setProperty(PigConfiguration.PIG_OPT_FETCH, "true");
         }
     }
 

@@ -32,7 +32,7 @@ public class AccumulatorOptimizerUtil {
     public static int getAccumulativeBatchSize() {
         int batchSize = 20000;
         if (PigMapReduce.sJobConfInternal.get() != null) {
-            String size = PigMapReduce.sJobConfInternal.get().get(PigConfiguration.ACCUMULATIVE_BATCHSIZE);
+            String size = PigMapReduce.sJobConfInternal.get().get(PigConfiguration.PIG_ACCUMULATIVE_BATCHSIZE);
             if (size != null) {
                 batchSize = Integer.parseInt(size);
             }

@@ -69,7 +69,7 @@ public class TestMultiQueryBasic {
         Util.copyFromLocalToLocal(
                 "test/org/apache/pig/test/data/passwd2", "passwd2");
         Properties props = new Properties();
-        props.setProperty(PigConfiguration.OPT_MULTIQUERY, ""+true);
+        props.setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, ""+true);
         myPig = new PigServer(ExecType.LOCAL, props);
     }
 

@@ -150,7 +150,7 @@ public class POPartialAgg extends PhysicalOperator implements Spillable, Groupin
                 percentUsage = Float.parseFloat(usage);
             }
             minOutputReduction = PigMapReduce.sJobConfInternal.get().getInt(
-                    PigConfiguration.PARTAGG_MINREDUCTION, DEFAULT_MIN_REDUCTION);
+                    PigConfiguration.PIG_EXEC_MAP_PARTAGG_MINREDUCTION, DEFAULT_MIN_REDUCTION);
             if (minOutputReduction <= 0) {
                 LOG.info("Specified reduction is < 0 (" + minOutputReduction + "). Using default " +
                         DEFAULT_MIN_REDUCTION);

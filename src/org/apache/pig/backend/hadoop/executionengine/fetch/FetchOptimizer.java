@@ -81,7 +81,7 @@ public class FetchOptimizer {
      */
     public static boolean isFetchEnabled(PigContext pc) {
         return "true".equalsIgnoreCase(
-                pc.getProperties().getProperty(PigConfiguration.OPT_FETCH, "true"));
+                pc.getProperties().getProperty(PigConfiguration.PIG_OPT_FETCH, "true"));
     }
 
     /**
