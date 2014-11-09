@@ -145,9 +145,9 @@ public class PropertiesUtil {
             properties.setProperty("stop.on.failure", ""+false);
         }
 
-        if (properties.getProperty(PigConfiguration.OPT_FETCH) == null) {
+        if (properties.getProperty(PigConfiguration.PIG_OPT_FETCH) == null) {
             //by default fetch optimization is on
-            properties.setProperty(PigConfiguration.OPT_FETCH, ""+true);
+            properties.setProperty(PigConfiguration.PIG_OPT_FETCH, ""+true);
         }
     }
     

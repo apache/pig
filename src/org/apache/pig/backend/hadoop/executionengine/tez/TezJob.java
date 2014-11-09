@@ -74,7 +74,7 @@ public class TezJob implements Runnable {
         this.conf = conf;
         this.dag = dag;
         this.requestAMResources = requestAMResources;
-        this.reuseSession = conf.getBoolean(PigConfiguration.TEZ_SESSION_REUSE, true);
+        this.reuseSession = conf.getBoolean(PigConfiguration.PIG_TEZ_SESSION_REUSE, true);
         this.statusGetOpts = EnumSet.of(StatusGetOpts.GET_COUNTERS);
         tezJobConf = new TezJobConfig(estimatedTotalParallelism);
     }
@@ -173,7 +173,7 @@ public class TezJob implements Runnable {
 
         timer = new Timer();
         timer.schedule(new DAGStatusReporter(), 1000, conf.getLong(
-                PigConfiguration.TEZ_DAG_STATUS_REPORT_INTERVAL, 20) * 1000);
+                PigConfiguration.PIG_TEZ_DAG_STATUS_REPORT_INTERVAL, 20) * 1000);
 
         while (true) {
             try {

@@ -78,7 +78,7 @@ public class TestSchemaTuple {
     @Before
     public void perTestInitialize() {
         props = new Properties();
-        props.setProperty(PigConfiguration.SHOULD_USE_SCHEMA_TUPLE, "true");
+        props.setProperty(PigConfiguration.PIG_SCHEMA_TUPLE_ENABLED, "true");
 
         conf = ConfigurationUtil.toConfiguration(props);
 

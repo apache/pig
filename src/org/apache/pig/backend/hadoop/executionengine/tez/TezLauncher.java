@@ -109,7 +109,7 @@ public class TezLauncher extends Launcher {
             pc.getProperties().setProperty("tez.ignore.lib.uris", "true");
         }
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties(), true);
-        if (pc.defaultParallel == -1 && !conf.getBoolean(PigConfiguration.TEZ_AUTO_PARALLELISM, true)) {
+        if (pc.defaultParallel == -1 && !conf.getBoolean(PigConfiguration.PIG_TEZ_AUTO_PARALLELISM, true)) {
             pc.defaultParallel = 1;
         }
         aggregateWarning = conf.getBoolean("aggregate.warning", false);
@@ -379,10 +379,10 @@ public class TezLauncher extends Launcher {
         filter.visit();
 
         // Run CombinerOptimizer on Tez plan
-        boolean nocombiner = conf.getBoolean(PigConfiguration.PROP_NO_COMBINER, false);
+        boolean nocombiner = conf.getBoolean(PigConfiguration.PIG_EXEC_NO_COMBINER, false);
         if (!pc.inIllustrator && !nocombiner)  {
             boolean doMapAgg = Boolean.parseBoolean(pc.getProperties().getProperty(
-                    PigConfiguration.PROP_EXEC_MAP_PARTAGG, "false"));
+                    PigConfiguration.PIG_EXEC_MAP_PARTAGG, "false"));
             CombinerOptimizer co = new CombinerOptimizer(tezPlan, doMapAgg);
             co.visit();
             co.getMessageCollector().logMessages(MessageType.Warning, aggregateWarning, log);
@@ -396,7 +396,7 @@ public class TezLauncher extends Launcher {
             skOptimizer.visit();
         }
 
-        boolean isMultiQuery = conf.getBoolean(PigConfiguration.OPT_MULTIQUERY, true);
+        boolean isMultiQuery = conf.getBoolean(PigConfiguration.PIG_OPT_MULTIQUERY, true);
         if (isMultiQuery) {
             // reduces the number of TezOpers in the Tez plan generated
             // by multi-query (multi-store) script.
@@ -405,14 +405,14 @@ public class TezLauncher extends Launcher {
         }
 
         // Run AccumulatorOptimizer on Tez plan
-        boolean isAccum = conf.getBoolean(PigConfiguration.OPT_ACCUMULATOR, true);
+        boolean isAccum = conf.getBoolean(PigConfiguration.PIG_OPT_ACCUMULATOR, true);
         if (isAccum) {
             AccumulatorOptimizer accum = new AccumulatorOptimizer(tezPlan);
             accum.visit();
         }
 
         // Use VertexGroup in Tez
-        boolean isUnionOpt = conf.getBoolean(PigConfiguration.TEZ_OPT_UNION, true);
+        boolean isUnionOpt = conf.getBoolean(PigConfiguration.PIG_TEZ_OPT_UNION, true);
         if (isUnionOpt) {
             UnionOptimizer uo = new UnionOptimizer(tezPlan);
             uo.visit();

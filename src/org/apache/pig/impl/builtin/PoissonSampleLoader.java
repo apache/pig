@@ -172,8 +172,8 @@ public class PoissonSampleLoader extends SampleLoader {
         newSample = null;
 
         Configuration conf = split.getConf();
-        sampleRate = conf.getInt(PigConfiguration.SAMPLE_RATE, DEFAULT_SAMPLE_RATE);
-        heapPerc = conf.getFloat(PigConfiguration.PERC_MEM_AVAIL,
+        sampleRate = conf.getInt(PigConfiguration.PIG_POISSON_SAMPLER_SAMPLE_RATE, DEFAULT_SAMPLE_RATE);
+        heapPerc = conf.getFloat(PigConfiguration.PIG_SKEWEDJOIN_REDUCE_MEMUSAGE,
                 PartitionSkewedKeys.DEFAULT_PERCENT_MEMUSAGE);
     }
 

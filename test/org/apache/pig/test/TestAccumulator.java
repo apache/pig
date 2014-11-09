@@ -77,7 +77,7 @@ public class TestAccumulator {
     public void setUp() throws Exception {
         Util.resetStateForExecModeSwitch();
         // Drop stale configuration from previous test run
-        properties.remove(PigConfiguration.OPT_ACCUMULATOR);
+        properties.remove(PigConfiguration.PIG_OPT_ACCUMULATOR);
         pigServer = new PigServer(cluster.getExecType(), properties);
     }
 
@@ -632,7 +632,7 @@ public class TestAccumulator {
     @Test
     public void testAccumulatorOff() throws IOException{
         pigServer.getPigContext().getProperties().setProperty(
-                PigConfiguration.OPT_ACCUMULATOR, "false");
+                PigConfiguration.PIG_OPT_ACCUMULATOR, "false");
 
         pigServer.registerQuery("A = load '" + INPUT_FILE2 + "' as (id:int, fruit);");
         pigServer.registerQuery("B = group A by id;");
@@ -641,7 +641,7 @@ public class TestAccumulator {
 
         checkAccumulatorOff("C");
         pigServer.getPigContext().getProperties().setProperty(
-                PigConfiguration.OPT_ACCUMULATOR, "true");
+                PigConfiguration.PIG_OPT_ACCUMULATOR, "true");
 
     }
 

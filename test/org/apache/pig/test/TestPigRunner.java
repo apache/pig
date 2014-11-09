@@ -175,7 +175,7 @@ public class TestPigRunner {
             Configuration conf = ConfigurationUtil.toConfiguration(stats.getPigProperties());
             assertTrue(conf.getBoolean("stop.on.failure", false));
             assertTrue(!conf.getBoolean("aggregate.warning", true));
-            assertTrue(!conf.getBoolean(PigConfiguration.OPT_MULTIQUERY, true));
+            assertTrue(!conf.getBoolean(PigConfiguration.PIG_OPT_MULTIQUERY, true));
             assertTrue(!conf.getBoolean("opt.fetch", true));
         } finally {
             new File(PIG_FILE).delete();
@@ -204,7 +204,7 @@ public class TestPigRunner {
             Configuration conf = ConfigurationUtil.toConfiguration(stats.getPigProperties());
             assertTrue(conf.getBoolean("stop.on.failure", false));
             assertTrue(!conf.getBoolean("aggregate.warning", true));
-            assertTrue(!conf.getBoolean(PigConfiguration.OPT_MULTIQUERY, true));
+            assertTrue(!conf.getBoolean(PigConfiguration.PIG_OPT_MULTIQUERY, true));
             assertTrue(conf.getBoolean("opt.fetch", true));
         } finally {
             new File(PIG_FILE).delete();

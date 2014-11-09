@@ -17,8 +17,8 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
-import static org.apache.pig.PigConfiguration.TIME_UDFS;
-import static org.apache.pig.PigConfiguration.TIME_UDFS_FREQUENCY;
+import static org.apache.pig.PigConfiguration.PIG_UDF_PROFILE;
+import static org.apache.pig.PigConfiguration.PIG_UDF_PROFILE_FREQUENCY;
 import static org.apache.pig.PigConstants.TIME_UDFS_ELAPSED_TIME_COUNTER;
 
 import java.io.IOException;
@@ -119,10 +119,10 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
         idx = 0;
         this.limit = limit;
         initNextRecordReader();
-        doTiming = inputSpecificConf.getBoolean(TIME_UDFS, false);
+        doTiming = inputSpecificConf.getBoolean(PIG_UDF_PROFILE, false);
         if (doTiming) {
             counterGroup = loadFunc.toString();
-            timingFrequency = inputSpecificConf.getLong(TIME_UDFS_FREQUENCY, 100L);
+            timingFrequency = inputSpecificConf.getLong(PIG_UDF_PROFILE_FREQUENCY, 100L);
         }
     }
 
