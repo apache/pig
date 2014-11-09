@@ -81,9 +81,6 @@ public class ISOToUnix extends EvalFunc<Long> {
             return null;
         }
         
-        // Set the time to default or the output is in UTC
-        DateTimeZone.setDefault(DateTimeZone.UTC);
-
         DateTime result = new DateTime(input.get(0).toString());
 
         return result.getMillis();
