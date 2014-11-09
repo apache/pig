@@ -105,6 +105,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4319: Make LoadPredicatePushdown InterfaceAudience.Private till PIG-4093 (rohini)
+
 PIG-4312: TestStreamingUDF tez mode leave orphan process on Windows (daijy)
 
 PIG-4314: BigData_5 hang on some machine (daijy)
