@@ -67,7 +67,7 @@ public class TestGrunt {
 
     @BeforeClass
     public static void oneTimeSetup() throws Exception {
-        cluster.setProperty(PigConfiguration.OPT_MULTIQUERY,"true");
+        cluster.setProperty(PigConfiguration.PIG_OPT_MULTIQUERY,"true");
     }
 
     @AfterClass

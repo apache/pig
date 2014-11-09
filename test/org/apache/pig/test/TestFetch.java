@@ -96,7 +96,7 @@ public class TestFetch {
     public void setUp() throws Exception{
         pigServer = new PigServer(ExecType.LOCAL, new Properties());
         // force direct fetch mode
-        pigServer.getPigContext().getProperties().setProperty(PigConfiguration.OPT_FETCH, "true");
+        pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_OPT_FETCH, "true");
     }
 
     @Test

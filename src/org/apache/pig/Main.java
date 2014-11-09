@@ -316,11 +316,11 @@ public class Main {
 
                 case 'M':
                     // turns off multiquery optimization
-                    properties.setProperty(PigConfiguration.OPT_MULTIQUERY,""+false);
+                    properties.setProperty(PigConfiguration.PIG_OPT_MULTIQUERY,""+false);
                     break;
 
                 case 'N':
-                    properties.setProperty(PigConfiguration.OPT_FETCH,""+false);
+                    properties.setProperty(PigConfiguration.PIG_OPT_FETCH,""+false);
                     break;
 
                 case 'p':

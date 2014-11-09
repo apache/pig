@@ -1467,12 +1467,12 @@ public class TezCompiler extends PhyPlanVisitor {
             POLocalRearrangeTez lrTezSample = localRearrangeFactory.create(LocalRearrangeType.NULL);
 
             int sampleRate = POPoissonSample.DEFAULT_SAMPLE_RATE;
-            if (pigProperties.containsKey(PigConfiguration.SAMPLE_RATE)) {
-                sampleRate = Integer.valueOf(pigProperties.getProperty(PigConfiguration.SAMPLE_RATE));
+            if (pigProperties.containsKey(PigConfiguration.PIG_POISSON_SAMPLER_SAMPLE_RATE)) {
+                sampleRate = Integer.valueOf(pigProperties.getProperty(PigConfiguration.PIG_POISSON_SAMPLER_SAMPLE_RATE));
             }
             float heapPerc =  PartitionSkewedKeys.DEFAULT_PERCENT_MEMUSAGE;
-            if (pigProperties.containsKey(PigConfiguration.PERC_MEM_AVAIL)) {
-                heapPerc = Float.valueOf(pigProperties.getProperty(PigConfiguration.PERC_MEM_AVAIL));
+            if (pigProperties.containsKey(PigConfiguration.PIG_SKEWEDJOIN_REDUCE_MEMUSAGE)) {
+                heapPerc = Float.valueOf(pigProperties.getProperty(PigConfiguration.PIG_SKEWEDJOIN_REDUCE_MEMUSAGE));
             }
             POPoissonSample poSample = new POPoissonSample(new OperatorKey(scope,nig.getNextNodeId(scope)),
                     -1, sampleRate, heapPerc);

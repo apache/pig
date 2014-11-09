@@ -82,7 +82,7 @@ public class TestMultiQueryCompiler {
 
     @Before
     public void setUp() throws Exception {
-        cluster.setProperty(PigConfiguration.OPT_MULTIQUERY, ""+true);
+        cluster.setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, ""+true);
         myPig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         deleteOutputFiles();
     }

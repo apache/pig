@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4318: Make PigConfiguration naming consistent (rohini)
+
 PIG-4316: Port TestHBaseStorage to tez local mode (rohini)
 
 PIG-4224: Upload Tez payload history string to timeline server (daijy)

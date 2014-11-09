@@ -867,7 +867,7 @@ public class TestPigServer {
 
         assertEquals("999", properties.getProperty("pig.exec.reducers.max"));
         assertEquals("true", properties.getProperty("aggregate.warning"));
-        assertEquals("true", properties.getProperty(PigConfiguration.OPT_MULTIQUERY));
+        assertEquals("true", properties.getProperty(PigConfiguration.PIG_OPT_MULTIQUERY));
         assertEquals("false", properties.getProperty("stop.on.failure"));
 
         //Test with properties file
@@ -877,7 +877,7 @@ public class TestPigServer {
 
         assertEquals("999", properties.getProperty("pig.exec.reducers.max"));
         assertEquals("true", properties.getProperty("aggregate.warning"));
-        assertEquals("true", properties.getProperty(PigConfiguration.OPT_MULTIQUERY));
+        assertEquals("true", properties.getProperty(PigConfiguration.PIG_OPT_MULTIQUERY));
         assertEquals("false", properties.getProperty("stop.on.failure"));
 
         PrintWriter out = new PrintWriter(new FileWriter(propertyFile));
@@ -889,7 +889,7 @@ public class TestPigServer {
 
         properties = PropertiesUtil.loadDefaultProperties();
         assertEquals("false", properties.getProperty("aggregate.warning"));
-        assertEquals("false", properties.getProperty(PigConfiguration.OPT_MULTIQUERY));
+        assertEquals("false", properties.getProperty(PigConfiguration.PIG_OPT_MULTIQUERY));
         assertEquals("true", properties.getProperty("stop.on.failure"));
 
         propertyFile.delete();
