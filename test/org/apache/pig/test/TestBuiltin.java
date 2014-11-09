@@ -340,7 +340,6 @@ public class TestBuiltin {
         inputMap.put("String", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), stringInput));
         inputMap.put("DateTime", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), datetimeInput));
 
-        DateTimeZone.setDefault(DateTimeZone.forOffsetMillis(DateTimeZone.UTC.getOffset(null)));
     }
 
     @BeforeClass
@@ -397,31 +396,31 @@ public class TestBuiltin {
         Tuple t1 = TupleFactory.getInstance().newTuple(1);
         t1.set(0, 1231290421000L);
         DateTime dt1 = func1.exec(t1);
-        assertEquals(dt1, new DateTime("2009-01-07T01:07:01.000Z"));
+        assertEquals(dt1.compareTo(new DateTime("2009-01-07T01:07:01.000Z")), 0);
 
         ToDateISO func2 = new ToDateISO();
         Tuple t2 = TupleFactory.getInstance().newTuple(1);
         t2.set(0, "2009-01-07T01:07:01.000Z");
         DateTime dt2 = func2.exec(t2);
-        assertEquals(dt2, new DateTime("2009-01-07T01:07:01.000Z"));
+        assertEquals(dt2.compareTo(new DateTime("2009-01-07T01:07:01.000Z")), 0);
 
         Tuple t3 = TupleFactory.getInstance().newTuple(1);
         t3.set(0, "2009-01-07T01:07:01.000+08:00");
         DateTime dt3 = func2.exec(t3);
-        assertEquals(dt3, new DateTime("2009-01-07T01:07:01.000+08:00", DateTimeZone.forID("+08:00")));
+        assertEquals(dt3.compareTo(new DateTime("2009-01-07T01:07:01.000+08:00", DateTimeZone.forID("+08:00"))), 0);
 
         ToDate2ARGS func3 = new ToDate2ARGS();        
         Tuple t4 = TupleFactory.getInstance().newTuple(2);
         t4.set(0, "2009.01.07 AD at 01:07:01");
         t4.set(1, "yyyy.MM.dd G 'at' HH:mm:ss");
         DateTime dt4 = func3.exec(t4);
-        assertEquals(dt4, new DateTime("2009-01-07T01:07:01.000Z"));
+        assertEquals(dt4.compareTo(new DateTime("2009-01-07T01:07:01.000")), 0);
 
         Tuple t5 = TupleFactory.getInstance().newTuple(2);
         t5.set(0, "2009.01.07 AD at 01:07:01 +0800");
         t5.set(1, "yyyy.MM.dd G 'at' HH:mm:ss Z");
         DateTime dt5 = func3.exec(t5);
-        assertEquals(dt5, new DateTime("2009-01-07T01:07:01.000+08:00"));
+        assertEquals(dt5.compareTo(new DateTime("2009-01-07T01:07:01.000+08:00")), 0);
         
         ToDate3ARGS func4 = new ToDate3ARGS();        
         Tuple t6 = TupleFactory.getInstance().newTuple(3);
@@ -429,14 +428,14 @@ public class TestBuiltin {
         t6.set(1, "yyyy.MM.dd G 'at' HH:mm:ss");
         t6.set(2, "+00:00");
         DateTime dt6 = func4.exec(t6);
-        assertEquals(dt6, new DateTime("2009-01-07T01:07:01.000Z", DateTimeZone.forID("+00:00")));
+        assertEquals(dt6.compareTo(new DateTime("2009-01-07T01:07:01.000", DateTimeZone.forID("+00:00"))), 0);
 
         Tuple t7 = TupleFactory.getInstance().newTuple(3);
         t7.set(0, "2009.01.07 AD at 01:07:01 +0800");
         t7.set(1, "yyyy.MM.dd G 'at' HH:mm:ss Z");
         t7.set(2, "Asia/Singapore");
         DateTime dt7 = func4.exec(t7);
-        assertEquals(dt7, new DateTime("2009-01-07T01:07:01.000+08:00", DateTimeZone.forID("+08:00")));
+        assertEquals(dt7.compareTo(new DateTime("2009-01-07T01:07:01.000+08:00", DateTimeZone.forID("+08:00"))), 0);
 
         ToUnixTime func5 = new ToUnixTime();
         Tuple t8 = TupleFactory.getInstance().newTuple(1);
@@ -447,17 +446,17 @@ public class TestBuiltin {
         ToString func6 = new ToString();
 
         Tuple t9 = TupleFactory.getInstance().newTuple(1);
-        t9.set(0, new DateTime("2009-01-07T01:07:01.000Z"));
+        t9.set(0, ToDate.extractDateTime("2009-01-07T01:07:01.000Z"));
         String dtStr1 = func6.exec(t9);
         assertEquals(dtStr1, "2009-01-07T01:07:01.000Z");
 
         Tuple t10 = TupleFactory.getInstance().newTuple(1);
-        t10.set(0, new DateTime("2009-01-07T09:07:01.000+08:00"));
+        t10.set(0, new DateTime("2009-01-07T09:07:01.000+08:00", DateTimeZone.UTC));
         String dtStr2 = func6.exec(t10);
         assertEquals(dtStr2, "2009-01-07T01:07:01.000Z");
 
         Tuple t11 = TupleFactory.getInstance().newTuple(2);
-        t11.set(0, new DateTime("2009-01-07T01:07:01.000Z"));
+        t11.set(0, ToDate.extractDateTime("2009-01-07T01:07:01.000Z"));
         t11.set(1, "yyyy.MM.dd G 'at' HH:mm:ss");
         String dtStr3 = func6.exec(t11);
         assertEquals(dtStr3, "2009.01.07 AD at 01:07:01");
@@ -3057,9 +3056,9 @@ public class TestBuiltin {
     @Test
     public void testGetDateTimeField() throws Exception {
         Tuple t1 = TupleFactory.getInstance().newTuple(1);
-        t1.set(0, new DateTime("2010-04-15T08:11:33.020Z"));
+        t1.set(0, ToDate.extractDateTime("2010-04-15T08:11:33.020Z"));
         Tuple t2 = TupleFactory.getInstance().newTuple(1);
-        t2.set(0, new DateTime("2010-04-15T08:11:33.020+08:00"));
+        t2.set(0, ToDate.extractDateTime("2010-04-15T08:11:33.020+08:00"));
         
         GetYear func1 = new GetYear();
         Integer year = func1.exec(t1);
@@ -3083,7 +3082,7 @@ public class TestBuiltin {
         Integer hour = func4.exec(t1);
         assertEquals(hour.intValue(), 8);
         hour = func4.exec(t2);
-        assertEquals(hour.intValue(), 0);
+        assertEquals(hour.intValue(), 8);
         
         GetMinute func5 = new GetMinute();
         Integer minute = func5.exec(t1);

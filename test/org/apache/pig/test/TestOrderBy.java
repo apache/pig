@@ -65,8 +65,7 @@ public class TestOrderBy {
             ps.println("1\t" + DATA[1][i] + "\t" + DATA[0][i]);
         }
         ps.close();
-        
-        DateTimeZone.setDefault(DateTimeZone.forOffsetMillis(DateTimeZone.UTC.getOffset(null)));
+    
     }
     
     @After

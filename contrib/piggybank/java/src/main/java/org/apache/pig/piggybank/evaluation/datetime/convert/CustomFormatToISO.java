@@ -79,8 +79,6 @@ public class CustomFormatToISO extends EvalFunc<String> {
         if (input.get(0) == null || input.get(1) == null) {
             return null;
         }
-        // Set the time to default or the output is in UTC
-        DateTimeZone.setDefault(DateTimeZone.UTC);
 
         String date = input.get(0).toString();
         String format = input.get(1).toString();
@@ -89,7 +87,7 @@ public class CustomFormatToISO extends EvalFunc<String> {
         DateTimeFormatter parser = DateTimeFormat.forPattern(format);
         DateTime result;
         try {
-            result = parser.parseDateTime(date);
+            result = parser.withOffsetParsed().parseDateTime(date);
         } catch(Exception e) {
             return null;
         }

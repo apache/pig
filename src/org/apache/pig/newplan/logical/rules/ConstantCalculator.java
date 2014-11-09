@@ -49,6 +49,7 @@ import org.apache.pig.newplan.logical.optimizer.AllExpressionVisitor;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.optimizer.Rule;
 import org.apache.pig.newplan.optimizer.Transformer;
+import org.joda.time.DateTimeZone;
 
 public abstract class ConstantCalculator extends Rule {
     private List<LogicalRelationalOperator> processedOperators = new ArrayList<LogicalRelationalOperator>();
@@ -108,6 +109,7 @@ public abstract class ConstantCalculator extends Rule {
         public static class ConstantCalculatorExpressionVisitor extends AllSameExpressionVisitor {
             private LogicalRelationalOperator currentOp;
             private PigContext pc;
+            private DateTimeZone currentDTZ = null;
             public ConstantCalculatorExpressionVisitor(OperatorPlan expPlan,
                     LogicalRelationalOperator currentOp, PigContext pc) throws FrontendException {
                 super(expPlan, new ReverseDependencyOrderWalkerWOSeenChk(expPlan));
@@ -151,7 +153,9 @@ public abstract class ConstantCalculator extends Rule {
                         UDFContext.getUDFContext().addJobConf(ConfigurationUtil.toConfiguration(pc.getProperties(), true));
                         PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
                         PhysicalOperator.setPigLogger(pigHadoopLogger);
+                        setDefaultTimeZone();
                         val = root.getNext(root.getResultType()).result;
+                        restoreDefaultTimeZone();
                         UDFContext.getUDFContext().addJobConf(null);
                     } catch (ExecException e) {
                         throw new FrontendException(e);
@@ -162,7 +166,9 @@ public abstract class ConstantCalculator extends Rule {
                     UserFuncExpression udf = (UserFuncExpression)op;
                     try {
                         UDFContext.getUDFContext().addJobConf(ConfigurationUtil.toConfiguration(pc.getProperties(), true));
+                        setDefaultTimeZone();
                         val = udf.getEvalFunc().exec(null);
+                        restoreDefaultTimeZone();
                         UDFContext.getUDFContext().addJobConf(null);
                     } catch (IOException e) {
                         throw new FrontendException(e);
@@ -174,6 +180,21 @@ public abstract class ConstantCalculator extends Rule {
                     constantExpr = new ConstantExpression(currentWalker.getPlan(), val);
                     constantExpr.inheritSchema(op);
                     currentWalker.getPlan().replace(op, constantExpr);
+                }
+            }
+
+            private void setDefaultTimeZone() {
+                String dtzStr = pc.getProperties().getProperty("pig.datetime.default.tz");
+                if (dtzStr != null && dtzStr.length() > 0) {
+                    currentDTZ = DateTimeZone.getDefault();
+                    DateTimeZone.setDefault(DateTimeZone.forID(dtzStr));
+                }
+            }
+
+            private void restoreDefaultTimeZone() {
+                if (currentDTZ != null) {
+                    DateTimeZone.setDefault(currentDTZ);
+                    currentDTZ = null;
                 }
             }
         }
