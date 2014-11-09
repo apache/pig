@@ -96,8 +96,6 @@ public class ISODaysBetween extends EvalFunc<Long> {
         if (input.get(0) == null || input.get(1) == null) {
             return null;
         }
-        // Set the time to default or the output is in UTC
-        DateTimeZone.setDefault(DateTimeZone.UTC);
 
         DateTime startDate = new DateTime(input.get(0).toString());
         DateTime endDate = new DateTime(input.get(1).toString());
