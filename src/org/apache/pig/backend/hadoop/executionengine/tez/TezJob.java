@@ -31,6 +31,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.pig.PigConfiguration;
+import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.tools.pigstats.tez.TezPigScriptStats;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.common.counters.TezCounters;
@@ -153,6 +154,7 @@ public class TezJob implements Runnable {
 
     @Override
     public void run() {
+        UDFContext udfContext = UDFContext.getUDFContext();
         try {
             tezClient = TezSessionManager.getClient(conf, requestAMResources,
                     dag.getCredentials(), tezJobConf);
@@ -182,12 +184,15 @@ public class TezJob implements Runnable {
             }
 
             if (dagStatus.isCompleted()) {
+                // For tez_local mode where PigProcessor destroys all UDFContext
+                UDFContext.setUdfContext(udfContext);
+
                 log.info("DAG Status: " + dagStatus);
                 dagCounters = dagStatus.getDAGCounters();
                 TezSessionManager.freeSession(tezClient);
                 try {
                     pigStats.accumulateStats(this);
-                } catch (IOException e) {
+                } catch (Exception e) {
                     log.warn("Exception while gathering stats", e);
                 }
                 try {

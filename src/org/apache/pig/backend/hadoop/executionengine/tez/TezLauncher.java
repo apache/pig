@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -34,6 +35,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.PigConfiguration;
+import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
 import org.apache.pig.backend.BackendException;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -62,6 +64,7 @@ import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
@@ -90,8 +93,10 @@ public class TezLauncher extends Launcher {
 
     public TezLauncher() {
         if (namedThreadFactory == null) {
-            namedThreadFactory = new ThreadFactoryBuilder().setNameFormat(
-                    "PigTezLauncher-%d").build();
+            namedThreadFactory = new ThreadFactoryBuilder()
+                .setNameFormat("PigTezLauncher-%d")
+                .setUncaughtExceptionHandler(new JobControlThreadExceptionHandler())
+                .build();
         }
         executor = Executors.newSingleThreadExecutor(namedThreadFactory);
     }
@@ -154,17 +159,14 @@ public class TezLauncher extends Launcher {
 
                 // Set the thread UDFContext so registered classes are available.
                 final UDFContext udfContext = UDFContext.getUDFContext();
-                Thread task = new Thread(runningJob) {
+                Runnable task = new Runnable() {
                     @Override
                     public void run() {
+                        Thread.currentThread().setContextClassLoader(PigContext.getClassLoader());
                         UDFContext.setUdfContext(udfContext.clone());
-                        super.run();
+                        runningJob.run();
                     }
                 };
-
-                JobControlThreadExceptionHandler jctExceptionHandler = new JobControlThreadExceptionHandler();
-                task.setUncaughtExceptionHandler(jctExceptionHandler);
-                task.setContextClassLoader(PigContext.getClassLoader());
 
                 // Mark the times that the jobs were submitted so it's reflected in job
                 // history props. TODO: Fix this. unused now
@@ -193,6 +195,15 @@ public class TezLauncher extends Launcher {
                     reporter.notifyUpdate();
                     Thread.sleep(1000);
                 }
+                // For tez_local mode where PigProcessor destroys all UDFContext
+                UDFContext.setUdfContext(udfContext);
+                try {
+                    // In case of FutureTask there is no uncaught exception
+                    // Need to do future.get() to get any exception
+                    future.get();
+                } catch (ExecutionException e) {
+                    setJobException(e.getCause());
+                }
             }
             processedDAGs++;
             if (tezPlanContainer.size() == processedDAGs) {
@@ -201,6 +212,7 @@ public class TezLauncher extends Launcher {
                 tezScriptState.emitProgressUpdatedNotification(
                     ((tezPlanContainer.size() - processedDAGs)/tezPlanContainer.size()) * 100);
             }
+            handleUnCaughtException(pc);
             tezPlanContainer.updatePlan(tezPlan, reporter.notifyFinishedOrFailed());
         }
 
@@ -229,6 +241,28 @@ public class TezLauncher extends Launcher {
         }
 
         return tezStats;
+    }
+
+    private void handleUnCaughtException(PigContext pc) throws Exception {
+      //check for the uncaught exceptions from TezJob thread
+        //if the job controller fails before launching the jobs then there are
+        //no jobs to check for failure
+        if (jobControlException != null) {
+            if (jobControlException instanceof PigException) {
+                if (jobControlExceptionStackTrace != null) {
+                    LogUtils.writeLog("Error message from Tez Job",
+                            jobControlExceptionStackTrace, pc
+                            .getProperties().getProperty(
+                                    "pig.logfile"), log);
+                }
+                throw jobControlException;
+            } else {
+                int errCode = 2117;
+                String msg = "Unexpected error when launching Tez job.";
+                throw new ExecException(msg, errCode, PigException.BUG,
+                        jobControlException);
+            }
+        }
     }
 
     private void computeWarningAggregate(Map<String, Map<String, Long>> counterGroups, Map<Enum, Long> aggMap) {

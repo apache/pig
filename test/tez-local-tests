@@ -1,4 +1,5 @@
 **/TestAccumuloPigCluster.java
 **/TestBigTypeSort.java
 **/TestCurrentTime.java
+**/TestHBaseStorage.java
 **/TestInvokerGenerator.java
