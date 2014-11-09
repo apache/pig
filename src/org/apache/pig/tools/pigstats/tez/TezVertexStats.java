@@ -249,7 +249,11 @@ public class TezVertexStats extends JobStats {
                     counters.get(FS_COUNTER_GROUP).get(PigStatsUtil.HDFS_BYTES_WRITTEN) != null) {
                 hdfsBytesWritten = counters.get(FS_COUNTER_GROUP).get(PigStatsUtil.HDFS_BYTES_WRITTEN);
             } else {
-                hdfsBytesWritten = JobStats.getOutputSize(sto, conf);
+                try {
+                    hdfsBytesWritten = JobStats.getOutputSize(sto, conf);
+                } catch (Exception e) {
+                    LOG.warn("Error while getting the bytes written for the output " + sto.getSFile(), e);
+                }
             }
 
             OutputStats os = new OutputStats(filename, hdfsBytesWritten,
