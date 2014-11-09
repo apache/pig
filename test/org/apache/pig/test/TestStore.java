@@ -902,7 +902,7 @@ public class TestStore {
     }
 
     private void checkStorePath(String orig, String expected, boolean isTmp) throws Exception {
-        pc.getProperties().setProperty(PigConfiguration.OPT_MULTIQUERY,""+true);
+        pc.getProperties().setProperty(PigConfiguration.PIG_OPT_MULTIQUERY,""+true);
 
         DataStorage dfs = pc.getDfs();
         dfs.setActiveContainer(dfs.asContainer("/tmp"));

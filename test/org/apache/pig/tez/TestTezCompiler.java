@@ -73,8 +73,8 @@ public class TestTezCompiler {
     @Before
     public void setUp() throws ExecException {
         resetScope();
-        pc.getProperties().remove(PigConfiguration.OPT_MULTIQUERY);
-        pc.getProperties().remove(PigConfiguration.TEZ_OPT_UNION);
+        pc.getProperties().remove(PigConfiguration.PIG_OPT_MULTIQUERY);
+        pc.getProperties().remove(PigConfiguration.PIG_TEZ_OPT_UNION);
         pc.getProperties().remove(PigConfiguration.PIG_EXEC_NO_SECONDARY_KEY);
         pigServer = new PigServer(pc);
     }
@@ -273,9 +273,9 @@ public class TestTezCompiler {
                 "store c into 'file:///tmp/output/c';" +
                 "store d into 'file:///tmp/output/d';";
 
-        setProperty(PigConfiguration.OPT_MULTIQUERY, "" + true);
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-1.gld");
-        setProperty(PigConfiguration.OPT_MULTIQUERY, "" + false);
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-1-OPTOFF.gld");
     }
 
@@ -309,9 +309,9 @@ public class TestTezCompiler {
                 "store f1 into 'file:///tmp/output/f1';" +
                 "store f2 into 'file:///tmp/output/f2';";
 
-        setProperty(PigConfiguration.OPT_MULTIQUERY, "" + true);
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-2.gld");
-        setProperty(PigConfiguration.OPT_MULTIQUERY, "" + false);
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-2-OPTOFF.gld");
     }
 
@@ -326,9 +326,9 @@ public class TestTezCompiler {
                 "store b into 'file:///tmp/output/b';" +
                 "store c into 'file:///tmp/output/c';";
 
-        setProperty(PigConfiguration.OPT_MULTIQUERY, "" + true);
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-3.gld");
-        setProperty(PigConfiguration.OPT_MULTIQUERY, "" + false);
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-3-OPTOFF.gld");
     }
 
@@ -344,9 +344,9 @@ public class TestTezCompiler {
                 "store d into 'file:///tmp/output/d';" +
                 "store e into 'file:///tmp/output/e';";
 
-        setProperty(PigConfiguration.OPT_MULTIQUERY, "" + true);
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-4.gld");
-        setProperty(PigConfiguration.OPT_MULTIQUERY, "" + false);
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-4-OPTOFF.gld");
     }
 
@@ -363,9 +363,9 @@ public class TestTezCompiler {
                 "e = foreach d GENERATE a::x, a::y;" +
                 "store e into 'file:///tmp/output/e';";
 
-        setProperty(PigConfiguration.OPT_MULTIQUERY, "" + true);
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-5.gld");
-        setProperty(PigConfiguration.OPT_MULTIQUERY, "" + false);
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-5-OPTOFF.gld");
     }
 
@@ -377,9 +377,9 @@ public class TestTezCompiler {
                 "c = union onschema a, b;" +
                 "store c into 'file:///tmp/output';";
 
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-1.gld");
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-1-OPTOFF.gld");
     }
 
@@ -393,9 +393,9 @@ public class TestTezCompiler {
                 "e = foreach d generate group, SUM(c.y);" +
                 "store e into 'file:///tmp/output';";
 
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-2.gld");
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-2-OPTOFF.gld");
     }
 
@@ -409,9 +409,9 @@ public class TestTezCompiler {
                 "e = join c by x, d by x;" +
                 "store e into 'file:///tmp/output';";
 
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-3.gld");
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-3-OPTOFF.gld");
     }
 
@@ -427,9 +427,9 @@ public class TestTezCompiler {
                 "store e into 'file:///tmp/output';";
 
         //TODO: PIG-3856 Not optimized
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-4.gld");
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-4-OPTOFF.gld");
 
         query =
@@ -441,9 +441,9 @@ public class TestTezCompiler {
                 "store e into 'file:///tmp/output';";
 
         // Optimized
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-5.gld");
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-5-OPTOFF.gld");
     }
 
@@ -457,9 +457,9 @@ public class TestTezCompiler {
                 "e = join c by x, d by x using 'skewed';" +
                 "store e into 'file:///tmp/output';";
 
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-6.gld");
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-6-OPTOFF.gld");
     }
 
@@ -472,9 +472,9 @@ public class TestTezCompiler {
                 "d = order c by x;" +
                 "store d into 'file:///tmp/output';";
 
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-7.gld");
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-7-OPTOFF.gld");
     }
 
@@ -488,9 +488,9 @@ public class TestTezCompiler {
                 "d = limit c 1;" +
                 "store d into 'file:///tmp/output';";
 
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-8.gld");
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-8-OPTOFF.gld");
     }
 
@@ -506,9 +506,9 @@ public class TestTezCompiler {
                 "store d into 'file:///tmp/output/d';" +
                 "store e into 'file:///tmp/output/e';";
 
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-9.gld");
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-9-OPTOFF.gld");
     }
 
@@ -523,10 +523,10 @@ public class TestTezCompiler {
                 "f = group e by x;" +
                 "store f into 'file:///tmp/output';";
 
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-10.gld");
         resetScope();
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-10-OPTOFF.gld");
     }
 
@@ -541,10 +541,10 @@ public class TestTezCompiler {
                 "e = union onschema c, d;" +
                 "store e into 'file:///tmp/output';";
 
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-11.gld");
         resetScope();
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-11-OPTOFF.gld");
     }
 

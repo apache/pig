@@ -306,7 +306,7 @@ public class TestLoad {
         boolean[] multiquery = {true, false};
 
         for (boolean b : multiquery) {
-            pc.getProperties().setProperty(PigConfiguration.OPT_MULTIQUERY, "" + b);
+            pc.getProperties().setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + b);
 
             DataStorage dfs = pc.getDfs();
             dfs.setActiveContainer(dfs.asContainer("/tmp"));

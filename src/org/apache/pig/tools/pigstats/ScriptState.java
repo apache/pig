@@ -296,7 +296,7 @@ public abstract class ScriptState {
         // restrict the size of the script to be stored in job conf
         int maxScriptSize = 10240;
         if (pigContext != null) {
-            String prop = pigContext.getProperties().getProperty(PigConfiguration.MAX_SCRIPT_SIZE);
+            String prop = pigContext.getProperties().getProperty(PigConfiguration.PIG_SCRIPT_MAX_SIZE);
             if (prop != null) {
                 maxScriptSize = Integer.valueOf(prop);
             }

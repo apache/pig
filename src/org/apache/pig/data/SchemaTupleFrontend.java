@@ -17,7 +17,7 @@
  */
 package org.apache.pig.data;
 
-import static org.apache.pig.PigConfiguration.SHOULD_USE_SCHEMA_TUPLE;
+import static org.apache.pig.PigConfiguration.PIG_SCHEMA_TUPLE_ENABLED;
 import static org.apache.pig.PigConstants.GENERATED_CLASSES_KEY;
 import static org.apache.pig.PigConstants.LOCAL_CODE_DIR;
 import static org.apache.pig.PigConstants.SCHEMA_TUPLE_ON_BY_DEFAULT;
@@ -177,8 +177,8 @@ public class SchemaTupleFrontend {
          */
         private boolean generateAll(Map<Pair<SchemaKey, Boolean>, Pair<Integer, Set<GenContext>>> schemasToGenerate) {
             boolean filesToShip = false;
-            if (!conf.getBoolean(SHOULD_USE_SCHEMA_TUPLE, SCHEMA_TUPLE_ON_BY_DEFAULT)) {
-                LOG.info("Key ["+SHOULD_USE_SCHEMA_TUPLE+"] is false, will not generate code.");
+            if (!conf.getBoolean(PIG_SCHEMA_TUPLE_ENABLED, SCHEMA_TUPLE_ON_BY_DEFAULT)) {
+                LOG.info("Key ["+PIG_SCHEMA_TUPLE_ENABLED+"] is false, will not generate code.");
                 return false;
             }
             LOG.info("Generating all registered Schemas.");
