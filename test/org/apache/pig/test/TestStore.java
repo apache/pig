@@ -82,7 +82,6 @@ import org.apache.pig.parser.ParserException;
 import org.apache.pig.parser.QueryParserDriver;
 import org.apache.pig.test.utils.GenRandomData;
 import org.apache.pig.test.utils.TestHelper;
-import org.joda.time.DateTimeZone;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assume;
@@ -116,7 +115,6 @@ public class TestStore {
         inputFileName = TESTDIR + "/TestStore-" + new Random().nextLong() + ".txt";
         outputFileName = TESTDIR + "/TestStore-output-" + new Random().nextLong() + ".txt";
 
-        DateTimeZone.setDefault(DateTimeZone.forOffsetMillis(DateTimeZone.UTC.getOffset(null)));
     }
 
     @After
@@ -355,7 +353,7 @@ public class TestStore {
             t.append(flds[9].compareTo("")!=0 ? ps.getLoadCaster().bytesToBoolean(flds[9].getBytes()) : null);
             t.append(flds[10].compareTo("")!=0 ? ps.getLoadCaster().bytesToDateTime(flds[10].getBytes()) : null);
             t.append(flds[11].compareTo("")!=0 ? ps.getLoadCaster().bytesToCharArray(flds[10].getBytes()) : null);
-            assertTrue(TestHelper.tupleEquals(inputTuple, t));
+            assertEquals(inputTuple, t);
         }
         br.close();
     }

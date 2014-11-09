@@ -23,9 +23,29 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.piggybank.evaluation.datetime.convert.CustomFormatToISO;
 import org.apache.pig.piggybank.evaluation.datetime.convert.ISOToUnix;
 import org.apache.pig.piggybank.evaluation.datetime.convert.UnixToISO;
+import org.joda.time.DateTimeZone;
+
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 public class TestConvertDateTime {
+
+    private DateTimeZone currentDTZ, defaultDTZ;
+
+    @Before
+    public void setUp() throws Exception {
+        currentDTZ = DateTimeZone.getDefault();
+
+        // set the timezone to somethere other than UTC
+        defaultDTZ = DateTimeZone.forID("+08:00");
+        DateTimeZone.setDefault(defaultDTZ);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        DateTimeZone.setDefault(currentDTZ);
+    }   
 
     @Test
     public void testBadFormat() throws Exception {
@@ -35,7 +55,7 @@ public class TestConvertDateTime {
         CustomFormatToISO convert = new CustomFormatToISO();
         assertNull("Input that doesn't match format should result in null", convert.exec(t1));
         t1.set(0, "July, 2012");
-        assertEquals("Matching format should work correctly", "2012-07-01T00:00:00.000Z", convert.exec(t1));
+        assertEquals("Matching format should work correctly", "2012-07-01T00:00:00.000+08:00", convert.exec(t1));
     }
 
     @Test
@@ -48,7 +68,8 @@ public class TestConvertDateTime {
         UnixToISO func = new UnixToISO();
         String iso = func.exec(t1);
 
-        assertTrue(iso.equals("2009-01-07T01:07:01.000Z"));
+        assertEquals("2009-01-07T09:07:01.000+08:00", iso);
+        assertEquals("Should not change the default timezone", defaultDTZ, DateTimeZone.getDefault());
     }
 
     @Test
@@ -61,7 +82,7 @@ public class TestConvertDateTime {
         Long unix = func2.exec(t2);
 
         assertTrue(unix == 1231290421000L);
-
+        assertEquals("Should not change the default timezone", defaultDTZ, DateTimeZone.getDefault());
     }
 
     @Test
@@ -73,6 +94,20 @@ public class TestConvertDateTime {
         CustomFormatToISO func = new CustomFormatToISO();
         String iso = func.exec(t);
 
-        assertTrue(iso.equals("2010-10-10T00:00:00.000Z"));
+        assertEquals("2010-10-10T00:00:00.000+08:00", iso);
     }
+
+    @Test
+    public void testCustomFormatToISOWithTimezone() throws Exception {
+
+        Tuple t = TupleFactory.getInstance().newTuple(2);
+        t.set(0, "10/10/2010 Z");
+        t.set(1, "dd/MM/yyyy Z");
+        CustomFormatToISO func = new CustomFormatToISO();
+        String iso = func.exec(t);
+
+        assertEquals("2010-10-10T00:00:00.000Z", iso);
+        assertEquals("Should not change the default timezone", defaultDTZ, DateTimeZone.getDefault());
+    }
+
 }

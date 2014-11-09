@@ -143,8 +143,8 @@ public class FetchLauncher {
         PigMapReduce.sJobConfInternal.set(conf);
         String dtzStr = conf.get("pig.datetime.default.tz");
         if (dtzStr != null && dtzStr.length() > 0) {
-            // ensure that the internal timezone is uniformly in UTC offset style
-            DateTimeZone.setDefault(DateTimeZone.forOffsetMillis(DateTimeZone.forID(dtzStr).getOffset(null)));
+            // don't use offsets because it breaks across DST/Standard Time
+            DateTimeZone.setDefault(DateTimeZone.forID(dtzStr));
         }
 
         boolean aggregateWarning = "true".equalsIgnoreCase(conf.get("aggregate.warning"));

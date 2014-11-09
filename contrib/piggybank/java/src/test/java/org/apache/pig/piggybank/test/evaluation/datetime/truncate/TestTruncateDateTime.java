@@ -42,10 +42,8 @@ public class TestTruncateDateTime extends TestCase {
         Tuple t1 = TupleFactory.getInstance().newTuple(1);
         t1.set(0, "2010-04-15T08:11:33.020");
 
-        // ISOHelper's internal default timezone is preferred over previous default DateTimeZone.
-        assertEquals(ISOHelper.parseDateTime(t1), new DateTime(2010, 4, 15, 8, 11, 33, 20, ISOHelper.DEFAULT_DATE_TIME_ZONE));
+        assertEquals(new DateTime(2010, 4, 15, 8, 11, 33, 20, testDefaultDateTimeZone), ISOHelper.parseDateTime(t1));
 
-        // Calling parseDate restores DateTimeZone.default before it returns.
         assertTrue(testDefaultDateTimeZone.equals(DateTimeZone.getDefault()));
 
         // Restore pre-test default time zone.
@@ -59,7 +57,7 @@ public class TestTruncateDateTime extends TestCase {
         t1.set(0, "2010-04-15T08:11:33.020Z");
 
         // Time zone is preserved.
-        assertEquals(ISOHelper.parseDateTime(t1), new DateTime(2010, 4, 15, 8, 11, 33, 20, DateTimeZone.UTC));
+        assertEquals(new DateTime(2010, 4, 15, 8, 11, 33, 20, DateTimeZone.UTC), ISOHelper.parseDateTime(t1));
 
         // Time zone is strictly preserved. Parsed date is not equal to "simultaneous" datetime in different time zone.
         assertFalse(ISOHelper.parseDateTime(t1).equals(new DateTime(2010, 4, 15, 0, 11, 33, 20, DateTimeZone.forOffsetHours(-8))));
@@ -72,14 +70,14 @@ public class TestTruncateDateTime extends TestCase {
         t1.set(0, "2010-04-15T08:11:33.020-08:00");
 
         // Time zone is preserved.
-        assertEquals(ISOHelper.parseDateTime(t1), new DateTime(2010, 4, 15, 8, 11, 33, 20, DateTimeZone.forOffsetHours(-8)));        
+        assertEquals(new DateTime(2010, 4, 15, 8, 11, 33, 20, DateTimeZone.forOffsetHours(-8)), ISOHelper.parseDateTime(t1));        
 
         // Time zone is strictly preserved. Parsed date is not equal to "simultaneous" datetime in different time zone.
         assertFalse(ISOHelper.parseDateTime(t1).equals(new DateTime(2010, 4, 15, 16, 11, 33, 20, DateTimeZone.UTC)));        
     }
     
     /**
-     * When no time zone is specified at all, UTC is presumed.
+     * When no time zone is specified at all, we use the default.
      * @throws Exception
      */
     @Test
@@ -89,7 +87,7 @@ public class TestTruncateDateTime extends TestCase {
         t1.set(0, "2010-04-15T08:11:33.020");
 
         // Time zone is preserved.
-        assertEquals(ISOHelper.parseDateTime(t1), new DateTime(2010, 4, 15, 8, 11, 33, 20, DateTimeZone.UTC));
+        assertEquals(new DateTime(2010, 4, 15, 8, 11, 33, 20, DateTimeZone.getDefault()), ISOHelper.parseDateTime(t1));
     }
 
     /**
@@ -112,7 +110,7 @@ public class TestTruncateDateTime extends TestCase {
     
     /**
      * Parsing ISO date with no time and no time zone works.
-     * Time defaults to midnight in UTC.
+     * Time defaults to midnight in default timezone.
      * @throws Exception
      */
     @Test
@@ -122,7 +120,7 @@ public class TestTruncateDateTime extends TestCase {
         t1.set(0, "2010-04-15");
 
         // Time zone is preserved.
-        assertEquals(ISOHelper.parseDateTime(t1), new DateTime(2010, 4, 15, 0, 0, 0, 0, DateTimeZone.UTC));        
+        assertEquals(new DateTime(2010, 4, 15, 0, 0, 0, 0, DateTimeZone.getDefault()), ISOHelper.parseDateTime(t1));  
     }
     
     /**
@@ -137,7 +135,7 @@ public class TestTruncateDateTime extends TestCase {
         t1.set(0, "T08:11:33.020Z");
 
         // Time zone is preserved.
-        assertEquals(ISOHelper.parseDateTime(t1), new DateTime(1970, 1, 1, 8, 11, 33, 20, DateTimeZone.UTC));        
+        assertEquals(new DateTime(1970, 1, 1, 8, 11, 33, 20, DateTimeZone.UTC), ISOHelper.parseDateTime(t1));        
     }
     
     /**
@@ -152,7 +150,7 @@ public class TestTruncateDateTime extends TestCase {
         t1.set(0, "T08:11:33.020-0800");
 
         // Time zone is preserved.
-        assertEquals(ISOHelper.parseDateTime(t1), new DateTime(1970, 1, 1, 8, 11, 33, 20, DateTimeZone.forOffsetHours(-8)));        
+        assertEquals(new DateTime(1970, 1, 1, 8, 11, 33, 20, DateTimeZone.forOffsetHours(-8)), ISOHelper.parseDateTime(t1));        
     }
 
     /**
@@ -167,7 +165,7 @@ public class TestTruncateDateTime extends TestCase {
         t1.set(0, "T08:11:33.020Z");
 
         // Time zone is preserved.
-        assertEquals(ISOHelper.parseDateTime(t1), new DateTime(1970, 1, 1, 8, 11, 33, 20, DateTimeZone.UTC));        
+        assertEquals(new DateTime(1970, 1, 1, 8, 11, 33, 20, DateTimeZone.UTC), ISOHelper.parseDateTime(t1));        
     }
     
     @Test
@@ -179,7 +177,7 @@ public class TestTruncateDateTime extends TestCase {
         ISOToYear func = new ISOToYear();
         String truncated = func.exec(t1);
 
-        assertEquals(truncated, "2010-01-01T00:00:00.000Z");
+        assertEquals("2010-01-01T00:00:00.000Z", truncated);
     }
 
     @Test
@@ -191,7 +189,7 @@ public class TestTruncateDateTime extends TestCase {
         ISOToMonth func = new ISOToMonth();
         String truncated = func.exec(t1);
 
-        assertEquals(truncated, "2010-04-01T00:00:00.000Z");
+        assertEquals("2010-04-01T00:00:00.000Z", truncated);
     }
 
     @Test
@@ -203,7 +201,7 @@ public class TestTruncateDateTime extends TestCase {
         ISOToWeek func = new ISOToWeek();
         String truncated = func.exec(t1);
 
-        assertEquals(truncated, "2010-04-12T00:00:00.000Z");
+        assertEquals("2010-04-12T00:00:00.000Z", truncated);
     }
 
     @Test
@@ -215,7 +213,7 @@ public class TestTruncateDateTime extends TestCase {
         ISOToDay func = new ISOToDay();
         String truncated = func.exec(t1);
 
-        assertEquals(truncated, "2010-04-15T00:00:00.000Z");
+        assertEquals("2010-04-15T00:00:00.000Z", truncated);
     }
 
     @Test
@@ -227,7 +225,7 @@ public class TestTruncateDateTime extends TestCase {
         ISOToHour func = new ISOToHour();
         String truncated = func.exec(t1);
 
-        assertEquals(truncated, "2010-04-15T08:00:00.000Z");
+        assertEquals("2010-04-15T08:00:00.000Z", truncated);
     }
 
     @Test
@@ -239,7 +237,7 @@ public class TestTruncateDateTime extends TestCase {
         ISOToMinute func = new ISOToMinute();
         String truncated = func.exec(t1);
 
-        assertEquals(truncated, "2010-04-15T08:11:00.000Z");
+        assertEquals("2010-04-15T08:11:00.000Z", truncated);
     }
 
     @Test
@@ -251,7 +249,7 @@ public class TestTruncateDateTime extends TestCase {
         ISOToSecond func = new ISOToSecond();
         String truncated = func.exec(t1);
 
-        assertEquals(truncated, "2010-04-15T08:11:33.000Z");
+        assertEquals("2010-04-15T08:11:33.000Z", truncated);
     }
 
 
@@ -264,7 +262,7 @@ public class TestTruncateDateTime extends TestCase {
         ISOToYear func = new ISOToYear();
         String truncated = func.exec(t1);
 
-        assertEquals(truncated, "2010-01-01T00:00:00.000-08:00");
+        assertEquals("2010-01-01T00:00:00.000-08:00", truncated);
     }
 
     @Test
@@ -276,7 +274,7 @@ public class TestTruncateDateTime extends TestCase {
         ISOToMonth func = new ISOToMonth();
         String truncated = func.exec(t1);
 
-        assertEquals(truncated, "2010-04-01T00:00:00.000-08:00");
+        assertEquals("2010-04-01T00:00:00.000-08:00", truncated);
     }
 
     @Test
@@ -288,7 +286,7 @@ public class TestTruncateDateTime extends TestCase {
         ISOToWeek func = new ISOToWeek();
         String truncated = func.exec(t1);
 
-        assertEquals(truncated, "2010-04-12T00:00:00.000-08:00");
+        assertEquals("2010-04-12T00:00:00.000-08:00", truncated);
     }
 
     @Test
@@ -300,7 +298,7 @@ public class TestTruncateDateTime extends TestCase {
         ISOToDay func = new ISOToDay();
         String truncated = func.exec(t1);
 
-        assertEquals(truncated, "2010-04-15T00:00:00.000-08:00");
+        assertEquals("2010-04-15T00:00:00.000-08:00", truncated);
     }
 
     @Test
@@ -312,7 +310,7 @@ public class TestTruncateDateTime extends TestCase {
         ISOToHour func = new ISOToHour();
         String truncated = func.exec(t1);
 
-        assertEquals(truncated, "2010-04-15T08:00:00.000-08:00");
+        assertEquals("2010-04-15T08:00:00.000-08:00", truncated);
     }
 
     @Test
@@ -324,7 +322,7 @@ public class TestTruncateDateTime extends TestCase {
         ISOToMinute func = new ISOToMinute();
         String truncated = func.exec(t1);
 
-        assertEquals(truncated, "2010-04-15T08:11:00.000-08:00");
+        assertEquals("2010-04-15T08:11:00.000-08:00", truncated);
     }
 
     @Test
@@ -336,7 +334,7 @@ public class TestTruncateDateTime extends TestCase {
         ISOToSecond func = new ISOToSecond();
         String truncated = func.exec(t1);
 
-        assertEquals(truncated, "2010-04-15T08:11:33.000-08:00");
+        assertEquals("2010-04-15T08:11:33.000-08:00", truncated);
     }
 
 }
