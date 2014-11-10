@@ -28,6 +28,7 @@ import java.util.Properties;
 import org.joda.time.format.ISODateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.codehaus.jackson.JsonFactory;
+import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.JsonToken;
 import org.apache.hadoop.io.Text;
@@ -149,23 +150,31 @@ public class JsonLoader extends LoadFunc implements LoadMetadata {
         // isn't what we expect we return a tuple with null fields rather than
         // throwing an exception.  That way a few mangled lines don't fail the
         // job.
-        if (p.nextToken() != JsonToken.START_OBJECT) {
-            warn("Bad record, could not find start of record " +
-                val.toString(), PigWarning.UDF_WARNING_1);
-            return t;
+        
+        try {
+            if (p.nextToken() != JsonToken.START_OBJECT) {
+                warn("Bad record, could not find start of record " +
+                    val.toString(), PigWarning.UDF_WARNING_1);
+                return t;
+            }
+    
+            // Read each field in the record
+            for (int i = 0; i < fields.length; i++) {
+                t.set(i, readField(p, fields[i], i));
+            }
+    
+            if (p.nextToken() != JsonToken.END_OBJECT) {
+                warn("Bad record, could not find end of record " +
+                    val.toString(), PigWarning.UDF_WARNING_1);
+                return t;
+            }
+            
+        } catch (JsonParseException jpe) {
+            warn("Bad record, returning null for " + val, PigWarning.UDF_WARNING_1);
+        } finally {
+            p.close();
         }
-
-        // Read each field in the record
-        for (int i = 0; i < fields.length; i++) {
-            t.set(i, readField(p, fields[i], i));
-        }
-
-        if (p.nextToken() != JsonToken.END_OBJECT) {
-            warn("Bad record, could not find end of record " +
-                val.toString(), PigWarning.UDF_WARNING_1);
-            return t;
-        }
-        p.close();
+        
         return t;
     }
 
