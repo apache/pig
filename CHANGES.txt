@@ -26,6 +26,8 @@ IMPROVEMENTS
  
 BUG FIXES
 
+PIG-3413: JsonLoader fails the pig job in case of malformed json input (eyal via daijy)
+
 PIG-4247: S3 properties are not picked up from core-site.xml in local mode (cheolsoo)
 
 PIG-4242: For indented xmls with multiline content (e.g. wikipedia) XMLLoader cuts out the begining of every line

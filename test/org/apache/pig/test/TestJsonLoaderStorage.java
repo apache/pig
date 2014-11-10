@@ -111,7 +111,21 @@ public class TestJsonLoaderStorage {
     "\"l\":null," +
     "\"m\":null" +
     "}";
-
+  
+  private static final String badJson =
+    "{" +
+    "\"a\":\"good\"," +
+    "\"b\":\"good\"" +
+    "}\n" +
+	"{" +
+    "\"a\":bad," +
+    "\"b\":\"good\"" +
+    "}\n" +
+	"{" +
+    "\"a\":\"good\"," +
+    "\"b\":\"good\"" +
+    "}";
+      
   private static final String jsonOutput =
     "{\"f1\":\"18\",\"count\":3}";
 
@@ -214,6 +228,34 @@ public class TestJsonLoaderStorage {
     assertEquals(1, count);
   }
 
+  @SuppressWarnings("rawtypes")
+  @Test
+  public void testJsonLoaderBadRow() throws Exception{
+
+    String badJsonFile = createInput(badJson);
+    pigServer.registerQuery("data = load '" + badJsonFile + "' using JsonLoader('a:chararray, b:chararray');");
+    Iterator<Tuple> tuples = pigServer.openIterator("data");
+    
+    Tuple t = tuples.next();
+    assertTrue(t.size()==2);
+    assertTrue(t.get(0)!=null);
+    assertTrue(t.get(1)!=null);
+    assertTrue(tuples.hasNext());
+
+    // bad row - skip it, returning a null tuple.
+    t = tuples.next();
+    assertTrue(t.size()==2);
+    assertTrue(t.get(0)==null);
+    assertTrue(t.get(1)==null);
+    assertTrue(tuples.hasNext());
+
+    t = tuples.next();
+    assertTrue(t.size()==2);
+    assertTrue(t.get(0)!=null);
+    assertTrue(t.get(1)!=null);
+    assertTrue(!tuples.hasNext());
+  }
+  
   @Test
   public void testJsonLoaderNull() throws IOException {
     Iterator<Tuple> tuples = loadJson(nullJson);
