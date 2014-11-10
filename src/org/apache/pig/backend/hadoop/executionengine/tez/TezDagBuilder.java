@@ -155,6 +155,7 @@ import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.input.ConcatenatedMergedKeyValueInput;
 import org.apache.tez.runtime.library.input.OrderedGroupedKVInput;
 import org.apache.tez.runtime.library.input.OrderedGroupedMergedKVInput;
+import org.apache.tez.runtime.library.input.UnorderedKVInput;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
@@ -728,7 +729,6 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 }
             }
         }
-/* TODO: Uncomment after TEZ-1590 is fixed
         if (tezOp.isLimit() && (vmPluginName == null || vmPluginName.equals(ShuffleVertexManager.class.getName()))) {
             if (tezOp.inEdges.values().iterator().next().inputClassName.equals(UnorderedKVInput.class.getName())) {
                 // Setting SRC_FRACTION to 0.00001 so that even if there are 100K source tasks,
@@ -742,7 +742,6 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 log.info("Set " + ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION + " to 0.00001 for limit vertex " + tezOp.getOperatorKey().toString());
             }
         }
-*/
         // else if(tezOp.isLimitAfterSort())
         // TODO: PIG-4049 If standalone Limit we need a new VertexManager or new input
         // instead of ShuffledMergedInput. For limit part of the sort (order by parallel 1) itself
