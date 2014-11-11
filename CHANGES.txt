@@ -122,6 +122,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4324: Remove jsch-LICENSE.txt (daijy)
+
 PIG-4267: ToDate has incorrect timezone offsets (bridiver via daijy)
 
 PIG-4319: Make LoadPredicatePushdown InterfaceAudience.Private till PIG-4093 (rohini)
