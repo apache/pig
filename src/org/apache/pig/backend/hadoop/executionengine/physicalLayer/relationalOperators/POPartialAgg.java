@@ -36,9 +36,9 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ExpressionOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.InternalCachedBag;
 import org.apache.pig.data.SelfSpillBag.MemoryLimits;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
@@ -84,7 +84,6 @@ public class POPartialAgg extends PhysicalOperator implements Spillable, Groupin
     private static final WeakHashMap<POPartialAgg, Byte> ALL_POPARTS = new WeakHashMap<POPartialAgg, Byte>();
 
     private static final TupleFactory TF = TupleFactory.getInstance();
-    private static final BagFactory BG = BagFactory.getInstance();
 
     private PhysicalPlan keyPlan;
     private ExpressionOperator keyLeaf;
@@ -459,7 +458,14 @@ public class POPartialAgg extends PhysicalOperator implements Spillable, Groupin
         valueTuple.set(0, key);
 
         for (int i = 0; i < valuePlans.size(); i++) {
-            DataBag bag = BG.newDefaultBag();
+            DataBag bag = null;
+            if (doContingentSpill) {
+                // Don't use additional memory since we already have memory stress
+                bag = new InternalCachedBag();
+            } else {
+                // Take 10% of memory, need fine tune later
+                bag = new InternalCachedBag(1, 0.1F);
+            }
             valueTuple.set(i + 1, bag);
         }
         for (Tuple t : inpTuples) {
