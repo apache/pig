@@ -443,7 +443,7 @@ public abstract class DefaultAbstractBag implements DataBag {
         if (reporter != null && reporter.getCounter(counter)!=null) {
             reporter.getCounter(counter).increment(numRecsSpilled);
         } else {
-            PigHadoopLogger.getInstance().warn(this, "Spill counter incremented", counter);
+            PigHadoopLogger.getInstance().warn(mContents, "Spill counter incremented", counter);
         }
     }
 
