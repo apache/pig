@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4321: Documentation for 0.14 (daijy)
+
 PIG-4328: Upgrade Hive to 0.14 (daijy)
 
 PIG-4318: Make PigConfiguration naming consistent (rohini)
