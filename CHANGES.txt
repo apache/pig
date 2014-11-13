@@ -26,6 +26,8 @@ IMPROVEMENTS
  
 BUG FIXES
 
+PIG-3615: Update the way that JsonLoader/JsonStorage deal with BigDecimal (tyro89 via daijy)
+
 PIG-4329: Fetch optimization should be disabled when limit is not pushed up (lbendig via cheolsoo)
 
 PIG-3413: JsonLoader fails the pig job in case of malformed json input (eyal via daijy)
