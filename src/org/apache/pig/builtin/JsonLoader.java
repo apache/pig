@@ -19,6 +19,7 @@ package org.apache.pig.builtin;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -247,7 +248,7 @@ public class JsonLoader extends LoadFunc implements LoadMetadata {
         case DataType.BIGDECIMAL:
             tok = p.nextToken();
             if (tok == JsonToken.VALUE_NULL) return null;
-            return p.getDecimalValue();
+            return new BigDecimal(p.getText());
 
         case DataType.MAP:
             // Should be a start of the map object
