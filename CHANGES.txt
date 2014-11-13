@@ -39,6 +39,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4328: Upgrade Hive to 0.14 (daijy)
+
 PIG-4318: Make PigConfiguration naming consistent (rohini)
 
 PIG-4316: Port TestHBaseStorage to tez local mode (rohini)
