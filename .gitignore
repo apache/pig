@@ -22,5 +22,4 @@ pig-withouthadoop.jar
 contrib/piggybank/java/piggybank.jar
 conf/log4j.properties
 lib/jdiff/pig_*SNAPSHOT.xml
-test/org/apache/pig/builtin/avro/data
 test/resources/*.jar
