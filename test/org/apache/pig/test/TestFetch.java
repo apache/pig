@@ -127,7 +127,8 @@ public class TestFetch {
                 .compile(lp, null);
 
         boolean planFetchable = FetchOptimizer.isPlanFetchable(pigServer.getPigContext(), pp);
-        assertTrue(planFetchable);
+        //plan is not fetchable since limit is not pushed up to the loader
+        assertFalse(planFetchable);
 
     }
 
