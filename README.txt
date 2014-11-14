@@ -7,10 +7,10 @@ Operations are of two flavors: (1) relational-algebra style operations such as
 join, filter, project; (2) functional-programming style operators such as map,
 reduce. 
 
-Pig compiles these dataflow programs into (sequences of) map-reduce jobs and
-executes them using Hadoop. It is also possible to execute Pig Latin programs
-in a "local" mode (without Hadoop cluster), in which case all processing takes
-place in a single local JVM. 
+Pig compiles these dataflow programs into (sequences of) map-reduce or Apache Tez
+jobs and executes them using Hadoop. It is also possible to execute Pig Latin
+programs in a "local" mode (without Hadoop cluster), in which case all 
+processing takes place in a single local JVM. 
 
 General Info
 ===============

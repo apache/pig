@@ -899,7 +899,7 @@ public class Main {
             System.out.println("        All optimizations listed here are enabled by default. Optimization values are case insensitive.");
             System.out.println("    -v, -verbose - Print all error messages to screen");
             System.out.println("    -w, -warning - Turn warning logging on; also turns warning aggregation off");
-            System.out.println("    -x, -exectype - Set execution mode: local|mapreduce, default is mapreduce.");
+            System.out.println("    -x, -exectype - Set execution mode: local|mapreduce|tez, default is mapreduce.");
             System.out.println("    -F, -stop_on_failure - Aborts execution on the first failed job; default is off");
             System.out.println("    -M, -no_multiquery - Turn multiquery optimization off; default is on");
             System.out.println("    -N, -no_fetch - Turn fetch optimization off; default is on");
@@ -940,7 +940,7 @@ public class Main {
             System.out.println("            If the in-map partial aggregation does not reduce the output num records");
             System.out.println("            by this factor, it gets disabled.");
             System.out.println("    Miscellaneous:");
-            System.out.println("        exectype=mapreduce|local; default is mapreduce. This property is the same as -x switch");
+            System.out.println("        exectype=mapreduce|tez|local; default is mapreduce. This property is the same as -x switch");
             System.out.println("        pig.additional.jars.uris=<comma seperated list of jars>. Used in place of register command.");
             System.out.println("        udf.import.list=<comma seperated list of imports>. Used to avoid package names in UDF.");
             System.out.println("        stop.on.failure=true|false; default is false. Set to true to terminate on the first error.");
