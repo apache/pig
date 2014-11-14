@@ -26,6 +26,8 @@ IMPROVEMENTS
  
 BUG FIXES
 
+PIG-4331: update README, '-x' option in usage to include tez (thejas via daijy)
+
 PIG-4327: Schema of map with value that has an alias can't be parsed again (mprim via daijy)
 
 PIG-4330: Regression test for PIG-3584 - AvroStorage does not correctly translate arrays of strings (brocknoland via daijy)
