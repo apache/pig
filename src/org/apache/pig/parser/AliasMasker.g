@@ -227,7 +227,7 @@ bag_type
     : ^( BAG_TYPE IDENTIFIER? tuple_type? )
 ;
 
-map_type : ^( MAP_TYPE type? )
+map_type : ^( MAP_TYPE IDENTIFIER? type? )
 ;
 
 func_clause

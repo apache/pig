@@ -20,6 +20,7 @@ package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -120,6 +121,41 @@ public class TestSchema {
 
         // And check again
         assertFalse(Schema.equals(schema1, schema2, false, false));
+    }
+
+    @Test
+    public void testParsingMapSchemasFromString() throws ParserException {
+        assertNotNull(Utils.getSchemaFromString("b:[(a:int)]"));
+        assertNotNull(Utils.getSchemaFromString("b:[someAlias: (b:int)]"));
+        assertNotNull(Utils.getSchemaFromString("a:map[{bag: (a:int)}]"));
+        assertNotNull(Utils.getSchemaFromString("a:map[someAlias: {bag: (a:int)}]"));
+        assertNotNull(Utils.getSchemaFromString("a:map[chararray]"));
+        assertNotNull(Utils.getSchemaFromString("a:map[someAlias: chararray]"));
+        assertNotNull(Utils.getSchemaFromString("a:map[someAlias: (bar: {bag: (a:int)})]"));
+    }
+
+    @Test
+    public void testMapWithoutAlias() throws FrontendException {
+        List<FieldSchema> innerFields = new ArrayList<FieldSchema>();
+        innerFields.add(new FieldSchema(null, DataType.LONG));
+        List<FieldSchema> fields = new ArrayList<FieldSchema>();
+        fields.add(new FieldSchema("mapAlias", new Schema(innerFields), DataType.MAP));
+
+        Schema inputSchema = new Schema(fields);
+        Schema fromString = Utils.getSchemaFromBagSchemaString(inputSchema.toString());
+        assertTrue(Schema.equals(inputSchema, fromString, false, false));
+    }
+
+    @Test
+    public void testMapWithAlias() throws FrontendException {
+        List<FieldSchema> innerFields = new ArrayList<FieldSchema>();
+        innerFields.add(new FieldSchema("valueAlias", DataType.LONG));
+        List<FieldSchema> fields = new ArrayList<FieldSchema>();
+        fields.add(new FieldSchema("mapAlias", new Schema(innerFields), DataType.MAP));
+
+        Schema inputSchema = new Schema(fields);
+        Schema fromString = Utils.getSchemaFromBagSchemaString(inputSchema.toString());
+        assertTrue(Schema.equals(inputSchema, fromString, false, false));
     }
 
     @Test
