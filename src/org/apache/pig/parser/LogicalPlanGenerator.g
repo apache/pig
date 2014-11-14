@@ -437,12 +437,12 @@ bag_type returns[LogicalSchema logicalSchema]
 ;
 
 map_type returns[LogicalSchema logicalSchema]
- : ^( MAP_TYPE type? )
+ : ^( MAP_TYPE IDENTIFIER? type? )
    {
        LogicalSchema s = null;
        if( $type.datatype != null ) {
            s = new LogicalSchema();
-           s.addField( new LogicalFieldSchema( null, $type.logicalSchema, $type.datatype ) );
+           s.addField( new LogicalFieldSchema( $IDENTIFIER.text, $type.logicalSchema, $type.datatype ) );
        }
        $logicalSchema = s;
    }
