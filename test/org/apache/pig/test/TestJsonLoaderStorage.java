@@ -89,7 +89,7 @@ public class TestJsonLoaderStorage {
     "\"g\":\"abc\"," +
     "\"h\":\"def\"," +
     "\"i\":123456789," +
-    "\"j\":\"1234.6789\"," +
+    "\"j\":1234.6789," +
     "\"k\":{\"a\":\"ghi\"}," +
     "\"l\":{\"a\":123}," +
     "\"m\":[{\"a\":123},{\"a\":456},{\"a\":789}]" +
@@ -112,6 +112,12 @@ public class TestJsonLoaderStorage {
     "\"m\":null" +
     "}";
   
+  private static final String bigDecimalJson =
+    "{" +
+    "\"a\":123.456," +
+    "\"b\":\"123.456\"" +
+    "}";
+	
   private static final String badJson =
     "{" +
     "\"a\":\"good\"," +
@@ -230,7 +236,7 @@ public class TestJsonLoaderStorage {
 
   @SuppressWarnings("rawtypes")
   @Test
-  public void testJsonLoaderBadRow() throws Exception{
+  public void testJsonLoaderBadRow() throws IOException{
 
     String badJsonFile = createInput(badJson);
     pigServer.registerQuery("data = load '" + badJsonFile + "' using JsonLoader('a:chararray, b:chararray');");
@@ -253,6 +259,22 @@ public class TestJsonLoaderStorage {
     assertTrue(t.size()==2);
     assertTrue(t.get(0)!=null);
     assertTrue(t.get(1)!=null);
+    assertTrue(!tuples.hasNext());
+  }
+
+  @SuppressWarnings("rawtypes")
+  @Test
+  public void testJsonLoaderBigDecimalFormats() throws IOException{
+
+    String bigDecimalJsonFile = createInput(bigDecimalJson);
+    pigServer.registerQuery("data = load '" + bigDecimalJsonFile + "' using JsonLoader('a:bigdecimal, b:bigdecimal');");
+    Iterator<Tuple> tuples = pigServer.openIterator("data");
+    
+    Tuple t = tuples.next();
+    assertTrue(t.size()==2);
+    assertTrue(t.get(0)!=null);
+    assertTrue(t.get(1)!=null);
+    assertEquals(t.get(0), t.get(1));
     assertTrue(!tuples.hasNext());
   }
   

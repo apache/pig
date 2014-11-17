@@ -219,7 +219,7 @@ public class JsonStorage extends StoreFunc implements StoreMetadata, StoreResour
             return;
 
         case DataType.BIGDECIMAL:
-            json.writeStringField(field.getName(), d.toString());
+            json.writeNumberField(field.getName(), (BigDecimal)d);
             return;
 
         case DataType.MAP:
