@@ -690,6 +690,7 @@
         <propertyreset name="hadoopversion" value="23" />
         <propertyreset name="hbase.hadoop.version" value="hadoop2" />
         <propertyreset name="src.shims.dir" value="${basedir}/shims/src/hadoop${hadoopversion}" />
+        <propertyreset name="src.exclude.dir" value="" />
         <antcall target="jar" inheritRefs="true" inheritall="true"/>
     </target>
 
