@@ -734,7 +734,8 @@ public class Util {
         if(Util.WINDOWS){
             filename = filename.replace('\\','/');
         }
-        if (context.getExecType() == ExecType.MAPREDUCE || context.getExecType().name().equals("TEZ")) {
+        if (context.getExecType() == ExecType.MAPREDUCE || context.getExecType().name().equals("TEZ") ||
+                context.getExecType().name().equals("SPARK")) {
             return FileLocalizer.hadoopify(filename, context);
         } else if (context.getExecType().isLocal()) {
             return filename;
