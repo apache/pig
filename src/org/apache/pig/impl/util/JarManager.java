@@ -47,10 +47,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.impl.PigContext;
 import org.apache.tools.bzip2r.BZip2Constants;
-import org.codehaus.jackson.annotate.JsonPropertyOrder;
-import org.codehaus.jackson.map.annotate.JacksonStdImpl;
 import org.joda.time.DateTime;
 
 import com.google.common.collect.Multimaps;
@@ -153,7 +152,7 @@ public class JarManager {
 
     /**
      * Creates a Classloader based on the passed jarFile and any extra jar files.
-     * 
+     *
      * @param jarFile
      *            the jar file to be part of the newly created Classloader. This jar file plus any
      *            jars in the extraJars list will constitute the classpath.
@@ -175,7 +174,7 @@ public class JarManager {
 
      /**
      * Adds a stream to a Jar file.
-     * 
+     *
      * @param os
      *            the OutputStream of the Jar file to which the stream will be added.
      * @param name
@@ -209,6 +208,9 @@ public class JarManager {
     public static List<String> getDefaultJars() {
         List<String> defaultJars = new ArrayList<String>();
         for (DefaultPigPackages pkgToSend : DefaultPigPackages.values()) {
+            if(pkgToSend.equals(DefaultPigPackages.GUAVA) && HadoopShims.isHadoopYARN()) {
+                continue; //Skip
+            }
             String jar = findContainingJar(pkgToSend.getPkgClass());
             if (!defaultJars.contains(jar)) {
                 defaultJars.add(jar);
@@ -220,7 +222,7 @@ public class JarManager {
     /**
      * Find a jar that contains a class of the same name, if any. It will return a jar file, even if
      * that is not the first thing on the class path that has a class with the same name.
-     * 
+     *
      * @param my_class
      *            the class to find
      * @return a jar file that contains the class, or null
@@ -262,12 +264,12 @@ public class JarManager {
         }
         return null;
     }
-    
+
     /**
      * Add the jars containing the given classes to the job's configuration
      * such that JobClient will ship them to the cluster and add them to
      * the DistributedCache
-     * 
+     *
      * @param job
      *           Job object
      * @param classes
@@ -285,10 +287,10 @@ public class JarManager {
             return;
         conf.set("tmpjars", StringUtils.arrayToString(jars.toArray(new String[0])));
     }
-    
+
     /**
-     * Add the qualified path name of jars containing the given classes 
-     * 
+     * Add the qualified path name of jars containing the given classes
+     *
      * @param fs
      *            FileSystem object
      * @param jars

@@ -26,6 +26,8 @@ IMPROVEMENTS
  
 BUG FIXES
 
+PIG-4332: Remove redundant jars packaged into pig-withouthadoop.jar for hadoop 2 (rohini)
+
 PIG-4331: update README, '-x' option in usage to include tez (thejas via daijy)
 
 PIG-4327: Schema of map with value that has an alias can't be parsed again (mprim via daijy)
