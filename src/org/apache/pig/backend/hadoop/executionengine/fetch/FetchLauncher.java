@@ -44,10 +44,10 @@ import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.impl.util.Utils;
 import org.apache.pig.tools.pigstats.EmptyPigStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
-import org.joda.time.DateTimeZone;
 
 /**
  * This class is responsible for executing the fetch task, saving the result to disk
@@ -141,11 +141,7 @@ public class FetchLauncher {
         udfContext.serialize(conf);
 
         PigMapReduce.sJobConfInternal.set(conf);
-        String dtzStr = conf.get("pig.datetime.default.tz");
-        if (dtzStr != null && dtzStr.length() > 0) {
-            // don't use offsets because it breaks across DST/Standard Time
-            DateTimeZone.setDefault(DateTimeZone.forID(dtzStr));
-        }
+        Utils.setDefaultTimeZone(conf);
 
         boolean aggregateWarning = "true".equalsIgnoreCase(conf.get("aggregate.warning"));
         PigStatusReporter pigStatusReporter = PigStatusReporter.getInstance();

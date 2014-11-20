@@ -71,6 +71,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.parser.ParserException;
 import org.apache.pig.parser.QueryParserDriver;
+import org.joda.time.DateTimeZone;
 
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Longs;
@@ -680,5 +681,13 @@ public class Utils {
             }
         }
         return ret;
+    }
+
+    public static void setDefaultTimeZone(Configuration conf) {
+        String dtzStr = conf.get(PigConfiguration.PIG_DATETIME_DEFAULT_TIMEZONE);
+        if (dtzStr != null && dtzStr.length() > 0) {
+            // don't use offsets because it breaks across DST/Standard Time
+            DateTimeZone.setDefault(DateTimeZone.forID(dtzStr));
+        }
     }
 }
