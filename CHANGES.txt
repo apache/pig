@@ -23,6 +23,8 @@ Trunk (unreleased changes)
 INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
+
+PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES
 
