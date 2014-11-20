@@ -38,8 +38,8 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * Ensure that jars marked as predeployed are not included in the generated 
- * job jar. 
+ * Ensure that jars marked as predeployed are not included in the generated
+ * job jar.
  */
 public class TestPredeployedJar {
     static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
@@ -52,44 +52,44 @@ public class TestPredeployedJar {
         File logFile = File.createTempFile("log", "");
         FileAppender appender = new FileAppender(layout, logFile.toString(), false, false, 0);
         logger.addAppender(appender);
-        
+
         PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getConfiguration());
         pigServer.getPigContext().getProperties().put(PigConfiguration.PIG_OPT_FETCH, "false");
         String[] inputData = new String[] { "hello", "world" };
         Util.createInputFile(cluster, "a.txt", inputData);
-        String guavaJar = JarManager.findContainingJar(com.google.common.collect.Multimaps.class);
+        String jodaTimeJar = JarManager.findContainingJar(org.joda.time.DateTime.class);
 
         pigServer.registerQuery("a = load 'a.txt' as (line:chararray);");
         Iterator<Tuple> it = pigServer.openIterator("a");
 
         String content = FileUtils.readFileToString(logFile);
-        Assert.assertTrue(content.contains(guavaJar));
-        
+        Assert.assertTrue(content.contains(jodaTimeJar));
+
         logFile = File.createTempFile("log", "");
-        
+
         // Now let's mark the guava jar as predeployed.
-        pigServer.getPigContext().markJarAsPredeployed(guavaJar);
+        pigServer.getPigContext().markJarAsPredeployed(jodaTimeJar);
         it = pigServer.openIterator("a");
 
         content = FileUtils.readFileToString(logFile);
-        Assert.assertFalse(content.contains(guavaJar));
+        Assert.assertFalse(content.contains(jodaTimeJar));
     }
-    
+
     @Test
     public void testPredeployedJarsProperty() throws ExecException {
         Properties p = new Properties();
         p.setProperty("pig.predeployed.jars", "zzz");
         PigServer pigServer = new PigServer(ExecType.LOCAL, p);
-        
+
         Assert.assertTrue(pigServer.getPigContext().predeployedJars.contains("zzz"));
-        
+
         p = new Properties();
         p.setProperty("pig.predeployed.jars", "aaa" + File.pathSeparator + "bbb");
         pigServer = new PigServer(ExecType.LOCAL, p);
-        
+
         Assert.assertTrue(pigServer.getPigContext().predeployedJars.contains("aaa"));
         Assert.assertTrue(pigServer.getPigContext().predeployedJars.contains("bbb"));
-        
+
         Assert.assertFalse(pigServer.getPigContext().predeployedJars.contains("zzz"));
     }
 }
