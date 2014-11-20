@@ -60,8 +60,8 @@ import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.SpillableMemoryManager;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.impl.util.Utils;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
-import org.joda.time.DateTimeZone;
 
 /**
  * This class is the static Mapper &amp; Reducer classes that
@@ -362,11 +362,7 @@ public class PigGenericMapReduce {
 
             log.info("Aliases being processed per job phase (AliasName[line,offset]): " + jConf.get("pig.alias.location"));
 
-            String dtzStr = PigMapReduce.sJobConfInternal.get().get("pig.datetime.default.tz");
-            if (dtzStr != null && dtzStr.length() > 0) {
-                // don't use offsets because it breaks across DST/Standard Time
-                DateTimeZone.setDefault(DateTimeZone.forID(dtzStr));
-            }
+            Utils.setDefaultTimeZone(PigMapReduce.sJobConfInternal.get());
         }
 
         /**

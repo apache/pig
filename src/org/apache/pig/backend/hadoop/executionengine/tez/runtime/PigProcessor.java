@@ -53,6 +53,7 @@ import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.impl.util.Utils;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.UserPayload;
@@ -134,6 +135,8 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
         // Set the job conf as a thread-local member of PigMapReduce
         // for backwards compatibility with the existing code base.
         PigMapReduce.sJobConfInternal.set(conf);
+
+        Utils.setDefaultTimeZone(conf);
 
         boolean aggregateWarning = "true".equalsIgnoreCase(pc.getProperties().getProperty("aggregate.warning"));
         PigStatusReporter pigStatusReporter = PigStatusReporter.getInstance();

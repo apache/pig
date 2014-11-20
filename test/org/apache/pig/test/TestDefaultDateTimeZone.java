@@ -29,7 +29,6 @@ import java.util.Properties;
 
 import junit.framework.TestCase;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.ToDate;
 import org.apache.pig.data.Tuple;
@@ -44,6 +43,7 @@ public class TestDefaultDateTimeZone extends TestCase {
     private File tmpFile;
     private DateTimeZone currentDTZ;
 
+    @Override
     @Before
     public void setUp() throws Exception {
         currentDTZ = DateTimeZone.getDefault();
@@ -63,6 +63,7 @@ public class TestDefaultDateTimeZone extends TestCase {
 
     }
 
+    @Override
     @After
     public void tearDown() throws Exception {
         tmpFile.delete();
@@ -75,7 +76,7 @@ public class TestDefaultDateTimeZone extends TestCase {
                 .forOffsetMillis(DateTimeZone.forID("+08:00").getOffset(null)));
         Properties config = new Properties();
         config.setProperty("pig.datetime.default.tz", "+08:00");
-        PigServer pig = new PigServer(ExecType.LOCAL, config);
+        PigServer pig = new PigServer(Util.getLocalTestMode(), config);
         pig.registerQuery("a = load '"
                 + Util.encodeEscape(Util.generateURI(tmpFile.toString(), pig.getPigContext()))
                 + "' as (test:datetime);");
@@ -94,20 +95,20 @@ public class TestDefaultDateTimeZone extends TestCase {
         String defaultDTZ = "America/New_York"; // a timezone that uses DST
     	Properties config = new Properties();
         config.setProperty("pig.datetime.default.tz", defaultDTZ);
-        PigServer pig = new PigServer(ExecType.LOCAL, config);
+        PigServer pig = new PigServer(Util.getLocalTestMode(), config);
         pig.registerQuery("a = load '"
                 + Util.encodeEscape(Util.generateURI(tmpFile.toString(), pig.getPigContext()))
                 + "' as (test:datetime);");
         pig.registerQuery("b = filter a by test > ToDate('2014-01-01T00:00:00.000');");
         pig.registerQuery("c = foreach b generate ToString(test, 'Z') as tz;");
         Iterator<Tuple> actualItr = pig.openIterator("c");
-        
+
         Tuple est = actualItr.next();
         assertEquals(Util.buildTuple("-0500"), est);
         Tuple edt = actualItr.next();
         assertEquals(Util.buildTuple("-0400"), edt);
     }
-    
+
     private static Iterator<Tuple> generateExpectedResults(DateTimeZone dtz)
             throws Exception {
         List<Tuple> expectedResults = new ArrayList<Tuple>();
@@ -125,8 +126,7 @@ public class TestDefaultDateTimeZone extends TestCase {
     public void testTimeZone() throws IOException {
         // Usually set through "pig.datetime.default.tz"
         String defaultDTZ = "+03:00";
-        DateTimeZone.setDefault(DateTimeZone.forOffsetMillis(DateTimeZone.forID(defaultDTZ)
-                .getOffset(null)));
+        DateTimeZone.setDefault(DateTimeZone.forID(defaultDTZ));
         String[] inputs = {
                 "1970-01-01T00:00:00.000-08:00",
                 "1970-01-01T00:00",

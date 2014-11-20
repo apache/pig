@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.joda.time.DateTimeZone;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -54,6 +53,7 @@ import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.SpillableMemoryManager;
+import org.apache.pig.impl.util.Utils;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
 
 /**
@@ -215,11 +215,7 @@ public abstract class PigGenericMapBase extends Mapper<Text, Tuple, PigNullableW
 
         log.info("Aliases being processed per job phase (AliasName[line,offset]): " + job.get("pig.alias.location"));
 
-        String dtzStr = PigMapReduce.sJobConfInternal.get().get("pig.datetime.default.tz");
-        if (dtzStr != null && dtzStr.length() > 0) {
-            // don't use offsets because it breaks across DST/Standard Time
-            DateTimeZone.setDefault(DateTimeZone.forID(dtzStr));
-        }
+        Utils.setDefaultTimeZone(PigMapReduce.sJobConfInternal.get());
     }
 
     /**
