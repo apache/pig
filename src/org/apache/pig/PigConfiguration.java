@@ -290,6 +290,11 @@ public class PigConfiguration {
      */
     public static final String PIG_NO_TASK_REPORT = "pig.stats.notaskreport";
 
+    /**
+     * The timezone to be used by Pig datetime datatype
+     */
+    public static final String PIG_DATETIME_DEFAULT_TIMEZONE = "pig.datetime.default.tz";
+
 
     // Pig on Tez runtime settings
     /**

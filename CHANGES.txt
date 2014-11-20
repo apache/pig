@@ -43,7 +43,17 @@ PIG-4247: S3 properties are not picked up from core-site.xml in local mode (cheo
 PIG-4242: For indented xmls with multiline content (e.g. wikipedia) XMLLoader cuts out the begining of every line
  (holdfenytolvaj via daijy)
 
-Release 0.14.0 - Unreleased
+Release 0.14.1 - Unreleased
+
+INCOMPATIBLE CHANGES
+
+IMPROVEMENTS
+
+BUG FIXES
+
+PIG-4334: PigProcessor does not set pig.datetime.default.tz (rohini)
+
+Release 0.14.0
  
 INCOMPATIBLE CHANGES
  
