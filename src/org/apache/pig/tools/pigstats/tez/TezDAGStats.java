@@ -186,16 +186,18 @@ public class TezDAGStats extends JobStats {
         TezCounters tezCounters = tezJob.getDAGCounters();
         if (tezCounters != null) {
             counters = covertToHadoopCounters(tezCounters);
+
+            CounterGroup dagGrp = tezCounters.getGroup(DAG_COUNTER_GROUP);
+            totalTasks = (int) dagGrp.findCounter("TOTAL_LAUNCHED_TASKS").getValue();
+
+            CounterGroup fsGrp = tezCounters.getGroup(FS_COUNTER_GROUP);
+            fileBytesRead = fsGrp.findCounter("FILE_BYTES_READ").getValue();
+            fileBytesWritten = fsGrp.findCounter("FILE_BYTES_WRITTEN").getValue();
+            hdfsBytesRead = fsGrp.findCounter("HDFS_BYTES_READ").getValue();
+            hdfsBytesWritten = fsGrp.findCounter("HDFS_BYTES_WRITTEN").getValue();
+        } else {
+            LOG.warn("Failed to get counters for DAG: " + dag.getName());
         }
-
-        CounterGroup dagGrp = tezCounters.getGroup(DAG_COUNTER_GROUP);
-        totalTasks = (int) dagGrp.findCounter("TOTAL_LAUNCHED_TASKS").getValue();
-
-        CounterGroup fsGrp = tezCounters.getGroup(FS_COUNTER_GROUP);
-        fileBytesRead = fsGrp.findCounter("FILE_BYTES_READ").getValue();
-        fileBytesWritten = fsGrp.findCounter("FILE_BYTES_WRITTEN").getValue();
-        hdfsBytesRead = fsGrp.findCounter("HDFS_BYTES_READ").getValue();
-        hdfsBytesWritten = fsGrp.findCounter("HDFS_BYTES_WRITTEN").getValue();
 
         for (Entry<String, TezVertexStats> entry : tezVertexStatsMap.entrySet()) {
             Vertex v = dag.getVertex(entry.getKey());
@@ -206,6 +208,10 @@ public class TezDAGStats extends JobStats {
                 vertexStats.setConf(conf);
 
                 VertexStatus status = tezJob.getVertexStatus(v.getName());
+                if (status == null) {
+                    LOG.warn("Failed to get status for vertex: " + v.getName());
+                    continue;
+                }
                 vertexStats.accumulateStats(status, v.getParallelism());
                 if(vertexStats.getInputs() != null && !vertexStats.getInputs().isEmpty()) {
                     inputs.addAll(vertexStats.getInputs());
