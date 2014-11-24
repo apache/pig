@@ -155,9 +155,9 @@ public class PreprocessorContext {
         final String declareToken = "%declare";
         final String defaultToken = "%default";
 
-        if (preprocessorCmd.equals(declareToken)) {
+        if (preprocessorCmd.toLowerCase().equals(declareToken)) {
             filter.validate(PigCommandFilter.Command.DECLARE);
-        } else if (preprocessorCmd.equals(defaultToken)) {
+        } else if (preprocessorCmd.toLowerCase().equals(defaultToken)) {
             filter.validate(PigCommandFilter.Command.DEFAULT);
         } else {
             throw new IllegalArgumentException("Pig Internal Error. Invalid preprocessor command specified : "
