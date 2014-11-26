@@ -1,33 +1,36 @@
 package org.apache.pig.backend.hadoop.executionengine.spark.converter;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+
 
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.LoadFunc;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigInputFormat;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
+import org.apache.pig.backend.hadoop.executionengine.spark.running.PigInputFormatSpark;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.ObjectSerializer;
-
+import com.google.common.collect.Lists;
 import scala.Function1;
 import scala.Tuple2;
 import scala.runtime.AbstractFunction1;
 import org.apache.spark.rdd.RDD;
 import org.apache.spark.SparkContext;
-
-import com.google.common.collect.Lists;
-
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 /**
  * Converter that loads data via POLoad and converts it to RRD&lt;Tuple>. Abuses
  * the interface a bit in that there is no inoput RRD to convert in this case.
@@ -38,7 +41,7 @@ import com.google.common.collect.Lists;
 public class LoadConverter implements POConverter<Tuple, Tuple, POLoad> {
 
     private static final ToTupleFunction TO_TUPLE_FUNCTION = new ToTupleFunction();
-
+    private static Log log = LogFactory.getLog(LoadConverter.class);
     private PigContext pigContext;
     private PhysicalPlan physicalPlan;
     private SparkContext sparkContext;
@@ -63,12 +66,28 @@ public class LoadConverter implements POConverter<Tuple, Tuple, POLoad> {
 
         // don't know why but just doing this cast for now
         RDD<Tuple2<Text, Tuple>> hadoopRDD = sparkContext.newAPIHadoopFile(
-                poLoad.getLFile().getFileName(), PigInputFormat.class,
+                poLoad.getLFile().getFileName(), PigInputFormatSpark.class,
                 Text.class, Tuple.class, loadJobConf);
 
+        registerUdfFiles();
         // map to get just RDD<Tuple>
         return hadoopRDD.map(TO_TUPLE_FUNCTION,
                 SparkUtil.getManifest(Tuple.class));
+    }
+
+    private void registerUdfFiles() {
+        Map<String, File> scriptFiles = pigContext.getScriptFiles();
+        for (Map.Entry<String, File> scriptFile : scriptFiles.entrySet()) {
+            try {
+                File script = scriptFile.getValue();
+                if (script.exists()) {
+                    sparkContext.addFile(script.toURI().toURL().toExternalForm());
+                }
+            } catch (MalformedURLException e) {
+                String msg = "Problem while registering UDF jars and files in LoadConverter.";
+                throw new RuntimeException(msg, e);
+            }
+        }
     }
 
     private static class ToTupleFunction extends

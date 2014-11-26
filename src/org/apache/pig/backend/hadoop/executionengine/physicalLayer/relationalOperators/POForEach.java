@@ -781,4 +781,9 @@ public class POForEach extends PhysicalOperator {
             return (Tuple) out;
         }
     }
+
+    public PhysicalOperator[] getPlanLeafOps() {
+        return planLeafOps;
+    }
+
 }
