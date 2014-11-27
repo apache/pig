@@ -77,13 +77,10 @@ public class UnixToISO extends EvalFunc<String> {
     @Override
     public String exec(Tuple input) throws IOException
     {
-        if (input == null || input.size() < 1) {
+        if (input == null || input.size() < 1 || input.get(0) == null) {
             return null;
         }
         
-        // Set the time to default or the output is in UTC
-        DateTimeZone.setDefault(DateTimeZone.UTC);
-
         DateTime result = new DateTime(DataType.toLong(input.get(0)));
 
         return result.toString();

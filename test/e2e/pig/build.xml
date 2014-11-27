@@ -18,15 +18,14 @@
 <project name="TestHarnessPigTests" default="test">
 
   <property name="pig.dir" value="${basedir}/../../.."/>
-  <property name="ivy.dir" location="${pig.dir}/ivy" />
+  <property name="pig.base.dir" value="${basedir}/../../.."/>
+  <property name="ivy.dir" location="${pig.base.dir}/ivy" />
   <loadproperties srcfile="${ivy.dir}/libraries.properties"/>
 
-  <property name="jython.jar"
-    value="${pig.dir}/build/ivy/lib/Pig/jython-standalone-${jython.version}.jar"/>
-  <property name="jruby.jar"
-    value="${pig.dir}/build/ivy/lib/Pig/jruby-complete-${jruby.version}.jar"/>
+  <property name="piggybank.jar"
+	value="${pig.base.dir}/contrib/piggybank/java/piggybank.jar"/>
   <property name="hive.lib.dir"
-	value="${pig.dir}/build/ivy/lib/Pig"/>
+	value="${pig.base.dir}/build/ivy/lib/Pig"/>
 
   <condition property="hive.hadoop.shims.version" value="0.23" else="0.20S">
     <equals arg1="${hadoopversion}" arg2="23" />
@@ -216,23 +215,14 @@
 
   <!-- Check that the necessary properties are setup -->
   <target name="property-check">
-    <fail message="Please set the property harness.cluster.conf to the conf directory of your hadoop installation or harness.hadoop.home to HADOOP_HOME for your Hadoop installation.">
+    <fail message="Please set the property harness.cluster.conf to the conf directory of your hadoop installation,harness.hadoop.home to HADOOP_HOME for your Hadoop installation and harness.cluster.bin to the binary executable of your hadoop installation.">
         <condition>
             <not>
-                <or>
+                <and>
                 <isset property="harness.cluster.conf"/>
                 <isset property="harness.hadoop.home"/>
-                </or>
-            </not>
-        </condition>
-    </fail>
-    <fail message="Please set the property harness.cluster.bin to the binary executable of your hadoop installation or harness.hadoop.home to HADOOP_HOME for your Hadoop installation.">
-        <condition>
-            <not>
-                <or>
                 <isset property="harness.cluster.bin"/>
-                <isset property="harness.hadoop.home"/>
-                </or>
+                </and>
             </not>
         </condition>
     </fail>
@@ -279,6 +269,7 @@
       <env key="HADOOP_CONF_DIR" value="${harness.cluster.conf}"/>
       <env key="PIG_USE_PYTHON" value="${harness.use.python}"/>
       <env key="PH_CLUSTER_BIN" value="${harness.cluster.bin}"/>
+      <env key="PH_PIGGYBANK_JAR" value="${piggybank.jar}"/>
       <env key="PH_HIVE_LIB_DIR" value="${hive.lib.dir}"/>
       <env key="PH_HIVE_VERSION" value="${hive.version}"/>
       <env key="PH_HIVE_SHIMS_VERSION" value="${hive.hadoop.shims.version}"/>

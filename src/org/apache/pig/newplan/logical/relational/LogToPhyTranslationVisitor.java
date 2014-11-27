@@ -33,6 +33,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
+import org.apache.pig.StoreResources;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogicalToPhysicalTranslatorException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -142,6 +143,8 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         load.setSignature(loLoad.getSignature());
         load.setLimit(loLoad.getLimit());
         load.setIsTmpLoad(loLoad.isTmpLoad());
+        load.setCacheFiles(loLoad.getLoadFunc().getCacheFiles());
+        load.setShipFiles(loLoad.getLoadFunc().getShipFiles());
 
         currentPlan.add(load);
         logToPhyMap.put(loLoad, load);
@@ -631,6 +634,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                     List<PhysicalPlan> fePlans = Arrays.asList(fep1, fep2);
 
                     POForEach fe = new POForEach(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), cross.getRequestedParallelism(), fePlans, flattenLst );
+                    fe.setMapSideOnly(true);
                     fe.addOriginalLocation(cross.getAlias(), cross.getLocation());
                     currentPlan.add(fe);
                     currentPlan.connect(logToPhyMap.get(op), fe);
@@ -953,8 +957,11 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         store.setSortInfo(loStore.getSortInfo());
         store.setIsTmpStore(loStore.isTmpStore());
         store.setStoreFunc(loStore.getStoreFunc());
-
         store.setSchema(Util.translateSchema( loStore.getSchema() ));
+        if (loStore.getStoreFunc() instanceof StoreResources) {
+            store.setCacheFiles(((StoreResources)loStore.getStoreFunc()).getCacheFiles());
+            store.setShipFiles(((StoreResources)loStore.getStoreFunc()).getShipFiles());
+        }
 
         currentPlan.add(store);
 

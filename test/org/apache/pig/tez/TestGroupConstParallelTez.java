@@ -21,15 +21,20 @@ package org.apache.pig.tez;
 import static org.junit.Assert.assertEquals;
 
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.tez.TezCompiler;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezDagBuilder;
-import org.apache.pig.backend.hadoop.executionengine.tez.TezOperPlan;
-import org.apache.pig.backend.hadoop.executionengine.tez.optimizers.LoaderProcessor;
-import org.apache.pig.backend.hadoop.executionengine.tez.optimizers.ParallelismSetter;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezCompiler;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPlanContainerNode;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer.LoaderProcessor;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer.ParallelismSetter;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.test.TestGroupConstParallel;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
-import org.apache.pig.tools.pigstats.tez.TezTaskStats;
+import org.apache.pig.tools.pigstats.ScriptState;
+import org.apache.pig.tools.pigstats.tez.TezDAGStats;
+import org.apache.pig.tools.pigstats.tez.TezScriptState;
+import org.apache.pig.tools.pigstats.tez.TezVertexStats;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Vertex;
 import org.junit.Assume;
@@ -46,7 +51,9 @@ public class TestGroupConstParallelTez extends TestGroupConstParallel {
 
     @Override
     public void checkGroupAllWithParallelGraphResult(JobGraph jGraph) {
-        TezTaskStats ts = (TezTaskStats)jGraph.getSinks().get(0);
+        TezDAGStats ds = (TezDAGStats) jGraph.getJobList().get(0);
+        jGraph = (JobGraph)ds.getPlan();
+        TezVertexStats ts = (TezVertexStats)jGraph.getSinks().get(0);
         assertEquals(ts.getParallelism(), 1);
     }
 
@@ -60,7 +67,7 @@ public class TestGroupConstParallelTez extends TestGroupConstParallel {
         ParallelismSetter parallelismSetter = new ParallelismSetter(tezPlan, pc);
         parallelismSetter.visit();
 
-        DAG tezDag = DAG.create("test");
+        DAG tezDag = getTezDAG(tezPlan, pc);
         TezDagBuilder dagBuilder = new TezDagBuilder(pc, tezPlan, tezDag, null);
         dagBuilder.visit();
         for (Vertex v : tezDag.getVertices()) {
@@ -80,7 +87,7 @@ public class TestGroupConstParallelTez extends TestGroupConstParallel {
         ParallelismSetter parallelismSetter = new ParallelismSetter(tezPlan, pc);
         parallelismSetter.visit();
 
-        DAG tezDag = DAG.create("test");
+        DAG tezDag = getTezDAG(tezPlan, pc);
         TezDagBuilder dagBuilder = new TezDagBuilder(pc, tezPlan, tezDag, null);
         dagBuilder.visit();
         for (Vertex v : tezDag.getVertices()) {
@@ -94,5 +101,14 @@ public class TestGroupConstParallelTez extends TestGroupConstParallel {
         TezCompiler comp = new TezCompiler(pp, pc);
         comp.compile();
         return comp.getTezPlan();
+    }
+
+    private DAG getTezDAG(TezOperPlan tezPlan, PigContext pc) {
+        TezPlanContainerNode tezPlanNode = new TezPlanContainerNode(OperatorKey.genOpKey("DAGName"), tezPlan);
+        TezScriptState scriptState = new TezScriptState("test");
+        ScriptState.start(scriptState);
+        scriptState.setDAGScriptInfo(tezPlanNode);
+        DAG tezDag = DAG.create(tezPlanNode.getOperatorKey().toString());
+        return tezDag;
     }
 }

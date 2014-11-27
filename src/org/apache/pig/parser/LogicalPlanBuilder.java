@@ -100,6 +100,8 @@ import org.apache.pig.newplan.logical.rules.OptimizerUtils;
 import org.apache.pig.newplan.logical.visitor.ProjStarInUdfExpander;
 import org.apache.pig.newplan.logical.visitor.ProjectStarExpander;
 import org.apache.pig.newplan.logical.visitor.ResetProjectionAttachedRelationalOpVisitor;
+import org.apache.pig.validator.BlackAndWhitelistFilter;
+import org.apache.pig.validator.PigCommandFilter;
 
 public class LogicalPlanBuilder {
 
@@ -123,6 +125,8 @@ public class LogicalPlanBuilder {
     private int storeIndex = 0;
     private int loadIndex = 0;
 
+    private final BlackAndWhitelistFilter filter;
+
     private static NodeIdGenerator nodeIdGen = NodeIdGenerator.getGenerator();
 
     public static long getNextId(String scope) {
@@ -135,6 +139,7 @@ public class LogicalPlanBuilder {
         this.scope = scope;
         this.fileNameMap = fileNameMap;
         this.intStream = input;
+        this.filter = new BlackAndWhitelistFilter(this.pigContext);
     }
 
     LogicalPlanBuilder(IntStream input) throws ExecException {
@@ -143,6 +148,7 @@ public class LogicalPlanBuilder {
         this.scope = "test";
         this.fileNameMap = new HashMap<String, String>();
         this.intStream = input;
+        this.filter = new BlackAndWhitelistFilter(this.pigContext);
     }
 
     Operator lookupOperator(String alias) {
@@ -158,10 +164,20 @@ public class LogicalPlanBuilder {
     }
 
     void defineCommand(String alias, StreamingCommand command) {
+        try {
+            filter.validate(PigCommandFilter.Command.DEFINE);
+        } catch (FrontendException e) {
+            throw new RuntimeException(e.getMessage());
+        }
         pigContext.registerStreamCmd( alias, command );
     }
 
     void defineFunction(String alias, FuncSpec fs) {
+        try {
+            filter.validate(PigCommandFilter.Command.DEFINE);
+        } catch (FrontendException e) {
+            throw new RuntimeException(e);
+        }
         pigContext.registerFunction( alias, fs );
     }
 

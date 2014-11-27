@@ -17,6 +17,8 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
+import java.io.IOException;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -25,8 +27,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.impl.util.UriUtil;
-
-import java.io.IOException;
 
 /**
  * Class that computes the size of output for file-based systems.
@@ -43,19 +43,23 @@ public class FileBasedOutputSizeReader implements PigStatsOutputSizeReader {
      */
     @Override
     public boolean supports(POStore sto, Configuration conf) {
-        String storeFuncName = sto.getStoreFunc().getClass().getCanonicalName();
-        // Some store functions do not support file-based output reader (e.g.
-        // HCatStorer), so they should be excluded.
-        String unsupported = conf.get(
-                PigStatsOutputSizeReader.OUTPUT_SIZE_READER_UNSUPPORTED);
-        if (unsupported != null) {
-            for (String s : unsupported.split(",")) {
-                if (s.equalsIgnoreCase(storeFuncName)) {
-                    return false;
+        boolean nullOrSupportedScheme = UriUtil.isHDFSFileOrLocalOrS3N(getLocationUri(sto), conf);
+        if (nullOrSupportedScheme) {
+            // Some store functions that do not have scheme
+            // do not support file-based output reader (e.g.HCatStorer),
+            // so they should be excluded.
+            String unsupported = conf.get(
+                    PigStatsOutputSizeReader.OUTPUT_SIZE_READER_UNSUPPORTED);
+            if (unsupported != null) {
+                String storeFuncName = sto.getStoreFunc().getClass().getCanonicalName();
+                for (String s : unsupported.split(",")) {
+                    if (s.equalsIgnoreCase(storeFuncName)) {
+                        return false;
+                    }
                 }
             }
         }
-        return UriUtil.isHDFSFileOrLocalOrS3N(getLocationUri(sto), conf);
+        return nullOrSupportedScheme;
     }
 
     /**

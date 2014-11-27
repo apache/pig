@@ -36,14 +36,15 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ExpressionOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.InternalCachedBag;
 import org.apache.pig.data.SelfSpillBag.MemoryLimits;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.GroupingSpillable;
 import org.apache.pig.impl.util.Spillable;
 import org.apache.pig.impl.util.SpillableMemoryManager;
 
@@ -56,7 +57,7 @@ import com.google.common.collect.Maps;
  * map. Once that map fills up or all input has been seen, results are
  * piped out into the next operator (caller of getNext()).
  */
-public class POPartialAgg extends PhysicalOperator implements Spillable {
+public class POPartialAgg extends PhysicalOperator implements Spillable, GroupingSpillable {
     private static final Log LOG = LogFactory.getLog(POPartialAgg.class);
     private static final long serialVersionUID = 1L;
 
@@ -83,33 +84,44 @@ public class POPartialAgg extends PhysicalOperator implements Spillable {
     private static final WeakHashMap<POPartialAgg, Byte> ALL_POPARTS = new WeakHashMap<POPartialAgg, Byte>();
 
     private static final TupleFactory TF = TupleFactory.getInstance();
-    private static final BagFactory BG = BagFactory.getInstance();
 
     private PhysicalPlan keyPlan;
     private ExpressionOperator keyLeaf;
-
     private List<PhysicalPlan> valuePlans;
     private List<ExpressionOperator> valueLeaves;
 
-    private int numRecsInRawMap = 0;
-    private int numRecsInProcessedMap = 0;
+    private transient int numRecsInRawMap;
+    private transient int numRecsInProcessedMap;
 
-    private Map<Object, List<Tuple>> rawInputMap = Maps.newHashMap();
-    private Map<Object, List<Tuple>> processedInputMap = Maps.newHashMap();
+    private transient Map<Object, List<Tuple>> rawInputMap;
+    private transient Map<Object, List<Tuple>> processedInputMap;
 
-    private boolean disableMapAgg = false;
-    private boolean sizeReductionChecked = false;
-    private boolean inputsExhausted = false;
-    private volatile boolean doSpill = false;
-    private transient MemoryLimits memLimits;
+    //Transient booleans always initialize to false
+    private transient boolean initialized;
+    private transient boolean disableMapAgg;
+    private transient boolean sizeReductionChecked;
+    private transient boolean inputsExhausted;
+    private transient boolean estimatedMemThresholds;
+    // The doSpill flag is set when spilling is running or needs to run.
+    // It is set by POPartialAgg when its buffers are full after having run aggregations and
+    // the records have to be emitted to the map output.
+    // The doContingentSpill flag is set when the SpillableMemoryManager is notified
+    // by GC that the runtime is low on memory and the SpillableMemoryManager identifies
+    // the particular buffer as a good spill candidate because it is large. The contingent spill logic tries
+    // to satisfy the memory manager's request for freeing memory by aggregating data
+    // rather than just spilling records to disk.
+    private transient volatile boolean doSpill;
+    private transient volatile boolean doContingentSpill;
+    private transient volatile Object spillLock;
 
-    private transient boolean initialized = false;
-    private int firstTierThreshold = FIRST_TIER_THRESHOLD;
-    private int secondTierThreshold = SECOND_TIER_THRESHOLD;
-    private int sizeReduction = 1;
-    private int avgTupleSize = 0;
-    private Iterator<Entry<Object, List<Tuple>>> spillingIterator;
-    private boolean estimatedMemThresholds = false;
+    private transient int minOutputReduction;
+    private transient float percentUsage;
+    private transient int numRecordsToSample;
+    private transient int firstTierThreshold;
+    private transient int secondTierThreshold;
+    private transient int sizeReduction;
+    private transient int avgTupleSize;
+    private transient Iterator<Entry<Object, List<Tuple>>> spillingIterator;
 
 
     public POPartialAgg(OperatorKey k) {
@@ -118,10 +130,38 @@ public class POPartialAgg extends PhysicalOperator implements Spillable {
 
     private void init() throws ExecException {
         ALL_POPARTS.put(this, null);
-        float percent = getPercentUsageFromProp();
-        if (percent <= 0) {
+        numRecsInRawMap = 0;
+        numRecsInProcessedMap = 0;
+        rawInputMap = Maps.newHashMap();
+        processedInputMap = Maps.newHashMap();
+        minOutputReduction = DEFAULT_MIN_REDUCTION;
+        numRecordsToSample = NUM_RECS_TO_SAMPLE;
+        firstTierThreshold = FIRST_TIER_THRESHOLD;
+        secondTierThreshold = SECOND_TIER_THRESHOLD;
+        sizeReduction = 1;
+        avgTupleSize = 0;
+        percentUsage = 0.2F;
+        spillLock = new Object();
+        if (PigMapReduce.sJobConfInternal.get() != null) {
+            String usage = PigMapReduce.sJobConfInternal.get().get(
+                    PigConfiguration.PIG_CACHEDBAG_MEMUSAGE);
+            if (usage != null) {
+                percentUsage = Float.parseFloat(usage);
+            }
+            minOutputReduction = PigMapReduce.sJobConfInternal.get().getInt(
+                    PigConfiguration.PIG_EXEC_MAP_PARTAGG_MINREDUCTION, DEFAULT_MIN_REDUCTION);
+            if (minOutputReduction <= 0) {
+                LOG.info("Specified reduction is < 0 (" + minOutputReduction + "). Using default " +
+                        DEFAULT_MIN_REDUCTION);
+                minOutputReduction = DEFAULT_MIN_REDUCTION;
+            }
+        }
+        if (percentUsage <= 0) {
             LOG.info("No memory allocated to intermediate memory buffers. Turning off partial aggregation.");
             disableMapAgg();
+            // Set them to true instead of adding another check for !disableMapAgg
+            sizeReductionChecked = true;
+            estimatedMemThresholds = true;
         }
         initialized = true;
         SpillableMemoryManager.getInstance().registerSpillable(this);
@@ -145,17 +185,36 @@ public class POPartialAgg extends PhysicalOperator implements Spillable {
         }
 
         while (true) {
-            if (!sizeReductionChecked && numRecsInRawMap >= NUM_RECS_TO_SAMPLE) {
+            if (!sizeReductionChecked && numRecsInRawMap >= numRecordsToSample) {
                 checkSizeReduction();
+                if (doContingentSpill && !doSpill) {
+                    LOG.info("Avoided emitting records during spill memory call.");
+                    doContingentSpill = false;
+                }
             }
-            if (!estimatedMemThresholds && numRecsInRawMap >= NUM_RECS_TO_SAMPLE) {
+            if (!estimatedMemThresholds && numRecsInRawMap >= numRecordsToSample) {
                 estimateMemThresholds();
             }
+            if (doContingentSpill) {
+                // Don't aggregate if spilling. Avoid concurrent update of spilling iterator.
+                if (doSpill == false) {
+                    // SpillableMemoryManager requested a spill to reduce memory
+                    // consumption. See if we can avoid it.
+                    aggregateBothLevels(false, false);
+                    if (shouldSpill()) {
+                        startSpill(false);
+                    } else {
+                        LOG.info("Avoided emitting records during spill memory call.");
+                        doContingentSpill = false;
+                    }
+                }
+            }
             if (doSpill) {
-                startSpill();
+                startSpill(true);
                 Result result = spillResult();
                 if (result.returnStatus == POStatus.STATUS_EOP) {
                     doSpill = false;
+                    doContingentSpill = false;
                 }
                 if (result.returnStatus != POStatus.STATUS_EOP
                         || inputsExhausted) {
@@ -174,8 +233,8 @@ public class POPartialAgg extends PhysicalOperator implements Spillable {
                     if (parentPlan.endOfAllInput) {
                         // parent input is over. flush what we have.
                         inputsExhausted = true;
-                        startSpill();
                         LOG.info("Spilling last bits.");
+                        startSpill(true);
                         continue;
                     } else {
                         return EOP_RESULT;
@@ -197,15 +256,9 @@ public class POPartialAgg extends PhysicalOperator implements Spillable {
                     numRecsInRawMap += 1;
                     addKeyValToMap(rawInputMap, key, inpTuple);
 
-                    if (shouldAggregateFirstLevel()) {
-                        aggregateFirstLevel();
-                    }
-                    if (shouldAggregateSecondLevel()) {
-                        aggregateSecondLevel();
-                    }
+                    aggregateBothLevels(true, true);
                     if (shouldSpill()) {
-                        LOG.info("Starting spill.");
-                        startSpill(); // next time around, we'll start emitting.
+                        startSpill(false); // next time around, we'll start emitting.
                     }
                 }
             }
@@ -214,10 +267,10 @@ public class POPartialAgg extends PhysicalOperator implements Spillable {
 
     private void estimateMemThresholds() {
         if (!mapAggDisabled()) {
-            LOG.info("Getting mem limits; considering " + ALL_POPARTS.size() + " POPArtialAgg objects.");
-
-            float percent = getPercentUsageFromProp();
-            memLimits = new MemoryLimits(ALL_POPARTS.size(), percent);
+            LOG.info("Getting mem limits; considering " + ALL_POPARTS.size()
+                    + " POPArtialAgg objects." + " with memory percentage "
+                    + percentUsage);
+            MemoryLimits memLimits = new MemoryLimits(ALL_POPARTS.size(), percentUsage);
             int estTotalMem = 0;
             int estTuples = 0;
             for (Map.Entry<Object, List<Tuple>> entry : rawInputMap.entrySet()) {
@@ -234,30 +287,39 @@ public class POPartialAgg extends PhysicalOperator implements Spillable {
             firstTierThreshold = (int) (0.5 + totalTuples * (1f - (1f / sizeReduction)));
             secondTierThreshold = (int) (0.5 + totalTuples *  (1f / sizeReduction));
             LOG.info("Setting thresholds. Primary: " + firstTierThreshold + ". Secondary: " + secondTierThreshold);
+            // The second tier should at least allow one tuple before it tries to aggregate.
+            // This code retains the total number of tuples in the buffer while guaranteeing
+            // the second tier has at least one tuple.
+            if (secondTierThreshold == 0) {
+                secondTierThreshold += 1;
+                firstTierThreshold -= 1;
+            }
         }
         estimatedMemThresholds = true;
     }
 
     private void checkSizeReduction() throws ExecException {
-        int numBeforeReduction = numRecsInProcessedMap + numRecsInRawMap;
-        aggregateFirstLevel();
-        aggregateSecondLevel();
-        int numAfterReduction = numRecsInProcessedMap + numRecsInRawMap;
-        LOG.info("After reduction, processed map: " + numRecsInProcessedMap + "; raw map: " + numRecsInRawMap);
-        int minReduction = getMinOutputReductionFromProp();
-        LOG.info("Observed reduction factor: from " + numBeforeReduction +
-                " to " + numAfterReduction +
-                " => " + numBeforeReduction / numAfterReduction + ".");
-        if ( numBeforeReduction / numAfterReduction < minReduction) {
-            LOG.info("Disabling in-memory aggregation, since observed reduction is less than " + minReduction);
-            disableMapAgg();
+        if (!mapAggDisabled()) {
+            int numBeforeReduction = numRecsInProcessedMap + numRecsInRawMap;
+            aggregateBothLevels(false, false);
+            int numAfterReduction = numRecsInProcessedMap + numRecsInRawMap;
+            LOG.info("After reduction, processed map: " + numRecsInProcessedMap + "; raw map: " + numRecsInRawMap);
+            LOG.info("Observed reduction factor: from " + numBeforeReduction +
+                    " to " + numAfterReduction +
+                    " => " + numBeforeReduction / numAfterReduction + ".");
+            if ( numBeforeReduction / numAfterReduction < minOutputReduction) {
+                LOG.info("Disabling in-memory aggregation, since observed reduction is less than " + minOutputReduction);
+                disableMapAgg();
+            }
+            sizeReduction = numBeforeReduction / numAfterReduction;
+            sizeReductionChecked = true;
         }
-        sizeReduction = numBeforeReduction / numAfterReduction;
-        sizeReductionChecked = true;
 
     }
     private void disableMapAgg() throws ExecException {
-        startSpill();
+        // Do not aggregate as when disableMapAgg is called aggregation is
+        // called and size reduction checked
+        startSpill(false);
         disableMapAgg = true;
     }
 
@@ -266,16 +328,10 @@ public class POPartialAgg extends PhysicalOperator implements Spillable {
     }
 
     private boolean shouldAggregateFirstLevel() {
-        if (LOG.isInfoEnabled() && numRecsInRawMap > firstTierThreshold) {
-            LOG.info("Aggregating " + numRecsInRawMap + " raw records.");
-        }
         return (numRecsInRawMap > firstTierThreshold);
     }
 
     private boolean shouldAggregateSecondLevel() {
-        if (LOG.isInfoEnabled() && numRecsInProcessedMap > secondTierThreshold) {
-            LOG.info("Aggregating " + numRecsInProcessedMap + " secondary records.");
-        }
         return (numRecsInProcessedMap > secondTierThreshold);
     }
 
@@ -305,27 +361,13 @@ public class POPartialAgg extends PhysicalOperator implements Spillable {
         }
     }
 
-    private void startSpill() throws ExecException {
+    private void startSpill(boolean aggregate) throws ExecException {
         // If spillingIterator is null, we are already spilling and don't need to set up.
         if (spillingIterator != null) return;
 
-        if (!rawInputMap.isEmpty()) {
-            if (LOG.isInfoEnabled()) {
-                LOG.info("In startSpill(), aggregating raw inputs. " + numRecsInRawMap + " tuples.");
-            }
-            aggregateFirstLevel();
-            if (LOG.isInfoEnabled()) {
-                LOG.info("processed inputs: " + numRecsInProcessedMap + " tuples.");
-            }
-        }
-        if (!processedInputMap.isEmpty()) {
-            if (LOG.isInfoEnabled()) {
-                LOG.info("In startSpill(), aggregating processed inputs. " + numRecsInProcessedMap + " tuples.");
-            }
-            aggregateSecondLevel();
-            if (LOG.isInfoEnabled()) {
-                LOG.info("processed inputs: " + numRecsInProcessedMap + " tuples.");
-            }
+        LOG.info("Starting spill.");
+        if (aggregate) {
+            aggregateBothLevels(false, true);
         }
         doSpill = true;
         spillingIterator = processedInputMap.entrySet().iterator();
@@ -374,15 +416,41 @@ public class POPartialAgg extends PhysicalOperator implements Spillable {
         return numEntriesInTarget;
     }
 
+    private void aggregateBothLevels(boolean checkThresholdForFirst,
+            boolean checkThresholdForSecond) throws ExecException {
+        // When processed map is initially empty, just aggregate first level as
+        // aggregating second level immediately would not yield anything
+        boolean aggregateSecondLevel = !processedInputMap.isEmpty();
+        if (!checkThresholdForFirst || shouldAggregateFirstLevel()) {
+            aggregateFirstLevel();
+        }
+        if (aggregateSecondLevel && (!checkThresholdForSecond || shouldAggregateSecondLevel())) {
+            aggregateSecondLevel();
+        }
+    }
+
     private void aggregateFirstLevel() throws ExecException {
+        if (rawInputMap.isEmpty()) {
+            return;
+        }
+        int rawTuples = numRecsInRawMap;
+        int processedTuples = numRecsInProcessedMap;
         numRecsInProcessedMap = aggregate(rawInputMap, processedInputMap, numRecsInProcessedMap);
         numRecsInRawMap = 0;
+        LOG.info("Aggregated " + rawTuples+ " raw tuples."
+                + " Processed tuples before aggregation = " + processedTuples
+                + ", after aggregation = " + numRecsInProcessedMap);
     }
 
     private void aggregateSecondLevel() throws ExecException {
+        if (processedInputMap.isEmpty()) {
+            return;
+        }
+        int processedTuples = numRecsInProcessedMap;
         Map<Object, List<Tuple>> newMap = Maps.newHashMapWithExpectedSize(processedInputMap.size());
         numRecsInProcessedMap = aggregate(processedInputMap, newMap, 0);
         processedInputMap = newMap;
+        LOG.info("Aggregated " + processedTuples + " processed tuples to " + numRecsInProcessedMap + " tuples");
     }
 
     private Tuple createValueTuple(Object key, List<Tuple> inpTuples) throws ExecException {
@@ -390,7 +458,14 @@ public class POPartialAgg extends PhysicalOperator implements Spillable {
         valueTuple.set(0, key);
 
         for (int i = 0; i < valuePlans.size(); i++) {
-            DataBag bag = BG.newDefaultBag();
+            DataBag bag = null;
+            if (doContingentSpill) {
+                // Don't use additional memory since we already have memory stress
+                bag = new InternalCachedBag();
+            } else {
+                // Take 10% of memory, need fine tune later
+                bag = new InternalCachedBag(1, 0.1F);
+            }
             valueTuple.set(i + 1, bag);
         }
         for (Tuple t : inpTuples) {
@@ -423,29 +498,6 @@ public class POPartialAgg extends PhysicalOperator implements Spillable {
     public void visit(PhyPlanVisitor v) throws VisitorException {
         v.visitPartialAgg(this);
     }
-
-    private int getMinOutputReductionFromProp() {
-        int minReduction = PigMapReduce.sJobConfInternal.get().getInt(
-                PigConfiguration.PARTAGG_MINREDUCTION, DEFAULT_MIN_REDUCTION);
-        if (minReduction <= 0) {
-            LOG.info("Specified reduction is < 0 (" + minReduction + "). Using default " + DEFAULT_MIN_REDUCTION);
-            minReduction = DEFAULT_MIN_REDUCTION;
-        }
-        return minReduction;
-    }
-
-    private float getPercentUsageFromProp() {
-        float percent = 0.2F;
-        if (PigMapReduce.sJobConfInternal.get() != null) {
-            String usage = PigMapReduce.sJobConfInternal.get().get(
-                    PigConfiguration.PROP_CACHEDBAG_MEMUSAGE);
-            if (usage != null) {
-                percent = Float.parseFloat(usage);
-            }
-        }
-        return percent;
-    }
-
 
     private Result getResult(ExpressionOperator op) throws ExecException {
         Result res;
@@ -536,9 +588,26 @@ public class POPartialAgg extends PhysicalOperator implements Spillable {
 
     @Override
     public long spill() {
-        LOG.info("Spill triggered by SpillableMemoryManager");
-        doSpill = true;
-        return 0;
+        if (mapAggDisabled()) {
+            return 0;
+        } else {
+            LOG.info("Spill triggered by SpillableMemoryManager");
+            doContingentSpill = true;
+            synchronized(spillLock) {
+                if (!sizeReductionChecked) {
+                    numRecordsToSample = numRecsInRawMap;
+                }
+                try {
+                    while (doContingentSpill == true) {
+                        Thread.sleep(50); //Keeping it on the lower side for now. Tune later
+                    }
+                } catch (InterruptedException e) {
+                    LOG.warn("Interrupted exception while waiting for spill to finish", e);
+                }
+                LOG.info("Finished spill for SpillableMemoryManager call");
+                return 1;
+            }
+        }
     }
 
     @Override

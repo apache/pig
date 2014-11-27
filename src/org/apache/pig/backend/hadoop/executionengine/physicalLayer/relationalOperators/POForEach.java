@@ -92,6 +92,10 @@ public class POForEach extends PhysicalOperator {
 
     protected Tuple inpTuple;
 
+    // Indicate the foreach statement can only in map side
+    // Currently only used in MR cross (See PIG-4175)
+    protected boolean mapSideOnly = false;
+
     private Schema schema;
 
     public POForEach(OperatorKey k) {
@@ -274,8 +278,9 @@ public class POForEach extends PhysicalOperator {
                                 throw new ExecException(e);
                             }
                         }else{
-                            inpTuple = ((POPackage.POPackageTupleBuffer) buffer).illustratorMarkup(null, inpTuple, 0);
-                            //                       buffer.clear();
+                            if (buffer instanceof POPackage.POPackageTupleBuffer) {
+                                inpTuple = ((POPackage.POPackageTupleBuffer) buffer).illustratorMarkup(null, inpTuple, 0);
+                            }
                             setAccumEnd();
                         }
 
@@ -293,7 +298,7 @@ public class POForEach extends PhysicalOperator {
                             break;
                         }
                     }
-
+                    buffer.clear();
                 } else {
                     res = processPlan();
                 }
@@ -786,4 +791,11 @@ public class POForEach extends PhysicalOperator {
         return planLeafOps;
     }
 
+    public void setMapSideOnly(boolean mapSideOnly) {
+        this.mapSideOnly = mapSideOnly;
+    }
+
+    public boolean isMapSideOnly() {
+        return mapSideOnly;
+    }
 }

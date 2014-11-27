@@ -47,25 +47,16 @@ public class ISOHelper {
 	 *  with optional time zone.
 	 * @return a DateTime representing the date, 
 	 *  with DateTimeZone set to the time zone parsed from the string,
-	 *  or else DateTimeZone.defaultTimeZone() if one is set,
+	 *  or else DateTimeZone.getDefault() if one is set,
 	 *  or else UTC.
 	 * @throws ExecException if input is a malformed or empty tuple.
 	 * This method is public so that it can be tested in TestTruncateDateTime. 
 	 * Otherwise, it would have "package" visibility.
 	 */
 	public static DateTime parseDateTime(Tuple input) throws ExecException {	
-	        
-	    // Save previous default time zone for restore later.
-	    DateTimeZone previousDefaultTimeZone = DateTimeZone.getDefault();
-
-	    // Temporarily set default time zone to UTC, for this parse.
-	    DateTimeZone.setDefault(DEFAULT_DATE_TIME_ZONE);
 
 	    String isoDateString = input.get(0).toString();
 	    DateTime dt = ISODateTimeFormat.dateTimeParser().withOffsetParsed().parseDateTime(isoDateString);			
-
-	    // restore previous default TimeZone.
-	    DateTimeZone.setDefault(previousDefaultTimeZone);
 
 	    return dt;
 	}

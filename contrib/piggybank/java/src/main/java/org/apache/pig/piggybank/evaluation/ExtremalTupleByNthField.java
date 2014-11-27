@@ -289,6 +289,9 @@ public class ExtremalTupleByNthField extends EvalFunc<Tuple> implements
 	@SuppressWarnings("unchecked")
 	protected final static Tuple extreme(int pind, int psign, Tuple input,
 			PigProgressable reporter) throws ExecException {
+	    if (input == null || input.size() == 0 || input.get(0) == null) {
+	        return null;
+	    }
 		DataBag values = (DataBag) input.get(0);
 
 		// if we were handed an empty bag, return NULL

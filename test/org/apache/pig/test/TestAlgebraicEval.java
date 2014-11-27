@@ -63,7 +63,7 @@ public class TestAlgebraicEval {
     public void testGroupCountWithMultipleFields() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");
         for (int k = 0; k < nullFlags.length; k++) {
-            System.err.println("Running testGroupCountWithMultipleFields with nullFlags set to " + nullFlags[k]);
+            System.out.println("Running testGroupCountWithMultipleFields with nullFlags set to " + nullFlags[k]);
             // flag to indicate if both the keys forming
             // the group key are null
             int groupKeyWithNulls = 0;

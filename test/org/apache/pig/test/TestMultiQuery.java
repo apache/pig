@@ -52,7 +52,7 @@ public class TestMultiQuery {
         Util.copyFromLocalToLocal(
                 "test/org/apache/pig/test/data/passwd2", "passwd2");
         Properties props = new Properties();
-        props.setProperty(PigConfiguration.OPT_MULTIQUERY, ""+true);
+        props.setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, ""+true);
         myPig = new PigServer(ExecType.LOCAL, props);
     }
 
@@ -811,6 +811,32 @@ public class TestMultiQuery {
         for (ExecJob job : jobs) {
             assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
         }
+    }
+
+    @Test
+    public void testMultiQueryJiraPig4170() throws Exception {
+
+        Storage.Data data = Storage.resetData(myPig);
+        data.set("inputLocation", Storage.tuple(1, "hello"), Storage.tuple(2, "world"));
+
+        myPig.setBatchOn();
+        myPig.registerQuery("A = load 'inputLocation' using mock.Storage() as (a:int, b:chararray);");
+        myPig.registerQuery("A1 = group A by a;");
+        myPig.registerQuery("A2 = group A by b;");
+        myPig.registerQuery("store A1 into 'output1' using mock.Storage();");
+        myPig.registerQuery("store A2 into 'output2' using mock.Storage();");
+
+        myPig.executeBatch();
+
+        myPig.registerQuery("A = load 'output1' using mock.Storage() as (a:int, c:bag{(i:int, s:chararray)});");
+        Iterator<Tuple> iter = myPig.openIterator("A");
+        iter.next().toString().equals("(1,{(1,hello)})");
+        iter.next().toString().equals("(2,{(2,world)})");
+
+        myPig.registerQuery("A = load 'output2' using mock.Storage() as (b:chararray, c:bag{(i:int, s:chararray)});");
+        iter = myPig.openIterator("A");
+        iter.next().toString().equals("(hello,{(1,hello)})");
+        iter.next().toString().equals("(world,{(2,world)})");
     }
 
     // --------------------------------------------------------------------------

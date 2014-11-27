@@ -115,7 +115,7 @@ public class TestPigScriptParser {
                 // backslash - hence 4. In a pig script in a file, this would be
                 // www\\.xyz\\.com
                 "define minelogs org.apache.pig.test.RegexGroupCount('www\\\\.xyz\\\\.com/sports');" ,
-                "A = load '" + Util.generateURI(Util.encodeEscape(f.getAbsolutePath()), ps.getPigContext()) + "'  using PigStorage() as (source : chararray);" ,
+                "A = load '" + Util.generateURI(f.getAbsolutePath(), ps.getPigContext()) + "'  using PigStorage() as (source : chararray);" ,
                 "B = foreach A generate minelogs(source) as sportslogs;" };
         for (String line : queryLines) {
             ps.registerQuery(line);

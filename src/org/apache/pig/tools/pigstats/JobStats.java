@@ -21,7 +21,6 @@ package org.apache.pig.tools.pigstats;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -182,17 +181,17 @@ public abstract class JobStats extends Operator {
      * @param durations
      * @return median value
      */
-    protected long calculateMedianValue(long[] durations) {
+    protected long calculateMedianValue(List<Long> durations) {
         long median;
         // figure out the median
-        Arrays.sort(durations);
-        int midPoint = durations.length /2;
-        if ((durations.length & 1) == 1) {
+        Collections.sort(durations);
+        int midPoint = durations.size() /2;
+        if ((durations.size() & 1) == 1) {
             // odd
-            median = durations[midPoint];
+            median = durations.get(midPoint);
         } else {
             // even
-            median = (durations[midPoint-1] + durations[midPoint]) / 2;
+            median = (durations.get(midPoint-1) + durations.get(midPoint)) / 2;
         }
         return median;
     }

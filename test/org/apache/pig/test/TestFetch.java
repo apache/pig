@@ -96,7 +96,7 @@ public class TestFetch {
     public void setUp() throws Exception{
         pigServer = new PigServer(ExecType.LOCAL, new Properties());
         // force direct fetch mode
-        pigServer.getPigContext().getProperties().setProperty(PigConfiguration.OPT_FETCH, "true");
+        pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_OPT_FETCH, "true");
     }
 
     @Test
@@ -127,7 +127,8 @@ public class TestFetch {
                 .compile(lp, null);
 
         boolean planFetchable = FetchOptimizer.isPlanFetchable(pigServer.getPigContext(), pp);
-        assertTrue(planFetchable);
+        //plan is not fetchable since limit is not pushed up to the loader
+        assertFalse(planFetchable);
 
     }
 

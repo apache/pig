@@ -20,7 +20,6 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -32,14 +31,13 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.pig.PigConfiguration;
+import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.tools.pigstats.tez.TezPigScriptStats;
 import org.apache.tez.client.TezClient;
-import org.apache.tez.common.counters.CounterGroup;
-import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
-import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.Progress;
@@ -64,19 +62,39 @@ public class TezJob implements Runnable {
     private TezClient tezClient;
     private boolean reuseSession;
     private TezCounters dagCounters;
-    // Vertex, CounterGroup, Counter, Value
-    private Map<String, Map<String, Map<String, Long>>> vertexCounters;
+
     // Timer for DAG status reporter
     private Timer timer;
+    private TezJobConfig tezJobConf;
+    private TezPigScriptStats pigStats;
 
-    public TezJob(TezConfiguration conf, DAG dag, Map<String, LocalResource> requestAMResources)
-            throws IOException {
+    public TezJob(TezConfiguration conf, DAG dag,
+            Map<String, LocalResource> requestAMResources,
+            int estimatedTotalParallelism) throws IOException {
         this.conf = conf;
         this.dag = dag;
         this.requestAMResources = requestAMResources;
-        this.reuseSession = conf.getBoolean(PigConfiguration.TEZ_SESSION_REUSE, true);
+        this.reuseSession = conf.getBoolean(PigConfiguration.PIG_TEZ_SESSION_REUSE, true);
         this.statusGetOpts = EnumSet.of(StatusGetOpts.GET_COUNTERS);
-        this.vertexCounters = Maps.newHashMap();
+        tezJobConf = new TezJobConfig(estimatedTotalParallelism);
+    }
+
+    static class TezJobConfig {
+
+        private int estimatedTotalParallelism = -1;
+
+        public TezJobConfig(int estimatedTotalParallelism) {
+            this.estimatedTotalParallelism = estimatedTotalParallelism;
+        }
+
+        public int getEstimatedTotalParallelism() {
+            return estimatedTotalParallelism;
+        }
+
+        public void setEstimatedTotalParallelism(int estimatedTotalParallelism) {
+            this.estimatedTotalParallelism = estimatedTotalParallelism;
+        }
+
     }
 
     public DAG getDAG() {
@@ -84,7 +102,7 @@ public class TezJob implements Runnable {
     }
 
     public String getName() {
-        return dag == null ? "" : dag.getName();
+        return dag.getName();
     }
 
     public Configuration getConfiguration() {
@@ -103,14 +121,6 @@ public class TezJob implements Runnable {
         return dagCounters;
     }
 
-    public Map<String, Map<String, Long>> getVertexCounters(String group) {
-        return vertexCounters.get(group);
-    }
-
-    public Map<String, Long> getVertexCounters(String group, String name) {
-        return vertexCounters.get(group).get(name);
-    }
-
     public float getDAGProgress() {
         Progress p = dagStatus.getDAGProgress();
         return p == null ? 0 : (float)p.getSucceededTaskCount() / (float)p.getTotalTaskCount();
@@ -126,10 +136,28 @@ public class TezJob implements Runnable {
         return vertexProgress;
     }
 
+    public VertexStatus getVertexStatus(String vertexName) {
+        VertexStatus vs = null;
+        try {
+            vs = dagClient.getVertexStatus(vertexName, statusGetOpts);
+        } catch (Exception e) {
+            // Don't fail the job even if vertex status couldn't
+            // be retrieved.
+            log.warn("Cannot retrieve status for vertex " + vertexName, e);
+        }
+        return vs;
+    }
+
+    public void setPigStats(TezPigScriptStats pigStats) {
+        this.pigStats = pigStats;
+    }
+
     @Override
     public void run() {
+        UDFContext udfContext = UDFContext.getUDFContext();
         try {
-            tezClient = TezSessionManager.getClient(conf, requestAMResources, dag.getCredentials());
+            tezClient = TezSessionManager.getClient(conf, requestAMResources,
+                    dag.getCredentials(), tezJobConf);
             log.info("Submitting DAG " + dag.getName());
             dagClient = tezClient.submitDAG(dag);
             appId = tezClient.getAppMasterApplicationId();
@@ -145,7 +173,7 @@ public class TezJob implements Runnable {
 
         timer = new Timer();
         timer.schedule(new DAGStatusReporter(), 1000, conf.getLong(
-                PigConfiguration.TEZ_DAG_STATUS_REPORT_INTERVAL, 10) * 1000);
+                PigConfiguration.PIG_TEZ_DAG_STATUS_REPORT_INTERVAL, 20) * 1000);
 
         while (true) {
             try {
@@ -156,9 +184,17 @@ public class TezJob implements Runnable {
             }
 
             if (dagStatus.isCompleted()) {
+                // For tez_local mode where PigProcessor destroys all UDFContext
+                UDFContext.setUdfContext(udfContext);
+
+                log.info("DAG Status: " + dagStatus);
                 dagCounters = dagStatus.getDAGCounters();
-                collectVertexCounters();
                 TezSessionManager.freeSession(tezClient);
+                try {
+                    pigStats.accumulateStats(this);
+                } catch (Exception e) {
+                    log.warn("Exception while gathering stats", e);
+                }
                 try {
                     if (!reuseSession) {
                         TezSessionManager.stopSession(tezClient);
@@ -182,36 +218,17 @@ public class TezJob implements Runnable {
     }
 
     private class DAGStatusReporter extends TimerTask {
+
+        private final String LINE_SEPARATOR = System.getProperty("line.separator");
+
         @Override
         public void run() {
-            log.info("DAG Status: " + dagStatus);
-        }
-    }
-
-    private void collectVertexCounters() {
-        for (Vertex v : dag.getVertices()) {
-            String name = v.getName();
-            try {
-                VertexStatus s = dagClient.getVertexStatus(name, statusGetOpts);
-                TezCounters counters = s.getVertexCounters();
-                Map<String, Map<String, Long>> grpCounters = Maps.newHashMap();
-                Iterator<CounterGroup> grpIt = counters.iterator();
-                while (grpIt.hasNext()) {
-                    CounterGroup grp = grpIt.next();
-                    Iterator<TezCounter> cntIt = grp.iterator();
-                    Map<String, Long> cntMap = Maps.newHashMap();
-                    while (cntIt.hasNext()) {
-                        TezCounter cnt = cntIt.next();
-                        cntMap.put(cnt.getName(), cnt.getValue());
-                    }
-                    grpCounters.put(grp.getName(), cntMap);
-                }
-                vertexCounters.put(name, grpCounters);
-            } catch (Exception e) {
-                // Don't fail the job even if vertex counters couldn't
-                // be retrieved.
-                log.info("Cannot retrieve counters for vertex " + name, e);
-            }
+            if (dagStatus == null) return;
+            String msg = "status=" + dagStatus.getState()
+              + ", progress=" + dagStatus.getDAGProgress()
+              + ", diagnostics="
+              + StringUtils.join(dagStatus.getDiagnostics(), LINE_SEPARATOR);
+            log.info("DAG Status: " + msg);
         }
     }
 

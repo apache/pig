@@ -2,64 +2,64 @@
 # There are 1 DAGs in the session
 #--------------------------------------------------
 #--------------------------------------------------
-# TEZ DAG plan: scope-66
+# TEZ DAG plan: pig-0_scope-1
 #--------------------------------------------------
-Tez vertex scope-58	->	Tez vertex scope-60,Tez vertex scope-62,Tez vertex scope-64,
-Tez vertex scope-64
-Tez vertex scope-62
-Tez vertex scope-60
+Tez vertex scope-57	->	Tez vertex scope-59,Tez vertex scope-61,Tez vertex scope-63,
+Tez vertex scope-59
+Tez vertex scope-63
+Tez vertex scope-61
 
-Tez vertex scope-58
+Tez vertex scope-57
 # Plan on vertex
-POValueOutputTez - scope-59	->	 [scope-64, scope-62, scope-60]
+POValueOutputTez - scope-58	->	 [scope-59, scope-63, scope-61]
 |
-|---a: New For Each(false,false)[bag] - scope-41
+|---a: New For Each(false,false)[bag] - scope-40
     |   |
-    |   Cast[int] - scope-36
+    |   Cast[int] - scope-35
     |   |
-    |   |---Project[bytearray][0] - scope-35
+    |   |---Project[bytearray][0] - scope-34
     |   |
-    |   Cast[int] - scope-39
+    |   Cast[int] - scope-38
     |   |
-    |   |---Project[bytearray][1] - scope-38
+    |   |---Project[bytearray][1] - scope-37
     |
-    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-34
-Tez vertex scope-64
+    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-33
+Tez vertex scope-59
 # Plan on vertex
-d: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-57
+b: Store(file:///tmp/output/b:org.apache.pig.builtin.PigStorage) - scope-46
 |
-|---d: Filter[bag] - scope-53
+|---b: Filter[bag] - scope-42
     |   |
-    |   Greater Than[boolean] - scope-56
+    |   Less Than or Equal[boolean] - scope-45
     |   |
-    |   |---Project[int][0] - scope-54
+    |   |---Project[int][0] - scope-43
     |   |
-    |   |---Constant(10) - scope-55
+    |   |---Constant(5) - scope-44
     |
-    |---POValueInputTez - scope-65	<-	 scope-58
-Tez vertex scope-62
+    |---POValueInputTez - scope-60	<-	 scope-57
+Tez vertex scope-63
 # Plan on vertex
-c: Store(file:///tmp/output/c:org.apache.pig.builtin.PigStorage) - scope-52
+d: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-56
 |
-|---c: Filter[bag] - scope-48
+|---d: Filter[bag] - scope-52
     |   |
-    |   Less Than or Equal[boolean] - scope-51
+    |   Greater Than[boolean] - scope-55
     |   |
-    |   |---Project[int][0] - scope-49
+    |   |---Project[int][0] - scope-53
     |   |
-    |   |---Constant(10) - scope-50
+    |   |---Constant(10) - scope-54
     |
-    |---POValueInputTez - scope-63	<-	 scope-58
-Tez vertex scope-60
+    |---POValueInputTez - scope-64	<-	 scope-57
+Tez vertex scope-61
 # Plan on vertex
-b: Store(file:///tmp/output/b:org.apache.pig.builtin.PigStorage) - scope-47
+c: Store(file:///tmp/output/c:org.apache.pig.builtin.PigStorage) - scope-51
 |
-|---b: Filter[bag] - scope-43
+|---c: Filter[bag] - scope-47
     |   |
-    |   Less Than or Equal[boolean] - scope-46
+    |   Less Than or Equal[boolean] - scope-50
     |   |
-    |   |---Project[int][0] - scope-44
+    |   |---Project[int][0] - scope-48
     |   |
-    |   |---Constant(5) - scope-45
+    |   |---Constant(10) - scope-49
     |
-    |---POValueInputTez - scope-61	<-	 scope-58
+    |---POValueInputTez - scope-62	<-	 scope-57

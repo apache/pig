@@ -23,7 +23,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
-import java.util.Map;
 import java.util.Properties;
 
 import org.apache.pig.PigConfiguration;
@@ -32,13 +31,10 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezLauncher;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezLocalExecType;
-import org.apache.pig.backend.hadoop.executionengine.tez.TezOperPlan;
-import org.apache.pig.backend.hadoop.executionengine.tez.TezPlanContainer;
-import org.apache.pig.backend.hadoop.executionengine.tez.TezPlanContainerNode;
-import org.apache.pig.backend.hadoop.executionengine.tez.TezPlanContainerPrinter;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPlanContainer;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPlanContainerPrinter;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.NodeIdGenerator;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.test.Util;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.AfterClass;
@@ -77,8 +73,8 @@ public class TestTezCompiler {
     @Before
     public void setUp() throws ExecException {
         resetScope();
-        pc.getProperties().remove(PigConfiguration.OPT_MULTIQUERY);
-        pc.getProperties().remove(PigConfiguration.TEZ_OPT_UNION);
+        pc.getProperties().remove(PigConfiguration.PIG_OPT_MULTIQUERY);
+        pc.getProperties().remove(PigConfiguration.PIG_TEZ_OPT_UNION);
         pc.getProperties().remove(PigConfiguration.PIG_EXEC_NO_SECONDARY_KEY);
         pigServer = new PigServer(pc);
     }
@@ -86,6 +82,7 @@ public class TestTezCompiler {
     private void resetScope() {
         NodeIdGenerator.reset();
         PigServer.resetScope();
+        TezPlanContainer.resetScope();
     }
 
     @Test
@@ -96,7 +93,7 @@ public class TestTezCompiler {
                 "c = foreach b generate y;" +
                 "store c into 'file:///tmp/output';";
 
-        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC1.gld");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Filter-1.gld");
     }
 
     @Test
@@ -107,7 +104,7 @@ public class TestTezCompiler {
                 "c = foreach b generate group, COUNT(a.x);" +
                 "store c into 'file:///tmp/output';";
 
-        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC2.gld");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Group-1.gld");
     }
 
     @Test
@@ -119,7 +116,7 @@ public class TestTezCompiler {
                 "d = foreach c generate a::x as x, y, z;" +
                 "store d into 'file:///tmp/output';";
 
-        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC3.gld");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Join-1.gld");
     }
 
     @Test
@@ -131,7 +128,7 @@ public class TestTezCompiler {
                 "d = foreach c generate a::x as x, y, z;" +
                 "store d into 'file:///tmp/output';";
 
-        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC17.gld");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-SkewJoin-1.gld");
     }
 
     @Test
@@ -142,7 +139,31 @@ public class TestTezCompiler {
                 "c = foreach b generate y;" +
                 "store c into 'file:///tmp/output';";
 
-        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC4.gld");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Limit-1.gld");
+    }
+
+    @Test
+    public void testLimitOrderby() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' as (x:int, y:int);" +
+                "b = order a by x, y;" +
+                "c = limit b 10;" +
+                "store c into 'file:///tmp/output';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Limit-2.gld");
+    }
+
+    @Test
+    public void testLimitScalarOrderby() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' as (x:int, y:int);" +
+                "b = order a by x, y;" +
+                "g = group a all;" +
+                "h = foreach g generate COUNT(a) as sum;" +
+                "c = limit b h.sum/2;" +
+                "store c into 'file:///tmp/output';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Limit-3.gld");
     }
 
     @Test
@@ -153,7 +174,7 @@ public class TestTezCompiler {
                 "c = foreach b generate y;" +
                 "store c into 'file:///tmp/output';";
 
-        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC5.gld");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Distinct-1.gld");
     }
 
     @Test
@@ -164,7 +185,7 @@ public class TestTezCompiler {
                 "c = foreach b { d = distinct a; generate COUNT(d); };" +
                 "store c into 'file:///tmp/output';";
 
-        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC13.gld");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Distinct-2.gld");
     }
 
 
@@ -178,7 +199,7 @@ public class TestTezCompiler {
                 "d = join a by x, b by x, c by x using 'replicated';" +
                 "store d into 'file:///tmp/output/d';";
 
-        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC10.gld");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-FRJoin-1.gld");
     }
 
     @Test
@@ -191,7 +212,7 @@ public class TestTezCompiler {
                 "d = join b1 by group, c by x using 'replicated';" +
                 "store d into 'file:///tmp/output/e';";
 
-        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC11.gld");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-FRJoin-2.gld");
     }
 
     @Test
@@ -201,7 +222,7 @@ public class TestTezCompiler {
                 "b = stream a through `stream.pl -n 5`;" +
                 "STORE b INTO 'file:///tmp/output';";
 
-        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC12.gld");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Stream-1.gld");
     }
 
     @Test
@@ -212,11 +233,11 @@ public class TestTezCompiler {
                 "c = foreach b { d = limit a 10; e = order d by $1; f = order e by $0; generate group, f;};"+
                 "store c INTO 'file:///tmp/output';";
 
-        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC14.gld");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-SecKeySort-1.gld");
 
         // With optimization turned off
         setProperty(PigConfiguration.PIG_EXEC_NO_SECONDARY_KEY, "true");
-        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC15.gld");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-SecKeySort-2.gld");
     }
 
     @Test
@@ -226,7 +247,7 @@ public class TestTezCompiler {
                 "b = order a by x;" +
                 "STORE b INTO 'file:///tmp/output';";
 
-        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC16.gld");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Order-1.gld");
     }
 
     // PIG-3759, PIG-3781
@@ -240,7 +261,7 @@ public class TestTezCompiler {
                 "d = foreach c generate group, COUNT(a.y), COUNT(b.z);" +
                 "store d into 'file:///tmp/output/d';";
 
-        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC18.gld");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Cogroup-1.gld");
     }
 
     @Test
@@ -252,9 +273,9 @@ public class TestTezCompiler {
                 "store c into 'file:///tmp/output/c';" +
                 "store d into 'file:///tmp/output/d';";
 
-        setProperty(PigConfiguration.OPT_MULTIQUERY, "" + true);
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-1.gld");
-        setProperty(PigConfiguration.OPT_MULTIQUERY, "" + false);
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-1-OPTOFF.gld");
     }
 
@@ -288,9 +309,9 @@ public class TestTezCompiler {
                 "store f1 into 'file:///tmp/output/f1';" +
                 "store f2 into 'file:///tmp/output/f2';";
 
-        setProperty(PigConfiguration.OPT_MULTIQUERY, "" + true);
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-2.gld");
-        setProperty(PigConfiguration.OPT_MULTIQUERY, "" + false);
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-2-OPTOFF.gld");
     }
 
@@ -305,9 +326,9 @@ public class TestTezCompiler {
                 "store b into 'file:///tmp/output/b';" +
                 "store c into 'file:///tmp/output/c';";
 
-        setProperty(PigConfiguration.OPT_MULTIQUERY, "" + true);
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-3.gld");
-        setProperty(PigConfiguration.OPT_MULTIQUERY, "" + false);
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-3-OPTOFF.gld");
     }
 
@@ -323,9 +344,9 @@ public class TestTezCompiler {
                 "store d into 'file:///tmp/output/d';" +
                 "store e into 'file:///tmp/output/e';";
 
-        setProperty(PigConfiguration.OPT_MULTIQUERY, "" + true);
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-4.gld");
-        setProperty(PigConfiguration.OPT_MULTIQUERY, "" + false);
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-4-OPTOFF.gld");
     }
 
@@ -342,9 +363,9 @@ public class TestTezCompiler {
                 "e = foreach d GENERATE a::x, a::y;" +
                 "store e into 'file:///tmp/output/e';";
 
-        setProperty(PigConfiguration.OPT_MULTIQUERY, "" + true);
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-5.gld");
-        setProperty(PigConfiguration.OPT_MULTIQUERY, "" + false);
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-5-OPTOFF.gld");
     }
 
@@ -356,9 +377,9 @@ public class TestTezCompiler {
                 "c = union onschema a, b;" +
                 "store c into 'file:///tmp/output';";
 
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-1.gld");
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-1-OPTOFF.gld");
     }
 
@@ -372,9 +393,9 @@ public class TestTezCompiler {
                 "e = foreach d generate group, SUM(c.y);" +
                 "store e into 'file:///tmp/output';";
 
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-2.gld");
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-2-OPTOFF.gld");
     }
 
@@ -388,9 +409,9 @@ public class TestTezCompiler {
                 "e = join c by x, d by x;" +
                 "store e into 'file:///tmp/output';";
 
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-3.gld");
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-3-OPTOFF.gld");
     }
 
@@ -406,9 +427,9 @@ public class TestTezCompiler {
                 "store e into 'file:///tmp/output';";
 
         //TODO: PIG-3856 Not optimized
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-4.gld");
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-4-OPTOFF.gld");
 
         query =
@@ -420,9 +441,9 @@ public class TestTezCompiler {
                 "store e into 'file:///tmp/output';";
 
         // Optimized
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-5.gld");
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-5-OPTOFF.gld");
     }
 
@@ -436,9 +457,9 @@ public class TestTezCompiler {
                 "e = join c by x, d by x using 'skewed';" +
                 "store e into 'file:///tmp/output';";
 
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-6.gld");
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-6-OPTOFF.gld");
     }
 
@@ -451,9 +472,9 @@ public class TestTezCompiler {
                 "d = order c by x;" +
                 "store d into 'file:///tmp/output';";
 
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-7.gld");
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-7-OPTOFF.gld");
     }
 
@@ -467,9 +488,9 @@ public class TestTezCompiler {
                 "d = limit c 1;" +
                 "store d into 'file:///tmp/output';";
 
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-8.gld");
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-8-OPTOFF.gld");
     }
 
@@ -485,9 +506,9 @@ public class TestTezCompiler {
                 "store d into 'file:///tmp/output/d';" +
                 "store e into 'file:///tmp/output/e';";
 
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-9.gld");
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-9-OPTOFF.gld");
     }
 
@@ -502,10 +523,10 @@ public class TestTezCompiler {
                 "f = group e by x;" +
                 "store f into 'file:///tmp/output';";
 
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-10.gld");
         resetScope();
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-10-OPTOFF.gld");
     }
 
@@ -520,10 +541,10 @@ public class TestTezCompiler {
                 "e = union onschema c, d;" +
                 "store e into 'file:///tmp/output';";
 
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-11.gld");
         resetScope();
-        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-11-OPTOFF.gld");
     }
 
@@ -557,10 +578,6 @@ public class TestTezCompiler {
         TezLauncher launcher = new TezLauncher();
         pc.inExplain = true;
         TezPlanContainer tezPlanContainer = launcher.compile(pp, pc);
-        for (Map.Entry<OperatorKey,TezPlanContainerNode> entry : tezPlanContainer.getKeys().entrySet()) {
-            TezOperPlan tezPlan = entry.getValue().getNode();
-            TezLauncher.optimize(tezPlan, pc);
-        }
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(baos);

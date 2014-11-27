@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -637,10 +638,10 @@ public class MapReduceLauncher extends Launcher{
                 pc.getProperties().getProperty(
                         "last.input.chunksize", JoinPackager.DEFAULT_CHUNK_SIZE);
 
-        String prop = pc.getProperties().getProperty(PigConfiguration.PROP_NO_COMBINER);
+        String prop = pc.getProperties().getProperty(PigConfiguration.PIG_EXEC_NO_COMBINER);
         if (!pc.inIllustrator && !("true".equals(prop)))  {
             boolean doMapAgg =
-                    Boolean.valueOf(pc.getProperties().getProperty(PigConfiguration.PROP_EXEC_MAP_PARTAGG,"false"));
+                    Boolean.valueOf(pc.getProperties().getProperty(PigConfiguration.PIG_EXEC_MAP_PARTAGG,"false"));
             CombinerOptimizer co = new CombinerOptimizer(plan, doMapAgg);
             co.visit();
             //display the warning message(s) from the CombinerOptimizer
@@ -686,7 +687,7 @@ public class MapReduceLauncher extends Launcher{
         fRem.visit();
 
         boolean isMultiQuery =
-            Boolean.valueOf(pc.getProperties().getProperty(PigConfiguration.OPT_MULTIQUERY, "true"));
+            Boolean.valueOf(pc.getProperties().getProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "true"));
 
         if (isMultiQuery) {
             // reduces the number of MROpers in the MR plan generated
@@ -797,13 +798,13 @@ public class MapReduceLauncher extends Launcher{
             throw new ExecException(backendException);
         }
         try {
-            TaskReport[] mapRep = HadoopShims.getTaskReports(job, TaskType.MAP);
+            Iterator<TaskReport> mapRep = HadoopShims.getTaskReports(job, TaskType.MAP);
             if (mapRep != null) {
                 getErrorMessages(mapRep, "map", errNotDbg, pigContext);
                 totalHadoopTimeSpent += computeTimeSpent(mapRep);
                 mapRep = null;
             }
-            TaskReport[] redRep = HadoopShims.getTaskReports(job, TaskType.REDUCE);
+            Iterator<TaskReport> redRep = HadoopShims.getTaskReports(job, TaskType.REDUCE);
             if (redRep != null) {
                 getErrorMessages(redRep, "reduce", errNotDbg, pigContext);
                 totalHadoopTimeSpent += computeTimeSpent(redRep);

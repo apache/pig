@@ -31,7 +31,7 @@
     <property name="pigsmoke.pom" value="${basedir}/ivy/pigsmoke.pom" />
     <property name="pigunit.pom" value="${basedir}/ivy/pigunit.pom" />
     <property name="piggybank.pom" value="${basedir}/ivy/piggybank.pom" />
-    <property name="pig.version" value="0.14.0" />
+    <property name="pig.version" value="0.15.0" />
     <property name="pig.version.suffix" value="-SNAPSHOT" />
     <property name="version" value="${pig.version}${pig.version.suffix}" />
     <property name="final.name" value="${name}-${version}" />
@@ -105,6 +105,7 @@
     <property name="test.all.file" value="${test.src.dir}/all-tests"/>
     <property name="test.tez.file" value="${test.src.dir}/tez-tests"/>
     <property name="test.spark.file" value="${test.src.dir}/spark-tests"/>
+    <property name="test.tez_local.file" value="${test.src.dir}/tez-local-tests"/>
     <property name="test.exclude.file" value="${test.src.dir}/excluded-tests"/>
     <property name="test.exclude.file.20" value="${test.src.dir}/excluded-tests-20"/>
     <property name="test.exclude.file.23" value="${test.src.dir}/excluded-tests-23"/>
@@ -145,9 +146,8 @@
 
     <!-- env properties -->
     <property environment="env"/>
-    <property name="windows" value="false"/>
     <condition property="isWindows">
-      <equals arg1="${windows}" arg2="true" />
+      <os family="windows"/>
     </condition>
 	
     <target name="setTezEnv">
@@ -280,7 +280,7 @@
     <property name="xerces.jar" value="${ivy.lib.dir}/xercesImpl-${xerces.version}.jar"/>
     <property name="jdiff.build.dir" value="${build.docs}/jdiff"/>
     <property name="jdiff.xml.dir" value="${docs.dir}/jdiff"/>
-    <property name="jdiff.stable" value="0.13.0"/>
+    <property name="jdiff.stable" value="0.14.0"/>
     <property name="jdiff.stable.javadoc" value="http://hadoop.apache.org/${name}/docs/r${jdiff.stable}/api/"/>
 
     <!-- Packaging properties -->
@@ -381,18 +381,14 @@
             <include name="antlr-runtime-${antlr.version}.jar"/>
             <include name="ST4-${stringtemplate.version}.jar"/>
             <include name="jline-${jline.version}.jar"/>
-            <include name="jackson-mapper-asl-${jackson.version}.jar"/>
-            <include name="jackson-core-asl-${jackson.version}.jar"/>
             <include name="joda-time-${joda-time.version}.jar"/>
-            <include name="guava-${guava.version}.jar"/>
             <include name="automaton-${automaton.version}.jar"/>
             <include name="jansi-${jansi.version}.jar"/>
-            <include name="avro-${avro.version}.jar"/>
-            <include name="avro-mapred-${avro.version}*.jar"/>
-            <include name="trevni-core-${avro.version}.jar"/>
-            <include name="trevni-avro-${avro.version}.jar"/>
-            <include name="snappy-java-${snappy.version}.jar"/>
-            <include name="asm*.jar"/>
+            <include name="jackson-mapper-asl-${jackson.version}.jar" unless="isHadoop23"/>
+            <include name="jackson-core-asl-${jackson.version}.jar" unless="isHadoop23"/>
+            <include name="guava-${guava.version}.jar" unless="isHadoop23"/>
+            <include name="snappy-java-${snappy.version}.jar" unless="isHadoop23"/>
+            <include name="asm-${asm.version}.jar" unless="isHadoop23"/>
 
             <include name="scala*.jar"/>
             <include name="akka*.jar"/>
@@ -711,6 +707,7 @@
         <propertyreset name="hadoopversion" value="23" />
         <propertyreset name="hbase.hadoop.version" value="hadoop2" />
         <propertyreset name="src.shims.dir" value="${basedir}/shims/src/hadoop${hadoopversion}" />
+        <propertyreset name="src.exclude.dir" value="" />
         <antcall target="jar" inheritRefs="true" inheritall="true"/>
     </target>
 
@@ -769,6 +766,7 @@
             <fileset dir="${ivy.lib.dir}" includes="javax.servlet-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="reflectasm*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="mesos*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="kryo-*.jar"/>
         </copy>
     </target>
 
@@ -933,6 +931,11 @@
         <fail if="test-spark.failed">Tests failed!</fail>
      </target>
 
+    <target name="test-tez-local" depends="setTezEnv,setWindowsPath,setLinuxPath,compile-test,jar,debugger.check,jackson-pig-3039-test-download" description="Run tez local mode unit tests">
+        <macro-test-runner test.file="${test.tez_local.file}" tests.failed="test-tez.failed"/>
+        <fail if="test-tez.failed">Tests failed!</fail>
+    </target>
+
     <target name="debugger.check" depends="debugger.set,debugger.unset"/>
     <target name="debugger.set" if="debugPort">
         <property name="debugArgs" value="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=${debugPort}"/>
@@ -957,7 +960,7 @@
             <sysproperty key="hod.server" value="${hod.server}" />
             <sysproperty key="java.io.tmpdir" value="${junit.tmp.dir}" />
             <sysproperty key="hadoop.log.dir" value="${test.log.dir}"/>
-            <jvmarg line="-XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=128M ${debugArgs}"/>
+            <jvmarg line="-XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=128M ${debugArgs} -Djava.library.path=${hadoop.root}\bin"/>
             <sysproperty key="java.security.krb5.realm" value="" />
             <sysproperty key="java.security.krb5.kdc" value="" />
             <sysproperty key="log4j.configuration" value="file:${basedir}/conf/test-log4j.properties"/>

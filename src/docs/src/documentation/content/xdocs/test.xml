@@ -335,6 +335,21 @@ Local Rearrange[tuple]{chararray}(false) - xxx-Fri Dec 05 19:42:29 UTC 2008-34
 |   Project[chararray][0] - xxx-Fri Dec 05 19:42:29 UTC 2008-35
  <em>etc ... </em> 
 
+If you are running in Tez mode, Map Reduce Plan will be replaced with Tez Plan:
+
+#--------------------------------------------------
+# There are 1 DAGs in the session
+#--------------------------------------------------
+#--------------------------------------------------
+# TEZ DAG plan: PigLatin:185.pig-0_scope-0
+#--------------------------------------------------
+Tez vertex scope-21	->	Tez vertex scope-22,
+Tez vertex scope-22
+
+Tez vertex scope-21
+# Plan on vertex
+B: Local Rearrange[tuple]{chararray}(false) - scope-35	->	 scope-22
+ <em>etc ... </em> 
 </source> 
  </section></section>
   
@@ -505,7 +520,7 @@ grunt> illustrate -script visits.pig
 <!-- =========================================================================== -->
 <!-- DIAGNOSTIC OPERATORS -->    
 <section id="mapreduce-job-ids">
-<title>Pig Scripts and MapReduce Job IDs</title>
+<title>Pig Scripts and MapReduce Job IDs (MapReduce mode only)</title>
    <p>Complex Pig scripts often generate many MapReduce jobs. To help you debug a script, Pig prints a summary of the execution that shows which relations (aliases) are mapped to each MapReduce job. </p>
 <source>
 JobId Maps Reduces MaxMapTime MinMapTIme AvgMapTime MaxReduceTime 
@@ -533,12 +548,17 @@ job_201004271216_12714 1 1 3 3 3 12 12 12 D ORDER_BY,COMBINER
 
 <p>Several new public classes make it easier for external tools such as Oozie to integrate with Pig statistics. </p>
 
-<p>The Pig statistics are available here: <a href="http://pig.apache.org/docs/r0.9.0/api/">http://pig.apache.org/docs/r0.9.0/api/</a></p>
+<p>The Pig statistics are available here: <a href="http://pig.apache.org/docs/r0.14.0/api/">http://pig.apache.org/docs/r0.14.0/api/</a></p>
 
 <p id="stats-classes">The stats classes are in the package: org.apache.pig.tools.pigstats</p>
 <ul>
 <li>PigStats</li>
+<li>SimplePigStats</li>
+<li>EmbeddedPigStats</li>
 <li>JobStats</li>
+<li>TezPigScriptStats</li>
+<li>TezDAGStats</li>
+<li>TezVertexStats</li>
 <li>OutputStats</li>
 <li>InputStats</li>
 </ul>
@@ -572,6 +592,8 @@ public interface PigProgressNotificationListener extends java.util.EventListener
     public void launchCompletedNotification(int numJobsSucceeded);
 }
 </source>
+<p>Depends on the type of the pig script, PigRunner.run() returns a particular subclass of PigStats: SimplePigStats(MapReduce/local mode), TezPigScriptStats(Tez/Tez local mode) or EmbeddedPigStats(embedded script). SimplePigStats contains a map of JobStats which capture the stats for each MapReduce job of the Pig script. TezPigScriptStats contains a map of TezDAGStats which capture the stats for each Tez DAG of the Pig script, and TezDAGStats contains a map of TezVertexStats which capture the stats for each vertex within the Tez DAG. Depending on the execution type, EmbeddedPigStats contains a map of SimplePigStats or TezPigScriptStats, which captures the Pig job launched in the embeded script. </p>
+<p>If one is running Pig in Tez mode (or both Tez/MapReduce mode), should pass PigTezProgressNotificationListener which extends PigProgressNotificationListener to PigRunner.run() to make sure to get notification in both Tez mode or MapReduce mode. </p>
 </section>
 
 <!-- +++++++++++++++++++++++++++++++++++++++ -->
@@ -828,7 +850,7 @@ $pig_trunk ant pigunit-jar
 
 <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <section>
-      <title>Mapreduce Mode</title>
+      <title>Other Modes</title>
       <p>PigUnit also runs in Pig's mapreduce/tez/tez_local mode. Mapreduce/Tez mode requires you to use a Hadoop cluster and HDFS installation.
         It is enabled when the Java system property pigunit.exectype is set to specific values (mr/tez/tez_local): e.g. -Dpigunit.exectype=mr or System.getProperties().setProperty("pigunit.exectype", "mr"), which means PigUnit will run in mr mode. The cluster you select to run mr/tez test must be specified in the CLASSPATH (similar to the HADOOP_CONF_DIR variable). 
       </p>

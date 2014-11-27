@@ -6495,12 +6495,14 @@ E = GROUP D BY A::x;
    <title>Example: Nested Block</title>
       <p>In this example a CROSS is performed within the nested block.</p>
 <source>
- user = load 'user' as (uid, age, gender, region);
+user = load 'user' as (uid, age, gender, region);
 session = load 'session' as (uid, region);
 C = cogroup user by uid, session by uid;
 D = foreach C {
     crossed = cross user, session;
-    generate crossed;  
+    generate crossed;
+}
+dump D;  
 </source>
 <p>In this example FOREACH is nested to the second level.</p>
 <source>
@@ -8958,7 +8960,7 @@ B = FOREACH A GENERATE myFunc($0);
    <p id="register-glob">Additionally, JAR files stored in local file systems can be specified as a glob pattern using “*”. Pig will search for matching jars in the local file system, either the relative path (relative to your working directory) or the absolute path. Pig will pick up all JARs that match the glob.</p>
    
    <p><strong>Command Line</strong></p>
-   <p>You can register additional files (to use with your Pig script) via the command line using the -Dpig.additional.jars option. 
+   <p>You can register additional files (to use with your Pig script) via PIG_OPTS environment variable using the -Dpig.additional.jars.uris option. 
 For more information see <a href="udf.html">User Defined Functions</a>.</p>
    </section>
    
@@ -8973,15 +8975,17 @@ A = LOAD 'students';
 B = FOREACH A GENERATE myfunc.MyEvalFunc($0);
 </source>
    
-<p>In this example additional JAR files are registered via the command line.</p>
+<p>In this example additional JAR files are registered via PIG_OPTS environment variable.</p>
 <source>
-pig -Dpig.additional.jars=my.jar:your.jar script.pig
+export PIG_OPTS="-Dpig.additional.jars.uris=my.jar,your.jar"
 </source>
 
-<p>In this example a JAR file stored in HDFS is registered.</p>
+<p>In this example a JAR file stored in HDFS and a local JAR file are registered.</p>
 <source>
-pig -Dpig.additional.jars=hdfs://nn.mydomain.com:9020/myjars/my.jar script.pig
+export PIG_OPTS="-Dpig.additional.jars.uris=hdfs://nn.mydomain.com:9020/myjars/my.jar,file:///home/root/pig/your.jar"
 </source>
+
+<p>Note, the legacy property pig.additional.jars which use colon as separator is still supported. But we recommend to use pig.additional.jars.uris since colon is also used in URL scheme, and thus we cannot use full scheme in the list. We will deprecate pig.additional.jar in future releases.</p>
 
 <p>This example shows how to specify a glob pattern using either a relative path or an absolute path.</p>
 <source>

@@ -20,9 +20,10 @@ package org.apache.pig.tools.pigstats.tez;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
-import java.util.Iterator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -31,15 +32,21 @@ import org.apache.pig.LoadFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
-import org.apache.pig.backend.hadoop.executionengine.tez.TezOperPlan;
-import org.apache.pig.backend.hadoop.executionengine.tez.TezOperator;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOpPlanVisitor;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperator;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPlanContainerNode;
+import org.apache.pig.impl.plan.DependencyOrderWalker;
+import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.tools.pigstats.JobStats;
+import org.apache.pig.tools.pigstats.PigProgressNotificationListener;
 import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.apache.pig.tools.pigstats.ScriptState;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 /**
@@ -52,9 +59,8 @@ import com.google.common.collect.Maps;
 public class TezScriptState extends ScriptState {
     private static final Log LOG = LogFactory.getLog(TezScriptState.class);
 
-    private Map<TezOperator, String> featureMap = null;
-    private Map<TezOperator, String> aliasMap = Maps.newHashMap();
-    private Map<TezOperator, String> aliasLocationMap = Maps.newHashMap();
+    private List<PigTezProgressNotificationListener> tezListeners = Lists.newArrayList();
+    private Map<String, TezDAGScriptInfo> dagScriptInfo = Maps.newHashMap();
 
     public TezScriptState(String id) {
         super(id);
@@ -64,13 +70,48 @@ public class TezScriptState extends ScriptState {
         return (TezScriptState) ScriptState.get();
     }
 
-    public void addSettingsToConf(TezOperator tezOp, Configuration conf) {
+    @Override
+    public void registerListener(PigProgressNotificationListener listener) {
+        super.registerListener(listener);
+        if (listener instanceof PigTezProgressNotificationListener) {
+            tezListeners.add((PigTezProgressNotificationListener) listener);
+        }
+    }
+
+    public void dagLaunchNotification(String dagName, OperatorPlan<?> dagPlan, int numVerticesToLaunch)  {
+        for (PigTezProgressNotificationListener listener: tezListeners) {
+            listener.dagLaunchNotification(id, dagName, dagPlan, numVerticesToLaunch);
+        }
+    }
+
+    public void dagStartedNotification(String dagName, String assignedApplicationId)  {
+        for (PigTezProgressNotificationListener listener: tezListeners) {
+            listener.dagStartedNotification(id, dagName, assignedApplicationId);
+        }
+    }
+
+    public void dagProgressNotification(String dagName, int numVerticesCompleted, int progress) {
+        for (PigTezProgressNotificationListener listener: tezListeners) {
+            listener.dagProgressNotification(id, dagName, numVerticesCompleted, progress);
+        }
+    }
+
+    public void dagCompletedNotification(String dagName, TezDAGStats tezDAGStats) {
+        for (PigTezProgressNotificationListener listener: tezListeners) {
+            listener.dagCompletedNotification(id, dagName, tezDAGStats.isSuccessful(), tezDAGStats);
+        }
+    }
+
+    public void addDAGSettingsToConf(Configuration conf) {
         LOG.info("Pig script settings are added to the job");
         conf.set(PIG_PROPERTY.HADOOP_VERSION.toString(), getHadoopVersion());
         conf.set(PIG_PROPERTY.VERSION.toString(), getPigVersion());
         conf.set(PIG_PROPERTY.SCRIPT_ID.toString(), id);
         conf.set(PIG_PROPERTY.SCRIPT.toString(), getScript());
         conf.set(PIG_PROPERTY.COMMAND_LINE.toString(), getCommandLine());
+    }
+
+    public void addVertexSettingsToConf(String dagName, TezOperator tezOp, Configuration conf) {
 
         try {
             List<POStore> stores = PlanHelper.getPhysicalOperators(tezOp.plan, POStore.class);
@@ -95,8 +136,8 @@ public class TezScriptState extends ScriptState {
             LOG.warn("unable to get the map loads", e);
         }
 
-        setPigFeature(tezOp, conf);
-        setJobParents(tezOp, conf);
+        setPigFeature(dagName, tezOp, conf);
+        setJobParents(dagName, tezOp, conf);
 
         conf.set("mapreduce.workflow.id", "pig_" + id);
         conf.set("mapreduce.workflow.name", getFileName().isEmpty() ? "default" : getFileName());
@@ -116,32 +157,30 @@ public class TezScriptState extends ScriptState {
         }
     }
 
-    private void setPigFeature(TezOperator tezOp, Configuration conf) {
-        conf.set(PIG_PROPERTY.JOB_FEATURE.toString(), getPigFeature(tezOp));
+    private void setPigFeature(String dagName, TezOperator tezOp, Configuration conf) {
+        if (tezOp.isVertexGroup()) {
+            return;
+        }
+        TezDAGScriptInfo dagInfo = getDAGScriptInfo(dagName);
+        conf.set(PIG_PROPERTY.JOB_FEATURE.toString(), dagInfo.getPigFeatures(tezOp));
         if (scriptFeatures != 0) {
             conf.set(PIG_PROPERTY.SCRIPT_FEATURES.toString(),
                     String.valueOf(scriptFeatures));
         }
-        conf.set(PIG_PROPERTY.JOB_ALIAS.toString(), getAlias(tezOp));
-        conf.set(PIG_PROPERTY.JOB_ALIAS_LOCATION.toString(), getAliasLocation(tezOp));
+        conf.set(PIG_PROPERTY.JOB_ALIAS.toString(), dagInfo.getAlias(tezOp));
+        conf.set(PIG_PROPERTY.JOB_ALIAS_LOCATION.toString(), dagInfo.getAliasLocation(tezOp));
     }
 
-    private void setJobParents(TezOperator tezOp, Configuration conf) {
+    private void setJobParents(String dagName, TezOperator tezOp, Configuration conf) {
+        if (tezOp.isVertexGroup()) {
+            return;
+        }
         // PigStats maintains a job DAG with the job id being updated
         // upon available. Therefore, before a job is submitted, the ids
         // of its parent jobs are already available.
-        JobGraph jg = PigStats.get().getJobGraph();
-        JobStats js = null;
-        Iterator<JobStats> iter = jg.iterator();
-        while (iter.hasNext()) {
-            JobStats job = iter.next();
-            if (job.getName().equals(tezOp.getOperatorKey().toString())) {
-                js = job;
-                break;
-            }
-        }
+        JobStats js = ((TezPigScriptStats)PigStats.get()).getVertexStats(dagName, tezOp.getOperatorKey().toString());
         if (js != null) {
-            List<Operator> preds = jg.getPredecessors(js);
+            List<Operator> preds = js.getPlan().getPredecessors(js);
             if (preds != null) {
                 StringBuilder sb = new StringBuilder();
                 for (Operator op : preds) {
@@ -154,87 +193,173 @@ public class TezScriptState extends ScriptState {
         }
     }
 
-    public String getAlias(TezOperator tezOp) {
-        if (!aliasMap.containsKey(tezOp)) {
-            setAlias(tezOp);
-        }
-        return aliasMap.get(tezOp);
+    public TezDAGScriptInfo setDAGScriptInfo(TezPlanContainerNode tezPlanNode) {
+        TezDAGScriptInfo info = new TezDAGScriptInfo(tezPlanNode.getTezOperPlan());
+        dagScriptInfo.put(tezPlanNode.getOperatorKey().toString(), info);
+        return info;
     }
 
-    private void setAlias(TezOperator tezOp) {
-        ArrayList<String> alias = new ArrayList<String>();
-        String aliasLocationStr = "";
-        try {
-            ArrayList<String> aliasLocation = new ArrayList<String>();
-            new AliasVisitor(tezOp.plan, alias, aliasLocation).visit();
-            aliasLocationStr += LoadFunc.join(aliasLocation, ",");
-            if (!alias.isEmpty()) {
-                Collections.sort(alias);
-            }
-        } catch (VisitorException e) {
-            LOG.warn("unable to get alias", e);
-        }
-        aliasMap.put(tezOp, LoadFunc.join(alias, ","));
-        aliasLocationMap.put(tezOp, aliasLocationStr);
+    public TezDAGScriptInfo getDAGScriptInfo(String dagName) {
+        return dagScriptInfo.get(dagName);
     }
 
-    public String getAliasLocation(TezOperator tezOp) {
-        if (!aliasLocationMap.containsKey(tezOp)) {
-            setAlias(tezOp);
-        }
-        return aliasLocationMap.get(tezOp);
-    }
+    static class TezDAGScriptInfo {
 
-    public String getPigFeature(TezOperator tezOp) {
-        if (featureMap == null) {
-            featureMap = Maps.newHashMap();
+        private static final Log LOG = LogFactory.getLog(TezDAGScriptInfo.class);
+        private TezOperPlan tezPlan;
+        private String alias;
+        private String aliasLocation;
+        private String features;
+
+        private Map<OperatorKey, String> featuresMap = Maps.newHashMap();
+        private Map<OperatorKey, String> aliasMap = Maps.newHashMap();
+        private Map<OperatorKey, String> aliasLocationMap = Maps.newHashMap();
+
+        class DAGAliasVisitor extends TezOpPlanVisitor {
+
+            private Set<String> aliases;
+            private Set<String> aliasLocations;
+            private BitSet featureSet;
+
+            public DAGAliasVisitor(TezOperPlan plan) {
+                super(plan, new DependencyOrderWalker<TezOperator, TezOperPlan>(plan));
+                this.aliases = new HashSet<String>();
+                this.aliasLocations = new HashSet<String>();
+                this.featureSet = new BitSet();
+            }
+
+            @Override
+            public void visitTezOp(TezOperator tezOp) throws VisitorException {
+                if (tezOp.isVertexGroup()) {
+                    featureSet.set(PIG_FEATURE.UNION.ordinal());
+                    return;
+                }
+                ArrayList<String> aliasList = new ArrayList<String>();
+                String aliasLocationStr = "";
+                try {
+                    ArrayList<String> aliasLocationList = new ArrayList<String>();
+                    new AliasVisitor(tezOp.plan, aliasList, aliasLocationList).visit();
+                    aliasLocationStr += LoadFunc.join(aliasLocationList, ",");
+                    if (!aliasList.isEmpty()) {
+                        Collections.sort(aliasList);
+                        aliases.addAll(aliasList);
+                        aliasLocations.addAll(aliasLocationList);
+                    }
+                } catch (VisitorException e) {
+                    LOG.warn("unable to get alias", e);
+                }
+                aliasMap.put(tezOp.getOperatorKey(), LoadFunc.join(aliasList, ","));
+                aliasLocationMap.put(tezOp.getOperatorKey(), aliasLocationStr);
+
+
+                BitSet feature = new BitSet();
+                feature.clear();
+                if (tezOp.isSkewedJoin()) {
+                    feature.set(PIG_FEATURE.SKEWED_JOIN.ordinal());
+                }
+                if (tezOp.isGlobalSort()) {
+                    feature.set(PIG_FEATURE.ORDER_BY.ordinal());
+                }
+                if (tezOp.isSampler()) {
+                    feature.set(PIG_FEATURE.SAMPLER.ordinal());
+                }
+                if (tezOp.isIndexer()) {
+                    feature.set(PIG_FEATURE.INDEXER.ordinal());
+                }
+                if (tezOp.isCogroup()) {
+                    feature.set(PIG_FEATURE.COGROUP.ordinal());
+                }
+                if (tezOp.isGroupBy()) {
+                    feature.set(PIG_FEATURE.GROUP_BY.ordinal());
+                }
+                if (tezOp.isRegularJoin()) {
+                    feature.set(PIG_FEATURE.HASH_JOIN.ordinal());
+                }
+                if (tezOp.isUnion()) {
+                    feature.set(PIG_FEATURE.UNION.ordinal());
+                }
+                if (tezOp.isNative()) {
+                    feature.set(PIG_FEATURE.NATIVE.ordinal());
+                }
+                if (tezOp.isLimit() || tezOp.isLimitAfterSort()) {
+                    feature.set(PIG_FEATURE.LIMIT.ordinal());
+                }
+                try {
+                    new FeatureVisitor(tezOp.plan, feature).visit();
+                } catch (VisitorException e) {
+                    LOG.warn("Feature visitor failed", e);
+                }
+                StringBuilder sb = new StringBuilder();
+                for (int i=feature.nextSetBit(0); i>=0; i=feature.nextSetBit(i+1)) {
+                    if (sb.length() > 0) sb.append(",");
+                    sb.append(PIG_FEATURE.values()[i].name());
+                }
+                featuresMap.put(tezOp.getOperatorKey(), sb.toString());
+                for (int i=0; i < feature.length(); i++) {
+                    if (feature.get(i)) {
+                        featureSet.set(i);
+                    }
+                }
+            }
+
+            @Override
+            public void visit() throws VisitorException {
+                super.visit();
+                if (!aliases.isEmpty()) {
+                    ArrayList<String> aliasList = new ArrayList<String>(aliases);
+                    ArrayList<String> aliasLocationList = new ArrayList<String>(aliasLocations);
+                    Collections.sort(aliasList);
+                    Collections.sort(aliasLocationList);
+                    alias = LoadFunc.join(aliasList, ",");
+                    aliasLocation = LoadFunc.join(aliasLocationList, ",");
+                }
+                StringBuilder sb = new StringBuilder();
+                for (int i = featureSet.nextSetBit(0); i >= 0; i = featureSet.nextSetBit(i+1)) {
+                    if (sb.length() > 0) sb.append(",");
+                    sb.append(PIG_FEATURE.values()[i].name());
+                }
+                features = sb.toString();
+            }
+
         }
 
-        String retStr = featureMap.get(tezOp);
-        if (retStr == null) {
-            BitSet feature = new BitSet();
-            feature.clear();
-            if (tezOp.isSkewedJoin()) {
-                feature.set(PIG_FEATURE.SKEWED_JOIN.ordinal());
-            }
-            if (tezOp.isGlobalSort()) {
-                feature.set(PIG_FEATURE.ORDER_BY.ordinal());
-            }
-            if (tezOp.isSampler()) {
-                feature.set(PIG_FEATURE.SAMPLER.ordinal());
-            }
-            if (tezOp.isIndexer()) {
-                feature.set(PIG_FEATURE.INDEXER.ordinal());
-            }
-            if (tezOp.isCogroup()) {
-                feature.set(PIG_FEATURE.COGROUP.ordinal());
-            }
-            if (tezOp.isGroupBy()) {
-                feature.set(PIG_FEATURE.GROUP_BY.ordinal());
-            }
-            if (tezOp.isRegularJoin()) {
-                feature.set(PIG_FEATURE.HASH_JOIN.ordinal());
-            }
-            if (tezOp.isUnion()) {
-                feature.set(PIG_FEATURE.UNION.ordinal());
-            }
-            if (tezOp.isNative()) {
-                feature.set(PIG_FEATURE.NATIVE.ordinal());
-            }
+        public TezDAGScriptInfo(TezOperPlan tezPlan) {
+            this.tezPlan = tezPlan;
+            initialize();
+        }
+
+        private void initialize() {
             try {
-                new FeatureVisitor(tezOp.plan, feature).visit();
+                new DAGAliasVisitor(tezPlan).visit();
             } catch (VisitorException e) {
-                LOG.warn("Feature visitor failed", e);
+                LOG.warn("Cannot calculate alias information for DAG", e);
             }
-            StringBuilder sb = new StringBuilder();
-            for (int i=feature.nextSetBit(0); i>=0; i=feature.nextSetBit(i+1)) {
-                if (sb.length() > 0) sb.append(",");
-                sb.append(PIG_FEATURE.values()[i].name());
-            }
-            retStr = sb.toString();
-            featureMap.put(tezOp, retStr);
         }
-        return retStr;
+
+        public String getAlias() {
+            return alias;
+        }
+
+        public String getAliasLocation() {
+            return aliasLocation;
+        }
+
+        public String getPigFeatures() {
+            return features;
+        }
+
+        public String getAlias(TezOperator tezOp) {
+            return aliasMap.get(tezOp.getOperatorKey());
+        }
+
+        public String getAliasLocation(TezOperator tezOp) {
+            return aliasLocationMap.get(tezOp.getOperatorKey());
+        }
+
+        public String getPigFeatures(TezOperator tezOp) {
+            return featuresMap.get(tezOp.getOperatorKey());
+        }
+
     }
 
 }

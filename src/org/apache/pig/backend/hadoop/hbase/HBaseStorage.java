@@ -24,6 +24,8 @@ import java.lang.reflect.Method;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -74,6 +76,7 @@ import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.pig.CollectableLoadFunc;
 import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.LoadPushDown;
@@ -82,8 +85,10 @@ import org.apache.pig.OrderedLoadFunc;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.StoreFuncInterface;
+import org.apache.pig.StoreResources;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.hbase.HBaseTableInputFormat.HBaseTableIFBuilder;
+import org.apache.pig.builtin.FuncUtils;
 import org.apache.pig.builtin.Utf8StorageConverter;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
@@ -135,7 +140,8 @@ import com.google.common.collect.Lists;
  * <code>buddies</code> column family in the <code>SampleTableCopy</code> table.
  *
  */
-public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPushDown, OrderedLoadFunc {
+public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPushDown, OrderedLoadFunc, StoreResources,
+        CollectableLoadFunc {
 
     private static final Log LOG = LogFactory.getLog(HBaseStorage.class);
 
@@ -317,7 +323,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
 			if ("true".equalsIgnoreCase(value) || "".equalsIgnoreCase(value) || value == null) {//the empty string and null check is for backward compat.
 				noWAL_ = true;
 			}
-		}        
+		}
 
         if (configuredOptions_.hasOption("minTimestamp")){
             minTimestamp_ = Long.parseLong(configuredOptions_.getOptionValue("minTimestamp"));
@@ -719,7 +725,6 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         Properties udfProps = getUDFProperties();
         job.getConfiguration().setBoolean("pig.noSplitCombination", true);
 
-        initializeHBaseClassLoaderResources(job);
         m_conf = initializeLocalJobConfig(job);
         String delegationTokenSet = udfProps.getProperty(HBASE_TOKEN_SET);
         if (delegationTokenSet == null) {
@@ -748,14 +753,23 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         }
     }
 
-    private void initializeHBaseClassLoaderResources(Job job) throws IOException {
+    @Override
+    public List<String> getShipFiles() {
         // Depend on HBase to do the right thing when available, as of HBASE-9165
         try {
             Method addHBaseDependencyJars =
               TableMapReduceUtil.class.getMethod("addHBaseDependencyJars", Configuration.class);
             if (addHBaseDependencyJars != null) {
-                addHBaseDependencyJars.invoke(null, job.getConfiguration());
-                return;
+                Configuration conf = new Configuration();
+                addHBaseDependencyJars.invoke(null, conf);
+                if (conf.get("tmpjars") != null) {
+                    String[] tmpjars = conf.getStrings("tmpjars");
+                    List<String> shipFiles = new ArrayList<String>(tmpjars.length);
+                    for (String tmpjar : tmpjars) {
+                        shipFiles.add(new URL(tmpjar).getPath());
+                    }
+                    return shipFiles;
+                }
             }
         } catch (NoSuchMethodException e) {
             LOG.debug("TableMapReduceUtils#addHBaseDependencyJars not available."
@@ -766,32 +780,32 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         } catch (InvocationTargetException e) {
             LOG.debug("TableMapReduceUtils#addHBaseDependencyJars invocation"
               + " failed. Falling back to previous logic.", e);
+        } catch (MalformedURLException e) {
+            LOG.debug("TableMapReduceUtils#addHBaseDependencyJars tmpjars"
+                    + " had malformed url. Falling back to previous logic.", e);
         }
-        // fall back to manual class handling.
-        // Make sure the HBase, ZooKeeper, and Guava jars get shipped.
-        TableMapReduceUtil.addDependencyJars(job.getConfiguration(),
-            org.apache.hadoop.hbase.client.HTable.class, // main hbase jar or hbase-client
-            org.apache.hadoop.hbase.mapreduce.TableSplit.class, // main hbase jar or hbase-server
-            com.google.common.collect.Lists.class, // guava
-            org.apache.zookeeper.ZooKeeper.class); // zookeeper
+
+        List<Class> classList = new ArrayList<Class>();
+        classList.add(org.apache.hadoop.hbase.client.HTable.class); // main hbase jar or hbase-client
+        classList.add(org.apache.hadoop.hbase.mapreduce.TableSplit.class); // main hbase jar or hbase-server
+        classList.add(com.google.common.collect.Lists.class); // guava
+        classList.add(org.apache.zookeeper.ZooKeeper.class); // zookeeper
         // Additional jars that are specific to v0.95.0+
-        addClassToJobIfExists(job, "org.cloudera.htrace.Trace"); // htrace
-        addClassToJobIfExists(job, "org.apache.hadoop.hbase.protobuf.generated.HBaseProtos"); // hbase-protocol
-        addClassToJobIfExists(job, "org.apache.hadoop.hbase.TableName"); // hbase-common
-        addClassToJobIfExists(job, "org.apache.hadoop.hbase.CompatibilityFactory"); // hbase-hadoop-compar
-        addClassToJobIfExists(job, "org.jboss.netty.channel.ChannelFactory"); // netty
+        addClassToList("org.cloudera.htrace.Trace", classList); // htrace
+        addClassToList("org.apache.hadoop.hbase.protobuf.generated.HBaseProtos", classList); // hbase-protocol
+        addClassToList("org.apache.hadoop.hbase.TableName", classList); // hbase-common
+        addClassToList("org.apache.hadoop.hbase.CompatibilityFactory", classList); // hbase-hadoop-compar
+        addClassToList("org.jboss.netty.channel.ChannelFactory", classList); // netty
+        return FuncUtils.getShipFiles(classList);
     }
 
-    private void addClassToJobIfExists(Job job, String className) throws IOException {
-      Class klass = null;
-      try {
-          klass = Class.forName(className);
-      } catch (ClassNotFoundException e) {
-          LOG.debug("Skipping adding jar for class: " + className);
-          return;
-      }
-
-      TableMapReduceUtil.addDependencyJars(job.getConfiguration(), klass);
+    private void addClassToList(String className, List<Class> classList) {
+        try {
+            Class klass = Class.forName(className);
+            classList.add(klass);
+        } catch (ClassNotFoundException e) {
+            LOG.debug("Skipping adding jar for class: " + className);
+        }
     }
 
     private JobConf initializeLocalJobConfig(Job job) {
@@ -940,21 +954,25 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
                         DataType.findType(t.get(i)) : fieldSchemas[i].getType()));
             } else {
                 Map<String, Object> cfMap = (Map<String, Object>) t.get(i);
-                for (String colName : cfMap.keySet()) {
-                    if (LOG.isDebugEnabled()) {
-                        LOG.debug("putNext - colName=" + colName +
-                                  ", class: " + colName.getClass());
+                if (cfMap!=null) {
+                    for (String colName : cfMap.keySet()) {
+                        if (LOG.isDebugEnabled()) {
+                            LOG.debug("putNext - colName=" + colName +
+                                      ", class: " + colName.getClass());
+                        }
+                        // TODO deal with the fact that maps can have types now. Currently we detect types at
+                        // runtime in the case of storing to a cf, which is suboptimal.
+                        put.add(columnInfo.getColumnFamily(), Bytes.toBytes(colName.toString()), ts,
+                                objToBytes(cfMap.get(colName), DataType.findType(cfMap.get(colName))));
                     }
-                    // TODO deal with the fact that maps can have types now. Currently we detect types at
-                    // runtime in the case of storing to a cf, which is suboptimal.
-                    put.add(columnInfo.getColumnFamily(), Bytes.toBytes(colName.toString()), ts,
-                            objToBytes(cfMap.get(colName), DataType.findType(cfMap.get(colName))));
                 }
             }
         }
 
         try {
-            writer.write(null, put);
+            if (!put.isEmpty()) {
+                writer.write(null, put);
+            }
         } catch (InterruptedException e) {
             throw new IOException(e);
         }
@@ -1031,7 +1049,6 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
             schema_ = (ResourceSchema) ObjectSerializer.deserialize(serializedSchema);
         }
 
-        initializeHBaseClassLoaderResources(job);
         m_conf = initializeLocalJobConfig(job);
         // Not setting a udf property and getting the hbase delegation token
         // only once like in setLocation as setStoreLocation gets different Job
@@ -1115,28 +1132,24 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         return new RequiredFieldResponse(true);
     }
 
-    @Override
-    public WritableComparable<InputSplit> getSplitComparable(InputSplit split)
-            throws IOException {
-        return new WritableComparable<InputSplit>() {
-            TableSplit tsplit = new TableSplit();
-
-            @Override
-            public void readFields(DataInput in) throws IOException {
-                tsplit.readFields(in);
-            }
-
-            @Override
-            public void write(DataOutput out) throws IOException {
-                tsplit.write(out);
-            }
-
-            @Override
-            public int compareTo(InputSplit split) {
-                return tsplit.compareTo((TableSplit) split);
-            }
-        };
+    public void ensureAllKeyInstancesInSameSplit() throws IOException {
+        /** 
+         * no-op because hbase keys are unique 
+         * This will also work with things like DelimitedKeyPrefixRegionSplitPolicy
+         * if you need a partial key match to be included in the split
+         */
+        LOG.debug("ensureAllKeyInstancesInSameSplit");
     }
+
+    @Override
+    public WritableComparable<TableSplit> getSplitComparable(InputSplit split) throws IOException {
+        if (split instanceof TableSplit) {
+            return new TableSplitComparable((TableSplit) split);
+        } else {
+            throw new RuntimeException("LoadFunc expected split of type TableSplit but was " + split.getClass().getName());
+        }
+    }
+ 
 
     /**
      * Class to encapsulate logic around which column names were specified in each

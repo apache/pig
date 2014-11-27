@@ -57,4 +57,6 @@ public class PigConstants {
      */
     public static final String TIME_UDFS_INVOCATION_COUNTER = "approx_invocations";
     public static final String TIME_UDFS_ELAPSED_TIME_COUNTER = "approx_microsecs";
+
+    public static final String TASK_INDEX = "mapreduce.task.index";
 }

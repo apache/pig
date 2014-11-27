@@ -150,11 +150,12 @@ public class XMLLoader extends LoadFunc {
       // In case of an tag matched with an open tag and a closed tag, this buffer
       // is used to accumulate matched element if it is spans multiple lines.
       StringBuffer currentMatch = new StringBuffer();
-      // The start offset of first matched open tag. This marks the first byte
-      // in the range to be copied to output.
-      int offsetOfFirstMatchedOpenTag = 0;
       try {
       while (true) {
+          // The start offset of first matched open tag. This marks the first byte
+          // in the range to be copied to output.
+          int offsetOfFirstMatchedOpenTag = 0;
+    	  
 	while (buffer == null || buffer.length() == 0) {
 	  if (!wrapped.nextKeyValue())
 	    return false; // End of split

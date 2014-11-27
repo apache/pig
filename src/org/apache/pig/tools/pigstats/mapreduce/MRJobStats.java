@@ -31,9 +31,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.Counters;
 import org.apache.hadoop.mapred.Counters.Counter;
-import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobID;
-import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.mapred.TaskReport;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapreduce.TaskType;
@@ -70,7 +68,7 @@ public final class MRJobStats extends JobStats {
     }
 
     public static final String SUCCESS_HEADER = "JobId\tMaps\tReduces\t" +
-            "MaxMapTime\tMinMapTIme\tAvgMapTime\tMedianMapTime\tMaxReduceTime\t" +
+            "MaxMapTime\tMinMapTime\tAvgMapTime\tMedianMapTime\tMaxReduceTime\t" +
             "MinReduceTime\tAvgReduceTime\tMedianReducetime\tAlias\tFeature\tOutputs";
 
     public static final String FAILURE_HEADER = "JobId\tAlias\tFeature\tMessage\tOutputs";
@@ -349,13 +347,13 @@ public final class MRJobStats extends JobStats {
     }
 
     void addMapReduceStatistics(Job job) {
-        TaskReport[] maps = null;
+        Iterator<TaskReport> maps = null;
         try {
             maps = HadoopShims.getTaskReports(job, TaskType.MAP);
         } catch (IOException e) {
             LOG.warn("Failed to get map task report", e);
         }
-        TaskReport[] reduces = null;
+        Iterator<TaskReport> reduces = null;
         try {
             reduces = HadoopShims.getTaskReports(job, TaskType.REDUCE);
         } catch (IOException e) {
@@ -364,21 +362,22 @@ public final class MRJobStats extends JobStats {
         addMapReduceStatistics(maps, reduces);
     }
 
-    private TaskStat getTaskStat(TaskReport[] tasks) {
-        int size = tasks.length;
+    private TaskStat getTaskStat(Iterator<TaskReport> tasks) {
+        int size = 0;
         long max = 0;
         long min = Long.MAX_VALUE;
         long median = 0;
         long total = 0;
-        long durations[] = new long[size];
+        List<Long> durations = new ArrayList<Long>();
 
-        for (int i = 0; i < tasks.length; i++) {
-            TaskReport rpt = tasks[i];
+        while(tasks.hasNext()){
+            TaskReport rpt = tasks.next();
             long duration = rpt.getFinishTime() - rpt.getStartTime();
-            durations[i] = duration;
+            durations.add(duration);
             max = (duration > max) ? duration : max;
             min = (duration < min) ? duration : min;
             total += duration;
+            size++;
         }
         long avg = total / size;
 
@@ -387,8 +386,8 @@ public final class MRJobStats extends JobStats {
         return new TaskStat(size, max, min, avg, median);
     }
 
-    private void addMapReduceStatistics(TaskReport[] maps, TaskReport[] reduces) {
-        if (maps != null && maps.length > 0) {
+    private void addMapReduceStatistics(Iterator<TaskReport> maps, Iterator<TaskReport> reduces) {
+        if (maps != null && maps.hasNext()) {
             TaskStat st = getTaskStat(maps);
             setMapStat(st.size, st.max, st.min, st.avg, st.median);
         } else {
@@ -398,7 +397,7 @@ public final class MRJobStats extends JobStats {
             }
         }
 
-        if (reduces != null && reduces.length > 0) {
+        if (reduces != null && reduces.hasNext()) {
             TaskStat st = getTaskStat(reduces);
             setReduceStat(st.size, st.max, st.min, st.avg, st.median);
         } else {

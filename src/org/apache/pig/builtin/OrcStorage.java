@@ -20,11 +20,11 @@ package org.apache.pig.builtin;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -37,7 +37,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.io.orc.CompressionKind;
 import org.apache.hadoop.hive.ql.io.orc.OrcFile;
@@ -50,12 +49,13 @@ import org.apache.hadoop.hive.ql.io.orc.OrcFile.Version;
 import org.apache.hadoop.hive.ql.io.sarg.SearchArgument;
 import org.apache.hadoop.hive.ql.io.sarg.SearchArgument.Builder;
 import org.apache.hadoop.hive.ql.io.sarg.SearchArgumentFactory;
+import org.apache.hadoop.hive.serde2.AbstractSerDe;
 import org.apache.hadoop.hive.serde2.ColumnProjectionUtils;
-import org.apache.hadoop.hive.serde2.io.DateWritable;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.StructTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
+import org.apache.hadoop.hive.shims.HadoopShimsSecure;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
@@ -82,6 +82,7 @@ import org.apache.pig.Expression.BinaryExpression;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.ResourceStatistics;
 import org.apache.pig.StoreFuncInterface;
+import org.apache.pig.StoreResources;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.DataType;
@@ -93,6 +94,7 @@ import org.apache.pig.impl.util.Utils;
 import org.apache.pig.impl.util.orc.OrcUtils;
 import org.joda.time.DateTime;
 
+import com.esotericsoftware.kryo.io.Input;
 import com.google.common.annotations.VisibleForTesting;
 
 /**
@@ -111,7 +113,7 @@ import com.google.common.annotations.VisibleForTesting;
  * <li><code>-v, --version</code> Sets the version of the file that will be written
  * </ul>
  **/
-public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMetadata, LoadPushDown, LoadPredicatePushdown {
+public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMetadata, LoadPushDown, LoadPredicatePushdown, StoreResources {
 
     //TODO Make OrcInputFormat.SARG_PUSHDOWN visible
     private static final String SARG_PUSHDOWN = "sarg.pushdown";
@@ -384,6 +386,26 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
         }
     }
 
+    @Override
+    public List<String> getShipFiles() {
+        List<String> cacheFiles = new ArrayList<String>();
+        String hadoopVersion = "20S";
+        if (Utils.isHadoop23() || Utils.isHadoop2()) {
+            hadoopVersion = "23";
+        }
+        Class hadoopVersionShimsClass;
+        try {
+            hadoopVersionShimsClass = Class.forName("org.apache.hadoop.hive.shims.Hadoop" +
+                    hadoopVersion + "Shims");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("Cannot find Hadoop" + hadoopVersion + "ShimsClass in classpath");
+        }
+        Class[] classList = new Class[] {OrcFile.class, HiveConf.class, AbstractSerDe.class,
+                org.apache.hadoop.hive.shims.HadoopShims.class, HadoopShimsSecure.class, hadoopVersionShimsClass,
+                Input.class};
+        return FuncUtils.getShipFiles(classList);
+    }
+
     private static Path getFirstFile(String location, FileSystem fs) throws IOException {
         String[] locations = getPathStrings(location);
         Path[] paths = new Path[locations.length];
@@ -498,8 +520,6 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
         for (ResourceFieldSchema field : schema.getFields()) {
             switch(field.getType()) {
             case DataType.BOOLEAN:
-                // TODO: ORC does not seem to support it
-                break;
             case DataType.INTEGER:
             case DataType.LONG:
             case DataType.FLOAT:
@@ -671,14 +691,12 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
     }
 
     private Object getSearchArgObjValue(Object value) {
-           // TODO Test BigInteger, BigInteger and DateTime
         if (value instanceof BigInteger) {
-            return HiveDecimal.create(((BigInteger)value));
+            return new BigDecimal((BigInteger)value);
         } else if (value instanceof BigDecimal) {
-            return HiveDecimal.create(((BigDecimal)value), false);
+            return value;
         } else if (value instanceof DateTime) {
-            //TODO is this right based on what DateTimeWritable.dateToDays() does? What about pig.datetime.default.tz?
-            return new DateWritable((int)(((DateTime)value).getMillis() / TimeUnit.DAYS.toMillis(1)));
+            return new Timestamp(((DateTime)value).getMillis());
         } else {
             return value;
         }

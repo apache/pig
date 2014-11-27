@@ -24,6 +24,7 @@ import java.io.PrintStream;
 import java.net.URL;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.apache.commons.logging.Log;
@@ -46,6 +47,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.backend.hadoop.streaming.HadoopExecutableManager;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
@@ -108,6 +110,23 @@ public abstract class HExecutionEngine implements ExecutionEngine {
         init(this.pigContext.getProperties());
     }
 
+    // Loads S3 properties from core-site.xml including aws keys that are needed
+    // for both local and non-local mode.
+    public JobConf getS3Conf() throws ExecException {
+        JobConf jc = new JobConf();
+        jc.addResource(CORE_SITE);
+        Iterator<Entry<String, String>> i = jc.iterator();
+        while (i.hasNext()) {
+            Entry<String, String> e = i.next();
+            String key = e.getKey();
+            String value = e.getValue();
+            if (key.startsWith("fs.s3") || key.startsWith("fs.s3n")) {
+                jc.set(key, value);
+            }
+        }
+        return jc;
+    }
+
     public JobConf getLocalConf() {
         JobConf jc = new JobConf(false);
 
@@ -146,6 +165,7 @@ public abstract class HExecutionEngine implements ExecutionEngine {
         return jc;
     }
 
+    @SuppressWarnings("resource")
     private void init(Properties properties) throws ExecException {
         String cluster = null;
         String nameNode = null;
@@ -167,9 +187,10 @@ public abstract class HExecutionEngine implements ExecutionEngine {
         // existing properties All of the above is accomplished in the method
         // call below
 
-        JobConf jc = null;
+        JobConf jc = getS3Conf();
         if (!this.pigContext.getExecType().isLocal()) {
-            jc = getExecConf(properties);
+            JobConf execConf = getExecConf(properties);
+            ConfigurationUtil.mergeConf(jc, execConf);
 
             // Trick to invoke static initializer of DistributedFileSystem to
             // add hdfs-default.xml into configuration
@@ -183,7 +204,8 @@ public abstract class HExecutionEngine implements ExecutionEngine {
             properties.setProperty(FILE_SYSTEM_LOCATION, "file:///");
             properties.setProperty(ALTERNATIVE_FILE_SYSTEM_LOCATION, "file:///");
 
-            jc = getLocalConf();
+            JobConf localConf = getLocalConf();
+            ConfigurationUtil.mergeConf(jc, localConf);
         }
 
         // the method below alters the properties object by overriding the
@@ -296,7 +318,7 @@ public abstract class HExecutionEngine implements ExecutionEngine {
 
         PrintStream pps = ps;
         PrintStream eps = ps;
-
+        boolean isFetchable = false;
         try {
             if (file != null) {
                 pps = new PrintStream(new File(file, "physical_plan-" + suffix));
@@ -307,13 +329,16 @@ public abstract class HExecutionEngine implements ExecutionEngine {
             pp.explain(pps, format, verbose);
 
             MapRedUtil.checkLeafIsStore(pp, pigContext);
-            if (FetchOptimizer.isPlanFetchable(pc, pp)) {
+            isFetchable = FetchOptimizer.isPlanFetchable(pc, pp);
+            if (isFetchable) {
                 new FetchLauncher(pigContext).explain(pp, pc, eps, format);
                 return;
             }
             launcher.explain(pp, pigContext, eps, format, verbose);
         } finally {
             launcher.reset();
+            if (isFetchable)
+                pigContext.getProperties().remove(PigImplConstants.CONVERTED_TO_FETCH);
             //Only close the stream if we opened it.
             if (file != null) {
                 pps.close();
@@ -349,6 +374,13 @@ public abstract class HExecutionEngine implements ExecutionEngine {
     public void killJob(String jobID) throws BackendException {
         if (launcher != null) {
             launcher.killJob(jobID, getJobConf());
+        }
+    }
+
+    @Override
+    public void destroy() {
+        if (launcher != null) {
+            launcher.destroy();
         }
     }
 

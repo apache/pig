@@ -213,6 +213,9 @@ public class ReadToEndLoader extends LoadFunc implements LoadMetadata {
         // input completely
         PigSplit pigSplit = new PigSplit(new InputSplit[] {curSplit}, -1, 
                 new ArrayList<OperatorKey>(), -1);
+        // Set the conf object so that if the wrappedLoadFunc uses it,
+        // it won't be null
+        pigSplit.setConf(conf);
         wrappedLoadFunc.prepareToRead(reader, pigSplit);
         return true;
     }

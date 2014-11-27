@@ -28,9 +28,14 @@ import org.apache.pig.classification.InterfaceStability;
  * This interface defines how a loader can support predicate pushdown.
  * If a given loader implements this interface, pig will pushdown predicates based on
  * type of operations supported by the loader on given set of fields.
+ *
+ * This interface is private in Pig 0.14 and will be made public in Pig 0.15 after PIG-4093.
+ * It is to be used only by builtin LoadFunc implementations till it is made public
+ * as PIG-4093 will cause API changes to this interface and make it backward incompatible.
+ *
  * @since Pig 0.14
  */
-@InterfaceAudience.Public
+@InterfaceAudience.Private
 @InterfaceStability.Evolving
 public interface LoadPredicatePushdown {
     /**

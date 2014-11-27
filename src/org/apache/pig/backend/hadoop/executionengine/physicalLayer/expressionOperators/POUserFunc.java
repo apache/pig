@@ -18,10 +18,10 @@
 
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators;
 
-import static org.apache.pig.PigConfiguration.TIME_UDFS;
-import static org.apache.pig.PigConfiguration.TIME_UDFS_FREQUENCY;
-import static org.apache.pig.PigConstants.TIME_UDFS_INVOCATION_COUNTER;
+import static org.apache.pig.PigConfiguration.PIG_UDF_PROFILE;
+import static org.apache.pig.PigConfiguration.PIG_UDF_PROFILE_FREQUENCY;
 import static org.apache.pig.PigConstants.TIME_UDFS_ELAPSED_TIME_COUNTER;
+import static org.apache.pig.PigConstants.TIME_UDFS_INVOCATION_COUNTER;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -37,7 +37,6 @@ import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
-import org.apache.pig.PigWarning;
 import org.apache.pig.TerminatingAccumulator;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -67,7 +66,8 @@ public class POUserFunc extends ExpressionOperator {
 
     private transient String counterGroup;
     private transient EvalFunc func;
-    private transient String[] cacheFiles = null;
+    private transient List<String> cacheFiles = null;
+    private transient List<String> shipFiles = null;
 
     FuncSpec funcSpec;
     FuncSpec origFSpec;
@@ -157,10 +157,10 @@ public class POUserFunc extends ExpressionOperator {
             func.setPigLogger(pigLogger);
             Configuration jobConf = UDFContext.getUDFContext().getJobConf();
             if (jobConf != null) {
-                doTiming = jobConf.getBoolean(TIME_UDFS, false);
+                doTiming = jobConf.getBoolean(PIG_UDF_PROFILE, false);
                 if (doTiming) {
                     counterGroup = funcSpec.toString();
-                    timingFrequency = jobConf.getLong(TIME_UDFS_FREQUENCY, 100L);
+                    timingFrequency = jobConf.getLong(PIG_UDF_PROFILE_FREQUENCY, 100L);
                 }
             }
             // We initialize here instead of instantiateFunc because this is called
@@ -280,27 +280,6 @@ public class POUserFunc extends ExpressionOperator {
         }
         try {
             if(result.returnStatus == POStatus.STATUS_OK) {
-                Tuple t = (Tuple) result.result;
-
-                // For backward compatibility, we short-circuit tuples whose
-                // size is 1 and field is null. (See PIG-3679)
-                if (t.size() == 1 && t.isNull(0)) {
-                    pigLogger.warn(this, "All the input values are null, skipping the invocation of UDF",
-                            PigWarning.SKIP_UDF_CALL_FOR_NULL);
-                    Schema outputSchema = func.outputSchema(func.getInputSchema());
-                    // If the output schema is tuple (i.e. multiple fields are
-                    // to be returned), we return a tuple where every field is
-                    // null.
-                    if (outputSchema != null && outputSchema.getField(0).type == DataType.TUPLE) {
-                        result.result = tf.newTuple(outputSchema.getField(0).schema.size());
-                    // Otherwise, we simply return null since it can be cast to
-                    // any data type.
-                    } else {
-                        result.result = null;
-                    }
-                    return result;
-                }
-
                 if (isAccumulative()) {
                     if (isAccumStarted()) {
                         if (!haveCheckedIfTerminatingAccumulator) {
@@ -554,18 +533,26 @@ public class POUserFunc extends ExpressionOperator {
     public FuncSpec getFuncSpec() {
         return funcSpec;
     }
-    
+
     public void setFuncSpec(FuncSpec funcSpec) {
         this.funcSpec = funcSpec;
         instantiateFunc(funcSpec);
     }
 
-    public String[] getCacheFiles() {
+    public List<String> getCacheFiles() {
         return cacheFiles;
     }
 
-    public void setCacheFiles(String[] cf) {
+    public void setCacheFiles(List<String> cf) {
         cacheFiles = cf;
+    }
+
+    public List<String> getShipFiles() {
+        return shipFiles;
+    }
+
+    public void setShipFiles(List<String> sf) {
+        shipFiles = sf;
     }
 
     public boolean combinable() {

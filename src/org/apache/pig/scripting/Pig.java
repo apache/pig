@@ -120,7 +120,7 @@ public class Pig {
      */
     public static void registerUDF(String udffile, String namespace)
             throws IOException {
-        LOG.info("Register script UFD file: "+ udffile);
+        LOG.info("Register script UDF file: "+ udffile);
         ScriptPigContext ctx = getScriptContext();
         ScriptEngine engine = ctx.getScriptEngine();
         // script file contains only functions, no need to separate
@@ -349,13 +349,16 @@ public class Pig {
     private static String getScriptFromFile(String filename) throws IOException {
         LineNumberReader rd = new LineNumberReader(new FileReader(filename));
         StringBuilder sb = new StringBuilder();
-        String line = rd.readLine();
-        while (line != null) {
-            sb.append(line);
-            sb.append("\n");
-            line = rd.readLine();
+        try {
+            String line = rd.readLine();
+            while (line != null) {
+                sb.append(line);
+                sb.append("\n");
+                line = rd.readLine();
+            }
+        } finally {
+            rd.close();
         }
-        rd.close();
         return sb.toString();
     }
 

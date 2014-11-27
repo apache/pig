@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
 
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -92,8 +93,8 @@ public class Packager implements Illustrable, Serializable, Cloneable {
 
     private PackageType pkgType;
 
-    boolean firstTime = true;
-    boolean useDefaultBag = false;
+    private transient boolean initialized;
+    private transient boolean useDefaultBag;
 
     protected POPackage parent = null;
 
@@ -473,10 +474,10 @@ public class Packager implements Illustrable, Serializable, Cloneable {
     }
 
     public void checkBagType() {
-        if(firstTime){
-            firstTime = false;
+        if(!initialized){
+            initialized = true;
             if (PigMapReduce.sJobConfInternal.get() != null) {
-                String bagType = PigMapReduce.sJobConfInternal.get().get("pig.cachedbag.type");
+                String bagType = PigMapReduce.sJobConfInternal.get().get(PigConfiguration.PIG_CACHEDBAG_TYPE);
                 if (bagType != null && bagType.equalsIgnoreCase("default")) {
                     useDefaultBag = true;
                 }

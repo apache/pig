@@ -111,7 +111,27 @@ public class TestJsonLoaderStorage {
     "\"l\":null," +
     "\"m\":null" +
     "}";
-
+  
+  private static final String bigDecimalJson =
+    "{" +
+    "\"a\":123.456," +
+    "\"b\":\"123.456\"" +
+    "}";
+	
+  private static final String badJson =
+    "{" +
+    "\"a\":\"good\"," +
+    "\"b\":\"good\"" +
+    "}\n" +
+	"{" +
+    "\"a\":bad," +
+    "\"b\":\"good\"" +
+    "}\n" +
+	"{" +
+    "\"a\":\"good\"," +
+    "\"b\":\"good\"" +
+    "}";
+      
   private static final String jsonOutput =
     "{\"f1\":\"18\",\"count\":3}";
 
@@ -214,6 +234,50 @@ public class TestJsonLoaderStorage {
     assertEquals(1, count);
   }
 
+  @SuppressWarnings("rawtypes")
+  @Test
+  public void testJsonLoaderBadRow() throws IOException{
+
+    String badJsonFile = createInput(badJson);
+    pigServer.registerQuery("data = load '" + badJsonFile + "' using JsonLoader('a:chararray, b:chararray');");
+    Iterator<Tuple> tuples = pigServer.openIterator("data");
+    
+    Tuple t = tuples.next();
+    assertTrue(t.size()==2);
+    assertTrue(t.get(0)!=null);
+    assertTrue(t.get(1)!=null);
+    assertTrue(tuples.hasNext());
+
+    // bad row - skip it, returning a null tuple.
+    t = tuples.next();
+    assertTrue(t.size()==2);
+    assertTrue(t.get(0)==null);
+    assertTrue(t.get(1)==null);
+    assertTrue(tuples.hasNext());
+
+    t = tuples.next();
+    assertTrue(t.size()==2);
+    assertTrue(t.get(0)!=null);
+    assertTrue(t.get(1)!=null);
+    assertTrue(!tuples.hasNext());
+  }
+
+  @SuppressWarnings("rawtypes")
+  @Test
+  public void testJsonLoaderBigDecimalFormats() throws IOException{
+
+    String bigDecimalJsonFile = createInput(bigDecimalJson);
+    pigServer.registerQuery("data = load '" + bigDecimalJsonFile + "' using JsonLoader('a:bigdecimal, b:bigdecimal');");
+    Iterator<Tuple> tuples = pigServer.openIterator("data");
+    
+    Tuple t = tuples.next();
+    assertTrue(t.size()==2);
+    assertTrue(t.get(0)!=null);
+    assertTrue(t.get(1)!=null);
+    assertEquals(t.get(0), t.get(1));
+    assertTrue(!tuples.hasNext());
+  }
+  
   @Test
   public void testJsonLoaderNull() throws IOException {
     Iterator<Tuple> tuples = loadJson(nullJson);
@@ -346,7 +410,7 @@ public class TestJsonLoaderStorage {
     tempJsonFile.delete();
 
     // Pig query to run
-    pigServer.registerQuery("IP = load '"+  Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext())
+    pigServer.registerQuery("IP = load '"+  Util.generateURI(input.toString(), pigServer.getPigContext())
         +"' using PigStorage (';') as (ID:chararray,DETAILS:chararray);");
     pigServer.registerQuery(
         "id_details = FOREACH IP GENERATE " +

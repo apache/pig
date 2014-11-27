@@ -2,44 +2,44 @@
 # There are 1 DAGs in the session
 #--------------------------------------------------
 #--------------------------------------------------
-# TEZ DAG plan: scope-52
+# TEZ DAG plan: pig-0_scope-1
 #--------------------------------------------------
-Tez vertex scope-46	->	Tez vertex scope-48,
-Tez vertex scope-47	->	Tez vertex scope-48,
-Tez vertex scope-48
+Tez vertex scope-45	->	Tez vertex scope-47,
+Tez vertex scope-46	->	Tez vertex scope-47,
+Tez vertex scope-47
 
+Tez vertex scope-45
+# Plan on vertex
+POValueOutputTez - scope-49	->	 [scope-47]
+|
+|---a: New For Each(false,false)[bag] - scope-34
+    |   |
+    |   Cast[int] - scope-29
+    |   |
+    |   |---Project[bytearray][0] - scope-28
+    |   |
+    |   Cast[chararray] - scope-32
+    |   |
+    |   |---Project[bytearray][1] - scope-31
+    |
+    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-27
 Tez vertex scope-46
 # Plan on vertex
-POValueOutputTez - scope-50	->	 [scope-48]
+POValueOutputTez - scope-50	->	 [scope-47]
 |
-|---a: New For Each(false,false)[bag] - scope-35
+|---c: New For Each(false,false)[bag] - scope-42
     |   |
-    |   Cast[int] - scope-30
+    |   Cast[int] - scope-37
     |   |
-    |   |---Project[bytearray][0] - scope-29
+    |   |---Project[bytearray][1] - scope-36
     |   |
-    |   Cast[chararray] - scope-33
+    |   Cast[chararray] - scope-40
     |   |
-    |   |---Project[bytearray][1] - scope-32
+    |   |---Project[bytearray][0] - scope-39
     |
-    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-28
+    |---b: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-35
 Tez vertex scope-47
 # Plan on vertex
-POValueOutputTez - scope-51	->	 [scope-48]
+c: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-44
 |
-|---c: New For Each(false,false)[bag] - scope-43
-    |   |
-    |   Cast[int] - scope-38
-    |   |
-    |   |---Project[bytearray][1] - scope-37
-    |   |
-    |   Cast[chararray] - scope-41
-    |   |
-    |   |---Project[bytearray][0] - scope-40
-    |
-    |---b: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-36
-Tez vertex scope-48
-# Plan on vertex
-c: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-45
-|
-|---POShuffledValueInputTez - scope-49	<-	 [scope-46, scope-47]
+|---POShuffledValueInputTez - scope-48	<-	 [scope-46, scope-45]

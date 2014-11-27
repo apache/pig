@@ -60,9 +60,8 @@ public class FloatMax extends EvalFunc<Float>{
      * @param output returns a single numeric value, which is the smaller of two inputs
      */
     public Float exec(Tuple input) throws IOException {
-        if (input == null || input.size() == 0)
+        if (input == null || input.size() < 2)
             return null;
-
         try{
             Float first = (Float)input.get(0);
             Float second = (Float)input.get(1);

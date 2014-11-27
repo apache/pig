@@ -349,6 +349,7 @@ public class PhyPlanSetter extends PhyPlanVisitor {
     @Override
     public void visitPreCombinerLocalRearrange(
             POPreCombinerLocalRearrange preCombinerLocalRearrange) throws VisitorException {
+        super.visitPreCombinerLocalRearrange(preCombinerLocalRearrange);
         preCombinerLocalRearrange.setParentPlan(parent);
     }
 

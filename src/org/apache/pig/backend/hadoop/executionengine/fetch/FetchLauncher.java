@@ -25,7 +25,6 @@ import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-import org.apache.pig.backend.hadoop.executionengine.TaskContext;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigHadoopLogger;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.UDFFinishVisitor;
@@ -40,14 +39,15 @@ import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.SchemaTupleBackend;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.impl.util.Utils;
 import org.apache.pig.tools.pigstats.EmptyPigStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
-import org.joda.time.DateTimeZone;
 
 /**
  * This class is responsible for executing the fetch task, saving the result to disk
@@ -88,6 +88,7 @@ public class FetchLauncher {
         }
         finally {
             UDFContext.getUDFContext().addJobConf(null);
+            pigContext.getProperties().remove(PigImplConstants.CONVERTED_TO_FETCH);
         }
     }
 
@@ -140,11 +141,7 @@ public class FetchLauncher {
         udfContext.serialize(conf);
 
         PigMapReduce.sJobConfInternal.set(conf);
-        String dtzStr = conf.get("pig.datetime.default.tz");
-        if (dtzStr != null && dtzStr.length() > 0) {
-            // ensure that the internal timezone is uniformly in UTC offset style
-            DateTimeZone.setDefault(DateTimeZone.forOffsetMillis(DateTimeZone.forID(dtzStr).getOffset(null)));
-        }
+        Utils.setDefaultTimeZone(conf);
 
         boolean aggregateWarning = "true".equalsIgnoreCase(conf.get("aggregate.warning"));
         PigStatusReporter pigStatusReporter = PigStatusReporter.getInstance();

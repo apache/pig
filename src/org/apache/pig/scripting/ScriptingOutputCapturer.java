@@ -32,6 +32,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.ExecType;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
+import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.util.UDFContext;
 
 import com.google.common.base.Charsets;
@@ -100,7 +101,7 @@ public class ScriptingOutputCapturer {
         log.debug("TaskId: " + taskId);
         log.debug("hadoopLogDir: " + hadoopLogDir);
 
-        if (execType.isLocal()) {
+        if (execType.isLocal() || conf.getBoolean(PigImplConstants.CONVERTED_TO_FETCH, false)) {
             String logDir = System.getProperty("pig.udf.scripting.log.dir");
             if (logDir == null)
                 logDir = ".";

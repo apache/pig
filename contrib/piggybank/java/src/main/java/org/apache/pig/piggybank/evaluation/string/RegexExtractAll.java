@@ -59,7 +59,7 @@ public class RegexExtractAll extends EvalFunc<Tuple> {
             throw new IOException(msg);
         }
 
-        if (input.get(0)==null)
+        if (input.get(0)==null||input.get(1)==null)
             return null;
         try {
             if (!input.get(1).equals(mExpression)) {

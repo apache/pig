@@ -51,6 +51,7 @@ import org.antlr.runtime.RecognitionException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -79,6 +80,11 @@ import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStatsUtil;
 import org.apache.pig.tools.pigstats.ScriptState;
 import org.apache.pig.tools.timer.PerformanceTimerFactory;
+import org.joda.time.DateTime;
+import org.joda.time.Duration;
+import org.joda.time.Period;
+import org.joda.time.PeriodType;
+import org.joda.time.format.PeriodFormat;
 
 /**
  * Main class for Pig engine.
@@ -165,11 +171,14 @@ public class Main {
     }
 
     static int run(String args[], PigProgressNotificationListener listener) {
+        DateTime startTime = new DateTime();
         int rc = 1;
         boolean verbose = false;
         boolean gruntCalled = false;
         boolean deleteTempFiles = true;
         String logFileName = null;
+        boolean printScriptRunTime = true;
+        PigContext pigContext = null;
 
         try {
             Configuration conf = new Configuration(false);
@@ -284,6 +293,7 @@ public class Main {
                     return ReturnCode.SUCCESS;
 
                 case 'i':
+                    printScriptRunTime = false;
                     System.out.println(getVersionString());
                     return ReturnCode.SUCCESS;
 
@@ -306,11 +316,11 @@ public class Main {
 
                 case 'M':
                     // turns off multiquery optimization
-                    properties.setProperty(PigConfiguration.OPT_MULTIQUERY,""+false);
+                    properties.setProperty(PigConfiguration.PIG_OPT_MULTIQUERY,""+false);
                     break;
 
                 case 'N':
-                    properties.setProperty(PigConfiguration.OPT_FETCH,""+false);
+                    properties.setProperty(PigConfiguration.PIG_OPT_FETCH,""+false);
                     break;
 
                 case 'p':
@@ -338,6 +348,9 @@ public class Main {
 
                 case 'x':
                     properties.setProperty("exectype", opts.getValStr());
+                    if (opts.getValStr().toLowerCase().contains("local")) {
+                        UserGroupInformation.setConfiguration(new Configuration(false));
+                    }
                     break;
 
                 case 'P':
@@ -368,7 +381,7 @@ public class Main {
             }
 
             // create the context with the parameter
-            PigContext pigContext = new PigContext(properties);
+            pigContext = new PigContext(properties);
 
             // create the static script state object
             ScriptState scriptState = pigContext.getExecutionEngine().instantiateScriptState();
@@ -650,14 +663,29 @@ public class Main {
                 LogUtils.writeLog(e, logFileName, log, verbose, "Error before Pig is launched");
             }
         } finally {
+            if (printScriptRunTime) {
+                printScriptRunTime(startTime);
+            }
             if (deleteTempFiles) {
                 // clear temp files
                 FileLocalizer.deleteTempFiles();
+            }
+            if (pigContext != null) {
+                pigContext.getExecutionEngine().destroy();
             }
             PerformanceTimerFactory.getPerfTimerFactory().dumpTimers();
         }
 
         return rc;
+    }
+
+    private static void printScriptRunTime(DateTime startTime) {
+        DateTime endTime = new DateTime();
+        Duration duration = new Duration(startTime, endTime);
+        Period period = duration.toPeriod().normalizedStandard(PeriodType.time());
+        log.info("Pig script completed in "
+                + PeriodFormat.getDefault().print(period)
+                + " (" + duration.getMillis() + " ms)");
     }
 
     protected static PigProgressNotificationListener makeListener(Properties properties) {
@@ -871,7 +899,7 @@ public class Main {
             System.out.println("        All optimizations listed here are enabled by default. Optimization values are case insensitive.");
             System.out.println("    -v, -verbose - Print all error messages to screen");
             System.out.println("    -w, -warning - Turn warning logging on; also turns warning aggregation off");
-            System.out.println("    -x, -exectype - Set execution mode: local|mapreduce, default is mapreduce.");
+            System.out.println("    -x, -exectype - Set execution mode: local|mapreduce|tez, default is mapreduce.");
             System.out.println("    -F, -stop_on_failure - Aborts execution on the first failed job; default is off");
             System.out.println("    -M, -no_multiquery - Turn multiquery optimization off; default is on");
             System.out.println("    -N, -no_fetch - Turn fetch optimization off; default is on");
@@ -912,8 +940,8 @@ public class Main {
             System.out.println("            If the in-map partial aggregation does not reduce the output num records");
             System.out.println("            by this factor, it gets disabled.");
             System.out.println("    Miscellaneous:");
-            System.out.println("        exectype=mapreduce|local; default is mapreduce. This property is the same as -x switch");
-            System.out.println("        pig.additional.jars=<colon seperated list of jars>. Used in place of register command.");
+            System.out.println("        exectype=mapreduce|tez|local; default is mapreduce. This property is the same as -x switch");
+            System.out.println("        pig.additional.jars.uris=<comma seperated list of jars>. Used in place of register command.");
             System.out.println("        udf.import.list=<comma seperated list of imports>. Used to avoid package names in UDF.");
             System.out.println("        stop.on.failure=true|false; default is false. Set to true to terminate on the first error.");
             System.out.println("        pig.datetime.default.tz=<UTC time offset>. e.g. +08:00. Default is the default timezone of the host.");

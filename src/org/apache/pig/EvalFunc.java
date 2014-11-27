@@ -276,12 +276,23 @@ public abstract class EvalFunc<T>  {
     }
 
     /**
-     * Allow a UDF to specify a list of files it would like placed in the distributed
+     * Allow a UDF to specify a list of hdfs files it would like placed in the distributed
      * cache.  These files will be put in the cache for every job the UDF is used in.
      * The default implementation returns null.
      * @return A list of files
      */
     public List<String> getCacheFiles() {
+        return null;
+    }
+
+    /**
+     * Allow a UDF to specify a list of local files it would like placed in the distributed
+     * cache. These files will be put in the cache for every job the UDF is used in. Check for
+     * {@link FuncUtils} for utility function to facilitate it
+     * The default implementation returns null.
+     * @return A list of files
+     */
+    public List<String> getShipFiles() {
         return null;
     }
 

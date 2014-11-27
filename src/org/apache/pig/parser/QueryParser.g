@@ -329,7 +329,7 @@ explicit_bag_type : BAG! implicit_bag_type
 explicit_bag_type_cast : BAG LEFT_CURLY explicit_tuple_type_cast? RIGHT_CURLY -> ^( BAG_TYPE_CAST explicit_tuple_type_cast? )
 ;
 
-implicit_map_type : LEFT_BRACKET type? RIGHT_BRACKET -> ^( MAP_TYPE type? )
+implicit_map_type : LEFT_BRACKET ( ( identifier_plus COLON )? type )? RIGHT_BRACKET -> ^( MAP_TYPE identifier_plus? type? )
 ;
 
 explicit_map_type : MAP! implicit_map_type

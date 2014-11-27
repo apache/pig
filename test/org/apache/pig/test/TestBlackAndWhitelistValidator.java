@@ -44,6 +44,7 @@ import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.rules.LogicalRelationalNodeValidator;
 import org.apache.pig.parser.QueryParser;
 import org.apache.pig.tools.grunt.GruntParser;
+import org.apache.pig.tools.parameters.PreprocessorContext;
 import org.apache.pig.validator.BlackAndWhitelistFilter;
 import org.apache.pig.validator.BlackAndWhitelistValidator;
 import org.junit.Before;
@@ -91,6 +92,192 @@ public class TestBlackAndWhitelistValidator {
         } catch (Exception e) {
             Util.assertExceptionAndMessage(FrontendException.class, e,
                     "SET command is not permitted. ");
+        }
+    }
+
+    /**
+     * A few commands such as DECLARE, DEFAULT go via
+     * {@link PreprocessorContext}. This step basically parses commands and
+     * substitutes parameters. The parameters can be evaluated using shell
+     * commands, which need to validated if specified in the white or blacklist.
+     * This test handles that scenario
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void testPreprocessorCommands() throws Exception {
+        try {
+            ctx.getProperties().setProperty(PigConfiguration.PIG_BLACKLIST, "dEclAre");
+            PigServer pigServer = new PigServer(ctx);
+            Data data = resetData(pigServer);
+
+            data.set("foo", tuple("a", 1, "b"), tuple("b", 2, "c"),
+                    tuple("c", 3, "d"));
+
+            StringBuilder script = new StringBuilder();
+            script.append("set io.sort.mb 1000;")
+            .append("%declare X `echo`; ")
+            .append("%default input 'foo';")
+                    .append("A = LOAD '$input' USING mock.Storage() AS (f1:chararray,f2:int,f3:chararray);")
+                    .append("B = order A by f1,f2,f3 DESC;")
+                    .append("STORE B INTO 'bar' USING mock.Storage();");
+
+            pigServer.registerScript(IOUtils.toInputStream(script));
+            fail();
+        } catch (Exception e) {
+            // We check RuntimeException here and not FrontendException as Pig wraps the error from Preprocessor
+            // within RuntimeException
+            Util.assertExceptionAndMessage(RuntimeException.class, e,
+                    "DECLARE command is not permitted. ");
+        }
+    }
+
+    @Test
+    public void testPreprocessorCommands2() throws Exception {
+        try {
+            ctx.getProperties().setProperty(PigConfiguration.PIG_BLACKLIST, "dEfaUlt");
+            PigServer pigServer = new PigServer(ctx);
+            Data data = resetData(pigServer);
+
+            data.set("foo", tuple("a", 1, "b"), tuple("b", 2, "c"),
+                    tuple("c", 3, "d"));
+
+            StringBuilder script = new StringBuilder();
+            script.append("set io.sort.mb 1000;")
+            .append("%Default input 'foo';")
+                    .append("A = LOAD '$input' USING mock.Storage() AS (f1:chararray,f2:int,f3:chararray);")
+                    .append("B = order A by f1,f2,f3 DESC;")
+                    .append("STORE B INTO 'bar' USING mock.Storage();");
+
+            pigServer.registerScript(IOUtils.toInputStream(script));
+            fail();
+        } catch (Exception e) {
+            // We check RuntimeException here and not FrontendException as Pig wraps the error from Preprocessor
+            // within RuntimeException
+            Util.assertExceptionAndMessage(RuntimeException.class, e,
+                    "DEFAULT command is not permitted. ");
+        }
+    }
+
+    @Test
+    public void testPreprocessorCommand3() throws Exception {
+        try {
+            ctx.getProperties().setProperty(PigConfiguration.PIG_BLACKLIST, "Define");
+            PigServer pigServer = new PigServer(ctx);
+            Data data = resetData(pigServer);
+
+            data.set("foo", tuple("a", 1, "b"), tuple("b", 2, "c"),
+                    tuple("c", 3, "d"));
+
+            StringBuilder script = new StringBuilder();
+            script.append("set io.sort.mb 1000;")
+            .append("DEFINE UrlDecode InvokeForString('java.net.URLDecoder.decode', 'String String');  ")
+                    .append("A = LOAD 'foo' USING mock.Storage() AS (f1:chararray,f2:int,f3:chararray);")
+                    .append("B = order A by f1,f2,f3 DESC;")
+                    .append("STORE B INTO 'bar' USING mock.Storage();");
+
+            pigServer.registerScript(IOUtils.toInputStream(script));
+            fail();
+        } catch (Exception e) {
+            Util.assertExceptionAndMessage(FrontendException.class, e,
+                    "Error during parsing. DEFINE command is not permitted. ");
+        }
+    }
+
+    @Test
+    public void testExplain() throws Exception {
+        try {
+            ctx.getProperties().setProperty(PigConfiguration.PIG_BLACKLIST, "explain");
+            PigServer pigServer = new PigServer(ctx);
+            Data data = resetData(pigServer);
+
+            data.set("foo", tuple("a", 1, "b"), tuple("b", 2, "c"),
+                    tuple("c", 3, "d"));
+
+            StringBuilder script = new StringBuilder();
+            script.append("A = LOAD 'foo' USING mock.Storage() AS (f1:chararray,f2:int,f3:chararray);")
+                    .append("B = order A by f1,f2,f3 DESC;")
+                    .append("EXPLAIN B;")
+                    .append("STORE B INTO 'bar' USING mock.Storage();");
+
+            pigServer.registerScript(IOUtils.toInputStream(script));
+            fail();
+        } catch (Exception e) {
+            Util.assertExceptionAndMessage(FrontendException.class, e,
+                    "EXPLAIN command is not permitted. ");
+        }
+    }
+
+    @Test
+    public void testExec() throws Exception {
+        try {
+            ctx.getProperties().setProperty(PigConfiguration.PIG_BLACKLIST, "exec");
+            PigServer pigServer = new PigServer(ctx);
+            Data data = resetData(pigServer);
+
+            data.set("foo", tuple("a", 1, "b"), tuple("b", 2, "c"),
+                    tuple("c", 3, "d"));
+
+            StringBuilder script = new StringBuilder();
+            script.append("A = LOAD 'foo' USING mock.Storage() AS (f1:chararray,f2:int,f3:chararray);")
+                    .append("B = order A by f1,f2,f3 DESC;")
+                    .append("exec evil.pig;")
+                    .append("STORE B INTO 'bar' USING mock.Storage();");
+
+            pigServer.registerScript(IOUtils.toInputStream(script));
+            fail();
+        } catch (Exception e) {
+            Util.assertExceptionAndMessage(FrontendException.class, e,
+                    "EXEC command is not permitted. ");
+        }
+    }
+
+    @Test
+    public void testRun() throws Exception {
+        try {
+            ctx.getProperties().setProperty(PigConfiguration.PIG_BLACKLIST, "run");
+            PigServer pigServer = new PigServer(ctx);
+            Data data = resetData(pigServer);
+
+            data.set("foo", tuple("a", 1, "b"), tuple("b", 2, "c"),
+                    tuple("c", 3, "d"));
+
+            StringBuilder script = new StringBuilder();
+            script.append("A = LOAD 'foo' USING mock.Storage() AS (f1:chararray,f2:int,f3:chararray);")
+                    .append("B = order A by f1,f2,f3 DESC;")
+                    .append("run evil.pig;")
+                    .append("STORE B INTO 'bar' USING mock.Storage();");
+
+            pigServer.registerScript(IOUtils.toInputStream(script));
+            fail();
+        } catch (Exception e) {
+            Util.assertExceptionAndMessage(FrontendException.class, e,
+                    "RUN command is not permitted. ");
+        }
+    }
+
+    @Test
+    public void testImport() throws Exception {
+        try {
+            ctx.getProperties().setProperty(PigConfiguration.PIG_BLACKLIST, "import");
+            PigServer pigServer = new PigServer(ctx);
+            Data data = resetData(pigServer);
+
+            data.set("foo", tuple("a", 1, "b"), tuple("b", 2, "c"),
+                    tuple("c", 3, "d"));
+
+            StringBuilder script = new StringBuilder();
+            script.append("import 'piggybank.jar';")
+                    .append("A = LOAD 'foo' USING mock.Storage() AS (f1:chararray,f2:int,f3:chararray);")
+                    .append("B = order A by f1,f2,f3 DESC;")
+                    .append("run evil.pig;")
+                    .append("STORE B INTO 'bar' USING mock.Storage();");
+
+            pigServer.registerScript(IOUtils.toInputStream(script));
+            fail();
+        } catch (Exception e) {
+            Util.assertExceptionAndMessage(FrontendException.class, e,
+                    "Error during parsing. IMPORT command is not permitted. ");
         }
     }
 

@@ -18,11 +18,10 @@
 
 package org.apache.pig.tools.pigstats;
 
+import org.apache.pig.PigRunner;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.impl.plan.OperatorPlan;
-
-import org.apache.pig.PigRunner;
 
 /**
  * Should be implemented by an object that wants to receive notifications
@@ -33,7 +32,7 @@ import org.apache.pig.PigRunner;
 public interface PigProgressNotificationListener extends java.util.EventListener {
 
     /**
-     * Invoked before any Hadoop jobs are run with the plan that is to be executed.
+     * Invoked before any Hadoop jobs (or a Tez DAG) are run with the plan that is to be executed.
      *
      * @param scriptId the unique id of the script
      * @param plan the OperatorPlan that is to be executed
@@ -41,36 +40,36 @@ public interface PigProgressNotificationListener extends java.util.EventListener
     public void initialPlanNotification(String scriptId, OperatorPlan<?> plan);
 
     /**
-     * Invoked just before launching Hadoop jobs spawned by the script.
+     * Invoked just before launching Hadoop jobs (or tez DAGs) spawned by the script.
      * @param scriptId the unique id of the script
-     * @param numJobsToLaunch the total number of Hadoop jobs spawned by the script
+     * @param numJobsToLaunch the total number of Hadoop jobs (or Tez DAGs) spawned by the script
      */
     public void launchStartedNotification(String scriptId, int numJobsToLaunch);
 
     /**
-     * Invoked just before submitting a batch of Hadoop jobs.
+     * Invoked just before submitting a batch of Hadoop jobs (or Tez DAGs).
      * @param scriptId the unique id of the script
-     * @param numJobsSubmitted the number of Hadoop jobs in the batch
+     * @param numJobsSubmitted the number of Hadoop jobs (or Tez DAGs) in the batch
      */
     public void jobsSubmittedNotification(String scriptId, int numJobsSubmitted);
 
     /**
-     * Invoked after a Hadoop job is started.
-     * @param scriptId the unique id of the script 
-     * @param assignedJobId the Hadoop job id
+     * Invoked after a Hadoop job (or Tez DAG) is started.
+     * @param scriptId the unique id of the script
+     * @param assignedJobId the Hadoop job id (or Tez DAG job id)
      */
     public void jobStartedNotification(String scriptId, String assignedJobId);
 
     /**
-     * Invoked just after a Hadoop job is completed successfully. 
-     * @param scriptId the unique id of the script 
-     * @param jobStats the {@link JobStats} object associated with the Hadoop job
+     * Invoked just after a Hadoop job (or Tez DAG) is completed successfully.
+     * @param scriptId the unique id of the script
+     * @param jobStats the {@link JobStats} object associated with the Hadoop job (or Tez DAG)
      */
     public void jobFinishedNotification(String scriptId, JobStats jobStats);
 
     /**
      * Invoked when a Hadoop job fails.
-     * @param scriptId the unique id of the script 
+     * @param scriptId the unique id of the script
      * @param jobStats the {@link JobStats} object associated with the Hadoop job
      */
     public void jobFailedNotification(String scriptId, JobStats jobStats);
@@ -83,16 +82,16 @@ public interface PigProgressNotificationListener extends java.util.EventListener
     public void outputCompletedNotification(String scriptId, OutputStats outputStats);
 
     /**
-     * Invoked to update the execution progress. 
+     * Invoked to update the execution progress.
      * @param scriptId the unique id of the script
      * @param progress the percentage of the execution progress
      */
     public void progressUpdatedNotification(String scriptId, int progress);
 
     /**
-     * Invoked just after all Hadoop jobs spawned by the script are completed.
+     * Invoked just after all Hadoop jobs (Tez DAGs) spawned by the script are completed.
      * @param scriptId the unique id of the script
-     * @param numJobsSucceeded the total number of Hadoop jobs succeeded
+     * @param numJobsSucceeded the total number of Hadoop jobs (Tez DAGs) succeeded
      */
     public void launchCompletedNotification(String scriptId, int numJobsSucceeded);
 }

@@ -17,11 +17,39 @@
  */
 package org.apache.hadoop.mapred;
 
+import java.util.Iterator;
+
 public class DowngradeHelper {
-    // This is required since hadoop 2 TaskReport allows 
+    // This is required since hadoop 2 TaskReport allows
     // only package level access to this api
-    public static TaskReport[] downgradeTaskReports(
+    public static Iterator<TaskReport> downgradeTaskReports(
             org.apache.hadoop.mapreduce.TaskReport[] reports) {
-        return TaskReport.downgradeArray(reports);
+        return reports == null ? null : new TaskReportIterator(reports);
+    }
+
+    private static class TaskReportIterator implements Iterator<TaskReport> {
+
+        private org.apache.hadoop.mapreduce.TaskReport[] reports;
+        private int curIndex = 0;
+
+        public TaskReportIterator(org.apache.hadoop.mapreduce.TaskReport[] reports) {
+            this.reports = reports;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return curIndex < this.reports.length ;
+        }
+
+        @Override
+        public TaskReport next() {
+            return TaskReport.downgrade(reports[curIndex++]);
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
+
     }
 }

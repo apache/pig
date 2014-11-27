@@ -45,7 +45,6 @@ import org.apache.pig.impl.util.ObjectSerializer;
  */
 public class DefaultTuple extends AbstractTuple {
 
-    protected boolean isNull = false;
     private static final long serialVersionUID = 2L;
     protected List<Object> mFields;
 
@@ -165,11 +164,6 @@ public class DefaultTuple extends AbstractTuple {
     @Override
     public long getMemorySize() {
         Iterator<Object> i = mFields.iterator();
-        // fixed overhead
-        long empty_tuple_size = 8 /* tuple object header */
-        + 8 /* isNull - but rounded to 8 bytes as total obj size needs to be multiple of 8 */
-        + 8 /* mFields reference */
-        + 32 /* mFields array list fixed size */;
 
         // rest of the fixed portion of mfields size is accounted within empty_tuple_size
         long mfields_var_size = SizeUtil.roundToEight(4 + 4 * mFields.size());
@@ -177,7 +171,11 @@ public class DefaultTuple extends AbstractTuple {
         // which is probably from the minimum size of this array list
         mfields_var_size = Math.max(40, mfields_var_size);
 
-        long sum = empty_tuple_size + mfields_var_size;
+        // fixed overhead = 48 bytes
+        //8 - tuple object header
+        //8 - mFields reference
+        //32 - mFields array list fixed size
+        long sum = 48 + mfields_var_size;
         while (i.hasNext()) {
             sum += SizeUtil.getPigObjMemSize(i.next());
         }
