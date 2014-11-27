@@ -16,6 +16,7 @@
  */
 package org.apache.pig.test;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
@@ -41,12 +42,14 @@ import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.hbase.HBaseStorage;
+import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -99,7 +102,7 @@ public class TestHBaseStorage {
 
     @Before
     public void beforeTest() throws Exception {
-        pig = new PigServer(ExecType.LOCAL, conf);
+        pig = new PigServer(Util.getLocalTestMode(), conf);
     }
 
     @After
@@ -123,6 +126,7 @@ public class TestHBaseStorage {
             deletes.add(new Delete(row.getRow()));
         }
         table.delete(deletes);
+        table.close();
     }
 
     /**
@@ -825,6 +829,115 @@ public class TestHBaseStorage {
     }
 
     /**
+     * Test merge inner join with two tables
+     *
+     * @throws IOException
+     */
+    @Test
+    public void testMergeJoin() throws IOException {
+        Assume.assumeTrue("Skip this test for TEZ. See PIG-4315", pig.getPigContext().getExecType().equals(ExecType.LOCAL));
+        prepareTable(TESTTABLE_1, true, DataFormat.HBaseBinary);
+        prepareTable(TESTTABLE_2, true, DataFormat.HBaseBinary);
+        pig.registerQuery("a = load 'hbase://" + TESTTABLE_1 + "' using "
+                        + "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
+                        + TESTCOLUMN_A + " " + TESTCOLUMN_B + " " + TESTCOLUMN_C
+                        + "','-loadKey -caster HBaseBinaryConverter') as (rowKey:chararray,col_a:int, col_b:double, col_c:chararray);");
+        pig.registerQuery("b = load 'hbase://" + TESTTABLE_2 + "' using "
+                        + "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
+                        + TESTCOLUMN_A + " " + TESTCOLUMN_B + " " + TESTCOLUMN_C
+                        + "','-loadKey -caster HBaseBinaryConverter') as (rowKey:chararray,col_a:int, col_b:double, col_c:chararray);");
+        pig.registerQuery("c = join a by rowKey, b by rowKey USING 'merge';");
+        pig.registerQuery("d = ORDER c BY a::rowKey;");
+
+        Iterator<Tuple> it = pig.openIterator("d");
+        int count = 0;
+        LOG.info("MergeJoin Starting");
+        while (it.hasNext()) {
+            Tuple t = it.next();
+            // the columns for both relations should be merged into one tuple
+            // left side
+            String rowKey = (String) t.get(0);
+            int col_a = (Integer) t.get(1);
+            double col_b = (Double) t.get(2);
+            String col_c = (String) t.get(3);
+
+            Assert.assertEquals("00".substring((count + "").length()) + count,
+                    rowKey);
+            Assert.assertEquals(count, col_a);
+            Assert.assertEquals(count + 0.0, col_b, 1e-6);
+            Assert.assertEquals("Text_" + count, col_c);
+
+            // right side
+            String rowKey2 = (String) t.get(4);
+            int col_a2 = (Integer) t.get(5);
+            double col_b2 = (Double) t.get(6);
+            String col_c2 = (String) t.get(7);
+
+            Assert.assertEquals("00".substring((count + "").length()) + count,
+                    rowKey2);
+            Assert.assertEquals(count, col_a2);
+            Assert.assertEquals(count + 0.0, col_b2, 1e-6);
+            Assert.assertEquals("Text_" + count, col_c2);
+
+            count++;
+        }
+        Assert.assertEquals(count, TEST_ROW_COUNT);
+        LOG.info("MergeJoin done");
+    }
+
+    /**
+     * Test collected group
+     * not much to test here since keys are unique
+     *
+     * @throws IOException
+     */
+    @Test
+    public void testCollectedGroup() throws IOException {
+        prepareTable(TESTTABLE_1, true, DataFormat.HBaseBinary);
+        prepareTable(TESTTABLE_2, true, DataFormat.HBaseBinary);
+        pig.registerQuery("a = load 'hbase://" + TESTTABLE_1 + "' using "
+                        + "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
+                        + TESTCOLUMN_A + " " + TESTCOLUMN_B + " " + TESTCOLUMN_C
+                        + "','-loadKey -caster HBaseBinaryConverter') as (rowKey:chararray,col_a:int, col_b:double, col_c:chararray);");
+        pig.registerQuery("c = group a by rowKey USING 'collected';");
+        pig.registerQuery("d = ORDER c BY group;");
+
+        // do a merge group
+        Iterator<Tuple> it = pig.openIterator("d");
+        int count = 0;
+        LOG.info("CollectedGroup Starting");
+        while (it.hasNext()) {
+            Tuple t = it.next();
+
+            String rowKey = (String)t.get(0);
+
+            Assert.assertEquals("00".substring((count + "").length()) + count,
+                    rowKey);
+
+            int rowCount = 0;
+            DataBag rows = (DataBag)t.get(1);
+            for (Iterator<Tuple> iter = rows.iterator(); iter.hasNext();) {
+                Tuple row = iter.next();
+
+                // there should be two bags with all 3 columns
+                int col_a = (Integer) row.get(1);
+                double col_b = (Double) row.get(2);
+                String col_c = (String) row.get(3);
+
+                Assert.assertEquals(count, col_a);
+                Assert.assertEquals(count + 0.0, col_b, 1e-6);
+                Assert.assertEquals("Text_" + count, col_c);
+                rowCount++;
+            }
+            Assert.assertEquals(1, rowCount);
+
+            count++;
+        }
+        Assert.assertEquals(TEST_ROW_COUNT, count);
+        LOG.info("CollectedGroup done");
+    }
+
+    /**
      * Test Load from hbase using HBaseBinaryConverter
      */
     @Test
@@ -892,6 +1005,7 @@ public class TestHBaseStorage {
 
         pig.getPigContext().getProperties()
                 .setProperty(MRConfiguration.FILEOUTPUTCOMMITTER_MARKSUCCESSFULJOBS, "false");
+        table.close();
     }
 
     /**
@@ -928,6 +1042,7 @@ public class TestHBaseStorage {
             Assert.assertEquals(i + 0.0, col_b, 1e-6);
         }
         Assert.assertEquals(100, i);
+        table.close();
     }
 
     /**
@@ -964,6 +1079,7 @@ public class TestHBaseStorage {
             Assert.assertEquals("Text_" + i, col_c);
         }
         Assert.assertEquals(100, i);
+        table.close();
     }
 
     /**
@@ -1026,6 +1142,7 @@ public class TestHBaseStorage {
             Assert.assertEquals(i + 0.0, col_b, 1e-6);
         }
         Assert.assertEquals(100, i);
+        table.close();
     }
 
     /**
@@ -1061,6 +1178,7 @@ public class TestHBaseStorage {
             Assert.assertEquals(i + 0.0 + "", col_b);
         }
         Assert.assertEquals(100, i);
+        table.close();
     }
 
     /**
@@ -1099,6 +1217,43 @@ public class TestHBaseStorage {
             index++;
         }
         Assert.assertEquals(index, TEST_ROW_COUNT);
+    }
+
+    @Test
+    // See PIG-4151
+    public void testStoreEmptyMap() throws IOException {
+        String tableName = "emptyMapTest";
+        HTable table;
+        try {
+            deleteAllRows(tableName);
+        } catch (Exception e) {
+            // It's ok, table might not exist.
+        }
+        byte[][] cfs = new byte[2][];
+        cfs[0] = Bytes.toBytes("info");
+        cfs[1] = Bytes.toBytes("friends");
+        try {
+            table = util.createTable(Bytes.toBytesBinary(tableName),
+                    cfs);
+        } catch (Exception e) {
+            table = new HTable(conf, Bytes.toBytesBinary(tableName));
+        }
+
+        File inputFile = Util.createInputFile("test", "tmp", new String[] {"row1;Homer;Morrison;[1#Silvia,2#Stacy]",
+                "row2;Sheila;Fletcher;[1#Becky,2#Salvador,3#Lois]",
+                "row4;Andre;Morton;[1#Nancy]",
+                "row3;Sonja;Webb;[]"
+        });
+        pig.registerQuery("source = LOAD '" + Util.generateURI(inputFile.toString(), pig.getPigContext())
+                + "' USING PigStorage(';')"
+                + " AS (row:chararray, first_name:chararray, last_name:chararray, friends:map[]);");
+        pig.registerQuery("STORE source INTO 'hbase://" + tableName + "' USING" +
+                " org.apache.pig.backend.hadoop.hbase.HBaseStorage('info:fname info:lname friends:*');");
+        Get get = new Get(Bytes.toBytes("row3"));
+        Result r = table.get(get);
+        Assert.assertEquals(new String(r.getValue(cfs[0], Bytes.toBytes("fname"))), "Sonja");
+        Assert.assertEquals(new String(r.getValue(cfs[0], Bytes.toBytes("lname"))), "Webb");
+        Assert.assertTrue(r.getFamilyMap(cfs[1]).isEmpty());
     }
 
     private void scanTable1(PigServer pig, DataFormat dataFormat) throws IOException {

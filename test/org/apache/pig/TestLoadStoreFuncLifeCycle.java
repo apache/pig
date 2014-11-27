@@ -351,7 +351,7 @@ public class TestLoadStoreFuncLifeCycle {
         // result, the number of StoreFunc instances is greater by 1 in
         // Hadoop-2.0.x.
         assertTrue("storer instanciation count increasing: " + Storer.count,
-                Storer.count <= (Util.isHadoop2_0() ? 5 : 4));
+                Storer.count <= (org.apache.pig.impl.util.Utils.isHadoop2() ? 5 : 4));
 
     }
 

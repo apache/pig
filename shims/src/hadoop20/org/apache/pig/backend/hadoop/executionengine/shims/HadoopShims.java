@@ -18,6 +18,8 @@
 package org.apache.pig.backend.hadoop.executionengine.shims;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Iterator;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -184,15 +186,19 @@ public class HadoopShims {
             runningJob.killJob();
     }
 
-    public static TaskReport[] getTaskReports(Job job, TaskType type) throws IOException {
+    public static Iterator<TaskReport> getTaskReports(Job job, TaskType type) throws IOException {
         if (job.getJobConf().getBoolean(PigConfiguration.PIG_NO_TASK_REPORT, false)) {
             LOG.info("TaskReports are disabled for job: " + job.getAssignedJobID());
             return null;
         }
         JobClient jobClient = job.getJobClient();
-        return (type == TaskType.MAP)
-                ? jobClient.getMapTaskReports(job.getAssignedJobID())
-                        : jobClient.getReduceTaskReports(job.getAssignedJobID());
+        TaskReport[] reports = null;
+        if (type == TaskType.MAP) {
+            reports = jobClient.getMapTaskReports(job.getAssignedJobID());
+        } else {
+            reports = jobClient.getReduceTaskReports(job.getAssignedJobID());
+        }
+        return reports == null ? null : Arrays.asList(reports).iterator();
     }
     
     public static boolean isHadoopYARN() {

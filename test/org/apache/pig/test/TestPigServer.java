@@ -867,7 +867,7 @@ public class TestPigServer {
 
         assertEquals("999", properties.getProperty("pig.exec.reducers.max"));
         assertEquals("true", properties.getProperty("aggregate.warning"));
-        assertEquals("true", properties.getProperty(PigConfiguration.OPT_MULTIQUERY));
+        assertEquals("true", properties.getProperty(PigConfiguration.PIG_OPT_MULTIQUERY));
         assertEquals("false", properties.getProperty("stop.on.failure"));
 
         //Test with properties file
@@ -877,7 +877,7 @@ public class TestPigServer {
 
         assertEquals("999", properties.getProperty("pig.exec.reducers.max"));
         assertEquals("true", properties.getProperty("aggregate.warning"));
-        assertEquals("true", properties.getProperty(PigConfiguration.OPT_MULTIQUERY));
+        assertEquals("true", properties.getProperty(PigConfiguration.PIG_OPT_MULTIQUERY));
         assertEquals("false", properties.getProperty("stop.on.failure"));
 
         PrintWriter out = new PrintWriter(new FileWriter(propertyFile));
@@ -889,7 +889,7 @@ public class TestPigServer {
 
         properties = PropertiesUtil.loadDefaultProperties();
         assertEquals("false", properties.getProperty("aggregate.warning"));
-        assertEquals("false", properties.getProperty(PigConfiguration.OPT_MULTIQUERY));
+        assertEquals("false", properties.getProperty(PigConfiguration.PIG_OPT_MULTIQUERY));
         assertEquals("true", properties.getProperty("stop.on.failure"));
 
         propertyFile.delete();
@@ -968,13 +968,13 @@ public class TestPigServer {
 
         pigServer.setValidateEachStatement(true);
         pigServer.registerQuery("A = LOAD 'foo' USING mock.Storage() AS (f1:chararray,f2:int,f3:chararray);");
-        pigServer.registerQuery("store A into '" + tempDir + "/testGruntValidation1';");
+        pigServer.registerQuery("store A into '" + Util.generateURI(tempDir.toString(), pigServer.getPigContext()) + "/testGruntValidation1';");
         pigServer.registerQuery("B = LOAD 'foo' USING mock.Storage() AS (f1:chararray,f2:int,f3:chararray);");
-        pigServer.registerQuery("store B into '" + tempDir + "/testGruntValidation2';"); // This should pass
+        pigServer.registerQuery("store B into '" + Util.generateURI(tempDir.toString(), pigServer.getPigContext()) + "/testGruntValidation2';"); // This should pass
         boolean validationExceptionCaptured = false;
         try {
             // This should fail due to output validation
-            pigServer.registerQuery("store A into '" + tempDir + "/testGruntValidation1';");
+            pigServer.registerQuery("store A into '" + Util.generateURI(tempDir.toString(),pigServer.getPigContext()) + "/testGruntValidation1';");
         } catch (FrontendException e) {
             validationExceptionCaptured = true;
         }

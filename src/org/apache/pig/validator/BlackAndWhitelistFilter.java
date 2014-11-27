@@ -35,12 +35,17 @@ public final class BlackAndWhitelistFilter implements PigCommandFilter {
     private static final Splitter SPLITTER = Splitter.on(',').trimResults()
             .omitEmptyStrings();
 
-    private final PigServer pigServer;
+    private final PigContext context;
     private final Set<String> whitelist;
     private final Set<String> blacklist;
 
     public BlackAndWhitelistFilter(PigServer pigServer) {
-        this.pigServer = pigServer;
+        this(pigServer.getPigContext());
+    }
+
+    public BlackAndWhitelistFilter(PigContext context) {
+        this.context = context;
+
         whitelist = Sets.newHashSet();
         blacklist = Sets.newHashSet();
 
@@ -48,7 +53,6 @@ public final class BlackAndWhitelistFilter implements PigCommandFilter {
     }
 
     private void init() {
-        PigContext context = pigServer.getPigContext();
         String whitelistConfig = context.getProperties().getProperty(PigConfiguration.PIG_WHITELIST);
 
         if (whitelistConfig != null) {

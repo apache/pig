@@ -31,6 +31,7 @@ import org.apache.avro.Schema.Type;
 import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericData;
+import org.apache.avro.mapred.AvroInputFormat;
 import org.apache.avro.mapred.AvroOutputFormat;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -63,9 +64,11 @@ import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceStatistics;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.StoreFuncInterface;
+import org.apache.pig.StoreResources;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.impl.util.avro.AvroArrayReader;
@@ -82,7 +85,7 @@ import com.google.common.collect.Maps;
  *
  */
 public class AvroStorage extends LoadFunc
-    implements StoreFuncInterface, LoadMetadata, LoadPushDown {
+    implements StoreFuncInterface, LoadMetadata, LoadPushDown, StoreResources {
 
   /**
    *  Creates new instance of Pig Storage function, without specifying
@@ -593,7 +596,11 @@ public class AvroStorage extends LoadFunc
         } else {
           rr = new AvroRecordReader(s);
         }
-        rr.initialize(is, tc);
+        try {
+            rr.initialize(is, tc);
+        } finally {
+            rr.close();
+        }
         tc.setStatus(is.toString());
         return rr;
       }
@@ -674,4 +681,9 @@ public class AvroStorage extends LoadFunc
 
   }
 
+  @Override
+  public List<String> getShipFiles() {
+      Class[] classList = new Class[] {Schema.class, AvroInputFormat.class};
+      return FuncUtils.getShipFiles(classList);
+  }
 }

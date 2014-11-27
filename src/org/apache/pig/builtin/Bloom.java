@@ -21,7 +21,9 @@ package org.apache.pig.builtin;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +31,6 @@ import java.util.List;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.bloom.BloomFilter;
 import org.apache.hadoop.util.bloom.Key;
-
 import org.apache.pig.FilterFunc;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
@@ -94,9 +95,22 @@ public class Bloom extends FilterFunc {
 
     private void init() throws IOException {
         filter = new BloomFilter();
-        String dcFile = "./" + getFilenameFromPath(bloomFile) +
-            "/part-r-00000";
-        filter.readFields(new DataInputStream(new FileInputStream(dcFile)));
+        String dir = "./" + getFilenameFromPath(bloomFile);
+        String[] partFiles = new File(dir)
+                .list(new FilenameFilter() {
+                    @Override
+                    public boolean accept(File current, String name) {
+                        return name.startsWith("part");
+                    }
+                });
+
+        String dcFile = dir + "/" + partFiles[0];
+        DataInputStream dis = new DataInputStream(new FileInputStream(dcFile));
+        try {
+            filter.readFields(dis);
+        } finally {
+            dis.close();
+        }
     }
 
     /**

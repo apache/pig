@@ -2408,9 +2408,90 @@ STORE A INTO 'accumulo://flights?instance=accumulo&amp;user=root&amp;password=pa
                 because the first element in the Tuple is used as the row in Accumulo.
             </p>
         </section>
-   </section>
-</section>
+    </section>
 
+    <section id="OrcStorage">
+        <title>OrcStorage</title>
+        <p>Loads from or stores data to Orc file.</p>
+        <section>
+        <title>Syntax</title>
+        <table>
+        <tr>
+            <td>
+                <p>OrcStorage(['options'])</p>
+            </td>
+        </tr>
+        </table>
+        </section>
+        <section>
+        <title>Options</title>
+        <table>
+        <tr>
+            <td>
+               <p>A string that contains space-separated options (&lsquo;-optionA valueA -optionB valueB -optionC &rsquo;). Current options are only applicable with STORE operation and not for LOAD.</p>
+               <p>Currently supported options are:</p>
+               <ul>
+               <li>--stripeSize or -s Set the stripe size for the file. Default is 268435456(256 MB).</li>
+               <li>--rowIndexStride or -r Set the distance between entries in the row index. Default is 10000.</li>
+               <li>--bufferSize or -b Set the size of the memory buffers used for compressing and storing the stripe in memory. Default is 262144 (256K).</li>
+               <li>--blockPadding or -p Sets whether the HDFS blocks are padded to prevent stripes from straddling blocks. Default is true.</li>
+               <li>--compress or -c Sets the generic compression that is used to compress the data. Valid codecs are: NONE, ZLIB, SNAPPY, LZO. Default is ZLIB.</li>
+               <li>--version or -v Sets the version of the file that will be written</li>
+               </ul>
+            </td>
+        </tr>
+        </table>
+        </section>
+        <section>
+        <title>Example</title>
+        <p>OrcStorage as a StoreFunc.</p>
+<source>
+A = LOAD 'student.txt' as (name:chararray, age:int, gpa:double);
+store A into 'student.orc' using OrcStorage('-c SNAPPY'); -- store student.txt into data.orc with SNAPPY compression
+</source>
+        <p>OrcStorage as a LoadFunc.</p>
+<source>
+A = LOAD 'student.orc' USING OrcStorage();
+describe A; -- See the schema of student.orc
+B = filter A by age &gt; 25 and gpa &lt; 3; -- filter condition will be pushed up to loader
+dump B; -- dump the content of student.orc
+</source>
+        </section>
+        <section>
+        <title>Data types</title>
+        <p>Most Orc data type has one to one mapping to Pig data type. Several exceptions are:</p>
+        <p>Loader side:</p>
+        <ul>
+        <li>Orc STRING/CHAR/VARCHAR all map to Pig varchar</li>
+        <li>Orc BYTE/BINARY all map to Pig bytearray</li>
+        <li>Orc TIMESTAMP/DATE all maps to Pig datetime</li>
+        <li>Orc DECIMAL maps to Pig bigdecimal</li>
+        </ul>
+        <p>Storer side:</p>
+        <ul>
+        <li>Pig chararray maps to Orc STRING</li>
+        <li>Pig datetime maps to Orc TIMESTAMP</li>
+        <li>Pig bigdecimal/biginteger all map to Orc DECIMAL</li>
+        <li>Pig bytearray maps to Orc BINARY</li>
+        </ul>
+        </section>
+        <section>
+        <title>Predicate pushdown</title>
+        <p>If there is a filter statement right after OrcStorage, Pig will push the filter condition to the loader.
+           OrcStorage will prune file/stripe/row group which does not satisfy the condition entirely. For the file/stripe/row group contains
+           data that satisfies the filter condition, OrcStorage will load the file/stripe/row group and Pig will evaluate the filter condition
+           again to remove additional data which does not satisfy the filter condition.</p>
+        <p>OrcStorage predicate pushdown currently support all primitive data types but none of the complex data types. For example, map condition
+           cannot push into OrcStorage:</p>
+<source>
+A = LOAD 'student.orc' USING OrcStorage();
+B = filter A by info#'age' > 25; -- map condition cannot push to OrcStorage
+dump B;
+</source>
+        <p>Currently, the following expressions in filter condition are supported in OrcStorage predicate pushdown: &gt;, &gt;=, &lt;, &lt;=, ==, !=, between, in, and, or, not. The missing expressions are: is null, is not null, matches.</p>
+        </section>
+    </section>
+</section>
 
 <!-- ======================================================== -->  
 <!-- ======================================================== -->  
@@ -4358,7 +4439,70 @@ For example, given the string (open:source:software), STRSPLIT (string, ':',2) w
 </section>
 </section> 
 
-<!-- ======================================================== -->  
+<!-- ======================================================== -->
+    <section id="strsplittobag">
+        <title>STRSPLITTOBAG</title>
+        <p>Splits a string around matches of a given regular expression and returns a databag</p>
+        <section>
+            <title>Syntax</title>
+            <table>
+                <tr>
+                    <td>
+                        <p>STRSPLITTOBAG(string, regex, limit)</p>
+                    </td>
+                </tr>
+            </table>
+        </section>
+        <section>
+            <title>Terms</title>
+            <table>
+                <tr>
+                    <td>
+                        <p>string</p>
+                    </td>
+                    <td>
+                        <p>The string to be split.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <p>regex</p>
+                    </td>
+                    <td>
+                        <p>The regular expression.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <p>limit</p>
+                    </td>
+                    <td>
+                        <p>If the value is positive, the pattern (the compiled representation of the regular expression)
+                            is applied at most limit-1 times, therefore the value of the argument means the maximum size
+                            of the result bag. The last tuple of the result bag will contain all input after the last
+                            match.
+                        </p>
+                        <p>If the value is negative, no limit is applied to the size of the result bag.</p>
+                        <p>If the value is zero, no limit is applied to the size of the result bag too, and trailing
+                            empty strings (if any) will be removed.
+                        </p>
+                    </td>
+                </tr>
+            </table>
+        </section>
+        <section>
+            <title>Usage</title>
+            <p>
+                Use the STRSPLITTOBAG function to split a string around matches of a given regular expression.
+            </p>
+            <p>
+                For example, given the string (open:source:software), STRSPLITTOBAG (string, ':',2) will return
+                {(open),(source:software)} and STRSPLITTOBAG (string, ':',3) will return {(open),(source),(software)}.
+            </p>
+        </section>
+    </section>
+
+    <!-- ======================================================== -->
  <section id="substring">
    <title>SUBSTRING</title>
    <p>Returns a substring from a given string. </p>
@@ -4530,6 +4674,16 @@ Use the UPPER function to convert all characters in a string to upper case.
    </section>
 </section>
  
+ <section id="uniqueid">
+   <title>UniqueID</title>
+   <p>Returns a unique id string for each record in the alias. </p>
+   <section>
+     <title>Usage</title>
+     <p>
+       UniqueID generates a unique id for each records. The id takes form "taskindex-sequence"
+     </p>
+   </section>
+ </section>
 </section>
 <!-- End String Functions -->
 

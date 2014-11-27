@@ -47,10 +47,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.impl.PigContext;
 import org.apache.tools.bzip2r.BZip2Constants;
-import org.codehaus.jackson.annotate.JsonPropertyOrder;
-import org.codehaus.jackson.map.annotate.JacksonStdImpl;
 import org.joda.time.DateTime;
 
 import com.google.common.collect.Multimaps;
@@ -68,8 +67,6 @@ public class JarManager {
         AUTOMATON(Automaton.class),
         ANTLR(CommonTokenStream.class),
         GUAVA(Multimaps.class),
-        JACKSON_CORE(JsonPropertyOrder.class),
-        JACKSON_MAPPER(JacksonStdImpl.class),
         JODATIME(DateTime.class);
 
         private final Class pkgClass;
@@ -92,9 +89,16 @@ public class JarManager {
         createPigScriptUDFJar(fos, pigContext, contents);
 
         if (!contents.isEmpty()) {
-            FileInputStream fis = new FileInputStream(scriptUDFJarFile);
-            String md5 = org.apache.commons.codec.digest.DigestUtils.md5Hex(fis);
-            fis.close();
+            FileInputStream fis = null;
+            String md5 = null;
+            try {
+                fis = new FileInputStream(scriptUDFJarFile);
+                md5 = org.apache.commons.codec.digest.DigestUtils.md5Hex(fis);
+            } finally {
+                if (fis != null) {
+                    fis.close();
+                }
+            }
             File newScriptUDFJarFile = new File(scriptUDFJarFile.getParent(), "PigScriptUDF-" + md5 + ".jar");
             scriptUDFJarFile.renameTo(newScriptUDFJarFile);
             return newScriptUDFJarFile;
@@ -107,15 +111,20 @@ public class JarManager {
         for (String path: pigContext.scriptFiles) {
             log.debug("Adding entry " + path + " to job jar" );
             InputStream stream = null;
-            if (new File(path).exists()) {
-                stream = new FileInputStream(new File(path));
+            File inputFile = new File(path);
+            if (inputFile.exists()) {
+                stream = new FileInputStream(inputFile);
             } else {
                 stream = PigContext.getClassLoader().getResourceAsStream(path);
             }
             if (stream==null) {
                 throw new IOException("Cannot find " + path);
             }
-            addStream(jarOutputStream, path, stream, contents);
+            try {
+                addStream(jarOutputStream, path, stream, contents, inputFile.lastModified());
+            } finally {
+                stream.close();
+            }
         }
         for (Map.Entry<String, File> entry : pigContext.getScriptFiles().entrySet()) {
             log.debug("Adding entry " + entry.getKey() + " to job jar" );
@@ -128,7 +137,11 @@ public class JarManager {
             if (stream==null) {
                 throw new IOException("Cannot find " + entry.getValue().getPath());
             }
-            addStream(jarOutputStream, entry.getKey(), stream, contents);
+            try {
+                addStream(jarOutputStream, entry.getKey(), stream, contents, entry.getValue().lastModified());
+            } finally {
+                stream.close();
+            }
         }
         if (!contents.isEmpty()) {
             jarOutputStream.close();
@@ -139,7 +152,7 @@ public class JarManager {
 
     /**
      * Creates a Classloader based on the passed jarFile and any extra jar files.
-     * 
+     *
      * @param jarFile
      *            the jar file to be part of the newly created Classloader. This jar file plus any
      *            jars in the extraJars list will constitute the classpath.
@@ -161,7 +174,7 @@ public class JarManager {
 
      /**
      * Adds a stream to a Jar file.
-     * 
+     *
      * @param os
      *            the OutputStream of the Jar file to which the stream will be added.
      * @param name
@@ -171,15 +184,20 @@ public class JarManager {
      * @param contents
      *            the current contents of the Jar file. (We use this to avoid adding two streams
      *            with the same name.
+     * @param timestamp
+     *            timestamp of the entry
      * @throws IOException
      */
-    private static void addStream(JarOutputStream os, String name, InputStream is, Map<String, String> contents)
+    private static void addStream(JarOutputStream os, String name, InputStream is, Map<String, String> contents,
+            long timestamp)
             throws IOException {
         if (contents.get(name) != null) {
             return;
         }
         contents.put(name, "");
-        os.putNextEntry(new JarEntry(name));
+        JarEntry entry = new JarEntry(name);
+        entry.setTime(timestamp);
+        os.putNextEntry(entry);
         byte buffer[] = new byte[4096];
         int rc;
         while ((rc = is.read(buffer)) > 0) {
@@ -190,6 +208,9 @@ public class JarManager {
     public static List<String> getDefaultJars() {
         List<String> defaultJars = new ArrayList<String>();
         for (DefaultPigPackages pkgToSend : DefaultPigPackages.values()) {
+            if(pkgToSend.equals(DefaultPigPackages.GUAVA) && HadoopShims.isHadoopYARN()) {
+                continue; //Skip
+            }
             String jar = findContainingJar(pkgToSend.getPkgClass());
             if (!defaultJars.contains(jar)) {
                 defaultJars.add(jar);
@@ -201,7 +222,7 @@ public class JarManager {
     /**
      * Find a jar that contains a class of the same name, if any. It will return a jar file, even if
      * that is not the first thing on the class path that has a class with the same name.
-     * 
+     *
      * @param my_class
      *            the class to find
      * @return a jar file that contains the class, or null
@@ -243,12 +264,12 @@ public class JarManager {
         }
         return null;
     }
-    
+
     /**
      * Add the jars containing the given classes to the job's configuration
      * such that JobClient will ship them to the cluster and add them to
      * the DistributedCache
-     * 
+     *
      * @param job
      *           Job object
      * @param classes
@@ -266,10 +287,10 @@ public class JarManager {
             return;
         conf.set("tmpjars", StringUtils.arrayToString(jars.toArray(new String[0])));
     }
-    
+
     /**
-     * Add the qualified path name of jars containing the given classes 
-     * 
+     * Add the qualified path name of jars containing the given classes
+     *
      * @param fs
      *            FileSystem object
      * @param jars

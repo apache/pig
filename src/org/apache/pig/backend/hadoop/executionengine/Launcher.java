@@ -22,6 +22,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -160,23 +161,25 @@ public abstract class Launcher {
         return (int) (Math.ceil(prog)) == 1;
     }
 
-    protected long computeTimeSpent(TaskReport[] taskReports) {
+    protected long computeTimeSpent(Iterator<TaskReport> taskReports) {
         long timeSpent = 0;
-        for (TaskReport r : taskReports) {
+        while (taskReports.hasNext()) {
+            TaskReport r = taskReports.next();
             timeSpent += (r.getFinishTime() - r.getStartTime());
         }
         return timeSpent;
     }
 
-    protected void getErrorMessages(TaskReport reports[], String type,
+    protected void getErrorMessages(Iterator<TaskReport> reports, String type,
             boolean errNotDbg, PigContext pigContext) throws Exception {
-        for (int i = 0; i < reports.length; i++) {
-            String msgs[] = reports[i].getDiagnostics();
+        while(reports.hasNext()) {
+            TaskReport report = reports.next();
+            String msgs[] = report.getDiagnostics();
             ArrayList<Exception> exceptions = new ArrayList<Exception>();
             String exceptionCreateFailMsg = null;
             boolean jobFailed = false;
             if (msgs.length > 0) {
-                if (HadoopShims.isJobFailed(reports[i])) {
+                if (HadoopShims.isJobFailed(report)) {
                     jobFailed = true;
                 }
                 Set<String> errorMessageSet = new HashSet<String>();
@@ -199,7 +202,7 @@ public abstract class Launcher {
                             }
                         } else {
                             log.debug("Error message from task (" + type + ") "
-                                    + reports[i].getTaskID() + msgs[j]);
+                                    + report.getTaskID() + msgs[j]);
                         }
                     }
                 }
@@ -223,7 +226,7 @@ public abstract class Launcher {
                 if (exceptions.size() > 1) {
                     for (int j = 0; j < exceptions.size(); ++j) {
                         String headerMessage = "Error message from task ("
-                                + type + ") " + reports[i].getTaskID();
+                                + type + ") " + report.getTaskID();
                         LogUtils.writeLog(exceptions.get(j), pigContext
                                 .getProperties().getProperty("pig.logfile"),
                                 log, false, headerMessage, false, false);
@@ -276,14 +279,18 @@ public abstract class Launcher {
     public class JobControlThreadExceptionHandler implements Thread.UncaughtExceptionHandler {
         @Override
         public void uncaughtException(Thread thread, Throwable throwable) {
-            jobControlExceptionStackTrace = Utils.getStackStraceStr(throwable);
-            try {
-                jobControlException = getExceptionFromString(jobControlExceptionStackTrace);
-            } catch (Exception e) {
-                String errMsg = "Could not resolve error that occured when launching job: "
-                        + jobControlExceptionStackTrace;
-                jobControlException = new RuntimeException(errMsg, throwable);
-            }
+            setJobException(throwable);
+        }
+    }
+
+    protected void setJobException(Throwable throwable) {
+        jobControlExceptionStackTrace = Utils.getStackStraceStr(throwable);
+        try {
+            jobControlException = getExceptionFromString(jobControlExceptionStackTrace);
+        } catch (Exception e) {
+            String errMsg = "Could not resolve error that occured when launching job: "
+                    + jobControlExceptionStackTrace;
+            jobControlException = new RuntimeException(errMsg, throwable);
         }
     }
 
@@ -633,5 +640,8 @@ public abstract class Launcher {
         }
         return new StackTraceElement(declaringClass, methodName, fileName,
                 lineNumber);
+    }
+
+    public void destroy() {
     }
 }

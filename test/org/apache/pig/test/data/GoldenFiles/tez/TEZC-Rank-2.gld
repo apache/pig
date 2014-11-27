@@ -2,7 +2,7 @@
 # There are 1 DAGs in the session
 #--------------------------------------------------
 #--------------------------------------------------
-# TEZ DAG plan: scope-52
+# TEZ DAG plan: pig-0_scope-0
 #--------------------------------------------------
 Tez vertex scope-23	->	Tez vertex scope-24,
 Tez vertex scope-24	->	Tez vertex scope-43,Tez vertex scope-33,
@@ -62,7 +62,7 @@ POValueOutputTez - scope-42	->	 [scope-43]
 |
 |---New For Each(false)[tuple] - scope-41
     |   |
-    |   POUserFunc(org.apache.pig.backend.hadoop.executionengine.tez.FindQuantilesTez)[tuple] - scope-40
+    |   POUserFunc(org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.FindQuantilesTez)[tuple] - scope-40
     |   |
     |   |---Project[tuple][*] - scope-39
     |

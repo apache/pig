@@ -5,3 +5,4 @@
 **/TestTezAutoParallelism.java
 **/TestJobSubmissionTez.java
 **/TestGroupConstParallelTez.java
+**/TestLoaderStorerShipCacheFilesTez.java

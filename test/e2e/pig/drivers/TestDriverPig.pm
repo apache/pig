@@ -73,7 +73,7 @@ sub replaceParameters
     $cmd =~ s/:INPATH:/$testCmd->{'inpathbase'}/g;
     $cmd =~ s/:OUTPATH:/$outfile/g;
     $cmd =~ s/:FUNCPATH:/$testCmd->{'funcjarPath'}/g;
-    $cmd =~ s/:PIGGYBANKPATH:/$testCmd->{'piggybankjarPath'}/g;
+    $cmd =~ s/:PIGGYBANKJAR:/$testCmd->{'piggybankjarPath'}/g;
     $cmd =~ s/:PIGPATH:/$testCmd->{'pigpath'}/g;
     $cmd =~ s/:RUNID:/$testCmd->{'UID'}/g;
     $cmd =~ s/:USRHOMEPATH:/$testCmd->{'userhomePath'}/g;
@@ -671,6 +671,9 @@ sub generateBenchmark
     else {
         if ((Util::isWindows()||Util::isCygwin()) && $testCmd->{'pig_win'}) {
            $modifiedTestCmd{'pig'} = $testCmd->{'pig_win'};
+       }
+	   if ( $testCmd->{'hadoopversion'} == '23' && $testCmd->{'pig23'}) {
+           $modifiedTestCmd{'pig'} = $testCmd->{'pig23'};
        }
 		# Change so we're looking at the old version of Pig
                 if (defined $testCmd->{'oldpigpath'} && $testCmd->{'oldpigpath'} ne "") {

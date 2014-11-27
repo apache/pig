@@ -36,6 +36,7 @@ import java.util.TreeSet;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigConfiguration;
+import org.apache.pig.PigWarning;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
@@ -81,7 +82,7 @@ public class InternalDistinctBag extends SortedSpillBag {
         if (percent < 0) {
             percent = 0.2F;
             if (PigMapReduce.sJobConfInternal.get() != null) {
-                String usage = PigMapReduce.sJobConfInternal.get().get(PigConfiguration.PROP_CACHEDBAG_MEMUSAGE);
+                String usage = PigMapReduce.sJobConfInternal.get().get(PigConfiguration.PIG_CACHEDBAG_MEMUSAGE);
                 if (usage != null) {
                     percent = Float.parseFloat(usage);
                 }
@@ -424,19 +425,25 @@ public class InternalDistinctBag extends SortedSpillBag {
                     // the spill files list.  So I need to append it to my
                     // linked list as well so that it's still there when I
                     // move my linked list back to the spill files.
+                    DataOutputStream out = null;
                     try {
-                        DataOutputStream out = getSpillFile();
+                        out = getSpillFile();
                         ll.add(mSpillFiles.get(mSpillFiles.size() - 1));
                         Tuple t;
                         while ((t = readFromTree()) != null) {
                             t.write(out);
                         }
                         out.flush();
-                        out.close();
                     } catch (IOException ioe) {
                         String msg = "Unable to find our spill file.";
                         log.fatal(msg, ioe);
                         throw new RuntimeException(msg, ioe);
+                    } finally {
+                        try {
+                            out.close();
+                        } catch (IOException e) {
+                            warn("Error closing spill", PigWarning.UNABLE_TO_CLOSE_SPILL_FILE, e);
+                        }
                     }
                 }
 

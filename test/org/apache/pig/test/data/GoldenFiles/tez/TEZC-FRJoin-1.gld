@@ -1,0 +1,67 @@
+#--------------------------------------------------
+# There are 1 DAGs in the session
+#--------------------------------------------------
+#--------------------------------------------------
+# TEZ DAG plan: pig-0_scope-0
+#--------------------------------------------------
+Tez vertex scope-37	->	Tez vertex scope-36,
+Tez vertex scope-38	->	Tez vertex scope-36,
+Tez vertex scope-36
+
+Tez vertex scope-37
+# Plan on vertex
+Local Rearrange[tuple]{int}(false) - scope-30	->	 scope-36
+|   |
+|   Project[int][0] - scope-25
+|
+|---b: New For Each(false,false)[bag] - scope-15
+    |   |
+    |   Cast[int] - scope-10
+    |   |
+    |   |---Project[bytearray][0] - scope-9
+    |   |
+    |   Cast[int] - scope-13
+    |   |
+    |   |---Project[bytearray][1] - scope-12
+    |
+    |---b: Load(file:///tmp/input2:org.apache.pig.builtin.PigStorage) - scope-8
+Tez vertex scope-38
+# Plan on vertex
+Local Rearrange[tuple]{int}(false) - scope-32	->	 scope-36
+|   |
+|   Project[int][0] - scope-26
+|
+|---c: New For Each(false,false)[bag] - scope-23
+    |   |
+    |   Cast[int] - scope-18
+    |   |
+    |   |---Project[bytearray][0] - scope-17
+    |   |
+    |   Cast[int] - scope-21
+    |   |
+    |   |---Project[bytearray][1] - scope-20
+    |
+    |---c: Load(file:///tmp/input3:org.apache.pig.builtin.PigStorage) - scope-16
+Tez vertex scope-36
+# Plan on vertex
+d: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-35
+|
+|---d: FRJoin[tuple] - scope-27	<-	 scope-37,scope-38
+    |   |
+    |   Project[int][0] - scope-24
+    |   |
+    |   Project[int][0] - scope-25
+    |   |
+    |   Project[int][0] - scope-26
+    |
+    |---a: New For Each(false,false)[bag] - scope-7
+        |   |
+        |   Cast[int] - scope-2
+        |   |
+        |   |---Project[bytearray][0] - scope-1
+        |   |
+        |   Cast[int] - scope-5
+        |   |
+        |   |---Project[bytearray][1] - scope-4
+        |
+        |---a: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-0

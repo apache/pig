@@ -23,10 +23,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.SequenceInputStream;
-import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
@@ -42,12 +40,10 @@ import java.util.regex.Pattern;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
-import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.compress.BZip2Codec;
 import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.mapred.JobConf;
@@ -65,7 +61,6 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfigurat
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.io.InterStorage;
 import org.apache.pig.impl.io.ReadToEndLoader;
@@ -76,6 +71,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.parser.ParserException;
 import org.apache.pig.parser.QueryParserDriver;
+import org.joda.time.DateTimeZone;
 
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Longs;
@@ -85,17 +81,32 @@ import com.google.common.primitives.Longs;
  */
 public class Utils {
     private static final Log log = LogFactory.getLog(Utils.class);
-    
+    private static final Pattern JAVA_MAXHEAPSIZE_PATTERN = Pattern.compile("-Xmx(([0-9]+)[mMgG])");
+
+
     /**
      * This method checks whether JVM vendor is IBM
      * @return true if IBM JVM is being used
      * false otherwise
      */
-    public static boolean isVendorIBM() {    	
+    public static boolean isVendorIBM() {
     	  return System.getProperty("java.vendor").contains("IBM");
     }
-    
-    
+
+    public static boolean isHadoop23() {
+        String version = org.apache.hadoop.util.VersionInfo.getVersion();
+        if (version.matches("\\b0\\.23\\..+\\b"))
+            return true;
+        return false;
+    }
+
+    public static boolean isHadoop2() {
+        String version = org.apache.hadoop.util.VersionInfo.getVersion();
+        if (version.matches("\\b2\\.\\d+\\..+"))
+            return true;
+        return false;
+    }
+
     /**
      * This method is a helper for classes to implement {@link java.lang.Object#equals(java.lang.Object)}
      * checks if two objects are equals - two levels of checks are
@@ -238,7 +249,7 @@ public class Utils {
     }
 
     public static LogicalSchema parseSchema(String schemaString) throws ParserException {
-        QueryParserDriver queryParser = new QueryParserDriver( new PigContext(), 
+        QueryParserDriver queryParser = new QueryParserDriver( new PigContext(),
                 "util", new HashMap<String, String>() ) ;
         LogicalSchema schema = queryParser.parseSchema(schemaString);
         return schema;
@@ -249,7 +260,7 @@ public class Utils {
      * field. This will be called only when PigStorage is invoked with
      * '-tagFile' or '-tagPath' option and the schema file is present to be
      * loaded.
-     * 
+     *
      * @param schema
      * @param fieldName
      * @return ResourceSchema
@@ -383,7 +394,7 @@ public class Utils {
         } else if (TEMPFILE_STORAGE.TFILE.lowerName().equals(tmpFileCompressionStorage)) {
             return TEMPFILE_STORAGE.TFILE;
         } else {
-            throw new IllegalArgumentException("Unsupported storage format " + tmpFileCompressionStorage + 
+            throw new IllegalArgumentException("Unsupported storage format " + tmpFileCompressionStorage +
                     ". Should be one of " + Arrays.toString(TEMPFILE_STORAGE.values()));
         }
     }
@@ -582,7 +593,7 @@ public class Utils {
             // substitute
             eval = eval.substring(0, match.start())+val+eval.substring(match.end());
         }
-        throw new IllegalStateException("Variable substitution depth too large: " 
+        throw new IllegalStateException("Variable substitution depth too large: "
                 + MAX_SUBST + " " + expr);
     }
 
@@ -647,5 +658,36 @@ public class Utils {
 
       return null;
 
+    }
+
+    public static int extractHeapSizeInMB(String input) {
+        int ret = 0;
+        if(input == null || input.equals(""))
+            return ret;
+        Matcher m = JAVA_MAXHEAPSIZE_PATTERN.matcher(input);
+        String heapStr = null;
+        String heapNum = null;
+        // Grabs the last match which takes effect (in case that multiple Xmx options specified)
+        while (m.find()) {
+            heapStr = m.group(1);
+            heapNum = m.group(2);
+        }
+        if (heapStr != null) {
+            // when Xmx specified in Gigabyte
+            if(heapStr.endsWith("g") || heapStr.endsWith("G")) {
+                ret = Integer.parseInt(heapNum) * 1024;
+            } else {
+                ret = Integer.parseInt(heapNum);
+            }
+        }
+        return ret;
+    }
+
+    public static void setDefaultTimeZone(Configuration conf) {
+        String dtzStr = conf.get(PigConfiguration.PIG_DATETIME_DEFAULT_TIMEZONE);
+        if (dtzStr != null && dtzStr.length() > 0) {
+            // don't use offsets because it breaks across DST/Standard Time
+            DateTimeZone.setDefault(DateTimeZone.forID(dtzStr));
+        }
     }
 }

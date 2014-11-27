@@ -108,20 +108,22 @@ public class POLimit extends PhysicalOperator {
             default:
                 throw new RuntimeException("Limit requires an integer parameter");
             }
-            if (variableLimit <= 0)
-                throw new RuntimeException("Limit requires a positive integer parameter");
+            if (variableLimit < 0)
+                throw new RuntimeException("Limit requires a zero or a positive integer parameter");
             this.setLimit(variableLimit);
         }
         Result inp = null;
         while (true) {
+            // illustrator ignore LIMIT before the post processing
+            if ((illustrator == null || illustrator.getOriginalLimit() != -1) && soFar >= mLimit) {
+                inp = RESULT_EOP;
+                break;
+            }
             inp = processInput();
             if (inp.returnStatus == POStatus.STATUS_EOP || inp.returnStatus == POStatus.STATUS_ERR)
                 break;
 
             illustratorMarkup(inp.result, null, 0);
-            // illustrator ignore LIMIT before the post processing
-            if ((illustrator == null || illustrator.getOriginalLimit() != -1) && soFar>=mLimit)
-            	inp.returnStatus = POStatus.STATUS_EOP;
 
             soFar++;
             break;

@@ -29,84 +29,123 @@ public class PigConfiguration {
     /////////////////////////       COMMAND LINE KEYS       /////////////////////////////
     /////////////////////////////////////////////////////////////////////////////////////
 
+    // Pig runtime optimizations
     /**
-     * Controls the fraction of total memory that is allowed to be used by
-     * cached bags. Default is 0.2.
+     * This key is to turn on auto local mode feature
      */
-    public static final String PROP_CACHEDBAG_MEMUSAGE = "pig.cachedbag.memusage";
+    public static final String PIG_AUTO_LOCAL_ENABLED = "pig.auto.local.enabled";
+    /**
+     * Controls the max threshold size to convert jobs to run in local mode
+     */
+    public static final String PIG_AUTO_LOCAL_INPUT_MAXBYTES = "pig.auto.local.input.maxbytes";
 
     /**
-     * Controls whether partial aggregation is turned on
+     * Boolean value used to enable or disable fetching without a mapreduce job for DUMP. True by default
      */
-    public static final String PROP_EXEC_MAP_PARTAGG = "pig.exec.mapPartAgg";
+    public static final String PIG_OPT_FETCH = "opt.fetch";
 
+    // Pig query planning and execution optimizations
+    /**
+     * Boolean value used to enable or disable multiquery optimization. True by default
+     */
+    public static final String PIG_OPT_MULTIQUERY = "opt.multiquery";
+
+    /**
+     * Boolean value used to enable or disable accumulator optimization. True by default
+     */
+    public static final String PIG_OPT_ACCUMULATOR = "opt.accumulator";
+    public static final String PIG_ACCUMULATIVE_BATCHSIZE = "pig.accumulative.batchsize";
+
+    /**
+     * This key is used to enable or disable union optimization in tez. True by default
+     */
+    public static final String PIG_TEZ_OPT_UNION = "pig.tez.opt.union";
+
+    /**
+     * Boolean value to enable or disable partial aggregation in map. Disabled by default
+     */
+    public static final String PIG_EXEC_MAP_PARTAGG = "pig.exec.mapPartAgg";
     /**
      * Controls the minimum reduction in-mapper Partial Aggregation should achieve in order
      * to stay on. If after a period of observation this reduction is not achieved,
      * in-mapper aggregation will be turned off and a message logged to that effect.
      */
-    public static final String PARTAGG_MINREDUCTION = "pig.exec.mapPartAgg.minReduction";
+    public static final String PIG_EXEC_MAP_PARTAGG_MINREDUCTION = "pig.exec.mapPartAgg.minReduction";
 
+    /**
+     * Boolean value to enable or disable use of combiners in MapReduce jobs. Enabled by default
+     */
+    public static final String PIG_EXEC_NO_COMBINER = "pig.exec.nocombiner";
+
+    /**
+     * This key controls whether secondary sort key is used for optimization in case
+     * of nested distinct or sort
+     */
+    public static final String PIG_EXEC_NO_SECONDARY_KEY = "pig.exec.nosecondarykey";
+
+    // Pig memory usage control settings
+    /**
+     * Controls the fraction of total memory that is allowed to be used by
+     * cached bags. Default is 0.2.
+     */
+    public static final String PIG_CACHEDBAG_MEMUSAGE = "pig.cachedbag.memusage";
+
+    /**
+     * % of memory available for the input data. This is currently equal to the
+     * memory available for the skewed join
+     */
+    public static final String PIG_SKEWEDJOIN_REDUCE_MEMUSAGE = "pig.skewedjoin.reduce.memusage";
+
+    /**
+     * This key used to control the maximum size loaded into
+     * the distributed cache when doing fragment-replicated join
+     */
+    public static final String PIG_JOIN_REPLICATED_MAX_BYTES = "pig.join.replicated.max.bytes";
+
+    // Pig cached bag type settings
+    /**
+     * Configurations for specifying alternate implementations for cached bags. Rarely used
+     */
+    public static final String PIG_CACHEDBAG_TYPE = "pig.cachedbag.type";
+    public static final String PIG_CACHEDBAG_DISTINCT_TYPE = "pig.cachedbag.distinct.type";
+    public static final String PIG_CACHEDBAG_SORT_TYPE = "pig.cachedbag.sort.type";
+
+    // Pig reducer parallelism estimation settings
+    public static final String PIG_EXEC_REDUCER_ESTIMATOR = "pig.exec.reducer.estimator";
+    public static final String PIG_EXEC_REDUCER_ESTIMATOR_CONSTRUCTOR_ARG_KEY =  "pig.exec.reducer.estimator.arg";
+    /**
+     * This key is used to configure auto parallelism in tez. Default is true.
+     */
+    public static final String PIG_TEZ_AUTO_PARALLELISM = "pig.tez.auto.parallelism";
+
+    // Pig UDF profiling settings
     /**
      * Controls whether execution time of Pig UDFs should be tracked.
      * This feature uses counters; use judiciously.
      */
-    public static final String TIME_UDFS = "pig.udf.profile";
-    public static final String TIME_UDFS_FREQUENCY = "pig.udf.profile.frequency";
+    public static final String PIG_UDF_PROFILE = "pig.udf.profile";
+    public static final String PIG_UDF_PROFILE_FREQUENCY = "pig.udf.profile.frequency";
 
+    // Pig schema tuple settings
     /**
      * This key must be set to true by the user for code generation to be used.
      * In the future, it may be turned on by default (at least in certain cases),
      * but for now it is too experimental.
      */
-    public static final String SHOULD_USE_SCHEMA_TUPLE = "pig.schematuple";
+    public static final String PIG_SCHEMA_TUPLE_ENABLED = "pig.schematuple";
 
-    public static final String SCHEMA_TUPLE_SHOULD_USE_IN_UDF = "pig.schematuple.udf";
+    public static final String PIG_SCHEMA_TUPLE_USE_IN_UDF = "pig.schematuple.udf";
 
-    public static final String SCHEMA_TUPLE_SHOULD_USE_IN_FOREACH = "pig.schematuple.foreach";
+    public static final String PIG_SCHEMA_TUPLE_USE_IN_FOREACH = "pig.schematuple.foreach";
 
-    public static final String SCHEMA_TUPLE_SHOULD_USE_IN_FRJOIN = "pig.schematuple.fr_join";
+    public static final String PIG_SCHEMA_TUPLE_USE_IN_FRJOIN = "pig.schematuple.fr_join";
 
-    public static final String SCHEMA_TUPLE_SHOULD_USE_IN_MERGEJOIN = "pig.schematuple.merge_join";
+    public static final String PIG_SCHEMA_TUPLE_USE_IN_MERGEJOIN = "pig.schematuple.merge_join";
 
-    public static final String SCHEMA_TUPLE_SHOULD_ALLOW_FORCE = "pig.schematuple.force";
-
-    /**
-     * This key is used to enable multiquery optimization.
-     */
-    public static final String OPT_MULTIQUERY = "opt.multiquery";
-
-    /**
-     * This key is used to enable accumulator optimization.
-     */
-    public static final String OPT_ACCUMULATOR = "opt.accumulator";
+    public static final String PIG_SCHEMA_TUPLE_ALLOW_FORCE = "pig.schematuple.force";
 
 
-    /**
-     * This key is used to configure auto parallelism in tez. Default is true.
-     */
-    public static final String TEZ_AUTO_PARALLELISM = "pig.tez.auto.parallelism";
-
-    /**
-     * This key is used to enable union optimization.
-     */
-    public static final String TEZ_OPT_UNION = "pig.tez.opt.union";
-
-    /**
-     * This key is used to define whether to reuse AM in Tez jobs.
-     */
-    public static final String TEZ_SESSION_REUSE = "pig.tez.session.reuse";
-
-    /**
-     * This key is used to configure the interval of dag status report in seconds.
-     */
-    public static final String TEZ_DAG_STATUS_REPORT_INTERVAL = "pig.tez.dag.status.report.interval";
-
-    /**
-     * Turns off use of combiners in MapReduce jobs produced by Pig.
-     */
-    public static final String PROP_NO_COMBINER = "pig.exec.nocombiner";
-
+    // Pig Streaming settings
     /**
      * This key can be used to defined what properties will be set in the streaming environment.
      * Just set this property to a comma-delimited list of properties to set, and those properties
@@ -120,33 +159,41 @@ public class PigConfiguration {
      */
     public static final String PIG_STREAMING_UDF_PYTHON_COMMAND = "pig.streaming.udf.python.command";
 
+    // Pig input format settings
     /**
-     * This key is used to define the default load func. Pig will fallback on PigStorage
-     * as default in case this is undefined.
+     * Turns combine split files on or off
      */
-    public static final String PIG_DEFAULT_LOAD_FUNC = "pig.default.load.func";
+    public static final String PIG_SPLIT_COMBINATION = "pig.splitCombination";
 
     /**
-     * This key is used to define the default store func. Pig will fallback on PigStorage
-     * as default in case this is undefined.
+     * Whether turns combine split files off. This is for internal use only
      */
-    public static final String PIG_DEFAULT_STORE_FUNC = "pig.default.store.func";
+    public static final String PIG_NO_SPLIT_COMBINATION = "pig.noSplitCombination";
 
+    /**
+     * Specifies the size, in bytes, of data to be processed by a single map.
+     * Smaller files are combined untill this size is reached.
+     */
+    public static final String PIG_MAX_COMBINED_SPLIT_SIZE = "pig.maxCombinedSplitSize";
+
+    // Pig output format settings
+    /**
+     * This key is used to define whether PigOutputFormat will be wrapped with LazyOutputFormat
+     * so that jobs won't write empty part files if no output is generated
+     */
+    public static final String PIG_OUTPUT_LAZY = "pig.output.lazy";
     /**
      * This key is used to define whether to support recovery to handle the
      * application master getting restarted.
      */
     public static final String PIG_OUTPUT_COMMITTER_RECOVERY = "pig.output.committer.recovery.support";
 
-    /**
-     * This key is used to turn off the inclusion of settings in the jobs.
-     */
-    public static final String INSERT_ENABLED = "pig.script.info.enabled";
+    //Pig intermediate temporary file settings
 
     /**
-     * Controls the size of Pig script stored in job xml.
+     * Location where pig stores temporary files for job setup
      */
-    public static final String MAX_SCRIPT_SIZE = "pig.script.max.size";
+    public static final String PIG_TEMP_DIR = "pig.temp.dir";
 
     /**
      * This key is used to define whether to have intermediate file compressed
@@ -171,44 +218,12 @@ public class PigConfiguration {
      */
     public static final String PIG_DELETE_TEMP_FILE = "pig.delete.temp.files";
 
+
+    //Pig skewedjoin and order by sampling settings
     /**
      * For a given mean and a confidence, a sample rate is obtained from a poisson udf
      */
-    public static final String SAMPLE_RATE = "pig.sksampler.samplerate";
-
-    /**
-     * % of memory available for the input data. This is currently equal to the
-     * memory available for the skewed join
-     */
-    public static final String PERC_MEM_AVAIL = "pig.skewedjoin.reduce.memusage";
-
-    /**
-     * This key used to control the maximum size loaded into
-     * the distributed cache when doing fragment-replicated join
-     */
-    public static final String PIG_JOIN_REPLICATED_MAX_BYTES = "pig.join.replicated.max.bytes";
-
-    /**
-     * Turns combine split files on or off
-     */
-    public static final String PIG_SPLIT_COMBINATION = "pig.splitCombination";
-
-    /**
-     * Whether turns combine split files off. This is for internal use only
-     */
-    public static final String PIG_NO_SPLIT_COMBINATION = "pig.noSplitCombination";
-
-    /**
-     * Specifies the size, in bytes, of data to be processed by a single map.
-     * Smaller files are combined untill this size is reached.
-     */
-    public static final String PIG_MAX_COMBINED_SPLIT_SIZE = "pig.maxCombinedSplitSize";
-
-    /**
-     * This key controls whether secondary sort key is used for optimization in case
-     * of nested distinct or sort
-     */
-    public static final String PIG_EXEC_NO_SECONDARY_KEY = "pig.exec.nosecondarykey";
+    public static final String PIG_POISSON_SAMPLER_SAMPLE_RATE = "pig.sksampler.samplerate";
 
     /**
      * This key used to control the sample size of RandomeSampleLoader for
@@ -216,31 +231,29 @@ public class PigConfiguration {
      */
     public static final String PIG_RANDOM_SAMPLER_SAMPLE_SIZE = "pig.random.sampler.sample.size";
 
+
+    //Pig miscellaneous settings
     /**
-     * This key is to turn on auto local mode feature
+     * This key is used to define the default load func. Pig will fallback on PigStorage
+     * as default in case this is undefined.
      */
-    public static final String PIG_AUTO_LOCAL_ENABLED = "pig.auto.local.enabled";
+    public static final String PIG_DEFAULT_LOAD_FUNC = "pig.default.load.func";
 
     /**
-     * Controls the max threshold size to convert jobs to run in local mode
+     * This key is used to define the default store func. Pig will fallback on PigStorage
+     * as default in case this is undefined.
      */
-    public static final String PIG_AUTO_LOCAL_INPUT_MAXBYTES = "pig.auto.local.input.maxbytes";
+    public static final String PIG_DEFAULT_STORE_FUNC = "pig.default.store.func";
 
     /**
-     * This parameter enables/disables fetching. By default it is turned on.
+     * This key is used to turn off the inclusion of settings in the jobs.
      */
-    public static final String OPT_FETCH = "opt.fetch";
+    public static final String PIG_SCRIPT_INFO_ENABLED = "pig.script.info.enabled";
 
     /**
-     * This key is used to define whether PigOutputFormat will be wrapped with LazyOutputFormat
-     * so that jobs won't write empty part files if no output is generated
+     * Controls the size of Pig script stored in job xml.
      */
-    public static final String PIG_OUTPUT_LAZY = "pig.output.lazy";
-
-    /**
-     * Location where pig stores temporary files for job setup
-     */
-    public static final String PIG_TEMP_DIR = "pig.temp.dir";
+    public static final String PIG_SCRIPT_MAX_SIZE = "pig.script.max.size";
 
     /**
      * This key is turn on the user level cache
@@ -276,9 +289,86 @@ public class PigConfiguration {
      * This key is used to turns off use of task reports in job statistics.
      */
     public static final String PIG_NO_TASK_REPORT = "pig.stats.notaskreport";
-    
-    public static final String PIG_CROSS_PARALLELISM_HINT = "pig.cross.parallelism.hint";
 
-    public static final String REDUCER_ESTIMATOR_KEY = "pig.exec.reducer.estimator";
-    public static final String REDUCER_ESTIMATOR_ARG_KEY =  "pig.exec.reducer.estimator.arg";
+    /**
+     * The timezone to be used by Pig datetime datatype
+     */
+    public static final String PIG_DATETIME_DEFAULT_TIMEZONE = "pig.datetime.default.tz";
+
+
+    // Pig on Tez runtime settings
+    /**
+     * This key is used to define whether to reuse AM in Tez jobs.
+     */
+    public static final String PIG_TEZ_SESSION_REUSE = "pig.tez.session.reuse";
+
+    /**
+     * This key is used to configure the interval of dag status report in seconds. Default is 20
+     */
+    public static final String PIG_TEZ_DAG_STATUS_REPORT_INTERVAL = "pig.tez.dag.status.report.interval";
+
+
+
+    // Deprecated settings of Pig 0.13
+
+    /**
+     * @deprecated use {@link #PIG_OPT_FETCH} instead. Will be removed in Pig 0.16
+     */
+    @Deprecated
+    public static final String OPT_FETCH = PIG_OPT_FETCH;
+
+    /**
+     * @deprecated use {@link #PIG_CACHEDBAG_MEMUSAGE} instead. Will be removed in Pig 0.16
+     */
+    @Deprecated
+    public static final String PROP_CACHEDBAG_MEMUSAGE = PIG_CACHEDBAG_MEMUSAGE;
+
+    /**
+     * @deprecated use {@link #PIG_EXEC_MAP_PARTAGG} instead. Will be removed in Pig 0.16
+     */
+    @Deprecated
+    public static final String PROP_EXEC_MAP_PARTAGG = PIG_EXEC_MAP_PARTAGG;
+
+    /**
+     * @deprecated use {@link #PIG_EXEC_MAP_PARTAGG_MINREDUCTION} instead. Will be removed in Pig 0.16
+     */
+    @Deprecated
+    public static final String PARTAGG_MINREDUCTION = PIG_EXEC_MAP_PARTAGG_MINREDUCTION;
+
+    /**
+     * @deprecated use {@link #PROP_NO_COMBINER1} instead. Will be removed in Pig 0.16
+     */
+    @Deprecated
+    public static final String PROP_NO_COMBINER = PIG_EXEC_NO_COMBINER;
+
+    @Deprecated
+    public static final String SHOULD_USE_SCHEMA_TUPLE = PIG_SCHEMA_TUPLE_ENABLED;
+
+    @Deprecated
+    public static final String SCHEMA_TUPLE_SHOULD_USE_IN_UDF = PIG_SCHEMA_TUPLE_USE_IN_UDF;
+
+    @Deprecated
+    public static final String SCHEMA_TUPLE_SHOULD_USE_IN_FOREACH = PIG_SCHEMA_TUPLE_USE_IN_FOREACH;
+
+    @Deprecated
+    public static final String SCHEMA_TUPLE_SHOULD_USE_IN_FRJOIN = PIG_SCHEMA_TUPLE_USE_IN_FRJOIN;
+
+    @Deprecated
+    public static final String SCHEMA_TUPLE_SHOULD_USE_IN_MERGEJOIN = PIG_SCHEMA_TUPLE_USE_IN_MERGEJOIN;
+
+    @Deprecated
+    public static final String SCHEMA_TUPLE_SHOULD_ALLOW_FORCE = PIG_SCHEMA_TUPLE_ALLOW_FORCE;
+
+    /**
+     * @deprecated use {@link #PIG_SCRIPT_INFO_ENABLED} instead. Will be removed in Pig 0.16
+     */
+    @Deprecated
+    public static final String INSERT_ENABLED = PIG_SCRIPT_INFO_ENABLED;
+
+    /**
+     * @deprecated use {@link #PIG_SCRIPT_MAX_SIZE} instead. Will be removed in Pig 0.16
+     */
+    @Deprecated
+    public static final String MAX_SCRIPT_SIZE = PIG_SCRIPT_MAX_SIZE;
+
 }

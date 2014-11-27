@@ -22,11 +22,13 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
+import org.apache.pig.backend.hadoop.executionengine.util.AccumulatorOptimizerUtil;
 import org.apache.pig.data.AccumulativeBag;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -75,15 +77,15 @@ public class POPackage extends PhysicalOperator {
     protected static final BagFactory mBagFactory = BagFactory.getInstance();
     protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
 
-    private boolean firstTime = true;
-
-    private boolean useDefaultBag = false;
-
     private boolean lastBagReadOnly = true;
 
     protected Packager pkgr;
 
     protected PigNullableWritable keyWritable;
+
+    private transient boolean initialized;
+    private transient boolean useDefaultBag;
+    private transient int accumulativeBatchSize;
 
     public POPackage(OperatorKey k) {
         this(k, -1, null);
@@ -189,15 +191,17 @@ public class POPackage extends PhysicalOperator {
      */
     @Override
     public Result getNextTuple() throws ExecException {
-        if(firstTime){
-            firstTime = false;
+        if (!initialized) {
+            initialized = true;
             if (PigMapReduce.sJobConfInternal.get() != null) {
                 String bagType = PigMapReduce.sJobConfInternal.get().get(
-                        "pig.cachedbag.type");
+                        PigConfiguration.PIG_CACHEDBAG_TYPE);
                 if (bagType != null && bagType.equalsIgnoreCase("default")) {
                     useDefaultBag = true;
                 }
             }
+            accumulativeBatchSize = AccumulatorOptimizerUtil.getAccumulativeBatchSize();
+
             // If multiquery, the last bag is InternalCachedBag and should not
             // set ReadOnly flag, otherwise we will materialize again to another
             // InternalCachedBag
@@ -220,9 +224,7 @@ public class POPackage extends PhysicalOperator {
                 // create bag wrapper to pull tuples in many batches
                 // all bags have reference to the sample tuples buffer
                 // which contains tuples from one batch
-                POPackageTupleBuffer buffer = new POPackageTupleBuffer();
-                buffer.setKey(key);
-                buffer.setIterator(tupIter);
+                POPackageTupleBuffer buffer = new POPackageTupleBuffer(accumulativeBatchSize, key, tupIter);
                 for (int i = 0; i < numInputs; i++) {
                     dbs[i] = new AccumulativeBag(buffer, i);
                 }
@@ -317,27 +319,14 @@ public class POPackage extends PhysicalOperator {
         private Object currKey;
 
         @SuppressWarnings("unchecked")
-        public POPackageTupleBuffer() {
-            batchSize = 20000;
-            if (PigMapReduce.sJobConfInternal.get() != null) {
-                String size = PigMapReduce.sJobConfInternal.get().get("pig.accumulative.batchsize");
-                if (size != null) {
-                    batchSize = Integer.parseInt(size);
-                }
-            }
-
+        public POPackageTupleBuffer(int batchSize, Object key, Iterator<NullableTuple> iter) {
+            this.batchSize = batchSize;
+            this.currKey = key;
+            this.iter = iter;
             this.bags = new List[numInputs];
             for(int i=0; i<numInputs; i++) {
-                this.bags[i] = new ArrayList<Tuple>();
+                this.bags[i] = new ArrayList<Tuple>(batchSize);
             }
-        }
-
-        public void setKey(Object key) {
-            this.currKey = key;
-        }
-
-        public void setIterator(Iterator<NullableTuple> iter) {
-            this.iter = iter;
         }
 
         @Override

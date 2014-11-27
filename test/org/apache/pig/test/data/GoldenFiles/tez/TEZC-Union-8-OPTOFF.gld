@@ -2,78 +2,70 @@
 # There are 1 DAGs in the session
 #--------------------------------------------------
 #--------------------------------------------------
-# TEZ DAG plan: scope-88
+# TEZ DAG plan: pig-0_scope-1
 #--------------------------------------------------
-Tez vertex scope-70	->	Tez vertex scope-72,
-Tez vertex scope-72	->	Tez vertex scope-80,
-Tez vertex scope-75	->	Tez vertex scope-77,
-Tez vertex scope-77	->	Tez vertex scope-80,
-Tez vertex scope-80	->	Tez vertex scope-85,
-Tez vertex scope-85
-
+Tez vertex scope-60	->	Tez vertex scope-62,
+Tez vertex scope-62	->	Tez vertex scope-70,
+Tez vertex scope-65	->	Tez vertex scope-67,
+Tez vertex scope-67	->	Tez vertex scope-70,
 Tez vertex scope-70
+
+Tez vertex scope-60
 # Plan on vertex
-POValueOutputTez - scope-71	->	 [scope-72]
+POValueOutputTez - scope-61	->	 [scope-62]
+|
+|---Limit - scope-38
+    |
+    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-37
+Tez vertex scope-62
+# Plan on vertex
+POValueOutputTez - scope-72	->	 [scope-70]
+|
+|---a: New For Each(false,false)[bag] - scope-46
+    |   |
+    |   Cast[int] - scope-41
+    |   |
+    |   |---Project[bytearray][0] - scope-40
+    |   |
+    |   Cast[chararray] - scope-44
+    |   |
+    |   |---Project[bytearray][1] - scope-43
+    |
+    |---Limit - scope-39
+        |
+        |---Limit - scope-64
+            |
+            |---POValueInputTez - scope-63	<-	 scope-60
+Tez vertex scope-65
+# Plan on vertex
+POValueOutputTez - scope-66	->	 [scope-67]
 |
 |---Limit - scope-48
     |
-    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-47
-Tez vertex scope-72
+    |---b: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-47
+Tez vertex scope-67
 # Plan on vertex
-POValueOutputTez - scope-82	->	 [scope-80]
+POValueOutputTez - scope-73	->	 [scope-70]
 |
-|---a: New For Each(false,false)[bag] - scope-56
+|---c: New For Each(false,false)[bag] - scope-56
     |   |
     |   Cast[int] - scope-51
     |   |
-    |   |---Project[bytearray][0] - scope-50
+    |   |---Project[bytearray][1] - scope-50
     |   |
     |   Cast[chararray] - scope-54
     |   |
-    |   |---Project[bytearray][1] - scope-53
+    |   |---Project[bytearray][0] - scope-53
     |
     |---Limit - scope-49
         |
-        |---Limit - scope-74
+        |---Limit - scope-69
             |
-            |---POValueInputTez - scope-73	<-	 scope-70
-Tez vertex scope-75
+            |---POValueInputTez - scope-68	<-	 scope-65
+Tez vertex scope-70
 # Plan on vertex
-POValueOutputTez - scope-76	->	 [scope-77]
+d: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-59
 |
-|---Limit - scope-58
+|---d: Limit - scope-58
     |
-    |---b: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-57
-Tez vertex scope-77
-# Plan on vertex
-POValueOutputTez - scope-83	->	 [scope-80]
-|
-|---c: New For Each(false,false)[bag] - scope-66
-    |   |
-    |   Cast[int] - scope-61
-    |   |
-    |   |---Project[bytearray][1] - scope-60
-    |   |
-    |   Cast[chararray] - scope-64
-    |   |
-    |   |---Project[bytearray][0] - scope-63
-    |
-    |---Limit - scope-59
-        |
-        |---Limit - scope-79
-            |
-            |---POValueInputTez - scope-78	<-	 scope-75
-Tez vertex scope-80
-# Plan on vertex
-POValueOutputTez - scope-84	->	 [scope-85]
-|
-|---d: Limit - scope-68
-    |
-    |---POShuffledValueInputTez - scope-81	<-	 [scope-77, scope-72]
-Tez vertex scope-85
-# Plan on vertex
-d: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-69
-|
-|---d: Limit - scope-87
-    |
-    |---POValueInputTez - scope-86	<-	 scope-80
+    |---POShuffledValueInputTez - scope-71	<-	 [scope-67, scope-62]

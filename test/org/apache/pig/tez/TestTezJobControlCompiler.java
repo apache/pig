@@ -21,7 +21,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
@@ -41,20 +40,22 @@ import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.tez.MultiQueryOptimizerTez;
-import org.apache.pig.backend.hadoop.executionengine.tez.TezCompiler;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezJobCompiler;
+import org.apache.pig.backend.hadoop.executionengine.tez.TezLauncher;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezLocalExecType;
-import org.apache.pig.backend.hadoop.executionengine.tez.TezOperPlan;
-import org.apache.pig.backend.hadoop.executionengine.tez.TezOperator;
-import org.apache.pig.backend.hadoop.executionengine.tez.optimizers.LoaderProcessor;
-import org.apache.pig.backend.hadoop.executionengine.tez.optimizers.ParallelismSetter;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezCompiler;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperator;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPlanContainerNode;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.test.Util;
 import org.apache.pig.test.junit.OrderedJUnit4Runner;
 import org.apache.pig.test.junit.OrderedJUnit4Runner.TestOrder;
+import org.apache.pig.tools.pigstats.ScriptState;
+import org.apache.pig.tools.pigstats.tez.TezScriptState;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Vertex;
 import org.junit.AfterClass;
@@ -190,7 +191,7 @@ public class TestTezJobControlCompiler {
         @Override
         public List<InputSplit> getSplits(JobContext job) throws IOException {
             String inputDir = job.getConfiguration().get(INPUT_DIR, "");
-            String numSplitString = inputDir.substring(inputDir.lastIndexOf(File.separator)+1);
+            String numSplitString = inputDir.substring(inputDir.lastIndexOf("/")+1);
             int numSplit = Integer.parseInt(numSplitString);
             List<InputSplit> splits = new ArrayList<InputSplit>();
             for (int i=0;i<numSplit;i++) {
@@ -254,7 +255,7 @@ public class TestTezJobControlCompiler {
         Vertex leafVertex = compiledPlan.second.getVertex(leafOper.getOperatorKey().toString());
         assertEquals(leafVertex.getParallelism(), 15);
     }
-    
+
     @Test
     public void testTezParallelismEstimatorSplitBranch() throws Exception{
         pc.getProperties().setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
@@ -270,7 +271,7 @@ public class TestTezJobControlCompiler {
         Vertex leafVertex = compiledPlan.second.getVertex(leafOper.getOperatorKey().toString());
         assertEquals(leafVertex.getParallelism(), 7);
     }
-    
+
     @Test
     public void testTezParallelismDefaultParallelism() throws Exception{
         pc.getProperties().setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
@@ -289,14 +290,15 @@ public class TestTezJobControlCompiler {
         PhysicalPlan pp = Util.buildPp(pigServer, query);
         TezCompiler comp = new TezCompiler(pp, pc);
         TezOperPlan tezPlan = comp.compile();
+        TezLauncher.processLoadAndParallelism(tezPlan, pc);
+
+        TezPlanContainerNode tezPlanNode = new TezPlanContainerNode(OperatorKey.genOpKey("DAGName"), tezPlan);
+        TezScriptState scriptState = new TezScriptState("test");
+        ScriptState.start(scriptState);
+        scriptState.setDAGScriptInfo(tezPlanNode);
+
         TezJobCompiler jobComp = new TezJobCompiler(pc, new Configuration());
-        MultiQueryOptimizerTez mqOptimizer = new MultiQueryOptimizerTez(tezPlan);
-        mqOptimizer.visit();
-        LoaderProcessor loaderStorer = new LoaderProcessor(tezPlan, pc);
-        loaderStorer.visit();
-        ParallelismSetter parallelismSetter = new ParallelismSetter(tezPlan, pc);
-        parallelismSetter.visit();
-        DAG dag = jobComp.buildDAG(tezPlan, new HashMap<String, LocalResource>());
+        DAG dag = jobComp.buildDAG(tezPlanNode, new HashMap<String, LocalResource>());
         return new Pair<TezOperPlan, DAG>(tezPlan, dag);
     }
 }

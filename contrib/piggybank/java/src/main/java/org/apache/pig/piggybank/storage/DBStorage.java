@@ -19,10 +19,10 @@ package org.apache.pig.piggybank.storage;
 
 import java.io.IOException;
 import java.sql.Connection;
-import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.Properties;
 
 import org.apache.commons.logging.Log;
@@ -136,7 +136,7 @@ public class DBStorage extends StoreFunc {
             break;
 
           case DataType.DATETIME:
-            ps.setDate(sqlPos, new Date(((DateTime) field).getMillis()));
+            ps.setTimestamp(sqlPos, new Timestamp(((DateTime) field).getMillis()));
             sqlPos++;
             break;
 

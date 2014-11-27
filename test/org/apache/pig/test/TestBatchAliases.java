@@ -38,7 +38,7 @@ public class TestBatchAliases {
 
     @Before
     public void setUp() throws Exception {
-        System.setProperty(PigConfiguration.OPT_MULTIQUERY, ""+true);
+        System.setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, ""+true);
         myPig = new PigServer(ExecType.LOCAL, new Properties());
         deleteOutputFiles();
     }

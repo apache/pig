@@ -20,6 +20,7 @@ package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -120,6 +121,41 @@ public class TestSchema {
 
         // And check again
         assertFalse(Schema.equals(schema1, schema2, false, false));
+    }
+
+    @Test
+    public void testParsingMapSchemasFromString() throws ParserException {
+        assertNotNull(Utils.getSchemaFromString("b:[(a:int)]"));
+        assertNotNull(Utils.getSchemaFromString("b:[someAlias: (b:int)]"));
+        assertNotNull(Utils.getSchemaFromString("a:map[{bag: (a:int)}]"));
+        assertNotNull(Utils.getSchemaFromString("a:map[someAlias: {bag: (a:int)}]"));
+        assertNotNull(Utils.getSchemaFromString("a:map[chararray]"));
+        assertNotNull(Utils.getSchemaFromString("a:map[someAlias: chararray]"));
+        assertNotNull(Utils.getSchemaFromString("a:map[someAlias: (bar: {bag: (a:int)})]"));
+    }
+
+    @Test
+    public void testMapWithoutAlias() throws FrontendException {
+        List<FieldSchema> innerFields = new ArrayList<FieldSchema>();
+        innerFields.add(new FieldSchema(null, DataType.LONG));
+        List<FieldSchema> fields = new ArrayList<FieldSchema>();
+        fields.add(new FieldSchema("mapAlias", new Schema(innerFields), DataType.MAP));
+
+        Schema inputSchema = new Schema(fields);
+        Schema fromString = Utils.getSchemaFromBagSchemaString(inputSchema.toString());
+        assertTrue(Schema.equals(inputSchema, fromString, false, false));
+    }
+
+    @Test
+    public void testMapWithAlias() throws FrontendException {
+        List<FieldSchema> innerFields = new ArrayList<FieldSchema>();
+        innerFields.add(new FieldSchema("valueAlias", DataType.LONG));
+        List<FieldSchema> fields = new ArrayList<FieldSchema>();
+        fields.add(new FieldSchema("mapAlias", new Schema(innerFields), DataType.MAP));
+
+        Schema inputSchema = new Schema(fields);
+        Schema fromString = Utils.getSchemaFromBagSchemaString(inputSchema.toString());
+        assertTrue(Schema.equals(inputSchema, fromString, false, false));
     }
 
     @Test
@@ -879,10 +915,27 @@ public class TestSchema {
         }
     }
 
-     @Test(expected=ParserException.class)
-     public void testGetStringFromSchemaNegative() throws Exception {
-         String schemaString = "a:int b:long"; // A comma is missing between fields
-         Utils.getSchemaFromString(schemaString);
-         fail("The schema string is invalid, so parsing should fail!");
-     }
+    @Test(expected = ParserException.class)
+    public void testGetStringFromSchemaNegative() throws Exception {
+        String schemaString = "a:int b:long"; // A comma is missing between fields
+        Utils.getSchemaFromString(schemaString);
+        fail("The schema string is invalid, so parsing should fail!");
+    }
+    
+    @Test
+    public void testGetInitialSchemaStringFromSchema() throws ParserException {
+        String[] schemaStrings = {
+                "my_list:{array:(array_element:(num1:int,num2:int))}",
+                "my_list:{array:(array_element:(num1:int,num2:int),c:chararray)}",
+                "bag:{mytuple3:(mytuple2:(mytuple:(f1:int)))}",
+                "bag:{mytuple:(f1:int)}",
+                "{((num1:int,num2:int))}"
+        };
+        for (String schemaString : schemaStrings) {
+            String s1 = Utils.getSchemaFromString(schemaString).toString();
+            //check if we get back the initial schema string
+            String s2 = s1.substring(1, s1.length() - 1).replaceAll("\\s|bag_0:|tuple_0:", "");
+            assertTrue(schemaString.equals(s2));
+        }
+    }
 }

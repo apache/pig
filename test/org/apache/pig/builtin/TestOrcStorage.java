@@ -57,6 +57,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.data.BinSedesTuple;
 import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -153,6 +154,38 @@ public class TestOrcStorage {
     }
 
     @Test
+    // See PIG-4195
+    public void testCharVarchar() throws Exception {
+        pigServer.registerQuery("A = load '" + basedir + "charvarchar.orc'" + " using OrcStorage();" );
+        Schema schema = pigServer.dumpSchema("A");
+        assertEquals(schema.size(), 4);
+        assertEquals(schema.getField(0).type, DataType.CHARARRAY);
+        assertEquals(schema.getField(1).type, DataType.CHARARRAY);
+        Iterator<Tuple> iter = pigServer.openIterator("A");
+        int count=0;
+        Tuple t=null;
+        while (iter.hasNext()) {
+            t = iter.next();
+            assertEquals(t.size(), 4);
+            assertTrue(t.get(0) instanceof String);
+            assertTrue(t.get(1) instanceof String);
+            assertEquals(((String)t.get(1)).length(), 20);
+            count++;
+        }
+        assertEquals(count, 10000);
+    }
+
+    @Test
+    // See PIG-4218
+    public void testNullMapKey() throws Exception {
+        pigServer.registerQuery("A = load '" + basedir + "nullmapkey.orc'" + " using OrcStorage();" );
+        Iterator<Tuple> iter = pigServer.openIterator("A");
+        assertEquals(iter.next().toString(), "([hello#world])");
+        assertEquals(iter.next().toString(), "([])");
+        assertFalse(iter.hasNext());
+    }
+
+    @Test
     public void testSimpleStore() throws Exception {
         pigServer.registerQuery("A = load '" + INPUT1 + "' as (a0:int, a1:chararray);");
         pigServer.store("A", OUTPUT1, "OrcStorage");
@@ -197,6 +230,7 @@ public class TestOrcStorage {
         assertEquals(t.get(1), "hello");
 
         assertFalse(iter.hasNext());
+        rows.close();
     }
 
     @Test
@@ -315,6 +349,8 @@ public class TestOrcStorage {
         assertEquals(expectedRows, actualRows);
         assertEquals(expectedTotalRows, actualRows);
 
+        readerExpected.close();
+        readerActual.close();
     }
 
     @SuppressWarnings("rawtypes")

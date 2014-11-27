@@ -1076,7 +1076,14 @@ public class MRCompiler extends PhyPlanVisitor {
     @Override
     public void visitPOForEach(POForEach op) throws VisitorException{
         try{
-            nonBlocking(op);
+            if (op.isMapSideOnly() && curMROp.isMapDone()) {
+                FileSpec fSpec = getTempFileSpec();
+                MapReduceOper prevMROper = endSingleInputPlanWithStr(fSpec);
+                curMROp = startNew(fSpec, prevMROper);
+                curMROp.mapPlan.addAsLeaf(op);
+            } else {
+                nonBlocking(op);
+            }
             List<PhysicalPlan> plans = op.getInputPlans();
             if(plans!=null)
                 for (PhysicalPlan plan : plans) {

@@ -17,9 +17,10 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
+import static org.apache.pig.PigConfiguration.PIG_EXEC_REDUCER_ESTIMATOR;
+import static org.apache.pig.PigConfiguration.PIG_EXEC_REDUCER_ESTIMATOR_CONSTRUCTOR_ARG_KEY;
+
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -77,9 +78,9 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.UdfCacheShipFilesVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeCogroup;
@@ -162,9 +163,6 @@ public class JobControlCompiler{
     public static final String LOG_DIR = "_logs";
 
     public static final String END_OF_INP_IN_MAP = "pig.invoke.close.in.map";
-
-    private static final String REDUCER_ESTIMATOR_KEY = "pig.exec.reducer.estimator";
-    private static final String REDUCER_ESTIMATOR_ARG_KEY =  "pig.exec.reducer.estimator.arg";
 
     public static final String PIG_MAP_COUNTER = "pig.counters.counter_";
     public static final String PIG_MAP_RANK_NAME = "pig.rank_";
@@ -447,8 +445,8 @@ public class JobControlCompiler{
             return false;
         }
 
-        long totalInputFileSize = InputSizeReducerEstimator.getTotalInputFileSize(conf, lds, job);
         long inputByteMax = conf.getLong(PigConfiguration.PIG_AUTO_LOCAL_INPUT_MAXBYTES, 100*1000*1000l);
+        long totalInputFileSize = InputSizeReducerEstimator.getTotalInputFileSize(conf, lds, job, inputByteMax);
         log.info("Size of input: " + totalInputFileSize +" bytes. Small job threshold: " + inputByteMax );
         if (totalInputFileSize < 0 || totalInputFileSize > inputByteMax) {
             return false;
@@ -505,7 +503,7 @@ public class JobControlCompiler{
         Path tmpLocation = null;
 
         // add settings for pig statistics
-        String setScriptProp = conf.get(PigConfiguration.INSERT_ENABLED, "true");
+        String setScriptProp = conf.get(PigConfiguration.PIG_SCRIPT_INFO_ENABLED, "true");
         if (setScriptProp.equalsIgnoreCase("true")) {
             MRScriptState ss = MRScriptState.get();
             ss.addSettingsToConf(mro, conf);
@@ -546,42 +544,6 @@ public class JobControlCompiler{
                 nwJob.setNumReduceTasks(0);
             }
 
-            for (String udf : mro.UDFs) {
-                if (udf.contains("GFCross")) {
-                    Object func = pigContext.instantiateFuncFromSpec(new FuncSpec(udf));
-                    if (func instanceof GFCross) {
-                        String crossKey = ((GFCross)func).getCrossKey();
-                        // If non GFCross has been processed yet
-                        if (pigContext.getProperties().get(PigConfiguration.PIG_CROSS_PARALLELISM_HINT + "." + crossKey)==null) {
-                            pigContext.getProperties().setProperty(PigConfiguration.PIG_CROSS_PARALLELISM_HINT + "." + crossKey,
-                                    Integer.toString(nwJob.getNumReduceTasks()));
-                        }
-                        conf.set(PigConfiguration.PIG_CROSS_PARALLELISM_HINT + "." + crossKey,
-                                (String)pigContext.getProperties().get(PigConfiguration.PIG_CROSS_PARALLELISM_HINT + "." + crossKey));
-                    }
-                }
-            }
-
-            if(lds!=null && lds.size()>0){
-                for (POLoad ld : lds) {
-                    //Store the target operators for tuples read
-                    //from this input
-                    List<PhysicalOperator> ldSucs = mro.mapPlan.getSuccessors(ld);
-                    List<OperatorKey> ldSucKeys = new ArrayList<OperatorKey>();
-                    if(ldSucs!=null){
-                        for (PhysicalOperator operator2 : ldSucs) {
-                            ldSucKeys.add(operator2.getOperatorKey());
-                        }
-                    }
-                    inpTargets.add(ldSucKeys);
-                    inpSignatureLists.add(ld.getSignature());
-                    inpLimits.add(ld.getLimit());
-                    //Remove the POLoad from the plan
-                    if (!pigContext.inIllustrator)
-                        mro.mapPlan.remove(ld);
-                }
-            }
-
             if (!pigContext.inIllustrator && ! pigContext.getExecType().isLocal())
             {
                 if (okToRunLocal(nwJob, mro, lds)) {
@@ -610,6 +572,22 @@ public class JobControlCompiler{
                     conf.setBoolean(PigImplConstants.CONVERTED_TO_LOCAL, true);
                 } else {
                     log.info(BIG_JOB_LOG_MSG);
+                    // Search to see if we have any UDF/LoadFunc/StoreFunc that need to pack things into the
+                    // distributed cache.
+                    List<String> cacheFiles = new ArrayList<String>();
+                    List<String> shipFiles = new ArrayList<String>();
+                    UdfCacheShipFilesVisitor mapUdfCacheFileVisitor = new UdfCacheShipFilesVisitor(mro.mapPlan);
+                    mapUdfCacheFileVisitor.visit();
+                    cacheFiles.addAll(mapUdfCacheFileVisitor.getCacheFiles());
+                    shipFiles.addAll(mapUdfCacheFileVisitor.getShipFiles());
+
+                    UdfCacheShipFilesVisitor reduceUdfCacheFileVisitor = new UdfCacheShipFilesVisitor(mro.reducePlan);
+                    reduceUdfCacheFileVisitor.visit();
+                    cacheFiles.addAll(reduceUdfCacheFileVisitor.getCacheFiles());
+                    shipFiles.addAll(reduceUdfCacheFileVisitor.getShipFiles());
+
+                    setupDistributedCache(pigContext, conf, cacheFiles.toArray(new String[]{}), false);
+
                     // Setup the DistributedCache for this job
                     List<URL> allJars = new ArrayList<URL>();
 
@@ -619,8 +597,28 @@ public class JobControlCompiler{
                         }
                     }
 
+                    for (String udf : mro.UDFs) {
+                        Class clazz = pigContext.getClassForAlias(udf);
+                        if (clazz != null) {
+                            String jar = JarManager.findContainingJar(clazz);
+                            if (jar!=null) {
+                                URL jarURL = new File(jar).toURI().toURL();
+                                if (!allJars.contains(jarURL)) {
+                                    allJars.add(jarURL);
+                                }
+                            }
+                        }
+                    }
+
                     for (String scriptJar : pigContext.scriptJars) {
                         URL jar = new File(scriptJar).toURI().toURL();
+                        if (!allJars.contains(jar)) {
+                            allJars.add(jar);
+                        }
+                    }
+
+                    for (String shipFile : shipFiles) {
+                        URL jar = new File(shipFile).toURI().toURL();
                         if (!allJars.contains(jar)) {
                             allJars.add(jar);
                         }
@@ -641,7 +639,6 @@ public class JobControlCompiler{
                             }
                         }
                         if (!predeployed) {
-                            log.info("Adding jar to DistributedCache: " + jar);
                             putJarOnClassPathThroughDistributedCache(pigContext, conf, jar);
                         }
                     }
@@ -650,6 +647,37 @@ public class JobControlCompiler{
                     if (scriptUDFJarFile != null) {
                         putJarOnClassPathThroughDistributedCache(pigContext, conf, scriptUDFJarFile.toURI().toURL());
                     }
+                }
+            }
+
+            for (String udf : mro.UDFs) {
+                if (udf.contains("GFCross")) {
+                    Object func = PigContext.instantiateFuncFromSpec(new FuncSpec(udf));
+                    if (func instanceof GFCross) {
+                        String crossKey = ((GFCross)func).getCrossKey();
+                        conf.set(PigImplConstants.PIG_CROSS_PARALLELISM + "." + crossKey,
+                                Integer.toString(mro.getRequestedParallelism()));
+                    }
+                }
+            }
+
+            if(lds!=null && lds.size()>0){
+                for (POLoad ld : lds) {
+                    //Store the target operators for tuples read
+                    //from this input
+                    List<PhysicalOperator> ldSucs = mro.mapPlan.getSuccessors(ld);
+                    List<OperatorKey> ldSucKeys = new ArrayList<OperatorKey>();
+                    if(ldSucs!=null){
+                        for (PhysicalOperator operator2 : ldSucs) {
+                            ldSucKeys.add(operator2.getOperatorKey());
+                        }
+                    }
+                    inpTargets.add(ldSucKeys);
+                    inpSignatureLists.add(ld.getSignature());
+                    inpLimits.add(ld.getLimit());
+                    //Remove the POLoad from the plan
+                    if (!pigContext.inIllustrator)
+                        mro.mapPlan.remove(ld);
                 }
             }
 
@@ -778,10 +806,6 @@ public class JobControlCompiler{
             // within the MR plans, must be called before the plans are
             // serialized
             setupDistributedCacheForJoin(mro, pigContext, conf);
-
-            // Search to see if we have any UDFs that need to pack things into the
-            // distributed cache.
-            setupDistributedCacheForUdfs(mro, pigContext, conf);
 
             SchemaTupleFrontend.copyAllGeneratedToDistributedCache(pigContext, conf);
 
@@ -1022,9 +1046,9 @@ public class JobControlCompiler{
         Configuration conf = nwJob.getConfiguration();
 
         // set various parallelism into the job conf for later analysis, PIG-2779
-        conf.setInt("pig.info.reducers.default.parallel", pigContext.defaultParallel);
-        conf.setInt("pig.info.reducers.requested.parallel", mro.requestedParallelism);
-        conf.setInt("pig.info.reducers.estimated.parallel", mro.estimatedParallelism);
+        conf.setInt(PigImplConstants.REDUCER_DEFAULT_PARALLELISM, pigContext.defaultParallel);
+        conf.setInt(PigImplConstants.REDUCER_REQUESTED_PARALLELISM, mro.requestedParallelism);
+        conf.setInt(PigImplConstants.REDUCER_ESTIMATED_PARALLELISM, mro.estimatedParallelism);
 
         // this is for backward compatibility, and we encourage to use runtimeParallelism at runtime
         mro.requestedParallelism = jobParallelism;
@@ -1080,10 +1104,10 @@ public class JobControlCompiler{
             MapReduceOper mapReducerOper) throws IOException {
         Configuration conf = job.getConfiguration();
 
-        PigReducerEstimator estimator = conf.get(REDUCER_ESTIMATOR_KEY) == null ?
+        PigReducerEstimator estimator = conf.get(PIG_EXEC_REDUCER_ESTIMATOR) == null ?
                 new InputSizeReducerEstimator() :
                     PigContext.instantiateObjectFromParams(conf,
-                            REDUCER_ESTIMATOR_KEY, REDUCER_ESTIMATOR_ARG_KEY, PigReducerEstimator.class);
+                            PIG_EXEC_REDUCER_ESTIMATOR, PIG_EXEC_REDUCER_ESTIMATOR_CONSTRUCTOR_ARG_KEY, PigReducerEstimator.class);
 
                 log.info("Using reducer estimator: " + estimator.getClass().getName());
                 int numberOfReducers = estimator.estimateNumberOfReducers(job, mapReducerOper);
@@ -1478,13 +1502,6 @@ public class JobControlCompiler{
         .visit();
     }
 
-    private void setupDistributedCacheForUdfs(MapReduceOper mro,
-            PigContext pigContext,
-            Configuration conf) throws IOException {
-        new UdfDistributedCacheVisitor(mro.mapPlan, pigContext, conf).visit();
-        new UdfDistributedCacheVisitor(mro.reducePlan, pigContext, conf).visit();
-    }
-
     private static void setupDistributedCache(PigContext pigContext,
             Configuration conf,
             Properties properties, String key,
@@ -1633,11 +1650,50 @@ public class JobControlCompiler{
         // Turn on the symlink feature
         DistributedCache.createSymlink(conf);
 
-        // REGISTER always copies locally the jar file. see PigServer.registerJar()
-        Path pathInHDFS = shipToHDFS(pigContext, conf, url);
-        // and add to the DistributedCache
-        DistributedCache.addFileToClassPath(pathInHDFS, conf);
-        pigContext.addSkipJar(url.getPath());
+        Path distCachePath = getExistingDistCacheFilePath(conf, url);
+        if (distCachePath != null) {
+            log.info("Jar file " + url + " already in DistributedCache as "
+                    + distCachePath + ". Not copying to hdfs and adding again");
+            // Path already in dist cache
+            if (!HadoopShims.isHadoopYARN()) {
+                // Mapreduce in YARN includes $PWD/* which will add all *.jar files in classapth.
+                // So don't have to ensure that the jar is separately added to mapreduce.job.classpath.files
+                // But path may only be in 'mapred.cache.files' and not be in
+                // 'mapreduce.job.classpath.files' in Hadoop 1.x. So adding it there
+                DistributedCache.addFileToClassPath(distCachePath, conf, distCachePath.getFileSystem(conf));
+            }
+        }
+        else {
+            // REGISTER always copies locally the jar file. see PigServer.registerJar()
+            Path pathInHDFS = shipToHDFS(pigContext, conf, url);
+            DistributedCache.addFileToClassPath(pathInHDFS, conf, FileSystem.get(conf));
+            log.info("Added jar " + url + " to DistributedCache through " + pathInHDFS);
+        }
+
+    }
+
+    private static Path getExistingDistCacheFilePath(Configuration conf, URL url) throws IOException {
+        URI[] cacheFileUris = DistributedCache.getCacheFiles(conf);
+        if (cacheFileUris != null) {
+            String fileName = url.getRef() == null ? FilenameUtils.getName(url.getPath()) : url.getRef();
+            for (URI cacheFileUri : cacheFileUris) {
+                Path path = new Path(cacheFileUri);
+                String cacheFileName = cacheFileUri.getFragment() == null ? path.getName() : cacheFileUri.getFragment();
+                // Match
+                //     - if both filenames are same and no symlinks (or)
+                //     - if both symlinks are same (or)
+                //     - symlink of existing cache file is same as the name of the new file to be added.
+                //         That would be the case when hbase-0.98.4.jar#hbase.jar is configured via Oozie
+                // and register hbase.jar is done in the pig script.
+                // If two different files are symlinked to the same name, then there is a conflict
+                // and hadoop itself does not guarantee which file will be symlinked to that name.
+                // So we are good.
+                if (fileName.equals(cacheFileName)) {
+                    return path;
+                }
+            }
+        }
+        return null;
     }
 
     private static Path getCacheStagingDir(Configuration conf) throws IOException {
@@ -1763,6 +1819,8 @@ public class JobControlCompiler{
             ArrayList<String> replicatedPath = new ArrayList<String>();
 
             FileSpec[] newReplFiles = new FileSpec[replFiles.length];
+            long maxSize = Long.valueOf(pigContext.getProperties().getProperty(
+                    PigConfiguration.PIG_JOIN_REPLICATED_MAX_BYTES, "1000000000"));
 
             // the first input is not replicated
             long sizeOfReplicatedInputs = 0;
@@ -1782,7 +1840,7 @@ public class JobControlCompiler{
                         Path path = new Path(replFiles[i].getFileName());
                         FileSystem fs = path.getFileSystem(conf);
                         sizeOfReplicatedInputs +=
-                                MapRedUtil.getPathLength(fs, fs.getFileStatus(path));
+                                MapRedUtil.getPathLength(fs, fs.getFileStatus(path), maxSize);
                     }
                     newReplFiles[i] = new FileSpec(symlink,
                             (replFiles[i] == null ? null : replFiles[i].getFuncSpec()));
@@ -1790,9 +1848,7 @@ public class JobControlCompiler{
 
                 join.setReplFiles(newReplFiles);
 
-                String maxSize = pigContext.getProperties().getProperty(
-                        PigConfiguration.PIG_JOIN_REPLICATED_MAX_BYTES, "1000000000");
-                if (sizeOfReplicatedInputs > Long.parseLong(maxSize)){
+                if (sizeOfReplicatedInputs > maxSize) {
                     throw new VisitorException("Replicated input files size: "
                             + sizeOfReplicatedInputs + " exceeds " +
                             PigConfiguration.PIG_JOIN_REPLICATED_MAX_BYTES + ": " + maxSize);
@@ -1849,41 +1905,6 @@ public class JobControlCompiler{
             } catch (IOException e) {
                 String msg = "Internal error. Distributed cache could not " +
                         "be set up for merge cogrp index file";
-                throw new VisitorException(msg, e);
-            }
-        }
-    }
-
-    private static class UdfDistributedCacheVisitor extends PhyPlanVisitor {
-
-        private PigContext pigContext = null;
-        private Configuration conf = null;
-
-        public UdfDistributedCacheVisitor(PhysicalPlan plan,
-                PigContext pigContext,
-                Configuration conf) {
-            super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(
-                    plan));
-            this.pigContext = pigContext;
-            this.conf = conf;
-        }
-
-        @Override
-        public void visitUserFunc(POUserFunc func) throws VisitorException {
-
-            // XXX Hadoop currently doesn't support distributed cache in local mode.
-            // This line will be removed after the support is added
-            if (Utils.isLocal(pigContext, conf)) return;
-
-            // set up distributed cache for files indicated by the UDF
-            String[] files = func.getCacheFiles();
-            if (files == null) return;
-
-            try {
-                setupDistributedCache(pigContext, conf, files, false);
-            } catch (IOException e) {
-                String msg = "Internal error. Distributed cache could not " +
-                        "be set up for the requested files";
                 throw new VisitorException(msg, e);
             }
         }

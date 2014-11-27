@@ -231,24 +231,36 @@ public class PigServer {
         addJarsFromProperties();
         markPredeployedJarsFromProperties();
 
-        PigStats.start(pigContext.getExecutionEngine().instantiatePigStats());
-
         if (ScriptState.get() == null) {
             // If Pig was started via command line, ScriptState should have been
             // already initialized in Main. If so, we should not overwrite it.
             ScriptState.start(pigContext.getExecutionEngine().instantiateScriptState());
         }
+        PigStats.start(pigContext.getExecutionEngine().instantiatePigStats());
+
     }
 
     private void addJarsFromProperties() throws ExecException {
         //add jars from properties to extraJars
         String jar_str = pigContext.getProperties().getProperty("pig.additional.jars");
+        if (jar_str==null) {
+            jar_str = "";
+        }
+        jar_str = jar_str.replaceAll(File.pathSeparator, ",");
+        if (!jar_str.isEmpty()) {
+            jar_str += ",";
+        }
 
-        if(jar_str != null){
+        String jar_str_comma = pigContext.getProperties().getProperty("pig.additional.jars.uris");
+        if (jar_str_comma!=null && !jar_str_comma.isEmpty()) {
+            jar_str = jar_str + jar_str_comma;
+        }
+
+        if(jar_str != null && !jar_str.isEmpty()){
             // Use File.pathSeparator (":" on Linux, ";" on Windows)
             // to correctly handle path aggregates as they are represented
             // on the Operating System.
-            for(String jar : jar_str.split(File.pathSeparator)){
+            for(String jar : jar_str.split(",")){
                 try {
                     registerJar(jar);
                 } catch (IOException e) {

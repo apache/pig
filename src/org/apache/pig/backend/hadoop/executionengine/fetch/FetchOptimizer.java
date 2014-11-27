@@ -38,7 +38,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODistinct;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POGlobalRearrange;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLimit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeCogroup;
@@ -57,6 +56,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.builtin.SampleLoader;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.VisitorException;
@@ -80,7 +80,7 @@ public class FetchOptimizer {
      */
     public static boolean isFetchEnabled(PigContext pc) {
         return "true".equalsIgnoreCase(
-                pc.getProperties().getProperty(PigConfiguration.OPT_FETCH, "true"));
+                pc.getProperties().getProperty(PigConfiguration.PIG_OPT_FETCH, "true"));
     }
 
     /**
@@ -97,14 +97,20 @@ public class FetchOptimizer {
             FetchablePlanVisitor fpv = new FetchablePlanVisitor(pc, pp);
             fpv.visit();
             // Plan is fetchable only if FetchablePlanVisitor returns true AND
-            // limit is present in the plan. Limit is a safeguard. If the input
-            // is large, and there is no limit, fetch optimizer will fetch the
-            // entire input to the client. That can be dangerous.
-            boolean isFetchable = fpv.isPlanFetchable() && 
-                    PlanHelper.containsPhysicalOperator(pp, POLimit.class);
-            if (isFetchable)
-                init(pp);
-            return isFetchable;
+            // limit is present in the plan, i.e: limit is pushed up to the loader.
+            // Limit is a safeguard. If the input is large, and there is no limit, 
+            // fetch optimizer will fetch the entire input to the client. That can be dangerous.
+            if (!fpv.isPlanFetchable()) {
+                return false;
+            }
+            for (POLoad load : PlanHelper.getPhysicalOperators(pp, POLoad.class)) {
+                if (load.getLimit() == -1) {
+                    return false;
+                }
+            }
+            pc.getProperties().setProperty(PigImplConstants.CONVERTED_TO_FETCH, "true");
+            init(pp);
+            return true;
         }
         return false;
     }

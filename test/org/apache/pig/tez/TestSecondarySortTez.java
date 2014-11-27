@@ -20,10 +20,10 @@ package org.apache.pig.tez;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.optimizer.SecondaryKeyOptimizer;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.tez.CombinerOptimizer;
-import org.apache.pig.backend.hadoop.executionengine.tez.SecondaryKeyOptimizerTez;
-import org.apache.pig.backend.hadoop.executionengine.tez.TezCompiler;
-import org.apache.pig.backend.hadoop.executionengine.tez.TezOperPlan;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezCompiler;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer.CombinerOptimizer;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer.SecondaryKeyOptimizerTez;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.test.MiniGenericCluster;
 import org.apache.pig.test.TestSecondarySort;
@@ -47,12 +47,12 @@ public class TestSecondarySortTez extends TestSecondarySort {
         TezCompiler comp = new TezCompiler(pp, pc);
         TezOperPlan tezPlan = comp.compile();
         boolean nocombiner = Boolean.parseBoolean(pc.getProperties().getProperty(
-                PigConfiguration.PROP_NO_COMBINER, "false"));
+                PigConfiguration.PIG_EXEC_NO_COMBINER, "false"));
 
         // Run CombinerOptimizer on Tez plan
         if (!nocombiner) {
             boolean doMapAgg = Boolean.parseBoolean(pc.getProperties()
-                    .getProperty(PigConfiguration.PROP_EXEC_MAP_PARTAGG,
+                    .getProperty(PigConfiguration.PIG_EXEC_MAP_PARTAGG,
                             "false"));
             CombinerOptimizer co = new CombinerOptimizer(tezPlan, doMapAgg);
             co.visit();

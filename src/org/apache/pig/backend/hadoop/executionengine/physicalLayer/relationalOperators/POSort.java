@@ -25,6 +25,7 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
@@ -77,7 +78,10 @@ public class POSort extends PhysicalOperator {
 	private long limit;
 	public boolean isUDFComparatorUsed = false;
 	private DataBag sortedBag;
-	transient Iterator<Tuple> it;
+
+    private transient Iterator<Tuple> it;
+    private transient boolean initialized;
+    private transient boolean useDefaultBag;
 
 	public POSort(
             OperatorKey k,
@@ -256,17 +260,19 @@ public class POSort extends PhysicalOperator {
 
 		if (!inputsAccumulated) {
 			res = processInput();
+            if (!initialized) {
+                initialized = true;
+                if (PigMapReduce.sJobConfInternal.get() != null) {
+                    String bagType = PigMapReduce.sJobConfInternal.get().get(PigConfiguration.PIG_CACHEDBAG_SORT_TYPE);
+                    if (bagType != null && bagType.equalsIgnoreCase("default")) {
+                        useDefaultBag = true;
+                    }
+                }
+            }
 			// by default, we create InternalSortedBag, unless user configures
-			// explicitly to use old bag
-			String bagType = null;
-	        if (PigMapReduce.sJobConfInternal.get() != null) {
-	   			bagType = PigMapReduce.sJobConfInternal.get().get("pig.cachedbag.sort.type");
-	   	    }
-            if (bagType != null && bagType.equalsIgnoreCase("default")) {
-            	sortedBag = BagFactory.getInstance().newSortedBag(mComparator);
-       	    } else {
-    	    	sortedBag = new InternalSortedBag(3, mComparator);
-    	    }
+            // explicitly to use old bag
+            sortedBag = useDefaultBag ? BagFactory.getInstance().newSortedBag(mComparator)
+                    : new InternalSortedBag(3, mComparator);
 
             while (res.returnStatus != POStatus.STATUS_EOP) {
 				if (res.returnStatus == POStatus.STATUS_ERR) {
@@ -377,6 +383,7 @@ public class POSort extends PhysicalOperator {
     }
 
 
+    @Override
     public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
         if(illustrator != null) {
           illustrator.getEquivalenceClasses().get(eqClassIndex).add((Tuple) in);

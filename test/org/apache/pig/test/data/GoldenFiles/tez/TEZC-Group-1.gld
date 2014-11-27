@@ -1,0 +1,65 @@
+#--------------------------------------------------
+# There are 1 DAGs in the session
+#--------------------------------------------------
+#--------------------------------------------------
+# TEZ DAG plan: pig-0_scope-0
+#--------------------------------------------------
+Tez vertex scope-20	->	Tez vertex scope-21,
+Tez vertex scope-21
+
+Tez vertex scope-20
+# Plan on vertex
+b: Local Rearrange[tuple]{int}(false) - scope-34	->	 scope-21
+|   |
+|   Project[int][0] - scope-36
+|
+|---c: New For Each(false,false)[bag] - scope-22
+    |   |
+    |   Project[int][0] - scope-23
+    |   |
+    |   POUserFunc(org.apache.pig.builtin.COUNT$Initial)[tuple] - scope-24
+    |   |
+    |   |---Project[bag][0] - scope-25
+    |       |
+    |       |---Project[bag][1] - scope-26
+    |
+    |---Pre Combiner Local Rearrange[tuple]{Unknown} - scope-37
+        |
+        |---a: New For Each(false,false)[bag] - scope-7
+            |   |
+            |   Cast[int] - scope-2
+            |   |
+            |   |---Project[bytearray][0] - scope-1
+            |   |
+            |   Cast[int] - scope-5
+            |   |
+            |   |---Project[bytearray][1] - scope-4
+            |
+            |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
+Tez vertex scope-21
+# Combine plan on edge <scope-20>
+b: Local Rearrange[tuple]{int}(false) - scope-38	->	 scope-21
+|   |
+|   Project[int][0] - scope-40
+|
+|---c: New For Each(false,false)[bag] - scope-27
+    |   |
+    |   Project[int][0] - scope-28
+    |   |
+    |   POUserFunc(org.apache.pig.builtin.COUNT$Intermediate)[tuple] - scope-29
+    |   |
+    |   |---Project[bag][1] - scope-30
+    |
+    |---b: Package(CombinerPackager)[tuple]{int} - scope-33
+# Plan on vertex
+c: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-19
+|
+|---c: New For Each(false,false)[bag] - scope-18
+    |   |
+    |   Project[int][0] - scope-12
+    |   |
+    |   POUserFunc(org.apache.pig.builtin.COUNT$Final)[long] - scope-16
+    |   |
+    |   |---Project[bag][1] - scope-31
+    |
+    |---b: Package(CombinerPackager)[tuple]{int} - scope-9

@@ -18,10 +18,15 @@
 package org.apache.pig.tez;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 
@@ -33,6 +38,9 @@ import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.InputSizeReducerEstimator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer.ParallelismSetter;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.test.MiniGenericCluster;
 import org.apache.pig.test.Util;
 import org.junit.After;
@@ -98,7 +106,7 @@ public class TestTezAutoParallelism {
         }
         w.close();
         Util.copyFromLocalToCluster(cluster, INPUT_DIR + "/" + INPUT_FILE1, INPUT_FILE1);
-        
+
         w = new PrintWriter(new FileWriter(INPUT_DIR + "/" + INPUT_FILE2));
         for (String name : boyNames) {
             w.println(name + "\t" + "M");
@@ -119,13 +127,14 @@ public class TestTezAutoParallelism {
         // parallelism is 3 originally, reduce to 1
         pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
         pigServer.getPigContext().getProperties().setProperty(MRConfiguration.MAX_SPLIT_SIZE, "3000");
-        pigServer.getPigContext().getProperties().setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, 
+        pigServer.getPigContext().getProperties().setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM,
                 Long.toString(InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER));
         pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (name:chararray, age:int);");
         pigServer.registerQuery("B = group A by name;");
         pigServer.store("B", "output1");
         FileSystem fs = cluster.getFileSystem();
         FileStatus[] files = fs.listStatus(new Path("output1"), new PathFilter(){
+            @Override
             public boolean accept(Path path) {
                 if (path.getName().startsWith("part")) {
                     return true;
@@ -141,7 +150,7 @@ public class TestTezAutoParallelism {
         // order by parallelism is 3 originally, reduce to 1
         pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
         pigServer.getPigContext().getProperties().setProperty(MRConfiguration.MAX_SPLIT_SIZE, "3000");
-        pigServer.getPigContext().getProperties().setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, 
+        pigServer.getPigContext().getProperties().setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM,
                 Long.toString(InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER));
         pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (name:chararray, age:int);");
         pigServer.registerQuery("B = group A by name parallel 3;");
@@ -150,6 +159,7 @@ public class TestTezAutoParallelism {
         pigServer.store("D", "output2");
         FileSystem fs = cluster.getFileSystem();
         FileStatus[] files = fs.listStatus(new Path("output2"), new PathFilter(){
+            @Override
             public boolean accept(Path path) {
                 if (path.getName().startsWith("part")) {
                     return true;
@@ -173,6 +183,7 @@ public class TestTezAutoParallelism {
         pigServer.store("D", "output3");
         FileSystem fs = cluster.getFileSystem();
         FileStatus[] files = fs.listStatus(new Path("output3"), new PathFilter(){
+            @Override
             public boolean accept(Path path) {
                 if (path.getName().startsWith("part")) {
                     return true;
@@ -188,7 +199,7 @@ public class TestTezAutoParallelism {
         // skewed join parallelism is 4 originally, reduce to 1
         pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
         pigServer.getPigContext().getProperties().setProperty(MRConfiguration.MAX_SPLIT_SIZE, "3000");
-        pigServer.getPigContext().getProperties().setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, 
+        pigServer.getPigContext().getProperties().setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM,
                 Long.toString(InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER));
         pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (name:chararray, age:int);");
         pigServer.registerQuery("B = load '" + INPUT_FILE2 + "' as (name:chararray, gender:chararray);");
@@ -196,6 +207,7 @@ public class TestTezAutoParallelism {
         pigServer.store("C", "output4");
         FileSystem fs = cluster.getFileSystem();
         FileStatus[] files = fs.listStatus(new Path("output4"), new PathFilter(){
+            @Override
             public boolean accept(Path path) {
                 if (path.getName().startsWith("part")) {
                     return true;
@@ -218,6 +230,7 @@ public class TestTezAutoParallelism {
         pigServer.store("C", "output5");
         FileSystem fs = cluster.getFileSystem();
         FileStatus[] files = fs.listStatus(new Path("output5"), new PathFilter(){
+            @Override
             public boolean accept(Path path) {
                 if (path.getName().startsWith("part")) {
                     return true;
@@ -225,6 +238,40 @@ public class TestTezAutoParallelism {
                 return false;
             }
         });
-        assertEquals(files.length, 5);
+        assertEquals(files.length, 4);
+    }
+
+    @Test
+    public void testSkewedJoinIncreaseIntermediateParallelism() throws IOException{
+        NodeIdGenerator.reset();
+        PigServer.resetScope();
+        StringWriter writer = new StringWriter();
+        // When there is a combiner operation involved user specified parallelism is overriden
+        Util.createLogAppender(ParallelismSetter.class, "testSkewedJoinIncreaseIntermediateParallelism", writer);
+        try {
+            pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
+            pigServer.getPigContext().getProperties().setProperty(MRConfiguration.MAX_SPLIT_SIZE, "4000");
+            pigServer.getPigContext().getProperties().setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, "80000");
+            pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (name:chararray, age:int);");
+            pigServer.registerQuery("B = load '" + INPUT_FILE2 + "' as (name:chararray, gender:chararray);");
+            pigServer.registerQuery("C = join A by name, B by name using 'skewed' parallel 1;");
+            pigServer.registerQuery("D = group C by A::name;");
+            pigServer.registerQuery("E = foreach D generate group, COUNT(C.A::name);");
+            Iterator<Tuple> iter = pigServer.openIterator("E");
+            List<Tuple> expectedResults = Util
+                    .getTuplesFromConstantTupleStrings(new String[] {
+                            "('Abigail',56L)", "('Alexander',45L)", "('Ava',60L)",
+                            "('Daniel',68L)", "('Elizabeth',42L)",
+                            "('Emily',57L)", "('Emma',50L)", "('Ethan',50L)",
+                            "('Isabella',43L)", "('Jacob',43L)", "('Jayden',59L)",
+                            "('Liam',46L)", "('Madison',46L)", "('Mason',54L)",
+                            "('Mia',51L)", "('Michael',47L)", "('Noah',38L)",
+                            "('Olivia',50L)", "('Sophia',52L)", "('William',43L)" });
+
+            Util.checkQueryOutputsAfterSort(iter, expectedResults);
+            assertTrue(writer.toString().contains("Increased requested parallelism of scope-40 to 4"));
+        } finally {
+            Util.removeLogAppender(ParallelismSetter.class, "testSkewedJoinIncreaseIntermediateParallelism");
+        }
     }
 }

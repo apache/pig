@@ -34,7 +34,7 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 public interface PigCommandFilter {
 
     public enum Command {
-        FS, LS, SH, MAPREDUCE, REGISTER, SET, CAT, CD, DUMP, KILL, PWD, MV, CP, COPYTOLOCAL, COPYFROMLOCAL, MKDIR, RM, RMF, ILLUSTRATE
+        DEFINE, DECLARE, DEFAULT, EXPLAIN, EXEC, FS, IMPORT, LS, SH, MAPREDUCE, REGISTER, SET, CAT, CD, DUMP, KILL, PWD, MV, CP, COPYTOLOCAL, COPYFROMLOCAL, MKDIR, RM, RMF, RUN, ILLUSTRATE
     }
 
     /**

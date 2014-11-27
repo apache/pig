@@ -3745,7 +3745,7 @@ public class TestTypeCheckingValidatorNewLP {
                      "[k1#good,k2#morning]" };
              PigServer ps = new PigServer(ExecType.LOCAL);
              File f = org.apache.pig.test.Util.createInputFile("test", ".txt", input);
-             String inputFileName = Util.generateURI(Util.encodeEscape(f.getAbsolutePath()), ps.getPigContext());
+             String inputFileName = Util.generateURI(f.getAbsolutePath(), ps.getPigContext());
              // load as bytearray and use as map
              String query = "a= load '" + inputFileName + "' as (m);"
              + " b = foreach a generate m#'k1';";

@@ -19,28 +19,26 @@ package org.apache.pig.builtin;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.math.BigDecimal;
-import java.math.BigInteger;
 
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 import org.joda.time.format.ISODateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
-
 import org.codehaus.jackson.JsonFactory;
+import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.JsonToken;
-
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
-
 import org.apache.pig.Expression;
 import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
@@ -56,6 +54,7 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.parser.ParserException;
@@ -153,23 +152,31 @@ public class JsonLoader extends LoadFunc implements LoadMetadata {
         // isn't what we expect we return a tuple with null fields rather than
         // throwing an exception.  That way a few mangled lines don't fail the
         // job.
-        if (p.nextToken() != JsonToken.START_OBJECT) {
-            warn("Bad record, could not find start of record " +
-                val.toString(), PigWarning.UDF_WARNING_1);
-            return t;
+        
+        try {
+            if (p.nextToken() != JsonToken.START_OBJECT) {
+                warn("Bad record, could not find start of record " +
+                    val.toString(), PigWarning.UDF_WARNING_1);
+                return t;
+            }
+    
+            // Read each field in the record
+            for (int i = 0; i < fields.length; i++) {
+                t.set(i, readField(p, fields[i], i));
+            }
+    
+            if (p.nextToken() != JsonToken.END_OBJECT) {
+                warn("Bad record, could not find end of record " +
+                    val.toString(), PigWarning.UDF_WARNING_1);
+                return t;
+            }
+            
+        } catch (JsonParseException jpe) {
+            warn("Bad record, returning null for " + val, PigWarning.UDF_WARNING_1);
+        } finally {
+            p.close();
         }
-
-        // Read each field in the record
-        for (int i = 0; i < fields.length; i++) {
-            t.set(i, readField(p, fields[i], i));
-        }
-
-        if (p.nextToken() != JsonToken.END_OBJECT) {
-            warn("Bad record, could not find end of record " +
-                val.toString(), PigWarning.UDF_WARNING_1);
-            return t;
-        }
-        p.close();
+        
         return t;
     }
 
@@ -242,7 +249,7 @@ public class JsonLoader extends LoadFunc implements LoadMetadata {
         case DataType.BIGDECIMAL:
             tok = p.nextToken();
             if (tok == JsonToken.VALUE_NULL) return null;
-            return p.getDecimalValue();
+            return new BigDecimal(p.getText());
 
         case DataType.MAP:
             // Should be a start of the map object
@@ -371,5 +378,12 @@ public class JsonLoader extends LoadFunc implements LoadMetadata {
     public void setPartitionFilter(Expression partitionFilter)
     throws IOException {
         // We don't have partitions
+    }
+
+    @Override
+    public List<String> getShipFiles() {
+        List<String> cacheFiles = new ArrayList<String>();
+        Class[] classList = new Class[] {JsonFactory.class};
+        return FuncUtils.getShipFiles(classList);
     }
 }

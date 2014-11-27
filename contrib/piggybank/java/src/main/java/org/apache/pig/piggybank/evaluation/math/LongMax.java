@@ -60,7 +60,7 @@ public class LongMax extends EvalFunc<Long>{
      * @param output returns a single numeric value, which is the smaller of two inputs
      */
     public Long exec(Tuple input) throws IOException {
-        if (input == null || input.size() == 0)
+        if (input == null || input.size() < 2)
             return null;
 
         try{
