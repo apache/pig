@@ -28,6 +28,8 @@ PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES
 
+PIG-4326: AvroStorageSchemaConversionUtilities does not properly convert schema for maps of arrays of records (mprim via daijy)
+
 PIG-4345: e2e test "RubyUDFs_13" fails because of the different result of "group a all" in different engines like "spark", "mapreduce" (kellyzly via rohini)
 
 PIG-4332: Remove redundant jars packaged into pig-withouthadoop.jar for hadoop 2 (rohini)

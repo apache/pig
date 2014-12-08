@@ -103,6 +103,7 @@ public class TestAvroStorage {
         "recordsWithFixed",
         "recordsWithMaps",
         "recordsWithMapsOfRecords",
+        "recordsWithMapsOfArrayOfRecords",
         "recordsWithNullableUnions",
         "recordWithRepeatedSubRecords",
         "recursiveRecord",
@@ -542,6 +543,18 @@ public class TestAvroStorage {
         );
       verifyResults(createOutputName(),check);
     }
+
+    @Test public void testLoadRecordsWithMapsOfArrayOfRecords() throws Exception {
+        final String input = basedir + "data/avro/uncompressed/recordsWithMapsOfArrayOfRecords.avro";
+        final String check = input;
+        testAvroStorage(true, basedir + "code/pig/identity_just_ao2.pig",
+            ImmutableMap.of(
+                "INFILE",             input,
+                "AVROSTORAGE_OUT_2", "-f " + basedir + "schema/recordsWithMapsOfArrayOfRecords.avsc",
+                "OUTFILE",            createOutputName())
+          );
+        verifyResults(createOutputName(),check);
+      }
 
     @Test public void testLoadRecordsWithNullableUnions() throws Exception {
       final String input = basedir + "data/avro/uncompressed/recordsWithNullableUnions.avro";
