@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.Properties;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
@@ -57,9 +56,9 @@ public class TestInputOutputFileValidator {
 
     @Before
     public void setUp() throws Exception {
-        ctx = new PigContext(ExecType.LOCAL, new Properties());
+        ctx = new PigContext(Util.getLocalTestMode(), new Properties());
         ctx.connect();
-        pig = new PigServer(ExecType.LOCAL);
+        pig = new PigServer(Util.getLocalTestMode());
     }
 
     @Test

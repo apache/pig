@@ -26,7 +26,6 @@ import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.DataBag;
@@ -34,12 +33,26 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.test.MiniGenericCluster;
 import org.apache.pig.test.Util;
+import org.apache.pig.test.junit.OrderedJUnit4Runner;
+import org.apache.pig.test.junit.OrderedJUnit4Runner.TestOrder;
 import org.joda.time.DateTime;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
+// Need to run testPythonUDF_onCluster first due to TEZ-1802
+@RunWith(OrderedJUnit4Runner.class)
+@TestOrder({
+    "testPythonUDF_onCluster",
+    "testPythonUDF__allTypes",
+    "testPythonUDF__withBigDecimal",
+    "testPythonUDF",
+    "testPythonUDF__withBigInteger",
+    "testPythonUDF__withDateTime",
+    "testPythonUDF_withNewline"
+})
 public class TestStreamingUDF {
     private static PigServer pigServerLocal = null;
     private static PigServer pigServerMapReduce = null;
@@ -101,7 +114,7 @@ public class TestStreamingUDF {
 
     @Test
     public void testPythonUDF() throws Exception {
-        pigServerLocal = new PigServer(ExecType.LOCAL);
+        pigServerLocal = new PigServer(Util.getLocalTestMode());
 
         String[] pythonScript = {
                 "from pig_util import outputSchema",
@@ -136,7 +149,7 @@ public class TestStreamingUDF {
     
     @Test
     public void testPythonUDF_withNewline() throws Exception {
-        pigServerLocal = new PigServer(ExecType.LOCAL);
+        pigServerLocal = new PigServer(Util.getLocalTestMode());
 
         String[] pythonScript = {
                 "from pig_util import outputSchema",
@@ -171,7 +184,7 @@ public class TestStreamingUDF {
     
     @Test
     public void testPythonUDF__withBigInteger() throws Exception {
-        pigServerLocal = new PigServer(ExecType.LOCAL);
+        pigServerLocal = new PigServer(Util.getLocalTestMode());
 
         String[] pythonScript = {
                 "from pig_util import outputSchema",
@@ -199,7 +212,7 @@ public class TestStreamingUDF {
     
     @Test
     public void testPythonUDF__withBigDecimal() throws Exception {
-        pigServerLocal = new PigServer(ExecType.LOCAL);
+        pigServerLocal = new PigServer(Util.getLocalTestMode());
 
         String[] pythonScript = {
                 "from pig_util import outputSchema",
@@ -229,7 +242,7 @@ public class TestStreamingUDF {
     
     @Test
     public void testPythonUDF__withDateTime() throws Exception {
-        pigServerLocal = new PigServer(ExecType.LOCAL);
+        pigServerLocal = new PigServer(Util.getLocalTestMode());
 
         String[] pythonScript = {
                 "from pig_util import outputSchema",
@@ -257,7 +270,7 @@ public class TestStreamingUDF {
     
     @Test
     public void testPythonUDF__allTypes() throws Exception {
-        pigServerLocal = new PigServer(ExecType.LOCAL);
+        pigServerLocal = new PigServer(Util.getLocalTestMode());
 
         String[] pythonScript = {
             "# -*- coding: utf-8 -*-",

@@ -42,7 +42,7 @@ public class TestRank2 {
 
     @Before
     public void setUp() throws Exception {
-        pigServer = new PigServer("local");
+        pigServer = new PigServer(Util.getLocalTestMode());
 
         data = resetData(pigServer);
         data.set("test01", tuple("A", 1, "N"), tuple("B", 2, "N"),

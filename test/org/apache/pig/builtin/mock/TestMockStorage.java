@@ -19,6 +19,7 @@ package org.apache.pig.builtin.mock;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertTrue;
+import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.fail;
 import static org.apache.pig.builtin.mock.Storage.resetData;
 import static org.apache.pig.builtin.mock.Storage.schema;
@@ -28,19 +29,19 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.test.Util;
 import org.junit.Test;
 
 public class TestMockStorage {
 
   @Test
   public void testMockStoreAndLoad() throws Exception {
-    PigServer pigServer = new PigServer(ExecType.LOCAL);
+    PigServer pigServer = new PigServer(Util.getLocalTestMode());
     Data data = resetData(pigServer);
 
     data.set("foo",
@@ -60,7 +61,7 @@ public class TestMockStorage {
   
   @Test
   public void testMockSchema() throws Exception {
-    PigServer pigServer = new PigServer(ExecType.LOCAL);
+    PigServer pigServer = new PigServer(Util.getLocalTestMode());
     Data data = resetData(pigServer);
 
     data.set("foo", "blah:chararray",
@@ -83,7 +84,7 @@ public class TestMockStorage {
 
   @Test
   public void testMockStoreUnion() throws Exception {
-    PigServer pigServer = new PigServer(ExecType.LOCAL);
+    PigServer pigServer = new PigServer(Util.getLocalTestMode());
     Data data = resetData(pigServer);
 
     data.set("input1",
@@ -122,7 +123,7 @@ public class TestMockStorage {
   
   @Test
   public void testBadUsage1() throws Exception {
-    PigServer pigServer = new PigServer(ExecType.LOCAL);
+    PigServer pigServer = new PigServer(Util.getLocalTestMode());
     Data data = resetData(pigServer);
 
     data.set("input1",
@@ -145,7 +146,7 @@ public class TestMockStorage {
   
   @Test
   public void testBadUsage2() throws Exception {
-    PigServer pigServer = new PigServer(ExecType.LOCAL);
+    PigServer pigServer = new PigServer(Util.getLocalTestMode());
     Data data = resetData(pigServer);
 
     data.set("input",
@@ -167,6 +168,10 @@ public class TestMockStorage {
             failed = true;
             break;
         }
+    }
+    if (Util.getLocalTestMode().toString().equals("TEZ_LOCAL")) {
+        assertFalse("job should have success in tez_local mode since we have two vertex, each for a single store", failed);
+        return;
     }
     assertTrue("job should have failed for storing twice in the same location", failed);
 

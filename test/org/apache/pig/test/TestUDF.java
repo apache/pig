@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.pig.EvalFunc;
-import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.DataType;
@@ -77,7 +76,7 @@ public class TestUDF {
 
     @Test
     public void testUDFReturnMap_LocalMode() throws Exception {
-        PigServer pig = new PigServer(ExecType.LOCAL);
+        PigServer pig = new PigServer(Util.getLocalTestMode());
         pig.registerScript(TempScriptFile.getAbsolutePath());
 
         Iterator<Tuple> iterator = pig.openIterator("B");
@@ -128,7 +127,7 @@ public class TestUDF {
     public void testEvalFuncGetArgToFunc() throws Exception {
         String input = "udf_test_jira_2430.txt";
         Util.createLocalInputFile(input, new String[]{"1,hey"});
-        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        PigServer pigServer = new PigServer(Util.getLocalTestMode());
         pigServer.registerQuery("A = LOAD '"+input+"' USING PigStorage(',') AS (x:int,y:chararray);");
         pigServer.registerQuery("B = FOREACH A GENERATE org.apache.pig.test.TestUDF$UdfWithFuncSpecWithArgs(x);");
         pigServer.registerQuery("C = FOREACH A GENERATE org.apache.pig.test.TestUDF$UdfWithFuncSpecWithArgs(y);");
@@ -152,7 +151,7 @@ public class TestUDF {
     public void testNormalDefine() throws Exception {
         String input = "udf_test_jira_2430_2.txt";
         Util.createLocalInputFile(input, new String[]{"1"});
-        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        PigServer pigServer = new PigServer(Util.getLocalTestMode());
         pigServer.registerQuery("A = LOAD '"+input+"' as (x:int);");
         pigServer.registerQuery("DEFINE udftest1 org.apache.pig.test.TestUDF$UdfWithFuncSpecWithArgs('1');");
         pigServer.registerQuery("DEFINE udftest2 org.apache.pig.test.TestUDF$UdfWithFuncSpecWithArgs('2');");
@@ -186,7 +185,7 @@ public class TestUDF {
                     query += s + "(A),";
                 }
                 query += udfs[udfs.length - 1] + "(A);";
-                PigServer pigServer = new PigServer(ExecType.LOCAL);
+                PigServer pigServer = new PigServer(Util.getLocalTestMode());
                 pigServer.registerQuery(query);
                 Iterator<Tuple> it = pigServer.openIterator("B");
                 while (it.hasNext()) {
@@ -202,7 +201,7 @@ public class TestUDF {
 
     @Test
     public void testEnsureProperSchema1() throws Exception {
-        PigServer pig = new PigServer(ExecType.LOCAL);
+        PigServer pig = new PigServer(Util.getLocalTestMode());
         pig.registerQuery("DEFINE goodSchema1 org.apache.pig.test.TestUDF$MirrorSchema('a:int');");
         pig.registerQuery("DEFINE goodSchema2 org.apache.pig.test.TestUDF$MirrorSchema('t:(a:int, b:int, c:int)');");
         pig.registerQuery("DEFINE goodSchema3 org.apache.pig.test.TestUDF$MirrorSchema('b:{(a:int, b:int, c:int)}');");
@@ -219,7 +218,7 @@ public class TestUDF {
     public void testEvalFuncGetVarArgToFunc() throws Exception {
         String input = "udf_test_jira_3444.txt";
         Util.createLocalInputFile(input, new String[]{"dummy"});
-        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        PigServer pigServer = new PigServer(Util.getLocalTestMode());
         pigServer.registerQuery("A = LOAD '"+input+"' USING PigStorage(',') AS (x:chararray);");
         pigServer.registerQuery("B = FOREACH A GENERATE org.apache.pig.test.TestUDF$UdfWithFuncSpecWithVarArgs(3);");
         pigServer.registerQuery("C = FOREACH A GENERATE org.apache.pig.test.TestUDF$UdfWithFuncSpecWithVarArgs(1,2,3,4);");
@@ -232,7 +231,7 @@ public class TestUDF {
 
     @Test(expected = FrontendException.class)
     public void testEnsureProperSchema2() throws Exception {
-        PigServer pig = new PigServer(ExecType.LOCAL);
+        PigServer pig = new PigServer(Util.getLocalTestMode());
         pig.registerQuery("DEFINE badSchema org.apache.pig.test.TestUDF$MirrorSchema('a:int, b:int, c:int');");
         pig.registerQuery("a = load 'thing';");
         pig.registerQuery("b = foreach a generate badSchema();");
@@ -324,7 +323,7 @@ public class TestUDF {
     @Test
     // See PIG-4184
     public void testUDFNullInput() throws Exception {
-        PigServer pig = new PigServer(ExecType.LOCAL);
+        PigServer pig = new PigServer(Util.getLocalTestMode());
         File inputFile = Util.createInputFile("tmp", "", 
                 new String[] {"\t", "2\t3"});
         pig.registerQuery("a = load '"

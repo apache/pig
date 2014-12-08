@@ -25,7 +25,6 @@ import static org.junit.Assert.fail;
 
 import java.util.List;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.Tuple;
@@ -40,7 +39,7 @@ public class TestCase {
      */
     @Test
     public void testNoElseBranch() throws Exception {
-        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        PigServer pigServer = new PigServer(Util.getLocalTestMode());
         Data data = resetData(pigServer);
 
         data.set("foo",
@@ -81,7 +80,7 @@ public class TestCase {
      */
     @Test
     public void testWithElseBranch() throws Exception {
-        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        PigServer pigServer = new PigServer(Util.getLocalTestMode());
         Data data = resetData(pigServer);
 
         data.set("foo",
@@ -122,7 +121,7 @@ public class TestCase {
      */
     @Test
     public void testConditionalWithNoElse() throws Exception {
-        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        PigServer pigServer = new PigServer(Util.getLocalTestMode());
         Data data = resetData(pigServer);
 
         data.set("foo",
@@ -163,7 +162,7 @@ public class TestCase {
      */
     @Test
     public void testConditionalWithElse() throws Exception {
-        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        PigServer pigServer = new PigServer(Util.getLocalTestMode());
         Data data = resetData(pigServer);
 
         data.set("foo",
@@ -204,7 +203,7 @@ public class TestCase {
      */
     @Test
     public void testOrderOfConditions() throws Exception {
-        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        PigServer pigServer = new PigServer(Util.getLocalTestMode());
         Data data = resetData(pigServer);
 
         data.set("foo",
@@ -244,7 +243,7 @@ public class TestCase {
      */
     @Test
     public void testWithDereferenceOperator() throws Exception {
-        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        PigServer pigServer = new PigServer(Util.getLocalTestMode());
         Data data = resetData(pigServer);
 
         data.set("foo",
@@ -281,7 +280,7 @@ public class TestCase {
      */
     @Test(expected = FrontendException.class)
     public void testMissingCaseExpression() throws Exception {
-        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        PigServer pigServer = new PigServer(Util.getLocalTestMode());
         Data data = resetData(pigServer);
 
         data.set("foo",
@@ -310,7 +309,7 @@ public class TestCase {
      */
     @Test(expected = FrontendException.class)
     public void testMissingWhenExpression() throws Exception {
-        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        PigServer pigServer = new PigServer(Util.getLocalTestMode());
         Data data = resetData(pigServer);
 
         data.set("foo",
@@ -339,7 +338,7 @@ public class TestCase {
      */
     @Test(expected = FrontendException.class)
     public void testMissingThenExpression() throws Exception {
-        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        PigServer pigServer = new PigServer(Util.getLocalTestMode());
         Data data = resetData(pigServer);
 
         data.set("foo",
@@ -368,7 +367,7 @@ public class TestCase {
      */
     @Test(expected = FrontendException.class)
     public void testMissingElseExpression() throws Exception {
-        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        PigServer pigServer = new PigServer(Util.getLocalTestMode());
         Data data = resetData(pigServer);
 
         data.set("foo",

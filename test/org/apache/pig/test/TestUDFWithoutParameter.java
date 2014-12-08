@@ -49,7 +49,7 @@ public class TestUDFWithoutParameter {
 
     @Test
     public void testUDFWithoutParameter() throws Exception {
-        PigServer pig = new PigServer(ExecType.LOCAL);
+        PigServer pig = new PigServer(Util.getLocalTestMode());
         pig.registerScript(TempScriptFile.getAbsolutePath());
 
         Iterator<Tuple> iterator=pig.openIterator("B");

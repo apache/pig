@@ -20,7 +20,6 @@ package org.apache.pig.test;
 import static org.junit.Assert.assertEquals;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
@@ -29,18 +28,14 @@ import junit.framework.Assert;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.parser.ParserException;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestTypedMap  {
@@ -75,8 +70,8 @@ public class TestTypedMap  {
     }
 
     @Test
-    public void testSimpleLoad() throws IOException, ParserException {
-        PigServer pig = new PigServer(ExecType.LOCAL, new Properties());
+    public void testSimpleLoad() throws Exception {
+        PigServer pig = new PigServer(Util.getLocalTestMode(), new Properties());
         String[] input = {
                 "[key#1,key2#2]",
                 "[key#2]",
@@ -112,8 +107,8 @@ public class TestTypedMap  {
     }
 
     @Test
-    public void testSimpleMapKeyLookup() throws IOException, ParserException {
-        PigServer pig = new PigServer(ExecType.LOCAL, new Properties());
+    public void testSimpleMapKeyLookup() throws Exception {
+        PigServer pig = new PigServer(Util.getLocalTestMode(), new Properties());
         String[] input = {
                 "[key#1,key2#2]",
                 "[key#2]",
@@ -143,8 +138,8 @@ public class TestTypedMap  {
     }
 
     @Test
-    public void testSimpleMapCast() throws IOException, ParserException {
-        PigServer pig = new PigServer(ExecType.LOCAL, new Properties());
+    public void testSimpleMapCast() throws Exception {
+        PigServer pig = new PigServer(Util.getLocalTestMode(), new Properties());
         String[] input = {
                 "[key#1,key2#2]",
                 "[key#2]",
@@ -181,8 +176,8 @@ public class TestTypedMap  {
     }
 
     @Test
-    public void testComplexLoad() throws IOException, ParserException {
-        PigServer pig = new PigServer(ExecType.LOCAL, new Properties());
+    public void testComplexLoad() throws Exception {
+        PigServer pig = new PigServer(Util.getLocalTestMode(), new Properties());
         String[] input = {
                 "[key#{(1,2),(1,3)},134#]",
                 "[key2#]",
@@ -215,8 +210,8 @@ public class TestTypedMap  {
     }
 
     @Test
-    public void testComplexCast() throws IOException, ParserException {
-        PigServer pig = new PigServer(ExecType.LOCAL, new Properties());
+    public void testComplexCast() throws Exception {
+        PigServer pig = new PigServer(Util.getLocalTestMode(), new Properties());
         String[] input = {
                 "[key#{(1,2),(1,3)},134#]",
                 "[key2#]",
@@ -250,8 +245,8 @@ public class TestTypedMap  {
     }
 
     @Test
-    public void testComplexCast2() throws IOException, ParserException {
-        PigServer pig = new PigServer(ExecType.LOCAL, new Properties());
+    public void testComplexCast2() throws Exception {
+        PigServer pig = new PigServer(Util.getLocalTestMode(), new Properties());
         String[] input = {
                 "[key#1,key2#2]",
         };
@@ -280,8 +275,8 @@ public class TestTypedMap  {
     }
 
     @Test
-    public void testUnTypedMap() throws IOException, ParserException {
-        PigServer pig = new PigServer(ExecType.LOCAL, new Properties());
+    public void testUnTypedMap() throws Exception {
+        PigServer pig = new PigServer(Util.getLocalTestMode(), new Properties());
         String[] input = {
                 "[key#1,key2#2]",
         };
@@ -309,8 +304,8 @@ public class TestTypedMap  {
     }
 
     @Test
-    public void testOrderBy() throws IOException, ParserException {
-        PigServer pig = new PigServer(ExecType.LOCAL, new Properties());
+    public void testOrderBy() throws Exception {
+        PigServer pig = new PigServer(Util.getLocalTestMode(), new Properties());
         String[] input = {
                 "[key#1,key1#2]",
                 "[key#2,key3#2]",

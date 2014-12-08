@@ -18,16 +18,11 @@
 
 package org.apache.pig.newplan.logical.optimizer;
 
-import static org.apache.pig.ExecType.LOCAL;
 import static org.apache.pig.builtin.mock.Storage.tuple;
 import static org.junit.Assert.assertEquals;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 
-import org.apache.pig.PigRunner;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.mock.Storage;
 import org.apache.pig.builtin.mock.Storage.Data;
@@ -39,8 +34,8 @@ import org.junit.Test;
 public class TestImplicitSplitOnTuple {
 
     @Test
-    public void testImplicitSplitterOnTuple() throws IOException {
-        PigServer pigServer = new PigServer(LOCAL);
+    public void testImplicitSplitterOnTuple() throws Exception {
+        PigServer pigServer = new PigServer(Util.getLocalTestMode());
         Data data = Storage.resetData(pigServer);
         data.set("input",
                 tuple("1", "1001", "101"),
