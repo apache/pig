@@ -28,7 +28,6 @@ import java.util.Iterator;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
@@ -46,7 +45,7 @@ public class TestFilterOpString {
     @Before
     public void setUp() throws Exception {
         FileLocalizer.deleteTempFiles();
-        pig = new PigServer(ExecType.LOCAL);
+        pig = new PigServer(Util.getLocalTestMode());
     }
 
     @Test

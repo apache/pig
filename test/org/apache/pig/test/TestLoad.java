@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
@@ -73,7 +72,7 @@ public class TestLoad {
         FileLocalizer.deleteTempFiles();
         servers = new PigServer[] {
                     new PigServer(cluster.getExecType(), cluster.getProperties()),
-                    new PigServer(ExecType.LOCAL, new Properties())
+                    new PigServer(Util.getLocalTestMode(), new Properties())
         };
     }
 

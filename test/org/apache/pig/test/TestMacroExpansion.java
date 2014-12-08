@@ -29,7 +29,6 @@ import java.io.PrintWriter;
 import java.io.StringReader;
 import java.util.Properties;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigRunner;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.parser.DryRunGruntParser;
@@ -1434,7 +1433,7 @@ public class TestMacroExpansion {
     @Test
     public void test2() throws Exception {
         String query = "A = load 'x' as ( u:int, v:long, w:bytearray); " + 
-                       "B = distinct A partition by org.apache.pig.Identity; " +
+                       "B = distinct A partition by org.apache.pig.test.utils.SimpleCustomPartitioner; " +
                        "C = sample B 0.49; " +
                        "D = order C by $0, $1; " +
                        "E = load 'y' as (d1, d2); " +
@@ -1446,7 +1445,7 @@ public class TestMacroExpansion {
         
         String expected =
             "macro_mymacro_A_0 = load 'x' as (u:int, v:long, w:bytearray);\n" +
-            "macro_mymacro_B_0 = distinct macro_mymacro_A_0 partition BY org.apache.pig.Identity;\n" +
+            "macro_mymacro_B_0 = distinct macro_mymacro_A_0 partition BY org.apache.pig.test.utils.SimpleCustomPartitioner;\n" +
             "macro_mymacro_C_0 = sample macro_mymacro_B_0 0.49;\n" +
             "macro_mymacro_D_0 = order macro_mymacro_C_0 BY $0, $1;\n" +
             "macro_mymacro_E_0 = load 'y' as (d1, d2);\n" + 
@@ -2277,7 +2276,8 @@ public class TestMacroExpansion {
     private void verify(String s, String expected) throws Exception {
         createFile("myscript.pig", s);
 
-        String[] args = { "-Dpig.import.search.path=/tmp", "-x", "local", "-c", "myscript.pig" };
+        String mode = Util.getLocalTestMode().toString();
+        String[] args = { "-Dpig.import.search.path=/tmp", "-x", mode, "-c", "myscript.pig" };
         PigStats stats = PigRunner.run(args, null);
         
         if (!stats.isSuccessful()) {
@@ -2286,7 +2286,7 @@ public class TestMacroExpansion {
         
         assertTrue(stats.isSuccessful());
         
-        String[] args2 = { "-Dpig.import.search.path=/tmp", "-x", "local", "-r", "myscript.pig" };
+        String[] args2 = { "-Dpig.import.search.path=/tmp", "-x", mode, "-r", "myscript.pig" };
         PigRunner.run(args2, null);
         
         File f2 = new File("myscript.pig.expanded");
@@ -2316,7 +2316,7 @@ public class TestMacroExpansion {
         
         try {
             BufferedReader br = new BufferedReader(new StringReader(piglatin));
-            Grunt grunt = new Grunt(br, new PigContext(ExecType.LOCAL, new Properties()));
+            Grunt grunt = new Grunt(br, new PigContext(Util.getLocalTestMode(), new Properties()));
             
             PrintWriter w = new PrintWriter(new FileWriter(scriptFile));
             w.print(piglatin);
@@ -2348,7 +2348,7 @@ public class TestMacroExpansion {
         try {
             BufferedReader br = new BufferedReader(new StringReader(piglatin));
             DryRunGruntParser parser = new DryRunGruntParser(br, scriptFile,
-                    new PigContext(ExecType.LOCAL, new Properties()));
+                    new PigContext(Util.getLocalTestMode(), new Properties()));
 
             PrintWriter w = new PrintWriter(new FileWriter(scriptFile));
             w.print(piglatin);

@@ -23,7 +23,6 @@ import java.util.List;
 
 import junit.framework.Assert;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator.OriginalLocation;
@@ -46,7 +45,7 @@ public class TestLocationInPhysicalPlan {
             "3,1,1",
             "1,2,1",
         });
-        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        PigServer pigServer = new PigServer(Util.getLocalTestMode());
         pigServer.setBatchOn();
         pigServer.registerQuery(
                 "A = LOAD '" + Util.encodeEscape(input.getAbsolutePath()) + "' using PigStorage();\n"
@@ -61,6 +60,10 @@ public class TestLocationInPhysicalPlan {
         Assert.assertEquals(0, originalLocation.getOffset());
         Assert.assertEquals("A", originalLocation.getAlias());
         JobStats jStats = (JobStats)job.getStatistics().getJobGraph().getSinks().get(0);
-        Assert.assertEquals("M: A[1,4],A[3,4],B[2,4] C: A[3,4],B[2,4] R: A[3,4]", jStats.getAliasLocation());
+        if (Util.getLocalTestMode().toString().equals("TEZ_LOCAL")) {
+            Assert.assertEquals("A[1,4],A[3,4],B[2,4]", jStats.getAliasLocation());
+        } else {
+            Assert.assertEquals("M: A[1,4],A[3,4],B[2,4] C: A[3,4],B[2,4] R: A[3,4]", jStats.getAliasLocation());
+        }
     }
 }

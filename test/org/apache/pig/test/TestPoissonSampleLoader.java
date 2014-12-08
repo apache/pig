@@ -24,9 +24,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Iterator;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.data.Tuple;
 import org.junit.After;
@@ -38,8 +36,8 @@ public class TestPoissonSampleLoader {
 
     private PigServer pigServer;
 
-    public TestPoissonSampleLoader() throws ExecException, IOException {
-        pigServer = new PigServer(ExecType.LOCAL);
+    public TestPoissonSampleLoader() throws Exception {
+        pigServer = new PigServer(Util.getLocalTestMode());
         pigServer.getPigContext().getProperties()
                 .setProperty("pig.skewedjoin.reduce.maxtuple", "5");
         pigServer.getPigContext().getProperties()

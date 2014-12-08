@@ -26,12 +26,16 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.apache.pig.ExecType;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.mock.Storage;
@@ -138,8 +142,8 @@ public class TestJsonLoaderStorage {
   private PigServer pigServer;
 
   @Before
-  public void setup() throws ExecException {
-    pigServer = new PigServer(ExecType.LOCAL);
+  public void setup() throws Exception {
+    pigServer = new PigServer(Util.getLocalTestMode());
   }
 
   private String getTempOutputPath() throws IOException {
@@ -176,7 +180,7 @@ public class TestJsonLoaderStorage {
     return pigServer.openIterator("data");
   }
 
-  private BufferedReader storeJson(String input) throws IOException {
+  private BufferedReader storeJson(String input) throws Exception {
     String pathInputFile = createInput(input);
     String pathJsonFile = getTempOutputPath();
     pigServer.registerQuery("data = load '" + pathInputFile
@@ -184,7 +188,10 @@ public class TestJsonLoaderStorage {
     pigServer.registerQuery("store data into '" + pathJsonFile
         + "' using JsonStorage();");
 
-    FileReader r = new FileReader(pathJsonFile + "/part-m-00000");
+    Path p = new Path(pathJsonFile);
+    FileSystem fs = FileSystem.get(p.toUri(), new Configuration());
+    Reader r = new InputStreamReader(fs.open(Util.getFirstPartFile(p)));
+
     BufferedReader br = new BufferedReader(r);
 
     return br;
@@ -307,7 +314,7 @@ public class TestJsonLoaderStorage {
   }
 
   @Test
-  public void testJsonStorage() throws IOException {
+  public void testJsonStorage() throws Exception {
     BufferedReader br = storeJson(rawInput);
     String data = br.readLine();
 
@@ -325,7 +332,7 @@ public class TestJsonLoaderStorage {
   }
 
   @Test
-  public void testJsonStorageNull() throws IOException {
+  public void testJsonStorageNull() throws Exception {
     BufferedReader br = storeJson(nullInput);
     String data = br.readLine();
 
@@ -343,7 +350,7 @@ public class TestJsonLoaderStorage {
   }
 
   @Test
-  public void testJsonLoaderStorage() throws IOException {
+  public void testJsonLoaderStorage() throws Exception {
 
     String pattInputFile = createInput(rawInput);
     String pattJsonFile = getTempOutputPath();
@@ -358,7 +365,9 @@ public class TestJsonLoaderStorage {
     pigServer.registerQuery("store json into '" + pattJson2File
         + "' using JsonStorage();");
 
-    FileReader r = new FileReader(pattJson2File + "/part-m-00000");
+    Path p = new Path(pattJson2File);
+    FileSystem fs = FileSystem.get(p.toUri(), new Configuration());
+    Reader r = new InputStreamReader(fs.open(Util.getFirstPartFile(p)));
 
     BufferedReader br = new BufferedReader(r);
     String data = br.readLine();
@@ -386,7 +395,9 @@ public class TestJsonLoaderStorage {
     pigServer.registerQuery("data = limit data 2;");
     pigServer.registerQuery("store data into '" + outPath + "' using JsonStorage();");
 
-    FileReader r = new FileReader(outPath + "/part-r-00000");
+    Path p = new Path(outPath);
+    FileSystem fs = FileSystem.get(p.toUri(), new Configuration());
+    Reader r = new InputStreamReader(fs.open(Util.getFirstPartFile(p)));
 
     BufferedReader br = new BufferedReader(r);
 
@@ -432,7 +443,11 @@ public class TestJsonLoaderStorage {
             "};");
     pigServer.store("uniqcnt", tempJsonFile.getAbsolutePath(), "JsonStorage");
 
-    BufferedReader br = new BufferedReader(new FileReader(tempJsonFile.getAbsolutePath()+ "/part-r-00000"));
+    Path p = new Path(tempJsonFile.getAbsolutePath());
+    FileSystem fs = FileSystem.get(p.toUri(), new Configuration());
+    Reader r = new InputStreamReader(fs.open(Util.getFirstPartFile(p)));
+
+    BufferedReader br = new BufferedReader(r);
     String data = br.readLine();
 
     assertEquals(jsonOutput, data);

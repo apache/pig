@@ -22,6 +22,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -31,8 +32,11 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.hive.ql.io.orc.CompressionKind;
 import org.apache.hadoop.hive.ql.io.orc.OrcFile;
 import org.apache.hadoop.hive.ql.io.orc.OrcStruct;
@@ -51,9 +55,7 @@ import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.data.BinSedesTuple;
 import org.apache.pig.data.DataByteArray;
@@ -96,8 +98,8 @@ public class TestOrcStorage {
     }
 
     @Before
-    public void setup() throws ExecException, IOException {
-        pigServer = new PigServer(ExecType.LOCAL);
+    public void setup() throws Exception {
+        pigServer = new PigServer(Util.getLocalTestMode());
         fs = FileSystem.get(ConfigurationUtil.toConfiguration(pigServer.getPigContext().getProperties()));
         deleteTestFiles();
         pigServer.mkdirs(outbasedir);
@@ -189,8 +191,8 @@ public class TestOrcStorage {
     public void testSimpleStore() throws Exception {
         pigServer.registerQuery("A = load '" + INPUT1 + "' as (a0:int, a1:chararray);");
         pigServer.store("A", OUTPUT1, "OrcStorage");
-        Path outputFilePath = new Path(new Path(OUTPUT1), "part-m-00000");
-        Reader reader = OrcFile.createReader(fs, outputFilePath);
+        
+        Reader reader = OrcFile.createReader(fs, Util.getFirstPartFile(new Path(OUTPUT1)));
         assertEquals(reader.getNumberOfRows(), 2);
 
         RecordReader rows = reader.rows(null);
@@ -242,12 +244,12 @@ public class TestOrcStorage {
         pigServer.registerQuery("store B into '" + OUTPUT3 +"' using OrcStorage('-c SNAPPY');");
         pigServer.executeBatch();
 
-        Path outputFilePath = new Path(new Path(OUTPUT2), "part-r-00000");
+        Path outputFilePath = Util.getFirstPartFile(new Path(OUTPUT2));
         Reader reader = OrcFile.createReader(fs, outputFilePath);
         assertEquals(reader.getNumberOfRows(), 2);
         assertEquals(reader.getCompression(), CompressionKind.ZLIB);
 
-        Path outputFilePath2 = new Path(new Path(OUTPUT3), "part-r-00000");
+        Path outputFilePath2 = Util.getFirstPartFile(new Path(OUTPUT3));
         reader = OrcFile.createReader(fs, outputFilePath2);
         assertEquals(reader.getNumberOfRows(), 2);
         assertEquals(reader.getCompression(), CompressionKind.SNAPPY);

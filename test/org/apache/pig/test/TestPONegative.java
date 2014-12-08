@@ -25,7 +25,6 @@ import java.util.Iterator;
 import java.util.Properties;
 import java.util.Random;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.PONegative;
@@ -293,7 +292,7 @@ public class TestPONegative {
 
     @Test
     public void testPONegType() throws Exception {
-        PigServer pig = new PigServer(ExecType.LOCAL, new Properties());
+        PigServer pig = new PigServer(Util.getLocalTestMode(), new Properties());
         File f = Util.createInputFile("tmp", "", new String[] {"a", "b", "c"});
         pig.registerQuery("a = load '"
                 + Util.encodeEscape(Util.generateURI(f.toString(), pig.getPigContext())) + "';");

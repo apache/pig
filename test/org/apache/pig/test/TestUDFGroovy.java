@@ -40,7 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.DataBag;
@@ -280,7 +279,7 @@ public class TestUDFGroovy {
     }
     writer.close();
 
-    PigServer pigServer = new PigServer(ExecType.LOCAL);
+    PigServer pigServer = new PigServer(Util.getLocalTestMode());
 
     pigServer.registerCode(tmpScriptFile.getCanonicalPath(), "groovy", "groovyudfs");
 
@@ -327,7 +326,7 @@ public class TestUDFGroovy {
     }
     writer.close();
 
-    PigServer pigServer = new PigServer(ExecType.LOCAL);
+    PigServer pigServer = new PigServer(Util.getLocalTestMode());
 
     pigServer.registerCode(tmpScriptFile.getCanonicalPath(), "groovy", "groovyudfs");
 
@@ -386,7 +385,7 @@ public class TestUDFGroovy {
     }
     writer.close();
 
-    PigServer pigServer = new PigServer(ExecType.LOCAL);
+    PigServer pigServer = new PigServer(Util.getLocalTestMode());
 
     pigServer.registerCode(tmpScriptFile.getCanonicalPath(), "groovy", "groovyudfs");
 
@@ -442,7 +441,7 @@ public class TestUDFGroovy {
     }
     writer.close();
 
-    PigServer pigServer = new PigServer(ExecType.LOCAL);
+    PigServer pigServer = new PigServer(Util.getLocalTestMode());
 
     pigServer.registerCode(tmpScriptFile.getCanonicalPath(), "groovy", "groovyudfs");
 
@@ -486,7 +485,7 @@ public class TestUDFGroovy {
     }
     writer.close();
 
-    PigServer pigServer = new PigServer(ExecType.LOCAL);
+    PigServer pigServer = new PigServer(Util.getLocalTestMode());
 
     pigServer.registerCode(tmpScriptFile.getCanonicalPath(), "groovy", "groovyudfs");
 
