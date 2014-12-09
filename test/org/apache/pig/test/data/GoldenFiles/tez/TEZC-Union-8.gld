@@ -68,4 +68,4 @@ d: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-22
 |
 |---d: Limit - scope-21
     |
-    |---POShuffledValueInputTez - scope-34	<-	 [scope-30, scope-25]
+    |---POShuffledValueInputTez - scope-34	<-	 [scope-25, scope-30]

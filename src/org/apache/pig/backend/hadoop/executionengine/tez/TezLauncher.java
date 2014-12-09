@@ -98,11 +98,15 @@ public class TezLauncher extends Launcher {
                 .setUncaughtExceptionHandler(new JobControlThreadExceptionHandler())
                 .build();
         }
-        executor = Executors.newSingleThreadExecutor(namedThreadFactory);
     }
 
     @Override
     public PigStats launchPig(PhysicalPlan php, String grpName, PigContext pc) throws Exception {
+        synchronized (this) {
+            if (executor == null) {
+                executor = Executors.newSingleThreadExecutor(namedThreadFactory);
+            }
+        }
         if (pc.getExecType().isLocal()) {
             pc.getProperties().setProperty(TezConfiguration.TEZ_LOCAL_MODE, "true");
             pc.getProperties().setProperty(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, "true");

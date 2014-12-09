@@ -14,9 +14,9 @@ Tez vertex scope-46
 
 Tez vertex scope-20
 # Plan on vertex
-Local Rearrange[tuple]{tuple}(false) - scope-54	->	 scope-34
+Local Rearrange[tuple]{tuple}(false) - scope-55	->	 scope-34
 |   |
-|   Constant(DummyVal) - scope-55
+|   Constant(DummyVal) - scope-56
 |
 |---New For Each(false,true)[tuple] - scope-62
     |   |
@@ -26,11 +26,11 @@ Local Rearrange[tuple]{tuple}(false) - scope-54	->	 scope-34
     |   |
     |   |---Project[tuple][*] - scope-60
     |
-    |---ReservoirSample - scope-53
+    |---ReservoirSample - scope-58
         |
-        |---d: Local Rearrange[tuple]{int}(false) - scope-57	->	 scope-44
+        |---d: Local Rearrange[tuple]{int}(false) - scope-53	->	 scope-44
             |   |
-            |   Project[int][0] - scope-58
+            |   Project[int][0] - scope-54
             |
             |---a: New For Each(false,false)[bag] - scope-7
                 |   |
@@ -45,9 +45,9 @@ Local Rearrange[tuple]{tuple}(false) - scope-54	->	 scope-34
                 |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
 Tez vertex scope-21
 # Plan on vertex
-Local Rearrange[tuple]{tuple}(false) - scope-64	->	 scope-34
+Local Rearrange[tuple]{tuple}(false) - scope-65	->	 scope-34
 |   |
-|   Constant(DummyVal) - scope-65
+|   Constant(DummyVal) - scope-66
 |
 |---New For Each(false,true)[tuple] - scope-72
     |   |
@@ -57,11 +57,11 @@ Local Rearrange[tuple]{tuple}(false) - scope-64	->	 scope-34
     |   |
     |   |---Project[tuple][*] - scope-70
     |
-    |---ReservoirSample - scope-63
+    |---ReservoirSample - scope-68
         |
-        |---d: Local Rearrange[tuple]{int}(false) - scope-67	->	 scope-44
+        |---d: Local Rearrange[tuple]{int}(false) - scope-63	->	 scope-44
             |   |
-            |   Project[int][0] - scope-68
+            |   Project[int][0] - scope-64
             |
             |---c: New For Each(false,false)[bag] - scope-15
                 |   |

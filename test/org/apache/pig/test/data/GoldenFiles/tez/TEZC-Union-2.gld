@@ -11,19 +11,19 @@ Tez vertex scope-35
 
 Tez vertex scope-29
 # Plan on vertex
-d: Local Rearrange[tuple]{int}(false) - scope-56	->	 scope-35
+d: Local Rearrange[tuple]{int}(false) - scope-61	->	 scope-35
 |   |
-|   Project[int][0] - scope-57
+|   Project[int][0] - scope-62
 |
-|---e: New For Each(false,false)[bag] - scope-62
+|---e: New For Each(false,false)[bag] - scope-60
     |   |
-    |   Project[int][0] - scope-58
+    |   Project[int][0] - scope-56
     |   |
-    |   POUserFunc(org.apache.pig.builtin.AlgebraicMathBase$Initial)[tuple] - scope-59
+    |   POUserFunc(org.apache.pig.builtin.AlgebraicMathBase$Initial)[tuple] - scope-57
     |   |
-    |   |---Project[bag][1] - scope-60
+    |   |---Project[bag][1] - scope-58
     |       |
-    |       |---Project[bag][1] - scope-61
+    |       |---Project[bag][1] - scope-59
     |
     |---Pre Combiner Local Rearrange[tuple]{Unknown} - scope-63
         |
@@ -40,19 +40,19 @@ d: Local Rearrange[tuple]{int}(false) - scope-56	->	 scope-35
             |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
 Tez vertex scope-30
 # Plan on vertex
-d: Local Rearrange[tuple]{int}(false) - scope-64	->	 scope-35
+d: Local Rearrange[tuple]{int}(false) - scope-69	->	 scope-35
 |   |
-|   Project[int][0] - scope-65
+|   Project[int][0] - scope-70
 |
-|---e: New For Each(false,false)[bag] - scope-70
+|---e: New For Each(false,false)[bag] - scope-68
     |   |
-    |   Project[int][0] - scope-66
+    |   Project[int][0] - scope-64
     |   |
-    |   POUserFunc(org.apache.pig.builtin.AlgebraicMathBase$Initial)[tuple] - scope-67
+    |   POUserFunc(org.apache.pig.builtin.AlgebraicMathBase$Initial)[tuple] - scope-65
     |   |
-    |   |---Project[bag][1] - scope-68
+    |   |---Project[bag][1] - scope-66
     |       |
-    |       |---Project[bag][1] - scope-69
+    |       |---Project[bag][1] - scope-67
     |
     |---Pre Combiner Local Rearrange[tuple]{Unknown} - scope-71
         |
@@ -70,7 +70,7 @@ d: Local Rearrange[tuple]{int}(false) - scope-64	->	 scope-35
 Tez vertex group scope-55	<-	 [scope-29, scope-30]	->	 scope-35
 # No plan on vertex group
 Tez vertex scope-35
-# Combine plan on edge <scope-30>
+# Combine plan on edge <scope-29>
 d: Local Rearrange[tuple]{int}(false) - scope-52	->	 scope-35
 |   |
 |   Project[int][0] - scope-54
@@ -84,7 +84,7 @@ d: Local Rearrange[tuple]{int}(false) - scope-52	->	 scope-35
     |   |---Project[bag][1] - scope-44
     |
     |---d: Package(CombinerPackager)[tuple]{int} - scope-47
-# Combine plan on edge <scope-29>
+# Combine plan on edge <scope-30>
 d: Local Rearrange[tuple]{int}(false) - scope-52	->	 scope-35
 |   |
 |   Project[int][0] - scope-54
