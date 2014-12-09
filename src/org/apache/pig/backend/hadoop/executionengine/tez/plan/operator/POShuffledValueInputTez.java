@@ -20,6 +20,7 @@ package org.apache.pig.backend.hadoop.executionengine.tez.plan.operator;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -160,6 +161,8 @@ public class POShuffledValueInputTez extends PhysicalOperator implements TezInpu
 
     @Override
     public String name() {
-        return "POShuffledValueInputTez - " + mKey.toString() + "\t<-\t " + inputKeys;
+        List<String> inputKeyList = new ArrayList<String>(inputKeys);
+        Collections.sort(inputKeyList);
+        return "POShuffledValueInputTez - " + mKey.toString() + "\t<-\t " + inputKeyList;
     }
 }

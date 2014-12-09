@@ -42,4 +42,4 @@ Tez vertex scope-47
 # Plan on vertex
 c: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-44
 |
-|---POShuffledValueInputTez - scope-48	<-	 [scope-46, scope-45]
+|---POShuffledValueInputTez - scope-48	<-	 [scope-45, scope-46]

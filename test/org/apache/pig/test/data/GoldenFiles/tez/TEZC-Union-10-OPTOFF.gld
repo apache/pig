@@ -67,7 +67,7 @@ f: Local Rearrange[tuple]{int}(false) - scope-28	->	 scope-42
 |   |
 |   Project[int][0] - scope-29
 |
-|---POShuffledValueInputTez - scope-39	<-	 [scope-37, scope-33]
+|---POShuffledValueInputTez - scope-39	<-	 [scope-33, scope-37]
 Tez vertex scope-42
 # Plan on vertex
 f: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-30

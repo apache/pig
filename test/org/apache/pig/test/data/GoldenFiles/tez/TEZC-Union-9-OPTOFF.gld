@@ -86,4 +86,4 @@ Tez vertex scope-109
 |       |       |
 |       |       |---Constant(500) - scope-98
 |
-|---POShuffledValueInputTez - scope-110	<-	 [scope-108, scope-102]
+|---POShuffledValueInputTez - scope-110	<-	 [scope-102, scope-108]

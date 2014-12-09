@@ -18,8 +18,9 @@
 package org.apache.pig.backend.hadoop.executionengine.tez.plan;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map.Entry;
 
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -42,7 +43,7 @@ public class TezPrinter extends TezOpPlanVisitor {
      * @param plan tez plan to print
      */
     public TezPrinter(PrintStream ps, TezOperPlan plan) {
-        super(plan, new DependencyOrderWalker<TezOperator, TezOperPlan>(plan));
+        super(plan, new DependencyOrderWalker<TezOperator, TezOperPlan>(plan, true));
         mStream = ps;
     }
 
@@ -62,13 +63,16 @@ public class TezPrinter extends TezOpPlanVisitor {
             mStream.println("Tez vertex " + tezOper.getOperatorKey().toString());
         }
         if (tezOper.inEdges.size() > 0) {
-            for (Entry<OperatorKey, TezEdgeDescriptor> inEdge : tezOper.inEdges.entrySet()) {
+            List<OperatorKey> inEdges = new ArrayList<OperatorKey>(tezOper.inEdges.keySet());
+            Collections.sort(inEdges);
+            for (OperatorKey inEdge : inEdges) {
                 //TODO: Print other edge properties like custom partitioner
-                if (!inEdge.getValue().combinePlan.isEmpty()) {
-                    mStream.println("# Combine plan on edge <" + inEdge.getKey() + ">");
+                TezEdgeDescriptor edgeDesc = tezOper.inEdges.get(inEdge);
+                if (!edgeDesc.combinePlan.isEmpty()) {
+                    mStream.println("# Combine plan on edge <" + inEdge + ">");
                     PlanPrinter<PhysicalOperator, PhysicalPlan> printer =
                             new PlanPrinter<PhysicalOperator, PhysicalPlan>(
-                                    inEdge.getValue().combinePlan, mStream);
+                                    edgeDesc.combinePlan, mStream);
                     printer.setVerbose(isVerbose);
                     printer.visit();
                     mStream.println();
@@ -93,7 +97,7 @@ public class TezPrinter extends TezOpPlanVisitor {
         StringBuffer buf;
 
         public TezGraphPrinter(TezOperPlan plan) {
-            super(plan, new DependencyOrderWalker<TezOperator, TezOperPlan>(plan));
+            super(plan, new DependencyOrderWalker<TezOperator, TezOperPlan>(plan, true));
             buf = new StringBuffer();
         }
 
@@ -106,6 +110,7 @@ public class TezPrinter extends TezOpPlanVisitor {
             }
             List<TezOperator> succs = mPlan.getSuccessors(tezOper);
             if (succs != null) {
+                Collections.sort(succs);
                 buf.append("\t->\t");
                 for (TezOperator op : succs) {
                     if (op.isVertexGroup()) {
