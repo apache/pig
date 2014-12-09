@@ -196,10 +196,14 @@ public class TestPigRunner {
             String[] args = { "-Dstop.on.failure=true", "-Dopt.multiquery=false", "-Daggregate.warning=false", "-x", execType, PIG_FILE };
             PigStats stats = PigRunner.run(args, new TestNotificationListener(execType));
 
-            assertTrue(stats instanceof EmptyPigStats);
             assertTrue(stats.isSuccessful());
-            assertEquals(0, stats.getNumberJobs());
-            assertEquals(stats.getJobGraph().size(), 0);
+            if (execType.toString().startsWith("tez")) {
+                assertEquals(1, stats.getNumberJobs());
+                assertEquals(stats.getJobGraph().size(), 1);
+            } else {
+                assertEquals(2, stats.getNumberJobs());
+                assertEquals(stats.getJobGraph().size(), 2);
+            }
 
             Configuration conf = ConfigurationUtil.toConfiguration(stats.getPigProperties());
             assertTrue(conf.getBoolean("stop.on.failure", false));
