@@ -517,7 +517,7 @@ public class TestPigRunner {
 
     @Test
     public void testIsTempFile() throws Exception {
-        PigContext context = new PigContext(ExecType.LOCAL, new Properties());
+        PigContext context = new PigContext(Util.getLocalTestMode(), new Properties());
         context.connect();
         for (int i=0; i<100; i++) {
             String file = FileLocalizer.getTemporaryPath(context).toString();

@@ -67,3 +67,4 @@
 **/TestTezCompiler.java
 **/TestTezJobControlCompiler.java
 **/TestTezLauncher.java
+**/TestPigServerWithMacrosRemote.java

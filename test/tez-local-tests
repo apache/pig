@@ -64,3 +64,8 @@
 **/TestUnion.java
 **/TestUTF8.java
 **/TestGruntParser.java
+**/TestAutoLocalMode.java
+**/TestEvalPipelineLocal.java
+**/TestFetch.java
+**/TestPigRunner.java
+**/TestPigServerWithMacros.java
