@@ -104,6 +104,7 @@
     <property name="test.smoke.file" value="${test.src.dir}/smoke-tests"/>
     <property name="test.all.file" value="${test.src.dir}/all-tests"/>
     <property name="test.tez.file" value="${test.src.dir}/tez-tests"/>
+    <property name="test.tez_local.file" value="${test.src.dir}/tez-local-tests"/>
     <property name="test.exclude.file" value="${test.src.dir}/excluded-tests"/>
     <property name="test.exclude.file.20" value="${test.src.dir}/excluded-tests-20"/>
     <property name="test.exclude.file.23" value="${test.src.dir}/excluded-tests-23"/>
@@ -144,9 +145,8 @@
 
     <!-- env properties -->
     <property environment="env"/>
-    <property name="windows" value="false"/>
     <condition property="isWindows">
-      <equals arg1="${windows}" arg2="true" />
+      <os family="windows"/>
     </condition>
 	
     <target name="setTezEnv">
@@ -690,6 +690,7 @@
         <propertyreset name="hadoopversion" value="23" />
         <propertyreset name="hbase.hadoop.version" value="hadoop2" />
         <propertyreset name="src.shims.dir" value="${basedir}/shims/src/hadoop${hadoopversion}" />
+        <propertyreset name="src.exclude.dir" value="" />
         <antcall target="jar" inheritRefs="true" inheritall="true"/>
     </target>
 
@@ -891,6 +892,11 @@
         <fail if="test-tez.failed">Tests failed!</fail>
     </target>
 	
+    <target name="test-tez-local" depends="setTezEnv,setWindowsPath,setLinuxPath,compile-test,jar,debugger.check,jackson-pig-3039-test-download" description="Run tez local mode unit tests">
+        <macro-test-runner test.file="${test.tez_local.file}" tests.failed="test-tez.failed"/>
+        <fail if="test-tez.failed">Tests failed!</fail>
+    </target>
+
     <target name="debugger.check" depends="debugger.set,debugger.unset"/>
     <target name="debugger.set" if="debugPort">
         <property name="debugArgs" value="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=${debugPort}"/>
@@ -915,7 +921,7 @@
             <sysproperty key="hod.server" value="${hod.server}" />
             <sysproperty key="java.io.tmpdir" value="${junit.tmp.dir}" />
             <sysproperty key="hadoop.log.dir" value="${test.log.dir}"/>
-            <jvmarg line="-XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=128M ${debugArgs}"/>
+            <jvmarg line="-XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=128M ${debugArgs} -Djava.library.path=${hadoop.root}\bin"/>
             <sysproperty key="java.security.krb5.realm" value="" />
             <sysproperty key="java.security.krb5.kdc" value="" />
             <sysproperty key="log4j.configuration" value="file:${basedir}/conf/test-log4j.properties"/>

@@ -61,27 +61,27 @@ public class SchemaTupleClassGenerator {
          * This context is used in UDF code. Currently, this is only used for
          * the inputs to UDF's.
          */
-        UDF (PigConfiguration.SCHEMA_TUPLE_SHOULD_USE_IN_UDF, true, GenerateUdf.class),
+        UDF (PigConfiguration.PIG_SCHEMA_TUPLE_USE_IN_UDF, true, GenerateUdf.class),
         /**
          * This context is for POForEach. This will use the expected output of a ForEach
          * to return a typed Tuple.
          */
-        FOREACH (PigConfiguration.SCHEMA_TUPLE_SHOULD_USE_IN_FOREACH, true, GenerateForeach.class),
+        FOREACH (PigConfiguration.PIG_SCHEMA_TUPLE_USE_IN_FOREACH, true, GenerateForeach.class),
         /**
          * This context controls whether or not SchemaTuples will be used in FR joins.
          * Currently, they will be used in the HashMap that FR Joins construct.
          */
-        FR_JOIN (PigConfiguration.SCHEMA_TUPLE_SHOULD_USE_IN_FRJOIN, true, GenerateFrJoin.class),
+        FR_JOIN (PigConfiguration.PIG_SCHEMA_TUPLE_USE_IN_FRJOIN, true, GenerateFrJoin.class),
         /**
          * This context controls whether or not SchemaTuples will be used in merge joins.
          */
-        MERGE_JOIN (PigConfiguration.SCHEMA_TUPLE_SHOULD_USE_IN_MERGEJOIN, true, GenerateMergeJoin.class),
+        MERGE_JOIN (PigConfiguration.PIG_SCHEMA_TUPLE_USE_IN_MERGEJOIN, true, GenerateMergeJoin.class),
         /**
          * All registered Schemas will also be registered in one additional context.
          * This context will allow users to "force" the load of a SchemaTupleFactory
          * if one is present in any context.
          */
-        FORCE_LOAD (PigConfiguration.SCHEMA_TUPLE_SHOULD_ALLOW_FORCE, true, GenerateForceLoad.class);
+        FORCE_LOAD (PigConfiguration.PIG_SCHEMA_TUPLE_ALLOW_FORCE, true, GenerateForceLoad.class);
 
         /**
          * These annotations are used to mark a given SchemaTuple with
@@ -226,7 +226,7 @@ public class SchemaTupleClassGenerator {
      */
     //TODO in the future, we can use ASM to generate the bytecode directly.
     private static void compileCodeString(String className, String generatedCodeString, File codeDir) {
-        JavaCompilerHelper compiler = new JavaCompilerHelper(); 
+        JavaCompilerHelper compiler = new JavaCompilerHelper();
         String tempDir = codeDir.getAbsolutePath();
         compiler.addToClassPath(tempDir);
         LOG.debug("Compiling SchemaTuple code with classpath: " + compiler.getClassPath());
@@ -242,12 +242,14 @@ public class SchemaTupleClassGenerator {
             this.id = id;
         }
 
+        @Override
         public void prepare() {
             add("@Override");
             add("protected int generatedCodeCompareToSpecific(SchemaTuple_"+id+" t) {");
             add("    int i = 0;");
         }
 
+        @Override
         public void process(int fieldNum, Schema.FieldSchema fs) {
             add("    i = compare(checkIfNull_" + fieldNum + "(), getPos_"
                     + fieldNum + "(), t.checkIfNull_" + fieldNum + "(), t.getPos_"
@@ -257,6 +259,7 @@ public class SchemaTupleClassGenerator {
             add("    }");
         }
 
+        @Override
         public void end() {
             add("    return i;");
             add("}");
@@ -271,6 +274,7 @@ public class SchemaTupleClassGenerator {
             this.id = id;
         }
 
+        @Override
         public void prepare() {
             add("@Override");
             add("protected int generatedCodeCompareTo(SchemaTuple t, boolean checkType) {");
@@ -282,6 +286,7 @@ public class SchemaTupleClassGenerator {
         boolean compIsNull = false;
         boolean compByte = false;
 
+        @Override
         public void process(int fieldNum, Schema.FieldSchema fs) {
             add("        i = compareWithElementAtPos(checkIfNull_" + fieldNum + "(), getPos_" + fieldNum + "(), t, " + fieldNum + ");");
             add("        if (i != 0) {");
@@ -289,6 +294,7 @@ public class SchemaTupleClassGenerator {
             add("        }");
         }
 
+        @Override
         public void end() {
             add("    return 0;");
             add("}");
@@ -296,16 +302,19 @@ public class SchemaTupleClassGenerator {
     }
 
     static class HashCode extends TypeInFunctionStringOut {
+        @Override
         public void prepare() {
             add("@Override");
             add("public int generatedCodeHashCode() {");
             add("    int h = 17;");
         }
 
+        @Override
         public void process(int fieldPos, Schema.FieldSchema fs) {
             add("    h = hashCodePiece(h, getPos_" + fieldPos + "(), checkIfNull_" + fieldPos + "());");
         }
 
+        @Override
         public void end() {
             add("    return h;");
             add("}");
@@ -323,6 +332,7 @@ public class SchemaTupleClassGenerator {
         private int booleans = 0;
         private File codeDir;
 
+        @Override
         public void prepare() {
             String s;
             try {
@@ -333,6 +343,7 @@ public class SchemaTupleClassGenerator {
             add("private static Schema schema = staticSchemaGen(\"" + s + "\");");
         }
 
+        @Override
         public void process(int fieldPos, Schema.FieldSchema fs) {
             if (!isTuple()) {
                 if (isPrimitive() && (primitives++ % 8 == 0)) {
@@ -385,6 +396,7 @@ public class SchemaTupleClassGenerator {
         private int byteField = 0; //this is for setting booleans
         private int byteIncr = 0; //this is for counting the booleans we've encountered
 
+        @Override
         public void process(int fieldPos, Schema.FieldSchema fs) {
             if (!isTuple()) {
                 add("public void setPos_"+fieldPos+"("+typeName()+" v) {");
@@ -433,27 +445,32 @@ public class SchemaTupleClassGenerator {
     }
 
     static class ListSetString extends TypeInFunctionStringOut {
+        @Override
         public void prepare() {
             add("@Override");
             add("public void generatedCodeSetIterator(Iterator<Object> it) throws ExecException {");
         }
 
+        @Override
         public void process(int fieldPos, Schema.FieldSchema fs) {
             add("    setPos_"+fieldPos+"(unbox(it.next(), getDummy_"+fieldPos+"()));");
         }
 
+        @Override
         public void end() {
             add("}");
         }
     }
 
     static class GenericSetString extends TypeInFunctionStringOut {
+        @Override
         public void prepare() {
             add("@Override");
             add("public void generatedCodeSetField(int fieldNum, Object val) throws ExecException {");
             add("    switch (fieldNum) {");
         }
 
+        @Override
         public void process(int fieldPos, Schema.FieldSchema fs) {
             add("    case ("+fieldPos+"):");
             add("        if (val == null) {");
@@ -464,6 +481,7 @@ public class SchemaTupleClassGenerator {
             add("        break;");
         }
 
+        @Override
         public void end() {
             add("    default:");
             add("        throw new ExecException(\"Invalid index given to set: \" + fieldNum);");
@@ -473,16 +491,19 @@ public class SchemaTupleClassGenerator {
     }
 
     static class GenericGetString extends TypeInFunctionStringOut {
+        @Override
         public void prepare() {
             add("@Override");
             add("public Object generatedCodeGetField(int fieldNum) throws ExecException {");
             add("    switch (fieldNum) {");
         }
 
+        @Override
         public void process(int fieldPos, Schema.FieldSchema fs) {
             add("    case ("+fieldPos+"): return checkIfNull_"+fieldPos+"() ? null : box(getPos_"+fieldPos+"());");
         }
 
+        @Override
         public void end() {
             add("    default: throw new ExecException(\"Invalid index given to get: \" + fieldNum);");
             add("    }");
@@ -491,16 +512,19 @@ public class SchemaTupleClassGenerator {
     }
 
     static class GeneralIsNullString extends TypeInFunctionStringOut {
+        @Override
         public void prepare() {
             add("@Override");
             add("public boolean isGeneratedCodeFieldNull(int fieldNum) throws ExecException {");
             add("    switch (fieldNum) {");
         }
 
+        @Override
         public void process(int fieldPos, Schema.FieldSchema fs) {
             add("    case ("+fieldPos+"): return checkIfNull_"+fieldPos+"();");
         }
 
+        @Override
         public void end() {
             add("    default: throw new ExecException(\"Invalid index given: \" + fieldNum);");
             add("    }");
@@ -512,6 +536,7 @@ public class SchemaTupleClassGenerator {
         private int nullByte = 0; //the byte_ val
         private int byteIncr = 0; //the mask we're on
 
+        @Override
         public void process(int fieldPos, Schema.FieldSchema fs) {
             add("public boolean checkIfNull_" + fieldPos + "() {");
             if (isPrimitive()) {
@@ -532,6 +557,7 @@ public class SchemaTupleClassGenerator {
         private int nullByte = 0; //the byte_ val
         private int byteIncr = 0; //the mask we're on
 
+        @Override
         public void process(int fieldPos, Schema.FieldSchema fs) {
             add("public void setNull_"+fieldPos+"(boolean b) {");
             if (isPrimitive()) {
@@ -554,11 +580,13 @@ public class SchemaTupleClassGenerator {
     static class SetEqualToSchemaTupleSpecificString extends TypeInFunctionStringOut {
         private int id;
 
+        @Override
         public void prepare() {
             add("@Override");
             add("protected SchemaTuple generatedCodeSetSpecific(SchemaTuple_"+id+" t) {");
         }
 
+        @Override
         public void process(int fieldPos, Schema.FieldSchema fs) {
             add("    if (t.checkIfNull_" + fieldPos + "()) {");
             add("        setNull_" + fieldPos + "(true);");
@@ -568,6 +596,7 @@ public class SchemaTupleClassGenerator {
             addBreak();
         }
 
+        @Override
         public void end() {
             add("    return this;");
             add("}");
@@ -586,6 +615,7 @@ public class SchemaTupleClassGenerator {
             this.id = id;
         }
 
+        @Override
         public void prepare() {
             add("@Override");
             add("public boolean isSpecificSchemaTuple(Object o) {");
@@ -599,15 +629,18 @@ public class SchemaTupleClassGenerator {
     static class WriteNullsString extends TypeInFunctionStringOut {
         String s = "    boolean[] b = {\n";
 
+        @Override
         public void prepare() {
             add("@Override");
             add("protected boolean[] generatedCodeNullsArray() throws IOException {");
         }
 
+        @Override
         public void process(int fieldPos, Schema.FieldSchema fs) {
             s += "        checkIfNull_"+fieldPos+"(),\n";
         }
 
+        @Override
         public void end() {
             s = s.substring(0, s.length() - 2) + "\n    };";
             add(s);
@@ -626,11 +659,13 @@ public class SchemaTupleClassGenerator {
 
         private int booleans = 0;
 
+        @Override
         public void prepare() {
             add("@Override");
             add("protected void generatedCodeReadFields(DataInput in, boolean[] b) throws IOException {");
         }
 
+        @Override
         public void process(int fieldPos, Schema.FieldSchema fs) {
             if (isBoolean()) {
                 booleans++;
@@ -659,6 +694,7 @@ public class SchemaTupleClassGenerator {
             }
         }
 
+        @Override
         public void end() {
             if (booleans > 0) {
                 int i = 0;
@@ -679,6 +715,7 @@ public class SchemaTupleClassGenerator {
 
 
     static class WriteString extends TypeInFunctionStringOut {
+        @Override
         public void prepare() {
             add("@Override");
             add("protected void generatedCodeWriteElements(DataOutput out) throws IOException {");
@@ -686,6 +723,7 @@ public class SchemaTupleClassGenerator {
 
         private int booleans = 0;
 
+        @Override
         public void process(int fieldPos, Schema.FieldSchema fs) {
             if (isBoolean()) {
                 booleans++;
@@ -697,6 +735,7 @@ public class SchemaTupleClassGenerator {
             }
         }
 
+        @Override
         public void end() {
             if (booleans > 0) {
                 int i = 0;
@@ -716,6 +755,7 @@ public class SchemaTupleClassGenerator {
 
         String s = "    return SizeUtil.roundToEight(";
 
+        @Override
         public void prepare() {
             add("@Override");
             add("public long getGeneratedCodeMemorySize() {");
@@ -725,6 +765,7 @@ public class SchemaTupleClassGenerator {
         private int primitives = 0;
 
         //TODO a null array or object variable still takes up space for the pointer, yes?
+        @Override
         public void process(int fieldPos, Schema.FieldSchema fs) {
             if (isInt() || isFloat()) {
                 size += 4;
@@ -757,6 +798,7 @@ public class SchemaTupleClassGenerator {
             }
         }
 
+        @Override
         public void end() {
             s += size + ");";
             add(s);
@@ -766,6 +808,7 @@ public class SchemaTupleClassGenerator {
     }
 
     static class GetDummyString extends TypeInFunctionStringOut {
+        @Override
         public void process(int fieldPos, Schema.FieldSchema fs) {
             add("public "+typeName()+" getDummy_"+fieldPos+"() {");
             switch (fs.type) {
@@ -795,6 +838,7 @@ public class SchemaTupleClassGenerator {
         private int booleanByte = 0;
         private int booleans;
 
+        @Override
         public void process(int fieldPos, Schema.FieldSchema fs) {
             if (!isTuple()) {
                 add("public "+typeName()+" getPos_"+fieldPos+"() {");
@@ -823,6 +867,7 @@ public class SchemaTupleClassGenerator {
     static class GetSchemaTupleIdentifierString extends TypeInFunctionStringOut {
         private int id;
 
+        @Override
         public void end() {
             add("@Override");
             add("public int getSchemaTupleIdentifier() {");
@@ -839,10 +884,12 @@ public class SchemaTupleClassGenerator {
     static class SchemaSizeString extends TypeInFunctionStringOut {
         int i = 0;
 
+        @Override
         public void process(int fieldNum, Schema.FieldSchema fS) {
             i++;
         }
 
+        @Override
         public void end() {
             add("@Override");
             add("protected int schemaSize() {");
@@ -855,10 +902,12 @@ public class SchemaTupleClassGenerator {
     static class SizeString extends TypeInFunctionStringOut {
         int i = 0;
 
+        @Override
         public void process(int fieldNum, Schema.FieldSchema fS) {
             i++;
         }
 
+        @Override
         public void end() {
             add("@Override");
             add("protected int generatedCodeSize() {");
@@ -873,16 +922,19 @@ public class SchemaTupleClassGenerator {
     }
 
     static class GetTypeString extends TypeInFunctionStringOut {
+        @Override
         public void prepare() {
             add("@Override");
             add("public byte getGeneratedCodeFieldType(int fieldNum) throws ExecException {");
             add("    switch (fieldNum) {");
         }
 
+        @Override
         public void process(int fieldNum, Schema.FieldSchema fs) {
             add("    case ("+fieldNum+"): return "+fs.type+";");
         }
 
+        @Override
         public void end() {
             add("    default: throw new ExecException(\"Invalid index given: \" + fieldNum);");
             add("    }");
@@ -898,6 +950,7 @@ public class SchemaTupleClassGenerator {
             this.id = id;
         }
 
+        @Override
         public void prepare() {
             add("@Override");
             add("protected SchemaTuple generatedCodeSet(SchemaTuple t, boolean checkClass) throws ExecException {");
@@ -913,6 +966,7 @@ public class SchemaTupleClassGenerator {
             addBreak();
         }
 
+        @Override
         public void process(int fieldNum, Schema.FieldSchema fs) {
             add("    if ("+fs.type+" != theirFS.get("+fieldNum+").type) {");
             add("        throw new ExecException(\"Given SchemaTuple does not match current in field " + fieldNum + ". Expected type: " + fs.type + ", found: \" + theirFS.get("+fieldNum+").type);");
@@ -929,6 +983,7 @@ public class SchemaTupleClassGenerator {
             addBreak();
         }
 
+        @Override
         public void end() {
             add("    return this;");
             add("}");
@@ -940,18 +995,21 @@ public class SchemaTupleClassGenerator {
             super(type);
         }
 
+        @Override
         public void prepare() {
             add("@Override");
             add("protected "+name()+" generatedCodeGet"+properName()+"(int fieldNum) throws ExecException {");
             add("    switch(fieldNum) {");
         }
 
+        @Override
         public void process(int fieldNum, Schema.FieldSchema fs) {
             if (fs.type==thisType()) {
                 add("    case ("+fieldNum+"): return returnUnlessNull(checkIfNull_"+fieldNum+"(), getPos_"+fieldNum+"());");
             }
         }
 
+        @Override
         public void end() {
             add("    default:");
             add("        return unbox"+properName()+"(getTypeAwareBase(fieldNum, \""+name()+"\"));");
@@ -979,17 +1037,20 @@ public class SchemaTupleClassGenerator {
             return proper(thisType());
         }
 
+        @Override
         public void prepare() {
             add("@Override");
             add("protected void generatedCodeSet"+properName()+"(int fieldNum, "+name()+" val) throws ExecException {");
             add("    switch(fieldNum) {");
         }
 
+        @Override
         public void process(int fieldNum, Schema.FieldSchema fs) {
             if (fs.type==thisType())
                 add("    case ("+fieldNum+"): setPos_"+fieldNum+"(val); break;");
         }
 
+        @Override
         public void end() {
             add("    default: setTypeAwareBase(fieldNum, val, \""+name()+"\");");
             add("    }");

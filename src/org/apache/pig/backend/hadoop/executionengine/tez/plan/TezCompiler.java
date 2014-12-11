@@ -209,9 +209,7 @@ public class TezCompiler extends PhyPlanVisitor {
     // Segment a single DAG into a DAG graph
     public TezPlanContainer getPlanContainer() throws PlanException {
         TezPlanContainer tezPlanContainer = new TezPlanContainer(pigContext);
-        TezPlanContainerNode node = new TezPlanContainerNode(OperatorKey.genOpKey(scope), tezPlan);
-        tezPlanContainer.add(node);
-        tezPlanContainer.split(node);
+        tezPlanContainer.addPlan(tezPlan);
         return tezPlanContainer;
     }
 
@@ -416,6 +414,7 @@ public class TezCompiler extends PhyPlanVisitor {
             // should be added to the tezPlan.
             curTezOp = getTezOp();
             curTezOp.plan.add(op);
+            curTezOp.setUseMRMapSettings(true);
             if (op !=null && op instanceof POLoad) {
                 if (((POLoad)op).getLFile()!=null && ((POLoad)op).getLFile().getFuncSpec()!=null)
                     curTezOp.UDFs.add(((POLoad)op).getLFile().getFuncSpec().toString());
@@ -801,7 +800,7 @@ public class TezCompiler extends PhyPlanVisitor {
 
             // If the parallelism of the current vertex is one and it doesn't do a LOAD (whose
             // parallelism is determined by the InputFormat), we don't need another vertex.
-            if (curTezOp.getRequestedParallelism() == 1) {
+            if (curTezOp.getRequestedParallelism() == 1 || curTezOp.isUnion()) {
                 boolean canStop = true;
                 for (PhysicalOperator planOp : curTezOp.plan.getRoots()) {
                     if (planOp instanceof POLoad) {
@@ -810,6 +809,12 @@ public class TezCompiler extends PhyPlanVisitor {
                     }
                 }
                 if (canStop) {
+                    // Let's piggyback on the Union operator. UnionOptimizer
+                    // will skip this union operator as it is a waste to
+                    // do a vertex group followed by another limit in this case
+                    if (curTezOp.isUnion()) {
+                        curTezOp.setRequestedParallelism(1);
+                    }
                     curTezOp.setDontEstimateParallelism(true);
                     if (limitAfterSort) {
                         curTezOp.markLimitAfterSort();
@@ -880,6 +885,7 @@ public class TezCompiler extends PhyPlanVisitor {
     public void visitLoad(POLoad op) throws VisitorException {
         try {
             nonBlocking(op);
+            curTezOp.setUseMRMapSettings(true);
             phyToTezOpMap.put(op, curTezOp);
         } catch (Exception e) {
             int errCode = 2034;
@@ -914,7 +920,7 @@ public class TezCompiler extends PhyPlanVisitor {
             TezCompilerUtil.setCustomPartitioner(op.getCustomPartitioner(), curTezOp);
             curTezOp.setRequestedParallelism(op.getRequestedParallelism());
             if (op.isCross()) {
-                curTezOp.setCrossKey(op.getOperatorKey().toString());
+                curTezOp.addCrossKey(op.getOperatorKey().toString());
             }
             phyToTezOpMap.put(op, curTezOp);
         } catch (Exception e) {
@@ -1417,6 +1423,7 @@ public class TezCompiler extends PhyPlanVisitor {
             // Connect counterOper vertex to rankOper vertex by 1-1 edge
             rankOper.setRequestedParallelismByReference(counterOper);
             TezEdgeDescriptor edge = TezCompilerUtil.connect(tezPlan, counterOper, rankOper);
+            rankOper.setUseMRMapSettings(counterOper.isUseMRMapSettings());
             TezCompilerUtil.configureValueOnlyTupleOutput(edge, DataMovementType.ONE_TO_ONE);
             counterTez.setTuplesOutputKey(rankOper.getOperatorKey().toString());
             rankTez.setTuplesInputKey(counterOper.getOperatorKey().toString());
@@ -1460,12 +1467,12 @@ public class TezCompiler extends PhyPlanVisitor {
             POLocalRearrangeTez lrTezSample = localRearrangeFactory.create(LocalRearrangeType.NULL);
 
             int sampleRate = POPoissonSample.DEFAULT_SAMPLE_RATE;
-            if (pigProperties.containsKey(PigConfiguration.SAMPLE_RATE)) {
-                sampleRate = Integer.valueOf(pigProperties.getProperty(PigConfiguration.SAMPLE_RATE));
+            if (pigProperties.containsKey(PigConfiguration.PIG_POISSON_SAMPLER_SAMPLE_RATE)) {
+                sampleRate = Integer.valueOf(pigProperties.getProperty(PigConfiguration.PIG_POISSON_SAMPLER_SAMPLE_RATE));
             }
             float heapPerc =  PartitionSkewedKeys.DEFAULT_PERCENT_MEMUSAGE;
-            if (pigProperties.containsKey(PigConfiguration.PERC_MEM_AVAIL)) {
-                heapPerc = Float.valueOf(pigProperties.getProperty(PigConfiguration.PERC_MEM_AVAIL));
+            if (pigProperties.containsKey(PigConfiguration.PIG_SKEWEDJOIN_REDUCE_MEMUSAGE)) {
+                heapPerc = Float.valueOf(pigProperties.getProperty(PigConfiguration.PIG_SKEWEDJOIN_REDUCE_MEMUSAGE));
             }
             POPoissonSample poSample = new POPoissonSample(new OperatorKey(scope,nig.getNextNodeId(scope)),
                     -1, sampleRate, heapPerc);
@@ -1652,6 +1659,7 @@ public class TezCompiler extends PhyPlanVisitor {
             pr.setOutputKey(joinJobs[2].getOperatorKey().toString());
 
             TezEdgeDescriptor edge = joinJobs[0].inEdges.get(prevOp.getOperatorKey());
+            joinJobs[0].setUseMRMapSettings(prevOp.isUseMRMapSettings());
             // TODO: Convert to unsorted shuffle after TEZ-661
             // Use 1-1 edge
             edge.dataMovementType = DataMovementType.ONE_TO_ONE;
@@ -2234,6 +2242,7 @@ public class TezCompiler extends PhyPlanVisitor {
             TezOperator[] sortOpers = getSortJobs(prevOper, lr, op, keyType, fields);
 
             TezEdgeDescriptor edge = TezCompilerUtil.connect(tezPlan, prevOper, sortOpers[0]);
+            sortOpers[0].setUseMRMapSettings(prevOper.isUseMRMapSettings());
 
             // Use 1-1 edge
             edge.dataMovementType = DataMovementType.ONE_TO_ONE;
@@ -2418,6 +2427,9 @@ public class TezCompiler extends PhyPlanVisitor {
                 unionInput.addInputKey(prevTezOp.getOperatorKey().toString());
                 prevTezOp.plan.addAsLeaf(outputs[i]);
                 prevTezOp.setClosed(true);
+                if (prevTezOp.isUseMRMapSettings()) {
+                    unionTezOp.setUseMRMapSettings(true);
+                }
             }
 
             curTezOp = unionTezOp;

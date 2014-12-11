@@ -23,6 +23,7 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -42,15 +43,18 @@ import org.apache.pig.impl.plan.VisitorException;
  * Find the distinct set of tuples in a bag.
  * This is a blocking operator. All the input is put in the hashset implemented
  * in DistinctDataBag which also provides the other DataBag interfaces.
- * 
- * 
+ *
+ *
  */
 public class PODistinct extends PhysicalOperator implements Cloneable {
     private static final Log log = LogFactory.getLog(PODistinct.class);
     private static final long serialVersionUID = 1L;
     private boolean inputsAccumulated = false;
     private DataBag distinctBag = null;
-    transient Iterator<Tuple> it;
+
+    private transient boolean initialized;
+    private transient boolean useDefaultBag;
+    private transient Iterator<Tuple> it;
 
     // PIG-3385: Since GlobalRearrange is not used by PODistinct, passing the
     // custom partioner through here
@@ -87,17 +91,19 @@ public class PODistinct extends PhysicalOperator implements Cloneable {
     @Override
     public Result getNextTuple() throws ExecException {
          if (!inputsAccumulated) {
-            // by default, we create InternalSortedBag, unless user configures
+            // by default, we create InternalDistinctBag, unless user configures
             // explicitly to use old bag
-            String bagType = null;
-            if (PigMapReduce.sJobConfInternal.get() != null) {
-                bagType = PigMapReduce.sJobConfInternal.get().get("pig.cachedbag.distinct.type");
-            }
-            if (bagType != null && bagType.equalsIgnoreCase("default")) {
-                distinctBag = BagFactory.getInstance().newDistinctBag();
-            } else {
-                distinctBag = new InternalDistinctBag(3);
-            }
+             if (!initialized) {
+                 initialized = true;
+                 if (PigMapReduce.sJobConfInternal.get() != null) {
+                     String bagType = PigMapReduce.sJobConfInternal.get().get(PigConfiguration.PIG_CACHEDBAG_DISTINCT_TYPE);
+                     if (bagType != null && bagType.equalsIgnoreCase("default")) {
+                         useDefaultBag = true;
+                     }
+                 }
+             }
+             distinctBag = useDefaultBag ? BagFactory.getInstance().newDistinctBag()
+                     : new InternalDistinctBag(3);
 
             Result in = processInput();
             while (in.returnStatus != POStatus.STATUS_EOP) {

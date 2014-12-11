@@ -62,7 +62,7 @@ public class FloatSignum extends EvalFunc<Float>{
 	 */
 	@Override
 	public Float exec(Tuple input) throws IOException {
-        if (input == null || input.size() == 0)
+        if (input == null || input.size() == 0 || input.get(0) == null)
             return null;
 
         try{

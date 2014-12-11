@@ -22,6 +22,56 @@
   </header>
   <body> 
   
+<section id="tez-mode">
+  <title>Tez mode</title>
+  <p><a href="http://tez.apache.org">Apache Tez</a> provides an alternative execution engine than MapReduce focusing on performance. By using optimized job flow, edge semantics and container reuse, we see consistent performance boost for both large job and small job. </p>
+  <section id="enable-tez">
+    <title>How to enable Tez</title>
+    <p>To run Pig in tez mode, simply add "-x tez" in pig command line. Alternatively, you can add "exectype=tez" to conf/pig.properties to change the default exec type to Tez. Java system property "-Dexectype=tez" is also good to trigger the Tez mode.</p>
+    <p>Prerequisite: Tez requires the tez tarball to be available in hdfs while running a job on the cluster and a tez-site.xml with tez.lib.uris setting pointing to that hdfs location in classpath. Copy the tez tarball to hdfs and add the tez conf directory($TEZ_HOME/conf) containing tez-site.xml to environmental variable "PIG_CLASSPATH" if pig on tez fails with "tez.lib.uris is not defined". This is required by the Apache Pig distribution.</p>
+<source>
+  &lt;property&gt;
+    &lt;name&gt;tez.lib.uris&lt;/name&gt;
+    &lt;value&gt;${fs.default.name}/apps/tez/tez-0.5.2.tar.gz&lt;/value&gt;
+  &lt;/property&gt;
+</source>
+  </section>
+  <section id="tez-dag">
+    <title>Tez DAG generation</title>
+    <p>Every Pig script will be compiled into 1 or more Tez DAG (typically 1). Every Tez DAG consists of a number of vertices and and edges connecting vertices. For example, a simple join involves 1 DAG which consists of 3 vertices: load left input, load right input and join. Do an <a href="test.html#explain">explain</a> in Tez mode will show you the DAG Pig script compiled into.</p>
+  </section>
+  <section id="container-reuse">
+    <title>Tez session/container reuse</title>
+    <p>One downside of MapReduce is the startup cost for a job is very high. That hurts the performance especially for small job. Tez alleviate the problem by using session and container reuse, so it is not necessary to start an application master for every job, and start a JVM for every task. By default, session/container reuse is on and we usually shall not turn it off. JVM reuse might cause some side effect if static variable is used since static variable might live across different jobs. So if static variable is used in EvalFunc/LoadFunc/StoreFunc, be sure to implement a cleanup function and register with <a href="http://pig.apache.org/docs/r0.14.0/api/org/apache/pig/JVMReuseManager.html">JVMReuseManager</a>.</p>
+  </section>
+  <section id="auto-parallelism">
+    <title>Automatic parallelism</title>
+    <p>Just like MapReduce, if user specify "parallel" in their Pig statement, or user define default_parallel in Tez mode, Pig will honor it (the only exception is if user specify a parallel which is apparently too low, Pig will override it) </p>
+    <p>If user specify neither "parallel" or "default_parallel", Pig will use automatic parallelism. In MapReduce, Pig submit one MapReduce job a time and before submiting a job, Pig has chance to automatically set reduce parallelism based on the size of input file. On the contrary, Tez submit a DAG as a unit and automatic parallelism is managed in two parts</p>
+    <ul>
+    <li>Before submiting a DAG, Pig estimate parallelism of each vertex statically based on the input file size of the DAG and the complexity of the pipeline of each vertex</li>
+    <li>At runtime, Tez adjust vertex parallelism dynamically based on the input data volume of the vertex. Note currently Tez can only decrease the parallelism dynamically not increase. So in step 1, Pig overestimate the parallelism</li>
+    </ul>
+    <p>The following parameter control the behavior of automatic parallelism in Tez (share with MapReduce):</p>
+<source>
+pig.exec.reducers.bytes.per.reducer
+pig.exec.reducers.max
+</source>
+  </section>
+  <section id="api-change">
+    <title>API change</title>
+    <p>If invoking Pig in Java, there is change in PigStats and PigProgressNotificationListener if using PigRunner.run(), check <a href="test.html#pig-statistics">Pig Statistics</a> and <a href="test.html#ppnl">Pig Progress Notification Listener</a></p>
+  </section>
+  <section id="known-issue">
+    <title>Known issues</title>
+    <p>Currently known issue in Tez mode includes:</p>
+    <ul>
+    <li>Tez local mode is not stable, we see job hang in some cases</li>
+    <li>Tez specific GUI is not available yet, there is no GUI to track task progress. However, log message is available in GUI</li>
+    </ul>
+  </section>
+</section>
+
 <section id="profiling">
   <title>Timing your UDFs</title>
   <p>The first step to improving performance and efficiency is measuring where the time is going. Pig provides a light-weight method for approximately measuring how much time is spent in different user-defined functions (UDFs) and Loaders. Simply set the pig.udf.profile property to true. This will cause new counters to be tracked for all Map-Reduce jobs generated by your script: approx_microsecs measures the approximate amount of time spent in a UDF, and approx_invocations measures the approximate number of times the UDF was invoked. In addition, the frequency of profiling can be configured via the pig.udf.profile.frequency (by default, every 100th invocation). Note that this may produce a large number of counters (two per UDF). Excessive amounts of counters can lead to poor JobTracker performance, so use this feature carefully, and preferably on a test cluster.</p>
@@ -188,7 +238,7 @@ reducers. The maximum number of reducers for a job is limited by the pig.exec.re
 <p>
 The default reducer estimation algorithm described above can be overridden by setting the
 pig.exec.reducer.estimator parameter to the fully qualified class name of an implementation of
-<a href="http://svn.apache.org/repos/asf/pig/trunk/src/org/apache/pig/backend/hadoop/executionengine/mapReduceLayer/PigReducerEstimator.java">org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigReducerEstimator</a>.
+<a href="http://svn.apache.org/repos/asf/pig/trunk/src/org/apache/pig/backend/hadoop/executionengine/mapReduceLayer/PigReducerEstimator.java">org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigReducerEstimator</a>(MapReduce) or <a href="http://svn.apache.org/repos/asf/pig/trunk/src/org/apache/pig/backend/hadoop/executionengine/tez/plan/optimizer/TezOperDependencyParallelismEstimator.java">org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer.TezOperDependencyParallelismEstimator</a>(Tez).
 The class must exist on the classpath of the process submitting the Pig job. If the
 pig.exec.reducer.estimator.arg parameter is set, the value will be passed to a constructor
 of the implementing class that takes a single String.
@@ -513,9 +563,24 @@ A = LOAD 'input' as (dt, state, event) using HCatLoader();
 </section>
 
 <!-- +++++++++++++++++++++++++++++++ -->
-<section id="FilterLogicExpressionSimplifier">
-<title>FilterLogicExpressionSimplifier</title>
-<p>This rule simplifies the expression in filter statement.</p>
+<section id="PredicatePushdownOptimizer">
+<title>PredicatePushdownOptimizer</title>
+<p>Push the filter condition to loader. Different than PartitionFilterOptimizer, the filter condition will be evaluated in Pig. In other words, the filter condition pushed to the loader is a hint. Loader might still load records which does not satisfy filter condition.</p>
+<source>
+A = LOAD 'input' using OrcStorage();
+B = FILTER A BY dt=='201310' AND state=='CA';
+</source>
+<p>Filter condition will be pushed to loader if loader supports</p>
+<source>
+A = LOAD 'input' using OrcStorage();  -- Filter condition push to loader
+B = FILTER A BY dt=='201310' AND state=='CA';  -- Filter evaluated in Pig again
+</source>
+</section>
+
+<!-- +++++++++++++++++++++++++++++++ -->
+<section id="ConstantCalculator">
+<title>ConstantCalculator</title>
+<p>This rule evaluates constant expression.</p>
 <source>
 1) Constant pre-calculation 
 
@@ -523,39 +588,12 @@ B = FILTER A BY a0 &gt; 5+7;
 is simplified to 
 B = FILTER A BY a0 &gt; 12; 
 
-2) Elimination of negations 
+2) Evaluate UDF
 
-B = FILTER A BY NOT (NOT(a0 &gt; 5) OR a &gt; 10); 
+B = FOREACH A generate UPPER(CONCAT('a', 'b'));
 is simplified to 
-B = FILTER A BY a0 &gt; 5 AND a &lt;= 10; 
+B = FOREACH A generate 'AB';
 
-3) Elimination of logical implied expression in AND 
-
-B = FILTER A BY (a0 &gt; 5 AND a0 &gt; 7); 
-is simplified to 
-B = FILTER A BY a0 &gt; 7; 
-
-4) Elimination of logical implied expression in OR 
-
-B = FILTER A BY ((a0 &gt; 5) OR (a0 &gt; 6 AND a1 &gt; 15); 
-is simplified to 
-B = FILTER C BY a0 &gt; 5; 
-
-5) Equivalence elimination 
-
-B = FILTER A BY (a0 v 5 AND a0 &gt; 5); 
-is simplified to 
-B = FILTER A BY a0 &gt; 5; 
-
-6) Elimination of complementary expressions in OR 
-
-B = FILTER A BY (a0 &gt; 5 OR a0 &lt;= 5); 
-is simplified to non-filtering 
-
-7) Elimination of naive TRUE expression 
-
-B = FILTER A BY 1==1; 
-is simplified to non-filtering 
 </source>
 </section>
 

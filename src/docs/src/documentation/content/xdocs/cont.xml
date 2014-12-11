@@ -39,8 +39,6 @@
  <p><strong>Python</strong></p>
  <source>
  $ pig myembedded.py
-OR
-$ java -cp &lt;jython jars&gt;:&lt;pig jars&gt;; [--embedded python] /tmp/myembedded.py
  </source>
  <p></p>
  <p>Pig will look for the <code>#!/usr/bin/python</code> line in the script.</p>
@@ -69,8 +67,6 @@ else :
 <p><strong>JavaScript</strong></p>
 <source>
 $ pig myembedded.js
-OR
-$ java -cp &lt;rhino jars&gt;:&lt;pig jars&gt;; [--embedded javascript] /tmp/myembedded.js
 </source>
 <p></p>
 <p>Pig will look for the *.js extension in the script.</p>
@@ -98,8 +94,6 @@ function main() {
 <p><strong>Groovy</strong></p>
 <source>
 $ pig myembedded.groovy
-OR
-$ java -cp &lt;groovy-all jar&gt;:&lt;pig jars&gt;; [--embedded groovy] /tmp/myembedded.groovy
 </source>
 <p></p>
 <p>Pig will look for the *.groovy extension in the script.</p>
@@ -836,8 +830,8 @@ $ javac -cp pig.jar idlocal.java
 <p> </p>
 <p>From your current working directory, run the program. To view the results, check the output file, id.out.</p>
 <source>
-Unix:   $ java -cp pig.jar:. idlocal
-Cygwin: $ java –cp '.;pig.jar' idlocal
+Unix:    $ java -cp pig.jar:. idlocal
+Windows: $ java –cp .;pig.jar idlocal
 </source>
 
 <p>idlocal.java - The sample code is based on Pig Latin statements that extract all user IDs from the /etc/passwd file. 

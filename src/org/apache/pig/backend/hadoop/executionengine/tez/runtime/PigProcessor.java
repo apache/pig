@@ -30,6 +30,8 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.pig.JVMReuseImpl;
+import org.apache.pig.PigConstants;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
@@ -38,7 +40,6 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.UDFFinishVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigProgressable;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -52,6 +53,7 @@ import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.impl.util.Utils;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.UserPayload;
@@ -111,10 +113,7 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
         sampleMap = null;
 
         // Reset static variables cleared for avoiding OOM.
-        // TODO: Figure out a cleaner way to do this. ThreadLocals actually can be avoided all together
-        // for mapreduce/tez mode and just used for Local mode.
-        PhysicalOperator.reporter = new ThreadLocal<PigProgressable>();
-        PigMapReduce.sJobConfInternal = new ThreadLocal<Configuration>();
+        new JVMReuseImpl().cleanupStaticData();
 
         UserPayload payload = getContext().getUserPayload();
         conf = TezUtils.createConfFromUserPayload(payload);
@@ -124,6 +123,7 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
 
         // To determine front-end in UDFContext
         conf.set(MRConfiguration.JOB_APPLICATION_ATTEMPT_ID, getContext().getUniqueIdentifier());
+        conf.set(PigConstants.TASK_INDEX, Integer.toString(getContext().getTaskIndex()));
         UDFContext.getUDFContext().addJobConf(conf);
         UDFContext.getUDFContext().deserialize();
 
@@ -135,6 +135,8 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
         // Set the job conf as a thread-local member of PigMapReduce
         // for backwards compatibility with the existing code base.
         PigMapReduce.sJobConfInternal.set(conf);
+
+        Utils.setDefaultTimeZone(conf);
 
         boolean aggregateWarning = "true".equalsIgnoreCase(pc.getProperties().getProperty("aggregate.warning"));
         PigStatusReporter pigStatusReporter = PigStatusReporter.getInstance();
@@ -158,24 +160,18 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
 
     @Override
     public void close() throws Exception {
-        // Avoid memory leak. ThreadLocals especially leak a lot of memory.
-        // The Reporter and Context objects hold TezProcessorContextImpl
-        // which holds input and its sort buffers which are huge.
-        PhysicalOperator.reporter = new ThreadLocal<PigProgressable>();
-        PigMapReduce.sJobConfInternal = new ThreadLocal<Configuration>();
-        PigMapReduce.sJobContext = null;
-        PigContext.setPackageImportList(null);
-        UDFContext.destroy();
+
         execPlan = null;
         fileOutputs = null;
         leaf = null;
         conf = null;
         sampleMap = null;
         sampleVertex = null;
-        if (pigHadoopLogger != null) {
-            pigHadoopLogger.destroy();
-            pigHadoopLogger = null;
-        }
+        pigHadoopLogger = null;
+        // Avoid memory leak. ThreadLocals especially leak a lot of memory.
+        // The Reporter and Context objects hold TezProcessorContextImpl
+        // which holds input and its sort buffers which are huge.
+        new JVMReuseImpl().cleanupStaticData();
     }
 
     @Override

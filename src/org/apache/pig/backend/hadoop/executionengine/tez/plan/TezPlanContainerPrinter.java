@@ -48,10 +48,10 @@ public class TezPlanContainerPrinter extends TezPlanContainerVisitor {
         mStream.println("#--------------------------------------------------");
         mStream.println("# TEZ DAG plan: " + tezPlanContainerNode.getOperatorKey());
         mStream.println("#--------------------------------------------------");
-        TezGraphPrinter graphPrinter = new TezGraphPrinter(tezPlanContainerNode.getNode());
+        TezGraphPrinter graphPrinter = new TezGraphPrinter(tezPlanContainerNode.getTezOperPlan());
         graphPrinter.visit();
         mStream.print(graphPrinter.toString());
-        TezPrinter printer = new TezPrinter(mStream, tezPlanContainerNode.getNode());
+        TezPrinter printer = new TezPrinter(mStream, tezPlanContainerNode.getTezOperPlan());
         printer.setVerbose(isVerbose);
         printer.visit();
     }

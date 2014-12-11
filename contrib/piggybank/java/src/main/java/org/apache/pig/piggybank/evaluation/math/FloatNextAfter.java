@@ -70,6 +70,11 @@ public class FloatNextAfter extends EvalFunc<Float>{
 	 */
 	@Override
 	public Float exec(Tuple input) throws IOException {
+        if (input == null || input.size() < 2)
+            return null;
+        if (input.get(0) == null || input.get(1) == null) {
+            return null;
+        }
 		try{
 			Float first = (Float)input.get(0);
 			Double second = (Double)input.get(0);

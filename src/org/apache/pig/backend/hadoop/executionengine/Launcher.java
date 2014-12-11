@@ -279,14 +279,18 @@ public abstract class Launcher {
     public class JobControlThreadExceptionHandler implements Thread.UncaughtExceptionHandler {
         @Override
         public void uncaughtException(Thread thread, Throwable throwable) {
-            jobControlExceptionStackTrace = Utils.getStackStraceStr(throwable);
-            try {
-                jobControlException = getExceptionFromString(jobControlExceptionStackTrace);
-            } catch (Exception e) {
-                String errMsg = "Could not resolve error that occured when launching job: "
-                        + jobControlExceptionStackTrace;
-                jobControlException = new RuntimeException(errMsg, throwable);
-            }
+            setJobException(throwable);
+        }
+    }
+
+    protected void setJobException(Throwable throwable) {
+        jobControlExceptionStackTrace = Utils.getStackStraceStr(throwable);
+        try {
+            jobControlException = getExceptionFromString(jobControlExceptionStackTrace);
+        } catch (Exception e) {
+            String errMsg = "Could not resolve error that occured when launching job: "
+                    + jobControlExceptionStackTrace;
+            jobControlException = new RuntimeException(errMsg, throwable);
         }
     }
 
@@ -636,5 +640,8 @@ public abstract class Launcher {
         }
         return new StackTraceElement(declaringClass, methodName, fileName,
                 lineNumber);
+    }
+
+    public void destroy() {
     }
 }

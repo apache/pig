@@ -65,9 +65,7 @@ public class TezMiniCluster extends MiniGenericCluster {
             CONF_DIR.mkdirs();
 
             // Build mini DFS cluster
-            Configuration hdfsConf = new Configuration(false);
-            hdfsConf.addResource("core-default.xml");
-            hdfsConf.addResource("hdfs-default.xml");
+            Configuration hdfsConf = new Configuration();
             m_dfs = new MiniDFSCluster.Builder(hdfsConf)
                     .numDataNodes(2)
                     .format(true)
@@ -98,8 +96,8 @@ public class TezMiniCluster extends MiniGenericCluster {
             m_mr_conf = m_mr.getConfig();
             m_mr_conf.set(YarnConfiguration.YARN_APPLICATION_CLASSPATH,
                     System.getProperty("java.class.path"));
-            m_mr_conf.set(MRJobConfig.MAP_JAVA_OPTS, "-Xmx2048m");
-            m_mr_conf.set(MRJobConfig.REDUCE_JAVA_OPTS, "-Xmx2048m");
+            m_mr_conf.set(MRJobConfig.MAP_JAVA_OPTS, "-Xmx512m");
+            m_mr_conf.set(MRJobConfig.REDUCE_JAVA_OPTS, "-Xmx512m");
 
             Configuration mapred_site = new Configuration(false);
             Configuration yarn_site = new Configuration(false);
@@ -146,7 +144,7 @@ public class TezMiniCluster extends MiniGenericCluster {
 
             m_conf = m_mr_conf;
             // Turn FetchOptimizer off so that we can actually test Tez
-            m_conf.set(PigConfiguration.OPT_FETCH, System.getProperty("test.opt.fetch", "false"));
+            m_conf.set(PigConfiguration.PIG_OPT_FETCH, System.getProperty("test.opt.fetch", "false"));
 
             System.setProperty("junit.hadoop.conf", CONF_DIR.getPath());
             System.setProperty("hadoop.log.dir", "build/test/logs");

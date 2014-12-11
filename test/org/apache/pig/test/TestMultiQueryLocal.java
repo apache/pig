@@ -67,7 +67,7 @@ public class TestMultiQueryLocal {
     @Before
     public void setUp() throws Exception {
         PigContext context = new PigContext(ExecType.LOCAL, new Properties());
-        context.getProperties().setProperty(PigConfiguration.OPT_MULTIQUERY, ""+true);
+        context.getProperties().setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, ""+true);
         myPig = new PigServer(context);
         myPig.getPigContext().getProperties().setProperty("pig.usenewlogicalplan", "false");
         myPig.getPigContext().getProperties().setProperty(PigConfiguration.PIG_TEMP_DIR, "build/test/tmp/");

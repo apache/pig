@@ -87,7 +87,7 @@ public class TestJoin {
             fileName = fileNameHint;
         } else if (execType == ExecType.LOCAL) {
             File f = Util.createInputFile("test", fileNameHint, data);
-            fileName = Util.generateURI(Util.encodeEscape(f.getAbsolutePath()), pigServer.getPigContext());
+            fileName = Util.generateURI(f.getAbsolutePath(), pigServer.getPigContext());
         }
         return fileName;
     }

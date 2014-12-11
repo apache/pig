@@ -74,6 +74,12 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     // etc which should always be one
     private boolean dontEstimateParallelism = false;
 
+    // Override user specified intermediate parallelism for cases
+    // like skewed join followed by group by + combiner if estimation is higher
+    // In mapreduce group by + combiner runs in map phase and uses more maps (default 128MB per map)
+    // while skewed join reducers process more (default 1G per reducer) which makes MRR a disadvantage
+    private boolean overrideIntermediateParallelism = false;
+
     // This is the parallelism of the vertex, it take account of:
     // 1. default_parallel
     // 2. -1 parallelism for one_to_one edge
@@ -123,10 +129,12 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     // If true, we will use secondary key sort in the job
     private boolean useSecondaryKey = false;
 
-    private String crossKey = null;
+    private List<String> crossKeys = null;
+
+    private boolean useMRMapSettings = false;
 
     // Types of blocking operators. For now, we only support the following ones.
-    private static enum OPER_FEATURE {
+    public static enum OPER_FEATURE {
         // Indicate if this job is a merge indexer
         INDEXER,
         // Indicate if this job is a sampling job
@@ -268,6 +276,15 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         this.dontEstimateParallelism = dontEstimateParallelism;
     }
 
+    public boolean isOverrideIntermediateParallelism() {
+        return overrideIntermediateParallelism;
+    }
+
+    public void setOverrideIntermediateParallelism(
+            boolean overrideIntermediateParallelism) {
+        this.overrideIntermediateParallelism = overrideIntermediateParallelism;
+    }
+
     public OperatorKey getSplitParent() {
         return splitParent;
     }
@@ -394,6 +411,17 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     public void markNative() {
         feature.set(OPER_FEATURE.NATIVE.ordinal());
+    }
+
+    public void copyFeatures(TezOperator copyFrom, List<OPER_FEATURE> excludeFeatures) {
+        for (OPER_FEATURE opf : OPER_FEATURE.values()) {
+            if (excludeFeatures != null && excludeFeatures.contains(opf)) {
+                continue;
+            }
+            if (copyFrom.feature.get(opf.ordinal())) {
+                feature.set(opf.ordinal());
+            }
+        }
     }
 
     public void setNeedEstimatedQuantile(boolean needEstimateParallelism) {
@@ -542,12 +570,23 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         return combineSmallSplits;
     }
 
-    public void setCrossKey(String key) {
-        crossKey = key;
+    public void addCrossKey(String key) {
+        if (crossKeys == null) {
+            crossKeys = new ArrayList<String>();
+        }
+        crossKeys.add(key);
     }
 
-    public String getCrossKey() {
-        return crossKey;
+    public List<String> getCrossKeys() {
+        return crossKeys;
+    }
+
+    public boolean isUseMRMapSettings() {
+        return useMRMapSettings;
+    }
+
+    public void setUseMRMapSettings(boolean useMRMapSettings) {
+        this.useMRMapSettings = useMRMapSettings;
     }
 
     public int getVertexParallelism() {

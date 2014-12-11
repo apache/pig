@@ -81,31 +81,31 @@ public class TestTuple {
     public void testEmptyTupleSize() {
         Tuple t = mTupleFactory.newTuple();
         long size = t.getMemorySize();
-        assertEquals("tuple size",size, 96);
+        assertEquals("tuple size", 88, size);
     }
-    
+
     @Test
     public void testEmptyBagSize() {
         DataBag bag = DefaultBagFactory.getInstance().newDefaultBag();
         long size = bag.getMemorySize();
-        assertEquals("bag size",size, 124);
+        assertEquals("bag size", 124, size);
     }
-    
+
     @Test
     // See PIG-1443
     public void testTupleSizeWithString() {
         Tuple t = Util.createTuple(new String[] {"1234567", "bar"});
         long size = t.getMemorySize();
-        assertEquals("tuple size",size, 200);
+        assertEquals("tuple size", 192, size);
     }
-    
+
     @Test
     public void testTupleSizeWithByteArrays() {
         Tuple t = mTupleFactory.newTuple();
         t.append(new DataByteArray("1234567"));
         t.append(new DataByteArray("bar"));
         long size = t.getMemorySize();
-        assertEquals("tuple size",size, 168);
+        assertEquals("tuple size", 160, size);
     }
 
     @Test
@@ -114,7 +114,7 @@ public class TestTuple {
         t.append(new Double(0.1));
         t.append(new Double(2000.10001));
         long size = t.getMemorySize();
-        assertEquals("tuple size",size, 128);
+        assertEquals("tuple size", 120, size);
     }
 
     @Test
@@ -123,27 +123,27 @@ public class TestTuple {
         t.append(new Float(0.1F));
         t.append(new Float(2000.10001F));
         long size = t.getMemorySize();
-        assertEquals("tuple size",size, 128);
+        assertEquals("tuple size", 120, size);
     }
-    
+
     @Test
     public void testTupleSizeWithLongs() {
         Tuple t = mTupleFactory.newTuple();
         t.append(new Long(100));
         t.append(new Long(2000));
         long size = t.getMemorySize();
-        assertEquals("tuple size",size, 128);
+        assertEquals("tuple size", 120, size);
     }
-    
+
     @Test
     public void testTupleSizeWithBooleans() {
         Tuple t = mTupleFactory.newTuple();
         t.append(new Boolean(true));
         t.append(new Boolean(false));
         long size = t.getMemorySize();
-        assertEquals("tuple size",size, 128);
-    }    
-    
+        assertEquals("tuple size", 120, size);
+    }
+
     @Test
     public void testTupleIterator() {
         Tuple t = mTupleFactory.newTuple();

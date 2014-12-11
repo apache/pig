@@ -38,7 +38,7 @@ public class TezPlanContainerUDFCollector extends TezPlanContainerVisitor {
 
     @Override
     public void visitTezPlanContainerNode(TezPlanContainerNode tezPlanContainerNode) throws VisitorException {
-        Iterator<TezOperator> it = tezPlanContainerNode.getNode().iterator();
+        Iterator<TezOperator> it = tezPlanContainerNode.getTezOperPlan().iterator();
         while (it.hasNext()) {
             udfs.addAll(it.next().UDFs);
         }

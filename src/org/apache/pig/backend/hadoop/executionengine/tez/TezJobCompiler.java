@@ -34,6 +34,7 @@ import org.apache.pig.PigException;
 import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPlanContainer;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPlanContainerNode;
 import org.apache.pig.impl.PigContext;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -45,7 +46,6 @@ import org.apache.tez.dag.api.TezConfiguration;
  */
 public class TezJobCompiler {
     private static final Log log = LogFactory.getLog(TezJobCompiler.class);
-    private static int dagIdentifier = 0;
 
     private PigContext pigContext;
     private TezConfiguration tezConf;
@@ -55,24 +55,22 @@ public class TezJobCompiler {
         this.tezConf = new TezConfiguration(conf);
     }
 
-    public DAG buildDAG(TezOperPlan tezPlan, Map<String, LocalResource> localResources)
+    public DAG buildDAG(TezPlanContainerNode tezPlanNode, Map<String, LocalResource> localResources)
             throws IOException, YarnException {
-        String jobName = pigContext.getProperties().getProperty(PigContext.JOB_NAME, "pig");
-        DAG tezDag = DAG.create(jobName + "-" + dagIdentifier);
-        dagIdentifier++;
+        DAG tezDag = DAG.create(tezPlanNode.getOperatorKey().toString());
         tezDag.setCredentials(new Credentials());
-        TezDagBuilder dagBuilder = new TezDagBuilder(pigContext, tezPlan, tezDag, localResources);
+        TezDagBuilder dagBuilder = new TezDagBuilder(pigContext, tezPlanNode.getTezOperPlan(), tezDag, localResources);
         dagBuilder.visit();
         return tezDag;
     }
 
-    public TezJob compile(TezOperPlan tezPlan, String grpName, TezPlanContainer planContainer)
+    public TezJob compile(TezPlanContainerNode tezPlanNode, TezPlanContainer planContainer)
             throws JobCreationException {
         TezJob job = null;
         try {
             // A single Tez job always pack only 1 Tez plan. We will track
             // Tez job asynchronously to exploit parallel execution opportunities.
-            job = getJob(tezPlan, planContainer);
+            job = getJob(tezPlanNode, planContainer);
         } catch (JobCreationException jce) {
             throw jce;
         } catch(Exception e) {
@@ -84,11 +82,12 @@ public class TezJobCompiler {
         return job;
     }
 
-    private TezJob getJob(TezOperPlan tezPlan, TezPlanContainer planContainer)
+    private TezJob getJob(TezPlanContainerNode tezPlanNode, TezPlanContainer planContainer)
             throws JobCreationException {
         try {
             Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
             localResources.putAll(planContainer.getLocalResources());
+            TezOperPlan tezPlan = tezPlanNode.getTezOperPlan();
             localResources.putAll(tezPlan.getExtraResources());
             String shipFiles = pigContext.getProperties().getProperty("pig.streaming.ship.files");
             if (shipFiles != null) {
@@ -106,8 +105,8 @@ public class TezJobCompiler {
             for (Map.Entry<String, LocalResource> entry : localResources.entrySet()) {
                 log.info("Local resource: " + entry.getKey());
             }
-            DAG tezDag = buildDAG(tezPlan, localResources);
-            return new TezJob(tezConf, tezDag, localResources);
+            DAG tezDag = buildDAG(tezPlanNode, localResources);
+            return new TezJob(tezConf, tezDag, localResources, tezPlan.getEstimatedTotalParallelism());
         } catch (Exception e) {
             int errCode = 2017;
             String msg = "Internal error creating job configuration.";

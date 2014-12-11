@@ -30,7 +30,10 @@ import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.pig.JVMReuseManager;
+import org.apache.pig.PigConstants;
 import org.apache.pig.PigException;
+import org.apache.pig.StaticDataCleanup;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
@@ -57,8 +60,8 @@ import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.SpillableMemoryManager;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.impl.util.Utils;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
-import org.joda.time.DateTimeZone;
 
 /**
  * This class is the static Mapper &amp; Reducer classes that
@@ -99,6 +102,17 @@ public class PigGenericMapReduce {
     public static Configuration sJobConf = null;
 
     public static ThreadLocal<Configuration> sJobConfInternal = new ThreadLocal<Configuration>();
+
+    static {
+        JVMReuseManager.getInstance().registerForStaticDataCleanup(PigGenericMapReduce.class);
+    }
+
+    @StaticDataCleanup
+    public static void staticDataCleanup() {
+        sJobContext = null;
+        sJobConf = null;
+        sJobConfInternal = new ThreadLocal<Configuration>();
+    }
 
     public static class Map extends PigMapBase {
 
@@ -306,6 +320,7 @@ public class PigGenericMapReduce {
                 pack = getPack(context);
             Configuration jConf = context.getConfiguration();
             SpillableMemoryManager.configure(ConfigurationUtil.toProperties(jConf));
+            context.getConfiguration().set(PigConstants.TASK_INDEX, Integer.toString(context.getTaskAttemptID().getTaskID().getId()));
             sJobContext = context;
             sJobConfInternal.set(context.getConfiguration());
             sJobConf = context.getConfiguration();
@@ -347,11 +362,7 @@ public class PigGenericMapReduce {
 
             log.info("Aliases being processed per job phase (AliasName[line,offset]): " + jConf.get("pig.alias.location"));
 
-            String dtzStr = PigMapReduce.sJobConfInternal.get().get("pig.datetime.default.tz");
-            if (dtzStr != null && dtzStr.length() > 0) {
-                // ensure that the internal timezone is uniformly in UTC offset style
-                DateTimeZone.setDefault(DateTimeZone.forOffsetMillis(DateTimeZone.forID(dtzStr).getOffset(null)));
-            }
+            Utils.setDefaultTimeZone(PigMapReduce.sJobConfInternal.get());
         }
 
         /**

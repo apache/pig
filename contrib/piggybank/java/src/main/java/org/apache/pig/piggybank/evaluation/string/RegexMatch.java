@@ -56,7 +56,7 @@ public class RegexMatch extends EvalFunc<Integer> {
             String msg = "RegexMatch : Only 2 parameters are allowed.";
             throw new IOException(msg);
         }
-        if (input.get(0)==null)
+        if (input.get(0)==null || input.get(1)==null)
             return null;
         try {
             if (!input.get(1).equals(mExpression))

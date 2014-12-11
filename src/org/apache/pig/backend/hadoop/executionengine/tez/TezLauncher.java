@@ -23,10 +23,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ThreadFactory;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -34,6 +35,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.PigConfiguration;
+import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
 import org.apache.pig.backend.BackendException;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -62,29 +64,42 @@ import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
+import org.apache.pig.tools.pigstats.tez.TezPigScriptStats;
 import org.apache.pig.tools.pigstats.tez.TezScriptState;
-import org.apache.pig.tools.pigstats.tez.TezStats;
-import org.apache.pig.tools.pigstats.tez.TezTaskStats;
-import org.apache.tez.common.TezUtils;
+import org.apache.pig.tools.pigstats.tez.TezVertexStats;
+import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
+
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
  * Main class that launches pig for Tez
  */
 public class TezLauncher extends Launcher {
     private static final Log log = LogFactory.getLog(TezLauncher.class);
-    private ScheduledExecutorService executor = new ScheduledThreadPoolExecutor(1);
+    private static ThreadFactory namedThreadFactory;
+    private ExecutorService executor;
     private boolean aggregateWarning = false;
     private TezScriptState tezScriptState;
-    private TezStats tezStats;
+    private TezPigScriptStats tezStats;
     private TezJob runningJob;
+
+    public TezLauncher() {
+        if (namedThreadFactory == null) {
+            namedThreadFactory = new ThreadFactoryBuilder()
+                .setNameFormat("PigTezLauncher-%d")
+                .setUncaughtExceptionHandler(new JobControlThreadExceptionHandler())
+                .build();
+        }
+        executor = Executors.newSingleThreadExecutor(namedThreadFactory);
+    }
 
     @Override
     public PigStats launchPig(PhysicalPlan php, String grpName, PigContext pc) throws Exception {
@@ -94,7 +109,7 @@ public class TezLauncher extends Launcher {
             pc.getProperties().setProperty("tez.ignore.lib.uris", "true");
         }
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties(), true);
-        if (pc.defaultParallel == -1 && !conf.getBoolean(PigConfiguration.TEZ_AUTO_PARALLELISM, true)) {
+        if (pc.defaultParallel == -1 && !conf.getBoolean(PigConfiguration.PIG_TEZ_AUTO_PARALLELISM, true)) {
             pc.defaultParallel = 1;
         }
         aggregateWarning = conf.getBoolean("aggregate.warning", false);
@@ -109,60 +124,52 @@ public class TezLauncher extends Launcher {
         List<TezOperPlan> processedPlans = new ArrayList<TezOperPlan>();
 
         tezScriptState = TezScriptState.get();
-        tezStats = new TezStats(pc);
+        tezStats = new TezPigScriptStats(pc);
         PigStats.start(tezStats);
 
         conf.set(TezConfiguration.TEZ_USE_CLUSTER_HADOOP_LIBS, "true");
         TezJobCompiler jc = new TezJobCompiler(pc, conf);
         TezPlanContainer tezPlanContainer = compile(php, pc);
 
-        int defaultTimeToSleep = pc.getExecType().isLocal() ? 100 : 1000;
-        int timeToSleep = conf.getInt("pig.jobcontrol.sleep", defaultTimeToSleep);
-        if (timeToSleep != defaultTimeToSleep) {
-            log.info("overriding default JobControl sleep (" +
-                    defaultTimeToSleep + ") to " + timeToSleep);
-        }
+        tezStats.initialize(tezPlanContainer);
+        tezScriptState.emitInitialPlanNotification(tezPlanContainer);
+        tezScriptState.emitLaunchStartedNotification(tezPlanContainer.size()); //number of DAGs to Launch
 
+        TezPlanContainerNode tezPlanContainerNode;
         TezOperPlan tezPlan;
-        while ((tezPlan=tezPlanContainer.getNextPlan(processedPlans)) != null) {
-            optimize(tezPlan, pc);
+        int processedDAGs = 0;
+        while ((tezPlanContainerNode = tezPlanContainer.getNextPlan(processedPlans)) != null) {
+            tezPlan = tezPlanContainerNode.getTezOperPlan();
+            processLoadAndParallelism(tezPlan, pc);
             processedPlans.add(tezPlan);
-            ProgressReporter reporter = new ProgressReporter();
-            tezStats.initialize(tezPlan);
+            ProgressReporter reporter = new ProgressReporter(tezPlanContainer.size(), processedDAGs);
             if (tezPlan.size()==1 && tezPlan.getRoots().get(0) instanceof NativeTezOper) {
                 // Native Tez Plan
                 NativeTezOper nativeOper = (NativeTezOper)tezPlan.getRoots().get(0);
-                tezScriptState.emitInitialPlanNotification(tezPlan);
-                tezScriptState.emitLaunchStartedNotification(tezPlan.size());
                 tezScriptState.emitJobsSubmittedNotification(1);
-                nativeOper.runJob();
+                nativeOper.runJob(tezPlanContainerNode.getOperatorKey().toString());
             } else {
                 TezPOPackageAnnotator pkgAnnotator = new TezPOPackageAnnotator(tezPlan);
                 pkgAnnotator.visit();
 
-                runningJob = jc.compile(tezPlan, grpName, tezPlanContainer);
-
-                tezScriptState.emitInitialPlanNotification(tezPlan);
-                tezScriptState.emitLaunchStartedNotification(tezPlan.size());
+                runningJob = jc.compile(tezPlanContainerNode, tezPlanContainer);
+                //TODO: Exclude vertex groups from numVerticesToLaunch ??
+                tezScriptState.dagLaunchNotification(runningJob.getName(), tezPlan, tezPlan.size());
+                runningJob.setPigStats(tezStats);
 
                 // Set the thread UDFContext so registered classes are available.
                 final UDFContext udfContext = UDFContext.getUDFContext();
-                Thread task = new Thread(runningJob) {
+                Runnable task = new Runnable() {
                     @Override
                     public void run() {
+                        Thread.currentThread().setContextClassLoader(PigContext.getClassLoader());
                         UDFContext.setUdfContext(udfContext.clone());
-                        super.run();
+                        runningJob.run();
                     }
                 };
 
-                JobControlThreadExceptionHandler jctExceptionHandler = new JobControlThreadExceptionHandler();
-                task.setUncaughtExceptionHandler(jctExceptionHandler);
-                task.setContextClassLoader(PigContext.getClassLoader());
-
-                tezStats.setTezJob(runningJob);
-
                 // Mark the times that the jobs were submitted so it's reflected in job
-                // history props
+                // history props. TODO: Fix this. unused now
                 long scriptSubmittedTimestamp = System.currentTimeMillis();
                 // Job.getConfiguration returns the shared configuration object
                 Configuration jobConf = runningJob.getConfiguration();
@@ -171,19 +178,41 @@ public class TezLauncher extends Launcher {
                 jobConf.set("pig.job.submitted.timestamp",
                         Long.toString(System.currentTimeMillis()));
 
-                Future<?> future = executor.schedule(task, timeToSleep, TimeUnit.MILLISECONDS);
-
+                Future<?> future = executor.submit(task);
                 tezScriptState.emitJobsSubmittedNotification(1);
-                reporter.notifyStarted();
+
+                boolean jobStarted = false;
 
                 while (!future.isDone()) {
+                    if (!jobStarted && runningJob.getApplicationId() != null) {
+                        jobStarted = true;
+                        String appId = runningJob.getApplicationId().toString();
+                        //For Oozie Pig action job id matching compatibility with MR mode
+                        log.info("HadoopJobId: "+ appId.replace("application", "job"));
+                        tezScriptState.emitJobStartedNotification(appId);
+                        tezScriptState.dagStartedNotification(runningJob.getName(), appId);
+                    }
                     reporter.notifyUpdate();
                     Thread.sleep(1000);
                 }
-
-                tezStats.accumulateStats(runningJob);
+                // For tez_local mode where PigProcessor destroys all UDFContext
+                UDFContext.setUdfContext(udfContext);
+                try {
+                    // In case of FutureTask there is no uncaught exception
+                    // Need to do future.get() to get any exception
+                    future.get();
+                } catch (ExecutionException e) {
+                    setJobException(e.getCause());
+                }
             }
-            tezScriptState.emitProgressUpdatedNotification(100);
+            processedDAGs++;
+            if (tezPlanContainer.size() == processedDAGs) {
+                tezScriptState.emitProgressUpdatedNotification(100);
+            } else {
+                tezScriptState.emitProgressUpdatedNotification(
+                    ((tezPlanContainer.size() - processedDAGs)/tezPlanContainer.size()) * 100);
+            }
+            handleUnCaughtException(pc);
             tezPlanContainer.updatePlan(tezPlan, reporter.notifyFinishedOrFailed());
         }
 
@@ -214,6 +243,28 @@ public class TezLauncher extends Launcher {
         return tezStats;
     }
 
+    private void handleUnCaughtException(PigContext pc) throws Exception {
+      //check for the uncaught exceptions from TezJob thread
+        //if the job controller fails before launching the jobs then there are
+        //no jobs to check for failure
+        if (jobControlException != null) {
+            if (jobControlException instanceof PigException) {
+                if (jobControlExceptionStackTrace != null) {
+                    LogUtils.writeLog("Error message from Tez Job",
+                            jobControlExceptionStackTrace, pc
+                            .getProperties().getProperty(
+                                    "pig.logfile"), log);
+                }
+                throw jobControlException;
+            } else {
+                int errCode = 2117;
+                String msg = "Unexpected error when launching Tez job.";
+                throw new ExecException(msg, errCode, PigException.BUG,
+                        jobControlException);
+            }
+        }
+    }
+
     private void computeWarningAggregate(Map<String, Map<String, Long>> counterGroups, Map<Enum, Long> aggMap) {
         for (Map<String, Long> counters : counterGroups.values()) {
             for (Enum e : PigWarning.values()) {
@@ -234,42 +285,47 @@ public class TezLauncher extends Launcher {
     }
 
     private class ProgressReporter {
+        private int totalDAGs;
+        private int processedDAGS;
         private int count = 0;
         private int prevProgress = 0;
 
-        public void notifyStarted() throws IOException {
-            for (Vertex v : runningJob.getDAG().getVertices()) {
-                TezTaskStats tts = tezStats.getVertexStats(v.getName());
-                UserPayload payload = v.getProcessorDescriptor().getUserPayload();
-                Configuration conf = TezUtils.createConfFromUserPayload(payload);
-                tts.setConf(conf);
-                tts.setId(v.getName());
-                tezScriptState.emitJobStartedNotification(v.getName());
-            }
+        public ProgressReporter(int totalDAGs, int processedDAGs) {
+            this.totalDAGs = totalDAGs;
+            this.processedDAGS = processedDAGs;
         }
 
         public void notifyUpdate() {
             DAGStatus dagStatus = runningJob.getDAGStatus();
             if (dagStatus != null && dagStatus.getState() == DAGStatus.State.RUNNING) {
                 // Emit notification when the job has progressed more than 1%,
-                // or every 10 second
+                // or every 20 seconds
                 int currProgress = Math.round(runningJob.getDAGProgress() * 100f);
                 if (currProgress - prevProgress >= 1 || count % 100 == 0) {
-                    tezScriptState.emitProgressUpdatedNotification(currProgress);
+                    tezScriptState.dagProgressNotification(runningJob.getName(), -1, currProgress);
+                    tezScriptState.emitProgressUpdatedNotification((currProgress + (100 * processedDAGS))/totalDAGs);
                     prevProgress = currProgress;
                 }
                 count++;
             }
+            // TODO: Add new vertex tracking methods to PigTezProgressNotificationListener
+            // and emit notifications for individual vertex start, progress and completion
         }
 
         public boolean notifyFinishedOrFailed() {
             DAGStatus dagStatus = runningJob.getDAGStatus();
+            if (dagStatus == null) {
+                return false;
+            }
             if (dagStatus.getState() == DAGStatus.State.SUCCEEDED) {
                 Map<Enum, Long> warningAggMap = new HashMap<Enum, Long>();
-                for (Vertex v : runningJob.getDAG().getVertices()) {
-                    TezTaskStats tts = tezStats.getVertexStats(v.getName());
-                    tezScriptState.emitjobFinishedNotification(tts);
-                    Map<String, Map<String, Long>> counterGroups = runningJob.getVertexCounters(v.getName());
+                DAG dag = runningJob.getDAG();
+                for (Vertex v : dag.getVertices()) {
+                    TezVertexStats tts = tezStats.getVertexStats(dag.getName(), v.getName());
+                    if (tts == null) {
+                        continue; //vertex groups
+                    }
+                    Map<String, Map<String, Long>> counterGroups = tts.getCounters();
                     if (counterGroups == null) {
                         log.warn("Counters are not available for vertex " + v.getName() + ". Not computing warning aggregates.");
                     } else {
@@ -280,11 +336,6 @@ public class TezLauncher extends Launcher {
                     CompilationMessageCollector.logAggregate(warningAggMap, MessageType.Warning, log);
                 }
                 return true;
-            } else if (dagStatus.getState() == DAGStatus.State.FAILED) {
-                for (Vertex v : ((TezJob)runningJob).getDAG().getVertices()) {
-                    TezTaskStats tts = tezStats.getVertexStats(v.getName());
-                    tezScriptState.emitJobFailedNotification(tts);
-                }
             }
             return false;
         }
@@ -296,10 +347,6 @@ public class TezLauncher extends Launcher {
             VisitorException, IOException {
         log.debug("Entering TezLauncher.explain");
         TezPlanContainer tezPlanContainer = compile(php, pc);
-        for (Map.Entry<OperatorKey,TezPlanContainerNode> entry : tezPlanContainer.getKeys().entrySet()) {
-            TezOperPlan tezPlan = entry.getValue().getNode();
-            optimize(tezPlan, pc);
-        }
 
         if (format.equals("text")) {
             TezPlanContainerPrinter printer = new TezPlanContainerPrinter(ps, tezPlanContainer);
@@ -311,7 +358,20 @@ public class TezLauncher extends Launcher {
         }
     }
 
-    public static void optimize(TezOperPlan tezPlan, PigContext pc) throws VisitorException {
+    public TezPlanContainer compile(PhysicalPlan php, PigContext pc)
+            throws PlanException, IOException, VisitorException {
+        TezCompiler comp = new TezCompiler(php, pc);
+        comp.compile();
+        TezPlanContainer planContainer = comp.getPlanContainer();
+        for (Map.Entry<OperatorKey, TezPlanContainerNode> entry : planContainer
+                .getKeys().entrySet()) {
+            TezOperPlan tezPlan = entry.getValue().getTezOperPlan();
+            optimize(tezPlan, pc);
+        }
+        return planContainer;
+    }
+
+    private void optimize(TezOperPlan tezPlan, PigContext pc) throws VisitorException {
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
         boolean aggregateWarning = conf.getBoolean("aggregate.warning", false);
 
@@ -319,10 +379,10 @@ public class TezLauncher extends Launcher {
         filter.visit();
 
         // Run CombinerOptimizer on Tez plan
-        boolean nocombiner = conf.getBoolean(PigConfiguration.PROP_NO_COMBINER, false);
+        boolean nocombiner = conf.getBoolean(PigConfiguration.PIG_EXEC_NO_COMBINER, false);
         if (!pc.inIllustrator && !nocombiner)  {
             boolean doMapAgg = Boolean.parseBoolean(pc.getProperties().getProperty(
-                    PigConfiguration.PROP_EXEC_MAP_PARTAGG, "false"));
+                    PigConfiguration.PIG_EXEC_MAP_PARTAGG, "false"));
             CombinerOptimizer co = new CombinerOptimizer(tezPlan, doMapAgg);
             co.visit();
             co.getMessageCollector().logMessages(MessageType.Warning, aggregateWarning, log);
@@ -336,7 +396,7 @@ public class TezLauncher extends Launcher {
             skOptimizer.visit();
         }
 
-        boolean isMultiQuery = conf.getBoolean(PigConfiguration.OPT_MULTIQUERY, true);
+        boolean isMultiQuery = conf.getBoolean(PigConfiguration.PIG_OPT_MULTIQUERY, true);
         if (isMultiQuery) {
             // reduces the number of TezOpers in the Tez plan generated
             // by multi-query (multi-store) script.
@@ -345,33 +405,30 @@ public class TezLauncher extends Launcher {
         }
 
         // Run AccumulatorOptimizer on Tez plan
-        boolean isAccum = conf.getBoolean(PigConfiguration.OPT_ACCUMULATOR, true);
+        boolean isAccum = conf.getBoolean(PigConfiguration.PIG_OPT_ACCUMULATOR, true);
         if (isAccum) {
             AccumulatorOptimizer accum = new AccumulatorOptimizer(tezPlan);
             accum.visit();
         }
 
         // Use VertexGroup in Tez
-        boolean isUnionOpt = conf.getBoolean(PigConfiguration.TEZ_OPT_UNION, true);
+        boolean isUnionOpt = conf.getBoolean(PigConfiguration.PIG_TEZ_OPT_UNION, true);
         if (isUnionOpt) {
             UnionOptimizer uo = new UnionOptimizer(tezPlan);
             uo.visit();
         }
 
+    }
+
+    public static void processLoadAndParallelism(TezOperPlan tezPlan, PigContext pc) throws VisitorException {
         if (!pc.inExplain && !pc.inDumpSchema) {
             LoaderProcessor loaderStorer = new LoaderProcessor(tezPlan, pc);
             loaderStorer.visit();
 
             ParallelismSetter parallelismSetter = new ParallelismSetter(tezPlan, pc);
             parallelismSetter.visit();
+            tezPlan.setEstimatedParallelism(parallelismSetter.getEstimatedTotalParallelism());
         }
-    }
-
-    public TezPlanContainer compile(PhysicalPlan php, PigContext pc)
-            throws PlanException, IOException, VisitorException {
-        TezCompiler comp = new TezCompiler(php, pc);
-        comp.compile();
-        return comp.getPlanContainer();
     }
 
     @Override
@@ -383,9 +440,7 @@ public class TezLauncher extends Launcher {
                 throw new BackendException(e);
             }
         }
-        if (executor != null) {
-            executor.shutdownNow();
-        }
+        destroy();
     }
 
     @Override
@@ -400,4 +455,17 @@ public class TezLauncher extends Launcher {
             log.info("Cannot find job: " + jobID);
         }
     }
+
+    @Override
+    public void destroy() {
+        try {
+            if (executor != null && !executor.isShutdown()) {
+                log.info("Shutting down thread pool");
+                executor.shutdownNow();
+            }
+        } catch (Exception e) {
+            log.warn("Error shutting down threadpool");
+        }
+    }
+
 }

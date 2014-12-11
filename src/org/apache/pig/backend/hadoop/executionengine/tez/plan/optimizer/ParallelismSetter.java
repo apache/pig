@@ -20,6 +20,8 @@ package org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer;
 import java.util.LinkedList;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -41,26 +43,33 @@ import org.apache.pig.impl.plan.VisitorException;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 
 public class ParallelismSetter extends TezOpPlanVisitor {
+
+    private static final Log LOG = LogFactory.getLog(ParallelismSetter.class);
     private Configuration conf;
     private PigContext pc;
     private TezParallelismEstimator estimator;
     private boolean autoParallelismEnabled;
+    private int estimatedTotalParallelism = 0;
 
     public ParallelismSetter(TezOperPlan plan, PigContext pigContext) {
         super(plan, new DependencyOrderWalker<TezOperator, TezOperPlan>(plan));
         this.pc = pigContext;
         this.conf = ConfigurationUtil.toConfiguration(pc.getProperties());
-        this.autoParallelismEnabled = conf.getBoolean(PigConfiguration.TEZ_AUTO_PARALLELISM, true);
+        this.autoParallelismEnabled = conf.getBoolean(PigConfiguration.PIG_TEZ_AUTO_PARALLELISM, true);
         try {
-            this.estimator = conf.get(PigConfiguration.REDUCER_ESTIMATOR_KEY) == null ? new TezOperDependencyParallelismEstimator()
+            this.estimator = conf.get(PigConfiguration.PIG_EXEC_REDUCER_ESTIMATOR) == null ? new TezOperDependencyParallelismEstimator()
             : PigContext.instantiateObjectFromParams(conf,
-                    PigConfiguration.REDUCER_ESTIMATOR_KEY, PigConfiguration.REDUCER_ESTIMATOR_ARG_KEY,
+                    PigConfiguration.PIG_EXEC_REDUCER_ESTIMATOR, PigConfiguration.PIG_EXEC_REDUCER_ESTIMATOR_CONSTRUCTOR_ARG_KEY,
                     TezParallelismEstimator.class);
             this.estimator.setPigContext(pc);
 
         } catch (ExecException e) {
             throw new RuntimeException("Error instantiating TezParallelismEstimator", e);
         }
+    }
+
+    public int getEstimatedTotalParallelism() {
+        return estimatedTotalParallelism;
     }
 
     @Override
@@ -100,6 +109,7 @@ public class ParallelismSetter extends TezOpPlanVisitor {
                         tezOp.setRequestedParallelism(pred.getRequestedParallelism());
                         tezOp.setEstimatedParallelism(pred.getEstimatedParallelism());
                         isOneToOneParallelism = true;
+                        incrementTotalParallelism(tezOp, parallelism);
                         parallelism = -1;
                     }
                 }
@@ -109,65 +119,83 @@ public class ParallelismSetter extends TezOpPlanVisitor {
                     } else if (pc.defaultParallel != -1) {
                         parallelism = pc.defaultParallel;
                     }
-                    if (autoParallelismEnabled &&
-                            ((parallelism == -1 || intermediateReducer) && !tezOp.isDontEstimateParallelism())) {
+                    boolean overrideRequestedParallelism = false;
+                    if (parallelism != -1
+                            && autoParallelismEnabled
+                            && intermediateReducer
+                            && !tezOp.isDontEstimateParallelism()
+                            && tezOp.isOverrideIntermediateParallelism()) {
+                        overrideRequestedParallelism = true;
+                    }
+                    if (parallelism == -1 || overrideRequestedParallelism) {
                         if (tezOp.getEstimatedParallelism() == -1) {
                             // Override user specified parallelism with the estimated value
                             // if it is intermediate reducer
                             parallelism = estimator.estimateParallelism(mPlan, tezOp, conf);
-                            tezOp.setEstimatedParallelism(parallelism);
+                            if (overrideRequestedParallelism) {
+                                tezOp.setRequestedParallelism(parallelism);
+                            } else {
+                                tezOp.setEstimatedParallelism(parallelism);
+                            }
                         } else {
                             parallelism = tezOp.getEstimatedParallelism();
                         }
                         if (tezOp.isGlobalSort() || tezOp.isSkewedJoin()) {
-                            // Vertex manager will set parallelism
-                            parallelism = -1;
+                            if (!overrideRequestedParallelism) {
+                                incrementTotalParallelism(tezOp, parallelism);
+                                // PartitionerDefinedVertexManager will determine parallelism.
+                                // So call setVertexParallelism with -1
+                                // setEstimatedParallelism still needs to have some positive value
+                                // so that TezDAGBuilder sets the PartitionerDefinedVertexManager
+                                parallelism = -1;
+                            } else {
+                                // We are overriding the parallelism. We need to update the
+                                // Constant value in sampleAggregator to same parallelism
+                                // Currently will happen when you have orderby or
+                                // skewed join followed by group by with combiner
+                                for (TezOperator pred : mPlan.getPredecessors(tezOp)) {
+                                    if (pred.isSampleBasedPartitioner()) {
+                                        for (TezOperator partitionerPred : mPlan.getPredecessors(pred)) {
+                                            if (partitionerPred.isSampleAggregation()) {
+                                                LOG.debug("Updating constant value to " + parallelism + " in " + partitionerPred.plan);
+                                                LOG.info("Increased requested parallelism of " + partitionerPred.getOperatorKey() + " to " + parallelism);
+                                                ParallelConstantVisitor visitor =
+                                                        new ParallelConstantVisitor(partitionerPred.plan, parallelism);
+                                                visitor.visit();
+                                                break;
+                                            }
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
 
-            // Once we decide the parallelism of the sampler, propagate to
-            // downstream operators if necessary
-            if (tezOp.isSampler() && autoParallelismEnabled) {
-                // There could be multiple sampler and share the same sample aggregation job
-                // and partitioner job
-                TezOperator sampleAggregationOper = null;
-                TezOperator sampleBasedPartionerOper = null;
-                TezOperator sortOper = null;
-                for (TezOperator succ : mPlan.getSuccessors(tezOp)) {
-                    if (succ.isVertexGroup()) {
-                        succ = mPlan.getSuccessors(succ).get(0);
-                    }
-                    if (succ.isSampleAggregation()) {
-                        sampleAggregationOper = succ;
-                    } else if (succ.isSampleBasedPartitioner()) {
-                        sampleBasedPartionerOper = succ;
-                    }
-                }
-                sortOper = mPlan.getSuccessors(sampleBasedPartionerOper).get(0);
-
-                if ((sortOper.getRequestedParallelism() == -1 && pc.defaultParallel == -1) || TezCompilerUtil.isIntermediateReducer(sortOper)) {
-                    // set estimate parallelism for order by/skewed join to sampler parallelism
-                    // that include:
-                    // 1. sort operator
-                    // 2. constant for sample aggregation oper
-                    sortOper.setEstimatedParallelism(parallelism);
-                    ParallelConstantVisitor visitor =
-                            new ParallelConstantVisitor(sampleAggregationOper.plan, parallelism);
-                    visitor.visit();
-                    sampleAggregationOper.setNeedEstimatedQuantile(true);
-                }
-            }
-
+            incrementTotalParallelism(tezOp, parallelism);
             tezOp.setVertexParallelism(parallelism);
 
-            if (tezOp.getCrossKey()!=null) {
-                pc.getProperties().put(PigImplConstants.PIG_CROSS_PARALLELISM + "." + tezOp.getCrossKey(),
-                        Integer.toString(tezOp.getVertexParallelism()));
+            // TODO: Fix case where vertex parallelism is -1 for auto parallelism with PartitionerDefinedVertexManager.
+            // i.e order by or skewed join followed by cross
+            if (tezOp.getCrossKeys() != null) {
+                for (String key : tezOp.getCrossKeys()) {
+                    pc.getProperties().put(PigImplConstants.PIG_CROSS_PARALLELISM + "." + key,
+                            Integer.toString(tezOp.getVertexParallelism()));
+                }
             }
         } catch (Exception e) {
             throw new VisitorException(e);
+        }
+    }
+
+    private void incrementTotalParallelism(TezOperator tezOp, int tezOpParallelism) {
+        if (tezOp.isVertexGroup()) {
+            return;
+        }
+        if (tezOpParallelism != -1) {
+            estimatedTotalParallelism += tezOpParallelism;
         }
     }
 

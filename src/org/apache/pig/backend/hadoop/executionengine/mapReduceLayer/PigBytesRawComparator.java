@@ -122,8 +122,10 @@ public class PigBytesRawComparator extends WritableComparator implements Configu
             if( dataByteArraysCompare ) {
               rc = WritableComparator.compareBytes(b1, offset1, length1, b2, offset2, length2);
             } else {
-              // Subtract 2, one for null byte and one for index byte
-              rc = mWrappedComp.compare(b1, s1 + 1, l1 - 2, b2, s2 + 1, l2 - 2);
+              // Subtract 2, one for null byte and one for index byte. Also, do not reverse the sign
+              // of rc when mAsc[0] is false because BinInterSedesTupleRawComparator.compare() already
+              // takes that into account.
+              return mWrappedComp.compare(b1, s1 + 1, l1 - 2, b2, s2 + 1, l2 - 2);
             }
         } else {
             // For sorting purposes two nulls are equal.

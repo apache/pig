@@ -105,6 +105,7 @@ set PIGARGS=
   )
 
   set HCAT_DEPENDCIES=
+  set HCAT_CLASSPATH=
   if not defined HCAT_FLAG (
     goto HCAT_END
   )
@@ -149,8 +150,8 @@ set PIGARGS=
       echo "HIVE_HOME should be defined"
       exit /b 1
   )
-  set PIG_CLASSPATH=%PIG_CLASSPATH%;%HCAT_DEPENDCIES%;%HIVE_HOME%\conf
-  set PIG_OPTS=%PIG_OPTS% -Dpig.additional.jars=%HCAT_DEPENDCIES%;%PIG_ADDITIONAL_JARS%
+  set PIG_CLASSPATH=%PIG_CLASSPATH%;%HCAT_CLASSPATH%;%HIVE_HOME%\conf
+  set PIG_OPTS=%PIG_OPTS% -Dpig.additional.jars.uris=%HCAT_DEPENDCIES%,%PIG_ADDITIONAL_JARS_COMMA%
 :HCAT_END
 
   if defined PIG_CLASSPATH (
@@ -197,7 +198,8 @@ set PIGARGS=
   :AddJar
     pushd %1
     for /f %%a IN ('dir /b %2') do (
-   	  set HCAT_DEPENDCIES=!HCAT_DEPENDCIES!;%1\%%a
+       set HCAT_CLASSPATH=!HCAT_CLASSPATH!;%1\%%a
+       set HCAT_DEPENDCIES=!HCAT_DEPENDCIES!,file:///%1\%%a
     )
     popd
 :endlocal

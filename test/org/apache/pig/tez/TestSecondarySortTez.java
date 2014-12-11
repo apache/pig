@@ -47,12 +47,12 @@ public class TestSecondarySortTez extends TestSecondarySort {
         TezCompiler comp = new TezCompiler(pp, pc);
         TezOperPlan tezPlan = comp.compile();
         boolean nocombiner = Boolean.parseBoolean(pc.getProperties().getProperty(
-                PigConfiguration.PROP_NO_COMBINER, "false"));
+                PigConfiguration.PIG_EXEC_NO_COMBINER, "false"));
 
         // Run CombinerOptimizer on Tez plan
         if (!nocombiner) {
             boolean doMapAgg = Boolean.parseBoolean(pc.getProperties()
-                    .getProperty(PigConfiguration.PROP_EXEC_MAP_PARTAGG,
+                    .getProperty(PigConfiguration.PIG_EXEC_MAP_PARTAGG,
                             "false"));
             CombinerOptimizer co = new CombinerOptimizer(tezPlan, doMapAgg);
             co.visit();

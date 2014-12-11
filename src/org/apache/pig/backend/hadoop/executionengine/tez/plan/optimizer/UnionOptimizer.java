@@ -18,6 +18,7 @@
 package org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
@@ -30,6 +31,7 @@ import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezEdgeDescriptor;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperator;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperator.OPER_FEATURE;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperator.VertexGroupInfo;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POStoreTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POValueOutputTez;
@@ -68,6 +70,10 @@ public class UnionOptimizer extends TezOpPlanVisitor {
     @Override
     public void visitTezOp(TezOperator tezOp) throws VisitorException {
         if (!tezOp.isUnion()) {
+            return;
+        }
+
+        if((tezOp.isLimit() || tezOp.isLimitAfterSort()) && tezOp.getRequestedParallelism() == 1) {
             return;
         }
 
@@ -262,12 +268,17 @@ public class UnionOptimizer extends TezOpPlanVisitor {
     }
 
     private void copyOperatorProperties(TezOperator pred, TezOperator unionOp) {
-        pred.setUseSecondaryKey(unionOp.isUseSecondaryKey());
         pred.UDFs.addAll(unionOp.UDFs);
         pred.scalars.addAll(unionOp.scalars);
-        if (unionOp.isSampler()) {
-            pred.markSampler();
+        // Copy only map side properties. For eg: crossKeys.
+        // Do not copy reduce side specific properties. For eg: useSecondaryKey, segmentBelow, sortOrder, etc
+        // Also ignore parallelism settings
+        if (unionOp.getCrossKeys() != null) {
+            for (String key : unionOp.getCrossKeys()) {
+                pred.addCrossKey(key);
+            }
         }
+        pred.copyFeatures(unionOp, Arrays.asList(new OPER_FEATURE[]{OPER_FEATURE.UNION}));
     }
 
     public static PhysicalPlan getUnionPredPlanFromSplit(PhysicalPlan plan, String unionOpKey) throws VisitorException {

@@ -65,8 +65,6 @@ public class TezOperDependencyParallelismEstimator implements TezParallelismEsti
     static final double DEFAULT_FILTER_FACTOR = 0.7;
     static final double DEFAULT_LIMIT_FACTOR = 0.1;
 
-    static final int DEFAULT_MAX_INTERMEDIATE_REDUCER_COUNT_PARAM = 2999;
-
     private PigContext pc;
 
     @Override
@@ -83,6 +81,8 @@ public class TezOperDependencyParallelismEstimator implements TezParallelismEsti
 
         boolean intermediateReducer = TezCompilerUtil.isIntermediateReducer(tezOper);
 
+        // TODO: If map opts and reduce opts are same estimate higher parallelism
+        // for tasks based on the count of number of map tasks else be conservative as now
         maxTaskCount = conf.getInt(PigReducerEstimator.MAX_REDUCER_COUNT_PARAM,
                 PigReducerEstimator.DEFAULT_MAX_REDUCER_COUNT_PARAM);
 
@@ -117,7 +117,10 @@ public class TezOperDependencyParallelismEstimator implements TezParallelismEsti
                             + ", effective parallelism for predecessor " + tezOper.getOperatorKey().toString()
                             + " is -1");
                 }
-                if (pred.plan!=null) { // pred.plan can be null if it is a VertexGroup
+
+                //For cases like Union we can just limit to sum of pred vertices parallelism
+                boolean applyFactor = !tezOper.isUnion();
+                if (pred.plan!=null && applyFactor) { // pred.plan can be null if it is a VertexGroup
                     TezParallelismFactorVisitor parallelismFactorVisitor = new TezParallelismFactorVisitor(pred.plan, tezOper.getOperatorKey().toString());
                     parallelismFactorVisitor.visit();
                     predParallelism = predParallelism * parallelismFactorVisitor.getFactor();
@@ -128,17 +131,18 @@ public class TezOperDependencyParallelismEstimator implements TezParallelismEsti
 
         int roundedEstimatedParallelism = (int)Math.ceil(estimatedParallelism);
 
-        if (intermediateReducer) {
+        if (intermediateReducer && tezOper.isOverrideIntermediateParallelism()) {
             // Estimated reducers should not be more than the configured limit
-            roundedEstimatedParallelism = Math.min(roundedEstimatedParallelism, Math.max(DEFAULT_MAX_INTERMEDIATE_REDUCER_COUNT_PARAM, maxTaskCount));
+            roundedEstimatedParallelism = Math.min(roundedEstimatedParallelism, maxTaskCount);
             int userSpecifiedParallelism = pc.defaultParallel;
             if (tezOper.getRequestedParallelism() != -1) {
                 userSpecifiedParallelism = tezOper.getRequestedParallelism();
             }
             int intermediateParallelism = Math.max(userSpecifiedParallelism, roundedEstimatedParallelism);
-            if (userSpecifiedParallelism != -1 && intermediateParallelism > (2 * userSpecifiedParallelism)) {
+            if (userSpecifiedParallelism != -1 &&
+                    (intermediateParallelism > 200 && intermediateParallelism > (2 * userSpecifiedParallelism))) {
                 // Estimated reducers shall not be more than 2x of requested parallelism
-                // when we are overriding user specified values
+                // if greater than 200 and we are overriding user specified values
                 intermediateParallelism = 2 * userSpecifiedParallelism;
             }
             roundedEstimatedParallelism = intermediateParallelism;

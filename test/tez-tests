@@ -1,7 +1,3 @@
-**/TestAccumuloPigCluster.java
-**/TestBigTypeSort.java
-**/TestCurrentTime.java
-**/TestInvokerGenerator.java
 **/TestStreamingUDF.java
 **/TestAccumulator.java
 **/TestAlgebraicEval.java

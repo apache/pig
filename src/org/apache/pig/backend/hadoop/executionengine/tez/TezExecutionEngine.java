@@ -24,8 +24,8 @@ import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.ScriptState;
+import org.apache.pig.tools.pigstats.tez.TezPigScriptStats;
 import org.apache.pig.tools.pigstats.tez.TezScriptState;
-import org.apache.pig.tools.pigstats.tez.TezStats;
 
 public class TezExecutionEngine extends HExecutionEngine {
 
@@ -43,6 +43,6 @@ public class TezExecutionEngine extends HExecutionEngine {
 
     @Override
     public PigStats instantiatePigStats() {
-        return new TezStats(pigContext);
+        return new TezPigScriptStats(pigContext);
     }
 }

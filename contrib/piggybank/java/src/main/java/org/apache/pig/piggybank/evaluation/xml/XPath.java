@@ -91,7 +91,11 @@ public class XPath extends EvalFunc<String> {
 
             final String xml = (String) input.get(0);
 
-            if (input.size() > 2)
+            if (xml == null) {
+                return null;
+            }
+            
+            if(input.size() > 2)
                 cache = (Boolean) input.get(2);
 
             if (!cache || xpath == null || !xml.equals(this.xml)) {

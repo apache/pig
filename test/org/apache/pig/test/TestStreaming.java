@@ -113,7 +113,7 @@ public class TestStreaming {
 
     		// Pig query to run
             pigServer.registerQuery("IP = load '"
-                    + Util.generateURI(Util.encodeEscape(input.toString()),
+                    + Util.generateURI(input.toString(),
                             pigServer.getPigContext()) + "' using "
                     + PigStorage.class.getName() + "(',');");
     		pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");
@@ -157,7 +157,7 @@ public class TestStreaming {
 		    }
 	        // Pig query to run
             pigServer.registerQuery("IP = load '"
-                    + Util.generateURI(Util.encodeEscape(input.toString()),
+                    + Util.generateURI(input.toString(),
                             pigServer.getPigContext()) + "' using "
                     + PigStorage.class.getName() + "(',');");
 	        pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");
@@ -200,7 +200,7 @@ public class TestStreaming {
 
     		// Pig query to run
             pigServer.registerQuery("IP = load '"
-                    + Util.generateURI(Util.encodeEscape(input.toString()),
+                    + Util.generateURI(input.toString(),
                             pigServer.getPigContext()) + "' using "
                     + PigStorage.class.getName() + "(',');");
     		pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");
@@ -250,7 +250,7 @@ public class TestStreaming {
 
 		// Pig query to run
         pigServer.registerQuery("IP = load '"
-                + Util.generateURI(Util.encodeEscape(input.toString()),
+                + Util.generateURI(input.toString(),
                         pigServer.getPigContext()) + "' using "
                 + PigStorage.class.getName() + "(',');");
 		pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");
@@ -318,7 +318,7 @@ public class TestStreaming {
                 "output(stdout using " + PigStreaming.class.getName() + "(',')) " +
                 "stderr();");
         pigServer.registerQuery("IP = load '"
-                + Util.generateURI(Util.encodeEscape(input.toString()),
+                + Util.generateURI(input.toString(),
                         pigServer.getPigContext())
                 + "' using PigStorage(',');");
         pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > 3;");
@@ -388,7 +388,7 @@ public class TestStreaming {
                 "output(stdout using PS ) " +
                 "stderr();");
         pigServer.registerQuery("IP = load '"
-                + Util.generateURI(Util.encodeEscape(input.toString()),
+                + Util.generateURI(input.toString(),
                         pigServer.getPigContext()) + "' using PigStorage(',');");
         pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > 3;");
         pigServer.registerQuery("STREAMED_DATA = stream FILTERED_DATA " +
@@ -458,7 +458,7 @@ public class TestStreaming {
                 "input('bar' using " + PigStreaming.class.getName() + "(',')) " +
                 "stderr();");
         pigServer.registerQuery("IP = load '"
-                + Util.generateURI(Util.encodeEscape(input.toString()),
+                + Util.generateURI(input.toString(),
                         pigServer.getPigContext()) + "' using "
                 + PigStorage.class.getName() + "(',');");
         pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > 3;");
@@ -520,7 +520,7 @@ public class TestStreaming {
         		"'bar' using " + PigStreaming.class.getName() + "(',')) " +
         		"stderr();");
         pigServer.registerQuery("IP = load '"
-                + Util.generateURI(Util.encodeEscape(input.toString()),
+                + Util.generateURI(input.toString(),
                         pigServer.getPigContext()) + "' using "
                 + PigStorage.class.getName() + "(',');");
         pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > 3;");
@@ -583,7 +583,7 @@ public class TestStreaming {
         		"'bar' using PS) " +
         		"stderr();");
         pigServer.registerQuery("IP = load '"
-                + Util.generateURI(Util.encodeEscape(input.toString()),
+                + Util.generateURI(input.toString(),
                         pigServer.getPigContext()) + "' using PigStorage(',');");
         pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > 3;");
         pigServer.registerQuery("OP = stream FILTERED_DATA through CMD;");
@@ -644,7 +644,7 @@ public class TestStreaming {
                 "'foobar' using " + PigStreaming.class.getName() + "(',')) " +
                 "stderr();");
         pigServer.registerQuery("IP = load '"
-                + Util.generateURI(Util.encodeEscape(input.toString()),
+                + Util.generateURI(input.toString(),
                         pigServer.getPigContext()) + "' using "
                 + PigStorage.class.getName() + "(',');");
         pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > 3;");
@@ -697,7 +697,7 @@ public class TestStreaming {
             pigServer.registerQuery("define CMD `" + simpleEchoStreamingCommand +
                                     " | " + simpleEchoStreamingCommand + "`;");
             pigServer.registerQuery("IP = load '"
-                    + Util.generateURI(Util.encodeEscape(input.toString()),
+                    + Util.generateURI(input.toString(),
                             pigServer.getPigContext()) + "' using "
                     + PigStorage.class.getName() + "(',');");
             if(withTypes[i] == true) {
@@ -738,7 +738,7 @@ public class TestStreaming {
             pigServer.registerQuery("define CMD `"+ simpleEchoStreamingCommand +
                                     "` input(stdin using " + PigStreamDump.class.getName() + ");");
             pigServer.registerQuery("IP = load '"
-                    + Util.generateURI(Util.encodeEscape(input.toString()),
+                    + Util.generateURI(input.toString(),
                             pigServer.getPigContext()) + "' using "
                     + PigStorage.class.getName() + "(',');");
             pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");
@@ -857,7 +857,7 @@ public class TestStreaming {
                 "output(stdout using " + PigStreaming.class.getName() + "(',')) " +
                 "stderr();");
         pigServer.registerQuery("IP = load '"
-                + Util.generateURI(Util.encodeEscape(input.toString()),
+                + Util.generateURI(input.toString(),
                         pigServer.getPigContext())
                 + "' using PigStorage();");
         pigServer.registerQuery("STREAMED_DATA = stream IP through CMD;");

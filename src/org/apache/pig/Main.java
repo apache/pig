@@ -178,6 +178,7 @@ public class Main {
         boolean deleteTempFiles = true;
         String logFileName = null;
         boolean printScriptRunTime = true;
+        PigContext pigContext = null;
 
         try {
             Configuration conf = new Configuration(false);
@@ -315,11 +316,11 @@ public class Main {
 
                 case 'M':
                     // turns off multiquery optimization
-                    properties.setProperty(PigConfiguration.OPT_MULTIQUERY,""+false);
+                    properties.setProperty(PigConfiguration.PIG_OPT_MULTIQUERY,""+false);
                     break;
 
                 case 'N':
-                    properties.setProperty(PigConfiguration.OPT_FETCH,""+false);
+                    properties.setProperty(PigConfiguration.PIG_OPT_FETCH,""+false);
                     break;
 
                 case 'p':
@@ -380,7 +381,7 @@ public class Main {
             }
 
             // create the context with the parameter
-            PigContext pigContext = new PigContext(properties);
+            pigContext = new PigContext(properties);
 
             // create the static script state object
             ScriptState scriptState = pigContext.getExecutionEngine().instantiateScriptState();
@@ -669,6 +670,9 @@ public class Main {
                 // clear temp files
                 FileLocalizer.deleteTempFiles();
             }
+            if (pigContext != null) {
+                pigContext.getExecutionEngine().destroy();
+            }
             PerformanceTimerFactory.getPerfTimerFactory().dumpTimers();
         }
 
@@ -937,7 +941,7 @@ public class Main {
             System.out.println("            by this factor, it gets disabled.");
             System.out.println("    Miscellaneous:");
             System.out.println("        exectype=mapreduce|local; default is mapreduce. This property is the same as -x switch");
-            System.out.println("        pig.additional.jars=<colon seperated list of jars>. Used in place of register command.");
+            System.out.println("        pig.additional.jars.uris=<comma seperated list of jars>. Used in place of register command.");
             System.out.println("        udf.import.list=<comma seperated list of imports>. Used to avoid package names in UDF.");
             System.out.println("        stop.on.failure=true|false; default is false. Set to true to terminate on the first error.");
             System.out.println("        pig.datetime.default.tz=<UTC time offset>. e.g. +08:00. Default is the default timezone of the host.");

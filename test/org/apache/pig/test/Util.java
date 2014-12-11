@@ -37,6 +37,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringReader;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -53,10 +54,13 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
+import org.apache.log4j.Appender;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.apache.log4j.PatternLayout;
 import org.apache.log4j.SimpleLayout;
+import org.apache.log4j.WriterAppender;
 import org.apache.pig.ExecType;
 import org.apache.pig.ExecTypeProvider;
 import org.apache.pig.LoadCaster;
@@ -626,7 +630,11 @@ public class Util {
      static public void copyFromLocalToCluster(MiniGenericCluster cluster,
         String localFileName, String fileNameOnCluster) throws IOException {
         if(Util.WINDOWS){
-            localFileName = localFileName.replace('\\','/');
+            if (!localFileName.contains(":")) {
+                localFileName = localFileName.replace('\\','/');
+            } else {
+                localFileName = localFileName.replace('/','\\');
+            }
             fileNameOnCluster = fileNameOnCluster.replace('\\','/');
         }
         PigServer ps = new PigServer(cluster.getExecType(), cluster.getProperties());
@@ -907,6 +915,38 @@ public class Util {
         return executeJavaCommandAndReturnInfo(cmd).exitCode;
     }
 
+    public static class ReadStream implements Runnable {
+        InputStream is;
+        Thread thread;
+        String message = "";
+        public ReadStream(InputStream is) {
+            this.is = is;
+        }
+        public void start () {
+            thread = new Thread (this);
+            thread.start ();
+        }
+        public void run () {
+            try {
+                InputStreamReader isr = new InputStreamReader (is);
+                BufferedReader br = new BufferedReader (isr);
+                while (true) {
+                    String s = br.readLine ();
+                    if (s == null) break;
+                    if (!message.isEmpty()) {
+                        message += "\n";
+                    }
+                    message += s;
+                }
+                is.close ();
+            } catch (Exception ex) {
+                ex.printStackTrace ();
+            }
+        }
+        public String getMessage() {
+            return message;
+        }
+    }
 
     public static ProcessReturnInfo executeJavaCommandAndReturnInfo(String cmd)
     throws Exception {
@@ -917,24 +957,17 @@ public class Util {
         }
         Process cmdProc = Runtime.getRuntime().exec(cmd);
         ProcessReturnInfo pri = new ProcessReturnInfo();
-        pri.stderrContents = getContents(cmdProc.getErrorStream());
-        pri.stdoutContents = getContents(cmdProc.getInputStream());
+        ReadStream stdoutStream = new ReadStream(cmdProc.getInputStream ());
+        ReadStream stderrStream = new ReadStream(cmdProc.getErrorStream ());
+        stdoutStream.start();
+        stderrStream.start();
         cmdProc.waitFor();
         pri.exitCode = cmdProc.exitValue();
+        pri.stdoutContents = stdoutStream.getMessage();
+        pri.stderrContents = stderrStream.getMessage();
         return pri;
     }
 
-    private static String getContents(InputStream istr) throws IOException {
-        BufferedReader br = new BufferedReader(
-                new InputStreamReader(istr));
-        String s = "";
-        String line;
-        while ( (line = br.readLine()) != null) {
-            s += line + "\n";
-        }
-        return s;
-
-    }
     public static class ProcessReturnInfo {
         public int exitCode;
         public String stderrContents;
@@ -1337,5 +1370,19 @@ public class Util {
         } else {
             return ExecTypeProvider.fromString("local");
         }
+    }
+
+    public static void createLogAppender(Class clazz, String appenderName, Writer writer) {
+        Logger logger = Logger.getLogger(clazz);
+        WriterAppender writerAppender = new WriterAppender(new PatternLayout("%d [%t] %-5p %c %x - %m%n"), writer);
+        writerAppender.setName(appenderName);
+        logger.addAppender(writerAppender);
+    }
+
+    public static void removeLogAppender(Class clazz, String appenderName) {
+        Logger logger = Logger.getLogger(clazz);
+        Appender appender = logger.getAppender(appenderName);
+        appender.close();
+        logger.removeAppender(appenderName);
     }
 }

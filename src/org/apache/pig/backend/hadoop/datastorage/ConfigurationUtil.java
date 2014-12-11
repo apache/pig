@@ -79,7 +79,11 @@ public class ConfigurationUtil {
             localConf = new Configuration(false);
             localConf.addResource("core-default.xml");
         } else {
-            localConf = new Configuration(true);
+            if (PigMapReduce.sJobContext!=null) {
+                localConf = PigMapReduce.sJobContext.getConfiguration();
+            } else {
+                localConf = new Configuration(true);
+            }
             // It's really hacky, try to get unit test working under hadoop 23.
             // Hadoop23 MiniMRCluster currently need setup Distributed cache before start,
             // so build/classes/hadoop-site.xml contains such entry. This prevents some tests from

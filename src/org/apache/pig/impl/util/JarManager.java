@@ -90,9 +90,16 @@ public class JarManager {
         createPigScriptUDFJar(fos, pigContext, contents);
 
         if (!contents.isEmpty()) {
-            FileInputStream fis = new FileInputStream(scriptUDFJarFile);
-            String md5 = org.apache.commons.codec.digest.DigestUtils.md5Hex(fis);
-            fis.close();
+            FileInputStream fis = null;
+            String md5 = null;
+            try {
+                fis = new FileInputStream(scriptUDFJarFile);
+                md5 = org.apache.commons.codec.digest.DigestUtils.md5Hex(fis);
+            } finally {
+                if (fis != null) {
+                    fis.close();
+                }
+            }
             File newScriptUDFJarFile = new File(scriptUDFJarFile.getParent(), "PigScriptUDF-" + md5 + ".jar");
             scriptUDFJarFile.renameTo(newScriptUDFJarFile);
             return newScriptUDFJarFile;
@@ -105,15 +112,20 @@ public class JarManager {
         for (String path: pigContext.scriptFiles) {
             log.debug("Adding entry " + path + " to job jar" );
             InputStream stream = null;
-            if (new File(path).exists()) {
-                stream = new FileInputStream(new File(path));
+            File inputFile = new File(path);
+            if (inputFile.exists()) {
+                stream = new FileInputStream(inputFile);
             } else {
                 stream = PigContext.getClassLoader().getResourceAsStream(path);
             }
             if (stream==null) {
                 throw new IOException("Cannot find " + path);
             }
-            addStream(jarOutputStream, path, stream, contents);
+            try {
+                addStream(jarOutputStream, path, stream, contents, inputFile.lastModified());
+            } finally {
+                stream.close();
+            }
         }
         for (Map.Entry<String, File> entry : pigContext.getScriptFiles().entrySet()) {
             log.debug("Adding entry " + entry.getKey() + " to job jar" );
@@ -126,7 +138,11 @@ public class JarManager {
             if (stream==null) {
                 throw new IOException("Cannot find " + entry.getValue().getPath());
             }
-            addStream(jarOutputStream, entry.getKey(), stream, contents);
+            try {
+                addStream(jarOutputStream, entry.getKey(), stream, contents, entry.getValue().lastModified());
+            } finally {
+                stream.close();
+            }
         }
         if (!contents.isEmpty()) {
             jarOutputStream.close();
@@ -169,15 +185,20 @@ public class JarManager {
      * @param contents
      *            the current contents of the Jar file. (We use this to avoid adding two streams
      *            with the same name.
+     * @param timestamp
+     *            timestamp of the entry
      * @throws IOException
      */
-    private static void addStream(JarOutputStream os, String name, InputStream is, Map<String, String> contents)
+    private static void addStream(JarOutputStream os, String name, InputStream is, Map<String, String> contents,
+            long timestamp)
             throws IOException {
         if (contents.get(name) != null) {
             return;
         }
         contents.put(name, "");
-        os.putNextEntry(new JarEntry(name));
+        JarEntry entry = new JarEntry(name);
+        entry.setTime(timestamp);
+        os.putNextEntry(entry);
         byte buffer[] = new byte[4096];
         int rc;
         while ((rc = is.read(buffer)) > 0) {

@@ -178,6 +178,15 @@ public class MultiQueryOptimizerTez extends TezOpPlanVisitor {
     }
 
     static public void addSubPlanPropertiesToParent(TezOperator parentOper, TezOperator subPlanOper) {
+        // Copy only map side properties. For eg: crossKeys.
+        // Do not copy reduce side specific properties. For eg: useSecondaryKey, segmentBelow, sortOrder, etc
+        if (subPlanOper.getCrossKeys() != null) {
+            for (String key : subPlanOper.getCrossKeys()) {
+                parentOper.addCrossKey(key);
+            }
+        }
+        parentOper.copyFeatures(subPlanOper, null);
+
         if (subPlanOper.getRequestedParallelism() > parentOper.getRequestedParallelism()) {
             parentOper.setRequestedParallelism(subPlanOper.getRequestedParallelism());
         }
@@ -188,9 +197,6 @@ public class MultiQueryOptimizerTez extends TezOpPlanVisitor {
             for (Entry<OperatorKey, TezEdgeDescriptor> entry: subPlanOper.outEdges.entrySet()) {
                 parentOper.outEdges.put(entry.getKey(), entry.getValue());
             }
-        }
-        if (subPlanOper.isSampler()) {
-            parentOper.markSampler();
         }
     }
 }

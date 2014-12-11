@@ -63,7 +63,7 @@ public abstract class SelfSpillBag extends DefaultAbstractBag {
             maxMem = Runtime.getRuntime().maxMemory();
             if (PigMapReduce.sJobConfInternal.get() != null) {
                 String usage = PigMapReduce.sJobConfInternal.get().get(
-                        PigConfiguration.PROP_CACHEDBAG_MEMUSAGE);
+                        PigConfiguration.PIG_CACHEDBAG_MEMUSAGE);
                 if (usage != null) {
                     cachedMemUsage = Float.parseFloat(usage);
                 }
