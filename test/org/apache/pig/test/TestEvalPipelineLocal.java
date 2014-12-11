@@ -39,7 +39,6 @@ import junit.framework.Assert;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.EvalFunc;
-import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -60,6 +59,7 @@ import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.test.utils.Identity;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -73,7 +73,7 @@ public class TestEvalPipelineLocal {
     
     @Before
     public void setUp() throws Exception{
-        pigServer = new PigServer(ExecType.LOCAL);
+        pigServer = new PigServer(Util.getLocalTestMode());
     }
     
     static public class MyBagFunction extends EvalFunc<DataBag>{
@@ -1030,6 +1030,8 @@ public class TestEvalPipelineLocal {
     
     @Test
     public void testExplainInDotGraph() throws Exception{
+        Assume.assumeTrue("Skip this test for TEZ since TEZ does not support explain in dot format",
+                !Util.getLocalTestMode().toString().startsWith("TEZ"));
         pigServer.registerQuery("a = load 'voter' using " + PigStorage.class.getName() + "(',') as (name, age, registration, contributions);");
         pigServer.registerQuery("b = filter a by age < 50;");
         pigServer.registerQuery("c = group b by registration;");
@@ -1139,10 +1141,16 @@ public class TestEvalPipelineLocal {
         Schema expectedSchema = Utils.getSchemaFromString(
                     "group: bytearray");
         Assert.assertEquals(expectedSchema, dumpedSchema);
+        TupleFactory tf = TupleFactory.getInstance();
+        List<Tuple> expected = new ArrayList<Tuple>();
+        Tuple t = tf.newTuple(1);
+        t.set(0, new DataByteArray("NYSE".getBytes()));
+        expected.add(t);
+        t = tf.newTuple(1);
+        t.set(0, new DataByteArray("NASDAQ".getBytes()));
+        expected.add(t);
         Iterator<Tuple> iter = pigServer.openIterator("zzz");
-        Assert.assertTrue(iter.next().toString().equals("(NYSE)"));
-        Assert.assertTrue(iter.next().toString().equals("(NASDAQ)"));
-        Assert.assertFalse(iter.hasNext());
+        Util.checkQueryOutputsAfterSort(iter, expected);
     }
     
     // Self cross, see PIG-3292
