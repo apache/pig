@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4066: An optimization for ROLLUP operation in Pig (cheolsoo)
+
 PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES

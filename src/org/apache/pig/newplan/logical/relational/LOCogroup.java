@@ -37,13 +37,13 @@ import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
 
 public class LOCogroup extends LogicalRelationalOperator {
-    
+
     // List of booleans specifying if any of the cogroups is inner
     private boolean[] mIsInner;
-    
+
     // List of expressionPlans according to input
     private MultiMap<Integer,LogicalExpressionPlan> mExpressionPlans;
-    
+
     /**
      * Enum for the type of group
      */
@@ -52,39 +52,92 @@ public class LOCogroup extends LogicalRelationalOperator {
         COLLECTED,  // Collected group
         MERGE       // Map-side CoGroup on sorted data
     };
-    
+
     private GROUPTYPE mGroupType;
-    
-    private LogicalFieldSchema groupKeyUidOnlySchema; 
-    
+
+    private LogicalFieldSchema groupKeyUidOnlySchema;
+
     /*
      * This is a map storing Uids which have been generated for an input
      * This map is required to make the uids persistant between calls of
      * resetSchema and getSchema
      */
     private Map<Integer,Long> generatedInputUids = new HashMap<Integer,Long>();
-    
+
     final static String GROUP_COL_NAME = "group";
-    
-    /** 
+
+    /**
      * static constant to refer to the option of selecting a group type
      */
     public final static Integer OPTION_GROUPTYPE = 1;
-    
+
+    //the pivot value
+    private int pivot = -1;
+    //the index of the first field involves in ROLLUP
+    private int rollupFieldIndex = 0;
+    //the original index of the first field involves in ROLLUP in case it was moved to the end
+    //(if we have the combination of cube and rollup)
+    private int rollupOldFieldIndex = 0;
+    //the size of total fields that involve in CUBE clause
+    private int dimensionSize = 0;
+
+    //number of algebraic function that used after rollup
+    private int nAlgebraic = 0;
+
+    public void setPivot(int pvt) {
+        this.pivot = pvt;
+    }
+
+    public int getPivot() {
+        return this.pivot;
+    }
+
+    public void setDimensionSize(int ds) {
+        this.dimensionSize = ds;
+    }
+
+    public int getDimensionSize() {
+        return this.dimensionSize;
+    }
+
+    public void setNumberAlgebraic(int na) {
+        this.nAlgebraic = na;
+    }
+
+    public int getNumberAlgebraic() {
+        return this.nAlgebraic;
+    }
+
+    public void setRollupOldFieldIndex(int rofi) {
+        this.rollupOldFieldIndex = rofi;
+    }
+
+    public int getRollupOldFieldIndex() {
+        return this.rollupOldFieldIndex;
+    }
+
+    public void setRollupFieldIndex(int rfi) {
+        this.rollupFieldIndex = rfi;
+    }
+
+    public int getRollupFieldIndex() {
+        return this.rollupFieldIndex;
+    }
+
     /**
      * Constructor for use in defining rule patterns
      * @param plan
      */
     public LOCogroup(LogicalPlan plan) {
-        super("LOCogroup", plan);     
+        super("LOCogroup", plan);
     }
-        
-    public LOCogroup(OperatorPlan plan, MultiMap<Integer,LogicalExpressionPlan> 
+
+    public LOCogroup(OperatorPlan plan, MultiMap<Integer,LogicalExpressionPlan>
     expressionPlans, boolean[] isInner ) {
         this( plan, expressionPlans, GROUPTYPE.REGULAR, isInner );
     }
 
-    public LOCogroup(OperatorPlan plan, MultiMap<Integer,LogicalExpressionPlan> 
+    public LOCogroup(OperatorPlan plan, MultiMap<Integer,LogicalExpressionPlan>
     expressionPlans, GROUPTYPE groupType, boolean[] isInner) {
         super("LOCogroup", plan);
         this.mExpressionPlans = expressionPlans;
@@ -93,7 +146,7 @@ public class LOCogroup extends LogicalRelationalOperator {
         }
         this.mGroupType = groupType;
     }
-    
+
     /**
      * Given an expression plan this function returns a LogicalFieldSchema
      * that can be generated using this expression plan
@@ -120,7 +173,7 @@ public class LOCogroup extends LogicalRelationalOperator {
         if (inputs == null) {
             throw new FrontendException(this, "Cannot get predecessor for " + this, 2233);
         }
-        
+
         List<LogicalFieldSchema> fieldSchemaList = new ArrayList<LogicalFieldSchema>();
 
         // See if we have more than one expression plans, if so the
@@ -139,7 +192,7 @@ public class LOCogroup extends LogicalRelationalOperator {
             LogicalSchema keySchema = new LogicalSchema();
             // We sort here to maintain the correct order of inputs
             for( Integer key : mExpressionPlans.keySet()) {
-                Collection<LogicalExpressionPlan> plans = 
+                Collection<LogicalExpressionPlan> plans =
                     mExpressionPlans.get(key);
 
                 for( LogicalExpressionPlan plan : plans ) {
@@ -175,14 +228,14 @@ public class LOCogroup extends LogicalRelationalOperator {
                     break;
                 }
                 break;
-            }           
+            }
         }
         if(mExpressionPlans.size() > 1){
             //reset the uid, because the group column is associated with more
             // than one input
             groupKeySchema.resetUid();
         }
-        
+
         if (groupKeySchema==null) {
             throw new FrontendException(this, "Cannot get group key schema for " + this, 2234);
         }
@@ -194,8 +247,8 @@ public class LOCogroup extends LogicalRelationalOperator {
         int counter = 0;
         for (Operator op : inputs) {
             LogicalSchema inputSchema = ((LogicalRelationalOperator)op).getSchema();
-           
-            // Check if we already have calculated Uid for this bag for given 
+
+            // Check if we already have calculated Uid for this bag for given
             // input operator
             long bagUid;
             if (generatedInputUids.get(counter)!=null)
@@ -204,15 +257,15 @@ public class LOCogroup extends LogicalRelationalOperator {
                 bagUid = LogicalExpression.getNextUid();
                 generatedInputUids.put( counter, bagUid );
             }
-            
+
             LogicalFieldSchema newTupleFieldSchema = new LogicalFieldSchema(
                     null, inputSchema, DataType.TUPLE, LogicalExpression.getNextUid());
-            
+
             LogicalSchema bagSchema = new LogicalSchema();
             bagSchema.addField(newTupleFieldSchema);
-            
+
             LogicalFieldSchema newBagFieldSchema = new LogicalFieldSchema(
-                    ((LogicalRelationalOperator)op).getAlias(), bagSchema, 
+                    ((LogicalRelationalOperator)op).getAlias(), bagSchema,
                     DataType.BAG, bagUid);
 
             fieldSchemaList.add( newBagFieldSchema );
@@ -222,7 +275,7 @@ public class LOCogroup extends LogicalRelationalOperator {
         schema = new LogicalSchema();
         for(LogicalFieldSchema fieldSchema: fieldSchemaList) {
             schema.addField(fieldSchema);
-        }         
+        }
 
         return schema;
     }
@@ -239,32 +292,32 @@ public class LOCogroup extends LogicalRelationalOperator {
     public boolean isEqual(Operator other) throws FrontendException {
         if (other != null && other instanceof LOCogroup) {
             LOCogroup oc = (LOCogroup)other;
-            if( mGroupType == oc.mGroupType && 
-                    mIsInner.length == oc.mIsInner.length 
+            if( mGroupType == oc.mGroupType &&
+                    mIsInner.length == oc.mIsInner.length
                     && mExpressionPlans.size() == oc.mExpressionPlans.size() ) {
                 for( int i = 0; i < mIsInner.length; i++ ) {
                     if( mIsInner[i] != oc.mIsInner[i] ) {
                         return false;
                     }
                 }
-                for( Integer key : mExpressionPlans.keySet() ) {                    
+                for( Integer key : mExpressionPlans.keySet() ) {
                     if( ! oc.mExpressionPlans.containsKey(key) ) {
                         return false;
                     }
-                    Collection<LogicalExpressionPlan> exp1 = 
+                    Collection<LogicalExpressionPlan> exp1 =
                         mExpressionPlans.get(key);
-                    Collection<LogicalExpressionPlan> exp2 = 
+                    Collection<LogicalExpressionPlan> exp2 =
                         oc.mExpressionPlans.get(key);
 
-                    if(! ( exp1 instanceof ArrayList<?> 
+                    if(! ( exp1 instanceof ArrayList<?>
                     || exp2 instanceof ArrayList<?> ) ) {
                         throw new FrontendException( "Expected an ArrayList " +
                         "of Expression Plans", 2235 );
                     }
 
-                    ArrayList<LogicalExpressionPlan> expList1 = 
+                    ArrayList<LogicalExpressionPlan> expList1 =
                         (ArrayList<LogicalExpressionPlan>) exp1;
-                    ArrayList<LogicalExpressionPlan> expList2 = 
+                    ArrayList<LogicalExpressionPlan> expList2 =
                         (ArrayList<LogicalExpressionPlan>) exp2;
 
                     for (int i = 0; i < expList1.size(); i++) {
@@ -282,37 +335,37 @@ public class LOCogroup extends LogicalRelationalOperator {
     public GROUPTYPE getGroupType() {
         return mGroupType;
     }
-    
+
     public void resetGroupType() {
         mGroupType = GROUPTYPE.REGULAR;
     }
-    
+
     /**
-     * Returns an Unmodifiable Map of Input Number to Uid 
+     * Returns an Unmodifiable Map of Input Number to Uid
      * @return Unmodifiable Map<Integer,Long>
      */
     public Map<Integer,Long> getGeneratedInputUids() {
         return Collections.unmodifiableMap( generatedInputUids );
     }
-    
+
     public MultiMap<Integer,LogicalExpressionPlan> getExpressionPlans() {
         return mExpressionPlans;
     }
-    
+
     public void setExpressionPlans(MultiMap<Integer,LogicalExpressionPlan> plans) {
         this.mExpressionPlans = plans;
     }
-    
+
     public void setGroupType(GROUPTYPE gt) {
         mGroupType = gt;
     }
-    
+
     public void setInnerFlags(boolean[] flags) {
         if( flags != null ) {
             mIsInner = Arrays.copyOf( flags, flags.length );
         }
     }
-    
+
     public boolean[] getInner() {
         return mIsInner;
     }
@@ -322,7 +375,7 @@ public class LOCogroup extends LogicalRelationalOperator {
         groupKeyUidOnlySchema = null;
         generatedInputUids = new HashMap<Integer,Long>();
     }
-    
+
     public List<Operator> getInputs(LogicalPlan plan) {
       return plan.getPredecessors(this);
     }

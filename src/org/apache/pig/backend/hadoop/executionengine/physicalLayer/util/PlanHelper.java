@@ -72,6 +72,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPoissonSample;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPreCombinerLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POReservoirSample;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORollupHIIForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSkewedJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
@@ -233,6 +234,12 @@ public class PlanHelper {
         public void visitPOForEach(POForEach nfe) throws VisitorException {
             super.visitPOForEach(nfe);
             visit(nfe);
+        }
+
+        @Override
+        public void visitPORollupHIIForEach(PORollupHIIForEach hfe) throws VisitorException {
+            super.visitPORollupHIIForEach(hfe);
+            visit(hfe);
         }
 
         @Override

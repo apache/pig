@@ -45,6 +45,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.MonitoredUDFExecutor;
 import org.apache.pig.builtin.MonitoredUDF;
+import org.apache.pig.builtin.RollupDimensions;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
 import org.apache.pig.data.SchemaTupleFactory;
@@ -85,6 +86,28 @@ public class POUserFunc extends ExpressionOperator {
     private long numInvocations = 0L;
     private long timingFrequency = 100L;
     private boolean doTiming = false;
+
+    private static final String ROLLUP_UDF = RollupDimensions.class.getName();
+    //the pivot value
+    private int pivot = -1;
+
+    private boolean rollupHIIoptimizable = false;
+
+    public void setPivot(int pvt) {
+        this.pivot = pvt;
+    }
+
+    public int getPivot() {
+        return this.pivot;
+    }
+
+    public void setRollupHIIOptimizable(boolean check) {
+        this.rollupHIIoptimizable = check;
+    }
+
+    public boolean getRollupHIIOptimizable() {
+        return this.rollupHIIoptimizable;
+    }
 
     public PhysicalOperator getReferencedOperator() {
         return referencedOperator;
@@ -127,6 +150,17 @@ public class POUserFunc extends ExpressionOperator {
         if (func.getClass().isAnnotationPresent(MonitoredUDF.class)) {
             executor = new MonitoredUDFExecutor(func);
         }
+
+        if (funcSpec.getClassName().equals(ROLLUP_UDF) && this.rollupHIIoptimizable != false) {
+            try {
+                ((RollupDimensions) func).setPivot(this.pivot);
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            ((RollupDimensions) func).setRollupHIIOptimizable(this.rollupHIIoptimizable);
+        }
+
         //the next couple of initializations do not work as intended for the following reasons
         //the reporter and pigLogger are member variables of PhysicalOperator
         //when instanitateFunc is invoked at deserialization time, both
