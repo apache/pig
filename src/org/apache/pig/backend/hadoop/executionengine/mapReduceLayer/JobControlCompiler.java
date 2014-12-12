@@ -66,12 +66,14 @@ import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.OverwritableStoreFunc;
 import org.apache.pig.PigConfiguration;
+import org.apache.pig.PigConstants;
 import org.apache.pig.PigException;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.RollupHIIPartitioner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.SecondaryKeyPartitioner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.SkewedPartitioner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.WeightedRangePartitioner;
@@ -182,6 +184,8 @@ public class JobControlCompiler{
      */
     public static final String PIG_MAP_STORES = "pig.map.stores";
     public static final String PIG_REDUCE_STORES = "pig.reduce.stores";
+
+    private static final String ROLLUP_PARTITIONER = RollupHIIPartitioner.class.getName();
 
     // A mapping of job to pair of store locations and tmp locations for that job
     private Map<Job, Pair<List<POStore>, Path>> jobStoreMap;
@@ -524,6 +528,9 @@ public class JobControlCompiler{
         configureCompression(conf);
 
         try{
+            //Set default value for PIG_HII_ROLLUP_OPTIMIZABLE to false
+            conf.setBoolean(PigConstants.PIG_HII_ROLLUP_OPTIMIZABLE, false);
+
             //Process the POLoads
             List<POLoad> lds = PlanHelper.getPhysicalOperators(mro.mapPlan, POLoad.class);
 
@@ -836,13 +843,52 @@ public class JobControlCompiler{
                     log.info("Setting identity combiner class.");
                 }
                 pack = (POPackage)mro.reducePlan.getRoots().get(0);
-                if(!pigContext.inIllustrator)
+
+                if(pack!=null) {
+                    if(pack.getPivot()!=-1) {
+                        //Set value for PIG_HII_ROLLUP_OPTIMIZABLE to true
+                        conf.setBoolean(PigConstants.PIG_HII_ROLLUP_OPTIMIZABLE, true);
+                        //Set the pivot value
+                        conf.setInt(PigConstants.PIG_HII_ROLLUP_PIVOT, pack.getPivot());
+                        //Set the index of the first field involves in ROLLUP
+                        conf.setInt(PigConstants.PIG_HII_ROLLUP_FIELD_INDEX, pack.getRollupFieldIndex());
+                        //Set the original index of the first field involves in ROLLUP in case it was moved to the end
+                        //(if we have the combination of cube and rollup)
+                        conf.setInt(PigConstants.PIG_HII_ROLLUP_OLD_FIELD_INDEX, pack.getRollupOldFieldIndex());
+                        //Set the size of total fields that involve in CUBE clause
+                        conf.setInt(PigConstants.PIG_HII_NUMBER_TOTAL_FIELD, pack.getDimensionSize());
+                        //Set number of algebraic functions that used after rollup
+                        conf.setInt(PigConstants.PIG_HII_NUMBER_ALGEBRAIC, pack.getNumberAlgebraic());
+                        //Set number of reducer to 1 due to using IRG algorithm
+                        if(pack.getPivot() == 0 && !mro.reducePlan.isEmpty()) {
+                            updateNumReducers(plan, mro, nwJob);
+                        }
+                    }
+                }
+
+                if (!pigContext.inIllustrator) {
                     mro.reducePlan.remove(pack);
-                nwJob.setMapperClass(PigMapReduce.Map.class);
+                }
+
+                if (pack!=null && pack.getPivot()!=-1) {
+                    nwJob.setMapperClass(PigMapReduce.MapRollupHII.class);
+                } else {
+                    nwJob.setMapperClass(PigMapReduce.Map.class);
+                }
+
                 nwJob.setReducerClass(PigMapReduce.Reduce.class);
 
-                if (mro.customPartitioner != null)
-                    nwJob.setPartitionerClass(PigContext.resolveClassName(mro.customPartitioner));
+                // Set Rollup Partitioner in case the pivot is not equal to -1
+                // and the custormPartitioner name is our rollup partitioner.
+                if (mro.customPartitioner != null) {
+                    if (mro.customPartitioner.equals(ROLLUP_PARTITIONER)) {
+                        if (pack.getPivot()!=-1) {
+                            nwJob.setPartitionerClass(PigContext.resolveClassName(mro.customPartitioner));
+                        }
+                    } else {
+                        nwJob.setPartitionerClass(PigContext.resolveClassName(mro.customPartitioner));
+                    }
+                }
 
                 if(!pigContext.inIllustrator)
                     conf.set("pig.mapPlan", ObjectSerializer.serialize(mro.mapPlan));
@@ -1055,6 +1101,26 @@ public class JobControlCompiler{
 
         // finally set the number of reducers
         conf.setInt(MRConfiguration.REDUCE_TASKS, jobParallelism);
+    }
+
+    /**
+     * If pivot position is zero, we use only one reducer
+     * @param plan the MR plan
+     * @param mro the MR operator
+     * @param nwJob the current job
+     * @throws IOException
+     */
+    public void updateNumReducers(MROperPlan plan, MapReduceOper mro,
+    org.apache.hadoop.mapreduce.Job nwJob) throws IOException {
+        // Change number of reducer to 1 if only IRG is used
+        if (mro.customPartitioner != null && mro.customPartitioner.equals(ROLLUP_PARTITIONER)) {
+            log.info("Changing Parallelism to 1 due to using IRG");
+        }
+        conf.setInt("pig.info.reducers.default.parallel", 1);
+        conf.setInt("pig.info.reducers.requested.parallel", 1);
+        conf.setInt("pig.info.reducers.estimated.parallel", 1);
+        conf.setInt(MRConfiguration.REDUCE_TASKS, 1);
+        nwJob.setNumReduceTasks(1);
     }
 
     /**

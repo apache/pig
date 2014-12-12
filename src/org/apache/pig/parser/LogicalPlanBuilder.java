@@ -451,9 +451,29 @@ public class LogicalPlanBuilder {
         return new LOCube(plan);
     }
 
+    void setPivotRollupCubeOp(LOCube op, Integer pivot) throws ParserValidationException {
+        if(pivot!=null)
+            op.setPivot(pivot);
+    }
+
     String buildCubeOp(SourceLocation loc, LOCube op, String alias, String inputAlias,
         List<String> operations, MultiMap<Integer, LogicalExpressionPlan> expressionPlans)
         throws ParserValidationException {
+
+        // check value of pivot if it is valid or not, if not pivot position
+        // is specified, the pivot at middle position will be chosen
+        try {
+            if(op.getPivot()!=-1) {
+                if (op.getPivot() < 0 || op.getPivot() >= expressionPlans.get(0).size()) {
+                    FrontendException fe = new FrontendException("PIVOT is out of bound");
+                    throw fe;
+                }
+            }
+            else
+                op.setPivot((int)(Math.round(expressionPlans.get(0).size()/2.0)));
+        } catch (FrontendException e) {
+            throw new ParserValidationException(intStream, loc, e);
+        }
 
         // check if continuously occurring cube operations be combined
         combineCubeOperations((ArrayList<String>) operations, expressionPlans);
@@ -713,6 +733,7 @@ public class LogicalPlanBuilder {
 
         // build group by operator
         try {
+            groupby.setPivot(op.getPivot());
             return buildGroupOp(loc, (LOCogroup) groupby, op.getAlias(), inpAliases, exprPlansCopy,
                 GROUPTYPE.REGULAR, innerFlags, null);
         } catch (ParserValidationException pve) {

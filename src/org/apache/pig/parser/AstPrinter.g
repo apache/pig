@@ -106,6 +106,10 @@ parallel_clause
     : ^( PARALLEL INTEGER ) { sb.append(" ").append($PARALLEL.text).append(" ").append($INTEGER.text); }
 ;
 
+pivot_clause
+    : ^( PIVOT INTEGER ) { sb.append(" ").append($PIVOT.text).append(" ").append($INTEGER.text); }
+;
+
 alias
     : IDENTIFIER { sb.append($IDENTIFIER.text); }
 ;
@@ -262,7 +266,7 @@ cube_or_rollup
 ;
 
 cube_rollup_list
-    : ^( ( CUBE { sb.append($CUBE.text).append("("); } | ROLLUP { sb.append($ROLLUP.text).append("("); } ) cube_by_expr_list { sb.append(")"); })
+    : ^( CUBE { sb.append($CUBE.text).append("("); } cube_by_expr_list { sb.append(")"); } ) | ^( ROLLUP { sb.append($ROLLUP.text).append("("); } cube_by_expr_list { sb.append(")"); } )
 ;
 
 cube_by_expr_list
@@ -270,7 +274,7 @@ cube_by_expr_list
 ;
 
 cube_by_expr
-    : col_range | expr | STAR { sb.append($STAR.text); }
+    : col_range | expr | STAR { sb.append($STAR.text); } { sb.append(" "); }
 ;
 
 group_clause
@@ -672,6 +676,7 @@ eid : rel_str_op
     | FOREACH   { sb.append($FOREACH.text); }
     | CUBE      { sb.append($CUBE.text); }
     | ROLLUP    { sb.append($ROLLUP.text); }
+    | PIVOT     { sb.append($PIVOT.text); }
     | MATCHES   { sb.append($MATCHES.text); }
     | ORDER     { sb.append($ORDER.text); }
     | RANK      { sb.append($RANK.text); }
