@@ -35,6 +35,7 @@ public class SparkMiniCluster extends MiniGenericCluster {
             int dataNodes = 4;
             m_dfs = new MiniDFSCluster(m_conf, dataNodes, true, null);
             m_fileSys = m_dfs.getFileSystem();
+            m_fileSys.mkdirs(m_fileSys.getWorkingDirectory());
         } catch (IOException e) {
             throw new RuntimeException(e);
 
