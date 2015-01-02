@@ -30,6 +30,8 @@ PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES
 
+PIG-4294: Enable unit test "TestNestedForeach" for spark (kellyzly via rohini)
+
 PIG-4282: Enable unit test "TestForEachNestedPlan" for spark (kellyzly via rohini) 
 
 PIG-4361: Fix perl script problem in TestStreaming.java (kellyzly via xuefu)
