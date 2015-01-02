@@ -494,8 +494,8 @@ public class TestStreaming {
 	    String[] script =
 	        new String[] {
 	                      "#!/usr/bin/perl",
-                          "open(OUTFILE, \">\", $ARGV[0]) or die \"Can't open \".$ARGV[1].\"!: $!\";",
-                          "open(OUTFILE2, \">\", $ARGV[1]) or die \"Can't open \".$ARGV[2].\"!: $!\";",
+                          "open(OUTFILE, \">\", $ARGV[0]) or die \"Can't open \".$ARGV[0].\"!: $!\";",
+                          "open(OUTFILE2, \">\", $ARGV[1]) or die \"Can't open \".$ARGV[1].\"!: $!\";",
                           "while (<STDIN>) {",
                           "  print OUTFILE \"$_\n\";",
                           "  print STDERR \"STDERR: $_\n\";",
@@ -554,8 +554,8 @@ public class TestStreaming {
 	    String[] script =
 	        new String[] {
 	                      "#!/usr/bin/perl",
-                          "open(OUTFILE, \">\", $ARGV[0]) or die \"Can't open \".$ARGV[1].\"!: $!\";",
-                          "open(OUTFILE2, \">\", $ARGV[1]) or die \"Can't open \".$ARGV[2].\"!: $!\";",
+                          "open(OUTFILE, \">\", $ARGV[0]) or die \"Can't open \".$ARGV[0].\"!: $!\";",
+                          "open(OUTFILE2, \">\", $ARGV[1]) or die \"Can't open \".$ARGV[1].\"!: $!\";",
                           "while (<STDIN>) {",
                           "  print OUTFILE \"$_\n\";",
                           "  print STDERR \"STDERR: $_\n\";",
