@@ -30,7 +30,9 @@ PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES
 
-PIG-4361: Fix perl script problem in TestStreaming.java (liyun via xuefu)
+PIG-4282: Enable unit test "TestForEachNestedPlan" for spark (kellyzly via rohini) 
+
+PIG-4361: Fix perl script problem in TestStreaming.java (kellyzly via xuefu)
 
 PIG-4354: Port local mode tests to Tez - part3 (daijy)
 

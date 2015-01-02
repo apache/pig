@@ -214,18 +214,10 @@ public class TestForEachNestedPlan {
             		"generate group, MIN(E); };");
 
             Iterator<Tuple> iter = pig.openIterator("C");
-
             List<Tuple> expectedResults =
                 Util.getTuplesFromConstantTupleStrings(
                         new String[] {"(10,68)", "(20,78)"});
-
-            int counter = 0;
-            while (iter.hasNext()) {
-               assertEquals(expectedResults.get(counter++).toString(),
-                        iter.next().toString());
-            }
-
-            assertEquals(expectedResults.size(), counter);
+            Util.checkQueryOutputsAfterSort(iter, expectedResults);
         } finally{
             new File(INPUT_FILE).delete();
             try {
@@ -263,14 +255,7 @@ public class TestForEachNestedPlan {
             List<Tuple> expectedResults =
                 Util.getTuplesFromConstantTupleStrings(
                         new String[] {"(1,3)", "(1,4)", "(2,3)", "(2,4)"});
-
-            int counter = 0;
-            while (iter.hasNext()) {
-                assertEquals(expectedResults.get(counter++).toString(),
-                        iter.next().toString());
-            }
-
-            assertEquals(expectedResults.size(), counter);
+            Util.checkQueryOutputsAfterSort(iter, expectedResults);
         } finally{
             new File(INPUT_FILE).delete();
             try {
