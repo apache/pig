@@ -99,6 +99,13 @@ public class TestJsonLoaderStorage {
     "\"m\":[{\"a\":123},{\"a\":456},{\"a\":789}]" +
     "}";
 
+  private static final String arraysJson =
+    "{" +
+    "\"s\":[\"abc\",\"def\",\"ghi\"]," +
+    "\"i\":[23,45,78]," +
+    "\"f\":[23.1,45.2,78.3]" +
+    "}";
+
   private static final String nullJson =
     "{" +
     "\"a\":null," +
@@ -267,6 +274,24 @@ public class TestJsonLoaderStorage {
     assertTrue(t.get(0)!=null);
     assertTrue(t.get(1)!=null);
     assertTrue(!tuples.hasNext());
+  }
+
+  @SuppressWarnings("rawtypes")
+  @Test
+  public void testJsonLoaderArrays() throws IOException{
+
+    String arraysJsonFile = createInput(arraysJson);
+    pigServer.registerQuery("data = load '" + arraysJsonFile + "' using JsonLoader('s:bag{a:tuple(a:chararray)}, i:bag{a:tuple(a:int)}, f:bag{a:tuple(a:double)}');");
+
+    Iterator<Tuple> tuples = pigServer.openIterator("data");
+    
+    Tuple t = tuples.next();
+    assertTrue(t.size()==3);
+    assertTrue(t.get(0)!=null);
+    assertTrue(t.get(1)!=null);
+    assertTrue(t.get(2)!=null);
+    assertTrue(! tuples.hasNext());
+
   }
 
   @SuppressWarnings("rawtypes")
