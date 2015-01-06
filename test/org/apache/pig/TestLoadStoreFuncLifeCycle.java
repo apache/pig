@@ -327,7 +327,7 @@ public class TestLoadStoreFuncLifeCycle {
 
     @Test
     public void testLoadStoreFunc() throws Exception {
-        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        PigServer pigServer = new PigServer(Util.getLocalTestMode());
         Data data = Storage.resetData(pigServer.getPigContext());
         data.set("foo",
                 tuple("a"),
@@ -346,13 +346,22 @@ public class TestLoadStoreFuncLifeCycle {
         assertEquals("c", out.get(2).get(0));
 
         assertTrue("loader instanciation count increasing: " + Loader.count, Loader.count <= 3);
-        // LocalJobRunner gets the outputcommitter to call setupJob in Hadoop
-        // 2.0.x which was not done in Hadoop 1.0.x. (MAPREDUCE-3563) As a
-        // result, the number of StoreFunc instances is greater by 1 in
-        // Hadoop-2.0.x.
-        assertTrue("storer instanciation count increasing: " + Storer.count,
-                Storer.count <= (org.apache.pig.impl.util.Utils.isHadoop2() ? 5 : 4));
 
+        // In Tez, Pig instantiate StoreFunc one more time to collect byteswritten for output file.
+        // This step is wrong in MR local mode, since it rely on hdfs counter to get it, if the output
+        // file is local, byteswritten is 0
+        if (Util.getLocalTestMode().toString().startsWith("TEZ")) {
+            assertTrue("storer instanciation count increasing: " + Storer.count,
+                    Storer.count == 6);
+            return;
+        } else {
+            // LocalJobRunner gets the outputcommitter to call setupJob in Hadoop
+            // 2.0.x which was not done in Hadoop 1.0.x. (MAPREDUCE-3563) As a
+            // result, the number of StoreFunc instances is greater by 1 in
+            // Hadoop-2.0.x.
+            assertTrue("storer instanciation count increasing: " + Storer.count,
+                    Storer.count <= (org.apache.pig.impl.util.Utils.isHadoop2() ? 5 : 4));
+        }
     }
 
     /**
