@@ -69,3 +69,5 @@
 **/TestFetch.java
 **/TestPigRunner.java
 **/TestPigServerWithMacros.java
+**/TestMultiQueryBasic.java
+**/TestLoadStoreFuncLifeCycle.java
