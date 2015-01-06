@@ -38,7 +38,6 @@ import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
@@ -70,13 +69,18 @@ public class TestMultiQueryBasic {
                 "test/org/apache/pig/test/data/passwd2", "passwd2");
         Properties props = new Properties();
         props.setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, ""+true);
-        myPig = new PigServer(ExecType.LOCAL, props);
+        // Turn on multithread, otherwise tez local mode hang
+        // However, we cannot turn on multithread in general cuz Pig backend is not
+        // multithread safe yet
+        props.setProperty("tez.am.inline.task.execution.max-tasks", "5");
+        props.setProperty("tez.runtime.io.sort.mb", "10");
+        myPig = new PigServer(Util.getLocalTestMode(), props);
     }
 
     @AfterClass
     public static void tearDownAfterClass() throws Exception {
-        Util.deleteFile(new PigContext(ExecType.LOCAL, new Properties()), "passwd");
-        Util.deleteFile(new PigContext(ExecType.LOCAL, new Properties()), "passwd2");
+        Util.deleteFile(new PigContext(Util.getLocalTestMode(), new Properties()), "passwd");
+        Util.deleteFile(new PigContext(Util.getLocalTestMode(), new Properties()), "passwd2");
         deleteOutputFiles();
     }
 
@@ -438,7 +442,7 @@ public class TestMultiQueryBasic {
         // clean up any existing dirs/files
         String[] toClean = {"tmwsimam-input.txt", "foo1", "foo2", "foo3", "foo4" };
         for (int j = 0; j < toClean.length; j++) {
-            Util.deleteFile(new PigContext(ExecType.LOCAL, new Properties()), toClean[j]);
+            Util.deleteFile(new PigContext(Util.getLocalTestMode(), new Properties()), toClean[j]);
         }
 
         // the data below is tab delimited
@@ -504,7 +508,7 @@ public class TestMultiQueryBasic {
         }
         // cleanup
         for (int j = 0; j < toClean.length; j++) {
-            Util.deleteFile(new PigContext(ExecType.LOCAL, new Properties()), toClean[j]);
+            Util.deleteFile(new PigContext(Util.getLocalTestMode(), new Properties()), toClean[j]);
         }
 
     }
@@ -556,7 +560,7 @@ public class TestMultiQueryBasic {
      * @throws IOException
      */
     @Test
-    public void testMultiStoreWithOutputFormat() throws IOException {
+    public void testMultiStoreWithOutputFormat() throws Exception {
         Util.createLocalInputFile("input.txt", new String[] {"hello", "bye"});
         String query = "a = load 'input.txt';" +
         		"b = filter a by $0 < 10;" +
@@ -574,8 +578,8 @@ public class TestMultiQueryBasic {
         assertEquals(true, fs.exists(new Path("output1_checkOutputSpec_test")));
         assertEquals(true, fs.exists(new Path("output2_checkOutputSpec_test")));
 
-        Util.deleteFile(new PigContext(ExecType.LOCAL, new Properties()), "output1_checkOutputSpec_test");
-        Util.deleteFile(new PigContext(ExecType.LOCAL, new Properties()), "output2_checkOutputSpec_test");
+        Util.deleteFile(new PigContext(Util.getLocalTestMode(), new Properties()), "output1_checkOutputSpec_test");
+        Util.deleteFile(new PigContext(Util.getLocalTestMode(), new Properties()), "output2_checkOutputSpec_test");
     }
 
     /**
