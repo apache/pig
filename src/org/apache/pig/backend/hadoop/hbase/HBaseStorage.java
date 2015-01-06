@@ -178,6 +178,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     private final long minTimestamp_;
     private final long maxTimestamp_;
     private final long timestamp_;
+    private boolean includeTimestamp_;
 
     protected transient byte[] gt_;
     protected transient byte[] gte_;
@@ -211,6 +212,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         validOptions_.addOption("minTimestamp", true, "Record must have timestamp greater or equal to this value");
         validOptions_.addOption("maxTimestamp", true, "Record must have timestamp less then this value");
         validOptions_.addOption("timestamp", true, "Record must have timestamp equal to this value");
+        validOptions_.addOption("includeTimestamp", false, "Record will include the timestamp after the rowkey on store");
     }
 
     /**
@@ -254,6 +256,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
      * <li>-minTimestamp= Scan's timestamp for min timeRange
      * <li>-maxTimestamp= Scan's timestamp for max timeRange
      * <li>-timestamp= Scan's specified timestamp
+     * <li>-includeTimestamp= Record will include the timestamp after the row key on store
      * <li>-caster=(HBaseBinaryConverter|Utf8StorageConverter) Utf8StorageConverter is the default
      * To be used with extreme caution, since this could result in data loss
      * (see http://hbase.apache.org/book.html#perf.hbase.client.putwal).
@@ -268,7 +271,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
             configuredOptions_ = parser_.parse(validOptions_, optsArr);
         } catch (ParseException e) {
             HelpFormatter formatter = new HelpFormatter();
-            formatter.printHelp( "[-loadKey] [-gt] [-gte] [-lt] [-lte] [-regex] [-columnPrefix] [-cacheBlocks] [-caching] [-caster] [-noWAL] [-limit] [-delim] [-ignoreWhitespace] [-minTimestamp] [-maxTimestamp] [-timestamp]", validOptions_ );
+            formatter.printHelp( "[-loadKey] [-gt] [-gte] [-lt] [-lte] [-regex] [-columnPrefix] [-cacheBlocks] [-caching] [-caster] [-noWAL] [-limit] [-delim] [-ignoreWhitespace] [-minTimestamp] [-maxTimestamp] [-timestamp] [-includeTimestamp]", validOptions_ );
             throw e;
         }
 
@@ -341,6 +344,14 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
             timestamp_ = Long.parseLong(configuredOptions_.getOptionValue("timestamp"));
         } else {
             timestamp_ = 0;
+        }
+
+        includeTimestamp_ = false;
+        if (configuredOptions_.hasOption("includeTimestamp")) {
+            String value = configuredOptions_.getOptionValue("includeTimestamp");
+            if ("true".equalsIgnoreCase(value) || "".equalsIgnoreCase(value) || value == null ) {//the empty string and null check is for backward compat.
+                includeTimestamp_ = true;
+            }
         }
 
         initScan();
@@ -930,9 +941,26 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     public void putNext(Tuple t) throws IOException {
         ResourceFieldSchema[] fieldSchemas = (schema_ == null) ? null : schema_.getFields();
         byte type = (fieldSchemas == null) ? DataType.findType(t.get(0)) : fieldSchemas[0].getType();
-        long ts=System.currentTimeMillis();
+        long ts;
 
         Put put = createPut(t.get(0), type);
+
+        int startIndex=1;
+        if (includeTimestamp_) {
+            byte timestampType = (fieldSchemas == null) ? DataType.findType(t.get(1)) : fieldSchemas[1].getType();
+            LoadStoreCaster caster = (LoadStoreCaster) caster_;
+
+            switch (timestampType) {
+            case DataType.BYTEARRAY: ts = caster.bytesToLong(((DataByteArray)t.get(1)).get()); break;
+            case DataType.LONG: ts = ((Long)t.get(1)).longValue(); break;
+            case DataType.DATETIME: ts = ((DateTime)t.get(1)).getMillis(); break;
+            default: throw new IOException("Unable to find a converter for tuple field " + t.get(1));
+            }
+
+            startIndex++;
+        } else {
+            ts = System.currentTimeMillis();
+        }
 
         if (LOG.isDebugEnabled()) {
             LOG.debug("putNext -- WAL disabled: " + noWAL_);
@@ -941,8 +969,8 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
             }
         }
 
-        for (int i=1;i<t.size();++i){
-            ColumnInfo columnInfo = columnInfo_.get(i-1);
+        for (int i=startIndex;i<t.size();++i){
+            ColumnInfo columnInfo = columnInfo_.get(i-startIndex);
             if (LOG.isDebugEnabled()) {
                 LOG.debug("putNext - tuple: " + i + ", value=" + t.get(i) +
                         ", cf:column=" + columnInfo);

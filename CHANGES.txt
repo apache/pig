@@ -30,6 +30,8 @@ PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES
 
+PIG-4360: HBaseStorage should support setting the timestamp field (bridiver via daijy)
+
 PIG-2949: JsonLoader only reads arrays of objects (eyal via daijy)
 
 PIG-4213: CSVExcelStorage not quoting texts containing \r (CR) when storing (alfonso.nishikawa via daijy)

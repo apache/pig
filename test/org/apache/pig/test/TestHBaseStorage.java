@@ -1047,6 +1047,147 @@ public class TestHBaseStorage {
 
     /**
      * load from hbase 'TESTTABLE_1' using HBaseBinary format, and store it into
+     * 'TESTTABLE_2' using HBaseBinaryFormat setting the timestamp
+     *
+     * @throws IOException
+     */
+    @Test
+    public void testStoreToHBase_1_with_timestamp() throws IOException {
+        prepareTable(TESTTABLE_1, true, DataFormat.HBaseBinary);
+        prepareTable(TESTTABLE_2, false, DataFormat.HBaseBinary);
+        scanTable1(pig, DataFormat.HBaseBinary);
+        long timestamp = System.currentTimeMillis();
+        pig.registerQuery("b = FOREACH a GENERATE rowKey, " + timestamp + "l, col_a, col_b, col_c;");
+        pig.store("b",  "hbase://" + TESTTABLE_2,
+                "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
+                + TESTCOLUMN_A + " " + TESTCOLUMN_B + " "
+                + TESTCOLUMN_C + "','-caster HBaseBinaryConverter -includeTimestamp true')");
+
+        HTable table = new HTable(conf, TESTTABLE_2);
+        ResultScanner scanner = table.getScanner(new Scan());
+        Iterator<Result> iter = scanner.iterator();
+        int i = 0;
+        for (i = 0; iter.hasNext(); ++i) {
+            Result result = iter.next();
+            String v = String.valueOf(i);
+            String rowKey = Bytes.toString(result.getRow());
+            int col_a = Bytes.toInt(getColValue(result, TESTCOLUMN_A));
+            double col_b = Bytes.toDouble(getColValue(result, TESTCOLUMN_B));
+            String col_c = Bytes.toString(getColValue(result, TESTCOLUMN_C));
+
+            long col_a_ts = getColTimestamp(result, TESTCOLUMN_A);
+            long col_b_ts = getColTimestamp(result, TESTCOLUMN_B);
+            long col_c_ts = getColTimestamp(result, TESTCOLUMN_C);
+            
+            Assert.assertEquals(timestamp, col_a_ts);
+            Assert.assertEquals(timestamp, col_b_ts);
+            Assert.assertEquals(timestamp, col_c_ts);
+
+            Assert.assertEquals("00".substring(v.length()) + v, rowKey);
+            Assert.assertEquals(i, col_a);
+            Assert.assertEquals(i + 0.0, col_b, 1e-6);
+            Assert.assertEquals("Text_" + i, col_c);
+        }
+        Assert.assertEquals(100, i);
+        table.close();
+    }
+
+    /**
+     * load from hbase 'TESTTABLE_1' using HBaseBinary format, and store it into
+     * 'TESTTABLE_2' using HBaseBinaryFormat setting the timestamp
+     *
+     * @throws IOException
+     */
+    @Test
+    public void testStoreToHBase_1_with_datetime_timestamp() throws IOException {
+        prepareTable(TESTTABLE_1, true, DataFormat.HBaseBinary);
+        prepareTable(TESTTABLE_2, false, DataFormat.HBaseBinary);
+        scanTable1(pig, DataFormat.HBaseBinary);
+        long timestamp = System.currentTimeMillis();
+        pig.registerQuery("b = FOREACH a GENERATE rowKey, ToDate(" + timestamp + "l), col_a, col_b, col_c;");
+        pig.store("b",  "hbase://" + TESTTABLE_2,
+                "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
+                + TESTCOLUMN_A + " " + TESTCOLUMN_B + " "
+                + TESTCOLUMN_C + "','-caster HBaseBinaryConverter -includeTimestamp true')");
+
+        HTable table = new HTable(conf, TESTTABLE_2);
+        ResultScanner scanner = table.getScanner(new Scan());
+        Iterator<Result> iter = scanner.iterator();
+        int i = 0;
+        for (i = 0; iter.hasNext(); ++i) {
+            Result result = iter.next();
+            String v = String.valueOf(i);
+            String rowKey = Bytes.toString(result.getRow());
+            int col_a = Bytes.toInt(getColValue(result, TESTCOLUMN_A));
+            double col_b = Bytes.toDouble(getColValue(result, TESTCOLUMN_B));
+            String col_c = Bytes.toString(getColValue(result, TESTCOLUMN_C));
+
+            long col_a_ts = getColTimestamp(result, TESTCOLUMN_A);
+            long col_b_ts = getColTimestamp(result, TESTCOLUMN_B);
+            long col_c_ts = getColTimestamp(result, TESTCOLUMN_C);
+            
+            Assert.assertEquals(timestamp, col_a_ts);
+            Assert.assertEquals(timestamp, col_b_ts);
+            Assert.assertEquals(timestamp, col_c_ts);
+
+            Assert.assertEquals("00".substring(v.length()) + v, rowKey);
+            Assert.assertEquals(i, col_a);
+            Assert.assertEquals(i + 0.0, col_b, 1e-6);
+            Assert.assertEquals("Text_" + i, col_c);
+        }
+        Assert.assertEquals(100, i);
+        table.close();
+    }
+
+    /**
+     * load from hbase 'TESTTABLE_1' using HBaseBinary format, and store it into
+     * 'TESTTABLE_2' using HBaseBinaryFormat setting the timestamp
+     *
+     * @throws IOException
+     */
+    @Test
+    public void testStoreToHBase_1_with_bytearray_timestamp() throws IOException {
+        prepareTable(TESTTABLE_1, true, DataFormat.HBaseBinary);
+        prepareTable(TESTTABLE_2, false, DataFormat.HBaseBinary);
+        scanTable1(pig, DataFormat.HBaseBinary);
+        long timestamp = System.currentTimeMillis();
+        pig.registerQuery("b = FOREACH a GENERATE rowKey, " + timestamp + "l as timestamp:bytearray, col_a, col_b, col_c;");
+        pig.store("b",  "hbase://" + TESTTABLE_2,
+                "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
+                + TESTCOLUMN_A + " " + TESTCOLUMN_B + " "
+                + TESTCOLUMN_C + "','-caster HBaseBinaryConverter -includeTimestamp true')");
+
+        HTable table = new HTable(conf, TESTTABLE_2);
+        ResultScanner scanner = table.getScanner(new Scan());
+        Iterator<Result> iter = scanner.iterator();
+        int i = 0;
+        for (i = 0; iter.hasNext(); ++i) {
+            Result result = iter.next();
+            String v = String.valueOf(i);
+            String rowKey = Bytes.toString(result.getRow());
+            int col_a = Bytes.toInt(getColValue(result, TESTCOLUMN_A));
+            double col_b = Bytes.toDouble(getColValue(result, TESTCOLUMN_B));
+            String col_c = Bytes.toString(getColValue(result, TESTCOLUMN_C));
+
+            long col_a_ts = getColTimestamp(result, TESTCOLUMN_A);
+            long col_b_ts = getColTimestamp(result, TESTCOLUMN_B);
+            long col_c_ts = getColTimestamp(result, TESTCOLUMN_C);
+            
+            Assert.assertEquals(timestamp, col_a_ts);
+            Assert.assertEquals(timestamp, col_b_ts);
+            Assert.assertEquals(timestamp, col_c_ts);
+
+            Assert.assertEquals("00".substring(v.length()) + v, rowKey);
+            Assert.assertEquals(i, col_a);
+            Assert.assertEquals(i + 0.0, col_b, 1e-6);
+            Assert.assertEquals("Text_" + i, col_c);
+        }
+        Assert.assertEquals(100, i);
+        table.close();
+    }
+
+    /**
+     * load from hbase 'TESTTABLE_1' using HBaseBinary format, and store it into
      * 'TESTTABLE_2' using UTF-8 Plain Text format
      *
      * @throws IOException
@@ -1357,4 +1498,16 @@ public class TestHBaseStorage {
         return result.getValue(colArray[0], colArray[1]);
 
     }
+
+    /**
+     * Helper to deal with fetching a timestamp based on a cf:colname string spec
+     * @param result
+     * @param colName
+     * @return
+     */
+    private static long getColTimestamp(Result result, String colName) {
+        byte[][] colArray = Bytes.toByteArrays(colName.split(":"));
+        return result.getColumnLatestCell(colArray[0], colArray[1]).getTimestamp();
+    }
+
 }
