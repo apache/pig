@@ -277,9 +277,7 @@ sub runPigCmdLine
 
     # Build the command
     my @baseCmd = $self->getPigCmd($testCmd, $log);
-    if ($testCmd->{'exectype'} eq "tez") {
-        push(@baseCmd, ("-x", "tez"));
-    }
+    push(@baseCmd, ("-x", $testCmd->{'exectype'}));
     my @cmd = @baseCmd;
 
     # Add option -l giving location for secondary logs
@@ -437,9 +435,9 @@ sub getPigCmd($$$)
            $additionalJavaParams .= " -Dmapred.local.dir=$hadoopTmpDir -Dmapreduce.cluster.local.dir=$hadoopTmpDir";
         }
         TestDriver::dbg("Additional java parameters: [$additionalJavaParams].\n");
-
-        push(@pigCmd, ("-x", "local"));
     }
+    
+    push(@pigCmd, ("-x", $testCmd->{'exectype'}));
 
     if (defined($testCmd->{'java_params'}) || defined($additionalJavaParams)) {
         if (defined($testCmd->{'java_params'})) {
@@ -503,9 +501,7 @@ sub runPig
 
     # Build the command
     my @baseCmd = $self->getPigCmd($testCmd, $log);
-    if ($testCmd->{'exectype'} eq "tez") {
-        push(@baseCmd, ("-x", "tez"));
-    }
+    push(@baseCmd, ("-x", $testCmd->{'exectype'}));
     my @cmd = @baseCmd;
 
     # Add option -l giving location for secondary logs
