@@ -24,6 +24,10 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4370: HBaseStorage should support delete markers (bridiver via daijy)
+
+PIG-4360: HBaseStorage should support setting the timestamp field (bridiver via daijy)
+
 PIG-4337: Split Types and MultiQuery e2e tests into multiple groups (rohini)
 
 PIG-4066: An optimization for ROLLUP operation in Pig (hxquangnhat via cheolsoo)
@@ -37,8 +41,6 @@ PIG-4368: Port local mode tests to Tez - TestLoadStoreFuncLifeCycle (daijy)
 PIG-4367: Port local mode tests to Tez - TestMultiQueryBasic (daijy)
 
 PIG-4339: e2e test framework assumes default exectype as mapred (rohini)
-
-PIG-4360: HBaseStorage should support setting the timestamp field (bridiver via daijy)
 
 PIG-2949: JsonLoader only reads arrays of objects (eyal via daijy)
 
