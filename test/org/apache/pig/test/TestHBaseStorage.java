@@ -1188,6 +1188,49 @@ public class TestHBaseStorage {
 
     /**
      * load from hbase 'TESTTABLE_1' using HBaseBinary format, and store it into
+     * 'TESTTABLE_1' deleting odd row keys
+     *
+     * @throws IOException
+     */
+    @Test
+    public void testStoreToHBase_1_with_delete() throws IOException {
+        prepareTable(TESTTABLE_1, true, DataFormat.HBaseBinary);
+        scanTable1(pig, DataFormat.HBaseBinary);
+        pig.registerQuery("b = FOREACH a GENERATE rowKey, (boolean)(((int)rowKey) % 2), col_a, col_b, col_c;");
+        pig.store("b",  "hbase://" + TESTTABLE_1,
+                "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
+                + TESTCOLUMN_A + " " + TESTCOLUMN_B + " "
+                + TESTCOLUMN_C + "','-caster HBaseBinaryConverter -includeTombstone true')");
+
+        HTable table = new HTable(conf, TESTTABLE_1);
+        ResultScanner scanner = table.getScanner(new Scan());
+        Iterator<Result> iter = scanner.iterator();
+        int count = 0;
+        for (int i = 0; iter.hasNext(); i = i + 2) {
+            Result result = iter.next();
+            String v = String.valueOf(i);
+            String rowKey = Bytes.toString(result.getRow());
+            int col_a = Bytes.toInt(getColValue(result, TESTCOLUMN_A));
+            double col_b = Bytes.toDouble(getColValue(result, TESTCOLUMN_B));
+            String col_c = Bytes.toString(getColValue(result, TESTCOLUMN_C));
+
+            long col_a_ts = getColTimestamp(result, TESTCOLUMN_A);
+            long col_b_ts = getColTimestamp(result, TESTCOLUMN_B);
+            long col_c_ts = getColTimestamp(result, TESTCOLUMN_C);
+            
+            Assert.assertEquals("00".substring(v.length()) + v, rowKey);
+            Assert.assertEquals(i, col_a);
+            Assert.assertEquals(i + 0.0, col_b, 1e-6);
+            Assert.assertEquals("Text_" + i, col_c);
+
+            count++;
+        }
+        Assert.assertEquals(50, count);
+        table.close();
+    }
+
+    /**
+     * load from hbase 'TESTTABLE_1' using HBaseBinary format, and store it into
      * 'TESTTABLE_2' using UTF-8 Plain Text format
      *
      * @throws IOException
@@ -1235,6 +1278,7 @@ public class TestHBaseStorage {
         Object key = "somekey";
         byte type = DataType.CHARARRAY;
         Assert.assertFalse(hbaseStorage.createPut(key, type).getWriteToWAL());
+        Assert.assertFalse(hbaseStorage.createDelete(key, type, System.currentTimeMillis()).getWriteToWAL());
     }
 
     /**
@@ -1249,6 +1293,7 @@ public class TestHBaseStorage {
         Object key = "somekey";
         byte type = DataType.CHARARRAY;
         Assert.assertTrue(hbaseStorage.createPut(key, type).getWriteToWAL());
+        Assert.assertTrue(hbaseStorage.createDelete(key, type, System.currentTimeMillis()).getWriteToWAL());
     }
 
     /**
