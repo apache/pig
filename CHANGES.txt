@@ -36,6 +36,8 @@ PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES
 
+PIG-4371: Duplicate snappy.version in libraries.properties (daijy)
+
 PIG-4368: Port local mode tests to Tez - TestLoadStoreFuncLifeCycle (daijy)
 
 PIG-4367: Port local mode tests to Tez - TestMultiQueryBasic (daijy)
