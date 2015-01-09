@@ -249,6 +249,13 @@ sub randomUnicodeNonAscii()
 
 my $testvar = "\N{U+03b1}\N{U+03b3}\N{U+03b1}\N{U+03c0}\N{U+03b7}";
 
+our @utf8Name = ("佛","实","脑","体","宝","国","双","电","东","马");
+
+sub randomUtf8Name()
+{
+    return sprintf("%s", $utf8Name[int(rand(10))]);
+}
+
 sub getBulkCopyCmd(){
         my $sourceDir= shift;
         my $tableName = shift;
@@ -510,6 +517,28 @@ sub getBulkCopyCmd(){
 				printf HDFS "%d",$j;
             }
             printf HDFS "\n";
+        }
+    } elsif ($filetype eq "utf8Student") {
+        srand(3.14159 + $numRows);
+        print PSQL "create table $tableName (name varchar(100), age integer, gpa float(3));\n" unless defined $nosql;
+        print PSQL &getBulkCopyCmd( $targetDir, $tableName ) unless defined $nosql;
+        for (my $i = 0; $i < $numRows; $i++) {
+            my $name = randomUtf8Name();
+            my $age = randomAge();
+            my $gpa = randomGpa();
+            printf HDFS "%s\t%d\t%.2f\n", $name, $age, $gpa;
+        }
+    } elsif ($filetype eq "utf8Voter") {
+        srand(3.14159 + $numRows);
+        print PSQL "create table $tableName (name varchar(100), age integer, registration varchar(20), contributions float);\n" unless defined $nosql;
+        print PSQL &getBulkCopyCmd( $targetDir, $tableName ) unless defined $nosql;
+        for (my $i = 0; $i < $numRows; $i++) {
+            my $name = randomUtf8Name();
+            my $age = randomAge();
+            my $registration = randomRegistration();
+            my $contribution = randomContribution();
+            printf HDFS "%s\t%d\t%s\t%.2f\n", $name, $age,
+                $registration, $contribution;
         }
     } else {
         warn "Unknown filetype $filetype\n";

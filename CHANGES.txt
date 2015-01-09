@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4358: Add test cases for utf8 chinese in Pig (nmaheshwari via daijy)
+
 PIG-4370: HBaseStorage should support delete markers (bridiver via daijy)
 
 PIG-4360: HBaseStorage should support setting the timestamp field (bridiver via daijy)
