@@ -69,10 +69,6 @@ public class TestMultiQueryBasic {
                 "test/org/apache/pig/test/data/passwd2", "passwd2");
         Properties props = new Properties();
         props.setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, ""+true);
-        // Turn on multithread, otherwise tez local mode hang
-        // However, we cannot turn on multithread in general cuz Pig backend is not
-        // multithread safe yet
-        props.setProperty("tez.am.inline.task.execution.max-tasks", "5");
         props.setProperty("tez.runtime.io.sort.mb", "10");
         myPig = new PigServer(Util.getLocalTestMode(), props);
     }
