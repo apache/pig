@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4378: Better way to fix tez local mode test hanging (daijy)
+
 PIG-4358: Add test cases for utf8 chinese in Pig (nmaheshwari via daijy)
 
 PIG-4370: HBaseStorage should support delete markers (bridiver via daijy)
