@@ -42,6 +42,9 @@ PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES
 
+PIG-4355: Piggybank: XPath cant handle namespace in xpath, nor can it return more than one match
+ (cavanaug via daijy)
+
 PIG-4371: Duplicate snappy.version in libraries.properties (daijy)
 
 PIG-4368: Port local mode tests to Tez - TestLoadStoreFuncLifeCycle (daijy)
