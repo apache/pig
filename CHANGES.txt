@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-2692: Make the Pig unit faciliities more generalizable and update javadocs (razsapps via daijy)
+
 PIG-4379: Make RoundRobinPartitioner public (daijy)
 
 PIG-4378: Better way to fix tez local mode test hanging (daijy)
