@@ -159,6 +159,22 @@ public class TestColumnAliasConversion {
         Assert.fail( "Query should fail to validate." );
     }
 
+    @Test
+    public void testInvalidNestedProjection() throws Exception {
+        String query = "A = load 'x' as (field);" +
+                       "B = foreach A {" +
+                       "  C = LIMIT invalidName 1;" +
+                       "  generate C.foo;" +
+                       "};";
+        try {
+            validate( query );
+        } catch(PlanValidationException ex) {
+            System.out.println(ex.getMessage());
+            return;
+        }
+        Assert.fail( "Query should fail to validate." );
+    }
+
     private LogicalPlan validate(String query) throws RecognitionException, ParsingFailureException, IOException {
         LogicalPlan plan = ParserTestingUtils.generateLogicalPlan( query );
         ColumnAliasConversionVisitor visitor = new ColumnAliasConversionVisitor( plan );
