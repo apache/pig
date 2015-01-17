@@ -96,6 +96,7 @@ public class TezLauncher extends Launcher {
         if (namedThreadFactory == null) {
             namedThreadFactory = new ThreadFactoryBuilder()
                 .setNameFormat("PigTezLauncher-%d")
+                .setDaemon(true)
                 .setUncaughtExceptionHandler(new JobControlThreadExceptionHandler())
                 .build();
         }
