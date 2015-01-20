@@ -33,27 +33,23 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecJob;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRExecutionEngine;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
+import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.pig.tools.pigstats.PigStats.JobGraph;
-import org.apache.pig.tools.pigstats.ScriptState;
-import org.apache.pig.tools.pigstats.mapreduce.MRScriptState;
+import org.junit.Ignore;
 import org.junit.Test;
 
-public class TestPigStats  {
+@Ignore
+abstract public class TestPigStats  {
 
     private static final Log LOG = LogFactory.getLog(TestPigStats.class);
 
+    abstract public void addSettingsToConf(Configuration conf, String scriptFileName);
+    
     @Test
     public void testPigScriptInConf() throws Exception {
         PrintWriter w = new PrintWriter(new FileWriter("test.pig"));
@@ -63,11 +59,8 @@ public class TestPigStats  {
         w.println("register /mydir/lib/jackson-mapper-asl-1.4.2.jar");
         w.close();
         
-        MRScriptState ss = MRScriptState.get();
-        ss.setScript(new File("test.pig"));
         Configuration conf = new Configuration();
-        MapReduceOper mro = new MapReduceOper(new OperatorKey());
-        ss.addSettingsToConf(mro, conf);
+        addSettingsToConf(conf, "test.pig");
         
         String s = conf.get("pig.script");
         String script = new String(Base64.decodeBase64(s.getBytes()));
@@ -100,11 +93,8 @@ public class TestPigStats  {
         
         Util.createLocalInputFile( "testScript.py", script);
         
-        MRScriptState ss = MRScriptState.get();
-        ss.setScript(new File("testScript.py"));
         Configuration conf = new Configuration();
-        MapReduceOper mro = new MapReduceOper(new OperatorKey());
-        ss.addSettingsToConf(mro, conf);
+        addSettingsToConf(conf, "testScript.py");
         
         String s = conf.get("pig.script");
         String actual = new String(Base64.decodeBase64(s.getBytes()));
@@ -127,7 +117,7 @@ public class TestPigStats  {
     }
     
     @Test
-    public void testBytesWritten_JIRA_1027() {
+    public void testBytesWritten_JIRA_1027() throws Exception {
 
         File outputFile = null;
         try {
@@ -135,11 +125,12 @@ public class TestPigStats  {
             outputFile = File.createTempFile(fileName, ".out");
             String filePath = outputFile.getAbsolutePath();
             outputFile.delete();
-            PigServer pig = new PigServer(ExecType.LOCAL);
+            PigServer pig = new PigServer(Util.getLocalTestMode());
             pig.registerQuery("A = load 'test/org/apache/pig/test/data/passwd';");
             ExecJob job = pig.store("A", filePath);
             PigStats stats = job.getStatistics();
-            File dataFile = new File( outputFile.getAbsoluteFile() + File.separator + "part-00000" );
+            File dataFile = Util.getFirstPartFile(outputFile);
+            // This check fails in MR due to lack of counters in local mode
             assertEquals(dataFile.length(), stats.getBytesWritten());
         } catch (IOException e) {
             LOG.error("Error while generating file", e);
@@ -152,11 +143,13 @@ public class TestPigStats  {
             }
         }
     }
-    
+
+    abstract public void checkPigStatsAlias(PhysicalPlan pp, PigContext pc) throws Exception;
+
     @Test
     public void testPigStatsAlias() throws Exception {
         try {
-            PigServer pig = new PigServer(ExecType.LOCAL);
+            PigServer pig = new PigServer(Util.getLocalTestMode());
             pig.setBatchOn();
             pig.registerQuery("A = load 'input' as (name, age, gpa);");
             pig.registerQuery("B = group A by name;");
@@ -167,19 +160,9 @@ public class TestPigStats  {
             
             LogicalPlan lp = getLogicalPlan(pig);
             lp.optimize(pig.getPigContext());
-            PhysicalPlan pp = ((MRExecutionEngine)pig.getPigContext().getExecutionEngine()).compile(lp,
+            PhysicalPlan pp = ((HExecutionEngine)pig.getPigContext().getExecutionEngine()).compile(lp,
                     null);
-            MROperPlan mp = getMRPlan(pp, pig.getPigContext());
-            assertEquals(4, mp.getKeys().size());
-            
-            MapReduceOper mro = mp.getRoots().get(0);
-            assertEquals("A,B,C", getAlias(mro));
-            
-            mro = mp.getSuccessors(mro).get(0);
-            assertEquals("D", getAlias(mro));
-             
-            mro = mp.getSuccessors(mro).get(0);
-            assertEquals("D", getAlias(mro));
+            checkPigStatsAlias(pp, pig.getPigContext());
         } finally {
             File outputfile = new File("alias_output");
             if (outputfile.exists()) {
@@ -189,25 +172,25 @@ public class TestPigStats  {
             }
         }
     }
-    
+
+    abstract public void checkPigStats(ExecJob job);
+
     @Test
-    public void testPigStatsGetList() {
+    public void testPigStatsGetList() throws Exception {
         File outputFile = null;
         try {
             String filename = this.getClass().getSimpleName() + "_" + "testPigStatsGetList";
             outputFile = File.createTempFile(filename, ".out");
             String filePath = outputFile.getAbsolutePath();
             outputFile.delete();
-            PigServer pigServer = new PigServer(ExecType.LOCAL);
+            PigServer pigServer = new PigServer(Util.getLocalTestMode());
             pigServer.registerQuery("a = load 'test/org/apache/pig/test/data/passwd';");
             pigServer.registerQuery("b = group a by $0;");
             pigServer.registerQuery("c = foreach b generate group, COUNT(a) as cnt;");
             pigServer.registerQuery("d = group c by cnt;");
             pigServer.registerQuery("e = foreach d generate group;");
             ExecJob job = pigServer.store("e", filePath);
-            JobGraph jobGraph = job.getStatistics().getJobGraph();
-            assertEquals(2, jobGraph.getJobList().size());
-
+            checkPigStats(job);
         } catch (IOException e) {
             LOG.error("IOException while creating file ", e);
             fail("Encountered IOException");
@@ -232,23 +215,5 @@ public class TestPigStats  {
         buildLp.setAccessible(true);
         return (LogicalPlan ) buildLp.invoke( pig );
     }
-    
-    public static MROperPlan getMRPlan(PhysicalPlan pp, PigContext ctx) throws Exception {
-        MapReduceLauncher launcher = new MapReduceLauncher();
-        java.lang.reflect.Method compile = launcher.getClass()
-                .getDeclaredMethod("compile",
-                        new Class[] { PhysicalPlan.class, PigContext.class });
-        compile.setAccessible(true);
-        return (MROperPlan) compile.invoke(launcher, new Object[] { pp, ctx });
-    }
-           
-    public static String getAlias(MapReduceOper mro) throws Exception {
-        ScriptState ss = ScriptState.get();
-        java.lang.reflect.Method getAlias = ss.getClass()
-                .getDeclaredMethod("getAlias",
-                        new Class[] { MapReduceOper.class });
-        getAlias.setAccessible(true);
-        return (String)getAlias.invoke(ss, new Object[] { mro });
-    }
-         
+     
 }
