@@ -120,6 +120,10 @@ public abstract class PigScriptParser
 
 	abstract protected void processScript(String script, boolean batch, List<String> params, List<String> files) throws IOException, ParseException;
 
+    abstract protected void processDefault(String key, String value) throws IOException;
+
+    abstract protected void processDeclare(String key, String value) throws IOException;
+
 	static String unquote(String s)
 	{
 		if (s.charAt(0) == '\'' && s.charAt(s.length()-1) == '\'')
@@ -186,6 +190,8 @@ TOKEN: {<XML: "-xml">}
 TOKEN: {<OUT: "-out">}
 TOKEN: {<BRIEF: "-brief">}
 TOKEN: {<N: "-n">}
+TOKEN: {<PIGDEFAULT: "%default" >}
+TOKEN: {<DECLARE: "%declare" >} 
 
 // internal use commands
 TOKEN: {<SCRIPT_DONE: "scriptDone">}
@@ -420,6 +426,7 @@ TOKEN : { <QUOTEDSTRING :  "'"
           )
       )*
       "'"> }
+TOKEN: {<SHELLCMD: "`" (~["`"])* "`" >}
 void parse() throws IOException:
 {
 	Token t1, t2, t3;
@@ -597,6 +604,16 @@ void parse() throws IOException:
     	|
 		{processSet();}
 	)
+	|
+    <PIGDEFAULT>
+	t1 = GetKey()
+	t2 = GetDefaultValue()
+	{processDefault(t1.image, t2.image);}
+	|
+	<DECLARE>
+	t1 = GetKey()
+	t2 = GetDefaultValue()
+	{processDeclare(t1.image, t2.image);}
 	|
 	<EOF>
 	{quit();}
@@ -793,6 +810,22 @@ Token GetValue() :
 	t = GetPath()
 	|
 	t = <QUOTEDSTRING>
+	)
+
+	{return t;}
+}
+
+Token GetDefaultValue() :
+{
+	Token t;
+}
+{
+	(
+	t = GetPath()
+	|
+	t = <QUOTEDSTRING>
+	|
+	t = <SHELLCMD>
 	)
 
 	{return t;}
