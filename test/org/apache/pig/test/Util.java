@@ -1380,4 +1380,13 @@ public class Util {
         });
         return parts[0].getPath(); 
     }
+
+    public static File getFirstPartFile(File dir) throws Exception {
+        File[] parts = dir.listFiles(new FilenameFilter() {
+            public boolean accept(File dir, String name) {
+                return name.startsWith("part-");
+            };
+        });
+        return parts[0]; 
+    }
 }

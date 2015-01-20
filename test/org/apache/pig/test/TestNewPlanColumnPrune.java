@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.newplan.Operator;
@@ -46,12 +45,17 @@ import org.apache.pig.newplan.logical.rules.ColumnMapKeyPrune;
 import org.apache.pig.newplan.logical.rules.MapKeysPruneHelper;
 import org.apache.pig.newplan.optimizer.PlanOptimizer;
 import org.apache.pig.newplan.optimizer.Rule;
+import org.junit.Before;
 import org.junit.Test;
 
 public class TestNewPlanColumnPrune {
     LogicalPlan plan = null;
-    PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
+    PigContext pc;
 
+    @Before
+    public void setUp() throws Exception {
+        pc = new PigContext(Util.getLocalTestMode(), new Properties());
+    }
     private LogicalPlan buildPlan(String query) throws Exception{
         PigServer pigServer = new PigServer( pc );
         return Util.buildLp(pigServer, query);

@@ -6,3 +6,4 @@
 **/TestJobSubmissionTez.java
 **/TestGroupConstParallelTez.java
 **/TestLoaderStorerShipCacheFilesTez.java
+**/TestPigStatsTez.java

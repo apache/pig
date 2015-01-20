@@ -39,6 +39,7 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.newplan.Operator;
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -53,7 +54,7 @@ public class TestCubeOperator {
 
     @BeforeClass
     public static void oneTimeSetUp() throws Exception {
-        pigServer = new PigServer("local");
+        pigServer = new PigServer(Util.getLocalTestMode());
     }
 
     @Before
@@ -622,6 +623,18 @@ public class TestCubeOperator {
     }
 
     @Test
+    public void testIllustrate() throws Exception {
+	// test for illustrate
+        Assume.assumeTrue("illustrate does not work in tez (PIG-3993)", !Util.getLocalTestMode().toString().startsWith("TEZ"));
+	String query = "a = load 'input' USING mock.Storage() as (a1:chararray,b1:chararray,c1:long); "
+	        + "b = cube a by cube(a1,b1);";
+
+        Util.registerMultiLineQuery(pigServer, query);
+        Map<Operator, DataBag> examples = pigServer.getExamples("b");
+        assertTrue(examples != null);
+    }
+
+    @Test
     public void testRollupHIIAfterCogroup() throws IOException {
         // test for cubing on co-grouped relation
         String query = "a = load 'input1' USING mock.Storage() as (a1:chararray,b1,c1,d1); "
@@ -649,17 +662,6 @@ public class TestCubeOperator {
         for (Tuple tup : out) {
             assertTrue(expected + " contains " + tup, expected.contains(tup));
         }
-    }
-
-    @Test
-    public void testIllustrate() throws IOException {
-        // test for illustrate
-        String query = "a = load 'input' USING mock.Storage() as (a1:chararray,b1:chararray,c1:long); "
-                + "b = cube a by cube(a1,b1);";
-
-        Util.registerMultiLineQuery(pigServer, query);
-        Map<Operator, DataBag> examples = pigServer.getExamples("b");
-        assertTrue(examples != null);
     }
 
     @Test

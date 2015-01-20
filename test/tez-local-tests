@@ -71,3 +71,12 @@
 **/TestPigServerWithMacros.java
 **/TestMultiQueryBasic.java
 **/TestLoadStoreFuncLifeCycle.java
+**/TestCubeOperator.java
+**/TestJoinLocal.java
+**/TestMultiQuery.java
+**/TestNewPlanColumnPrune.java
+**/TestPigServerLocal.java
+**/TestPruneColumn.java
+**/TestRank3.java
+**/TestScalarAliasesLocal.java
+**/TestPigStatsTez.java

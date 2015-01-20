@@ -44,6 +44,8 @@ PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES
 
+PIG-4366: Port local mode tests to Tez - part5 (daijy)
+
 PIG-4381: PIG grunt shell DEFINE commands fails when it spans multiple lines (daijy)
 
 PIG-4384: TezLauncher thread should be deamon thread (zjffdu via daijy)

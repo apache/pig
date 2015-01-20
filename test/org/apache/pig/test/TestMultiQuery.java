@@ -25,7 +25,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecJob;
@@ -53,13 +52,13 @@ public class TestMultiQuery {
                 "test/org/apache/pig/test/data/passwd2", "passwd2");
         Properties props = new Properties();
         props.setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, ""+true);
-        myPig = new PigServer(ExecType.LOCAL, props);
+        myPig = new PigServer(Util.getLocalTestMode(), props);
     }
 
     @AfterClass
     public static void tearDownAfterClass() throws Exception {
-        Util.deleteFile(new PigContext(ExecType.LOCAL, new Properties()), "passwd");
-        Util.deleteFile(new PigContext(ExecType.LOCAL, new Properties()), "passwd2");
+        Util.deleteFile(new PigContext(Util.getLocalTestMode(), new Properties()), "passwd");
+        Util.deleteFile(new PigContext(Util.getLocalTestMode(), new Properties()), "passwd2");
         deleteOutputFiles();
     }
 

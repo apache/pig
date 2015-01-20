@@ -108,23 +108,24 @@ public class POReservoirSample extends PhysicalOperator {
             }
         }
 
-        Random randGen = new Random();
+        if (res.returnStatus != POStatus.STATUS_EOP) {
+            Random randGen = new Random();
+            while (true) {
+                // pick this as sample
+                res = processInput();
+                if (res.returnStatus == POStatus.STATUS_NULL) {
+                    continue;
+                } else if (res.returnStatus != POStatus.STATUS_OK) {
+                    break;
+                }
 
-        while (true) {
-            // pick this as sample
-            res = processInput();
-            if (res.returnStatus == POStatus.STATUS_NULL) {
-                continue;
-            } else if (res.returnStatus != POStatus.STATUS_OK) {
-                break;
+                // collect samples until input is exhausted
+                int rand = randGen.nextInt(rowProcessed);
+                if (rand < numSamples) {
+                    samples[rand] = res;
+                }
+                rowProcessed++;
             }
-
-            // collect samples until input is exhausted
-            int rand = randGen.nextInt(rowProcessed);
-            if (rand < numSamples) {
-                samples[rand] = res;
-            }
-            rowProcessed++;
         }
 
         if (this.parentPlan.endOfAllInput && res.returnStatus == POStatus.STATUS_EOP) {

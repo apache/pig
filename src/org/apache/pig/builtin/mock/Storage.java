@@ -459,7 +459,7 @@ private MockRecordWriter mockRecordWriter;
 
   @Override
   public void putNext(Tuple t) throws IOException {
-      mockRecordWriter.dataBeingWritten.add(t);
+      mockRecordWriter.dataBeingWritten.add(TF.newTuple(t.getAll()));
   }
 
   @Override
