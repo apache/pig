@@ -379,4 +379,11 @@ public class DryRunGruntParser extends PigScriptParser {
 	protected void printClear() {
 	}
 
+    @Override
+    protected void processDefault(String key, String value) throws IOException {
+    }
+
+    @Override
+    protected void processDeclare(String key, String value) throws IOException {
+    }
 }

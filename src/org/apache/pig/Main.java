@@ -546,7 +546,7 @@ public class Main {
                 // Interactive
                 mode = ExecMode.SHELL;
               //Reader is created by first loading "pig.load.default.statements" or .pigbootup file if available
-                ConsoleReader reader = new ConsoleReaderWithParamSub(Utils.getCompositeStream(System.in, properties), new OutputStreamWriter(System.out), pigContext);
+                ConsoleReader reader = new ConsoleReader(Utils.getCompositeStream(System.in, properties), new OutputStreamWriter(System.out));
                 reader.setDefaultPrompt("grunt> ");
                 final String HISTORYFILE = ".pig_history";
                 String historyFile = System.getProperty("user.home") + File.separator  + HISTORYFILE;
@@ -1071,25 +1071,6 @@ public class Main {
         return (totalCount > 0 && failCount == totalCount) ? ReturnCode.FAILURE
                 : (failCount > 0) ? ReturnCode.PARTIAL_FAILURE
                         : ReturnCode.SUCCESS;
-    }
-
-    static class ConsoleReaderWithParamSub extends ConsoleReader {
-        PigContext pc;
-        ConsoleReaderWithParamSub(InputStream in, Writer out, PigContext pigContext) throws IOException {
-            super(in, out);
-            pc = pigContext;
-        }
-
-        @Override
-        public String readLine() throws IOException {
-            String line = super.readLine();
-            if (null == line) {
-                return line;
-            }
-            String paramSubLine = pc.doParamSubstitution(new BufferedReader(new StringReader(line)));
-            return paramSubLine;
-        }
-
     }
 
 }
