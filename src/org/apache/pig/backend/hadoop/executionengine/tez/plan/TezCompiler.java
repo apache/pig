@@ -368,7 +368,7 @@ public class TezCompiler extends PhyPlanVisitor {
                     storeOnlyPhyPlan.addAsLeaf(store);
                     storeOnlyTezOperator.plan = storeOnlyPhyPlan;
                     tezPlan.add(storeOnlyTezOperator);
-                    phyToTezOpMap.put(store, storeOnlyTezOperator);
+                    phyToTezOpMap.put(p, storeOnlyTezOperator);
 
                     // Create new operator as second splittee
                     curTezOp = getTezOp();

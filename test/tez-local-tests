@@ -80,3 +80,6 @@
 **/TestRank3.java
 **/TestScalarAliasesLocal.java
 **/TestPigStatsTez.java
+**/TestStoreLocal.java
+**/TestPOPartialAggPlanTez.java
+**/TestMultiQueryLocal.java

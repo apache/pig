@@ -15,49 +15,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.test;
+package org.apache.pig.tez;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-import java.util.Iterator;
-
 import org.apache.pig.PigConfiguration;
-import org.apache.pig.PigServer;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPartialAgg;
-import org.apache.pig.impl.PigContext;
-import org.junit.Before;
-import org.junit.Ignore;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperator;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPlanContainer;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPlanContainerNode;
+import org.apache.pig.test.TestPOPartialAggPlan;
 import org.junit.Test;
 
-/**
- * Test POPartialAgg runtime
- */
-@Ignore
-public class TestPOPartialAggPlan  {
-    protected static PigContext pc;
-    protected static PigServer ps;
-
-    @Before
-    public void setUp() throws Exception {
-        ps = new PigServer(Util.getLocalTestMode());
-        pc = ps.getPigContext();
-        pc.connect();
-    }
-
+public class TestPOPartialAggPlanTez extends TestPOPartialAggPlan {
     @Test
     public void testNoMapAggProp() throws Exception{
         //test with pig.exec.mapPartAgg not set
         String query = getGByQuery();
 
-        MROperPlan mrp = Util.buildMRPlan(query, pc);
-        assertEquals(mrp.size(), 1);
+        TezPlanContainer tezPlanContainer = TezUtil.buildTezPlanContainer(query, pc);
+        assertEquals(tezPlanContainer.size(), 1);
 
-        assertNull("POPartialAgg should be absent",findPOPartialAgg(mrp));
+        assertNull("POPartialAgg should be absent",findPOPartialAgg(tezPlanContainer));
     }
 
     @Test
@@ -65,10 +47,10 @@ public class TestPOPartialAggPlan  {
         //test with pig.exec.mapPartAgg set to false
         String query = getGByQuery();
         pc.getProperties().setProperty(PigConfiguration.PIG_EXEC_MAP_PARTAGG, "false");
-        MROperPlan mrp = Util.buildMRPlan(query, pc);
-        assertEquals(mrp.size(), 1);
+        TezPlanContainer tezPlanContainer = TezUtil.buildTezPlanContainer(query, pc);
+        assertEquals(tezPlanContainer.size(), 1);
 
-        assertNull("POPartialAgg should be absent", findPOPartialAgg(mrp));
+        assertNull("POPartialAgg should be absent", findPOPartialAgg(tezPlanContainer));
     }
 
     @Test
@@ -76,25 +58,12 @@ public class TestPOPartialAggPlan  {
         //test with pig.exec.mapPartAgg to true
         String query = getGByQuery();
         pc.getProperties().setProperty(PigConfiguration.PIG_EXEC_MAP_PARTAGG, "true");
-        MROperPlan mrp = Util.buildMRPlan(query, pc);
-        assertEquals(mrp.size(), 1);
+        TezPlanContainer tezPlanContainer = TezUtil.buildTezPlanContainer(query, pc);
+        assertEquals(tezPlanContainer.size(), 1);
 
-        assertNotNull("POPartialAgg should be present",findPOPartialAgg(mrp));
+        assertNotNull("POPartialAgg should be present",findPOPartialAgg(tezPlanContainer));
 
     }
-
-
-    private Object findPOPartialAgg(MROperPlan mrp) {
-        PhysicalPlan mapPlan = mrp.getRoots().get(0).mapPlan;
-        return findPOPartialAgg(mapPlan);
-    }
-
-    protected String getGByQuery() {
-        return "l = load 'x' as (a,b,c);" +
-                "g = group l by a;" +
-                "f = foreach g generate group, COUNT(l.b);";
-    }
-
 
     @Test
     public void testMapAggNoAggFunc() throws Exception{
@@ -103,10 +72,10 @@ public class TestPOPartialAggPlan  {
                 "g = group l by a;" +
                 "f = foreach g generate group;";
         pc.getProperties().setProperty(PigConfiguration.PIG_EXEC_MAP_PARTAGG, "true");
-        MROperPlan mrp = Util.buildMRPlan(query, pc);
-        assertEquals(mrp.size(), 1);
+        TezPlanContainer tezPlanContainer = TezUtil.buildTezPlanContainer(query, pc);
+        assertEquals(tezPlanContainer.size(), 1);
 
-        assertNull("POPartialAgg should be absent",findPOPartialAgg(mrp));
+        assertNull("POPartialAgg should be absent",findPOPartialAgg(tezPlanContainer));
     }
 
     @Test
@@ -116,18 +85,20 @@ public class TestPOPartialAggPlan  {
                 "g = group l by a;" +
                 "f = foreach g generate group, COUNT(l.b), l.b;";
         pc.getProperties().setProperty(PigConfiguration.PIG_EXEC_MAP_PARTAGG, "true");
-        MROperPlan mrp = Util.buildMRPlan(query, pc);
-        assertEquals(mrp.size(), 1);
+        TezPlanContainer tezPlanContainer = TezUtil.buildTezPlanContainer(query, pc);
+        assertEquals(tezPlanContainer.size(), 1);
 
-        assertNull("POPartialAgg should be absent", findPOPartialAgg(mrp));
+        assertNull("POPartialAgg should be absent", findPOPartialAgg(tezPlanContainer));
     }
 
-    protected PhysicalOperator findPOPartialAgg(PhysicalPlan plan) {
-        Iterator<PhysicalOperator> it = plan.iterator();
-        while(it.hasNext()){
-            PhysicalOperator op = it.next();
-            if(op instanceof POPartialAgg){
-                return op;
+    private PhysicalOperator findPOPartialAgg(TezPlanContainer tezPlanContainer) {
+        for (TezPlanContainerNode node : tezPlanContainer) {
+            TezOperPlan tezPlan = node.getTezOperPlan();
+            for (TezOperator tezOper : tezPlan) {
+                PhysicalOperator partialAgg = findPOPartialAgg(tezOper.plan);
+                if (partialAgg != null) {
+                    return partialAgg;
+                }
             }
         }
         return null;
