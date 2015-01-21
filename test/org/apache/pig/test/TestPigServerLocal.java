@@ -21,6 +21,7 @@ import static org.apache.pig.builtin.mock.Storage.resetData;
 import static org.apache.pig.builtin.mock.Storage.tuple;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -38,13 +39,16 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.InvalidInputException;
 import org.apache.pig.PigServer;
 import org.apache.pig.ResourceSchema;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.mock.Storage;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.tools.grunt.GruntParser;
@@ -114,6 +118,41 @@ public class TestPigServerLocal {
             Tuple tuple=iter.next();
             assertEquals(tuple.get(0).toString(), expectedTuples.get(index).get(0).toString());
             index++;
+        }
+    }
+
+    // PIG-3469
+    @Test
+    public void testNonExistingSecondDirectoryInSkewJoin() throws Exception {
+        String script =
+          "exists = LOAD 'test/org/apache/pig/test/data/InputFiles/jsTst1.txt' AS (x:chararray, a:long);" +
+          "missing = LOAD '/non/existing/directory' AS (a:long);" +
+          "missing = FOREACH ( GROUP missing BY a ) GENERATE $0 AS a, COUNT_STAR($1);" +
+          "joined = JOIN exists BY a, missing BY a USING 'skewed';" +
+          "STORE joined INTO '/tmp/test_out.tsv';";
+
+        PigServer pig = new PigServer(Util.getLocalTestMode());
+        if (Util.getLocalTestMode().toString().startsWith("TEZ")) {
+            try {
+                pig.registerScript(new ByteArrayInputStream(script.getBytes("UTF-8")));
+                fail("Expect front exception");
+            } catch(Exception ex) {
+                Throwable excp = ex;
+                assertTrue(excp instanceof FrontendException);
+                excp = excp.getCause();
+                assertTrue(excp instanceof VisitorException);
+                excp = excp.getCause();
+                assertTrue(excp instanceof ExecException);
+                excp = excp.getCause();
+                assertTrue(excp instanceof InvalidInputException);
+            }
+        } else {
+            // Execution of the script should fail, but without throwing any exceptions (such as NPE)
+            try {
+                pig.registerScript(new ByteArrayInputStream(script.getBytes("UTF-8")));
+            } catch(Exception ex) {
+                fail("Unexpected exception: " + ex);
+            }
         }
     }
 
