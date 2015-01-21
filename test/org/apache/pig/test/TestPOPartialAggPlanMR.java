@@ -21,34 +21,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-import java.util.Iterator;
-
 import org.apache.pig.PigConfiguration;
-import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPartialAgg;
-import org.apache.pig.impl.PigContext;
-import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
-/**
- * Test POPartialAgg runtime
- */
-@Ignore
-public class TestPOPartialAggPlan  {
-    protected static PigContext pc;
-    protected static PigServer ps;
-
-    @Before
-    public void setUp() throws Exception {
-        ps = new PigServer(Util.getLocalTestMode());
-        pc = ps.getPigContext();
-        pc.connect();
-    }
-
+public class TestPOPartialAggPlanMR extends TestPOPartialAggPlan {
     @Test
     public void testNoMapAggProp() throws Exception{
         //test with pig.exec.mapPartAgg not set
@@ -84,17 +63,10 @@ public class TestPOPartialAggPlan  {
     }
 
 
-    private Object findPOPartialAgg(MROperPlan mrp) {
+    private PhysicalOperator findPOPartialAgg(MROperPlan mrp) {
         PhysicalPlan mapPlan = mrp.getRoots().get(0).mapPlan;
         return findPOPartialAgg(mapPlan);
     }
-
-    protected String getGByQuery() {
-        return "l = load 'x' as (a,b,c);" +
-                "g = group l by a;" +
-                "f = foreach g generate group, COUNT(l.b);";
-    }
-
 
     @Test
     public void testMapAggNoAggFunc() throws Exception{
@@ -120,16 +92,5 @@ public class TestPOPartialAggPlan  {
         assertEquals(mrp.size(), 1);
 
         assertNull("POPartialAgg should be absent", findPOPartialAgg(mrp));
-    }
-
-    protected PhysicalOperator findPOPartialAgg(PhysicalPlan plan) {
-        Iterator<PhysicalOperator> it = plan.iterator();
-        while(it.hasNext()){
-            PhysicalOperator op = it.next();
-            if(op instanceof POPartialAgg){
-                return op;
-            }
-        }
-        return null;
     }
 }

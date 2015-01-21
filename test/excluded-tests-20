@@ -7,3 +7,4 @@
 **/TestGroupConstParallelTez.java
 **/TestLoaderStorerShipCacheFilesTez.java
 **/TestPigStatsTez.java
+**/TestPOPartialAggPlanTez.java
