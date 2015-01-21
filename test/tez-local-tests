@@ -83,3 +83,4 @@
 **/TestStoreLocal.java
 **/TestPOPartialAggPlanTez.java
 **/TestMultiQueryLocal.java
+**/TestUnionOnSchema.java
