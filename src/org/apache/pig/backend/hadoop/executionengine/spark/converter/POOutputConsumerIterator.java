@@ -20,41 +20,42 @@ abstract class POOutputConsumerIterator implements java.util.Iterator<Tuple> {
     abstract protected Result getNextResult() throws ExecException;
 
     private void readNext() {
-        try {
-            if (result != null && !returned) {
-                return;
-            }
-            // see PigGenericMapBase
-            if (result == null) {
-                if (!input.hasNext()) {
-                    finished = true;
+        while (true) {
+            try {
+                if (result != null && !returned) {
                     return;
                 }
-                Tuple v1 = input.next();
-                attach(v1);
-            }
-            result = getNextResult();
-            returned = false;
-            switch (result.returnStatus) {
-            case POStatus.STATUS_OK:
-                returned = false;
-                break;
-            case POStatus.STATUS_NULL:
-                returned = true; // skip: see PigGenericMapBase
-                readNext();
-                break;
-            case POStatus.STATUS_EOP:
-                finished = !input.hasNext();
-                if (!finished) {
-                    result = null;
-                    readNext();
+                // see PigGenericMapBase
+                if (result == null) {
+                    if (!input.hasNext()) {
+                        finished = true;
+
+                        return;
+                    }
+                    Tuple v1 = input.next();
+                    attach(v1);
                 }
-                break;
-            case POStatus.STATUS_ERR:
-                throw new RuntimeException("Error while processing " + result);
+                result = getNextResult();
+                returned = false;
+                switch (result.returnStatus) {
+                    case POStatus.STATUS_OK:
+                        returned = false;
+                        break;
+                    case POStatus.STATUS_NULL:
+                        returned = true; // skip: see PigGenericMapBase
+                        break;
+                    case POStatus.STATUS_EOP:
+                        finished = !input.hasNext();
+                        if (!finished) {
+                            result = null;
+                        }
+                        break;
+                    case POStatus.STATUS_ERR:
+                        throw new RuntimeException("Error while processing " + result);
+                }
+            } catch (ExecException e) {
+                throw new RuntimeException(e);
             }
-        } catch (ExecException e) {
-            throw new RuntimeException(e);
         }
     }
 

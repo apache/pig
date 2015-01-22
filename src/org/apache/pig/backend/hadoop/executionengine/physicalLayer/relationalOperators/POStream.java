@@ -40,13 +40,14 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlan
 import org.apache.pig.data.Tuple;
 
 public class POStream extends PhysicalOperator {
+
     private static final long serialVersionUID = 2L;
     
-    private static final Result EOP_RESULT = new Result(POStatus.STATUS_EOP, null);
+    protected static final Result EOP_RESULT = new Result(POStatus.STATUS_EOP, null);
 
-    private String executableManagerStr;            // String representing ExecutableManager to use
+    protected String executableManagerStr;            // String representing ExecutableManager to use
     transient private ExecutableManager executableManager;    // ExecutableManager to use 
-    private StreamingCommand command;               // Actual command to be run
+    protected StreamingCommand command;               // Actual command to be run
     private Properties properties;
 
     private boolean initialized = false;
@@ -392,4 +393,11 @@ public class POStream extends PhysicalOperator {
         this.isFetchable = isFetchable;
     }
 
+    public POStream(POStream copy){
+        super(copy);
+    }
+
+    public String getExecutableManagerStr() {
+        return executableManagerStr;
+    }
 }
