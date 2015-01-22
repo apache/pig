@@ -28,6 +28,8 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 /**
  * RandomUUID implements eval function to generate a
  * to retrieve a type 4 (pseudo randomly generated) UUID.
+ * Usages:
+ *  - Generating tokens.
  * Example:
  *      register pigudfs.jar;
  *      A = load 'mydata' as (name);
