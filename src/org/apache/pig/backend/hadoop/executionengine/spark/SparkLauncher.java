@@ -1,17 +1,24 @@
 package org.apache.pig.backend.hadoop.executionengine.spark;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.google.common.collect.Lists;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.PigConstants;
 import org.apache.pig.PigException;
@@ -38,6 +45,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.spark.converter.CollectedGroupConverter;
 import org.apache.pig.backend.hadoop.executionengine.spark.converter.CounterConverter;
@@ -56,11 +64,13 @@ import org.apache.pig.backend.hadoop.executionengine.spark.converter.SortConvert
 import org.apache.pig.backend.hadoop.executionengine.spark.converter.SplitConverter;
 import org.apache.pig.backend.hadoop.executionengine.spark.converter.StoreConverter;
 import org.apache.pig.backend.hadoop.executionengine.spark.converter.UnionConverter;
+import org.apache.pig.backend.hadoop.executionengine.spark.converter.StreamConverter;
+import org.apache.pig.backend.hadoop.executionengine.spark.operator.POStreamSpark;
+import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.SchemaTupleBackend;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.SparkStats;
 import org.apache.spark.rdd.RDD;
@@ -82,7 +92,8 @@ public class SparkLauncher extends Launcher {
     private static SparkContext sparkContext = null;
 
     public static BroadCastServer bcaster;
-
+    private static final Matcher DISTRIBUTED_CACHE_ARCHIVE_MATCHER = Pattern
+            .compile("\\.(zip|tgz|tar\\.gz|tar)$").matcher("");
     // An object that handle cache calls in the operator graph. This is again
     // static because we want
     // it to be shared across SparkLaunchers. It gets cleared whenever we close
@@ -98,9 +109,6 @@ public class SparkLauncher extends Launcher {
         c.set(PigConstants.LOCAL_CODE_DIR, System.getProperty("java.io.tmpdir"));
 
         SchemaTupleBackend.initialize(c, pigContext);
-
-//        ObjectSerializer.serialize(c);
-        byte[] confBytes = KryoSerializer.serializeJobConf(c);
 
         // Code pulled from MapReduceLauncher
         MRCompiler mrCompiler = new MRCompiler(physicalPlan, pigContext);
@@ -121,7 +129,17 @@ public class SparkLauncher extends Launcher {
         }
 
         startSparkIfNeeded();
+        String currentDirectoryPath = Paths.get(".").toAbsolutePath().normalize().toString() + "/";
+        startSparkJob(pigContext,currentDirectoryPath);
+        LinkedList<POStore> stores = PlanHelper.getPhysicalOperators(
+                physicalPlan, POStore.class);
+        POStore firstStore = stores.getFirst();
+        if( firstStore != null ){
+            MapRedUtil.setupStreamingDirsConfSingle(firstStore, pigContext, c);
+        }
 
+        //        ObjectSerializer.serialize(c);
+        byte[] confBytes = KryoSerializer.serializeJobConf(c);
         // initialize the supported converters
         Map<Class<? extends PhysicalOperator>, POConverter> convertMap = new HashMap<Class<? extends PhysicalOperator>, POConverter>();
 
@@ -144,19 +162,128 @@ public class SparkLauncher extends Launcher {
         convertMap.put(POCollectedGroup.class, new CollectedGroupConverter());
         convertMap.put(POCounter.class, new CounterConverter());
         convertMap.put(PORank.class, new RankConverter());
+        convertMap.put(POStreamSpark.class,new StreamConverter(confBytes));
 
         Map<OperatorKey, RDD<Tuple>> rdds = new HashMap<OperatorKey, RDD<Tuple>>();
 
         SparkStats stats = new SparkStats();
-        LinkedList<POStore> stores = PlanHelper.getPhysicalOperators(
-                physicalPlan, POStore.class);
+
         for (POStore poStore : stores) {
             physicalToRDD(physicalPlan, poStore, rdds, convertMap);
             stats.addOutputInfo(poStore, 1, 1, true, c); // TODO: use real
             // values
         }
-
+        cleanUpSparkJob(pigContext,currentDirectoryPath);
         return stats;
+    }
+
+    private void cleanUpSparkJob(PigContext pigContext, String currentDirectoryPath) {
+        LOG.info("clean up Spark Job");
+        boolean isLocal = System.getenv("SPARK_MASTER").equals("local");
+        if (isLocal) {
+            String shipFiles = pigContext.getProperties().getProperty("pig.streaming.ship.files");
+            if (shipFiles != null) {
+                for (String file : shipFiles.split(",")) {
+                    File shipFile = new File(file);
+                    File deleteFile = new File(currentDirectoryPath + "/" + shipFile.getName());
+                    if (deleteFile.exists()) {
+                        LOG.info(String.format("delete ship file result: %b", deleteFile.delete()));
+                    }
+                }
+            }
+            String cacheFiles = pigContext.getProperties().getProperty("pig.streaming.cache.files");
+            if (cacheFiles != null) {
+                for (String file : cacheFiles.split(",")) {
+                    String fileName = extractFileName(file.trim());
+                    File deleteFile = new File(currentDirectoryPath + "/" + fileName);
+                    if (deleteFile.exists()) {
+                        LOG.info(String.format("delete cache file result: %b", deleteFile.delete()));
+                    }
+                }
+            }
+        }
+    }
+
+    private void startSparkJob(PigContext pigContext, String currentDirectoryPath) throws IOException {
+        LOG.info("start Spark Job");
+        String shipFiles = pigContext.getProperties().getProperty("pig.streaming.ship.files");
+        shipFiles(shipFiles, currentDirectoryPath);
+        String cacheFiles = pigContext.getProperties().getProperty("pig.streaming.cache.files");
+        cacheFiles(cacheFiles, currentDirectoryPath, pigContext);
+    }
+
+    private void shipFiles(String shipFiles, String currentDirectoryPath) throws IOException {
+        if (shipFiles != null) {
+            for (String file : shipFiles.split(",")) {
+                File shipFile = new File(file.trim());
+                if (shipFile.exists()) {
+                    LOG.info(String.format("shipFile:%s",shipFile));
+                    boolean isLocal = System.getenv("SPARK_MASTER").equals("local");
+                    if (isLocal) {
+                        File localFile = new File(currentDirectoryPath+"/" + shipFile.getName());
+                        if( localFile.exists()){
+                            LOG.info(String.format("ship file %s exists, ready to delete",localFile.getAbsolutePath()));
+                            localFile.delete();
+                        } else{
+                            LOG.info(String.format("ship file %s  not exists,",localFile.getAbsolutePath()));
+                        }
+                        Files.copy(shipFile.toPath(), Paths.get(localFile.getAbsolutePath()));
+                    } else {
+                        sparkContext.addFile(shipFile.toURI().toURL().toExternalForm());
+                    }
+                }
+            }
+        }
+    }
+
+    private void cacheFiles(String cacheFiles, String currentDirectoryPath, PigContext pigContext) throws IOException {
+        if (cacheFiles != null) {
+            Configuration conf = SparkUtil.newJobConf(pigContext);
+            boolean isLocal = System.getenv("SPARK_MASTER").equals("local");
+            for (String file : cacheFiles.split(",")) {
+                String fileName = extractFileName(file.trim());
+                Path src = new Path(extractFileUrl(file.trim()));
+                File tmpFile = File.createTempFile(fileName,".tmp");
+                Path tmpFilePath = new Path(tmpFile.getAbsolutePath());
+                FileSystem fs = tmpFilePath.getFileSystem(conf);
+                fs.copyToLocalFile(src, tmpFilePath);
+                tmpFile.deleteOnExit();
+                if (isLocal) {
+                    File localFile = new File(currentDirectoryPath + "/" + fileName);
+                    if( localFile.exists()){
+                        LOG.info(String.format("cache file %s exists, ready to delete",localFile.getAbsolutePath()));
+                        localFile.delete();
+                    } else{
+                        LOG.info(String.format("cache file %s not exists,",localFile.getAbsolutePath()));
+                    }
+                    Files.copy( Paths.get(tmpFilePath.toString()), Paths.get(localFile.getAbsolutePath()));
+                } else {
+                    sparkContext.addFile(tmpFile.toURI().toURL().toExternalForm());
+                }
+            }
+        }
+    }
+
+    private String extractFileName(String cacheFileUrl) {
+        String[] tmpAry = cacheFileUrl.split("#");
+        String fileName = tmpAry != null && tmpAry.length == 2 ? tmpAry[1] : null;
+        if (fileName == null) {
+            throw new RuntimeException("cache file is invalid format, file:" + cacheFileUrl);
+        } else {
+            LOG.debug("cache file name is valid:" + cacheFileUrl);
+            return fileName;
+        }
+    }
+
+    private String extractFileUrl(String cacheFileUrl) {
+        String[] tmpAry = cacheFileUrl.split("#");
+        String fileName = tmpAry != null && tmpAry.length == 2 ? tmpAry[0] : null;
+        if (fileName == null) {
+            throw new RuntimeException("cache file is invalid format, file:" + cacheFileUrl);
+        } else {
+            LOG.debug("cache file name is valid:" + cacheFileUrl);
+            return fileName;
+        }
     }
 
     private static void startSparkIfNeeded() throws PigException {
@@ -247,6 +374,11 @@ public class SparkLauncher extends Launcher {
                 physicalToRDD(plan, predecessor, rdds, convertMap);
                 predecessorRdds.add(rdds.get(predecessor.getOperatorKey()));
             }
+        }
+
+        if( physicalOperator instanceof  POStream ){
+            POStream poStream = (POStream)physicalOperator;
+            physicalOperator = new POStreamSpark(poStream);
         }
 
         POConverter converter = convertMap.get(physicalOperator.getClass());
