@@ -18,14 +18,18 @@
 
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
+import java.util.Properties;
 import java.util.UUID;
 
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.ScriptState;
 import org.apache.pig.tools.pigstats.tez.TezPigScriptStats;
 import org.apache.pig.tools.pigstats.tez.TezScriptState;
+import org.apache.tez.dag.api.TezConfiguration;
 
 public class TezExecutionEngine extends HExecutionEngine {
 
@@ -44,5 +48,12 @@ public class TezExecutionEngine extends HExecutionEngine {
     @Override
     public PigStats instantiatePigStats() {
         return new TezPigScriptStats(pigContext);
+    }
+
+    @Override
+    public JobConf getExecConf(Properties properties) throws ExecException {
+        JobConf jc = super.getExecConf(properties);
+        jc.addResource(TezConfiguration.TEZ_SITE_XML);
+        return jc;
     }
 }
