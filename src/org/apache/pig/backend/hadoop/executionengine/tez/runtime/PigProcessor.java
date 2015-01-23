@@ -103,6 +103,7 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
 
     public PigProcessor(ProcessorContext context) {
         super(context);
+        ObjectCache.getInstance().setObjectRegistry(context.getObjectRegistry());
     }
 
     @SuppressWarnings("unchecked")

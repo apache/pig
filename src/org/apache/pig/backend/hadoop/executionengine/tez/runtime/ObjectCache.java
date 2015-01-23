@@ -21,14 +21,14 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.tez.runtime.api.ObjectRegistry;
-import org.apache.tez.runtime.common.objectregistry.ObjectRegistryImpl;
 
-@InterfaceAudience.Private
+@InterfaceAudience.Public
 public class ObjectCache {
 
     private static final Log LOG = LogFactory.getLog(ObjectCache.class);
-    private final ObjectRegistry registry = new ObjectRegistryImpl();
     private static ObjectCache cache = new ObjectCache();
+
+    private ObjectRegistry registry;
 
     private ObjectCache() {
     }
@@ -37,11 +37,34 @@ public class ObjectCache {
         return cache;
     }
 
+    /**
+     * Returns the tez ObjectRegistry which allows caching of objects at the
+     * Session, DAG and Vertex level on container reuse for better performance
+     * and savings
+     */
+    public ObjectRegistry getObjectRegistry() {
+        return registry;
+    }
+
+    /**
+     * For internal use only. This method to be called only by PigProcessor
+     */
+    @InterfaceAudience.Private
+    void setObjectRegistry(ObjectRegistry registry) {
+        this.registry = registry;
+    }
+
+    /**
+     * Convenience method to cache objects in ObjectRegistry for a vertex
+     */
     public void cache(String key, Object value) {
       LOG.info("Adding " + key + " to cache");
       registry.cacheForVertex(key, value);
     }
 
+    /**
+     * Convenience method to retrieve objects cached for the vertex from ObjectRegistry
+     */
     public Object retrieve(String key) {
       Object o = registry.get(key);
       if (o != null) {
