@@ -19,7 +19,6 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.io.IOException;
 import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -177,13 +176,18 @@ public class TezJob implements Runnable {
 
         while (true) {
             try {
-                dagStatus = dagClient.getDAGStatus(statusGetOpts);
+                dagStatus = dagClient.getDAGStatus(null);
             } catch (Exception e) {
                 log.info("Cannot retrieve DAG status", e);
                 break;
             }
 
             if (dagStatus.isCompleted()) {
+                try {
+                    dagStatus = dagClient.getDAGStatus(statusGetOpts);
+                } catch (Exception e) {
+                    log.warn("Failed to retrieve DAG counters", e);
+                }
                 // For tez_local mode where PigProcessor destroys all UDFContext
                 UDFContext.setUdfContext(udfContext);
 
@@ -219,16 +223,10 @@ public class TezJob implements Runnable {
 
     private class DAGStatusReporter extends TimerTask {
 
-        private final String LINE_SEPARATOR = System.getProperty("line.separator");
-
         @Override
         public void run() {
             if (dagStatus == null) return;
-            String msg = "status=" + dagStatus.getState()
-              + ", progress=" + dagStatus.getDAGProgress()
-              + ", diagnostics="
-              + StringUtils.join(dagStatus.getDiagnostics(), LINE_SEPARATOR);
-            log.info("DAG Status: " + msg);
+            log.info("DAG Status: " + dagStatus.toString());
         }
     }
 
@@ -248,7 +246,7 @@ public class TezJob implements Runnable {
     public String getDiagnostics() {
         try {
             if (dagClient != null && dagStatus == null) {
-                dagStatus = dagClient.getDAGStatus(new HashSet<StatusGetOpts>());
+                dagStatus = dagClient.getDAGStatus(null);
             }
             if (dagStatus != null) {
                 return StringUtils.join(dagStatus.getDiagnostics(), "\n");
