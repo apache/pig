@@ -179,7 +179,7 @@ public class SparkLauncher extends Launcher {
 
     private void cleanUpSparkJob(PigContext pigContext, String currentDirectoryPath) {
         LOG.info("clean up Spark Job");
-        boolean isLocal = System.getenv("SPARK_MASTER").equals("local");
+        boolean isLocal = System.getenv("SPARK_MASTER")!= null?System.getenv("SPARK_MASTER").equalsIgnoreCase("LOCAL"): true;
         if (isLocal) {
             String shipFiles = pigContext.getProperties().getProperty("pig.streaming.ship.files");
             if (shipFiles != null) {
@@ -218,7 +218,7 @@ public class SparkLauncher extends Launcher {
                 File shipFile = new File(file.trim());
                 if (shipFile.exists()) {
                     LOG.info(String.format("shipFile:%s",shipFile));
-                    boolean isLocal = System.getenv("SPARK_MASTER").equals("local");
+                    boolean isLocal = System.getenv("SPARK_MASTER")!= null?System.getenv("SPARK_MASTER").equalsIgnoreCase("LOCAL"): true;
                     if (isLocal) {
                         File localFile = new File(currentDirectoryPath+"/" + shipFile.getName());
                         if( localFile.exists()){
@@ -239,7 +239,7 @@ public class SparkLauncher extends Launcher {
     private void cacheFiles(String cacheFiles, String currentDirectoryPath, PigContext pigContext) throws IOException {
         if (cacheFiles != null) {
             Configuration conf = SparkUtil.newJobConf(pigContext);
-            boolean isLocal = System.getenv("SPARK_MASTER").equals("local");
+            boolean isLocal = System.getenv("SPARK_MASTER")!= null?System.getenv("SPARK_MASTER").equalsIgnoreCase("LOCAL"): true;
             for (String file : cacheFiles.split(",")) {
                 String fileName = extractFileName(file.trim());
                 Path src = new Path(extractFileUrl(file.trim()));
