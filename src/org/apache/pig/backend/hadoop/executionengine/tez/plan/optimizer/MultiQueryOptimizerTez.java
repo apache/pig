@@ -18,8 +18,10 @@
 package org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
@@ -54,7 +56,6 @@ public class MultiQueryOptimizerTez extends TezOpPlanVisitor {
             List<TezOperator> splittees = new ArrayList<TezOperator>();
 
             List<TezOperator> successors = getPlan().getSuccessors(tezOp);
-            List<TezOperator> succ_successors = new ArrayList<TezOperator>();
             for (TezOperator successor : successors) {
 
                 // If has other dependency, don't merge into split,
@@ -65,20 +66,21 @@ public class MultiQueryOptimizerTez extends TezOpPlanVisitor {
                 // Detect diamond shape, we cannot merge it into split, since Tez
                 // does not handle double edge between vertexes
                 // TODO: PIG-3876 to handle this by writing to same edge
-                boolean sharedSucc = false;
-                if (getPlan().getSuccessors(successor)!=null) {
-                    for (TezOperator succ_successor : getPlan().getSuccessors(successor)) {
-                        if (succ_successors.contains(succ_successor)) {
-                            sharedSucc = true;
-                            break;
-                        }
+                Set<TezOperator> mergedSuccessors = new HashSet<TezOperator>();
+                Set<TezOperator> toMergeSuccessors = new HashSet<TezOperator>();
+                mergedSuccessors.addAll(successors);
+                for (TezOperator splittee : splittees) {
+                    if (getPlan().getSuccessors(splittee) != null) {
+                        mergedSuccessors.addAll(getPlan().getSuccessors(splittee));
                     }
-                    succ_successors.addAll(getPlan().getSuccessors(successor));
                 }
-                if (sharedSucc) {
-                    continue;
+                if (getPlan().getSuccessors(successor) != null) {
+                    toMergeSuccessors.addAll(getPlan().getSuccessors(successor));
                 }
-                splittees.add(successor);
+                mergedSuccessors.retainAll(toMergeSuccessors);
+                if (mergedSuccessors.isEmpty()) { // no shared edge after merge
+                    splittees.add(successor);
+                }
             }
 
             if (splittees.size()==0) {

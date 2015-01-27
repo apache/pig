@@ -219,21 +219,32 @@ public class AvroStorageSchemaConversionUtilities {
       ResourceSchema mapSchema = new ResourceSchema();
       ResourceSchema.ResourceFieldSchema[] mapSchemaFields =
           new ResourceSchema.ResourceFieldSchema[1];
-      if (mapAvroSchema.getType() == Type.RECORD) {
-        ResourceSchema innerResourceSchema =
-            avroSchemaToResourceSchema(fieldSchema.getValueType(), schemasInStack,
-            alreadyDefinedSchemas, allowRecursiveSchema);
+      switch(mapAvroSchema.getType()) {
+      case RECORD:
+        ResourceSchema innerResourceSchemaRecord =
+          avroSchemaToResourceSchema(fieldSchema.getValueType(), schemasInStack,
+          alreadyDefinedSchemas, allowRecursiveSchema);
         mapSchemaFields[0] = new ResourceSchema.ResourceFieldSchema();
         mapSchemaFields[0].setType(DataType.TUPLE);
         mapSchemaFields[0].setName(mapAvroSchema.getName());
-        mapSchemaFields[0].setSchema(innerResourceSchema);
+        mapSchemaFields[0].setSchema(innerResourceSchemaRecord);
         mapSchemaFields[0].setDescription(fieldSchema.getDoc());
-      } else {
+        mapSchema.setFields(mapSchemaFields);
+        rf.setSchema(mapSchema);
+        break;
+      case MAP:
+      case ARRAY:
+        ResourceSchema innerResourceSchema =
+            avroSchemaToResourceSchema(fieldSchema.getValueType(), schemasInStack,
+            alreadyDefinedSchemas, allowRecursiveSchema);
+        rf.setSchema(innerResourceSchema);
+        break;
+      default:
         mapSchemaFields[0] = new ResourceSchema.ResourceFieldSchema();
         mapSchemaFields[0].setType(getPigType(mapAvroSchema));
+        mapSchema.setFields(mapSchemaFields);
+        rf.setSchema(mapSchema);
       }
-      mapSchema.setFields(mapSchemaFields);
-      rf.setSchema(mapSchema);
     }
       break;
     case DataType.TUPLE:

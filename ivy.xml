@@ -213,7 +213,7 @@
     </dependency>
     <dependency org="net.sf.jopt-simple" name="jopt-simple" rev="${jopt.version}"
       conf="test->default" />
-    <dependency org="org.xerial.snappy" name="snappy-java" rev="${snappy.version}"
+    <dependency org="org.xerial.snappy" name="snappy-java" rev="${snappy-java.version}"
       conf="compile->default;checkstyle->master"/>
     <dependency org="com.googlecode.json-simple" name="json-simple" rev="${json-simple.version}"
       conf="compile->master;checkstyle->master"/>

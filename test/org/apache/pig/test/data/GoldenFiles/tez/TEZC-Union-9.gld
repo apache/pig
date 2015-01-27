@@ -6,8 +6,8 @@
 #--------------------------------------------------
 Tez vertex scope-40	->	Tez vertex group scope-58,Tez vertex group scope-59,
 Tez vertex scope-46	->	Tez vertex group scope-58,Tez vertex group scope-59,
-Tez vertex group scope-59
 Tez vertex group scope-58
+Tez vertex group scope-59
 
 Tez vertex scope-40
 # Plan on vertex
@@ -105,7 +105,7 @@ Tez vertex scope-46
     |   |---Project[bytearray][0] - scope-23
     |
     |---b: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-19
-Tez vertex group scope-59	<-	 [scope-40, scope-46]	->	 null
-# No plan on vertex group
 Tez vertex group scope-58	<-	 [scope-40, scope-46]	->	 null
+# No plan on vertex group
+Tez vertex group scope-59	<-	 [scope-40, scope-46]	->	 null
 # No plan on vertex group

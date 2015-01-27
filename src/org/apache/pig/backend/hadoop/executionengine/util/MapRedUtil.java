@@ -472,28 +472,38 @@ public class MapRedUtil {
                 result.add(combinedSplits);
                 resultLengths.add(split.getLength());
             } else {
-                ComparableSplit csplit = new ComparableSplit(split, comparableSplitId++);
                 String[] locations = split.getLocations();
-                // sort the locations to stabilize the number of maps: PIG-1757
-                Arrays.sort(locations);
-                HashSet<String> locationSeen = new HashSet<String>();
-                for (String location : locations)
-                {
-                    if (!locationSeen.contains(location))
+                if (locations.length == 0) {
+                    // This split is missing blocks, or the split returned bad locations.
+                    // Don't try to combine.
+                    comparableSplitId++;
+                    ArrayList<InputSplit> combinedSplits = new ArrayList<InputSplit>();
+                    combinedSplits.add(split);
+                    result.add(combinedSplits);
+                    resultLengths.add(split.getLength());
+                } else {
+                    ComparableSplit csplit = new ComparableSplit(split, comparableSplitId++);
+                    // sort the locations to stabilize the number of maps: PIG-1757
+                    Arrays.sort(locations);
+                    HashSet<String> locationSeen = new HashSet<String>();
+                    for (String location : locations)
                     {
-                        Node node = nodeMap.get(location);
-                        if (node == null) {
-                            node = new Node();
-                            nodes.add(node);
-                            nodeMap.put(location, node);
+                        if (!locationSeen.contains(location))
+                        {
+                            Node node = nodeMap.get(location);
+                            if (node == null) {
+                                node = new Node();
+                                nodes.add(node);
+                                nodeMap.put(location, node);
+                            }
+                            node.add(csplit);
+                            csplit.add(node);
+                            locationSeen.add(location);
                         }
-                        node.add(csplit);
-                        csplit.add(node);
-                        locationSeen.add(location);
                     }
+                    lastSplit = split;
+                    size++;
                 }
-                lastSplit = split;
-                size++;
             }
         }
         /* verification code: debug purpose

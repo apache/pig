@@ -17,11 +17,17 @@ package org.apache.pig.test.pigunit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.String;
+import java.util.HashMap;
+import java.util.Map;
+
+import junit.framework.ComparisonFailure;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
@@ -431,5 +437,171 @@ public class TestPigTest {
         propertyFile.delete();
         scriptFile.delete();
         bootupFile.delete();
+    }
+
+    @Test
+    public void testMockedAliasWithDefaultDelimiter() throws Exception  {
+        String[] args = {
+                "n=3",
+                "reducers=1",
+                "input=top_queries_input_data.txt",
+                "output=top_3_queries",
+        };
+
+        test = new PigTest(PIG_SCRIPT, args, null, null);
+
+        String[] mockData = {
+                "Apache\t99",
+                "Pig\t42",
+                "GitHub\t107",
+                "Google\t404"
+        };
+        test.mockAlias("queries_ordered", mockData,"(query: chararray,count: int)");
+
+        String[] expectedOutput = {
+                "(Apache,99)",
+                "(Pig,42)",
+                "(GitHub,107)"
+        };
+        test.assertOutput(expectedOutput);
+    }
+
+    @Test
+    public void testMockedAliasWithDifferentDelimiter() throws Exception  {
+        String[] args = {
+                "n=3",
+                "reducers=1",
+                "input=top_queries_input_data.txt",
+                "output=top_3_queries",
+        };
+
+        test = new PigTest(PIG_SCRIPT, args, null, null);
+
+        String[] mockData = {
+                "Apache,99",
+                "Pig,42",
+                "GitHub,107",
+                "Google,404"
+        };
+        test.mockAlias("queries_ordered", mockData,"(query: chararray,count: int)", ",");
+
+        String[] expectedOutput = {
+                "(Apache,99)",
+                "(Pig,42)",
+                "(GitHub,107)"
+        };
+        test.assertOutput(expectedOutput);
+    }
+
+    @Test
+    public void testAliasSchemaMap() throws Exception {
+        String[] args = {
+                "n=3",
+                "reducers=1",
+                "input=top_queries_input_data.txt",
+                "output=top_3_queries",
+        };
+
+        test = new PigTest(PIG_SCRIPT, args, null, null);
+        
+        final Map<String, String> expected = new HashMap<String, String>();
+        expected.put("data", "(query: chararray,count: int)");
+        expected.put("queries_group", "(group: chararray,data: {(query: chararray,count: int)})");
+        expected.put("queries_sum", "(query: chararray,count: long)");
+        expected.put("queries_ordered", "(query: chararray,count: long)");
+        expected.put("queries_limit", "(query: chararray,count: long)");
+        Map<String, String> map = test.getAliasToSchemaMap();
+        
+        assertEquals(expected, map);
+    }
+    
+    @Test
+    public void testAnyOrderOutput() throws Exception  {
+        String[] args = {
+                "n=3",
+                "reducers=1",
+                "input=top_queries_input_data.txt",
+                "output=top_3_queries",
+        };
+
+        test = new PigTest(PIG_SCRIPT, args);
+
+        String[] reorderedExpectedOutput = {
+                "(twitter,7)",
+                "(yahoo,25)",
+                "(facebook,15)"
+        };
+        test.assertOutputAnyOrder(reorderedExpectedOutput);
+    }
+    
+    @Test
+    public void testAnyOrderOutputForAlias() throws Exception  {
+        String[] args = {
+                "n=3",
+                "reducers=1",
+                "input=top_queries_input_data.txt",
+                "output=top_3_queries",
+        };
+
+        test = new PigTest(PIG_SCRIPT, args);
+
+        String[] reorderedExpectedOutput = {
+                "(twitter,7)",
+                "(yahoo,25)",
+                "(facebook,15)"
+        };
+        test.assertOutputAnyOrder("queries_limit", reorderedExpectedOutput);
+    }
+    
+    @Test
+    public void testSpecificOrderOutput() throws Exception  {
+        String[] args = {
+                "n=3",
+                "reducers=1",
+                "input=top_queries_input_data.txt",
+                "output=top_3_queries",
+        };
+
+        test = new PigTest(PIG_SCRIPT, args);
+
+        String[] reorderedExpectedOutput = {
+                "(twitter,7)",
+                "(yahoo,25)",
+                "(facebook,15)"
+        };
+        
+        try {
+            test.assertOutput(reorderedExpectedOutput);
+            fail("assertOutput should fail when the records are unordered.");
+        }
+        catch(ComparisonFailure e) {
+            //Test passes
+        }
+    }
+    
+    @Test
+    public void testSpecificOrderOutputForAlias() throws Exception  {
+        String[] args = {
+                "n=3",
+                "reducers=1",
+                "input=top_queries_input_data.txt",
+                "output=top_3_queries",
+        };
+
+        test = new PigTest(PIG_SCRIPT, args);
+
+        String[] reorderedExpectedOutput = {
+                "(twitter,7)",
+                "(yahoo,25)",
+                "(facebook,15)"
+        };
+        
+        try {
+            test.assertOutput("queries_limit", reorderedExpectedOutput);
+            fail("assertOutput should fail when the records are unordered.");
+        }
+        catch(ComparisonFailure e) {
+            //Test passes
+        }
     }
 }

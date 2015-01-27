@@ -49,6 +49,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.BinaryComparator;
@@ -178,6 +179,8 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     private final long minTimestamp_;
     private final long maxTimestamp_;
     private final long timestamp_;
+    private boolean includeTimestamp_;
+    private boolean includeTombstone_;
 
     protected transient byte[] gt_;
     protected transient byte[] gte_;
@@ -211,6 +214,8 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         validOptions_.addOption("minTimestamp", true, "Record must have timestamp greater or equal to this value");
         validOptions_.addOption("maxTimestamp", true, "Record must have timestamp less then this value");
         validOptions_.addOption("timestamp", true, "Record must have timestamp equal to this value");
+        validOptions_.addOption("includeTimestamp", false, "Record will include the timestamp after the rowkey on store (rowkey, timestamp, ...)");
+        validOptions_.addOption("includeTombstone", false, "Record will include a tombstone marker on store after the rowKey and timestamp (if included) (rowkey, [timestamp,] tombstone, ...)");
     }
 
     /**
@@ -254,6 +259,8 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
      * <li>-minTimestamp= Scan's timestamp for min timeRange
      * <li>-maxTimestamp= Scan's timestamp for max timeRange
      * <li>-timestamp= Scan's specified timestamp
+     * <li>-includeTimestamp= Record will include the timestamp after the rowkey on store (rowkey, timestamp, ...)
+     * <li>-includeTombstone= Record will include a tombstone marker on store after the rowKey and timestamp (if included) (rowkey, [timestamp,] tombstone, ...)
      * <li>-caster=(HBaseBinaryConverter|Utf8StorageConverter) Utf8StorageConverter is the default
      * To be used with extreme caution, since this could result in data loss
      * (see http://hbase.apache.org/book.html#perf.hbase.client.putwal).
@@ -268,7 +275,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
             configuredOptions_ = parser_.parse(validOptions_, optsArr);
         } catch (ParseException e) {
             HelpFormatter formatter = new HelpFormatter();
-            formatter.printHelp( "[-loadKey] [-gt] [-gte] [-lt] [-lte] [-regex] [-columnPrefix] [-cacheBlocks] [-caching] [-caster] [-noWAL] [-limit] [-delim] [-ignoreWhitespace] [-minTimestamp] [-maxTimestamp] [-timestamp]", validOptions_ );
+            formatter.printHelp( "[-loadKey] [-gt] [-gte] [-lt] [-lte] [-regex] [-cacheBlocks] [-caching] [-caster] [-noWAL] [-limit] [-delim] [-ignoreWhitespace] [-minTimestamp] [-maxTimestamp] [-timestamp] [-includeTimestamp] [-includeTombstone]", validOptions_ );
             throw e;
         }
 
@@ -341,6 +348,22 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
             timestamp_ = Long.parseLong(configuredOptions_.getOptionValue("timestamp"));
         } else {
             timestamp_ = 0;
+        }
+
+        includeTimestamp_ = false;
+        if (configuredOptions_.hasOption("includeTimestamp")) {
+            String value = configuredOptions_.getOptionValue("includeTimestamp");
+            if ("true".equalsIgnoreCase(value) || "".equalsIgnoreCase(value) || value == null ) {//the empty string and null check is for backward compat.
+                includeTimestamp_ = true;
+            }
+        }
+
+        includeTombstone_ = false;
+        if (configuredOptions_.hasOption("includeTombstone")) {
+            String value = configuredOptions_.getOptionValue("includeTombstone");
+            if ("true".equalsIgnoreCase(value) || "".equalsIgnoreCase(value) || value == null ) {
+                includeTombstone_ = true;
+            }
         }
 
         initScan();
@@ -930,7 +953,41 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     public void putNext(Tuple t) throws IOException {
         ResourceFieldSchema[] fieldSchemas = (schema_ == null) ? null : schema_.getFields();
         byte type = (fieldSchemas == null) ? DataType.findType(t.get(0)) : fieldSchemas[0].getType();
-        long ts=System.currentTimeMillis();
+        long ts;
+
+        int startIndex=1;
+        if (includeTimestamp_) {
+            byte timestampType = (fieldSchemas == null) ? DataType.findType(t.get(startIndex)) : fieldSchemas[startIndex].getType();
+            LoadStoreCaster caster = (LoadStoreCaster) caster_;
+
+            switch (timestampType) {
+            case DataType.BYTEARRAY: ts = caster.bytesToLong(((DataByteArray)t.get(startIndex)).get()); break;
+            case DataType.LONG: ts = ((Long)t.get(startIndex)).longValue(); break;
+            case DataType.DATETIME: ts = ((DateTime)t.get(startIndex)).getMillis(); break;
+            default: throw new IOException("Unable to find a converter for timestamp field " + t.get(startIndex));
+            }
+
+            startIndex++;
+        } else {
+            ts = System.currentTimeMillis();
+        }
+
+        // check for deletes
+        if (includeTombstone_) {
+            if (((Boolean)t.get(startIndex)).booleanValue()) {
+                Delete delete = createDelete(t.get(0), type, ts);
+                try {
+                    // this is a delete so there will be
+                    // no put and we are done here
+                    writer.write(null, delete);
+                    return;
+                } catch (InterruptedException e) {
+                    throw new IOException(e);
+                }
+            }
+
+            startIndex++;
+        }
 
         Put put = createPut(t.get(0), type);
 
@@ -941,8 +998,8 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
             }
         }
 
-        for (int i=1;i<t.size();++i){
-            ColumnInfo columnInfo = columnInfo_.get(i-1);
+        for (int i=startIndex;i<t.size();++i){
+            ColumnInfo columnInfo = columnInfo_.get(i-startIndex);
             if (LOG.isDebugEnabled()) {
                 LOG.debug("putNext - tuple: " + i + ", value=" + t.get(i) +
                         ", cf:column=" + columnInfo);
@@ -976,6 +1033,25 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         } catch (InterruptedException e) {
             throw new IOException(e);
         }
+    }
+
+    /**
+     * Public method to initialize a Delete.
+     *
+     * @param key
+     * @param type
+     * @param timestamp
+     * @return new delete
+     * @throws IOException
+     */
+    public Delete createDelete(Object key, byte type, long timestamp) throws IOException {
+        Delete delete = new Delete(objToBytes(key, type), timestamp);
+
+        if(noWAL_) {
+            delete.setWriteToWAL(false);
+        }
+
+        return delete;
     }
 
     /**

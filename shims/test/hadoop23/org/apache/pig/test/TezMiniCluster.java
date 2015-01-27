@@ -33,7 +33,9 @@ import org.apache.hadoop.mapreduce.v2.MiniMRYarnCluster;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigConfiguration;
+import org.apache.pig.backend.hadoop.executionengine.Launcher;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezExecType;
+import org.apache.pig.backend.hadoop.executionengine.tez.TezLauncher;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezSessionManager;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
@@ -184,5 +186,9 @@ public class TezMiniCluster extends MiniGenericCluster {
         if(YARN_CONF_FILE.exists()) {
             YARN_CONF_FILE.delete();
         }
+    }
+
+    static public Launcher getLauncher() {
+        return new TezLauncher();
     }
 }

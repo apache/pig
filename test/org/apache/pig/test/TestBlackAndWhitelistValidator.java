@@ -26,7 +26,6 @@ import java.io.File;
 import java.util.Properties;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
@@ -61,7 +60,7 @@ public class TestBlackAndWhitelistValidator {
 
     @Before
     public void setUp() throws Exception {
-        ctx = new PigContext(ExecType.LOCAL, new Properties());
+        ctx = new PigContext(Util.getLocalTestMode(), new Properties());
         ctx.connect();
     }
 

@@ -41,7 +41,6 @@ import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.parser.ParserException;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -98,8 +97,8 @@ public class TestStoreInstances  {
      * @throws ParseException
      */
     @Test
-    public void testBackendStoreCommunication() throws IOException, ParserException {
-        ExecType[] execTypes = { cluster.getExecType(), ExecType.LOCAL};
+    public void testBackendStoreCommunication() throws Exception {
+        ExecType[] execTypes = { cluster.getExecType(), Util.getLocalTestMode()};
         PigServer pig = null;
         for(ExecType execType : execTypes){
             Util.resetStateForExecModeSwitch();

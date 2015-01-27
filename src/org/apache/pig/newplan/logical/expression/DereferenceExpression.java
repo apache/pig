@@ -206,7 +206,7 @@ public class DereferenceExpression extends ColumnExpression {
             	    throw new FrontendException("Index "+rawColumn + " out of range in schema:" + schema.toString(false), 1127);
             	}
                 columns.add( (Integer)rawColumn );
-            } else {
+            } else if (schema!=null) {
                 int pos = schema.getFieldPosition((String)rawColumn);
                 if( pos != -1) {
                     columns.add( pos );

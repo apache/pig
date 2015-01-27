@@ -608,6 +608,7 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         private POStore store;
         private OutputDescriptor storeOutDescriptor;
         private VertexGroup vertexGroup;
+        private FileSpec sFile;
 
         public VertexGroupInfo() {
         }
@@ -659,6 +660,13 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
             this.vertexGroup = vertexGroup;
         }
 
+        public void setSFile(FileSpec sFile) {
+            this.sFile = sFile;
+        }
+
+        public FileSpec getSFile() {
+            return sFile;
+        }
     }
 }
 

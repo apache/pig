@@ -28,18 +28,30 @@ import java.util.Properties;
 import java.util.Random;
 
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.util.JavaCompilerHelper;
+import org.apache.pig.test.junit.OrderedJUnit4Runner;
+import org.apache.pig.test.junit.OrderedJUnit4Runner.TestOrder;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
+//Need to run testImportList first due to TEZ-1802
+@RunWith(OrderedJUnit4Runner.class)
+@TestOrder({
+    "testImportList",
+    "testScriptFiles",
+    "testSetProperties_way_num01",
+    "testSetProperties_way_num02",
+    "testSetProperties_way_num03",
+    "testHadoopExceptionCreation"
+})
 public class TestPigContext {
     private static final String TMP_DIR_PROP = "/tmp/hadoop-hadoop";
     private static final String FS_NAME = "file:///";
@@ -60,7 +72,7 @@ public class TestPigContext {
     @Before
     public void setUp() throws Exception {
         Util.resetStateForExecModeSwitch();
-        pigContext = new PigContext(ExecType.LOCAL, getProperties());
+        pigContext = new PigContext(Util.getLocalTestMode(), getProperties());
         input = File.createTempFile("PigContextTest-", ".txt");
     }
 
@@ -85,7 +97,7 @@ public class TestPigContext {
      */
     @Test
     public void testSetProperties_way_num02() throws Exception {
-        PigServer pigServer = new PigServer(ExecType.LOCAL, getProperties());
+        PigServer pigServer = new PigServer(Util.getLocalTestMode(), getProperties());
         registerAndStore(pigServer);
 
         check_asserts(pigServer);
@@ -204,7 +216,7 @@ public class TestPigContext {
     @SuppressWarnings("deprecation")
     @Test
     public void testScriptFiles() throws Exception {
-        PigContext pc = new PigContext(ExecType.LOCAL, getProperties());
+        PigContext pc = new PigContext(Util.getLocalTestMode(), getProperties());
         final int n = pc.scriptFiles.size();
         pc.addScriptFile("test/path-1824");
         assertEquals("test" + File.separator + "path-1824", pc.getScriptFiles().get("test/path-1824").toString());

@@ -41,6 +41,7 @@
             <include name="Log.pm"/>
             <include name="Properties.pm"/>
             <include name="test_harness.pl"/>
+            <include name="xmlReport.pl"/>
         </fileset>
     </copy>
 

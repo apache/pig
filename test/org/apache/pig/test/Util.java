@@ -45,8 +45,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -650,23 +650,7 @@ public class Util {
 
     static public void copyFromLocalToLocal(String fromLocalFileName,
             String toLocalFileName) throws IOException {
-        if(Util.WINDOWS){
-            fromLocalFileName = fromLocalFileName.replace('\\','/');
-            toLocalFileName = toLocalFileName.replace('\\','/');
-        }
-        PigServer ps = new PigServer(ExecType.LOCAL, new Properties());
-        String script = getMkDirCommandForHadoop2_0(toLocalFileName) + "fs -cp " + fromLocalFileName + " " + toLocalFileName;
-
-        new File(toLocalFileName).deleteOnExit();
-
-        GruntParser parser = new GruntParser(new StringReader(script), ps);
-        parser.setInteractive(false);
-        try {
-            parser.parseStopOnError();
-        } catch (org.apache.pig.tools.pigscript.parser.ParseException e) {
-            throw new IOException(e);
-        }
-
+        FileUtils.copyFile(new File(fromLocalFileName), new File(toLocalFileName));
     }
 
     static public void copyFromClusterToLocal(MiniGenericCluster cluster,
@@ -1385,5 +1369,25 @@ public class Util {
         Appender appender = logger.getAppender(appenderName);
         appender.close();
         logger.removeAppender(appenderName);
+    }
+
+    public static Path getFirstPartFile(Path path) throws Exception {
+        FileStatus[] parts = FileSystem.get(path.toUri(), new Configuration()).listStatus(path, 
+                new PathFilter() {
+            @Override
+            public boolean accept(Path path) {
+                return path.getName().startsWith("part-");
+              }
+        });
+        return parts[0].getPath(); 
+    }
+
+    public static File getFirstPartFile(File dir) throws Exception {
+        File[] parts = dir.listFiles(new FilenameFilter() {
+            public boolean accept(File dir, String name) {
+                return name.startsWith("part-");
+            };
+        });
+        return parts[0]; 
     }
 }

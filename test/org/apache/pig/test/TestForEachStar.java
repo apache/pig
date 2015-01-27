@@ -20,17 +20,12 @@ package org.apache.pig.test;
 import static org.junit.Assert.*;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Iterator;
-import java.util.List;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.parser.ParserException;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -65,8 +60,8 @@ public class TestForEachStar {
     }
 
     @Test
-    public void testForeachStarSchemaUnkown() throws IOException, ParserException{
-        PigServer pig = new PigServer(ExecType.LOCAL);
+    public void testForeachStarSchemaUnkown() throws Exception {
+        PigServer pig = new PigServer(Util.getLocalTestMode());
         String query =
             "  l1 = load '" + INPUT_FILE + "' ;"
             + "f1 = foreach l1 generate * ;"

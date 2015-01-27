@@ -30,6 +30,7 @@ import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.Mapper.Context;
 import org.apache.pig.JVMReuseManager;
 import org.apache.pig.PigConstants;
 import org.apache.pig.PigException;
@@ -50,6 +51,7 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.SchemaTupleBackend;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.NullablePartitionWritable;
 import org.apache.pig.impl.io.NullableTuple;
@@ -134,6 +136,92 @@ public class PigGenericMapReduce {
 
             oc.write(key, val);
         }
+    }
+
+    /**
+     * This map is only used for the Rollup when the RollupHIIOptimizer is enabled
+     *
+     */
+    public static class MapRollupHII extends PigMapBase {
+        @Override
+        public void collect(Context oc, Tuple tuple)
+                throws InterruptedException, IOException {
+
+            Byte index = (Byte)tuple.get(0);
+            PigNullableWritable key =
+                HDataType.getWritableComparableTypes(tuple.get(1), keyType);
+            NullableTuple val = new NullableTuple((Tuple)tuple.get(2));
+
+            // Both the key and the value need the index.  The key needs it so
+            // that it can be sorted on the index in addition to the key
+            // value.  The value needs it so that POPackage can properly
+            // assign the tuple to its slot in the projection.
+            key.setIndex(index);
+            val.setIndex(index);
+
+            oc.write(key, val);
+        }
+
+        @Override
+        public void cleanup(Context oc)
+                throws InterruptedException, IOException {
+
+            Configuration jConf = oc.getConfiguration();
+
+            boolean isHII = jConf.getBoolean(PigConstants.PIG_HII_ROLLUP_OPTIMIZABLE, false);
+            //If our rule is enabled and is using, there will be a PORollupHIIForEach
+            //We will create marker tuples which are considered as markers for reducers
+            //to calculate the remaining results when that reducer goes to the end of the
+            //input records. This marker tuple will have larger size than the defaut by one
+            //dimension. This addition dimension will be the value which are ranged from 0 to
+            //number of reducers. By this addition, we can make sure that every reducers can
+            //receive these marker tuples to finish their works.
+            if(isHII) {
+                int reducerNo = jConf.getInt("mapred.reduce.tasks", 0);
+                int length = jConf.getInt(PigConstants.PIG_HII_NUMBER_TOTAL_FIELD, 0);
+                int nAlgebraic = jConf.getInt(PigConstants.PIG_HII_NUMBER_ALGEBRAIC, 1);
+
+                if(length == 0)
+                    return;
+
+                TupleFactory mTupleFactory = TupleFactory.getInstance();
+                //An array of marker tuples which has size equals to number of reducers
+                Tuple group[] = new Tuple[reducerNo];
+                int count = 0;
+                //Make sure that all reducers will receive those marker tuples
+                while(count < reducerNo) {
+                    //Create marker tuple with last field is the reducer's index,
+                    //the rest are null.
+                    group[count] = mTupleFactory.newTuple();
+                    for (int k = 0; k <= length; k++) {
+                        if(k < length) {
+                            group[count].append(null);
+                        } else {
+                            group[count].append(count);
+                        }
+                    }
+
+                    Tuple value = mTupleFactory.newTuple();
+                    Tuple []tmp = new Tuple[nAlgebraic];
+                    long valtmp = 1;
+                    for(int i = 0; i < nAlgebraic; i++){
+                        tmp[i] = mTupleFactory.newTuple();
+                        tmp[i].append(valtmp);
+                        value.append(tmp[i]);
+                    }
+                    Tuple out = mTupleFactory.newTuple();
+                    out.append(0);
+                    out.append(group[count]);
+                    out.append(value);
+
+                    PigNullableWritable key = HDataType.getWritableComparableTypes(out.get(1), keyType);
+                    NullableTuple val = new NullableTuple((Tuple)out.get(2));
+                    oc.write(key, val);
+                    count++;
+                }
+            }
+            super.cleanup(oc);
+         }
     }
 
     /**

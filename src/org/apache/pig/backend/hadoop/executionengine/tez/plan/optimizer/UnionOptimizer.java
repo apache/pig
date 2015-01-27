@@ -35,9 +35,9 @@ import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperator.OPER_F
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperator.VertexGroupInfo;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POStoreTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POValueOutputTez;
-import org.apache.pig.backend.hadoop.executionengine.tez.runtime.RoundRobinPartitioner;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.TezInput;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.TezOutput;
+import org.apache.pig.builtin.RoundRobinPartitioner;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.ReverseDependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
@@ -97,11 +97,28 @@ public class UnionOptimizer extends TezOpPlanVisitor {
         // Union followed by Split followed by Store could have multiple stores
         List<POStoreTez> unionStoreOutputs = PlanHelper.getPhysicalOperators(unionOpPlan, POStoreTez.class);
         TezOperator[] storeVertexGroupOps = new TezOperator[unionStoreOutputs.size()];
+        List<TezOperator> succs = tezPlan.getSuccessors(unionOp);
+        // Create a copy as disconnect while iterating modifies the original list
+        List<TezOperator> successors = succs == null ? null : new ArrayList<TezOperator>(succs);
+        
         for (int i=0; i < storeVertexGroupOps.length; i++) {
-            storeVertexGroupOps[i] = new TezOperator(OperatorKey.genOpKey(scope));
-            storeVertexGroupOps[i].setVertexGroupInfo(new VertexGroupInfo(unionStoreOutputs.get(i)));
-            storeVertexGroupOps[i].setVertexGroupMembers(unionOp.getVertexGroupMembers());
-            tezPlan.add(storeVertexGroupOps[i]);
+            TezOperator existingVertexGroup = null;
+            if (successors != null) {
+                for (TezOperator succ : successors) {
+                    if (succ.isVertexGroup() && succ.getVertexGroupInfo().getSFile().equals(unionStoreOutputs.get(i).getSFile())) {
+                        existingVertexGroup = succ;
+                    }
+                }
+            }
+            if (existingVertexGroup != null) {
+                storeVertexGroupOps[i] = existingVertexGroup;
+            } else {
+                storeVertexGroupOps[i] = new TezOperator(OperatorKey.genOpKey(scope));
+                storeVertexGroupOps[i].setVertexGroupInfo(new VertexGroupInfo(unionStoreOutputs.get(i)));
+                storeVertexGroupOps[i].getVertexGroupInfo().setSFile(unionStoreOutputs.get(i).getSFile());
+                storeVertexGroupOps[i].setVertexGroupMembers(unionOp.getVertexGroupMembers());
+                tezPlan.add(storeVertexGroupOps[i]);
+            }
         }
 
         // Case of split, orderby, skewed join, rank, etc will have multiple outputs
@@ -182,7 +199,6 @@ public class UnionOptimizer extends TezOpPlanVisitor {
                 tezPlan.disconnect(pred, unionOp);
             }
 
-            List<TezOperator> successors = tezPlan.getSuccessors(unionOp);
             List<TezOutput> valueOnlyOutputs = new ArrayList<TezOutput>();
             for (TezOutput tezOutput : unionOutputs) {
                 if (tezOutput instanceof POValueOutputTez) {
@@ -243,9 +259,6 @@ public class UnionOptimizer extends TezOpPlanVisitor {
             throw new VisitorException(e);
         }
 
-        List<TezOperator> succs = tezPlan.getSuccessors(unionOp);
-        // Create a copy as disconnect while iterating modifies the original list
-        List<TezOperator> successors = succs == null ? null : new ArrayList<TezOperator>(succs);
         if (successors != null) {
             // Successor inputs should now point to the vertex groups.
             for (TezOperator succ : successors) {

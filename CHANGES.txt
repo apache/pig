@@ -24,9 +24,77 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-2692: Make the Pig unit faciliities more generalizable and update javadocs (razsapps via daijy)
+
+PIG-4379: Make RoundRobinPartitioner public (daijy)
+
+PIG-4378: Better way to fix tez local mode test hanging (daijy)
+
+PIG-4358: Add test cases for utf8 chinese in Pig (nmaheshwari via daijy)
+
+PIG-4370: HBaseStorage should support delete markers (bridiver via daijy)
+
+PIG-4360: HBaseStorage should support setting the timestamp field (bridiver via daijy)
+
+PIG-4337: Split Types and MultiQuery e2e tests into multiple groups (rohini)
+
+PIG-4066: An optimization for ROLLUP operation in Pig (hxquangnhat via cheolsoo)
+
 PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES
+
+PIG-4387: Honor yarn settings in tez-site.xml and optimize dag status fetch (rohini)
+
+PIG-4352: Port local mode tests to Tez - TestUnionOnSchema (daijy)
+
+PIG-4359: Port local mode tests to Tez - part4 (daijy)
+
+PIG-4340: PigStorage fails parsing empty map (daijy)
+
+PIG-4366: Port local mode tests to Tez - part5 (daijy)
+
+PIG-4381: PIG grunt shell DEFINE commands fails when it spans multiple lines (daijy)
+
+PIG-4384: TezLauncher thread should be deamon thread (zjffdu via daijy)
+
+PIG-4376: NullPointerException accessing a field of an invalid bag from a nested foreach
+ (kspringborn via daijy)
+
+PIG-4355: Piggybank: XPath cant handle namespace in xpath, nor can it return more than one match
+ (cavanaug via daijy)
+
+PIG-4371: Duplicate snappy.version in libraries.properties (daijy)
+
+PIG-4368: Port local mode tests to Tez - TestLoadStoreFuncLifeCycle (daijy)
+
+PIG-4367: Port local mode tests to Tez - TestMultiQueryBasic (daijy)
+
+PIG-4339: e2e test framework assumes default exectype as mapred (rohini)
+
+PIG-2949: JsonLoader only reads arrays of objects (eyal via daijy)
+
+PIG-4213: CSVExcelStorage not quoting texts containing \r (CR) when storing (alfonso.nishikawa via daijy)
+
+PIG-2647: Split Combining drops splits with empty getLocations() (tmwoodruff via daijy)
+
+PIG-4294: Enable unit test "TestNestedForeach" for spark (kellyzly via rohini)
+
+PIG-4282: Enable unit test "TestForEachNestedPlan" for spark (kellyzly via rohini) 
+
+PIG-4361: Fix perl script problem in TestStreaming.java (kellyzly via xuefu)
+
+PIG-4354: Port local mode tests to Tez - part3 (daijy)
+
+PIG-4338: Fix test failures with JDK8 (rohini)
+
+PIG-4351: TestPigRunner.simpleTest2 fail on trunk (daijy)
+
+PIG-4350: Port local mode tests to Tez - part2 (daijy)
+
+PIG-4326: AvroStorageSchemaConversionUtilities does not properly convert schema for maps of arrays of records (mprim via daijy)
+
+PIG-4345: e2e test "RubyUDFs_13" fails because of the different result of "group a all" in different engines like "spark", "mapreduce" (kellyzly via rohini)
 
 PIG-4332: Remove redundant jars packaged into pig-withouthadoop.jar for hadoop 2 (rohini)
 
@@ -54,6 +122,8 @@ INCOMPATIBLE CHANGES
 IMPROVEMENTS
 
 BUG FIXES
+
+PIG-4375: ObjectCache should use ProcessorContext.getObjectRegistry() (rohini)
 
 PIG-4334: PigProcessor does not set pig.datetime.default.tz (rohini)
 

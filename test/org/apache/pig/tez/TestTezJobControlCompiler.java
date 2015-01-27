@@ -24,6 +24,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
@@ -267,7 +268,9 @@ public class TestTezJobControlCompiler {
                 + "d = group c by name;"
                 + "store d into 'o2';";
         Pair<TezOperPlan, DAG> compiledPlan = compile(query);
-        TezOperator leafOper = compiledPlan.first.getLeaves().get(0);
+        List<TezOperator> leaves = compiledPlan.first.getLeaves();
+        Collections.sort(leaves);
+        TezOperator leafOper = leaves.get(1);
         Vertex leafVertex = compiledPlan.second.getVertex(leafOper.getOperatorKey().toString());
         assertEquals(leafVertex.getParallelism(), 7);
     }

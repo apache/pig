@@ -1356,12 +1356,39 @@ public class TestParamSubPreproc {
         File outputFile = File.createTempFile("tmp", "");
         outputFile.delete();
         PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
-        String command = "a = load '" + Util.generateURI(inputFile.toString(), pc)  + "' as ($param1:chararray, $param2:int);\n"
-                + "store a into '" + Util.generateURI(outputFile.toString(), pc) + "';\n"
+        String command = "%default agelimit `echo 15`\n"
+                + "rmf $outputFile;\n"
+                + "a = load '" + Util.generateURI(inputFile.toString(), pc)  + "' as ($param1:chararray, $param2:int);\n"
+                + "b = filter a by age > $agelimit;"
+                + "store b into '$outputFile';\n"
                 + "quit\n";
         System.setProperty("jline.WindowsTerminal.directConsole", "false");
         System.setIn(new ByteArrayInputStream(command.getBytes()));
-        org.apache.pig.PigRunner.run(new String[] {"-x", "local", "-p", "param1=name", "-p", "param2=age"}, null);
+        org.apache.pig.PigRunner.run(new String[] {"-x", "local", "-p", "param1=name", "-p", "param2=age", "-p", "outputFile=" + Util.generateURI(outputFile.toString(), pc)}, null);
+        File[] partFiles = outputFile.listFiles(new FilenameFilter() {
+            public boolean accept(File dir, String name) { 
+            return name.startsWith("part");
+        }
+        });
+        String resultContent = Util.readFile(partFiles[0]);
+        assertEquals(resultContent, "jenny\t20\n");
+    }
+
+    @Test
+    public void testGruntMultilineDefine() throws Exception{
+        log.info("Starting test testGruntMultilineDefine()");
+        File inputFile = Util.createFile(new String[]{"daniel\t10","jenny\t20"});
+        File outputFile = File.createTempFile("tmp", "");
+        outputFile.delete();
+        PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
+        String command = "DEFINE process(input_file) returns data {\n" +
+                "$data = load '$input_file' using PigStorage(',');};\n" +
+                "b = process('" + Util.generateURI(inputFile.toString(), pc)  + "');\n" +
+                "store b into '" + Util.generateURI(outputFile.toString(), pc) + "';" +
+                "quit\n";
+        System.setProperty("jline.WindowsTerminal.directConsole", "false");
+        System.setIn(new ByteArrayInputStream(command.getBytes()));
+        org.apache.pig.PigRunner.run(new String[] {"-x", "local"}, null);
         File[] partFiles = outputFile.listFiles(new FilenameFilter() {
             public boolean accept(File dir, String name) { 
             return name.startsWith("part");

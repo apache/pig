@@ -25,8 +25,8 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.test.Util;
 import org.apache.pig.tools.grunt.GruntParser.ExplainState;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,8 +36,8 @@ public class TestGruntParser {
     static PigServer pig;
     
     @Before
-    public void setup() throws IOException {
-        pig = new PigServer(ExecType.LOCAL);
+    public void setup() throws Exception {
+        pig = new PigServer(Util.getLocalTestMode());
     }
 
     @Test

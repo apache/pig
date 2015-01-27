@@ -42,7 +42,6 @@ import java.math.BigInteger;
 
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
-import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -204,7 +203,7 @@ public class TestBuiltin {
     public void setUp() throws Exception {
         Util.resetStateForExecModeSwitch();
 
-        pigServer = new PigServer(ExecType.LOCAL, new Properties());
+        pigServer = new PigServer(Util.getLocalTestMode(), new Properties());
         pigServer.setValidateEachStatement(true);
         // First set up data structs for "base" SUM, MIN and MAX and AVG.
         // The allowed input and expected output data structs for
@@ -2411,7 +2410,7 @@ public class TestBuiltin {
     public void testComplexMultiCONCAT() throws Exception {
         String input = "vararg_concat_test_jira_3444.txt";
         Util.createLocalInputFile(input, new String[]{"dummy"});
-        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        PigServer pigServer = new PigServer(Util.getLocalTestMode());
         pigServer.registerQuery("A = LOAD '"+input+"' as (x:chararray);");
         
         pigServer.registerQuery("B = foreach A generate CONCAT('a', CONCAT('b',CONCAT('c','d')));");
@@ -2483,7 +2482,7 @@ public class TestBuiltin {
         //
         String input = "vararg_sprintf_test_jira_3939.txt";
         Util.createLocalInputFile(input, new String[]{"dummy"});
-        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        PigServer pigServer = new PigServer(Util.getLocalTestMode());
         pigServer.registerQuery("A = LOAD '"+input+"' as (x:chararray);");
         //
         pigServer.registerQuery("B = foreach A generate SPRINTF('%6s|%-8s|%2$,+12d %2$8x', 'yay', 665568);");

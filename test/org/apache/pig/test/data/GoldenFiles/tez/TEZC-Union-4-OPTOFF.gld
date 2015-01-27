@@ -66,4 +66,4 @@ e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-74
     |   |
     |   Project[int][0] - scope-67
     |
-    |---POShuffledValueInputTez - scope-78	<-	 [scope-76, scope-75]
+    |---POShuffledValueInputTez - scope-78	<-	 [scope-75, scope-76]

@@ -44,6 +44,7 @@ import org.apache.pig.newplan.logical.rules.PartitionFilterOptimizer;
 import org.apache.pig.newplan.logical.rules.PredicatePushdownOptimizer;
 import org.apache.pig.newplan.logical.rules.PushDownForEachFlatten;
 import org.apache.pig.newplan.logical.rules.PushUpFilter;
+import org.apache.pig.newplan.logical.rules.RollupHIIOptimizer;
 import org.apache.pig.newplan.logical.rules.SplitFilter;
 import org.apache.pig.newplan.logical.rules.StreamTypeCastInserter;
 import org.apache.pig.newplan.optimizer.PlanOptimizer;
@@ -56,6 +57,7 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
     private boolean allRulesDisabled = false;
     private SetMultimap<RulesReportKey, String> rulesReport = TreeMultimap.create();
     private PigContext pc = null;
+    private static final String MAPREDUCE_FW = "MAPREDUCE";
 
     public LogicalPlanOptimizer(OperatorPlan p, int iterations, Set<String> turnOffRules) {
         this(p, iterations, turnOffRules, null);
@@ -203,6 +205,20 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
         if (!s.isEmpty())
             ls.add(s);
 
+        // RollupHIIOptimizer Set
+        // This set of rules for rollup hii
+        // If pig is not running in MR mode, this rule will be disabled
+        if (pc!=null)
+            if (pc.getExecType().toString().equals(MAPREDUCE_FW)) {
+                s = new HashSet<Rule>();
+                // Optimize RollupHII
+                r = new RollupHIIOptimizer("RollupHIIOptimizer");
+                checkAndAddRule(s, r);
+                if (!s.isEmpty())
+                    ls.add(s);
+            } else {
+                LOG.info("Not MR mode. RollupHIIOptimizer is disabled");
+            }
         return ls;
     }
 

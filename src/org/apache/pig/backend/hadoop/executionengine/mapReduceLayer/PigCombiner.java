@@ -268,6 +268,8 @@ public class PigCombiner {
             leaf = null;
             pack = null;
             pigReporter = null;
+            // Avoid OOM in Tez.
+            PhysicalOperator.setReporter(null);
             pigContext = null;
             roots = null;
             cp = null;

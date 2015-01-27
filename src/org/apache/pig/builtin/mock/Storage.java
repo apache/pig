@@ -459,7 +459,7 @@ private MockRecordWriter mockRecordWriter;
 
   @Override
   public void putNext(Tuple t) throws IOException {
-      mockRecordWriter.dataBeingWritten.add(t);
+      mockRecordWriter.dataBeingWritten.add(TF.newTuple(t.getAll()));
   }
 
   @Override
@@ -648,6 +648,10 @@ private MockRecordWriter mockRecordWriter;
     @Override
     public RecordWriter<Object, Object> getRecordWriter(TaskAttemptContext arg0) throws IOException,
     InterruptedException {
+      if (arg0.getConfiguration().get("mapreduce.output.basename")!=null) {
+          return new MockRecordWriter(arg0.getConfiguration().get("mapreduce.output.basename") + "-" +
+                  arg0.getTaskAttemptID().getTaskID().getId());
+      }
       return new MockRecordWriter(getUniqueFile(arg0, "part", ".mock"));
     }
 

@@ -84,6 +84,16 @@ import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 public class LOCube extends LogicalRelationalOperator {
     private MultiMap<Integer, LogicalExpressionPlan> mExpressionPlans;
     private List<String> operations;
+    //the pivot position
+    private int pivot = -1;
+
+    public void setPivot(int pvt) {
+        this.pivot = pvt;
+    }
+
+    public int getPivot() {
+        return this.pivot;
+    }
 
     public LOCube(LogicalPlan plan) {
 	super("LOCube", plan);

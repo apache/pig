@@ -16,7 +16,6 @@
 
 package org.apache.pig.test;
 
-import static org.apache.pig.ExecType.LOCAL;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -31,6 +30,7 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
 import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestPigSplit {
@@ -38,13 +38,18 @@ public class TestPigSplit {
     protected final Log log = LogFactory.getLog(getClass());
 
     private static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
-    private static ExecType[] execTypes = new ExecType[] { ExecType.LOCAL, cluster.getExecType() };
+    private static ExecType[] execTypes;
     protected PigServer pigServer;
 
     /**
      * filename of input in each of the tests
      */
     String inputFileName;
+
+    @BeforeClass
+    public static void oneTimeSetup() throws Exception {
+        execTypes = new ExecType[] { cluster.getExecType(), Util.getLocalTestMode() };
+    }
 
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
@@ -57,14 +62,14 @@ public class TestPigSplit {
         if (execType == cluster.getExecType()) {
             pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
         } else {
-            pigServer = new PigServer(LOCAL);
+            pigServer = new PigServer(Util.getLocalTestMode());
         }
     }
 
     private void createInput(String[] data, ExecType execType) throws IOException {
         if (execType == cluster.getExecType()) {
             Util.createInputFile(cluster, inputFileName, data);
-        } else if (execType == ExecType.LOCAL) {
+        } else if (execType.isLocal()) {
             Util.createLocalInputFile(inputFileName, data);
         } else {
             throw new IOException("unknown exectype:" + execType.toString());
@@ -74,7 +79,7 @@ public class TestPigSplit {
     public void tearDown(ExecType execType) throws Exception {
         if (execType == cluster.getExecType()) {
             Util.deleteFile(cluster, inputFileName);
-        } else if (execType == ExecType.LOCAL) {
+        } else if (execType.isLocal()) {
             new File(inputFileName).delete();
         } else {
             throw new IOException("unknown exectype:" + execType.toString());

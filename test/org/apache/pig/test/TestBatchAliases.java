@@ -23,7 +23,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.util.Properties;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecJob;
@@ -39,7 +38,7 @@ public class TestBatchAliases {
     @Before
     public void setUp() throws Exception {
         System.setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, ""+true);
-        myPig = new PigServer(ExecType.LOCAL, new Properties());
+        myPig = new PigServer(Util.getLocalTestMode(), new Properties());
         deleteOutputFiles();
     }
 

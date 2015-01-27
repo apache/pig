@@ -19,7 +19,6 @@ package org.apache.pig.test;
 
 import java.io.File;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -34,7 +33,7 @@ public class TestLimitSchemaStore{
 
     @Before
     public void setUp() throws Exception{
-        pigServer = new PigServer(ExecType.LOCAL);
+        pigServer = new PigServer(Util.getLocalTestMode());
     }
     
     

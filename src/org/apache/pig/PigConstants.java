@@ -59,4 +59,45 @@ public class PigConstants {
     public static final String TIME_UDFS_ELAPSED_TIME_COUNTER = "approx_microsecs";
 
     public static final String TASK_INDEX = "mapreduce.task.index";
+
+    /**
+     * This parameter is used to check if the rollup is optimizable or not after going
+     * through the RollupHIIOptimizer
+     */
+    public static final String PIG_HII_ROLLUP_OPTIMIZABLE = "pig.hii.rollup.optimizable";
+
+    /**
+     * This parameter stores the value of the pivot position. If the rollup is not optimizable
+     * this value will be -1; If the rollup is optimizable: if the user did specify the pivot
+     * in the rollup clause, this parameter will get that value; if the user did not specify
+     * the pivot in the rollup clause, this parameter will get the value of the median position
+     * of the fields in the rollup clause
+     */
+    public static final String PIG_HII_ROLLUP_PIVOT = "pig.hii.rollup.pivot";
+
+    /**
+     * This parameter stores the index of the first field involves in the rollup (or the first field
+     * involves in the rollup after changing the position of rollup to the end in case of having cube)
+     */
+    public static final String PIG_HII_ROLLUP_FIELD_INDEX = "pig.hii.rollup.field.index";
+
+    /**
+     * This parameter stores the index of the first field involves in the rollup before
+     * changing the position of rollup to the end in case of having cube
+     */
+    public static final String PIG_HII_ROLLUP_OLD_FIELD_INDEX = "pig.hii.rollup.old.field.index";
+
+    /**
+     * This parameter stores the size of total fields which involve in the CUBE clause. For example, we
+     * have two CUBE clause:
+     * B = CUBE A BY CUBE(year, month, day), ROLLUP(hour, minute, second);
+     * B = CUBE A BY ROLLUP(year, month, day, hour, minute, second);
+     * So this parameter will be 6 at both cases.
+     */
+    public static final String PIG_HII_NUMBER_TOTAL_FIELD = "pig.hii.number.total.field";
+
+    /**
+     * This parameter stores the number of algebraic functions that used after rollup.
+     */
+    public static final String PIG_HII_NUMBER_ALGEBRAIC = "pig.hii.number.algebraic";
 }

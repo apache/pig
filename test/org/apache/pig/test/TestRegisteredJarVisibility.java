@@ -45,7 +45,6 @@ import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.SimpleLayout;
-import org.apache.pig.ExecType;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
@@ -137,8 +136,8 @@ public class TestRegisteredJarVisibility {
     }
 
     @Test
-    public void testRegisteredJarVisibilityLocal() throws IOException {
-        PigServer pigServer = new PigServer(ExecType.LOCAL, new Properties());
+    public void testRegisteredJarVisibilityLocal() throws Exception {
+        PigServer pigServer = new PigServer(Util.getLocalTestMode(), new Properties());
         testRegisteredJarVisibility(pigServer, INPUT_FILE.getAbsolutePath());
     }
 
@@ -160,13 +159,13 @@ public class TestRegisteredJarVisibility {
 
     // See PIG-3039
     @Test
-    public void testRegisterJarOverridePigJarPackages() throws IOException, ClassNotFoundException {
+    public void testRegisterJarOverridePigJarPackages() throws Exception {
         // When jackson jar is not registered, jackson-core from the first jar in
         // classpath (pig.jar) should be picked up (version 1.8.8 in this case).
         String jacksonJar = JarManager.findContainingJar(org.codehaus.jackson.JsonParser.class);
         Assert.assertTrue(new File(jacksonJar).getName().contains("1.8.8"));
 
-        PigServer pigServer = new PigServer(ExecType.LOCAL, new Properties());
+        PigServer pigServer = new PigServer(Util.getLocalTestMode(), new Properties());
         pigServer.registerJar("test/resources/jackson-core-asl-1.9.9.jar");
         pigServer.registerJar("test/resources/jackson-mapper-asl-1.9.9.jar");
         jacksonJar = JarManager.findContainingJar(org.codehaus.jackson.JsonParser.class);

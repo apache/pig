@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.Properties;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -88,7 +87,7 @@ public class TestUnion {
 
     @Before
     public void setUp() throws Exception {
-        pigServer = new PigServer(ExecType.LOCAL, new Properties());
+        pigServer = new PigServer(Util.getLocalTestMode(), new Properties());
         pc = pigServer.getPigContext();
         pc.connect();
         GenPhyOp.setPc(pc);
@@ -259,7 +258,7 @@ public class TestUnion {
         File f1 = Util.createInputFile("tmp", "i1.txt", new String[] {"aaa\t111"});
         File f2 = Util.createInputFile("tmp", "i2.txt", new String[] {"bbb\t222"});
 
-        PigServer ps = new PigServer(ExecType.LOCAL, new Properties());
+        PigServer ps = new PigServer(Util.getLocalTestMode(), new Properties());
         ps.registerQuery("A = load '" + Util.encodeEscape(f1.getAbsolutePath()) + "' as (a,b);");
         ps.registerQuery("B = load '" + Util.encodeEscape(f2.getAbsolutePath()) + "' as (a,b);");
         ps.registerQuery("C = union A,B;");
@@ -288,7 +287,7 @@ public class TestUnion {
         File f1 = Util.createInputFile("tmp", "i1.txt", new String[] {"1","2","3"});
         File f2 = Util.createInputFile("tmp", "i2.txt", new String[] {"a","b","c"});
 
-        PigServer ps = new PigServer(ExecType.LOCAL, new Properties());
+        PigServer ps = new PigServer(Util.getLocalTestMode(), new Properties());
         //PigStorage and TextLoader have different LoadCasters
         ps.registerQuery("A = load '" + Util.encodeEscape(f1.getAbsolutePath()) + "' as (a:bytearray);");
         ps.registerQuery("B = load '" + Util.encodeEscape(f2.getAbsolutePath()) + "' using TextLoader() as (b:bytearray);");
@@ -320,7 +319,7 @@ public class TestUnion {
         File f2 = Util.createInputFile("tmp", "i2.txt", new String[] {"a","b","c"});
         File f3 = Util.createInputFile("tmp", "i3.txt", new String[] {"1","2","3"});
 
-        PigServer ps = new PigServer(ExecType.LOCAL, new Properties());
+        PigServer ps = new PigServer(Util.getLocalTestMode(), new Properties());
         ps.registerQuery("A = load '" + Util.encodeEscape(f1.getAbsolutePath()) + "' as (a:bytearray);"); // Using PigStorage()
         ps.registerQuery("B = load '" + Util.encodeEscape(f2.getAbsolutePath()) + "' using TextLoader() as (i:bytearray);");
         ps.registerQuery("C = load '" + Util.encodeEscape(f3.getAbsolutePath()) + "' using TextLoader() as (i:bytearray);");
@@ -344,7 +343,7 @@ public class TestUnion {
         // Fields coming from different loaders but
         // having the same LoadCaster.
         File f1 = Util.createInputFile("tmp", "i1.txt", new String[] {"1\ta","2\tb","3\tc"});
-        PigServer ps = new PigServer(ExecType.LOCAL, new Properties());
+        PigServer ps = new PigServer(Util.getLocalTestMode(), new Properties());
         // PigStorage and PigStorageWithStatistics have the same
         // LoadCaster(== Utf8StorageConverter)
         ps.registerQuery("A = load '" + Util.encodeEscape(f1.getAbsolutePath()) + "' as (a:bytearray, b:bytearray);");

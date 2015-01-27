@@ -23,7 +23,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.math.BigDecimal;
@@ -39,11 +38,9 @@ import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.SimpleLayout;
-import org.apache.pig.ExecType;
 import org.apache.pig.Expression;
 import org.apache.pig.Expression.OpType;
 import org.apache.pig.PigServer;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.util.ObjectSerializer;
@@ -122,7 +119,7 @@ public class TestOrcStoragePushdown {
     }
 
     private static void createInputData() throws Exception {
-        pigServer = new PigServer(ExecType.LOCAL);
+        pigServer = new PigServer(Util.getLocalTestMode());
 
         new File(inpbasedir).mkdirs();
         new File(outbasedir).mkdirs();
@@ -181,9 +178,9 @@ public class TestOrcStoragePushdown {
     }
 
     @Before
-    public void setup() throws ExecException{
+    public void setup() throws Exception{
         Util.resetStateForExecModeSwitch();
-        pigServer = new PigServer(ExecType.LOCAL);
+        pigServer = new PigServer(Util.getLocalTestMode());
         orcStorage = new OrcStorage();
     }
 
@@ -353,9 +350,9 @@ public class TestOrcStoragePushdown {
     }
 
     // For eclipse debugging
-    private void testPredicatePushdownLocal(String filterStmt, int expectedRows) throws IOException {
+    private void testPredicatePushdownLocal(String filterStmt, int expectedRows) throws Exception {
 
-        PigServer pigServer_disabledRule = new PigServer(ExecType.LOCAL);
+        PigServer pigServer_disabledRule = new PigServer(Util.getLocalTestMode());
         // Test with PredicatePushdownOptimizer disabled.
         HashSet<String> disabledOptimizerRules = new HashSet<String>();
         disabledOptimizerRules.add("PredicatePushdownOptimizer");

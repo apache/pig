@@ -16,7 +16,6 @@
 
 package org.apache.pig.test;
 
-import static org.apache.pig.ExecType.LOCAL;
 import static org.apache.pig.builtin.mock.Storage.resetData;
 import static org.apache.pig.builtin.mock.Storage.tuple;
 import static org.junit.Assert.assertEquals;
@@ -32,7 +31,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.builtin.mock.Storage;
@@ -64,17 +62,17 @@ public class TestParser {
             cluster.shutDown();
     }
 
-    public void setUp(ExecType execType) throws ExecException{
+    public void setUp(ExecType execType) throws Exception{
         Util.resetStateForExecModeSwitch();
         if (execType == cluster.getExecType()) {
             pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
         } else {
-            pigServer = new PigServer(LOCAL);
+            pigServer = new PigServer(Util.getLocalTestMode());
         }
     }
 
     @Test(expected = IOException.class)
-    public void testLoadingNonexistentFile() throws ExecException, IOException {
+    public void testLoadingNonexistentFile() throws Exception {
         for (ExecType execType : execTypes) {
             setUp(execType);
             pigServer.registerQuery("vals = load 'nonexistentfile';");
@@ -83,7 +81,7 @@ public class TestParser {
     }
 
     @Test
-    public void testRemoteServerList() throws ExecException, IOException {
+    public void testRemoteServerList() throws Exception {
         for (ExecType execType : execTypes) {
             setUp(execType);
             Properties pigProperties = pigServer.getPigContext().getProperties();
@@ -129,8 +127,8 @@ public class TestParser {
     }
 
     @Test
-    public void testRemoteServerList2() throws ExecException, IOException {
-        pigServer = new PigServer(LOCAL);
+    public void testRemoteServerList2() throws Exception {
+        pigServer = new PigServer(Util.getLocalTestMode());
         Properties pigProperties = pigServer.getPigContext().getProperties();
         pigProperties.setProperty("fs.default.name", "hdfs://a.com:8020");
         Configuration conf;
@@ -175,7 +173,7 @@ public class TestParser {
 
     @Test
     public void testRestrictedColumnNamesWhitelist() throws Exception {
-        pigServer = new PigServer(LOCAL);
+        pigServer = new PigServer(Util.getLocalTestMode());
         Data data = resetData(pigServer);
 
         Set<Tuple> tuples = Sets.newHashSet(tuple(1),tuple(2),tuple(3));

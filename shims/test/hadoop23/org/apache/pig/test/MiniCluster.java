@@ -27,7 +27,9 @@ import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.mapreduce.filecache.DistributedCache;
 import org.apache.hadoop.mapreduce.v2.MiniMRYarnCluster;
 import org.apache.pig.ExecType;
+import org.apache.pig.backend.hadoop.executionengine.Launcher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 
 /**
  * This class builds a single instance of itself with the Singleton
@@ -127,5 +129,9 @@ public class MiniCluster extends MiniGenericCluster {
         }
         if (m_mr != null) { m_mr.stop(); }
         m_mr = null;
+    }
+
+    static public Launcher getLauncher() {
+        return new MapReduceLauncher();
     }
 }

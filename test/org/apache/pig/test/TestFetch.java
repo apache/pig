@@ -33,12 +33,11 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
+import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.fetch.FetchLauncher;
 import org.apache.pig.backend.hadoop.executionengine.fetch.FetchOptimizer;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLimit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
@@ -94,7 +93,7 @@ public class TestFetch {
 
     @Before
     public void setUp() throws Exception{
-        pigServer = new PigServer(ExecType.LOCAL, new Properties());
+        pigServer = new PigServer(Util.getLocalTestMode(), new Properties());
         // force direct fetch mode
         pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_OPT_FETCH, "true");
     }
@@ -123,7 +122,7 @@ public class TestFetch {
 
         LogicalPlan lp = ParserTestingUtils.generateLogicalPlan(query);
 
-        PhysicalPlan pp = ((MRExecutionEngine) pigServer.getPigContext().getExecutionEngine())
+        PhysicalPlan pp = ((HExecutionEngine) pigServer.getPigContext().getExecutionEngine())
                 .compile(lp, null);
 
         boolean planFetchable = FetchOptimizer.isPlanFetchable(pigServer.getPigContext(), pp);
@@ -162,7 +161,7 @@ public class TestFetch {
 
         LogicalPlan lp = ParserTestingUtils.generateLogicalPlan(query);
 
-        PhysicalPlan pp = ((MRExecutionEngine) pigServer.getPigContext().getExecutionEngine())
+        PhysicalPlan pp = ((HExecutionEngine) pigServer.getPigContext().getExecutionEngine())
                 .compile(lp, null);
 
         boolean planFetchable = FetchOptimizer.isPlanFetchable(pigServer.getPigContext(), pp);
@@ -228,7 +227,7 @@ public class TestFetch {
             pigServer.setBatchOn();
 
             LogicalPlan lp = TestPigStats.getLogicalPlan(pigServer);
-            PhysicalPlan pp = ((MRExecutionEngine)
+            PhysicalPlan pp = ((HExecutionEngine)
                     pigServer.getPigContext().getExecutionEngine()).compile(lp, null);
             boolean planFetchable = FetchOptimizer.isPlanFetchable(pigServer.getPigContext(), pp);
             assertFalse(planFetchable);
@@ -257,7 +256,7 @@ public class TestFetch {
             pigServer.setBatchOn();
 
             LogicalPlan lp = TestPigStats.getLogicalPlan(pigServer);
-            PhysicalPlan pp = ((MRExecutionEngine)
+            PhysicalPlan pp = ((HExecutionEngine)
                     pigServer.getPigContext().getExecutionEngine()).compile(lp, null);
             boolean planFetchable = FetchOptimizer.isPlanFetchable(pigServer.getPigContext(), pp);
             assertFalse(planFetchable);

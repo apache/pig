@@ -19,6 +19,7 @@
 package org.apache.pig.piggybank.test.storage;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -27,10 +28,11 @@ import java.util.Properties;
 import junit.framework.Assert;
 
 import org.apache.commons.lang.StringUtils;
-
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
+import org.apache.pig.builtin.mock.Storage;
+import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.tools.parameters.ParseException;
@@ -58,6 +60,7 @@ public class TestCSVExcelStorage  {
         "1st Field,\"A poem that continues\n" +
         "for several lines\n" +
         "do we\n" +
+        "(even with \r)" +
         "handle that?\",Good,Fairy\n";
 
     String[] testStrCommaArray =
@@ -69,7 +72,7 @@ public class TestCSVExcelStorage  {
             "\"Conrad\nEmil\",Dinger,40",
                 "Emil,\"\nDinger\",40",
                 "Quote problem,\"My \"\"famous\"\"\nsong\",60",
-            "1st Field,\"A poem that continues\nfor several lines\ndo we\nhandle that?\",Good,Fairy",
+            "1st Field,\"A poem that continues\nfor several lines\ndo we\n(even with \r)handle that?\",Good,Fairy",
     };
 
     @SuppressWarnings("serial")
@@ -83,7 +86,7 @@ public class TestCSVExcelStorage  {
             add(Util.createTuple(new String[] {"Conrad\nEmil", "Dinger", "40"}));
             add(Util.createTuple(new String[] {"Emil", "\nDinger", "40"}));
             add(Util.createTuple(new String[] {"Quote problem", "My \"famous\"\nsong", "60"}));
-            add(Util.createTuple(new String[] {"1st Field", "A poem that continues\nfor several lines\ndo we\nhandle that?", "Good", "Fairy"}));
+            add(Util.createTuple(new String[] {"1st Field", "A poem that continues\nfor several lines\ndo we\n(even with \n)handle that?", "Good", "Fairy"}));
         }
     };
 
@@ -104,7 +107,8 @@ public class TestCSVExcelStorage  {
             add(Util.createTuple(new String[] {"1st Field", "A poem that continues"}));
             add(Util.createTuple(new String[] {"for several lines"}));
             add(Util.createTuple(new String[] {"do we"}));
-            add(Util.createTuple(new String[] {"handle that?,Good,Fairy"})); // Trailing double quote eats rest of line
+            add(Util.createTuple(new String[] {"(even with "}));
+            add(Util.createTuple(new String[] {")handle that?,Good,Fairy"})); // Trailing double quote eats rest of line
         }
     };
 
@@ -161,6 +165,7 @@ public class TestCSVExcelStorage  {
                 "1,,,,\"",
                 "qwe",
                 "rty\", uiop",
+                "1,10,2.718,3.14159,\"abc\rdef\",uiop",
                 "1,,,,\"qwe,rty\",uiop",
                 "1,,,,\"q\"\"wert\"\"y\", uiop",
                 "1,,,,qwerty,\"u\"\"io\"\"p\""
@@ -338,6 +343,7 @@ public class TestCSVExcelStorage  {
             "(1,10,,3.15159,,uiop)",             // extra field (input data has "moose" after "uiop")
             "(1,,2.718,,qwerty,uiop)",           // quoted regular fields (2.718, qwerty, and uiop in quotes)
             "(1,,,,\nqwe\nrty, uiop)",           // newlines in quotes
+            "(1,10,2.718,3.14159,abc\ndef,uiop)",// After LOAD \r => \n (PIG-4213)
             "(1,,,,qwe,rty,uiop)",               // commas in quotes
             "(1,,,,q\"wert\"y, uiop)",           // quotes in quotes
             "(1,,,,qwerty,u\"io\"p)"             // quotes in quotes at the end of a line
@@ -384,6 +390,8 @@ public class TestCSVExcelStorage  {
             "(1,,,,\")",                            // since we are just using TextLoader for verification
             "(qwe)",                                // it treats the linebreaks as meaning separate records
             "(rty\", uiop)",                        // but as shown in the load() test, CSVExcelStorage will read these properly
+            "(1,10,2.718,3.14159,\"abc)",
+            "(def\",uiop)",
             "(1,,,,\"qwe,rty\",uiop)",
             "(1,,,,\"q\"\"wert\"\"y\", uiop)",
             "(1,,,,qwerty,\"u\"\"io\"\"p\")"
@@ -426,4 +434,48 @@ public class TestCSVExcelStorage  {
 
         Assert.assertEquals(StringUtils.join(expected, "\n"), StringUtils.join(data, "\n"));
     }
+    
+    // Test that STORE stores CR (\r) quoted/unquoted in yes_multiline/no_multiline
+    @Test
+    public void storeCR() throws IOException {
+        ArrayList<Tuple> inputTuples = new ArrayList<Tuple>();
+        inputTuples.add(Storage.tuple(1,"text","a line\rand another line to write"));
+        String expected = "1,text,\"a line\rand another line to write\"\n";
+        String expectedNoMultiline = "1,text,a line\rand another line to write\n";
+
+        // Prepare the input using mock.Storage() since this will not interpret \r
+        Data data = Storage.resetData(pig);
+        data.set("inputTuples", inputTuples);
+
+        // Test for quoted when YES_MULTILINE
+        // Execute
+        String testOut = dataDir + "csv_cr_quoted_output_yes_multiline" ;
+        String script = "A = load 'inputTuples' USING mock.Storage() as (f1:int, f2:chararray, f3:chararray);" +
+                "STORE A INTO '" + testOut + "' USING " +
+                "org.apache.pig.piggybank.storage.CSVExcelStorage(',', 'YES_MULTILINE', 'UNIX');";
+        Util.registerMultiLineQuery(pig, script);
+        // Load result
+        FileInputStream resultFile = new FileInputStream(testOut + "/part-m-00000");
+        byte[] actualBytes = new byte[resultFile.available()];
+        resultFile.read(actualBytes);
+        resultFile.close();
+        String actual = new String(actualBytes);
+        Assert.assertEquals(expected, actual);
+
+        // Test for unquoted when NO_MULTILINE
+        // Execute
+        testOut = dataDir + "csv_cr_quoted_output_no_multiline" ;
+        script = "A = load 'inputTuples' USING mock.Storage() as (f1:int, f2:chararray, f3:chararray);" +
+                "STORE A INTO '" + testOut + "' USING " +
+                "org.apache.pig.piggybank.storage.CSVExcelStorage(',', 'NO_MULTILINE', 'UNIX');";
+        Util.registerMultiLineQuery(pig, script);
+        // Load result
+        resultFile = new FileInputStream(testOut + "/part-m-00000");
+        actualBytes = new byte[resultFile.available()];
+        resultFile.read(actualBytes);
+        resultFile.close();
+        actual = new String(actualBytes);
+        Assert.assertEquals(expectedNoMultiline, actual);
+    }
+
 }
