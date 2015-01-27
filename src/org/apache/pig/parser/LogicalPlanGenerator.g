@@ -493,12 +493,20 @@ func_args returns[List<String> args]
 // It also outputs the order of operations i.e in this case CUBE operation followed by ROLLUP operation
 // These inputs are passed to buildCubeOp methods which then builds the logical plan for CUBE operator.
 // If user specifies STAR or RANGE expression for dimensions then it will be expanded inside buildCubeOp.
+pivot_clause returns[int pivot]
+ : ^( PIVOT INTEGER )
+   {
+       $pivot = Integer.parseInt( $INTEGER.text );
+   }
+;
+
 cube_clause returns[String alias]
 scope {
     LOCube cubeOp;
     MultiMap<Integer, LogicalExpressionPlan> cubePlans;
     List<String> operations;
     int inputIndex;
+    int pivot;
 }
 scope GScope;
 @init {
@@ -548,7 +556,7 @@ cube_rollup_list returns[String operation, List<LogicalExpressionPlan> plans]
 @init {
     $plans = new ArrayList<LogicalExpressionPlan>();
 }
- : ^( ( CUBE { $operation = "CUBE"; } | ROLLUP { $operation = "ROLLUP"; } ) cube_by_expr_list { $plans = $cube_by_expr_list.plans; } )
+ : ^( CUBE { $operation = "CUBE"; } cube_by_expr_list { $plans = $cube_by_expr_list.plans; } ) | ^( ROLLUP { $operation = "ROLLUP"; } cube_by_expr_list { $plans = $cube_by_expr_list.plans; } pivot_clause? { if ($pivot_clause.tree!=null) builder.setPivotRollupCubeOp($cube_clause::cubeOp, $pivot_clause.pivot); } )
 ;
 
 cube_by_expr_list returns[List<LogicalExpressionPlan> plans]
@@ -1941,6 +1949,7 @@ eid returns[String id] : rel_str_op { $id = $rel_str_op.id; }
     | COGROUP { $id = $COGROUP.text; }
     | CUBE { $id = $CUBE.text; }
     | ROLLUP { $id = $ROLLUP.text; }
+    | PIVOT { $id = $PIVOT.text; }
     | JOIN { $id = $JOIN.text; }
     | CROSS { $id = $CROSS.text; }
     | UNION { $id = $UNION.text; }

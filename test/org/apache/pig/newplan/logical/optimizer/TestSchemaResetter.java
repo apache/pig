@@ -18,7 +18,6 @@
 
 package org.apache.pig.newplan.logical.optimizer;
 
-import static org.apache.pig.ExecType.LOCAL;
 import static org.apache.pig.builtin.mock.Storage.tuple;
 import static org.junit.Assert.assertEquals;
 
@@ -68,8 +67,8 @@ public class TestSchemaResetter {
     }
 
     @Test
-    public void testSchemaResetterExec() throws IOException {
-        PigServer pigServer = new PigServer(LOCAL);
+    public void testSchemaResetterExec() throws Exception {
+        PigServer pigServer = new PigServer(Util.getLocalTestMode());
         Data data = Storage.resetData(pigServer);
         data.set("input",
                 tuple(tuple("1", "2")),

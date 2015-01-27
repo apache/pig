@@ -22,7 +22,6 @@ import static junit.framework.Assert.*;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.BagToString;
@@ -407,7 +406,7 @@ public class TestBuiltInBagToTupleOrString {
 
 	@Test
 	public void testPigScriptForBagToTupleUDF() throws Exception {
-		PigServer pigServer = new PigServer(ExecType.LOCAL);
+		PigServer pigServer = new PigServer(Util.getLocalTestMode());
 		Data data = resetData(pigServer);
 
 		// bag of chararray
@@ -436,7 +435,7 @@ public class TestBuiltInBagToTupleOrString {
 
 	@Test
 	public void testPigScriptMultipleElmementsPerTupleForBagTupleUDF() throws Exception {
-		PigServer pigServer = new PigServer(ExecType.LOCAL);
+		PigServer pigServer = new PigServer(Util.getLocalTestMode());
 		Data data = resetData(pigServer);
 
 		data.set("foo", "myBag:bag{t:(l:chararray)}",
@@ -451,7 +450,7 @@ public class TestBuiltInBagToTupleOrString {
 
 	@Test
 	public void testPigScriptNestedTupleForBagToTupleDF() throws Exception {
-		PigServer pigServer = new PigServer(ExecType.LOCAL);
+		PigServer pigServer = new PigServer(Util.getLocalTestMode());
 		Data data = resetData(pigServer);
 
 	    Tuple nestedTuple = tuple(bag(tuple("c"), tuple("d")));
@@ -469,7 +468,7 @@ public class TestBuiltInBagToTupleOrString {
 
 	@Test
 	public void testPigScriptEmptyBagForBagToTupleUDF() throws Exception {
-		PigServer pigServer = new PigServer(ExecType.LOCAL);
+		PigServer pigServer = new PigServer(Util.getLocalTestMode());
 		Data data = resetData(pigServer);
 
 	    data.set("foo", "myBag:bag{t:(l:chararray)}",
@@ -487,7 +486,7 @@ public class TestBuiltInBagToTupleOrString {
 
 	@Test
 	public void testPigScriptrForBagToStringUDF() throws Exception {
-		PigServer pigServer = new PigServer(ExecType.LOCAL);
+		PigServer pigServer = new PigServer(Util.getLocalTestMode());
 		Data data = resetData(pigServer);
 
 		data.set("foo", "myBag:bag{t:(l:chararray)}",
@@ -509,7 +508,7 @@ public class TestBuiltInBagToTupleOrString {
 
 	@Test
 	public void testPigScriptMultipleElmementsPerTupleForBagToStringUDF() throws Exception {
-		PigServer pigServer = new PigServer(ExecType.LOCAL);
+		PigServer pigServer = new PigServer(Util.getLocalTestMode());
 		Data data = resetData(pigServer);
 
 		data.set("foo", "myBag:bag{t:(l:chararray)}",
@@ -530,7 +529,7 @@ public class TestBuiltInBagToTupleOrString {
 
 	@Test
 	public void testPigScriptNestedTupleForBagToStringUDF() throws Exception {
-		PigServer pigServer = new PigServer(ExecType.LOCAL);
+		PigServer pigServer = new PigServer(Util.getLocalTestMode());
 		Data data = resetData(pigServer);
 
 	    Tuple nestedTuple = tuple(bag(tuple("c"), tuple("d")));
@@ -548,7 +547,7 @@ public class TestBuiltInBagToTupleOrString {
 
 	@Test
 	public void testPigScriptEmptyBagForBagToStringUDF() throws Exception {
-		PigServer pigServer = new PigServer(ExecType.LOCAL);
+		PigServer pigServer = new PigServer(Util.getLocalTestMode());
 		Data data = resetData(pigServer);
 
 	    data.set("foo", "myBag:bag{t:(l:chararray)}",

@@ -24,12 +24,9 @@ import static org.apache.pig.builtin.mock.Storage.tuple;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.List;
-import java.util.Properties;
 
 import junit.framework.Assert;
 
-import org.apache.pig.ExecType;
-import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.Tuple;
@@ -44,7 +41,7 @@ public class TestAssert {
    */
   @Test
   public void testPositive() throws Exception {
-      PigServer pigServer = new PigServer(ExecType.LOCAL);
+      PigServer pigServer = new PigServer(Util.getLocalTestMode());
       Data data = resetData(pigServer);
 
       data.set("foo",
@@ -74,7 +71,7 @@ public class TestAssert {
    */
   @Test
   public void testInScript() throws Exception {
-      PigServer pigServer = new PigServer(ExecType.LOCAL);
+      PigServer pigServer = new PigServer(Util.getLocalTestMode());
       Data data = resetData(pigServer);
 
       data.set("foo",
@@ -104,7 +101,7 @@ public class TestAssert {
    */
   @Test
   public void testNegative() throws Exception {
-      PigServer pigServer = new PigServer(ExecType.LOCAL);
+      PigServer pigServer = new PigServer(Util.getLocalTestMode());
       Data data = resetData(pigServer);
 
       data.set("foo",
@@ -130,7 +127,7 @@ public class TestAssert {
    */
   @Test
   public void testNegativeWithoutFetch() throws Exception {
-      PigServer pigServer = new PigServer(ExecType.LOCAL);
+      PigServer pigServer = new PigServer(Util.getLocalTestMode());
       Data data = resetData(pigServer);
 
       data.set("foo",
@@ -156,7 +153,7 @@ public class TestAssert {
    */
   @Test(expected=FrontendException.class)
   public void testNegativeWithAlias() throws Exception {
-      PigServer pigServer = new PigServer(ExecType.LOCAL);
+      PigServer pigServer = new PigServer(Util.getLocalTestMode());
       Data data = resetData(pigServer);
 
       data.set("foo",

@@ -305,6 +305,7 @@
       <arg value="${test.location}/tests/macro.conf"/>
       <arg value="${test.location}/tests/orc.conf"/>
       <arg value="${test.location}/tests/hcat.conf"/>
+      <arg value="${test.location}/tests/utf8.conf"/>
     </exec>
   </target>
 

@@ -26,7 +26,6 @@ import java.util.Iterator;
 import java.util.Properties;
 import java.util.Random;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataType;
@@ -42,7 +41,7 @@ public class TestAlgebraicEvalLocal {
 
     @Before
     public void setUp() throws Exception {
-        pig = new PigServer(ExecType.LOCAL, new Properties());
+        pig = new PigServer(Util.getLocalTestMode(), new Properties());
     }
 
     Boolean[] nullFlags = new Boolean[]{ false, true};

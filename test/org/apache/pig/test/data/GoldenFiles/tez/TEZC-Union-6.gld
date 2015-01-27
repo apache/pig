@@ -7,7 +7,7 @@
 Tez vertex scope-29	->	Tez vertex group scope-63,Tez vertex group scope-64,
 Tez vertex scope-30	->	Tez vertex group scope-63,Tez vertex group scope-64,
 Tez vertex group scope-64	->	Tez vertex scope-43,
-Tez vertex scope-43	->	Tez vertex scope-53,Tez vertex scope-35,
+Tez vertex scope-43	->	Tez vertex scope-35,Tez vertex scope-53,
 Tez vertex group scope-63	->	Tez vertex scope-53,
 Tez vertex scope-53	->	Tez vertex scope-57,
 Tez vertex scope-35	->	Tez vertex scope-57,
@@ -23,9 +23,9 @@ Local Rearrange[tuple]{tuple}(false) - scope-67	->	 scope-43
     |   |
     |   Project[int][0] - scope-71
     |   |
-    |   POUserFunc(org.apache.pig.impl.builtin.GetMemNumRows)[tuple] - scope-72
+    |   POUserFunc(org.apache.pig.impl.builtin.GetMemNumRows)[tuple] - scope-73
     |   |
-    |   |---Project[tuple][*] - scope-73
+    |   |---Project[tuple][*] - scope-72
     |
     |---PoissonSample - scope-70
         |
@@ -54,9 +54,9 @@ Local Rearrange[tuple]{tuple}(false) - scope-77	->	 scope-43
     |   |
     |   Project[int][0] - scope-81
     |   |
-    |   POUserFunc(org.apache.pig.impl.builtin.GetMemNumRows)[tuple] - scope-82
+    |   POUserFunc(org.apache.pig.impl.builtin.GetMemNumRows)[tuple] - scope-83
     |   |
-    |   |---Project[tuple][*] - scope-83
+    |   |---Project[tuple][*] - scope-82
     |
     |---PoissonSample - scope-80
         |
@@ -79,7 +79,7 @@ Tez vertex group scope-64	<-	 [scope-29, scope-30]	->	 scope-43
 # No plan on vertex group
 Tez vertex scope-43
 # Plan on vertex
-POValueOutputTez - scope-52	->	 [scope-53, scope-35]
+POValueOutputTez - scope-52	->	 [scope-35, scope-53]
 |
 |---New For Each(false)[tuple] - scope-51
     |   |

@@ -58,6 +58,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PONative;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORank;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORollupHIIForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSkewedJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
@@ -900,6 +901,128 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         translateSoftLinks(foreach);
     }
 
+    @Override
+    public void visit(LORollupHIIForEach hforeach) throws FrontendException {
+        String scope = DEFAULT_SCOPE;
+
+        List<PhysicalPlan> innerPlans = new ArrayList<PhysicalPlan>();
+
+        org.apache.pig.newplan.logical.relational.LogicalPlan inner = hforeach.getInnerPlan();
+        LOGenerate gen = (LOGenerate) inner.getSinks().get(0);
+
+        List<LogicalExpressionPlan> exps = gen.getOutputPlans();
+        List<Operator> preds = inner.getPredecessors(gen);
+
+        currentPlans.push(currentPlan);
+
+        // we need to translate each predecessor of LOGenerate into a physical plan.
+        // The physical plan should contain the expression plan for this predecessor plus
+        // the subtree starting with this predecessor
+        for (int i = 0; i < exps.size(); i++) {
+            currentPlan = new PhysicalPlan();
+            // translate the expression plan
+            PlanWalker childWalker = new ReverseDependencyOrderWalkerWOSeenChk(exps.get(i));
+            pushWalker(childWalker);
+            childWalker.walk(new ExpToPhyTranslationVisitor(exps.get(i), childWalker, gen,
+                    currentPlan, logToPhyMap));
+            popWalker();
+
+            List<Operator> leaves = exps.get(i).getSinks();
+            for (Operator l : leaves) {
+                PhysicalOperator op = logToPhyMap.get(l);
+                if (l instanceof ProjectExpression) {
+                    int input = ((ProjectExpression) l).getInputNum();
+
+                    // for each sink projection, get its input logical plan and translate it
+                    Operator pred = preds.get(input);
+                    childWalker = new SubtreeDependencyOrderWalker(inner, pred);
+                    pushWalker(childWalker);
+                    childWalker.walk(this);
+                    popWalker();
+
+                    // get the physical operator of the leaf of input logical plan
+                    PhysicalOperator leaf = logToPhyMap.get(pred);
+
+                    if (pred instanceof LOInnerLoad) {
+                        // if predecessor is only an LOInnerLoad, remove the project that
+                        // comes from LOInnerLoad and change the column of project that
+                        // comes from expression plan
+                        currentPlan.remove(leaf);
+                        logToPhyMap.remove(pred);
+
+                        POProject leafProj = (POProject) leaf;
+                        try {
+                            if (leafProj.isStar()) {
+                                ((POProject) op).setStar(true);
+                            } else if (leafProj.isProjectToEnd()) {
+                                ((POProject) op).setProjectToEnd(leafProj.getStartCol());
+                            } else {
+                                ((POProject) op).setColumn(leafProj.getColumn());
+                            }
+
+                        } catch (ExecException e) {
+                            throw new FrontendException(hforeach, "Cannot get column from " + leaf,
+                                    2230, e);
+                        }
+
+                    } else {
+                        currentPlan.connect(leaf, op);
+                    }
+                }
+            }
+            innerPlans.add(currentPlan);
+        }
+
+        currentPlan = currentPlans.pop();
+
+        // PhysicalOperator poGen = new POGenerate(new OperatorKey("",
+        // r.nextLong()), inputs, toBeFlattened);
+        boolean[] flatten = gen.getFlattenFlags();
+        List<Boolean> flattenList = new ArrayList<Boolean>();
+        for (boolean fl : flatten) {
+            flattenList.add(fl);
+        }
+        // Create new PORollupHIIForEach for translation from Logical Plan to Physical Plan
+        PORollupHIIForEach poHFE = new PORollupHIIForEach(new OperatorKey(scope, nodeGen.getNextNodeId(scope)),
+                hforeach.getRequestedParallelism(), innerPlans, flattenList);
+
+        // if the pivot position is zero, set the pivot position for physical op is zero
+        if(hforeach.getPivot() == 0)
+            poHFE.setPivot(0);
+        //else, decrease pivot position by one, because the position user specified and the
+        //rollup field index is different by one
+        else
+            poHFE.setPivot(hforeach.getPivot() - 1);
+        //get the start field index and size of rollup position in case the rollup does not stand at the front
+        poHFE.setRollupFieldIndex(hforeach.getRollupFieldIndex());
+        poHFE.setRollupOldFieldIndex(hforeach.getRollupOldFieldIndex());
+        poHFE.setRollupSize(hforeach.getRollupSize());
+        poHFE.setDimensionSize(hforeach.getDimensionSize());
+
+        poHFE.addOriginalLocation(hforeach.getAlias(), hforeach.getLocation());
+        poHFE.setResultType(DataType.BAG);
+        logToPhyMap.put(hforeach, poHFE);
+        currentPlan.add(poHFE);
+
+        // generate cannot have multiple inputs
+        List<Operator> op = hforeach.getPlan().getPredecessors(hforeach);
+
+        // generate may not have any predecessors
+        if (op == null)
+            return;
+
+        PhysicalOperator from = logToPhyMap.get(op.get(0));
+        try {
+            currentPlan.connect(from, poHFE);
+        } catch (Exception e) {
+            int errCode = 2015;
+            String msg = "Invalid physical operators in the physical plan";
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
+        }
+
+        translateSoftLinks(hforeach);
+    }
+
     /**
      * This function takes in a List of LogicalExpressionPlan and converts them to
      * a list of PhysicalPlans
@@ -1010,6 +1133,19 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         case REGULAR:
             POPackage poPackage = compileToLR_GR_PackTrio(cg, cg.getCustomPartitioner(), cg.getInner(), cg.getExpressionPlans());
             poPackage.getPkgr().setPackageType(PackageType.GROUP);
+            if(cg.getPivot()!=-1) {
+                //Set the pivot value
+                poPackage.setPivot(cg.getPivot());
+                //Set the size of total fields that involve in CUBE clause
+                poPackage.setDimensionSize(cg.getDimensionSize());
+                //Set the index of the first field involves in ROLLUP
+                poPackage.setRollupFieldIndex(cg.getRollupFieldIndex());
+                //Set the original index of the first field involves in ROLLUP in case it was moved to the end
+                //(if we have the combination of cube and rollup)
+                poPackage.setRollupOldFieldIndex(cg.getRollupOldFieldIndex());
+                //Set number of algebraic functions that used after rollup
+                poPackage.setNumberAlgebraic(cg.getNumberAlgebraic());
+            }
             logToPhyMap.put(cg, poPackage);
             break;
         case MERGE:

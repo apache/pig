@@ -19,8 +19,8 @@ package org.apache.pig.test;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -29,17 +29,19 @@ import java.util.Properties;
 
 import junit.framework.Assert;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.pig.ExecType;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
+import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
+import org.apache.pig.backend.hadoop.executionengine.Launcher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRExecutionEngine;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTextOutputFormat;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.builtin.PigStorage;
@@ -56,17 +58,18 @@ import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
 public class TestMultiQueryLocal {
 
-    private PigServer myPig;
+    protected PigServer myPig;
     private String TMP_DIR;
 
     @Before
     public void setUp() throws Exception {
-        PigContext context = new PigContext(ExecType.LOCAL, new Properties());
+        PigContext context = new PigContext(Util.getLocalTestMode(), new Properties());
         context.getProperties().setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, ""+true);
         myPig = new PigServer(context);
         myPig.getPigContext().getProperties().setProperty("pig.usenewlogicalplan", "false");
@@ -351,22 +354,33 @@ public class TestMultiQueryLocal {
 
     public static class PigStorageWithConfig extends PigStorage {
 
-        private static final String key = "test.key";
+        private static final String key1 = "test.key1";
+        private static final String key2 = "test.key2";
         private String suffix;
+        private String myKey;
 
-        public PigStorageWithConfig(String s) {
+        public PigStorageWithConfig(String key, String s) {
             this.suffix = s;
+            this.myKey = key;
         }
 
         @Override
         public void setStoreLocation(String location, Job job) throws IOException {
             super.setStoreLocation(location, job);
-            Assert.assertNull(job.getConfiguration().get(key));
+            if (myKey.equals(key1)) {
+                Assert.assertNull(job.getConfiguration().get(key2));
+            } else {
+                Assert.assertNull(job.getConfiguration().get(key1));
+            }
         }
 
         @Override
         public OutputFormat getOutputFormat() {
-            return new PigTextOutputFormatWithConfig();
+            if (myKey.equals(key1)) {
+                return new PigTextOutputFormatWithConfig1();
+            } else {
+                return new PigTextOutputFormatWithConfig2();
+            }
         }
 
         @Override
@@ -384,16 +398,30 @@ public class TestMultiQueryLocal {
         }
     }
 
-    private static class PigTextOutputFormatWithConfig extends PigTextOutputFormat {
+    private static class PigTextOutputFormatWithConfig1 extends PigTextOutputFormat {
 
-        public PigTextOutputFormatWithConfig() {
+        public PigTextOutputFormatWithConfig1() {
             super((byte) '\t');
         }
 
         @Override
         public synchronized OutputCommitter getOutputCommitter(TaskAttemptContext context)
                 throws IOException {
-            context.getConfiguration().set(PigStorageWithConfig.key, MRConfiguration.WORK_OUPUT_DIR);
+            context.getConfiguration().set(PigStorageWithConfig.key1, MRConfiguration.WORK_OUPUT_DIR);
+            return super.getOutputCommitter(context);
+        }
+    }
+
+    private static class PigTextOutputFormatWithConfig2 extends PigTextOutputFormat {
+
+        public PigTextOutputFormatWithConfig2() {
+            super((byte) '\t');
+        }
+
+        @Override
+        public synchronized OutputCommitter getOutputCommitter(TaskAttemptContext context)
+                throws IOException {
+            context.getConfiguration().set(PigStorageWithConfig.key2, MRConfiguration.WORK_OUPUT_DIR);
             return super.getOutputCommitter(context);
         }
     }
@@ -411,17 +439,20 @@ public class TestMultiQueryLocal {
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
             myPig.registerQuery("b = filter a by uid < 5;");
             myPig.registerQuery("c = filter a by uid > 5;");
-            myPig.registerQuery("store b into '" + TMP_DIR + "/Pig-TestMultiQueryLocal1' using " + PigStorageWithConfig.class.getName() + "('a');");
-            myPig.registerQuery("store c into '" + TMP_DIR + "/Pig-TestMultiQueryLocal2' using " + PigStorageWithConfig.class.getName() + "('b');");
+            myPig.registerQuery("store b into '" + TMP_DIR + "/Pig-TestMultiQueryLocal1' using " + PigStorageWithConfig.class.getName() + "('test.key1', 'a');");
+            myPig.registerQuery("store c into '" + TMP_DIR + "/Pig-TestMultiQueryLocal2' using " + PigStorageWithConfig.class.getName() + "('test.key2', 'b');");
 
             myPig.executeBatch();
             myPig.discardBatch();
-            BufferedReader reader = new BufferedReader(new FileReader(TMP_DIR + "/Pig-TestMultiQueryLocal1/part-m-00000"));
+            FileSystem fs = FileSystem.getLocal(new Configuration());
+            BufferedReader reader = new BufferedReader(new InputStreamReader
+                    (fs.open(Util.getFirstPartFile(new Path(TMP_DIR + "/Pig-TestMultiQueryLocal1")))));
             String line;
             while ((line = reader.readLine())!=null) {
                 Assert.assertTrue(line.endsWith("a"));
             }
-            reader = new BufferedReader(new FileReader(TMP_DIR + "/Pig-TestMultiQueryLocal2/part-m-00000"));
+            reader = new BufferedReader(new InputStreamReader
+                    (fs.open(Util.getFirstPartFile(new Path(TMP_DIR + "/Pig-TestMultiQueryLocal2")))));
             while ((line = reader.readLine())!=null) {
                 Assert.assertTrue(line.endsWith("b"));
             }
@@ -505,8 +536,9 @@ public class TestMultiQueryLocal {
     }
 
     @Test
-    public void testMultiQueryWithIllustrate() {
+    public void testMultiQueryWithIllustrate() throws Exception {
 
+        Assume.assumeTrue("illustrate does not work in tez (PIG-3993)", !Util.getLocalTestMode().toString().startsWith("TEZ"));
         System.out.println("===== test multi-query with illustrate =====");
 
         try {
@@ -626,7 +658,7 @@ public class TestMultiQueryLocal {
         lp.optimize(myPig.getPigContext());
         System.out.println("===== check physical plan =====");        
 
-        PhysicalPlan pp = ((MRExecutionEngine)myPig.getPigContext().getExecutionEngine()).compile(
+        PhysicalPlan pp = ((HExecutionEngine)myPig.getPigContext().getExecutionEngine()).compile(
                 lp, null);
 
         Assert.assertEquals(expectedRoots, pp.getRoots().size());
@@ -638,9 +670,9 @@ public class TestMultiQueryLocal {
         return pp;
     }
 
-    private boolean executePlan(PhysicalPlan pp) throws IOException {
+    protected boolean executePlan(PhysicalPlan pp) throws IOException {
         boolean failed = true;
-        MapReduceLauncher launcher = new MapReduceLauncher();
+        Launcher launcher = MiniGenericCluster.getLauncher();
         PigStats stats = null;
         try {
             stats = launcher.launchPig(pp, "execute", myPig.getPigContext());

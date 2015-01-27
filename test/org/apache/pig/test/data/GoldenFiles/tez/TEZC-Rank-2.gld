@@ -5,10 +5,10 @@
 # TEZ DAG plan: pig-0_scope-0
 #--------------------------------------------------
 Tez vertex scope-23	->	Tez vertex scope-24,
-Tez vertex scope-24	->	Tez vertex scope-43,Tez vertex scope-33,
+Tez vertex scope-24	->	Tez vertex scope-33,Tez vertex scope-43,
 Tez vertex scope-33	->	Tez vertex scope-43,
 Tez vertex scope-43	->	Tez vertex scope-45,
-Tez vertex scope-45	->	Tez vertex scope-51,Tez vertex scope-49,
+Tez vertex scope-45	->	Tez vertex scope-49,Tez vertex scope-51,
 Tez vertex scope-49	->	Tez vertex scope-51,
 Tez vertex scope-51
 

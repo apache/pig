@@ -57,7 +57,6 @@ import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -66,8 +65,6 @@ import org.junit.Test;
 public class TestPigStorage  {
     private static PigServer pig;
     private static PigContext pigContext;
-    private static Properties properties;
-    private static MiniGenericCluster cluster;
     private static final String datadir = "build/test/tmpdata/";
 
     @Before
@@ -99,14 +96,7 @@ public class TestPigStorage  {
 
     @BeforeClass
     public static void oneTimeSetup() {
-        cluster = MiniGenericCluster.buildCluster();
-        properties = cluster.getProperties();
         pigContext = new PigContext(ExecType.LOCAL, new Properties());
-    }
-
-    @AfterClass
-    public static void shutdown() {
-        cluster.shutDown();
     }
 
     private static void assertAliasIs(String alias, List<Tuple> expectedResults)
@@ -121,6 +111,9 @@ public class TestPigStorage  {
 
     @Test
     public void testBlockBoundary() throws ExecException {
+
+        MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
+        Properties properties = cluster.getProperties();
 
         // This tests PigStorage loader with records exactly
         // on the boundary of the file blocks.
@@ -178,6 +171,7 @@ public class TestPigStorage  {
                 e.printStackTrace();
                 Assert.fail();
             }
+            cluster.shutDown();
         }
     }
 

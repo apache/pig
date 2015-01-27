@@ -1,0 +1,24 @@
+{
+  "name" : "recordsWithMapsOfArrayOfRecords",
+  "namespace" : "org.apache.pig.test.builtin",
+  "type" : "record",
+  "fields" : [
+    {"name" : "key", "type" : "string"},
+    {"name" : "value", "type" : "int"},
+    {"name" : "parameters", "type" :
+      {"type" : "map",
+       "values" : {
+         "type" : "array",
+         "items" : {
+            "name" : "innerRecord",
+            "type" : "record",
+            "fields" : [
+              {"name" : "k", "type" : "string"},
+              {"name" : "v", "type" : "int"}
+            ]
+          }
+        }
+      }  
+    }    
+  ]
+}

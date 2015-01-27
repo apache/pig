@@ -22,9 +22,7 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.junit.Before;
@@ -42,8 +40,8 @@ public class TestSplit {
     }
 
     @Before
-    public void setUp() throws ExecException {
-        pig = new PigServer(ExecType.LOCAL);
+    public void setUp() throws Exception {
+        pig = new PigServer(Util.getLocalTestMode());
     }
 
     @Test

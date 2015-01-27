@@ -15,17 +15,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.backend.hadoop.executionengine.tez.runtime;
 
-import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.mapreduce.Partitioner;
+package org.apache.pig.test.udf.evalfunc;
 
-public class RoundRobinPartitioner extends Partitioner<Writable, Writable> {
-    private int num = 0;
 
-    @Override
-    public int getPartition(Writable key, Writable value, int numPartitions) {
-        num = ++num % numPartitions;
-        return num;
+import java.io.IOException;
+import org.apache.pig.EvalFunc;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.data.DataType;
+import org.apache.commons.codec.binary.Base64;
+
+public class ENCODE extends EvalFunc<String>
+{
+    public String exec(Tuple input) throws IOException
+    {
+
+        if (input == null || input.size() == 0)
+            return null;
+
+        try{
+            String decoded_str = (String)input.get(0);
+            return new String(Base64.encodeBase64( decoded_str.getBytes()));
+        }catch (Exception e){
+            System.err.println ("Failed to process input; error - " + e.getMessage());
+            return null;
+        }
     }
 }

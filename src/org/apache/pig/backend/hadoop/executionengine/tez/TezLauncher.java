@@ -75,6 +75,7 @@ import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.dag.app.dag.impl.DAGSchedulerNaturalOrderControlled;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -95,18 +96,24 @@ public class TezLauncher extends Launcher {
         if (namedThreadFactory == null) {
             namedThreadFactory = new ThreadFactoryBuilder()
                 .setNameFormat("PigTezLauncher-%d")
+                .setDaemon(true)
                 .setUncaughtExceptionHandler(new JobControlThreadExceptionHandler())
                 .build();
         }
-        executor = Executors.newSingleThreadExecutor(namedThreadFactory);
     }
 
     @Override
     public PigStats launchPig(PhysicalPlan php, String grpName, PigContext pc) throws Exception {
+        synchronized (this) {
+            if (executor == null) {
+                executor = Executors.newSingleThreadExecutor(namedThreadFactory);
+            }
+        }
         if (pc.getExecType().isLocal()) {
             pc.getProperties().setProperty(TezConfiguration.TEZ_LOCAL_MODE, "true");
             pc.getProperties().setProperty(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, "true");
             pc.getProperties().setProperty("tez.ignore.lib.uris", "true");
+            pc.getProperties().setProperty("tez.am.dag.scheduler.class", DAGSchedulerNaturalOrderControlled.class.getName());
         }
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties(), true);
         if (pc.defaultParallel == -1 && !conf.getBoolean(PigConfiguration.PIG_TEZ_AUTO_PARALLELISM, true)) {

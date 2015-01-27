@@ -18,15 +18,12 @@
 
 package org.apache.pig.test;
 
-import static org.apache.pig.builtin.mock.Storage.resetData;
-import static org.apache.pig.builtin.mock.Storage.tuple;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -36,15 +33,11 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.PrintWriter;
-import java.io.StringReader;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 
@@ -54,15 +47,10 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
-import org.apache.pig.ResourceSchema;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-import org.apache.pig.builtin.mock.Storage;
-import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
@@ -72,8 +60,6 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.util.Utils;
-import org.apache.pig.tools.grunt.Grunt;
-import org.apache.pig.tools.grunt.GruntParser;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -93,7 +79,6 @@ public class TestPigServer {
 
     @Before
     public void setUp() throws Exception{
-        Util.resetStateForExecModeSwitch();
         tempDir = Files.createTempDir();
         tempDir.deleteOnExit();
         registerNewResource(tempDir.getAbsolutePath());
@@ -665,94 +650,6 @@ public class TestPigServer {
 
         assertFalse(iter.hasNext());
     }
-    @Test
-    public void testParamSubstitution() throws Exception{
-        // using params map
-        PigServer pig=new PigServer(ExecType.LOCAL);
-        Map<String,String> params=new HashMap<String, String>();
-        params.put("input", "test/org/apache/pig/test/data/passwd");
-        File scriptFile=Util.createFile(new String[]{"a = load '$input' using PigStorage(':');"});
-        pig.registerScript(scriptFile.getAbsolutePath(),params);
-        Iterator<Tuple> iter=pig.openIterator("a");
-        int index=0;
-        List<Tuple> expectedTuples=Util.readFile2TupleList("test/org/apache/pig/test/data/passwd", ":");
-        while(iter.hasNext()){
-            Tuple tuple=iter.next();
-            assertEquals(tuple.get(0).toString(), expectedTuples.get(index).get(0).toString());
-            index++;
-        }
-
-        // using param file
-        pig=new PigServer(ExecType.LOCAL);
-        List<String> paramFile=new ArrayList<String>();
-        paramFile.add(Util.createFile(new String[]{"input=test/org/apache/pig/test/data/passwd2"}).getAbsolutePath());
-        pig.registerScript(scriptFile.getAbsolutePath(),paramFile);
-        iter=pig.openIterator("a");
-        index=0;
-        expectedTuples=Util.readFile2TupleList("test/org/apache/pig/test/data/passwd2", ":");
-        while(iter.hasNext()){
-            Tuple tuple=iter.next();
-            assertEquals(tuple.get(0).toString(), expectedTuples.get(index).get(0).toString());
-            index++;
-        }
-
-        // using both param value and param file, param value should override param file
-        pig=new PigServer(ExecType.LOCAL);
-        pig.registerScript(scriptFile.getAbsolutePath(),params,paramFile);
-        iter=pig.openIterator("a");
-        index=0;
-        expectedTuples=Util.readFile2TupleList("test/org/apache/pig/test/data/passwd", ":");
-        while(iter.hasNext()){
-            Tuple tuple=iter.next();
-            assertEquals(tuple.get(0).toString(), expectedTuples.get(index).get(0).toString());
-            index++;
-        }
-    }
-
-    // build the pig script from in-memory, and wrap it as ByteArrayInputStream
-    @Test
-    public void testRegisterScriptFromStream() throws Exception{
-        // using params map
-        PigServer pig=new PigServer(ExecType.LOCAL);
-        Map<String,String> params=new HashMap<String, String>();
-        params.put("input", "test/org/apache/pig/test/data/passwd");
-        String script="a = load '$input' using PigStorage(':');";
-        pig.registerScript(new ByteArrayInputStream(script.getBytes("UTF-8")),params);
-        Iterator<Tuple> iter=pig.openIterator("a");
-        int index=0;
-        List<Tuple> expectedTuples=Util.readFile2TupleList("test/org/apache/pig/test/data/passwd", ":");
-        while(iter.hasNext()){
-            Tuple tuple=iter.next();
-            assertEquals(tuple.get(0).toString(), expectedTuples.get(index).get(0).toString());
-            index++;
-        }
-
-        // using param file
-        pig=new PigServer(ExecType.LOCAL);
-        List<String> paramFile=new ArrayList<String>();
-        paramFile.add(Util.createFile(new String[]{"input=test/org/apache/pig/test/data/passwd2"}).getAbsolutePath());
-        pig.registerScript(new ByteArrayInputStream(script.getBytes("UTF-8")),paramFile);
-        iter=pig.openIterator("a");
-        index=0;
-        expectedTuples=Util.readFile2TupleList("test/org/apache/pig/test/data/passwd2", ":");
-        while(iter.hasNext()){
-            Tuple tuple=iter.next();
-            assertEquals(tuple.get(0).toString(), expectedTuples.get(index).get(0).toString());
-            index++;
-        }
-
-        // using both param value and param file, param value should override param file
-        pig=new PigServer(ExecType.LOCAL);
-        pig.registerScript(new ByteArrayInputStream(script.getBytes("UTF-8")),params,paramFile);
-        iter=pig.openIterator("a");
-        index=0;
-        expectedTuples=Util.readFile2TupleList("test/org/apache/pig/test/data/passwd", ":");
-        while(iter.hasNext()){
-            Tuple tuple=iter.next();
-            assertEquals(tuple.get(0).toString(), expectedTuples.get(index).get(0).toString());
-            index++;
-        }
-    }
 
     @Test
     public void testPigProperties() throws Throwable {
@@ -896,93 +793,6 @@ public class TestPigServer {
     }
 
     @Test
-    public void testSecondarySort() throws Exception {
-        PigServer pigServer = new PigServer(ExecType.LOCAL);
-        Data data = resetData(pigServer);
-
-        data.set("foo",
-            tuple("a", 1, "b"),
-            tuple("b", 2, "c"),
-            tuple("c", 3, "d")
-            );
-
-        pigServer.registerQuery("A = LOAD 'foo' USING mock.Storage() AS (f1:chararray,f2:int,f3:chararray);");
-        pigServer.registerQuery("B = order A by f1,f2,f3 DESC;");
-        pigServer.registerQuery("STORE B INTO 'bar' USING mock.Storage();");
-
-        List<Tuple> out = data.get("bar");
-        assertEquals(tuple("a", 1, "b"), out.get(0));
-        assertEquals(tuple("b", 2, "c"), out.get(1));
-        assertEquals(tuple("c", 3, "d"), out.get(2));
-    }
-
-    @Test(expected = RuntimeException.class)
-    public void testLocationStrictCheck() throws ExecException, IOException {
-        Properties properties = PropertiesUtil.loadDefaultProperties();
-        properties.setProperty("pig.location.check.strict", "true");
-        PigServer pigServer = new PigServer(ExecType.LOCAL, properties);
-        Data data = resetData(pigServer);
-
-        data.set("foo",
-                tuple("a", 1, "b"),
-                tuple("b", 2, "c"),
-                tuple("c", 3, "d"));
-
-        pigServer.registerQuery("A = LOAD 'foo' USING mock.Storage() AS (f1:chararray,f2:int,f3:chararray);");
-        pigServer.registerQuery("B = order A by f1,f2,f3 DESC;");
-        pigServer.registerQuery("C = order A by f1,f2,f3;");
-        // Storing to same location 'bar' should throw a RuntimeException
-        pigServer.registerQuery("STORE B INTO 'bar' USING mock.Storage();");
-        pigServer.registerQuery("STORE C INTO 'bar' USING mock.Storage();");
-
-        List<Tuple> out = data.get("bar");
-        assertEquals(tuple("a", 1, "b"), out.get(0));
-        assertEquals(tuple("b", 2, "c"), out.get(1));
-        assertEquals(tuple("c", 3, "d"), out.get(2));
-    }
-
-    @Test
-    public void testSkipParseInRegisterForBatch() throws Throwable {
-        // numTimesInitiated = 10. 4 (once per registerQuery) + 6 (launchPlan->RandomSampleLoader,
-        // InputSizeReducerEstimator, getSplits->RandomSampleLoader,
-        // createRecordReader->RandomSampleLoader, getSplits, createRecordReader)
-        // numTimesSchemaCalled = 4 (once per registerQuery)
-        _testSkipParseInRegisterForBatch(false, 10, 4);
-        // numTimesInitiated = 7 (parseAndBuild, launchPlan->RandomSampleLoader,
-        // InputSizeReducerEstimator, getSplits->RandomSampleLoader,
-        // createRecordReader->RandomSampleLoader, getSplits, createRecordReader)
-        // numTimesSchemaCalled = 1 (parseAndBuild)
-        _testSkipParseInRegisterForBatch(true, 7, 1);
-    }
-
-    @Test
-    // See PIG-3967
-    public void testGruntValidation() throws IOException {
-        PigServer pigServer = new PigServer(ExecType.LOCAL);
-        Data data = resetData(pigServer);
-
-        data.set("foo",
-                tuple("a", 1, "b"),
-                tuple("b", 2, "c"),
-                tuple("c", 3, "d"));
-
-        pigServer.setValidateEachStatement(true);
-        pigServer.registerQuery("A = LOAD 'foo' USING mock.Storage() AS (f1:chararray,f2:int,f3:chararray);");
-        pigServer.registerQuery("store A into '" + Util.generateURI(tempDir.toString(), pigServer.getPigContext()) + "/testGruntValidation1';");
-        pigServer.registerQuery("B = LOAD 'foo' USING mock.Storage() AS (f1:chararray,f2:int,f3:chararray);");
-        pigServer.registerQuery("store B into '" + Util.generateURI(tempDir.toString(), pigServer.getPigContext()) + "/testGruntValidation2';"); // This should pass
-        boolean validationExceptionCaptured = false;
-        try {
-            // This should fail due to output validation
-            pigServer.registerQuery("store A into '" + Util.generateURI(tempDir.toString(),pigServer.getPigContext()) + "/testGruntValidation1';");
-        } catch (FrontendException e) {
-            validationExceptionCaptured = true;
-        }
-
-        assertTrue(validationExceptionCaptured);
-    }
-
-    @Test
     // See PIG-4109
     public void testRegisterJarRemoteScript() throws Throwable {
         if (Util.WINDOWS) {
@@ -990,59 +800,6 @@ public class TestPigServer {
             String jarName = JarManager.findContainingJar(org.codehaus.jackson.JsonParser.class);
             PigServer pig = new PigServer(cluster.getExecType(), properties);
             pig.registerJar(jarName);
-        }
-    }
-
-    private void _testSkipParseInRegisterForBatch(boolean skipParseInRegisterForBatch,
-            int numTimesInitiated, int numTimesSchemaCalled) throws Throwable {
-        MockTrackingStorage.numTimesInitiated = 0;
-        MockTrackingStorage.numTimesSchemaCalled = 0;
-        String query = "A = LOAD 'foo' USING " + MockTrackingStorage.class.getName() + "();\n" +
-                "B = order A by $0,$1,$2;\n" +
-                "C = LIMIT B 2;\n" +
-                "STORE C INTO 'bar' USING mock.Storage();\n";
-        BufferedReader in = new BufferedReader(new StringReader(query));
-        Properties properties = new Properties();
-        properties.setProperty("io.sort.mb", "2");
-        PigContext pigContext = new PigContext(ExecType.LOCAL, properties);
-        Data data;
-        if (skipParseInRegisterForBatch) {
-            data = resetData(pigContext);
-            data.set("foo", tuple("a", 1, "b"), tuple("b", 2, "c"), tuple("c", 3, "d"));
-            Grunt grunt = new Grunt(in, pigContext);
-            grunt.exec(); // Calls grunt.parseStopOnError(); which executes as batch
-        }
-        else {
-            PigServer pigServer = new PigServer(pigContext);
-            data = resetData(pigServer);
-            data.set("foo", tuple("a", 1, "b"), tuple("b", 2, "c"), tuple("c", 3, "d"));
-            GruntParser grunt = new GruntParser(in, pigServer);
-            grunt.setInteractive(false);
-            grunt.parseStopOnError(true); //not batch
-        }
-
-        assertEquals(numTimesInitiated, MockTrackingStorage.numTimesInitiated);
-        assertEquals(numTimesSchemaCalled, MockTrackingStorage.numTimesSchemaCalled);
-        List<Tuple> out = data.get("bar");
-        assertEquals(2, out.size());
-        assertEquals(tuple("a", 1, "b"), out.get(0));
-        assertEquals(tuple("b", 2, "c"), out.get(1));
-    }
-
-    public static class MockTrackingStorage extends Storage {
-
-        public static int numTimesInitiated = 0;
-        public static int numTimesSchemaCalled = 0;
-
-        public MockTrackingStorage() {
-            super();
-            numTimesInitiated++;
-        }
-
-        @Override
-        public ResourceSchema getSchema(String location, Job job) throws IOException {
-            numTimesSchemaCalled++;
-            return super.getSchema(location, job);
         }
     }
 }

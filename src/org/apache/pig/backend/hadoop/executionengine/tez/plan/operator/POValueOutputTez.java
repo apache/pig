@@ -21,6 +21,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -189,7 +190,9 @@ public class POValueOutputTez extends PhysicalOperator implements TezOutput, Tez
 
     @Override
     public String name() {
-        return "POValueOutputTez - " + mKey.toString() + "\t->\t " + outputKeys;
+        List<String> outputKeyList = new ArrayList<String>(outputKeys);
+        Collections.sort(outputKeyList);
+        return "POValueOutputTez - " + mKey.toString() + "\t->\t " + outputKeyList;
     }
 
     public static class EmptyWritable implements Writable {

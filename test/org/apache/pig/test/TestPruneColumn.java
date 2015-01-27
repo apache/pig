@@ -109,7 +109,7 @@ public class TestPruneColumn {
         FileAppender appender = new FileAppender(layout, logFile.toString(), false, false, 0);
         logger.addAppender(appender);
 
-        pigServer = new PigServer("local");
+        pigServer = new PigServer(Util.getLocalTestMode());
         tmpFile1 = File.createTempFile("prune", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile1));
         ps.println("1\t2\t3");

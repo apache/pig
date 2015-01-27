@@ -49,7 +49,7 @@ public class TestRank3 {
     @Before
     public void setUp() throws Exception {
         try {
-            pigServer = new PigServer("local");
+            pigServer = new PigServer(Util.getLocalTestMode());
 
             data = resetData(pigServer);
             data.set("empty");

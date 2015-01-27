@@ -159,11 +159,10 @@ public class TestNestedForeach {
         " }\n");
 
         Iterator<Tuple> iter = pig.openIterator("c");
-        Tuple t = iter.next();
-        Assert.assertTrue(t.toString().equals("({(3)})"));
-
-        t = iter.next();
-        Assert.assertTrue(t.toString().equals("({(7)})"));
+        String[] expected = new String[] {
+                "({(3)})", "({(7)})" };
+        Util.checkQueryOutputsAfterSortRecursive(iter, expected,
+                org.apache.pig.newplan.logical.Util.translateSchema(pig.dumpSchema("c")));
     }
 
     @Test
@@ -185,11 +184,11 @@ public class TestNestedForeach {
         " }\n");
 
         Iterator<Tuple> iter = pig.openIterator("c");
-        Tuple t = iter.next();
-        Assert.assertTrue(t.toString().equals("({(2),(3)})"));
+        String[] expected = new String[] {
+                "({(2),(3)})", "({(7)})" };
+        Util.checkQueryOutputsAfterSortRecursive(iter, expected,
+                org.apache.pig.newplan.logical.Util.translateSchema(pig.dumpSchema("c")));
 
-        t = iter.next();
-        Assert.assertTrue(t.toString().equals("({(7)})"));
     }
 
     // See PIG-2563
@@ -207,10 +206,9 @@ public class TestNestedForeach {
         pig.registerQuery("C = foreach B {tmp = A.a;generate A, tmp; };");
         pig.registerQuery("D = foreach C generate A.(a,b) as v;");
         Iterator<Tuple> iter = pig.openIterator("D");
-        Tuple t = iter.next();
-        Assert.assertTrue(t.toString().equals("({(1,2)})"));
-
-        t = iter.next();
-        Assert.assertTrue(t.toString().equals("({(2,5)})"));
+        String[] expected = new String[] {
+                "({(1,2)})", "({(2,5)})" };
+        Util.checkQueryOutputsAfterSortRecursive(iter, expected,
+                org.apache.pig.newplan.logical.Util.translateSchema(pig.dumpSchema("D")));
     }
 }

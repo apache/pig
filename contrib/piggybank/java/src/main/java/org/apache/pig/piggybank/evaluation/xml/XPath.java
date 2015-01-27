@@ -38,113 +38,203 @@ import org.xml.sax.InputSource;
  */
 public class XPath extends EvalFunc<String> {
 
-    /** Hold onto last xpath & xml in case the next call to xpath() is feeding the same xml document
-     * The reason for this is because creating an xpath object is costly. */
+    /**
+     * Hold onto last xpath & xml in case the next call to xpath() is feeding
+     * the same xml document The reason for this is because creating an xpath
+     * object is costly.
+     */
     private javax.xml.xpath.XPath xpath = null;
     private String xml = null;
     private Document document;
     
     private static boolean cache = true;
+    private static boolean ignoreNamespace = true;
+    public static final String EMPTY_STRING = "";
     
     /**
-     * input should contain: 1) xml 2) xpath 3) optional cache xml doc flag
+     * input should contain: 1) xml 2) xpath 
+     *                       3) optional cache xml doc flag 
+     *                       4) optional ignore namespace flag
      * 
      * Usage:
      * 1) XPath(xml, xpath)
      * 2) XPath(xml, xpath, false) 
+     * 3) XPath(xml, xpath, false, false)
      * 
-     * @param 1st element should to be the xml
+     * @param input
+     * 		  1st element should to be the xml
      *        2nd element should be the xpath
      *        3rd optional boolean cache flag (default true)
+     *        4th optional boolean ignore namespace flag (default true)
      *        
-     * This UDF will cache the last xml document. This is helpful when multiple consecutive xpath calls are made for the same xml document.
-     * Caching can be turned off to ensure that the UDF's recreates the internal javax.xml.xpath.XPath for every call
+     * 
+      *        This UDF will cache the last xml document. This is helpful when
+     *        multiple consecutive xpathAll calls are made for the same xml
+     *        document. Caching can be turned off to ensure that the UDF's
+     *        recreates the internal javax.xml.xpath.XPathAll for every call
+     *        
+     *        This UDF will also support ignoring the namespace in the xml tags.
+     *        This will help to search xpath items by ignoring its namespace.
+     *        Ignoring of the namespace can be turned off for special cases using
+     *        a fourth argument in the UDF. 
      * 
      * @return chararrary result or null if no match
      */
     @Override
     public String exec(final Tuple input) throws IOException {
 
-        if (input == null || input.size() <= 1) {
-            warn("Error processing input, not enough parameters or null input" + input,
-                    PigWarning.UDF_WARNING_1);
-            return null;
-        }
-
-
-        if (input.size() > 3) {
-            warn("Error processing input, too many parameters" + input,
-                    PigWarning.UDF_WARNING_1);
+        if (!isArgsValid(input)) { // Validate arguments
             return null;
         }
 
         try {
 
             final String xml = (String) input.get(0);
+
             if (xml == null) {
                 return null;
             }
             
             if(input.size() > 2)
                 cache = (Boolean) input.get(2);
-            
-            if(!cache || xpath == null || !xml.equals(this.xml))
-            {
+
+            if (!cache || xpath == null || !xml.equals(this.xml)) {
                 final InputSource source = new InputSource(new StringReader(xml));
-                
-                this.xml = xml; //track the xml for subsequent calls to this udf
+
+                this.xml = xml; // track the xml for subsequent calls to this udf
 
                 final DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
                 final DocumentBuilder db = dbf.newDocumentBuilder();
-                
+
                 this.document = db.parse(source);
 
                 final XPathFactory xpathFactory = XPathFactory.newInstance();
 
                 this.xpath = xpathFactory.newXPath();
-                
+
             }
-            
-            final String xpathString = (String) input.get(1);
+
+            String xpathString = (String) input.get(1);
+
+            if (ignoreNamespace) {
+                xpathString = createNameSpaceIgnoreXpathString(xpathString);
+            }
 
             final String value = xpath.evaluate(xpathString, document);
 
             return value;
 
         } catch (Exception e) {
-            warn("Error processing input " + input.getType(0), 
-                    PigWarning.UDF_WARNING_1);
-            
+            warn("Error processing input " + input.getType(0), PigWarning.UDF_WARNING_1);
+
             return null;
         }
     }
+    
+    /**
+     * Validates values of the input parameters.
+     * 
+     * @param Tuple
+     * @return boolean
+     */
+    private boolean isArgsValid(final Tuple input) {
+        if (input == null || input.size() <= 1) {
+            warn("Error processing input, not enough parameters or null input" + input, PigWarning.UDF_WARNING_1);
+            return false;
+        }
 
-	@Override
-	public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
+        if (input.size() > 4) {
+            warn("Error processing input, too many parameters" + input, PigWarning.UDF_WARNING_1);
+            return false;
+        }
 
-		final List<FuncSpec> funcList = new ArrayList<FuncSpec>();
+        try {
+            // 3rd Parameter - CACHE
+            if (input.size() > 2 && !(input.get(2) instanceof Boolean)) { 
+                warn("Error processing input, invalid value in 3rd parameter" + input, PigWarning.UDF_WARNING_1);
+                return false;
+            }
 
-		/*either two chararray arguments*/
-		List<FieldSchema> fields = new ArrayList<FieldSchema>();
-		fields.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
-		fields.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
+            // 4rd Parameter IGNORE_NAMESPACE
+            if (input.size() > 3 && !(input.get(3) instanceof Boolean)) {
+                warn("Error processing input, invalid value in 4th parameter" + input, PigWarning.UDF_WARNING_1);
+                return false;
+            }
+        } catch (Exception ex) {
+            return false;
+        }
+        return true;
+    }
+    
+    
+    /**
+     * Returns a new the xPathString by adding additional parameters 
+     * in the existing xPathString for ignoring the namespace during compilation.
+     * 
+     * @param String xpathString
+     * @return String modified xpathString
+     */
+    private String createNameSpaceIgnoreXpathString(final String xpathString) {
+        final String QUERY_PREFIX = "//*";
+        final String LOCAL_PREFIX = "[local-name()='";
+        final String LOCAL_POSTFIX = "']";
+        final String SPLITTER = "/";
 
-		Schema twoArgInSchema = new Schema(fields);
+        try {
+            String xpathStringWithLocalName = EMPTY_STRING;
+            String[] individualNodes = xpathString.split(SPLITTER);
 
-		funcList.add(new FuncSpec(this.getClass().getName(), twoArgInSchema));
+            for (String node : individualNodes) {
+                xpathStringWithLocalName = xpathStringWithLocalName.concat(QUERY_PREFIX + LOCAL_PREFIX + node
+                        + LOCAL_POSTFIX);
+            }
+            return xpathStringWithLocalName;
+        } catch (Exception ex) {
+            return xpathString;
+        }
+    }
 
-		/*or two chararray and a boolean argument*/
-		fields = new ArrayList<FieldSchema>();
-		fields.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
-		fields.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
-		fields.add(new Schema.FieldSchema(null, DataType.BOOLEAN));
+    /**
+     * Returns argument schemas of the UDF.
+     * 
+     * @return List
+     */
+    @Override
+    public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
 
-		Schema threeArgInSchema = new Schema(fields);
+        final List<FuncSpec> funcList = new ArrayList<FuncSpec>();
 
-		funcList.add(new FuncSpec(this.getClass().getName(), threeArgInSchema));
+        /* either two chararray arguments */
+        List<FieldSchema> fields = new ArrayList<FieldSchema>();
+        fields.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
+        fields.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
 
-		return funcList;
-	}
+        Schema twoArgInSchema = new Schema(fields);
+
+        funcList.add(new FuncSpec(this.getClass().getName(), twoArgInSchema));
+
+        /* or two chararray and a boolean argument */
+        fields = new ArrayList<FieldSchema>();
+        fields.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
+        fields.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
+        fields.add(new Schema.FieldSchema(null, DataType.BOOLEAN));
+
+        Schema threeArgInSchema = new Schema(fields);
+
+        funcList.add(new FuncSpec(this.getClass().getName(), threeArgInSchema));
+
+        /* or two chararray and two boolean arguments */
+        fields = new ArrayList<FieldSchema>();
+        fields.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
+        fields.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
+        fields.add(new Schema.FieldSchema(null, DataType.BOOLEAN));
+        fields.add(new Schema.FieldSchema(null, DataType.BOOLEAN));
+
+        Schema fourArgInSchema = new Schema(fields);
+
+        funcList.add(new FuncSpec(this.getClass().getName(), fourArgInSchema));
+
+        return funcList;
+    }
 
 }
-

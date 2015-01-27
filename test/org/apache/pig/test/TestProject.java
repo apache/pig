@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Random;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -267,7 +266,7 @@ public class TestProject {
                 + "' as (s1:chararray, s2:chararray, extra:chararray);" +
                 "b = foreach a generate s1, s2, extra;";
 
-        PigServer ps = new PigServer(ExecType.LOCAL);
+        PigServer ps = new PigServer(Util.getLocalTestMode());
         Util.registerMultiLineQuery(ps, query);
         Iterator<Tuple> it = ps.openIterator("b");
         Tuple[] expectedResults = new Tuple[] {
@@ -291,7 +290,7 @@ public class TestProject {
                 "t:tuple(s1:chararray, s2:chararray, s3:chararray));" +
                 "b = foreach a generate t.(s2,s3);";
 
-        PigServer ps = new PigServer(ExecType.LOCAL);
+        PigServer ps = new PigServer(Util.getLocalTestMode());
         Util.registerMultiLineQuery(ps, query);
         Iterator<Tuple> it = ps.openIterator("b");
         Tuple[] expectedResults = new Tuple[] {
@@ -313,7 +312,7 @@ public class TestProject {
                 "b = group a all;" +
                 "c = foreach b generate flatten(a.($1, $2)),a.$2;";
 
-        PigServer ps = new PigServer(ExecType.LOCAL);
+        PigServer ps = new PigServer(Util.getLocalTestMode());
         Util.registerMultiLineQuery(ps, query);
         Iterator<Tuple> it = ps.openIterator("c");
         Tuple[] expectedResults = new Tuple[] {
@@ -345,7 +344,7 @@ public class TestProject {
                 "t:tuple(s1:chararray, s2:chararray));" +
                 "b = foreach a generate t.s1, t.s2;";
 
-        PigServer ps = new PigServer(ExecType.LOCAL);
+        PigServer ps = new PigServer(Util.getLocalTestMode());
         Util.registerMultiLineQuery(ps, query);
         Iterator<Tuple> it = ps.openIterator("b");
         Tuple[] expectedResults = new Tuple[] {

@@ -247,6 +247,10 @@ cube_clause
     : ^( CUBE cube_item )
 ;
 
+pivot_clause
+    : ^( PIVOT INTEGER )
+;
+
 cube_item
     : rel ( cube_by_clause )
 ;
@@ -260,7 +264,7 @@ cube_or_rollup
 ;
 
 cube_rollup_list
-    : ^( ( CUBE | ROLLUP ) cube_by_expr_list )
+    : ^( CUBE cube_by_expr_list ) | ^( ROLLUP cube_by_expr_list pivot_clause? )
 ;
 
 cube_by_expr_list
@@ -642,6 +646,7 @@ eid : rel_str_op
     | FOREACH
     | CUBE
     | ROLLUP
+    | PIVOT
     | MATCHES
     | ORDER
     | RANK

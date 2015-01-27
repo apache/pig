@@ -17,8 +17,6 @@
  */
 package org.apache.pig.test;
 
-import static org.junit.Assert.assertTrue;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -51,7 +49,7 @@ public class TestStreamingLocal {
 
     @Before
     public void setUp() throws Exception {
-        pigServer = new PigServer(ExecType.LOCAL);
+        pigServer = new PigServer(Util.getLocalTestMode());
     }
 
     @After
@@ -330,7 +328,7 @@ public class TestStreamingLocal {
 
     @Test
     public void testLocalNegativeLoadStoreOptimization() throws Exception {
-        testNegativeLoadStoreOptimization(ExecType.LOCAL);
+        testNegativeLoadStoreOptimization(Util.getLocalTestMode());
     }
 
     private void testNegativeLoadStoreOptimization(ExecType execType)

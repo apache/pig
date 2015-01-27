@@ -57,7 +57,7 @@ d: Local Rearrange[tuple]{int}(false) - scope-120	->	 scope-107
     |
     |---Pre Combiner Local Rearrange[tuple]{Unknown} - scope-123
         |
-        |---POShuffledValueInputTez - scope-104	<-	 [scope-102, scope-101]
+        |---POShuffledValueInputTez - scope-104	<-	 [scope-101, scope-102]
 Tez vertex scope-107
 # Combine plan on edge <scope-103>
 d: Local Rearrange[tuple]{int}(false) - scope-124	->	 scope-107

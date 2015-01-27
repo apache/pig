@@ -297,9 +297,11 @@ public class TezCompiler extends PhyPlanVisitor {
                         userFunc.getInputs().remove(1);
                     }
 
-                    TezEdgeDescriptor edge = TezCompilerUtil.connect(tezPlan, from, tezOp);
-                    //TODO shared edge once support is available in Tez
-                    TezCompilerUtil.configureValueOnlyTupleOutput(edge, DataMovementType.BROADCAST);
+                    if (tezPlan.getPredecessors(tezOp)==null || !tezPlan.getPredecessors(tezOp).contains(from)) {
+                        TezEdgeDescriptor edge = TezCompilerUtil.connect(tezPlan, from, tezOp);
+                        //TODO shared edge once support is available in Tez
+                        TezCompilerUtil.configureValueOnlyTupleOutput(edge, DataMovementType.BROADCAST);
+                    }
                 }
             }
         }
@@ -366,7 +368,7 @@ public class TezCompiler extends PhyPlanVisitor {
                     storeOnlyPhyPlan.addAsLeaf(store);
                     storeOnlyTezOperator.plan = storeOnlyPhyPlan;
                     tezPlan.add(storeOnlyTezOperator);
-                    phyToTezOpMap.put(store, storeOnlyTezOperator);
+                    phyToTezOpMap.put(p, storeOnlyTezOperator);
 
                     // Create new operator as second splittee
                     curTezOp = getTezOp();

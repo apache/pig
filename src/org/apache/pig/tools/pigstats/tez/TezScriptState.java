@@ -203,7 +203,7 @@ public class TezScriptState extends ScriptState {
         return dagScriptInfo.get(dagName);
     }
 
-    static class TezDAGScriptInfo {
+    public static class TezDAGScriptInfo {
 
         private static final Log LOG = LogFactory.getLog(TezDAGScriptInfo.class);
         private TezOperPlan tezPlan;

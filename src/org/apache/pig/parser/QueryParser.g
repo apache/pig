@@ -595,7 +595,10 @@ union_clause : UNION^ ONSCHEMA? rel_list
 cube_clause : CUBE rel BY cube_rollup_list ( COMMA cube_rollup_list )* -> ^( CUBE rel ^( BY cube_rollup_list+ ) )
 ;
 
-cube_rollup_list : ( CUBE | ROLLUP )^ LEFT_PAREN! real_arg ( COMMA! real_arg )* RIGHT_PAREN!
+cube_rollup_list : ( CUBE^ LEFT_PAREN! real_arg ( COMMA! real_arg )* RIGHT_PAREN! ) | ( ROLLUP^ LEFT_PAREN! real_arg ( COMMA! real_arg )* RIGHT_PAREN! pivot_clause? )
+;
+
+pivot_clause : PIVOT^ INTEGER
 ;
 
 flatten_clause : FLATTEN^ LEFT_PAREN! expr RIGHT_PAREN!

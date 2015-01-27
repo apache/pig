@@ -25,7 +25,6 @@ import static org.junit.Assert.fail;
 
 import java.util.List;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.Tuple;
@@ -40,7 +39,7 @@ public class TestIn {
      */
     @Test
     public void testWithFilter() throws Exception {
-        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        PigServer pigServer = new PigServer(Util.getLocalTestMode());
         Data data = resetData(pigServer);
 
         data.set("foo",
@@ -68,7 +67,7 @@ public class TestIn {
      */
     @Test
     public void testWithBincond() throws Exception {
-        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        PigServer pigServer = new PigServer(Util.getLocalTestMode());
         Data data = resetData(pigServer);
 
         data.set("foo",
@@ -98,7 +97,7 @@ public class TestIn {
      */
     @Test
     public void testWithSplit() throws Exception {
-        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        PigServer pigServer = new PigServer(Util.getLocalTestMode());
         Data data = resetData(pigServer);
 
         data.set("foo",
@@ -132,7 +131,7 @@ public class TestIn {
      */
     @Test
     public void testWithDereferenceOperator() throws Exception {
-        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        PigServer pigServer = new PigServer(Util.getLocalTestMode());
         Data data = resetData(pigServer);
 
         data.set("foo",
@@ -161,7 +160,7 @@ public class TestIn {
      */
     @Test(expected = FrontendException.class)
     public void testMissingRhsOperand() throws Exception {
-        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        PigServer pigServer = new PigServer(Util.getLocalTestMode());
         Data data = resetData(pigServer);
 
         data.set("foo",

@@ -7,9 +7,9 @@
 Tez vertex scope-117	->	Tez vertex scope-119,
 Tez vertex scope-118	->	Tez vertex scope-119,
 Tez vertex scope-119	->	Tez vertex scope-121,Tez vertex scope-123,Tez vertex scope-125,
+Tez vertex scope-121
 Tez vertex scope-123
 Tez vertex scope-125
-Tez vertex scope-121
 
 Tez vertex scope-117
 # Plan on vertex
@@ -47,7 +47,7 @@ c: Local Rearrange[tuple]{int}(false) - scope-86	->	 scope-119
     |---b: Load(file:///tmp/input2:org.apache.pig.builtin.PigStorage) - scope-72
 Tez vertex scope-119
 # Plan on vertex
-POValueOutputTez - scope-120	->	 [scope-123, scope-125, scope-121]
+POValueOutputTez - scope-120	->	 [scope-121, scope-123, scope-125]
 |
 |---c: New For Each(true,true)[tuple] - scope-90
     |   |
@@ -56,6 +56,11 @@ POValueOutputTez - scope-120	->	 [scope-123, scope-125, scope-121]
     |   Project[bag][2] - scope-89
     |
     |---c: Package(Packager)[tuple]{int} - scope-83
+Tez vertex scope-121
+# Plan on vertex
+c: Store(file:///tmp/output/c:org.apache.pig.builtin.PigStorage) - scope-94
+|
+|---POValueInputTez - scope-122	<-	 scope-119
 Tez vertex scope-123
 # Plan on vertex
 d: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-104
@@ -84,8 +89,3 @@ e: Store(file:///tmp/output/e:org.apache.pig.builtin.PigStorage) - scope-116
     |   Project[int][3] - scope-113
     |
     |---POValueInputTez - scope-126	<-	 scope-119
-Tez vertex scope-121
-# Plan on vertex
-c: Store(file:///tmp/output/c:org.apache.pig.builtin.PigStorage) - scope-94
-|
-|---POValueInputTez - scope-122	<-	 scope-119

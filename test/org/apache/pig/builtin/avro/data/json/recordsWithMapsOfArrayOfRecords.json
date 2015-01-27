@@ -1,0 +1,25 @@
+{"key" : "A",
+ "value" : 1,
+ "parameters" : {
+   "firstParameter" : []
+  }
+}
+{"key" : "B",
+ "value" : 2,
+ "parameters" : {}
+}
+{"key" : "C",
+ "value" : 3,
+ "parameters" : {
+     "firstParameter" : [
+       {"k" : "c", "v" : 3},
+       {"k" : "c1", "v" : 4},
+       {"k" : "c2", "v" : 5}
+     ],
+     "secondParameter" : [
+       {"k" : "c3", "v" : 6},
+       {"k" : "c4", "v" : 7},
+       {"k" : "c5", "v" : 8}
+     ]
+  }
+}

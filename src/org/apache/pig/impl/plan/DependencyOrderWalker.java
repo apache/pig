@@ -19,6 +19,7 @@ package org.apache.pig.impl.plan;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -37,18 +38,31 @@ import org.apache.pig.impl.util.Utils;
 public class DependencyOrderWalker <O extends Operator, P extends OperatorPlan<O>>
     extends PlanWalker<O, P> {
 
+    private final boolean walkLeavesInOrder;
+
     /**
      * @param plan Plan for this walker to traverse.
      */
     public DependencyOrderWalker(P plan) {
-        super(plan);
+        this(plan, false);
     }
+
+    /**
+     * @param plan Plan for this walker to traverse.
+     * @param boolean walkLeavesInOrder Sort the leaves before walking
+     */
+    public DependencyOrderWalker(P plan, boolean walkLeavesInOrder) {
+        super(plan);
+        this.walkLeavesInOrder = walkLeavesInOrder;
+    }
+
 
     /**
      * Begin traversing the graph.
      * @param visitor Visitor this walker is being used by.
      * @throws VisitorException if an error is encountered while walking.
      */
+    @Override
     @SuppressWarnings("unchecked")
     public void walk(PlanVisitor<O, P> visitor) throws VisitorException {
         // This is highly inefficient, but our graphs are small so it should be okay.
@@ -63,6 +77,9 @@ public class DependencyOrderWalker <O extends Operator, P extends OperatorPlan<O
         Set<O> seen = new HashSet<O>();
         List<O> leaves = mPlan.getLeaves();
         if (leaves == null) return;
+        if (walkLeavesInOrder) {
+            Collections.sort(leaves);
+        }
         for (O op : leaves) {
             doAllPredecessors(op, seen, fifo);
         }
@@ -71,8 +88,9 @@ public class DependencyOrderWalker <O extends Operator, P extends OperatorPlan<O
         }
     }
 
-    public PlanWalker<O, P> spawnChildWalker(P plan) { 
-        return new DependencyOrderWalker<O, P>(plan);
+    @Override
+    public PlanWalker<O, P> spawnChildWalker(P plan) {
+        return new DependencyOrderWalker<O, P>(plan, walkLeavesInOrder);
     }
 
     protected void doAllPredecessors(O node,

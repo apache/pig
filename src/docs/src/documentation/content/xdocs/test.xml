@@ -963,6 +963,50 @@ junit.framework.ComparisonFailure: null expected:&lt;...ahoo,3)
         at org.apache.pig.pigunit.PigTest.assertEquals(PigTest.java:272)
 </source>
       </section>
+      
+<!-- +++++++++++++++++++++++++++++++++++++++ -->      
+      <section>
+        <title>Mocking</title>
+
+        <p>Sometimes you need to mock out the data in specific aliases. Using PigTest's 
+        mocking you can override an alias everywhere it is assigned. If you do not know
+        the schema (or want to keep your test dynamic) you can use PigTest.getAliasToSchemaMap() 
+        to determine the schema. If you chose to go this route, you should cache the map for
+        the specific script to ensure efficient execution.
+        </p>
+
+        <source>
+  @Test
+  public void testTop2Queries() {
+    String[] args = {
+        "n=2",
+        };
+ 
+    PigTest test = new PigTest("top_queries.pig", args);
+ 
+    String[] mockData = {
+        "yahoo",
+        "yahoo",
+        "yahoo",
+        "twitter",
+        "facebook",
+        "facebook",
+        "linkedin",
+    };
+    
+    //You should cache the map if you can
+    String schema = test.getAliasToSchemaMap().get("data");
+    test.mockAlias("data", mockData, schema);
+ 
+    String[] output = {
+        "(yahoo,3)",
+        "(facebook,2)",
+    };
+ 
+    test.assertOutputAnyOrder("queries_limit", output);
+  }
+</source>
+      </section>
     </section>
 
 <!-- +++++++++++++++++++++++++++++++++++++++ -->

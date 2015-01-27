@@ -24,7 +24,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.tools.pigstats.PigStats;
@@ -35,7 +34,7 @@ public class TestScriptingLanguagePython {
   @Test
   public void varargTest() throws Exception {
     System.setProperty("python.cachedir", System.getProperty("java.io.tmpdir"));
-    PigServer pigServer = new PigServer(ExecType.LOCAL);
+    PigServer pigServer = new PigServer(Util.getLocalTestMode());
     String[] script = {
         "#!/usr/bin/python",
 

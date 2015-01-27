@@ -25,6 +25,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.pig.ExecType;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.Launcher;
 
 /**
  * This class builds a single instance of itself with the Singleton
@@ -148,5 +149,19 @@ abstract public class MiniGenericCluster {
             return;
         String msg = "function called on MiniCluster that has been shutdown";
         throw new RuntimeException(msg);
+    }
+
+    static public Launcher getLauncher() {
+        String execType = System.getProperty("test.exec.type");
+        if (execType == null) {
+            System.setProperty("test.exec.type", EXECTYPE_MR);
+        }
+        if (execType.equalsIgnoreCase(EXECTYPE_MR)) {
+            return MiniCluster.getLauncher();
+        } else if (execType.equalsIgnoreCase(EXECTYPE_TEZ)) {
+            return TezMiniCluster.getLauncher();
+        } else {
+            throw new RuntimeException("Unknown test.exec.type: " + execType);
+        }
     }
 }
