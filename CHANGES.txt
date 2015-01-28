@@ -44,6 +44,8 @@ PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES
 
+PIG-4394: Fix Split_9 and Union_5 e2e failures (rohini)
+
 PIG-4391: Fix TestPigStats test failure (rohini)
 
 PIG-4387: Honor yarn settings in tez-site.xml and optimize dag status fetch (rohini)

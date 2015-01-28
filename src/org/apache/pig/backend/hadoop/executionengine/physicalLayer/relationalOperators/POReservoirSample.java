@@ -108,7 +108,7 @@ public class POReservoirSample extends PhysicalOperator {
             }
         }
 
-        if (res.returnStatus != POStatus.STATUS_EOP) {
+        if (res == null || res.returnStatus != POStatus.STATUS_EOP) {
             Random randGen = new Random();
             while (true) {
                 // pick this as sample
@@ -142,7 +142,7 @@ public class POReservoirSample extends PhysicalOperator {
         if (lastSample.returnStatus==POStatus.STATUS_EOP) {
             return lastSample;
         }
-        
+
         Result currentSample = retrieveSample();
         // If this is the last sample, tag with number of rows
         if (currentSample.returnStatus == POStatus.STATUS_EOP) {
