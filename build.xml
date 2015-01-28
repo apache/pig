@@ -108,6 +108,8 @@
     <property name="test.exclude.file" value="${test.src.dir}/excluded-tests"/>
     <property name="test.exclude.file.20" value="${test.src.dir}/excluded-tests-20"/>
     <property name="test.exclude.file.23" value="${test.src.dir}/excluded-tests-23"/>
+    <property name="test.exclude.file.mr" value="${test.src.dir}/excluded-tests-mr"/>
+    <property name="test.exclude.file.tez" value="${test.src.dir}/excluded-tests-tez"/>
     <property name="pigunit.jarfile" value="pigunit.jar" />
     <property name="piggybank.jarfile" value="${basedir}/contrib/piggybank/java/piggybank.jar" />
     <property name="smoke.tests.jarfile" value="${build.dir}/${final.name}-smoketests.jar" />
@@ -780,6 +782,14 @@
            project.setProperty(attributes.get("name"), attributes.get("value"));
     </scriptdef>
 
+    <macrodef name="propertycopy">
+        <attribute name="name"/>
+        <attribute name="from"/>
+        <sequential>
+            <propertyreset name="@{name}" value="${@{from}}"/>
+        </sequential>
+    </macrodef>
+
     <target name="mvn-jar" description="Create pig.jar for maven deploy for Hadoop2/23 and Hadoop1/20">
         <propertyreset name="hadoopversion" value="23" />
         <propertyreset name="isHadoop" value="true" />
@@ -910,6 +920,8 @@
         <mkdir dir="${test.log.dir}"/>
         <tempfile property="junit.tmp.dir" prefix="pig_junit_tmp" destDir="${java.io.tmpdir}" />
         <mkdir dir="${junit.tmp.dir}/"/>
+      	<propertycopy name="test.exclude.file.for.exectype" from="test.exclude.file.${test.exec.type}"/>
+      	<echo>Tests in ${test.exclude.file.for.exectype} will be excluded</echo>
         <junit showoutput="${test.output}" printsummary="yes" haltonfailure="no" fork="yes" maxmemory="2048m" dir="${basedir}" timeout="${test.timeout}" errorProperty="@{tests.failed}" failureProperty="@{tests.failed}">
             <sysproperty key="hadoopversion" value="${hadoopversion}" />
             <sysproperty key="test.exec.type" value="${test.exec.type}" />
@@ -942,6 +954,7 @@
                        <excludesfile name="${test.exclude.file}" if="test.exclude.file"/>
                        <excludesfile name="${test.exclude.file.20}" unless="isHadoop23"/>
                        <excludesfile name="${test.exclude.file.23}" if="isHadoop23"/>
+                       <excludesfile name="${test.exclude.file.for.exectype}"/>
                     </patternset>
                     <exclude name="**/${exclude.testcase}.java" if="exclude.testcase" />
                     <exclude name="**/TestRegisteredJarVisibility.java" if="offline"/>
