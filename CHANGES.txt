@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4401: Add pattern matching to PluckTuple (cheolsoo)
+
 PIG-2692: Make the Pig unit faciliities more generalizable and update javadocs (razsapps via daijy)
 
 PIG-4379: Make RoundRobinPartitioner public (daijy)
