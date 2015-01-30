@@ -915,7 +915,7 @@ DUMP X;
    
    <section id="plucktuple">
      <title>PluckTuple</title>
-     <p>Allows the user to specify a string prefix, and then filter for the columns in a relation that begin with that prefix.</p>
+     <p>Allows the user to specify a string prefix, and then filter for the columns in a relation that begin with that prefix or match that regex pattern.</p>
      
      <section>
        <title>Syntax</title>
@@ -937,7 +937,7 @@ DUMP X;
              <p>expression1</p>
            </td>
            <td>
-             <p>A prefix to pluck by</p>
+             <p>A prefix to pluck by or an regex pattern to pluck by</p>
            </td>
 	 </tr>
 	 <tr>

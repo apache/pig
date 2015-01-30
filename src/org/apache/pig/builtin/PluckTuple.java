@@ -20,6 +20,7 @@ package org.apache.pig.builtin;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.data.DataType;
@@ -35,6 +36,8 @@ import com.google.common.collect.Lists;
  * filter for the columns in a relation that begin with that prefix.
  *
  * Example:
+ *
+ * 1) Prefix
  * a = load 'a' as (x, y);
  * b = load 'b' as (x, y);
  * c = join a by x, b by x;
@@ -44,9 +47,21 @@ import com.google.common.collect.Lists;
  * c: {a::x: bytearray,a::y: bytearray,b::x: bytearray,b::y: bytearray}
  * describe d;
  * d: {plucked::a::x: bytearray,plucked::a::y: bytearray}
+ *
+ * 2) Regex
+ * a = load 'a' as (x, y);
+ * b = load 'b' as (x, y);
+ * c = join a by x, b by x;
+ * DEFINE pluck PluckTuple('.*::y');
+ * d = foreach c generate FLATTEN(pluck(*));
+ * describe c;
+ * c: {a::x: bytearray,a::y: bytearray,b::x: bytearray,b::y: bytearray}
+ * describe d;
+ * d: {plucked::a::y: bytearray,plucked::a::y: bytearray}
  */
 public class PluckTuple extends EvalFunc<Tuple> {
     private static final TupleFactory mTupleFactory = TupleFactory.getInstance();
+    private static Pattern pattern;
 
     private boolean isInitialized = false;
     private int[] indicesToInclude;
@@ -54,6 +69,7 @@ public class PluckTuple extends EvalFunc<Tuple> {
 
     public PluckTuple(String prefix) {
         this.prefix = prefix;
+        pattern = Pattern.compile(prefix);
     }
 
     @Override
@@ -63,7 +79,7 @@ public class PluckTuple extends EvalFunc<Tuple> {
             Schema inputSchema = getInputSchema();
             for (int i = 0; i < inputSchema.size(); i++) {
                 String alias = inputSchema.getField(i).alias;
-                if (alias.startsWith(prefix)) {
+                if (alias.startsWith(prefix) || pattern.matcher(alias).matches()) {
                     indicesToInclude.add(i);
                 }
             }
@@ -92,7 +108,7 @@ public class PluckTuple extends EvalFunc<Tuple> {
                 } catch (FrontendException e) {
                     throw new RuntimeException(e); // Should never happen
                 }
-                if (alias.startsWith(prefix)) {
+                if (alias.startsWith(prefix) || pattern.matcher(alias).matches()) {
                     indicesToInclude.add(i);
                 }
             }

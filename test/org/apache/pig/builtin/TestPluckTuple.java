@@ -44,7 +44,7 @@ public class TestPluckTuple {
     }
 
     @Test
-    public void testSchema() throws Exception {
+    public void testStartsWith() throws Exception {
         String query = "a = load 'a' as (x:int,y:chararray,z:long);" +
                        "b = load 'b' as (x:int,y:chararray,z:long);" +
                        "c = join a by x, b by x;" +
@@ -52,6 +52,17 @@ public class TestPluckTuple {
                        "d = foreach c generate flatten(pluck(*));";
         pigServer.registerQuery(query);
         assertTrue(Schema.equals(pigServer.dumpSchema("a"), pigServer.dumpSchema("d"), false, true));
+    }
+
+    @Test
+    public void testPatternMatches() throws Exception {
+        String query = "a1 = load 'a1' as (x:int,y:chararray,z:long);" +
+                "a2 = load 'a2' as (x:int,y:chararray,z:long);" +
+                "b = join a1 by x, a2 by x;" +
+                "define pluck PluckTuple('a[2|3]::.*');" +
+                "c = foreach b generate flatten(pluck(*));";
+        pigServer.registerQuery(query);
+        assertTrue(Schema.equals(pigServer.dumpSchema("a2"), pigServer.dumpSchema("c"), false, true));
     }
 
     @Test
