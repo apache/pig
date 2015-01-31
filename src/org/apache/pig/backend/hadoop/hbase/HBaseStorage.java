@@ -16,8 +16,6 @@
  */
 package org.apache.pig.backend.hadoop.hbase;
 
-import java.io.DataInput;
-import java.io.DataOutput;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -87,6 +85,7 @@ import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.StoreResources;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.backend.hadoop.hbase.HBaseTableInputFormat.HBaseTableIFBuilder;
 import org.apache.pig.builtin.FuncUtils;
 import org.apache.pig.builtin.Utf8StorageConverter;
@@ -788,7 +787,9 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         List<Class> classList = new ArrayList<Class>();
         classList.add(org.apache.hadoop.hbase.client.HTable.class); // main hbase jar or hbase-client
         classList.add(org.apache.hadoop.hbase.mapreduce.TableSplit.class); // main hbase jar or hbase-server
-        classList.add(com.google.common.collect.Lists.class); // guava
+        if (!HadoopShims.isHadoopYARN()) { //Avoid shipping duplicate. Hadoop 0.23/2 itself has guava
+            classList.add(com.google.common.collect.Lists.class); // guava
+        }
         classList.add(org.apache.zookeeper.ZooKeeper.class); // zookeeper
         // Additional jars that are specific to v0.95.0+
         addClassToList("org.cloudera.htrace.Trace", classList); // htrace
@@ -1132,9 +1133,10 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         return new RequiredFieldResponse(true);
     }
 
+    @Override
     public void ensureAllKeyInstancesInSameSplit() throws IOException {
-        /** 
-         * no-op because hbase keys are unique 
+        /**
+         * no-op because hbase keys are unique
          * This will also work with things like DelimitedKeyPrefixRegionSplitPolicy
          * if you need a partial key match to be included in the split
          */
@@ -1149,7 +1151,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
             throw new RuntimeException("LoadFunc expected split of type TableSplit but was " + split.getClass().getName());
         }
     }
- 
+
 
     /**
      * Class to encapsulate logic around which column names were specified in each

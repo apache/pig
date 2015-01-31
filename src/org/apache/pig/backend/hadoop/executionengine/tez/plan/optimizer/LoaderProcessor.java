@@ -24,6 +24,7 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.LoadFunc;
@@ -47,13 +48,28 @@ import org.apache.pig.impl.util.UDFContext;
 import org.apache.tez.mapreduce.hadoop.MRInputHelpers;
 
 public class LoaderProcessor extends TezOpPlanVisitor {
-    private Configuration conf;
+
+    private static final Log LOG = LogFactory.getLog(LoaderProcessor.class);
+
+    private TezOperPlan tezOperPlan;
+    private JobConf jobConf;
     private PigContext pc;
-    private static final Log log = LogFactory.getLog(LoaderProcessor.class);
-    public LoaderProcessor(TezOperPlan plan, PigContext pigContext) {
+
+    public LoaderProcessor(TezOperPlan plan, PigContext pigContext) throws VisitorException {
         super(plan, new DependencyOrderWalker<TezOperator, TezOperPlan>(plan));
+        this.tezOperPlan = plan;
         this.pc = pigContext;
-        this.conf = ConfigurationUtil.toConfiguration(pc.getProperties());;
+        this.jobConf = new JobConf(ConfigurationUtil.toConfiguration(pc.getProperties()));
+        // This ensures that the same credentials object is used by reference everywhere
+        this.jobConf.setCredentials(tezOperPlan.getCredentials());
+        this.jobConf.setBoolean("mapred.mapper.new-api", true);
+        this.jobConf.setClass("mapreduce.inputformat.class",
+                PigInputFormat.class, InputFormat.class);
+        try {
+            this.jobConf.set("pig.pigContext", ObjectSerializer.serialize(pc));
+        } catch (IOException e) {
+            throw new VisitorException(e);
+        }
     }
 
     /**
@@ -76,22 +92,25 @@ public class LoaderProcessor extends TezOpPlanVisitor {
         ArrayList<String> inpSignatureLists = new ArrayList<String>();
         ArrayList<Long> inpLimits = new ArrayList<Long>();
 
-        Job job = Job.getInstance(conf);
-        conf = job.getConfiguration();
-        conf.setBoolean("mapred.mapper.new-api", true);
-        conf.setClass("mapreduce.inputformat.class",
-                PigInputFormat.class, InputFormat.class);
-        conf.set("pig.pigContext", ObjectSerializer.serialize(pc));
         List<POLoad> lds = PlanHelper.getPhysicalOperators(tezOp.plan,
                 POLoad.class);
 
-        if (lds != null && lds.size() > 0) {
-            for (POLoad ld : lds) {
-                LoadFunc lf = ld.getLoadFunc();
-                lf.setLocation(ld.getLFile().getFileName(), job);
+        Job job = Job.getInstance(jobConf);
+        Configuration conf = job.getConfiguration();
 
-                // Store the inp filespecs
-                inp.add(ld.getLFile());
+        if (lds != null && lds.size() > 0) {
+            if (lds.size() == 1) {
+                for (POLoad ld : lds) {
+                    LoadFunc lf = ld.getLoadFunc();
+                    lf.setLocation(ld.getLFile().getFileName(), job);
+
+                    // Store the inp filespecs
+                    inp.add(ld.getLFile());
+                }
+            } else {
+                throw new VisitorException(
+                        "There is more than one load for TezOperator "
+                                + tezOp);
             }
         }
 
@@ -139,7 +158,7 @@ public class LoaderProcessor extends TezOpPlanVisitor {
                 try {
                     maxCombinedSplitSize = Long.parseLong(tmp);
                 } catch (NumberFormatException e) {
-                    log.warn("Invalid numeric format for pig.maxCombinedSplitSize; use the default maximum combined split size");
+                    LOG.warn("Invalid numeric format for pig.maxCombinedSplitSize; use the default maximum combined split size");
                 }
             }
             if (maxCombinedSplitSize > 0)
@@ -159,6 +178,7 @@ public class LoaderProcessor extends TezOpPlanVisitor {
         try {
             tezOp.getLoaderInfo().setLoads(processLoads(tezOp));
         } catch (Exception e) {
+            e.printStackTrace();
             throw new VisitorException(e);
         }
     }
