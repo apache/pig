@@ -27,7 +27,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.pig.PigException;
@@ -58,7 +57,7 @@ public class TezJobCompiler {
     public DAG buildDAG(TezPlanContainerNode tezPlanNode, Map<String, LocalResource> localResources)
             throws IOException, YarnException {
         DAG tezDag = DAG.create(tezPlanNode.getOperatorKey().toString());
-        tezDag.setCredentials(new Credentials());
+        tezDag.setCredentials(tezPlanNode.getTezOperPlan().getCredentials());
         TezDagBuilder dagBuilder = new TezDagBuilder(pigContext, tezPlanNode.getTezOperPlan(), tezDag, localResources);
         dagBuilder.visit();
         return tezDag;

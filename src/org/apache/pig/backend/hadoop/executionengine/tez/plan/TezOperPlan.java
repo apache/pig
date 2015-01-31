@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezResourceManager;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.TezCompilerUtil;
@@ -54,7 +55,14 @@ public class TezOperPlan extends OperatorPlan<TezOperator> {
 
     private int estimatedTotalParallelism = -1;
 
+    private Credentials creds;
+
     public TezOperPlan() {
+        creds = new Credentials();
+    }
+
+    public Credentials getCredentials() {
+        return creds;
     }
 
     public int getEstimatedTotalParallelism() {
