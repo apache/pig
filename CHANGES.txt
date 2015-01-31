@@ -46,6 +46,9 @@ PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES
 
+PIG-4403: Combining -Dpig.additional.jars.uris with -useHCatalog breaks due to combination
+ with colon instead of comma (ovlaere via daijy)
+
 PIG-4402: JavaScript UDF example in the doc is broken (cheolsoo)
 
 PIG-4394: Fix Split_9 and Union_5 e2e failures (rohini)
