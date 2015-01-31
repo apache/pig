@@ -26,6 +26,8 @@ IMPROVEMENTS
 
 BUG FIXES
 
+PIG-4404: LOAD with HBaseStorage on secure cluster is broken in Tez (rohini)
+
 PIG-4375: ObjectCache should use ProcessorContext.getObjectRegistry() (rohini)
 
 PIG-4334: PigProcessor does not set pig.datetime.default.tz (rohini)
