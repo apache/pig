@@ -1799,7 +1799,10 @@ public class JobControlCompiler{
             // attempt to copy to cache else return null
             fs.mkdirs(cacheDir, FileLocalizer.OWNER_ONLY_PERMS);
             is2 = url.openStream();
-            os = FileSystem.create(fs, cacheFile, FileLocalizer.OWNER_ONLY_PERMS);
+            short replication = (short)conf.getInt(PigConfiguration.PIG_USER_CACHE_REPLICATION,
+                    conf.getInt("mapred.submit.replication", 10));
+            os = fs.create(cacheFile, replication);
+            fs.setPermission(cacheFile, FileLocalizer.OWNER_ONLY_PERMS);
             IOUtils.copyBytes(is2, os, 4096, true);
 
             return cacheFile;
