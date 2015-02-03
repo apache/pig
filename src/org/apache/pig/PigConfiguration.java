@@ -268,6 +268,11 @@ public class PigConfiguration {
     public static final String PIG_USER_CACHE_LOCATION = "pig.user.cache.location";
 
     /**
+     * Replication factor for files in pig jar cache
+     */
+    public static final String PIG_USER_CACHE_REPLICATION = "pig.user.cache.replication";
+
+    /**
      * Comma-delimited entries of commands/operators that must be disallowed.
      * This is a security feature to be used by administrators to block use of
      * commands by users. For eg, an admin might like to block all filesystem
