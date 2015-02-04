@@ -422,6 +422,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                 poSort = new POSort(new OperatorKey(scope, nodeGen
                         .getNextNodeId(scope)), -1, null,
                         newPhysicalPlan, newOrderPlan, null);
+                poSort.setRequestedParallelism(loRank.getRequestedParallelism());
                 poSort.addOriginalLocation(loRank.getAlias(), loRank.getLocation());
 
 
