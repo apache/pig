@@ -127,6 +127,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4409: fs.defaultFS is overwritten in JobConf by replicated join at runtime (cheolsoo)
+
 PIG-4335: Pig release tarball miss tez classes (daijy)
 
 PIG-4325: StackOverflow when spilling InternalCachedBag (daijy)

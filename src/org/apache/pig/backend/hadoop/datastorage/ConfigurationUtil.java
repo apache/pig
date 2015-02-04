@@ -80,7 +80,7 @@ public class ConfigurationUtil {
             localConf.addResource("core-default.xml");
         } else {
             if (PigMapReduce.sJobContext!=null) {
-                localConf = PigMapReduce.sJobContext.getConfiguration();
+                localConf = new Configuration(PigMapReduce.sJobContext.getConfiguration());
             } else {
                 localConf = new Configuration(true);
             }
