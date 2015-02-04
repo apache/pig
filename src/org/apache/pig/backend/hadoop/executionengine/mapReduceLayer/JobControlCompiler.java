@@ -407,17 +407,13 @@ public class JobControlCompiler{
             }
             groupCounters = counters.getGroup(groupName);
 
-            Iterator<Counter> it = groupCounters.iterator();
             HashMap<Integer,Long> counterList = new HashMap<Integer, Long>();
 
-            while(it.hasNext()) {
-                try{
-                    Counter c = it.next();
-                    counterList.put(Integer.valueOf(c.getDisplayName()), c.getValue());
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                }
+            for (int i=0;i<job.getJob().getNumReduceTasks();i++) {
+                Long value = groupCounters.getCounter(Integer.toString(i));
+                counterList.put(i, value);
             }
+
             counterSize = counterList.size();
             counterPairs = new ArrayList<Pair<String,Long>>();
 
