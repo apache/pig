@@ -156,7 +156,7 @@ public class POReservoirSample extends PhysicalOperator {
     }
 
     private Result retrieveSample() throws ExecException {
-        if(nextSampleIdx < samples.length){
+        if(nextSampleIdx < Math.min(rowProcessed, samples.length)){
             if (illustrator != null) {
                 illustratorMarkup(samples[nextSampleIdx].result, samples[nextSampleIdx].result, 0);
             }
