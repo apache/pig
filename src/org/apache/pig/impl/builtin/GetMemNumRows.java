@@ -56,6 +56,7 @@ public class GetMemNumRows extends EvalFunc<Tuple>{
         int tSize = in.size();
     	if(tSize >=2 && 
     	    PoissonSampleLoader.NUMROWS_TUPLE_MARKER.equals(in.get(tSize-2)) ){
+    	    memSize = 0;
     	    numRows = (Long)in.get(tSize-1);
     	}
     	
