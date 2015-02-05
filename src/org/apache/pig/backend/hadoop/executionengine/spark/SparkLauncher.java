@@ -5,15 +5,21 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.google.common.collect.Lists;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -72,11 +78,11 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.pig.tools.pigstats.SparkStats;
+import org.apache.pig.tools.pigstats.spark.SparkPigStats;
+import org.apache.pig.tools.pigstats.spark.SparkStatsUtil;
 import org.apache.spark.rdd.RDD;
 import org.apache.spark.scheduler.JobLogger;
 import org.apache.spark.scheduler.StatsReportListener;
-import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaSparkContext;
 
 /**
@@ -89,7 +95,8 @@ public class SparkLauncher extends Launcher {
     // Our connection to Spark. It needs to be static so that it can be reused
     // across jobs, because a
     // new SparkLauncher gets created for each job.
-    private static SparkContext sparkContext = null;
+    private static JavaSparkContext sparkContext = null;
+    private static JobMetricsListener jobMetricsListener = new JobMetricsListener();
 
     public static BroadCastServer bcaster;
     private static final Matcher DISTRIBUTED_CACHE_ARCHIVE_MATCHER = Pattern
@@ -99,6 +106,7 @@ public class SparkLauncher extends Launcher {
     // it to be shared across SparkLaunchers. It gets cleared whenever we close
     // the SparkContext.
     // private static CacheConverter cacheConverter = null;
+    private String jobGroupID;
 
     @Override
     public PigStats launchPig(PhysicalPlan physicalPlan, String grpName,
@@ -128,9 +136,19 @@ public class SparkLauncher extends Launcher {
             }
         }
 
+        SparkPigStats sparkStats = (SparkPigStats)
+            pigContext.getExecutionEngine().instantiatePigStats();
+        PigStats.start(sparkStats);
+
         startSparkIfNeeded();
+        // Set a unique group id for this query, so we can lookup all Spark job ids
+        // related to this query.
+        jobGroupID = UUID.randomUUID().toString();
+        sparkContext.setJobGroup(jobGroupID, "Pig query to Spark cluster", false);
+        jobMetricsListener.reset();
+
         String currentDirectoryPath = Paths.get(".").toAbsolutePath().normalize().toString() + "/";
-        startSparkJob(pigContext,currentDirectoryPath);
+        startSparkJob(pigContext, currentDirectoryPath);
         LinkedList<POStore> stores = PlanHelper.getPhysicalOperators(
                 physicalPlan, POStore.class);
         POStore firstStore = stores.getFirst();
@@ -144,7 +162,7 @@ public class SparkLauncher extends Launcher {
         Map<Class<? extends PhysicalOperator>, POConverter> convertMap = new HashMap<Class<? extends PhysicalOperator>, POConverter>();
 
         convertMap.put(POLoad.class, new LoadConverter(pigContext,
-                physicalPlan, sparkContext));
+                physicalPlan, sparkContext.sc()));
         convertMap.put(POStore.class, new StoreConverter(pigContext));
         convertMap.put(POForEach.class, new ForEachConverter(confBytes));
         convertMap.put(POFilter.class, new FilterConverter());
@@ -155,7 +173,7 @@ public class SparkLauncher extends Launcher {
         convertMap.put(POGlobalRearrange.class, new GlobalRearrangeConverter());
         convertMap.put(POLimit.class, new LimitConverter());
         convertMap.put(PODistinct.class, new DistinctConverter());
-        convertMap.put(POUnion.class, new UnionConverter(sparkContext));
+        convertMap.put(POUnion.class, new UnionConverter(sparkContext.sc()));
         convertMap.put(POSort.class, new SortConverter());
         convertMap.put(POSplit.class, new SplitConverter());
         convertMap.put(POSkewedJoin.class, new SkewedJoinConverter());
@@ -166,15 +184,50 @@ public class SparkLauncher extends Launcher {
 
         Map<OperatorKey, RDD<Tuple>> rdds = new HashMap<OperatorKey, RDD<Tuple>>();
 
-        SparkStats stats = new SparkStats();
-
+        Set<Integer> seenJobIDs = new HashSet<Integer>();
         for (POStore poStore : stores) {
             physicalToRDD(physicalPlan, poStore, rdds, convertMap);
-            stats.addOutputInfo(poStore, 1, 1, true, c); // TODO: use real
-            // values
+            for (int jobID : getJobIDs(seenJobIDs)) {
+                SparkStatsUtil.waitForJobAddStats(jobID, poStore,
+                    jobMetricsListener, sparkContext, sparkStats, c);
+            }
         }
+
         cleanUpSparkJob(pigContext,currentDirectoryPath);
-        return stats;
+        sparkStats.finish();
+        return sparkStats;
+    }
+
+
+    /**
+     * In Spark, currently only async actions return job id.
+     * There is no async equivalent of actions like saveAsNewAPIHadoopFile()
+     *
+     * The only other way to get a job id is to register a "job group ID" with the
+     * spark context and request all job ids corresponding to that job group via
+     * getJobIdsForGroup.
+     *
+     * However getJobIdsForGroup does not guarantee the order of the elements in
+     * it's result.
+     *
+     * This method simply returns the previously unseen job ids.
+     *
+     * @param seenJobIDs job ids in the job group that are already seen
+     * @return Spark job ids not seen before
+     */
+    private List<Integer> getJobIDs(Set<Integer> seenJobIDs) {
+        Set<Integer> groupjobIDs = new HashSet<Integer>(Arrays.asList(
+            ArrayUtils.toObject(sparkContext.statusTracker()
+                .getJobIdsForGroup(jobGroupID))));
+        groupjobIDs.removeAll(seenJobIDs);
+        List<Integer> unseenJobIDs = new ArrayList<Integer>(groupjobIDs);
+        if (unseenJobIDs.size() == 0) {
+          throw new RuntimeException("Expected at least one unseen jobID " +
+              " in this call to getJobIdsForGroup, but got " + unseenJobIDs.size());
+        }
+
+        seenJobIDs.addAll(unseenJobIDs);
+        return unseenJobIDs;
     }
 
     private void cleanUpSparkJob(PigContext pigContext, String currentDirectoryPath) {
@@ -341,11 +394,11 @@ public class SparkLauncher extends Launcher {
 //            System.setProperty("spark.shuffle.memoryFraction", "0.0");
 //            System.setProperty("spark.storage.memoryFraction", "0.0");
 
-            JavaSparkContext javaContext = new JavaSparkContext(master,
+            sparkContext = new JavaSparkContext(master,
                     "Spork", sparkHome, jars.toArray(new String[jars.size()]));
-            sparkContext = javaContext.sc();
-            sparkContext.addSparkListener(new StatsReportListener());
-            sparkContext.addSparkListener(new JobLogger());
+            sparkContext.sc().addSparkListener(new StatsReportListener());
+            sparkContext.sc().addSparkListener(new JobLogger());
+            sparkContext.sc().addSparkListener(jobMetricsListener);
             // cacheConverter = new CacheConverter();
         }
     }

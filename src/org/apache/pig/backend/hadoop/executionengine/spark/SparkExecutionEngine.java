@@ -7,7 +7,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.ScriptState;
 import org.apache.pig.tools.pigstats.mapreduce.MRScriptState;
-import org.apache.pig.tools.pigstats.mapreduce.SimplePigStats;
+import org.apache.pig.tools.pigstats.spark.SparkPigStats;
 
 public class SparkExecutionEngine extends HExecutionEngine {
 
@@ -25,6 +25,6 @@ public class SparkExecutionEngine extends HExecutionEngine {
 
     @Override
     public PigStats instantiatePigStats() {
-        return new SimplePigStats();
+        return new SparkPigStats();
     }
 }
