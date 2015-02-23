@@ -18,7 +18,12 @@
 
 package org.apache.pig.tools.pigstats.spark;
 
+import java.util.List;
+import java.util.Map;
+import scala.Option;
+
 import com.google.common.collect.Maps;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.Counters;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
@@ -28,13 +33,10 @@ import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
+
 import org.apache.spark.executor.ShuffleReadMetrics;
 import org.apache.spark.executor.ShuffleWriteMetrics;
 import org.apache.spark.executor.TaskMetrics;
-import scala.Option;
-
-import java.util.List;
-import java.util.Map;
 
 public class SparkJobStats extends JobStats {
 
@@ -59,7 +61,9 @@ public class SparkJobStats extends JobStats {
           bytes, 1, success);
       outputStats.setPOStore(poStore);
       outputStats.setConf(conf);
-      outputs.add(outputStats);
+      if( !poStore.isTmpStore()) {
+          outputs.add(outputStats);
+      }
   }
 
   public void collectStats(JobMetricsListener jobMetricsListener) {
