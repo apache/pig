@@ -321,6 +321,7 @@ public class Utf8StorageConverter implements LoadStoreCaster {
             break;
         case DataType.BIGDECIMAL:
             field = bytesToBigDecimal(b);
+            break;
         case DataType.DATETIME:
             field = bytesToDateTime(b);
             break;
