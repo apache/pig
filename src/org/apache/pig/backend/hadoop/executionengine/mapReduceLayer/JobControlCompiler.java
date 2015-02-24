@@ -360,7 +360,7 @@ public class JobControlCompiler{
             {
                 MapReduceOper mro = jobMroMap.get(job);
                 if (!pigContext.inIllustrator && mro.isCounterOperation())
-                    saveCounters(job,mro.getOperationID(), mro.isRowNumber());
+                    saveCounters(job,mro.getOperationID());
                 plan.remove(mro);
             }
         }
@@ -378,7 +378,7 @@ public class JobControlCompiler{
      * these values are passed via configuration file to PORank, by using the unique
      * operation identifier
      */
-    private void saveCounters(Job job, String operationID, boolean isRowNumber ) {
+    private void saveCounters(Job job, String operationID) {
         Counters counters;
         Group groupCounters;
 
@@ -409,8 +409,7 @@ public class JobControlCompiler{
 
             HashMap<Integer,Long> counterList = new HashMap<Integer, Long>();
 
-            int numTasks = isRowNumber ? job.getJobConf().getNumMapTasks() : job.getJobConf().getNumReduceTasks();
-            for ( int i=0; i < numTasks; i++ ) {
+            for (int i=0;i<job.getJob().getNumReduceTasks();i++) {
                 Long value = groupCounters.getCounter(Integer.toString(i));
                 counterList.put(i, value);
             }
