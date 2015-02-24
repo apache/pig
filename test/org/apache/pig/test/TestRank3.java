@@ -35,7 +35,10 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.TreeMultiset;
+import com.google.common.collect.Multiset;
 
 public class TestRank3 {
     private static PigServer pigServer;
@@ -113,7 +116,7 @@ public class TestRank3 {
 
         Util.registerMultiLineQuery(pigServer, query);
 
-        Set<Tuple> expected = ImmutableSet.of(
+        Multiset<Tuple> expected = ImmutableMultiset.of(
                 tf.newTuple(ImmutableList.of(1L,21L,5L,7L,1L,1L,0L,8L,8L)),
                 tf.newTuple(ImmutableList.of(2L,26L,2L,3L,2L,5L,1L,9L,10L)),
                 tf.newTuple(ImmutableList.of(3L,30L,24L,21L,2L,3L,1L,3L,10L)),
@@ -158,7 +161,7 @@ public class TestRank3 {
 
       Util.registerMultiLineQuery(pigServer, query);
 
-      Set<Tuple> expected = ImmutableSet.of();
+      Multiset<Tuple> expected = ImmutableMultiset.of();
       verifyExpected(data.get("empty_result"), expected);
     }
 
@@ -195,10 +198,24 @@ public class TestRank3 {
         Util.checkQueryOutputsAfterSort(data.get("R4"), expectedResults);
     }
 
-    public void verifyExpected(List<Tuple> out, Set<Tuple> expected) {
+    public void verifyExpected(List<Tuple> out, Multiset<Tuple> expected) {
+        Multiset<Tuple> resultMultiset = TreeMultiset.create();
         for (Tuple tup : out) {
-            assertTrue(expected + " contains " + tup, expected.contains(tup));
+          resultMultiset.add(tup);
         }
+
+        StringBuilder error = new StringBuilder("Result does not match.\nActual result:\n");
+        for (Tuple tup : resultMultiset.elementSet() ) {
+            error.append(tup).append(" x ").append(resultMultiset.count(tup)).append("\n");
+        }
+        error.append("Expceted result:\n");
+        for (Tuple tup : ImmutableSortedSet.copyOf(expected) ) {
+            error.append(tup).append(" x ").append(expected.count(tup)).append("\n");
+        }
+
+        //This one line test should be sufficient but adding the above
+        //for-loop for better error messages
+        assertTrue(error.toString(), resultMultiset.equals(expected));
     }
 
 }
