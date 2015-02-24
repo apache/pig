@@ -33,7 +33,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.TreeMultiset;
+import com.google.common.collect.Multiset;
 
 public class TestRank1 {
     private static TupleFactory tf = TupleFactory.getInstance();
@@ -76,7 +79,7 @@ public class TestRank1 {
 
         Util.registerMultiLineQuery(pigServer, query);
 
-        Set<Tuple> expected = ImmutableSet.of(
+        Multiset<Tuple> expected = ImmutableMultiset.of(
                 tf.newTuple(ImmutableList.of((long) 1, "A", 1, "N")),
                 tf.newTuple(ImmutableList.of((long) 2, "B", 2, "N")),
                 tf.newTuple(ImmutableList.of((long) 3, "C", 3, "M")),
@@ -100,7 +103,7 @@ public class TestRank1 {
 
         Util.registerMultiLineQuery(pigServer, query);
 
-        Set<Tuple> expected = ImmutableSet.of(
+        Multiset<Tuple> expected = ImmutableMultiset.of(
                 tf.newTuple(ImmutableList.of((long) 1, "Michael", "Blythe", 1,1, 1, 1, 4557045.046, 98027)),
                 tf.newTuple(ImmutableList.of((long) 2, "Linda","Mitchell", 2, 1, 1, 1, 5200475.231, 98027)),
                 tf.newTuple(ImmutableList.of((long) 3, "Jillian", "Carson", 3,1, 1, 1, 3857163.633, 98027)),
@@ -126,7 +129,7 @@ public class TestRank1 {
 
         Util.registerMultiLineQuery(pigServer, query);
 
-        Set<Tuple> expected = ImmutableSet.of(
+        Multiset<Tuple> expected = ImmutableMultiset.of(
                 tf.newTuple(ImmutableList.of((long) 1, "C", 3, "M")),
                 tf.newTuple(ImmutableList.of((long) 2, "A", 1, "N")),
                 tf.newTuple(ImmutableList.of((long) 2, "B", 2, "N")),
@@ -150,7 +153,7 @@ public class TestRank1 {
 
         Util.registerMultiLineQuery(pigServer, query);
 
-        Set<Tuple> expected = ImmutableSet.of(
+        Multiset<Tuple> expected = ImmutableMultiset.of(
                 tf.newTuple(ImmutableList.of((long) 1, "A", 1, "N")),
                 tf.newTuple(ImmutableList.of((long) 2, "B", 2, "N")),
                 tf.newTuple(ImmutableList.of((long) 3, "C", 3, "M")),
@@ -174,7 +177,7 @@ public class TestRank1 {
 
         Util.registerMultiLineQuery(pigServer, query);
 
-        Set<Tuple> expected = ImmutableSet.of(
+        Multiset<Tuple> expected = ImmutableMultiset.of(
                 tf.newTuple(ImmutableList.of((long) 1, "G", 10, "V")),
                 tf.newTuple(ImmutableList.of((long) 2, "F", 8, "T")),
                 tf.newTuple(ImmutableList.of((long) 2, "F", 8, "Q")),
@@ -198,7 +201,7 @@ public class TestRank1 {
 
         Util.registerMultiLineQuery(pigServer, query);
 
-        Set<Tuple> expected = ImmutableSet.of(
+        Multiset<Tuple> expected = ImmutableMultiset.of(
                 tf.newTuple(ImmutableList.of((long) 1, "Michael", "Blythe", 1,1, 1, 1, 4557045.046, 98027)),
                 tf.newTuple(ImmutableList.of((long) 1, "Linda","Mitchell", 2, 1, 1, 1, 5200475.231, 98027)),
                 tf.newTuple(ImmutableList.of((long) 1, "Jillian", "Carson", 3,1, 1, 1, 3857163.633, 98027)),
@@ -224,7 +227,7 @@ public class TestRank1 {
 
         Util.registerMultiLineQuery(pigServer, query);
 
-        Set<Tuple> expected = ImmutableSet.of(
+        Multiset<Tuple> expected = ImmutableMultiset.of(
                 tf.newTuple(ImmutableList.of((long) 1, "David", "Campbell", 8,6, 2, 3, 3587378.426, 98055)),
                 tf.newTuple(ImmutableList.of((long) 2, "Garrett","Vargas", 4, 1, 1, 1, 1764938.986, 98027)),
                 tf.newTuple(ImmutableList.of((long) 3, "Jae", "Pak", 12,6, 2, 4, 5015682.375, 98055)),
@@ -250,7 +253,7 @@ public class TestRank1 {
 
         Util.registerMultiLineQuery(pigServer, query);
 
-        Set<Tuple> expected = ImmutableSet.of(
+        Multiset<Tuple> expected = ImmutableMultiset.of(
                 tf.newTuple(ImmutableList.of((long) 1, "David", "Campbell", 8, 6, 2, 3, 3587378.426, 98055)),
                 tf.newTuple(ImmutableList.of((long) 2, "Garrett","Vargas", 4, 1, 1, 1, 1764938.986, 98027)),
                 tf.newTuple(ImmutableList.of((long) 3, "Jae", "Pak", 12,6, 2, 4, 5015682.375, 98055)),
@@ -276,7 +279,7 @@ public class TestRank1 {
 
         Util.registerMultiLineQuery(pigServer, query);
 
-        Set<Tuple> expected = ImmutableSet.of(
+        Multiset<Tuple> expected = ImmutableMultiset.of(
                 tf.newTuple(ImmutableList.of((long) 1, "A", 1, "N")),
                 tf.newTuple(ImmutableList.of((long) 2, "B", 2, "N")),
                 tf.newTuple(ImmutableList.of((long) 3, "C", 3, "M")),
@@ -292,10 +295,21 @@ public class TestRank1 {
         verifyExpected(data.get("result"), expected);
     }
 
-    public void verifyExpected(List<Tuple> out, Set<Tuple> expected) {
+    public void verifyExpected(List<Tuple> out, Multiset<Tuple> expected) {
+        Multiset<Tuple> resultMultiset = TreeMultiset.create();
         for (Tuple tup : out) {
-            assertTrue(expected + " contains " + tup, expected.contains(tup));
+          resultMultiset.add(tup);
         }
-    }
 
+        StringBuilder error = new StringBuilder("Result does not match.\nActual result:\n");
+        for (Tuple tup : resultMultiset.elementSet() ) {
+            error.append(tup).append(" x ").append(resultMultiset.count(tup)).append("\n");
+        }
+        error.append("Expceted result:\n");
+        for (Tuple tup : ImmutableSortedSet.copyOf(expected) ) {
+            error.append(tup).append(" x ").append(expected.count(tup)).append("\n");
+        }
+
+        assertTrue(error.toString(), resultMultiset.equals(expected));
+    }
 }

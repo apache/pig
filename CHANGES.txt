@@ -48,6 +48,8 @@ PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES
 
+PIG-4426: RowNumber(simple) Rank not producing correct results (knoguchi)
+
 PIG-4433: Loading bigdecimal in nested tuple does not work (kpriceyahoo via daijy)
 
 PIG-4410: Fix testRankWithEmptyReduce in tez mode (daijy)
