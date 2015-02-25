@@ -17,6 +17,11 @@
  */
 package org.apache.pig;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Strings;
+import com.google.common.io.Closeables;
+import com.google.common.io.InputSupplier;
+import com.google.common.io.Resources;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -28,8 +33,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.Reader;
 import java.io.StringReader;
-import java.io.Writer;
+import java.net.URL;
+import java.nio.charset.Charset;
 import java.text.ParseException;
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -742,22 +749,7 @@ public class Main {
             logLevel = Level.toLevel(logLevelString, Level.INFO);
         }
 
-        Properties props = new Properties();
-        FileReader propertyReader = null;
-        if (log4jconf != null) {
-            try {
-                propertyReader = new FileReader(log4jconf);
-                props.load(propertyReader);
-            }
-            catch (IOException e)
-            {
-                System.err.println("Warn: Cannot open log4j properties file, use default");
-            }
-            finally
-            {
-                if (propertyReader != null) try {propertyReader.close();} catch(Exception e) {}
-            }
-        }
+        final Properties props = log4jConfAsProperties(log4jconf);
         if (props.size() == 0) {
             props.setProperty("log4j.logger.org.apache.pig", logLevel.toString());
             if((logLevelString = System.getProperty("pig.logfile.level")) == null){
@@ -790,8 +782,37 @@ public class Main {
         pigContext.setDefaultLogLevel(logLevel);
     }
 
+   @VisibleForTesting
+   static Properties log4jConfAsProperties(String log4jconf) {
+       final Properties properties = new Properties();
+       if (!Strings.isNullOrEmpty(log4jconf)) {
+           Reader propertyReader = null;
+           try {
+               final File file = new File(log4jconf);
+               if (file.exists()) {
+                   propertyReader = new FileReader(file);
+                   properties.load(propertyReader);
+                   log.info("Loaded log4j properties from file: " + file);
+               } else {
+                   final URL resource = Main.class.getClassLoader().getResource(log4jconf);
+                   if (resource != null) {
+                       propertyReader = new InputStreamReader(resource.openStream(), Charset.forName("UTF-8"));
+                       properties.load(propertyReader);
+                       log.info("Loaded log4j properties from resource: " +  resource);
+                   } else {
+                       log.warn("No file or resource found by the name: " + log4jconf);
+                   }
+               }
+           } catch (IOException e)  {
+               log.warn("Cannot open log4j properties file " + log4jconf + ", using default");
+           } finally {
+               Closeables.closeQuietly(propertyReader);
+           }
+       }
+       return properties;
+  }
 
-    private static List<String> fetchRemoteParamFiles(List<String> paramFiles, Properties properties)
+  private static List<String> fetchRemoteParamFiles(List<String> paramFiles, Properties properties)
             throws IOException {
         List<String> paramFiles2 = new ArrayList<String>();
         for (String param: paramFiles) {
