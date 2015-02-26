@@ -26,6 +26,7 @@ import java.io.PrintWriter;
 import java.lang.String;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import junit.framework.ComparisonFailure;
 
@@ -38,6 +39,7 @@ import org.apache.pig.pigunit.PigTest;
 import org.apache.pig.pigunit.pig.PigServer;
 import org.apache.pig.test.Util;
 import org.apache.pig.tools.parameters.ParseException;
+import org.apache.pig.impl.util.PropertiesUtil;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -378,16 +380,13 @@ public class TestPigTest {
 
     @Test
     public void testDefaultBootup() throws Exception {
-        // Test with properties file
-        String pigProps = "pig.properties";
+        // Test with properties object
+        Properties pigProps = PropertiesUtil.loadDefaultProperties();
         String bootupPath = "/tmp/.temppigbootup";
-        File propertyFile = new File(pigProps);
-        PrintWriter out = new PrintWriter(new FileWriter(propertyFile));
-        out.println("pig.load.default.statements=" + bootupPath);
-        out.close();
+        pigProps.setProperty("pig.load.default.statements", bootupPath);
 
         File bootupFile = new File(bootupPath);
-        out = new PrintWriter(new FileWriter(bootupFile));
+        PrintWriter out = new PrintWriter(new FileWriter(bootupFile));
         out.println("data = LOAD 'top_queries_input_data.txt' AS (query:CHARARRAY, count:INT);");
         out.close();
 
@@ -420,7 +419,7 @@ public class TestPigTest {
 
         // Create a pigunit.pig.PigServer and Cluster to run this test.
         PigServer pig = null;
-        pig = new PigServer(Util.getLocalTestMode());
+        pig = new PigServer(Util.getLocalTestMode(), pigProps);
 
         final Cluster cluster = new Cluster(pig.getPigContext());
 
@@ -434,7 +433,6 @@ public class TestPigTest {
 
         test.assertOutput("queries_limit", output);
 
-        propertyFile.delete();
         scriptFile.delete();
         bootupFile.delete();
     }
