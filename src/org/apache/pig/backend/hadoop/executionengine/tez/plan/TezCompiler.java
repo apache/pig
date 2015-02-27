@@ -1134,7 +1134,6 @@ public class TezCompiler extends PhyPlanVisitor {
     public void visitMergeJoin(POMergeJoin joinOp) throws VisitorException {
 
         try{
-            joinOp.setEndOfRecordMark(POStatus.STATUS_NULL);
             if(compiledInputs.length != 2 || joinOp.getInputs().size() != 2){
                 int errCode=1101;
                 throw new TezCompilerException("Merge Join must have exactly two inputs. Found : "+compiledInputs.length, errCode);
