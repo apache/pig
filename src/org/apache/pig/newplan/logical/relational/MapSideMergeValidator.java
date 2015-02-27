@@ -39,7 +39,8 @@ public class MapSideMergeValidator {
                 if (!(lo instanceof LOFilter
                         || lo instanceof LOGenerate || lo instanceof LOInnerLoad
                         || lo instanceof LOLoad || lo instanceof LOSplitOutput
-                        || lo instanceof LOSplit
+                        || lo instanceof LOSplit 
+                        || (lo instanceof LOJoin && ((LOJoin)lo).getJoinType() == LOJoin.JOINTYPE.REPLICATED)
                         || isAcceptableSortOp(lo)
                         || isAcceptableForEachOp(lo))) {
                     throw new LogicalToPhysicalTranslatorException(errMsg, errCode);

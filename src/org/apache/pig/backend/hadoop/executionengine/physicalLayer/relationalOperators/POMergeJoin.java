@@ -123,7 +123,7 @@ public class POMergeJoin extends PhysicalOperator {
 
     private String signature;
 
-    private byte endOfRecordMark;
+    private byte endOfRecordMark = POStatus.STATUS_NULL;
 
     // This serves as the default TupleFactory
     private transient TupleFactory mTupleFactory;
@@ -159,15 +159,6 @@ public class POMergeJoin extends PhysicalOperator {
         this.joinType = joinType;
         this.leftInputSchema = leftInputSchema;
         this.mergedInputSchema = mergedInputSchema;
-        this.endOfRecordMark = POStatus.STATUS_EOP;
-    }
-
-    // Set to POStatus.STATUS_EOP (default) for MR and POStatus.STATUS_NULL for Tez.
-    // This is because:
-    // For MR, we send EOP at the end of every record
-    // For Tez, we only use a global EOP, so send NULL for end of record
-    public void setEndOfRecordMark(byte endOfRecordMark) {
-        this.endOfRecordMark = endOfRecordMark;
     }
 
     /**

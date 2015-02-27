@@ -52,6 +52,7 @@ public class TestMergeJoin {
 
     private static final String INPUT_FILE = "testMergeJoinInput.txt";
     private static final String INPUT_FILE2 = "testMergeJoinInput2.txt";
+    private static final String INPUT_FILE3 = "testMergeJoinInput3.txt";
     private PigServer pigServer;
     private static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
 
@@ -78,6 +79,19 @@ public class TestMergeJoin {
         Util.createInputFile(cluster, INPUT_FILE, input);
         
         Util.createInputFile(cluster, INPUT_FILE2, new String[]{"2"});
+
+        String[] input3 = new String[LOOP_SIZE];
+        for (int i = 0; i<= LOOP_SIZE-1; i++) {
+            input3[i] = "(" + (i + 1) + ")\t + {";
+            for(int j=1;j<=LOOP_SIZE;j++) {
+                input3[i] = input3[i] + "(" + j + ")";
+                if (j!=LOOP_SIZE) {
+                    input3[i] = input3[i] + ",";
+                }
+            }
+            input3[i] = input3[i] + "}";
+        }
+        Util.createInputFile(cluster, INPUT_FILE3, input3);
     }
 
     @AfterClass
@@ -91,6 +105,7 @@ public class TestMergeJoin {
     public void tearDown() throws Exception {
         Util.deleteFile(cluster, INPUT_FILE);
         Util.deleteFile(cluster, INPUT_FILE2);
+        Util.deleteFile(cluster, INPUT_FILE3);
     }
 
     @Test
@@ -142,6 +157,61 @@ public class TestMergeJoin {
             }
         }
         Assert.assertEquals(dbMergeJoin.size(), dbshj.size());
+        Assert.assertEquals(true, TestHelper.compareBags(dbMergeJoin, dbshj));
+    }
+
+    @Test
+    public void testMergeJoinWithReplicatedJoin() throws IOException{
+        pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (f1:int,f2:int);");
+        pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "' as (f1:int,f2:int);");
+        pigServer.registerQuery("C = LOAD '" + INPUT_FILE + "' as (f1:int,f2:int);");
+        DataBag dbMergeJoin = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
+        {
+            pigServer.registerQuery("D = join A by f1, B by f1 using 'replicated';");
+            pigServer.registerQuery("E = join D by A::f1, C by f1 using 'merge';");
+            Iterator<Tuple> iter = pigServer.openIterator("E");
+
+            while(iter.hasNext()) {
+                dbMergeJoin.add(iter.next());
+            }
+        }
+        {
+            pigServer.registerQuery("D = join A by f1, B by f1 using 'replicated';");
+            pigServer.registerQuery("E = join D by A::f1, C by f1;");
+            Iterator<Tuple> iter = pigServer.openIterator("E");
+
+            while(iter.hasNext()) {
+                dbshj.add(iter.next());
+            }
+        }
+        Assert.assertEquals(dbshj.size(), dbMergeJoin.size());
+        Assert.assertEquals(true, TestHelper.compareBags(dbMergeJoin, dbshj));
+    }
+
+    @Test
+    public void testMergeJoinWithForeachFlatten() throws IOException{
+        pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (f1:int,f2:int);");
+        pigServer.registerQuery("B = LOAD '" + INPUT_FILE3 + "' as (t:(f1:int), b:{(f1:int)});");
+        pigServer.registerQuery("C = foreach B generate flatten(t) as f1:int, flatten(b);");
+        pigServer.registerQuery("D = join C by f1, A by f1 using 'merge';");
+        DataBag dbMergeJoin = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
+        {
+            pigServer.registerQuery("D = join C by f1, A by f1 using 'merge';");
+            Iterator<Tuple> iter = pigServer.openIterator("D");
+
+            while(iter.hasNext()) {
+                dbMergeJoin.add(iter.next());
+            }
+        }
+        {
+            pigServer.registerQuery("D = join C by f1, A by f1;");
+            Iterator<Tuple> iter = pigServer.openIterator("D");
+
+            while(iter.hasNext()) {
+                dbshj.add(iter.next());
+            }
+        }
+        Assert.assertEquals(dbshj.size(), dbMergeJoin.size());
         Assert.assertEquals(true, TestHelper.compareBags(dbMergeJoin, dbshj));
     }
 
