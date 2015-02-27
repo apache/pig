@@ -2933,6 +2933,22 @@ public class TestBuiltin {
         assertEquals(resultList.get(1), "hadoop");
     }
 
+    /**
+     * Tests that VALUESET preserves the schema when the map's value type is complex.
+     */
+    @Test
+    public void testValueSetOutputSchemaComplexType() throws FrontendException {
+        Schema inputSchema = new Schema();
+        Schema bagSchema = Schema.generateNestedSchema(DataType.BAG, DataType.CHARARRAY);
+        FieldSchema mapSchema = new FieldSchema(null, bagSchema, DataType.MAP);
+        inputSchema.add(mapSchema);
+
+        Schema expectedSchema = new Schema(new FieldSchema(null, bagSchema, DataType.BAG));
+
+        VALUESET vs = new VALUESET();
+        assertEquals(expectedSchema, vs.outputSchema(inputSchema));
+    }
+
     @SuppressWarnings("unchecked")
     @Test
     public void testValueList() throws Exception {
@@ -2958,6 +2974,21 @@ public class TestBuiltin {
         assertEquals((String)resultList.get(2), "hadoop");
     }
 
+    /**
+     * Tests that VALUELIST preserves the schema when the map's value type is complex.
+     */
+    @Test
+    public void testValueListOutputSchemaComplexType() throws FrontendException {
+        Schema inputSchema = new Schema();
+        Schema bagSchema = Schema.generateNestedSchema(DataType.BAG, DataType.CHARARRAY);
+        FieldSchema mapSchema = new FieldSchema(null, bagSchema, DataType.MAP);
+        inputSchema.add(mapSchema);
+
+        Schema expectedSchema = new Schema(new FieldSchema(null, bagSchema, DataType.BAG));
+
+        VALUELIST vl = new VALUELIST();
+        assertEquals(expectedSchema, vl.outputSchema(inputSchema));
+    }
 
     @SuppressWarnings("unchecked")
     @Test
