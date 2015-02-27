@@ -165,8 +165,11 @@ public class POStream extends PhysicalOperator {
                     // map or reduce. So once we send this EOP down, 
                     // getNext() in POStream should never be called. So
                     // we don't need to set any flag noting we saw all output
-                    // from binary
+                    // from binary. We also need to be sure to finish the
+                    // executable manager's execution so any side
+                    // output files are correctly moved to HDFS.
                     r = EOP_RESULT;
+                    finish();
                 } else if (r.returnStatus == POStatus.STATUS_OK)
                     illustratorMarkup(r.result, r.result, 0);
                 return(r);
@@ -201,8 +204,11 @@ public class POStream extends PhysicalOperator {
                             // map or reduce. So once we send this EOP down, 
                             // getNext() in POStream should never be called. So
                             // we don't need to set any flag noting we saw all output
-                            // from binary
+                            // from binary. We also need to be sure to shutdown
+                            // the executable manager so any side outputs are
+                            // properly moved to HDFS.
                             r = EOP_RESULT;
+                            finish();
                         }
                     }
                     
@@ -217,6 +223,7 @@ public class POStream extends PhysicalOperator {
                     // should never be called. So we don't need to set any 
                     // flag noting we saw all output from binary
                     r = EOP_RESULT;
+                    finish();
                 } else if (r.returnStatus == POStatus.STATUS_OK)
                   illustratorMarkup(r.result, r.result, 0);
                 return r;
@@ -232,6 +239,7 @@ public class POStream extends PhysicalOperator {
                     // for future calls
                     r = EOP_RESULT;
                     allOutputFromBinaryProcessed  = true;
+                    finish();
                 } else if (r.returnStatus == POStatus.STATUS_OK)
                     illustratorMarkup(r.result, r.result, 0);
                 return r;
@@ -351,7 +359,10 @@ public class POStream extends PhysicalOperator {
      * 
      */
     public void finish() throws IOException {
-        executableManager.close();
+        if (executableManager != null) {
+            executableManager.close();
+            executableManager = null;
+        }
     }
 
     /**
