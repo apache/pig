@@ -128,6 +128,28 @@
     </not>
   </condition>
 
+  <pathconvert property="tests.suites.all" pathsep=" ">
+      <path path="${test.location}/tests/cmdline.conf"/>
+      <path path="${test.location}/tests/multiquery.conf"/>
+      <path path="${test.location}/tests/negative.conf"/>
+      <path path="${test.location}/tests/nightly.conf"/>
+      <path path="${test.location}/tests/streaming.conf"/>
+      <path path="${test.location}/tests/streaming_local.conf"/>
+      <path path="${test.location}/tests/turing_jython.conf"/>
+      <path path="${test.location}/tests/bigdata.conf"/>
+      <path path="${test.location}/tests/grunt.conf"/>
+      <path path="${test.location}/tests/macro.conf"/>
+      <path path="${test.location}/tests/orc.conf"/>
+      <path path="${test.location}/tests/hcat.conf"/>
+      <path path="${test.location}/tests/utf8.conf"/>
+  </pathconvert>
+
+  <condition property="tests.suites" value="${tests.suites.all}">
+    <not>
+      <isset property="tests.suites"/>
+    </not>
+  </condition>
+
   <target name="udfs">
     <ant dir="${udf.java.dir}"/>
   </target>
@@ -292,20 +314,7 @@
       <env key="E2E_DEBUG" value="${e2e.debug}"/>
 
       <arg value="./test_harness.pl"/>
-      <arg line="${tests.to.run}"/>
-      <arg value="${test.location}/tests/cmdline.conf"/>
-      <arg value="${test.location}/tests/multiquery.conf"/>
-      <arg value="${test.location}/tests/negative.conf"/>
-      <arg value="${test.location}/tests/nightly.conf"/>
-      <arg value="${test.location}/tests/streaming.conf"/>
-      <arg value="${test.location}/tests/streaming_local.conf"/>
-      <arg value="${test.location}/tests/turing_jython.conf"/>
-      <arg value="${test.location}/tests/bigdata.conf"/>
-      <arg value="${test.location}/tests/grunt.conf"/>
-      <arg value="${test.location}/tests/macro.conf"/>
-      <arg value="${test.location}/tests/orc.conf"/>
-      <arg value="${test.location}/tests/hcat.conf"/>
-      <arg value="${test.location}/tests/utf8.conf"/>
+      <arg line="${tests.to.run} ${tests.suites}"/>
     </exec>
   </target>
 
