@@ -978,11 +978,11 @@ B = GROUP A BY t PARALLEL 18;
 <p>In this example all the MapReduce jobs that get launched use 20 reducers.</p>
 <source>
 SET default_parallel 20;
-A = LOAD ‘myfile.txt’ USING PigStorage() AS (t, u, v);
+A = LOAD 'myfile.txt' USING PigStorage() AS (t, u, v);
 B = GROUP A BY t;
 C = FOREACH B GENERATE group, COUNT(A.t) as mycount;
 D = ORDER C BY mycount;
-STORE D INTO ‘mysortedcount’ USING PigStorage();
+STORE D INTO 'mysortedcount' USING PigStorage();
 </source>
 </section>
 

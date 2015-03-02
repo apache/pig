@@ -1760,8 +1760,8 @@ function complex(word){
  
 <p>This Pig script registers the JavaScript UDF (udf.js).</p>
 <source>
- register ‘udf.js’ using javascript as myfuncs; 
-A = load ‘data’ as (a0:chararray, a1:int);
+register 'udf.js' using javascript as myfuncs; 
+A = load 'data' as (a0:chararray, a1:int);
 B = foreach A generate myfuncs.helloworld(), myfuncs.complex(a0);
 ... ... 
 </source>

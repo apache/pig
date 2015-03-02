@@ -1369,15 +1369,15 @@ DUMP B;
 <p>To work with gzip compressed files, input/output files need to have a .gz extension. Gzipped files cannot be split across multiple maps; this means that the number of maps created is equal to the number of part files in the input location.</p>
 
 <source>
-A = load ‘myinput.gz’;
-store A into ‘myoutput.gz’; 
+A = load 'myinput.gz';
+store A into 'myoutput.gz';
 </source>
 
 <p>To work with bzip compressed files, the input/output files need to have a .bz or .bz2 extension. Because the compression is block-oriented, bzipped files can be split across multiple maps.</p>
 
 <source>
-A = load ‘myinput.bz’;
-store A into ‘myoutput.bz’; 
+A = load 'myinput.bz';
+store A into 'myoutput.bz';
 </source>
 
 <p>Note: PigStorage and TextLoader correctly read compressed files as long as they are NOT CONCATENATED FILES generated in this manner: </p>
@@ -1525,7 +1525,7 @@ dump X;
    <table>
        <tr>
             <td>
-               <p>JsonLoader( [‘schema’] ) </p>
+               <p>JsonLoader( ['schema'] ) </p>
             </td>
         </tr> 
         <tr>
@@ -1648,11 +1648,11 @@ STORE X INTO 'output' USING PigDump();
                <p id="pigstorage-options">'options'</p>
             </td>
             <td>
-               <p>A string that contains space-separated options (‘optionA  optionB  optionC’)</p>
+               <p>A string that contains space-separated options ('optionA  optionB  optionC')</p>
                <p>Currently supported options are:</p>
                <ul>
-                    <li>(‘schema’) - Stores the schema of the relation using a hidden JSON file.</li>
-                    <li>(‘noschema’) - Ignores a stored schema during the load.</li>
+                    <li>('schema') - Stores the schema of the relation using a hidden JSON file.</li>
+                    <li>('noschema') - Ignores a stored schema during the load.</li>
                     <li>('tagsource') - (deprecated, Use tagPath instead) Add a first column indicates the input file of the record.</li>
                     <li>('tagPath') - Add a first column indicates the input path of the record.</li>
                     <li>('tagFile') - Add a first column indicates the input file name of the record.</li>
@@ -5934,7 +5934,7 @@ In this example, student names (type chararray) and student GPAs (type float) ar
  <source>
 A = load 'students' as (name:chararray, age:int, gpa:float);
 B = foreach A generate TOMAP(name, gpa);
-store B into ‘results’;
+store B into 'results';
 
 Input (students)
 joe smith 20 3.5
