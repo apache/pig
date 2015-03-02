@@ -52,9 +52,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
 import org.apache.pig.builtin.mock.Storage.Data;
@@ -131,8 +129,8 @@ public class TestAvroStorage {
     }
 
     @BeforeClass
-    public static void setup() throws ExecException, IOException {
-        pigServerLocal = new PigServer(ExecType.LOCAL);
+    public static void setup() throws Exception {
+        pigServerLocal = new PigServer(Util.getLocalTestMode());
         Util.deleteDirectory(new File(outbasedir));
         generateInputFiles();
     }
@@ -828,7 +826,7 @@ public class TestAvroStorage {
 
     @Test
     public void testRetrieveDataFromMap() throws Exception {
-        pigServerLocal = new PigServer(ExecType.LOCAL);
+        pigServerLocal = new PigServer(Util.getLocalTestMode());
         Data data = resetData(pigServerLocal);
         Map<String, String> mapv1 = new HashMap<String, String>();
         mapv1.put("key1", "v11");
