@@ -199,6 +199,7 @@ public class ReadToEndLoader extends LoadFunc implements LoadMetadata {
         // Close the previous reader first
         if(reader != null) {
             reader.close();
+            reader = null;
         }
         if(curSplitIndex > inpSplits.size() - 1) {
             // past the last split, we are done
