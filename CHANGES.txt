@@ -62,8 +62,6 @@ PIG-4437: Fix tez unit test failure TestJoinSmoke, TestSkewedJoin (daijy)
 PIG-4432: Built-in VALUELIST and VALUESET UDFs do not preserve the schema when the map value type is
  a complex type (erwaman via daijy)
 
-PIG-4412: Race condition in writing multiple outputs from STREAM op (jwills via daijy)
-
 PIG-4408: Merge join should support replicated join as a predecessor (bridiver via daijy)
 
 PIG-4389: Flag to run selected test suites in e2e tests (daijy)
