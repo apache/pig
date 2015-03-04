@@ -105,7 +105,7 @@ public class VALUELIST extends EvalFunc<DataBag> {
                 throw new RuntimeException(fe);
             }
             if(fs != null) {
-                innerFieldSchema = new Schema.FieldSchema(fs);
+                innerFieldSchema = new Schema.FieldSchema(null, new Schema(fs));
             }
         } else {
             innerFieldSchema = new Schema.FieldSchema(null, DataType.BYTEARRAY);

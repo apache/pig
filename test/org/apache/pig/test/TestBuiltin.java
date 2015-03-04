@@ -2934,6 +2934,23 @@ public class TestBuiltin {
     }
 
     /**
+     * Tests that VALUESET preserves the schema when the map's value type is primitive.
+     */
+    @Test
+    public void testValueSetOutputSchemaPrimitiveType() throws FrontendException {
+        Schema inputSchema = new Schema();
+        Schema charArraySchema = new Schema(new FieldSchema(null, DataType.CHARARRAY));
+        FieldSchema mapSchema = new FieldSchema(null, charArraySchema, DataType.MAP);
+        inputSchema.add(mapSchema);
+
+        Schema tupleSchema = new Schema(new FieldSchema(null, charArraySchema, DataType.TUPLE));
+        Schema expectedSchema = new Schema(new FieldSchema(null, tupleSchema, DataType.BAG));
+
+        VALUESET vs = new VALUESET();
+        assertEquals(expectedSchema, vs.outputSchema(inputSchema));
+    }
+
+    /**
      * Tests that VALUESET preserves the schema when the map's value type is complex.
      */
     @Test
@@ -2943,7 +2960,8 @@ public class TestBuiltin {
         FieldSchema mapSchema = new FieldSchema(null, bagSchema, DataType.MAP);
         inputSchema.add(mapSchema);
 
-        Schema expectedSchema = new Schema(new FieldSchema(null, bagSchema, DataType.BAG));
+        Schema tupleSchema = new Schema(new FieldSchema(null, bagSchema, DataType.TUPLE));
+        Schema expectedSchema = new Schema(new FieldSchema(null, tupleSchema, DataType.BAG));
 
         VALUESET vs = new VALUESET();
         assertEquals(expectedSchema, vs.outputSchema(inputSchema));
@@ -2975,6 +2993,23 @@ public class TestBuiltin {
     }
 
     /**
+     * Tests that VALUELIST preserves the schema when the map's value type is primitive.
+     */
+    @Test
+    public void testValueListOutputSchemaPrimitiveType() throws FrontendException {
+        Schema inputSchema = new Schema();
+        Schema charArraySchema = new Schema(new FieldSchema(null, DataType.CHARARRAY));
+        FieldSchema mapSchema = new FieldSchema(null, charArraySchema, DataType.MAP);
+        inputSchema.add(mapSchema);
+
+        Schema tupleSchema = new Schema(new FieldSchema(null, charArraySchema, DataType.TUPLE));
+        Schema expectedSchema = new Schema(new FieldSchema(null, tupleSchema, DataType.BAG));
+
+        VALUELIST vl = new VALUELIST();
+        assertEquals(expectedSchema, vl.outputSchema(inputSchema));
+    }
+
+    /**
      * Tests that VALUELIST preserves the schema when the map's value type is complex.
      */
     @Test
@@ -2984,7 +3019,8 @@ public class TestBuiltin {
         FieldSchema mapSchema = new FieldSchema(null, bagSchema, DataType.MAP);
         inputSchema.add(mapSchema);
 
-        Schema expectedSchema = new Schema(new FieldSchema(null, bagSchema, DataType.BAG));
+        Schema tupleSchema = new Schema(new FieldSchema(null, bagSchema, DataType.TUPLE));
+        Schema expectedSchema = new Schema(new FieldSchema(null, tupleSchema, DataType.BAG));
 
         VALUELIST vl = new VALUELIST();
         assertEquals(expectedSchema, vl.outputSchema(inputSchema));
