@@ -223,7 +223,7 @@ public class TestTezAutoParallelism {
         // skewed join parallelism is 3 originally, increase to 5
         pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
         pigServer.getPigContext().getProperties().setProperty(MRConfiguration.MAX_SPLIT_SIZE, "3000");
-        pigServer.getPigContext().getProperties().setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, "80000");
+        pigServer.getPigContext().getProperties().setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, "40000");
         pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (name:chararray, age:int);");
         pigServer.registerQuery("B = load '" + INPUT_FILE2 + "' as (name:chararray, gender:chararray);");
         pigServer.registerQuery("C = join A by name, B by name using 'skewed';");
@@ -238,7 +238,7 @@ public class TestTezAutoParallelism {
                 return false;
             }
         });
-        assertEquals(files.length, 4);
+        assertEquals(files.length, 5);
     }
 
     @Test
