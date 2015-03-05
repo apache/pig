@@ -222,7 +222,7 @@ public class AvroStorageSchemaConversionUtilities {
       switch(mapAvroSchema.getType()) {
       case RECORD:
         ResourceSchema innerResourceSchemaRecord =
-          avroSchemaToResourceSchema(fieldSchema.getValueType(), schemasInStack,
+          avroSchemaToResourceSchema(mapAvroSchema, schemasInStack,
           alreadyDefinedSchemas, allowRecursiveSchema);
         mapSchemaFields[0] = new ResourceSchema.ResourceFieldSchema();
         mapSchemaFields[0].setType(DataType.TUPLE);
@@ -235,7 +235,7 @@ public class AvroStorageSchemaConversionUtilities {
       case MAP:
       case ARRAY:
         ResourceSchema innerResourceSchema =
-            avroSchemaToResourceSchema(fieldSchema.getValueType(), schemasInStack,
+            avroSchemaToResourceSchema(mapAvroSchema, schemasInStack,
             alreadyDefinedSchemas, allowRecursiveSchema);
         rf.setSchema(innerResourceSchema);
         break;

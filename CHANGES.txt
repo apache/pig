@@ -50,6 +50,8 @@ PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES
 
+PIG-4447: Pig Cannot handle nullable values (arrays and records) in avro records (rdsr via daijy)
+
 PIG-4444: Fix unit test failure TestTezAutoParallelism (daijy)
 
 PIG-4445: VALUELIST and VALUESET outputSchema does not match actual schema of data returned when map value schema
