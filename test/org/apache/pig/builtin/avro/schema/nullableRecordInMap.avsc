@@ -1,0 +1,34 @@
+{
+    "name" : "nullableRecordInMap",
+    "namespace" : "org.apache.pig.test.builtin",
+    "type" : "record",
+    "fields" : [
+        {"name" : "key", "type" : "string"},
+        {"name" : "value", "type" : "int"},
+        {
+            "name" : "parameters",
+            "type": [
+                "null",
+                {
+                    "type": "map",
+                    "values": [
+                        "null",
+                        {
+                            "type": "record",
+                            "name": "nullable_record",
+                            "fields": [
+                                {
+                                    "name": "id",
+                                    "type": [
+                                        "null",
+                                        "string"
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
