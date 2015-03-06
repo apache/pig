@@ -17,7 +17,9 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.tez.util;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -25,30 +27,49 @@ import java.util.Map.Entry;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.JobSubmissionFiles;
 import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.split.JobSplitWriter;
+import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.LocalResourceType;
+import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.mapreduce.hadoop.DeprecatedKeys;
+import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
+import org.apache.tez.mapreduce.hadoop.InputSplitInfoDisk;
+import org.apache.tez.mapreduce.hadoop.InputSplitInfoMem;
 
 @InterfaceAudience.Private
 public class MRToTezHelper {
 
     private static final Log LOG = LogFactory.getLog(MRToTezHelper.class);
+    private static final String JOB_SPLIT_RESOURCE_NAME = MRJobConfig.JOB_SPLIT;
+    private static final String JOB_SPLIT_METAINFO_RESOURCE_NAME = MRJobConfig.JOB_SPLIT_METAINFO;
 
     private static List<String> mrSettingsToRetain = new ArrayList<String>();
+
+    private static List<String> mrSettingsToRemove = new ArrayList<String>();
 
     private MRToTezHelper() {
     }
 
     static {
         populateMRSettingsToRetain();
+        populateMRSettingsToRemove();
     }
 
     private static void populateMRSettingsToRetain() {
@@ -68,6 +89,28 @@ public class MRToTezHelper {
         mrSettingsToRetain.add(FileOutputFormat.COMPRESS_TYPE);
         mrSettingsToRetain.add(FileOutputFormat.OUTDIR);
         mrSettingsToRetain.add(FileOutputCommitter.SUCCESSFUL_JOB_OUTPUT_DIR_MARKER);
+    }
+
+    private static void populateMRSettingsToRemove() {
+
+        // TODO: Add all unwanted MR config once Tez UI starts showing config
+
+        // FileInputFormat.listStatus() on a task can cause job failure when run from Oozie
+        mrSettingsToRemove.add(MRJobConfig.MAPREDUCE_JOB_CREDENTIALS_BINARY);
+    }
+
+    private static void removeUnwantedMRSettings(Configuration tezConf) {
+
+        Iterator<Entry<String, String>> iter = tezConf.iterator();
+        while (iter.hasNext()) {
+            Entry<String, String> next = iter.next();
+            for (String mrSetting : mrSettingsToRemove) {
+                if (next.getKey().equals(mrSetting)) {
+                    iter.remove();
+                    break;
+                }
+            }
+        }
     }
 
     public static TezConfiguration getDAGAMConfFromMRConf(
@@ -132,7 +175,12 @@ public class MRToTezHelper {
                     tezConf.get(MRConfiguration.JOB_CREDENTIALS_BINARY));
         }
 
-        //TODO: Strip out all MR settings
+        if (tezConf.get(MRJobConfig.JOB_CANCEL_DELEGATION_TOKEN) != null) {
+            dagAMConf.setIfUnset(TezConfiguration.TEZ_CANCEL_DELEGATION_TOKENS_ON_COMPLETION,
+                    tezConf.get(MRJobConfig.JOB_CANCEL_DELEGATION_TOKEN));
+        }
+
+        removeUnwantedMRSettings(dagAMConf);
 
         return dagAMConf;
     }
@@ -154,6 +202,7 @@ public class MRToTezHelper {
         }
         JobControlCompiler.configureCompression(conf);
         convertMRToTezRuntimeConf(conf, mrConf);
+        removeUnwantedMRSettings(conf);
     }
 
     /**
@@ -172,6 +221,69 @@ public class MRToTezHelper {
                 conf.setIfUnset(dep.getValue(), mrConf.get(dep.getKey()));
             }
         }
+    }
+
+    /**
+     * Write input splits (job.split and job.splitmetainfo) to disk
+     */
+    public static InputSplitInfoDisk convertToInputSplitInfoDisk(
+            InputSplitInfoMem infoMem, Path inputSplitsDir, JobConf jobConf,
+            FileSystem fs) throws IOException, InterruptedException {
+        LOG.info("Generating new input splits" + ", splitsDir="
+                + inputSplitsDir.toString());
+
+        InputSplit[] splits = infoMem.getNewFormatSplits();
+        JobSplitWriter.createSplitFiles(inputSplitsDir, jobConf, fs, splits);
+
+        return new InputSplitInfoDisk(
+                JobSubmissionFiles.getJobSplitFile(inputSplitsDir),
+                JobSubmissionFiles.getJobSplitMetaFile(inputSplitsDir),
+                splits.length, infoMem.getTaskLocationHints(),
+                jobConf.getCredentials());
+    }
+
+    /**
+     * Exact copy of private method from from org.apache.tez.mapreduce.hadoop.MRInputHelpers
+     *
+     * Update provided localResources collection with the required local
+     * resources needed by MapReduce tasks with respect to Input splits.
+     *
+     * @param fs Filesystem instance to access status of splits related files
+     * @param inputSplitInfo Information on location of split files
+     * @param localResources LocalResources collection to be updated
+     * @throws IOException
+     */
+    public static void updateLocalResourcesForInputSplits(
+        FileSystem fs,
+        InputSplitInfo inputSplitInfo,
+        Map<String, LocalResource> localResources) throws IOException {
+      if (localResources.containsKey(JOB_SPLIT_RESOURCE_NAME)) {
+        throw new RuntimeException("LocalResources already contains a"
+            + " resource named " + JOB_SPLIT_RESOURCE_NAME);
+      }
+      if (localResources.containsKey(JOB_SPLIT_METAINFO_RESOURCE_NAME)) {
+        throw new RuntimeException("LocalResources already contains a"
+            + " resource named " + JOB_SPLIT_METAINFO_RESOURCE_NAME);
+      }
+
+      FileStatus splitFileStatus =
+          fs.getFileStatus(inputSplitInfo.getSplitsFile());
+      FileStatus metaInfoFileStatus =
+          fs.getFileStatus(inputSplitInfo.getSplitsMetaInfoFile());
+      localResources.put(JOB_SPLIT_RESOURCE_NAME,
+          LocalResource.newInstance(
+              ConverterUtils.getYarnUrlFromPath(inputSplitInfo.getSplitsFile()),
+              LocalResourceType.FILE,
+              LocalResourceVisibility.APPLICATION,
+              splitFileStatus.getLen(), splitFileStatus.getModificationTime()));
+      localResources.put(JOB_SPLIT_METAINFO_RESOURCE_NAME,
+          LocalResource.newInstance(
+              ConverterUtils.getYarnUrlFromPath(
+                  inputSplitInfo.getSplitsMetaInfoFile()),
+              LocalResourceType.FILE,
+              LocalResourceVisibility.APPLICATION,
+              metaInfoFileStatus.getLen(),
+              metaInfoFileStatus.getModificationTime()));
     }
 
 }

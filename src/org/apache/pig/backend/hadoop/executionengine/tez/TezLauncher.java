@@ -112,8 +112,8 @@ public class TezLauncher extends Launcher {
         if (pc.getExecType().isLocal()) {
             pc.getProperties().setProperty(TezConfiguration.TEZ_LOCAL_MODE, "true");
             pc.getProperties().setProperty(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, "true");
-            pc.getProperties().setProperty("tez.ignore.lib.uris", "true");
-            pc.getProperties().setProperty("tez.am.dag.scheduler.class", DAGSchedulerNaturalOrderControlled.class.getName());
+            pc.getProperties().setProperty(TezConfiguration.TEZ_IGNORE_LIB_URIS, "true");
+            pc.getProperties().setProperty(TezConfiguration.TEZ_AM_DAG_SCHEDULER_CLASS, DAGSchedulerNaturalOrderControlled.class.getName());
         }
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties(), true);
         if (pc.defaultParallel == -1 && !conf.getBoolean(PigConfiguration.PIG_TEZ_AUTO_PARALLELISM, true)) {
