@@ -145,12 +145,16 @@ import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
 import org.apache.tez.mapreduce.combine.MRCombiner;
 import org.apache.tez.mapreduce.committer.MROutputCommitter;
 import org.apache.tez.mapreduce.common.MRInputSplitDistributor;
+import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
+import org.apache.tez.mapreduce.hadoop.InputSplitInfoMem;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos;
+import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRInputUserPayloadProto.Builder;
+import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitsProto;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.input.ConcatenatedMergedKeyValueInput;
 import org.apache.tez.runtime.library.input.OrderedGroupedKVInput;
@@ -631,21 +635,61 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 + ", memory=" + vertex.getTaskResource().getMemory()
                 + ", java opts=" + vertex.getTaskLaunchCmdOpts()
                 );
-
         // Right now there can only be one of each of these. Will need to be
         // more generic when there can be more.
         for (POLoad ld : tezOp.getLoaderInfo().getLoads()) {
 
             // TODO: These should get the globalConf, or a merged version that
             // keeps settings like pig.maxCombinedSplitSize
-            vertex.setLocationHint(VertexLocationHint.create(tezOp.getLoaderInfo().getInputSplitInfo().getTaskLocationHints()));
+            Builder userPayLoadBuilder = MRRuntimeProtos.MRInputUserPayloadProto.newBuilder();
+
+            InputSplitInfo inputSplitInfo = tezOp.getLoaderInfo().getInputSplitInfo();
+            Map<String, LocalResource> additionalLocalResources = null;
+            int spillThreshold = payloadConf
+                    .getInt(PigConfiguration.PIG_TEZ_INPUT_SPLITS_MEM_THRESHOLD,
+                            PigConfiguration.PIG_TEZ_INPUT_SPLITS_MEM_THRESHOLD_DEFAULT);
+
+            // Currently inputSplitInfo is always InputSplitInfoMem at this point
+            if (inputSplitInfo instanceof InputSplitInfoMem) {
+                MRSplitsProto splitsProto = inputSplitInfo.getSplitsProto();
+                int splitsSerializedSize = splitsProto.getSerializedSize();
+                if(splitsSerializedSize > spillThreshold) {
+                    payloadConf.setBoolean(
+                            org.apache.tez.mapreduce.hadoop.MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS,
+                            false);
+                    // Write splits to disk
+                    FileSystem fs = FileSystem.get(payloadConf);
+                    Path inputSplitsDir = FileLocalizer.getTemporaryPath(pc);
+                    log.info("Writing input splits to " + inputSplitsDir
+                            + " as the serialized size in memory is "
+                            + splitsSerializedSize + ". Configured "
+                            + PigConfiguration.PIG_TEZ_INPUT_SPLITS_MEM_THRESHOLD
+                            + " is " + spillThreshold);
+                    inputSplitInfo = MRToTezHelper.convertToInputSplitInfoDisk(
+                            (InputSplitInfoMem)inputSplitInfo, inputSplitsDir, payloadConf, fs);
+                    additionalLocalResources = new HashMap<String, LocalResource>();
+                    MRToTezHelper.updateLocalResourcesForInputSplits(
+                            fs, inputSplitInfo,
+                            additionalLocalResources);
+                } else {
+                    // Send splits via RPC to AM
+                    userPayLoadBuilder.setSplits(splitsProto);
+                }
+                //Free up memory
+                tezOp.getLoaderInfo().setInputSplitInfo(null);
+            }
+            userPayLoadBuilder.setConfigurationBytes(TezUtils.createByteStringFromConf(payloadConf));
+
+            vertex.setLocationHint(VertexLocationHint.create(inputSplitInfo.getTaskLocationHints()));
             vertex.addDataSource(ld.getOperatorKey().toString(),
                     DataSourceDescriptor.create(InputDescriptor.create(MRInput.class.getName())
-                          .setUserPayload(UserPayload.create(MRRuntimeProtos.MRInputUserPayloadProto.newBuilder()
-                          .setConfigurationBytes(TezUtils.createByteStringFromConf(payloadConf))
-                          .setSplits(tezOp.getLoaderInfo().getInputSplitInfo().getSplitsProto()).build().toByteString().asReadOnlyByteBuffer()))
-                          .setHistoryText(convertToHistoryText("", payloadConf)),
-                    InputInitializerDescriptor.create(MRInputSplitDistributor.class.getName()), dag.getCredentials()));
+                            .setUserPayload(UserPayload.create(userPayLoadBuilder.build().toByteString().asReadOnlyByteBuffer()))
+                            .setHistoryText(convertToHistoryText("", payloadConf)),
+                    InputInitializerDescriptor.create(MRInputSplitDistributor.class.getName()),
+                    inputSplitInfo.getNumTasks(),
+                    dag.getCredentials(),
+                    null,
+                    additionalLocalResources));
         }
 
         for (POStore store : stores) {

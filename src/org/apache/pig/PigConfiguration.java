@@ -118,6 +118,21 @@ public class PigConfiguration {
      */
     public static final String PIG_TEZ_AUTO_PARALLELISM = "pig.tez.auto.parallelism";
 
+    /**
+     * This key is used to configure compression for the pig input splits which
+     * are not FileSplit. Default is false
+     */
+    public static final String PIG_COMPRESS_INPUT_SPLITS = "pig.compress.input.splits";
+    public static final boolean PIG_COMPRESS_INPUT_SPLITS_DEFAULT = false;
+
+    /**
+     * Serialize input splits to disk if the input splits size exceeds a
+     * threshold to avoid hitting default RPC transfer size limit of 64MB.
+     * Default is 33554432 (32MB)
+     */
+    public static final String PIG_TEZ_INPUT_SPLITS_MEM_THRESHOLD = "pig.tez.input.splits.mem.threshold";
+    public static final int PIG_TEZ_INPUT_SPLITS_MEM_THRESHOLD_DEFAULT = 33554432;
+
     // Pig UDF profiling settings
     /**
      * Controls whether execution time of Pig UDFs should be tracked.

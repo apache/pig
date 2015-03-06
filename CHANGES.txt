@@ -50,6 +50,8 @@ PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES
 
+PIG-4443: Write inputsplits in Tez to disk if the size is huge and option to compress pig input splits (rohini)
+
 PIG-4447: Pig Cannot handle nullable values (arrays and records) in avro records (rdsr via daijy)
 
 PIG-4444: Fix unit test failure TestTezAutoParallelism (daijy)

@@ -62,6 +62,8 @@ public class TestTezAutoParallelism {
     public static void oneTimeSetUp() throws Exception {
         cluster = MiniGenericCluster.buildCluster(MiniGenericCluster.EXECTYPE_TEZ);
         properties = cluster.getProperties();
+        //Test spilling to disk as tests here have multiple splits
+        properties.setProperty(PigConfiguration.PIG_TEZ_INPUT_SPLITS_MEM_THRESHOLD, "10");
         createFiles();
     }
 
