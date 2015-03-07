@@ -103,8 +103,6 @@
     <property name="test.unit.file" value="${test.src.dir}/unit-tests"/>
     <property name="test.smoke.file" value="${test.src.dir}/smoke-tests"/>
     <property name="test.all.file" value="${test.src.dir}/all-tests"/>
-    <property name="test.tez.file" value="${test.src.dir}/tez-tests"/>
-    <property name="test.tez_local.file" value="${test.src.dir}/tez-local-tests"/>
     <property name="test.exclude.file" value="${test.src.dir}/excluded-tests"/>
     <property name="test.exclude.file.20" value="${test.src.dir}/excluded-tests-20"/>
     <property name="test.exclude.file.23" value="${test.src.dir}/excluded-tests-23"/>
@@ -894,15 +892,10 @@
     </target>
 
     <target name="test-tez" depends="setTezEnv,setWindowsPath,setLinuxPath,compile-test,jar,debugger.check,jackson-pig-3039-test-download" description="Run tez unit tests">
-        <macro-test-runner test.file="${test.tez.file}" tests.failed="test-tez.failed"/>
+        <macro-test-runner test.file="${test.all.file}" tests.failed="test-tez.failed"/>
         <fail if="test-tez.failed">Tests failed!</fail>
     </target>
 	
-    <target name="test-tez-local" depends="setTezEnv,setWindowsPath,setLinuxPath,compile-test,jar,debugger.check,jackson-pig-3039-test-download" description="Run tez local mode unit tests">
-        <macro-test-runner test.file="${test.tez_local.file}" tests.failed="test-tez.failed"/>
-        <fail if="test-tez.failed">Tests failed!</fail>
-    </target>
-
     <target name="debugger.check" depends="debugger.set,debugger.unset"/>
     <target name="debugger.set" if="debugPort">
         <property name="debugArgs" value="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=${debugPort}"/>
