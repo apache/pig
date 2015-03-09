@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4454: Upgrade tez to 0.6.0 (daijy)
+
 PIG-4451: Log partition and predicate filter pushdown information and fix optimizer looping (rohini)
 
 PIG-4430: Pig should support reading log4j.properties file from classpath as well (rdsr via daijy)
