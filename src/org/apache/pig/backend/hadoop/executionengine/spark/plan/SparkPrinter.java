@@ -22,7 +22,7 @@ import java.io.PrintStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PlanPrinter;
-import org.apache.pig.backend.hadoop.executionengine.spark.operator.NativeSparkOper;
+import org.apache.pig.backend.hadoop.executionengine.spark.operator.NativeSparkOperator;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.VisitorException;
 
@@ -31,36 +31,36 @@ import org.apache.pig.impl.plan.VisitorException;
  */
 public class SparkPrinter extends SparkOpPlanVisitor {
 
+	private PrintStream mStream = null;
+	private boolean isVerbose = true;
 
-    private PrintStream mStream = null;
-    private boolean isVerbose = true;
+	public SparkPrinter(PrintStream ps, SparkOperPlan plan) {
+		super(plan, new DepthFirstWalker<SparkOperator, SparkOperPlan>(plan));
+		mStream = ps;
+		mStream.println("#--------------------------------------------------");
+		mStream.println("# Spark Plan                                  ");
+		mStream.println("#--------------------------------------------------");
+	}
 
-    public SparkPrinter(PrintStream ps, SparkOperPlan plan) {
-        super(plan, new DepthFirstWalker<SparkOper, SparkOperPlan>(plan));
-        mStream = ps;
-        mStream.println("#--------------------------------------------------");
-        mStream.println("# Spark Plan                                  ");
-        mStream.println("#--------------------------------------------------");
-    }
+	public void setVerbose(boolean verbose) {
+		isVerbose = verbose;
+	}
 
-    public void setVerbose(boolean verbose) {
-        isVerbose = verbose;
-    }
-
-    @Override
-    public void visitSparkOp(SparkOper sparkOp) throws VisitorException {
-        mStream.println("");
-        mStream.println("Spark node " + sparkOp.getOperatorKey().toString());
-        if(sparkOp instanceof NativeSparkOper) {
-            mStream.println("--------");
-            mStream.println();
-            return;
-        }
-        if (sparkOp.plan != null && sparkOp.plan.size() > 0) {
-            PlanPrinter<PhysicalOperator, PhysicalPlan> printer = new PlanPrinter<PhysicalOperator, PhysicalPlan>(sparkOp.plan, mStream);
-            printer.setVerbose(isVerbose);
-            printer.visit();
-            mStream.println("--------");
-        }
-    }
+	@Override
+	public void visitSparkOp(SparkOperator sparkOp) throws VisitorException {
+		mStream.println("");
+		mStream.println("Spark node " + sparkOp.getOperatorKey().toString());
+		if (sparkOp instanceof NativeSparkOperator) {
+			mStream.println("--------");
+			mStream.println();
+			return;
+		}
+		if (sparkOp.physicalPlan != null && sparkOp.physicalPlan.size() > 0) {
+			PlanPrinter<PhysicalOperator, PhysicalPlan> printer = new PlanPrinter<PhysicalOperator, PhysicalPlan>(
+					sparkOp.physicalPlan, mStream);
+			printer.setVerbose(isVerbose);
+			printer.visit();
+			mStream.println("--------");
+		}
+	}
 }

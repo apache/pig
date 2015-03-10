@@ -24,15 +24,18 @@ import org.apache.pig.impl.plan.VisitorException;
 /**
  * A visitor for the SparkOperPlan class
  */
-public class SparkOpPlanVisitor  extends PlanVisitor<SparkOper, SparkOperPlan> {
+public class SparkOpPlanVisitor extends
+		PlanVisitor<SparkOperator, SparkOperPlan> {
 
-    public SparkOpPlanVisitor(SparkOperPlan plan, PlanWalker<SparkOper, SparkOperPlan> walker) {
-        super(plan, walker);
-        // TODO Auto-generated constructor stub
-    }
+	public SparkOpPlanVisitor(SparkOperPlan plan,
+			PlanWalker<SparkOperator, SparkOperPlan> walker) {
+		super(plan, walker);
+		// TODO Auto-generated constructor stub
+	}
 
-    public void visitSparkOp(SparkOper sparkOper) throws VisitorException {
-        // TODO Auto-generated method stub
-    }
+	public void visitSparkOp(SparkOperator sparkOperator)
+			throws VisitorException {
+		// TODO Auto-generated method stub
+	}
 
 }
