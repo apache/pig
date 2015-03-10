@@ -25,6 +25,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -479,6 +480,7 @@ public class SparkLauncher extends Launcher {
 		Set<Integer> seenJobIDs = new HashSet<Integer>();
 		if (sparkPlan != null) {
 			List<SparkOperator> leaves = sparkPlan.getLeaves();
+			Collections.sort(leaves);
 			Map<OperatorKey, RDD<Tuple>> sparkOpToRdds = new HashMap();
 			for (SparkOperator leaf : leaves) {
 				Map<OperatorKey, RDD<Tuple>> physicalOpToRdds = new HashMap();
