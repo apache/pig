@@ -17,20 +17,20 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.spark.operator;
 
-import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOper;
+import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperator;
 import org.apache.pig.impl.plan.OperatorKey;
 
 /**
- * NativeSparkOper:
+ * NativeSparkOperator:
  */
-public class NativeSparkOper  extends SparkOper {
+public class NativeSparkOperator extends SparkOperator {
     private static final long serialVersionUID = 1L;
     private static int countJobs = 0;
     private String nativeSparkJar;
     private String[] params;
     private String jobId;
 
-    public NativeSparkOper(OperatorKey k, String sparkJar, String[] parameters) {
+    public NativeSparkOperator(OperatorKey k, String sparkJar, String[] parameters) {
         super(k);
         nativeSparkJar = sparkJar;
         params = parameters;

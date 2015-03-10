@@ -34,132 +34,141 @@ import org.apache.pig.impl.plan.optimizer.OptimizerException;
 import org.apache.pig.impl.util.Pair;
 
 /**
- * This visitor visits the SparkPlan and does the following
- * for each SparkOper
- * - visits the POPackage in the plan and finds the corresponding
- * POLocalRearrange(s). It then annotates the POPackage
- * with information about which columns in the "value" are present in the
- * "key" and will need to stitched in to the "value"
+ * This visitor visits the SparkPlan and does the following for each
+ * SparkOperator - visits the POPackage in the plan and finds the corresponding
+ * POLocalRearrange(s). It then annotates the POPackage with information about
+ * which columns in the "value" are present in the "key" and will need to
+ * stitched in to the "value"
  */
 public class SparkPOPackageAnnotator extends SparkOpPlanVisitor {
-    public SparkPOPackageAnnotator(SparkOperPlan plan) {
-        super(plan, new DepthFirstWalker<SparkOper, SparkOperPlan>(plan));
-    }
+	public SparkPOPackageAnnotator(SparkOperPlan plan) {
+		super(plan, new DepthFirstWalker<SparkOperator, SparkOperPlan>(plan));
+	}
 
-    @Override
-    public void visitSparkOp(SparkOper sparkOp) throws VisitorException {
-        if(!sparkOp.plan.isEmpty()) {
-            PackageDiscoverer pkgDiscoverer = new PackageDiscoverer(sparkOp.plan);
-            pkgDiscoverer.visit();
-            POPackage pkg = pkgDiscoverer.getPkg();
-            if(pkg != null) {
-                handlePackage(sparkOp, pkg);
-            }
-        }
-    }
+	@Override
+	public void visitSparkOp(SparkOperator sparkOp) throws VisitorException {
+		if (!sparkOp.physicalPlan.isEmpty()) {
+			PackageDiscoverer pkgDiscoverer = new PackageDiscoverer(
+					sparkOp.physicalPlan);
+			pkgDiscoverer.visit();
+			POPackage pkg = pkgDiscoverer.getPkg();
+			if (pkg != null) {
+				handlePackage(sparkOp, pkg);
+			}
+		}
+	}
 
-    private void handlePackage(SparkOper pkgSparkOp, POPackage pkg) throws VisitorException {
-        int lrFound = 0;
-        List<SparkOper> predecessors = this.mPlan.getPredecessors(pkgSparkOp);
-        if (predecessors != null && predecessors.size() > 0) {
-            for (SparkOper pred : predecessors) {
-                lrFound += patchPackage(pred, pkgSparkOp, pkg);
-                if(lrFound == pkg.getNumInps()) {
-                    break;
-                }
-            }
-        }
-        if (lrFound != pkg.getNumInps()) {
-            int errCode = 2086;
-            String msg = "Unexpected problem during optimization. Could not find all LocalRearrange operators.";
-            throw new OptimizerException(msg, errCode, PigException.BUG);
-        }
-    }
+	private void handlePackage(SparkOperator pkgSparkOp, POPackage pkg)
+			throws VisitorException {
+		int lrFound = 0;
+		List<SparkOperator> predecessors = this.mPlan
+				.getPredecessors(pkgSparkOp);
+		if (predecessors != null && predecessors.size() > 0) {
+			for (SparkOperator pred : predecessors) {
+				lrFound += patchPackage(pred, pkgSparkOp, pkg);
+				if (lrFound == pkg.getNumInps()) {
+					break;
+				}
+			}
+		}
+		if (lrFound != pkg.getNumInps()) {
+			int errCode = 2086;
+			String msg = "Unexpected problem during optimization. Could not find all LocalRearrange operators.";
+			throw new OptimizerException(msg, errCode, PigException.BUG);
+		}
+	}
 
-    private int patchPackage(SparkOper pred , SparkOper pkgSparkOp, POPackage pkg) throws VisitorException {
-        LoRearrangeDiscoverer lrDiscoverer = new LoRearrangeDiscoverer(pred.plan, pkg);
-        lrDiscoverer.visit();
-        // let our caller know if we managed to patch
-        // the package
-        return lrDiscoverer.getLoRearrangeFound();
-    }
+	private int patchPackage(SparkOperator pred, SparkOperator pkgSparkOp,
+			POPackage pkg) throws VisitorException {
+		LoRearrangeDiscoverer lrDiscoverer = new LoRearrangeDiscoverer(
+				pred.physicalPlan, pkg);
+		lrDiscoverer.visit();
+		// let our caller know if we managed to patch
+		// the package
+		return lrDiscoverer.getLoRearrangeFound();
+	}
 
+	static class PackageDiscoverer extends PhyPlanVisitor {
 
-    static class PackageDiscoverer extends PhyPlanVisitor {
+		private POPackage pkg;
 
-        private POPackage pkg;
+		public PackageDiscoverer(PhysicalPlan plan) {
+			super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(
+					plan));
+		}
 
-        public PackageDiscoverer(PhysicalPlan plan) {
-            super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(plan));
-        }
+		@Override
+		public void visitPackage(POPackage pkg) throws VisitorException {
+			this.pkg = pkg;
+		};
 
-        @Override
-        public void visitPackage(POPackage pkg) throws VisitorException {
-            this.pkg = pkg;
-        };
+		/**
+		 * @return the pkg
+		 */
+		public POPackage getPkg() {
+			return pkg;
+		}
 
-        /**
-         * @return the pkg
-         */
-        public POPackage getPkg() {
-            return pkg;
-        }
+	}
 
-    }
+	static class LoRearrangeDiscoverer extends PhyPlanVisitor {
 
+		private int loRearrangeFound = 0;
+		private POPackage pkg;
 
-    static class LoRearrangeDiscoverer extends PhyPlanVisitor {
+		public LoRearrangeDiscoverer(PhysicalPlan plan, POPackage pkg) {
+			super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(
+					plan));
+			this.pkg = pkg;
+		}
 
-        private int loRearrangeFound = 0;
-        private POPackage pkg;
+		@Override
+		public void visitLocalRearrange(POLocalRearrange lrearrange)
+				throws VisitorException {
+			loRearrangeFound++;
+			Map<Integer, Pair<Boolean, Map<Integer, Integer>>> keyInfo;
 
-        public LoRearrangeDiscoverer(PhysicalPlan plan, POPackage pkg) {
-            super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(plan));
-            this.pkg = pkg;
-        }
+			if (pkg.getPkgr() instanceof LitePackager) {
+				if (lrearrange.getIndex() != 0) {
+					// Throw some exception here
+					throw new RuntimeException(
+							"POLocalRearrange for POPackageLite cannot have index other than 0, but has index - "
+									+ lrearrange.getIndex());
+				}
+			}
 
-        @Override
-        public void visitLocalRearrange(POLocalRearrange lrearrange) throws VisitorException {
-            loRearrangeFound++;
-            Map<Integer,Pair<Boolean, Map<Integer, Integer>>> keyInfo;
+			// annotate the package with information from the LORearrange
+			// update the keyInfo information if already present in the
+			// POPackage
+			keyInfo = pkg.getPkgr().getKeyInfo();
+			if (keyInfo == null)
+				keyInfo = new HashMap<Integer, Pair<Boolean, Map<Integer, Integer>>>();
 
-            if (pkg.getPkgr() instanceof LitePackager) {
-                if(lrearrange.getIndex() != 0) {
-                    // Throw some exception here
-                    throw new RuntimeException("POLocalRearrange for POPackageLite cannot have index other than 0, but has index - "+lrearrange.getIndex());
-                }
-            }
+			if (keyInfo.get(Integer.valueOf(lrearrange.getIndex())) != null) {
+				// something is wrong - we should not be getting key info
+				// for the same index from two different Local Rearranges
+				int errCode = 2087;
+				String msg = "Unexpected problem during optimization."
+						+ " Found index:" + lrearrange.getIndex()
+						+ " in multiple LocalRearrange operators.";
+				throw new OptimizerException(msg, errCode, PigException.BUG);
 
-            // annotate the package with information from the LORearrange
-            // update the keyInfo information if already present in the POPackage
-            keyInfo = pkg.getPkgr().getKeyInfo();
-            if(keyInfo == null)
-                keyInfo = new HashMap<Integer, Pair<Boolean, Map<Integer, Integer>>>();
+			}
+			keyInfo.put(
+					Integer.valueOf(lrearrange.getIndex()),
+					new Pair<Boolean, Map<Integer, Integer>>(lrearrange
+							.isProjectStar(), lrearrange.getProjectedColsMap()));
+			pkg.getPkgr().setKeyInfo(keyInfo);
+			pkg.getPkgr().setKeyTuple(lrearrange.isKeyTuple());
+			pkg.getPkgr().setKeyCompound(lrearrange.isKeyCompound());
+		}
 
-            if(keyInfo.get(Integer.valueOf(lrearrange.getIndex())) != null) {
-                // something is wrong - we should not be getting key info
-                // for the same index from two different Local Rearranges
-                int errCode = 2087;
-                String msg = "Unexpected problem during optimization." +
-                        " Found index:" + lrearrange.getIndex() +
-                        " in multiple LocalRearrange operators.";
-                throw new OptimizerException(msg, errCode, PigException.BUG);
+		/**
+		 * @return the loRearrangeFound
+		 */
+		public int getLoRearrangeFound() {
+			return loRearrangeFound;
+		}
 
-            }
-            keyInfo.put(Integer.valueOf(lrearrange.getIndex()),
-                    new Pair<Boolean, Map<Integer, Integer>>(
-                            lrearrange.isProjectStar(), lrearrange.getProjectedColsMap()));
-            pkg.getPkgr().setKeyInfo(keyInfo);
-            pkg.getPkgr().setKeyTuple(lrearrange.isKeyTuple());
-            pkg.getPkgr().setKeyCompound(lrearrange.isKeyCompound());
-        }
-
-        /**
-         * @return the loRearrangeFound
-         */
-        public int getLoRearrangeFound() {
-            return loRearrangeFound;
-        }
-
-    }
+	}
 }
