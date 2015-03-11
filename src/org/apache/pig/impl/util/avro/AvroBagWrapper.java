@@ -99,7 +99,7 @@ public final class AvroBagWrapper<T> implements DataBag {
               if (arg instanceof IndexedRecord) {
                 return new AvroTupleWrapper<IndexedRecord>((IndexedRecord) arg);
               } else {
-                return TupleFactory.getInstance().newTuple(AvroTupleWrapper.unionResolver(arg));
+                return TupleFactory.getInstance().newTuple(AvroTupleWrapper.getPigObject(arg));
               }
             }
           }
