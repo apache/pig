@@ -43,9 +43,19 @@ public class SparkStatsUtil {
       // To workaround this, we will wait for this job to "finish".
       jobMetricsListener.waitForJobToEnd(jobID);
       sparkPigStats.addJobStats(poStore, jobID, jobMetricsListener,
-          sparkContext, jobConf);
+              sparkContext, jobConf);
       jobMetricsListener.cleanup(jobID);
   }
+
+    public static void addFailJobStats(String jobID,
+                                       POStore poStore,
+                                       SparkPigStats sparkPigStats,
+                                       JobConf jobConf, Exception e) {
+        JobMetricsListener jobMetricsListener = null;
+        JavaSparkContext sparkContext = null;
+        sparkPigStats.addFailJobStats(poStore, jobID, jobMetricsListener,
+                sparkContext, jobConf, e);
+    }
 
   public static boolean isJobSuccess(int jobID,
                                     JavaSparkContext sparkContext) {

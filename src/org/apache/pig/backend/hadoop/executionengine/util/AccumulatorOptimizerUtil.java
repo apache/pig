@@ -37,11 +37,14 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.UnaryExpressionOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POGlobalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSortedDistinct;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.Packager;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.plan.VisitorException;
 
 public class AccumulatorOptimizerUtil {
     private static final Log LOG = LogFactory.getLog(AccumulatorOptimizerUtil.class);
@@ -285,5 +288,86 @@ public class AccumulatorOptimizerUtil {
         }
 
         return false;
+    }
+
+    public static void addAccumulatorSpark(PhysicalPlan plan) throws
+            VisitorException {
+        List<PhysicalOperator> pos = plan.getRoots();
+        if (pos == null || pos.size() == 0) {
+            return;
+        }
+
+        // See if this is a POGlobalRearrange
+        PhysicalOperator po_globalRearrange = pos.get(0);
+        if (!po_globalRearrange.getClass().equals(POGlobalRearrange.class)) {
+            return;
+        }
+
+        List<PhysicalOperator> poPackages = plan.getSuccessors(po_globalRearrange);
+
+        if (poPackages == null || poPackages.size() == 0) {
+            return;
+        }
+        // See if this is a POPackage
+        PhysicalOperator po_package = poPackages.get(0);
+        if (!po_package.getClass().equals(POPackage.class)) {
+            return;
+        }
+
+        Packager pkgr = ((POPackage) po_package).getPkgr();
+        // Check that this is a standard package, not a subclass
+        if (!pkgr.getClass().equals(Packager.class)) {
+            return;
+        }
+
+        // if POPackage is for distinct, just return
+        if (pkgr.isDistinct()) {
+            return;
+        }
+
+        // if any input to POPackage is inner, just return
+        boolean[] isInner = pkgr.getInner();
+        for (boolean b : isInner) {
+            if (b) {
+                return;
+            }
+        }
+
+        List<PhysicalOperator> l = plan.getSuccessors(po_package);
+        // there should be only one POForEach
+        if (l == null || l.size() == 0 || l.size() > 1) {
+            return;
+        }
+
+        PhysicalOperator po_foreach = l.get(0);
+        if (!(po_foreach instanceof POForEach)) {
+            return;
+        }
+
+        boolean foundUDF = false;
+        List<PhysicalPlan> list = ((POForEach) po_foreach).getInputPlans();
+        for (PhysicalPlan p : list) {
+            PhysicalOperator po = p.getLeaves().get(0);
+
+            // only expression operators are allowed
+            if (!(po instanceof ExpressionOperator)) {
+                return;
+            }
+
+            if (((ExpressionOperator) po).containUDF()) {
+                foundUDF = true;
+            }
+
+            if (!check(po)) {
+                return;
+            }
+        }
+
+        if (foundUDF) {
+            // if all tests are passed, reducer can run in accumulative mode
+            LOG.info("Reducer is to run in accumulative mode.");
+            po_package.setAccumulative();
+            po_foreach.setAccumulative();
+        }
     }
 }

@@ -66,14 +66,15 @@ public class SparkJobStats extends JobStats {
       }
   }
 
-  public void collectStats(JobMetricsListener jobMetricsListener) {
-      Map<String, List<TaskMetrics>> taskMetrics = jobMetricsListener.getJobMetric(jobId);
-      if (taskMetrics == null) {
-        throw new RuntimeException("No task metrics available for jobId " + jobId);
-      }
-
-      stats = combineTaskMetrics(taskMetrics);
-  }
+	public void collectStats(JobMetricsListener jobMetricsListener) {
+		if (jobMetricsListener != null) {
+			Map<String, List<TaskMetrics>> taskMetrics = jobMetricsListener.getJobMetric(jobId);
+			if (taskMetrics == null) {
+				throw new RuntimeException("No task metrics available for jobId " + jobId);
+			}
+			stats = combineTaskMetrics(taskMetrics);
+		}
+	}
 
   public Map<String, Long> getStats() {
       return stats;

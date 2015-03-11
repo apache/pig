@@ -25,7 +25,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -86,6 +85,7 @@ import org.apache.pig.backend.hadoop.executionengine.spark.converter.StoreConver
 import org.apache.pig.backend.hadoop.executionengine.spark.converter.StreamConverter;
 import org.apache.pig.backend.hadoop.executionengine.spark.converter.UnionConverter;
 import org.apache.pig.backend.hadoop.executionengine.spark.operator.POStreamSpark;
+import org.apache.pig.backend.hadoop.executionengine.spark.optimizer.AccumulatorOptimizer;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkCompiler;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperator;
@@ -106,6 +106,7 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.rdd.RDD;
 import org.apache.spark.scheduler.JobLogger;
 import org.apache.spark.scheduler.StatsReportListener;
+import org.apache.spark.SparkException;
 
 /**
  * Main class that launches pig for Spark
@@ -208,6 +209,15 @@ public class SparkLauncher extends Launcher {
 		cleanUpSparkJob(pigContext, currentDirectoryPath);
 		sparkStats.finish();
 		return sparkStats;
+	}
+
+	private void optimize(PigContext pc, SparkOperPlan plan) throws VisitorException {
+		boolean isAccum =
+				Boolean.valueOf(pc.getProperties().getProperty("opt.accumulator","true"));
+		if (isAccum) {
+			AccumulatorOptimizer accum = new AccumulatorOptimizer(plan);
+			accum.visit();
+		}
 	}
 
 	/**
@@ -396,6 +406,8 @@ public class SparkLauncher extends Launcher {
 		SparkPOPackageAnnotator pkgAnnotator = new SparkPOPackageAnnotator(
 				sparkPlan);
 		pkgAnnotator.visit();
+
+		optimize(pigContext, sparkPlan);
 		return sparkPlan;
 	}
 
@@ -501,7 +513,6 @@ public class SparkLauncher extends Launcher {
 			Map<Class<? extends PhysicalOperator>, POConverter> convertMap,
 			Set<Integer> seenJobIDs, SparkPigStats sparkStats, JobConf conf)
 			throws IOException, InterruptedException {
-
 		List<SparkOperator> predecessors = sparkPlan
 				.getPredecessors(sparkOperator);
 		List<RDD<Tuple>> predecessorRDDs = Lists.newArrayList();
@@ -517,6 +528,8 @@ public class SparkLauncher extends Launcher {
 		}
 
 		List<PhysicalOperator> leafPOs = sparkOperator.physicalPlan.getLeaves();
+		boolean isFail = false;
+		Exception exception = null;
 		if (leafPOs != null && leafPOs.size() != 1) {
 			throw new IllegalArgumentException(
 					String.format(
@@ -528,19 +541,34 @@ public class SparkLauncher extends Launcher {
 							sparkOperator.name()));
 		} else {
 			PhysicalOperator leafPO = leafPOs.get(0);
-			physicalToRDD(sparkOperator.physicalPlan, leafPO, physicalOpRdds,
-					predecessorRDDs, convertMap);
-			sparkOpRdds.put(sparkOperator.getOperatorKey(),
-					physicalOpRdds.get(leafPO.getOperatorKey()));
+			try {
+				physicalToRDD(sparkOperator.physicalPlan, leafPO, physicalOpRdds,
+						predecessorRDDs, convertMap);
+				sparkOpRdds.put(sparkOperator.getOperatorKey(),
+						physicalOpRdds.get(leafPO.getOperatorKey()));
+			}catch(Exception e) {
+				if( e instanceof  SparkException) {
+					LOG.info("throw SparkException, error founds when running " +
+							"rdds in spark");
+				}
+				exception = e;
+				isFail = true;
+			}
 		}
 
 		List<POStore> poStores = PlanHelper.getPhysicalOperators(
 				sparkOperator.physicalPlan, POStore.class);
 		if (poStores != null && poStores.size() == 1) {
 			POStore poStore = poStores.get(0);
-			for (int jobID : getJobIDs(seenJobIDs)) {
-				SparkStatsUtil.waitForJobAddStats(jobID, poStore,
-						jobMetricsListener, sparkContext, sparkStats, conf);
+			if( isFail == false ) {
+				for (int jobID : getJobIDs(seenJobIDs)) {
+					SparkStatsUtil.waitForJobAddStats(jobID, poStore,
+							jobMetricsListener, sparkContext, sparkStats, conf);
+				}
+			}else{
+				String failJobID =sparkOperator.name().concat("_fail");
+				SparkStatsUtil.addFailJobStats(failJobID, poStore,sparkStats,
+						conf,exception);
 			}
 		} else {
 			LOG.info(String
