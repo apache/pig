@@ -81,12 +81,7 @@ public final class AvroMapWrapper implements Map<CharSequence, Object> {
     } else {
       v = innerMap.get(key);
     }
-
-    if (v instanceof Utf8) {
-      return v.toString();
-    } else {
-      return v;
-    }
+    return AvroTupleWrapper.getPigObject(v);
   }
 
   @Override

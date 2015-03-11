@@ -1,0 +1,28 @@
+{
+    "name" : "recordInMap",
+    "namespace" : "org.apache.pig.test.builtin",
+    "type" : "record",
+    "fields" : [
+        {"name" : "key", "type" : "string"},
+        {"name" : "value", "type" : "int"},
+        {
+            "name" : "parameters",
+            "type": {
+                "type": "map",
+                "values": {
+                    "type": "record",
+                    "name": "A",
+                    "fields": [
+                        {
+                            "name": "id",
+                            "type": [
+                                "null",
+                                "int"
+                            ]
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

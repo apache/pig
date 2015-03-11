@@ -130,13 +130,17 @@ public final class AvroTupleWrapper <T extends IndexedRecord>
       case BYTES:
         return new DataByteArray(((ByteBuffer) o).array());
       case UNION:
-        return unionResolver(o);
+        return getPigObject(o);
       default:
         return o;
     }
   }
 
-  public static Object unionResolver(Object o) {
+  /**
+   * @param o An Avro object to convert to an equivalent type in Pig
+   * @return Equivalent Pig object
+   */
+  public static Object getPigObject(Object o) {
     if (o instanceof org.apache.avro.util.Utf8) {
       return o.toString();
     } else if (o instanceof IndexedRecord) {
