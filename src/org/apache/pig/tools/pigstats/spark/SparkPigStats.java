@@ -36,6 +36,22 @@ public class SparkPigStats extends PigStats {
         jobPlan.add(jobStats);
     }
 
+    public void addFailJobStats(POStore poStore, String jobId,
+                                JobMetricsListener jobMetricsListener,
+                                JavaSparkContext sparkContext,
+                                Configuration conf,
+                                Exception e) {
+        boolean isSuccess = false;
+        SparkJobStats jobStats = new SparkJobStats(jobId, jobPlan);
+        jobStats.setSuccessful(isSuccess);
+        jobStats.addOutputInfo(poStore, isSuccess, jobMetricsListener, conf);
+        jobStats.collectStats(jobMetricsListener);
+        jobPlan.add(jobStats);
+        if (e != null) {
+            jobStats.setBackendException(e);
+        }
+    }
+
     public void finish() {
         super.stop();
         display();
