@@ -992,7 +992,7 @@
         <echo message="=======================" />
         <propertyreset name="test.exec.type" value="tez" />
         <propertyreset name="test.log.dir" value="${test.build.dir}/logs/${test.exec.type}" />
-        <macro-test-runner test.file="${test.tez.file}" tests.failed="test.tez.failed"/>
+        <macro-test-runner test.file="${test.all.file}" tests.failed="test.tez.failed"/>
         <condition property="any.tests.failed">
           <or>
             <isset property="test.mr.failed"/>
