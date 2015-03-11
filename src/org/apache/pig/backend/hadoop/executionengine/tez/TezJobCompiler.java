@@ -60,6 +60,7 @@ public class TezJobCompiler {
         tezDag.setCredentials(tezPlanNode.getTezOperPlan().getCredentials());
         TezDagBuilder dagBuilder = new TezDagBuilder(pigContext, tezPlanNode.getTezOperPlan(), tezDag, localResources);
         dagBuilder.visit();
+        dagBuilder.avoidContainerReuseIfInputSplitInDisk();
         return tezDag;
     }
 

@@ -226,11 +226,9 @@ public class MRToTezHelper {
     /**
      * Write input splits (job.split and job.splitmetainfo) to disk
      */
-    public static InputSplitInfoDisk convertToInputSplitInfoDisk(
+    public static InputSplitInfoDisk writeInputSplitInfoToDisk(
             InputSplitInfoMem infoMem, Path inputSplitsDir, JobConf jobConf,
             FileSystem fs) throws IOException, InterruptedException {
-        LOG.info("Generating new input splits" + ", splitsDir="
-                + inputSplitsDir.toString());
 
         InputSplit[] splits = infoMem.getNewFormatSplits();
         JobSplitWriter.createSplitFiles(inputSplitsDir, jobConf, fs, splits);
