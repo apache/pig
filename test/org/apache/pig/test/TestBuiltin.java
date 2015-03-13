@@ -2956,12 +2956,13 @@ public class TestBuiltin {
     @Test
     public void testValueSetOutputSchemaComplexType() throws FrontendException {
         Schema inputSchema = new Schema();
-        Schema bagSchema = Schema.generateNestedSchema(DataType.BAG, DataType.CHARARRAY);
+        Schema tupleSchema = Schema.generateNestedSchema(DataType.TUPLE, DataType.CHARARRAY);
+        Schema bagSchema = new Schema(new FieldSchema(null, tupleSchema, DataType.BAG));
         FieldSchema mapSchema = new FieldSchema(null, bagSchema, DataType.MAP);
         inputSchema.add(mapSchema);
 
-        Schema tupleSchema = new Schema(new FieldSchema(null, bagSchema, DataType.TUPLE));
-        Schema expectedSchema = new Schema(new FieldSchema(null, tupleSchema, DataType.BAG));
+        Schema tupleOfBagSchema = new Schema(new FieldSchema(null, bagSchema, DataType.TUPLE));
+        Schema expectedSchema = new Schema(new FieldSchema(null, tupleOfBagSchema, DataType.BAG));
 
         VALUESET vs = new VALUESET();
         assertEquals(expectedSchema, vs.outputSchema(inputSchema));
@@ -3015,12 +3016,13 @@ public class TestBuiltin {
     @Test
     public void testValueListOutputSchemaComplexType() throws FrontendException {
         Schema inputSchema = new Schema();
-        Schema bagSchema = Schema.generateNestedSchema(DataType.BAG, DataType.CHARARRAY);
+        Schema tupleSchema = Schema.generateNestedSchema(DataType.TUPLE, DataType.CHARARRAY);
+        Schema bagSchema = new Schema(new FieldSchema(null, tupleSchema, DataType.BAG));
         FieldSchema mapSchema = new FieldSchema(null, bagSchema, DataType.MAP);
         inputSchema.add(mapSchema);
 
-        Schema tupleSchema = new Schema(new FieldSchema(null, bagSchema, DataType.TUPLE));
-        Schema expectedSchema = new Schema(new FieldSchema(null, tupleSchema, DataType.BAG));
+        Schema tupleOfBagSchema = new Schema(new FieldSchema(null, bagSchema, DataType.TUPLE));
+        Schema expectedSchema = new Schema(new FieldSchema(null, tupleOfBagSchema, DataType.BAG));
 
         VALUELIST vl = new VALUELIST();
         assertEquals(expectedSchema, vl.outputSchema(inputSchema));
