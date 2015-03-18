@@ -117,11 +117,7 @@ public final class AvroMapWrapper implements Map<CharSequence, Object> {
         new Function() {
             @Override
             public Object apply(final Object v) {
-              if (v instanceof Utf8) {
-                return v.toString();
-              } else {
-                return v;
-              }
+              return AvroTupleWrapper.getPigObject(v);
             }
           }
         );
@@ -133,18 +129,13 @@ public final class AvroMapWrapper implements Map<CharSequence, Object> {
         Sets.newHashSetWithExpectedSize(innerMap.size());
     for (java.util.Map.Entry<CharSequence, Object> e : innerMap.entrySet()) {
       CharSequence k = e.getKey();
-      Object v = e.getValue();
+      final Object v = AvroTupleWrapper.getPigObject(e.getValue());
       if (k instanceof Utf8) {
         k = k.toString();
       }
-      if (v instanceof Utf8) {
-        v = v.toString();
-      }
       theSet.add(new AbstractMap.SimpleEntry<CharSequence, Object>(k, v));
     }
-
     return theSet;
-
   }
 
 }
