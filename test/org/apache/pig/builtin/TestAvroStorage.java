@@ -34,8 +34,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.Iterator;
 
+import com.google.common.io.Closeables;
 import org.apache.avro.file.DataFileStream;
+import org.apache.avro.generic.GenericContainer;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericData.Record;
 import org.apache.avro.generic.GenericDatumReader;
@@ -56,6 +59,8 @@ import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
 import org.apache.pig.builtin.mock.Storage.Data;
+import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.impl.util.avro.AvroBagWrapper;
@@ -902,6 +907,94 @@ public class TestAvroStorage {
         assertEquals("foo", v);
         v = (String)wrapper.get(new Utf8("bar"));
         assertEquals("bar", v);
+    }
+
+    @Test
+    public void testAvroMapWrapper() throws Exception {
+        final Map<CharSequence, Object> m = new HashMap<CharSequence, Object>();
+        for (String fn : avroSchemas) {
+            final String avro = basedir + "data/avro/uncompressed/" + fn + ".avro";
+            int i = 0;
+            for (GenericContainer r : readAvroData(avro)) {
+                m.put(new Utf8(fn + i), r);
+                i += 1;
+            }
+        }
+        final AvroMapWrapper amw = new AvroMapWrapper(m);
+        // Test out all the interfaces the AvroMapWrapper supports
+        for (Object o : amw.values()) {
+            assertTrue(isValidPigObject(o));
+        }
+        for (CharSequence k : amw.keySet()) {
+            assertTrue(isValidPigObject(amw.get(k)));
+        }
+        for (Map.Entry<CharSequence, Object> e : amw.entrySet()) {
+            assertTrue(isValidPigObject(e.getValue()));
+        }
+    }
+
+    private boolean isValidPigObject(Object o) {
+        if (o == null) {
+            return true;
+        }
+        switch (DataType.findType(o)) {
+            case DataType.TUPLE:
+                for (Object inner : ((Tuple) o).getAll()) {
+                    if (!isValidPigObject(inner)) {
+                        return false;
+                    }
+                }
+                return true;
+            case DataType.BAG:
+                final Iterator<Tuple> bi = ((DataBag) o).iterator();
+                while (bi.hasNext()) {
+                    if (!isValidPigObject(bi.next())) {
+                        return false;
+                    }
+                }
+                return true;
+            case DataType.MAP:
+                for (Object inner : ((Map) o).values()) {
+                    if (!isValidPigObject(inner)) {
+                        return false;
+                    }
+                }
+                return true;
+            case DataType.BIGDECIMAL:
+            case DataType.BIGINTEGER:
+            case DataType.BOOLEAN:
+            case DataType.BYTE:
+            case DataType.BYTEARRAY:
+            case DataType.CHARARRAY:
+            case DataType.DATETIME:
+            case DataType.DOUBLE:
+            case DataType.FLOAT:
+            case DataType.GENERIC_WRITABLECOMPARABLE:
+            case DataType.INTEGER:
+            case DataType.LONG:
+                return true;
+            case DataType.ERROR:
+            default:
+                return false;
+        }
+    }
+
+    private List<GenericContainer> readAvroData(String path) throws IOException {
+        final FileSystem fs = FileSystem.getLocal(new Configuration());
+        final Path filePath = new Path(path);
+        assertTrue("File path " + filePath + " does not exists!", fs.exists(filePath));
+        final GenericDatumReader<GenericContainer> reader = new GenericDatumReader<GenericContainer>();
+        final DataFileStream<GenericContainer> in = new DataFileStream<GenericContainer>(fs.open(filePath), reader);
+        final List<GenericContainer> avroData = new ArrayList<GenericContainer>();
+        try {
+            while (in.hasNext()) {
+                GenericContainer obj = in.next();
+                avroData.add(obj);
+            }
+        } finally {
+            Closeables.closeQuietly(in);
+        }
+        return avroData;
     }
 
     private void testAvroStorage(boolean expectedToSucceed, String scriptFile, Map<String,String> parameterMap) throws IOException {

@@ -54,6 +54,9 @@ PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES
 
+PIG-4463: AvroMapWrapper still leaks Avro data types and AvroStorageDataConversionUtilities do not handle
+ Pig maps (rdsr via daijy)
+
 PIG-4460: TestBuiltIn testValueListOutputSchemaComplexType and testValueSetOutputSchemaComplexType tests
  create bags whose inner schema is not a tuple (erwaman via daijy)
 
