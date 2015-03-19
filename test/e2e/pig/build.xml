@@ -312,6 +312,7 @@
       <env key="FORK_FACTOR_FILE" value="${fork.factor.conf.file}"/>
       <env key="HADOOP_MAPRED_LOCAL_DIR" value="${hadoop.mapred.local.dir}"/>
       <env key="E2E_DEBUG" value="${e2e.debug}"/>
+      <env key="SORT_BENCHMARKS" value="${sort.benchmarks}"/>
 
       <arg value="./test_harness.pl"/>
       <arg line="${tests.to.run} ${tests.suites}"/>
