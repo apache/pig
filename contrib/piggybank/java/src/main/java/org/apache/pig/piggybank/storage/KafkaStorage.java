@@ -41,10 +41,12 @@ import java.util.logging.Logger;
 
 /**
  * Created by Maria Valero on 17/03/15.
- */
-
-/*
- * This class send a message to Kafka in JSON format
+ *
+ * This class take an alias from PIG and send his content to Kafka in JSON format
+ *
+ * Example:
+ *   data = LOAD 'data' AS (a1:int,a2:int,a3:int);
+ *   STORE data INTO 'file-ignored' USING org.apache.pig.piggybank.storageKafkaStorage('topic','localhost:9092');
  */
 public class KafkaStorage extends StoreFunc {
     private Producer<String, String> kafkaProducer;
