@@ -49,7 +49,7 @@ public class TestAccumulator {
     private static final String INPUT_FILE2 = "AccumulatorInput2.txt";
     private static final String INPUT_FILE3 = "AccumulatorInput3.txt";
     private static final String INPUT_FILE4 = "AccumulatorInput4.txt";
-    private static final String INPUT_DIR = "build/test/data";
+    private static final String INPUT_DIR = Util.getTestDirectory(TestAccumulator.class);
 
     private static PigServer pigServer;
     private static Properties properties;
@@ -88,7 +88,7 @@ public class TestAccumulator {
     }
 
     private static void createFiles() throws IOException {
-        new File(INPUT_DIR).mkdir();
+        new File(INPUT_DIR).mkdirs();
 
         PrintWriter w = new PrintWriter(new FileWriter(INPUT_DIR + "/" + INPUT_FILE1));
 

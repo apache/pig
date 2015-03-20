@@ -51,7 +51,6 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.builtin.PartitionSkewedKeys;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.newplan.logical.rules.ColumnPruneVisitor;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -66,8 +65,9 @@ public class TestSkewedJoin {
     private static final String INPUT_FILE5 = "SkewedJoinInput5.txt";
     private static final String INPUT_FILE6 = "SkewedJoinInput6.txt";
     private static final String INPUT_FILE7 = "SkewedJoinInput7.txt";
-    private static final String INPUT_DIR = "build/test/data";
-    private static final String OUTPUT_DIR = "build/test/output";
+    private static final String TEST_DIR = Util.getTestDirectory(TestSkewedJoin.class);
+    private static final String INPUT_DIR = TEST_DIR + Path.SEPARATOR + "input";
+    private static final String OUTPUT_DIR = TEST_DIR + Path.SEPARATOR + "output";
 
     private static FileSystem fs;
     private static PigServer pigServer;
@@ -97,8 +97,8 @@ public class TestSkewedJoin {
     }
 
     private static void createFiles() throws IOException {
-        new File(INPUT_DIR).mkdir();
-        new File(OUTPUT_DIR).mkdir();
+        new File(INPUT_DIR).mkdirs();
+        new File(OUTPUT_DIR).mkdirs();
 
         PrintWriter w = new PrintWriter(new FileWriter(INPUT_DIR + "/" + INPUT_FILE1));
 
@@ -183,8 +183,7 @@ public class TestSkewedJoin {
     }
 
     private static void deleteFiles() throws IOException {
-        Util.deleteDirectory(new File(INPUT_DIR));
-        Util.deleteDirectory(new File(OUTPUT_DIR));
+        Util.deleteDirectory(new File(TEST_DIR));
     }
 
     @Test
@@ -556,7 +555,7 @@ public class TestSkewedJoin {
         SimpleLayout layout = new SimpleLayout();
         FileAppender appender = new FileAppender(layout, logFile.toString(), false, false, 0);
         logger.addAppender(appender);
-        
+
         try {
             pigServer.registerScript(new ByteArrayInputStream(script.getBytes("UTF-8")));
             pigServer.openIterator("joined");
