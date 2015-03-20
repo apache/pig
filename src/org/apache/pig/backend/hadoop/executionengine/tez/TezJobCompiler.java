@@ -92,7 +92,7 @@ public class TezJobCompiler {
             String shipFiles = pigContext.getProperties().getProperty("pig.streaming.ship.files");
             if (shipFiles != null) {
                 for (String file : shipFiles.split(",")) {
-                    TezResourceManager.getInstance().addTezResource(new File(file).toURI());
+                    TezResourceManager.getInstance().addTezResource(new File(file.trim()).toURI());
                 }
             }
             String cacheFiles = pigContext.getProperties().getProperty("pig.streaming.cache.files");

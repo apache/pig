@@ -40,13 +40,22 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestStreaming {
 
     private static final MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
+    private static File testDataDir;
 
     private PigServer pigServer;
+
+    @BeforeClass
+    public static void oneTimeSetUp() throws Exception {
+        // Create the test data directory if needed
+        testDataDir = new File(Util.getTestDirectory(TestStreaming.class));
+        testDataDir.mkdirs();
+    }
 
     @Before
     public void setup() throws ExecException {
@@ -61,6 +70,7 @@ public class TestStreaming {
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
+        Util.deleteDirectory(testDataDir);
     }
 
     private TupleFactory tf = TupleFactory.getInstance();
@@ -293,7 +303,9 @@ public class TestStreaming {
                           "}",
                          };
         File command1 = Util.createInputFile("script", "pl", script);
-        File command2 = Util.createInputFile("script", "pl", script);
+        // Test relative path
+        File command2 = new File(testDataDir, "testInputShipSpecs.pl");
+        Util.writeToFile(command2, script);
 
         // Expected results
         String[] expectedFirstFields =

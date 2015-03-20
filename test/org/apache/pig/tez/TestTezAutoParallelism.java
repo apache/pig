@@ -52,7 +52,7 @@ import org.junit.Test;
 public class TestTezAutoParallelism {
     private static final String INPUT_FILE1 = TestTezAutoParallelism.class.getName() + "_1";
     private static final String INPUT_FILE2 = TestTezAutoParallelism.class.getName() + "_2";
-    private static final String INPUT_DIR = "build/test/data";
+    private static final String INPUT_DIR = Util.getTestDirectory(TestTezAutoParallelism.class);
 
     private static PigServer pigServer;
     private static Properties properties;
@@ -85,7 +85,7 @@ public class TestTezAutoParallelism {
     }
 
     private static void createFiles() throws IOException {
-        new File(INPUT_DIR).mkdir();
+        new File(INPUT_DIR).mkdirs();
 
         PrintWriter w = new PrintWriter(new FileWriter(INPUT_DIR + "/" + INPUT_FILE1));
 

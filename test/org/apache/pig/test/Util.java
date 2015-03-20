@@ -118,6 +118,8 @@ public class Util {
     public static final boolean WINDOWS /* borrowed from Path.WINDOWS, Shell.WINDOWS */
                   = System.getProperty("os.name").startsWith("Windows");
 
+    public static final String TEST_DIR =  System.getProperty("test.build.dir", "build/test");
+
     // Helper Functions
     // =================
 
@@ -910,6 +912,7 @@ public class Util {
             thread = new Thread (this);
             thread.start ();
         }
+        @Override
         public void run () {
             try {
                 InputStreamReader isr = new InputStreamReader (is);
@@ -1371,22 +1374,28 @@ public class Util {
     }
 
     public static Path getFirstPartFile(Path path) throws Exception {
-        FileStatus[] parts = FileSystem.get(path.toUri(), new Configuration()).listStatus(path, 
+        FileStatus[] parts = FileSystem.get(path.toUri(), new Configuration()).listStatus(path,
                 new PathFilter() {
             @Override
             public boolean accept(Path path) {
                 return path.getName().startsWith("part-");
               }
         });
-        return parts[0].getPath(); 
+        return parts[0].getPath();
     }
 
     public static File getFirstPartFile(File dir) throws Exception {
         File[] parts = dir.listFiles(new FilenameFilter() {
+            @Override
             public boolean accept(File dir, String name) {
                 return name.startsWith("part-");
             };
         });
-        return parts[0]; 
+        return parts[0];
+    }
+
+    @SuppressWarnings("rawtypes")
+    public static String getTestDirectory(Class testClass) {
+        return TEST_DIR + Path.SEPARATOR + "testdata" + Path.SEPARATOR +testClass.getSimpleName();
     }
 }

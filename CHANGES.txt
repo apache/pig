@@ -54,6 +54,8 @@ PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES
 
+PIG-4465: Pig streaming ship fails for relative paths on Tez (rohini)
+
 PIG-4461: Use benchmarks for Windows Pig e2e tests (nmaheshwari via daijy)
 
 PIG-4463: AvroMapWrapper still leaks Avro data types and AvroStorageDataConversionUtilities do not handle
