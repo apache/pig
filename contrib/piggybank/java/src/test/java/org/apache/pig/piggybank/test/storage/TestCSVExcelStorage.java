@@ -25,8 +25,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Properties;
 
-import junit.framework.Assert;
-
 import org.apache.commons.lang.StringUtils;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
@@ -35,10 +33,10 @@ import org.apache.pig.builtin.mock.Storage;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.tools.parameters.ParseException;
 import org.apache.pig.test.Util;
-
+import org.apache.pig.tools.parameters.ParseException;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -322,7 +320,7 @@ public class TestCSVExcelStorage  {
         return f.getAbsolutePath().replaceAll("\\\\", "/");
     }
 
-    // Comprehensive loader test: uses several datatypes; skips the header; 
+    // Comprehensive loader test: uses several datatypes; skips the header;
     //                            handles missing/extra fields; handles quotes, commas, newlines
     @Test
     public void load() throws IOException, ParseException {
@@ -330,7 +328,7 @@ public class TestCSVExcelStorage  {
 
         pig.registerQuery(
             "data = load '" + dataDir + testFile + "' " +
-            "using org.apache.pig.piggybank.storage.CSVExcelStorage(',', 'YES_MULTILINE', 'UNIX', 'SKIP_INPUT_HEADER') " + 
+            "using org.apache.pig.piggybank.storage.CSVExcelStorage(',', 'YES_MULTILINE', 'UNIX', 'SKIP_INPUT_HEADER') " +
             "AS (" + schema + ");"
         );
 
@@ -365,10 +363,10 @@ public class TestCSVExcelStorage  {
 
         pig.registerQuery(
             "data = load '" + dataDir + input + "' " +
-            "using org.apache.pig.piggybank.storage.CSVExcelStorage(',', 'YES_MULTILINE', 'UNIX', 'SKIP_INPUT_HEADER') " + 
+            "using org.apache.pig.piggybank.storage.CSVExcelStorage(',', 'YES_MULTILINE', 'UNIX', 'SKIP_INPUT_HEADER') " +
             "AS (" + schema + ");"
         );
-        pig.store("data", dataDir + output, 
+        pig.store("data", dataDir + output,
                   "org.apache.pig.piggybank.storage.CSVExcelStorage(',', 'YES_MULTILINE', 'UNIX', 'WRITE_OUTPUT_HEADER')");
 
         // Read it back
@@ -415,10 +413,10 @@ public class TestCSVExcelStorage  {
 
          pig.registerQuery(
             "data = load '" + dataDir + input + "' " +
-            "using PigStorage('|')" + 
+            "using PigStorage('|')" +
             "AS (" + schema + ");"
         );
-        pig.store("data", dataDir + output, 
+        pig.store("data", dataDir + output,
                   "org.apache.pig.piggybank.storage.CSVExcelStorage(',', 'YES_MULTILINE', 'UNIX', 'SKIP_OUTPUT_HEADER')");
 
         pig.registerQuery(
@@ -432,9 +430,17 @@ public class TestCSVExcelStorage  {
             "(\"(1,)\",\"(1,(2,))\",\"{(1,),(3,)}\",\"{(1,{(,3),(,5)}),(6,{(7,),(9,)})}\",\"{b=2, a=null}\",\"{d=null, a={b=null, c=2}}\")"
         };
 
-        Assert.assertEquals(StringUtils.join(expected, "\n"), StringUtils.join(data, "\n"));
+        String[] expectedJDK8 = {
+                "(\"(1,2)\",\"(1,(2,3))\",\"{(1,2),(3,4)}\",\"{(1,{(2,3),(4,5)}),(6,{(7,8),(9,0)})}\",\"{a=1, b=2}\",\"{a={b=1, c=2}, d={e=3, f=4}}\")",
+                "(\"(1,)\",\"(1,(2,))\",\"{(1,),(3,)}\",\"{(1,{(,3),(,5)}),(6,{(7,),(9,)})}\",\"{a=null, b=2}\",\"{a={b=null, c=2}, d=null}\")"
+            };
+
+        String actual = StringUtils.join(data, "\n");
+        Assert.assertTrue("Failed to match. Output was " + actual,
+                StringUtils.join(expected, "\n").equals(actual)
+                        || StringUtils.join(expectedJDK8, "\n").equals(actual));
     }
-    
+
     // Test that STORE stores CR (\r) quoted/unquoted in yes_multiline/no_multiline
     @Test
     public void storeCR() throws IOException {
