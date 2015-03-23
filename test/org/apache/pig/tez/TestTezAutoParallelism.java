@@ -20,6 +20,7 @@ package org.apache.pig.tez;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -30,6 +31,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -244,22 +246,79 @@ public class TestTezAutoParallelism {
     }
 
     @Test
-    public void testSkewedJoinIncreaseIntermediateParallelism() throws IOException{
+    public void testIncreaseIntermediateParallelism1() throws IOException{
+        // User specified parallelism is overriden for intermediate step
+        String outputDir = "/tmp/testIncreaseIntermediateParallelism";
+        String script = "A = load '" + INPUT_FILE1 + "' as (name:chararray, age:int);"
+                + "B = load '" + INPUT_FILE2 + "' as (name:chararray, gender:chararray);"
+                + "C = join A by name, B by name using 'skewed' parallel 1;"
+                + "D = group C by A::name;"
+                + "E = foreach D generate group, COUNT(C.A::name);"
+                + "STORE E into '" + outputDir + "/finalout';";
+        String log = testIncreaseIntermediateParallelism(script, outputDir, true);
+        // Parallelism of C should be increased
+        assertTrue(log.contains("Increased requested parallelism of scope-54 to 4"));
+        assertEquals(1, StringUtils.countMatches(log, "Increased requested parallelism"));
+    }
+
+    @Test
+    public void testIncreaseIntermediateParallelism2() throws IOException{
+        // User specified parallelism should not be overriden for intermediate step if there is a STORE
+        String outputDir = "/tmp/testIncreaseIntermediateParallelism";
+        String script = "A = load '" + INPUT_FILE1 + "' as (name:chararray, age:int);"
+                + "B = load '" + INPUT_FILE2 + "' as (name:chararray, gender:chararray);"
+                + "C = join A by name, B by name using 'skewed' parallel 2;"
+                + "STORE C into '/tmp/testIncreaseIntermediateParallelism';"
+                + "D = group C by A::name parallel 2;"
+                + "E = foreach D generate group, COUNT(C.A::name);"
+                + "STORE E into '" + outputDir + "/finalout';";
+        String log = testIncreaseIntermediateParallelism(script, outputDir, true);
+        // Parallelism of C will not be increased as the Split has a STORE
+        assertEquals(0, StringUtils.countMatches(log, "Increased requested parallelism"));
+    }
+
+    @Test
+    public void testIncreaseIntermediateParallelism3() throws IOException{
+        // Multiple levels with default parallelism. Group by followed by Group by
+        try {
+            String outputDir = "/tmp/testIncreaseIntermediateParallelism";
+            String script = "set default_parallel 1\n"
+                    + "A = load '" + INPUT_FILE1 + "' as (name:chararray, age:int);"
+                    + "B = load '" + INPUT_FILE2 + "' as (name:chararray, gender:chararray);"
+                    + "C = join A by name, B by name;"
+                    + "STORE C into '/tmp/testIncreaseIntermediateParallelism';"
+                    + "C1 = group C by A::name;"
+                    + "C2 = FOREACH C1 generate group, FLATTEN(C);"
+                    + "D = group C2 by group;"
+                    + "E = foreach D generate group, COUNT(C2.A::name);"
+                    + "F = order E by $0;"
+                    + "STORE E into '" + outputDir + "/finalout';";
+            String log = testIncreaseIntermediateParallelism(script, outputDir, false);
+            // Parallelism of C1 should be increased. C2 will not be increased due to order by
+            assertEquals(1, StringUtils.countMatches(log, "Increased requested parallelism"));
+            assertTrue(log.contains("Increased requested parallelism of scope-63 to 10"));
+        } finally {
+            pigServer.setDefaultParallel(-1);
+        }
+    }
+
+    private String testIncreaseIntermediateParallelism(String script, String outputDir, boolean sortAndCheck) throws IOException {
         NodeIdGenerator.reset();
         PigServer.resetScope();
         StringWriter writer = new StringWriter();
         // When there is a combiner operation involved user specified parallelism is overriden
-        Util.createLogAppender(ParallelismSetter.class, "testSkewedJoinIncreaseIntermediateParallelism", writer);
+        Util.createLogAppender(ParallelismSetter.class, "testIncreaseIntermediateParallelism", writer);
         try {
             pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
             pigServer.getPigContext().getProperties().setProperty(MRConfiguration.MAX_SPLIT_SIZE, "4000");
             pigServer.getPigContext().getProperties().setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, "80000");
-            pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (name:chararray, age:int);");
-            pigServer.registerQuery("B = load '" + INPUT_FILE2 + "' as (name:chararray, gender:chararray);");
-            pigServer.registerQuery("C = join A by name, B by name using 'skewed' parallel 1;");
-            pigServer.registerQuery("D = group C by A::name;");
-            pigServer.registerQuery("E = foreach D generate group, COUNT(C.A::name);");
-            Iterator<Tuple> iter = pigServer.openIterator("E");
+            pigServer.setBatchOn();
+            pigServer.registerScript(new ByteArrayInputStream(script.getBytes()));
+            pigServer.executeBatch();
+
+            pigServer.registerQuery("A = load '" + outputDir + "/finalout' as (name:chararray, count:long);");
+            Iterator<Tuple> iter = pigServer.openIterator("A");
+
             List<Tuple> expectedResults = Util
                     .getTuplesFromConstantTupleStrings(new String[] {
                             "('Abigail',56L)", "('Alexander',45L)", "('Ava',60L)",
@@ -269,11 +328,15 @@ public class TestTezAutoParallelism {
                             "('Liam',46L)", "('Madison',46L)", "('Mason',54L)",
                             "('Mia',51L)", "('Michael',47L)", "('Noah',38L)",
                             "('Olivia',50L)", "('Sophia',52L)", "('William',43L)" });
-
-            Util.checkQueryOutputsAfterSort(iter, expectedResults);
-            assertTrue(writer.toString().contains("Increased requested parallelism of scope-40 to 4"));
+            if (sortAndCheck) {
+                Util.checkQueryOutputsAfterSort(iter, expectedResults);
+            } else {
+                Util.checkQueryOutputs(iter, expectedResults);
+            }
+            return writer.toString();
         } finally {
-            Util.removeLogAppender(ParallelismSetter.class, "testSkewedJoinIncreaseIntermediateParallelism");
+            Util.removeLogAppender(ParallelismSetter.class, "testIncreaseIntermediateParallelism");
+            Util.deleteFile(cluster, outputDir);
         }
     }
 }

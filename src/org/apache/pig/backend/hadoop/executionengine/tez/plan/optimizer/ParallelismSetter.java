@@ -99,7 +99,7 @@ public class ParallelismSetter extends TezOpPlanVisitor {
                 for (Map.Entry<OperatorKey,TezEdgeDescriptor> entry : tezOp.inEdges.entrySet()) {
                     if (entry.getValue().dataMovementType == DataMovementType.ONE_TO_ONE) {
                         TezOperator pred = mPlan.getOperator(entry.getKey());
-                        parallelism = pred.getEffectiveParallelism();
+                        parallelism = pred.getEffectiveParallelism(pc.defaultParallel);
                         if (prevParallelism == -1) {
                             prevParallelism = parallelism;
                         } else if (prevParallelism != parallelism) {
@@ -133,6 +133,9 @@ public class ParallelismSetter extends TezOpPlanVisitor {
                             // if it is intermediate reducer
                             parallelism = estimator.estimateParallelism(mPlan, tezOp, conf);
                             if (overrideRequestedParallelism) {
+                                if (tezOp.getRequestedParallelism() != parallelism) {
+                                    LOG.info("Increased requested parallelism of " + tezOp.getOperatorKey() + " to " + parallelism);
+                                }
                                 tezOp.setRequestedParallelism(parallelism);
                             } else {
                                 tezOp.setEstimatedParallelism(parallelism);
@@ -157,8 +160,7 @@ public class ParallelismSetter extends TezOpPlanVisitor {
                                     if (pred.isSampleBasedPartitioner()) {
                                         for (TezOperator partitionerPred : mPlan.getPredecessors(pred)) {
                                             if (partitionerPred.isSampleAggregation()) {
-                                                LOG.debug("Updating constant value to " + parallelism + " in " + partitionerPred.plan);
-                                                LOG.info("Increased requested parallelism of " + partitionerPred.getOperatorKey() + " to " + parallelism);
+                                                LOG.debug("Updating parallelism constant value to " + parallelism + " in " + partitionerPred.plan);
                                                 ParallelConstantVisitor visitor =
                                                         new ParallelConstantVisitor(partitionerPred.plan, parallelism);
                                                 visitor.visit();
