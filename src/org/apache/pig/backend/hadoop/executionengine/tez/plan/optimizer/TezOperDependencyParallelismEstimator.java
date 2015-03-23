@@ -111,7 +111,7 @@ public class TezOperDependencyParallelismEstimator implements TezParallelismEsti
             // and sample/scalar (does not impact parallelism)
             if (entry.getValue().dataMovementType==DataMovementType.SCATTER_GATHER ||
                     entry.getValue().dataMovementType==DataMovementType.ONE_TO_ONE) {
-                double predParallelism = pred.getEffectiveParallelism();
+                double predParallelism = pred.getEffectiveParallelism(pc.defaultParallel);
                 if (predParallelism==-1) {
                     throw new IOException("Cannot estimate parallelism for " + tezOper.getOperatorKey().toString()
                             + ", effective parallelism for predecessor " + tezOper.getOperatorKey().toString()

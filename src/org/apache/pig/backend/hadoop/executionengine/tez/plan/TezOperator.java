@@ -262,9 +262,10 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         this.estimatedParallelism = estimatedParallelism;
     }
 
-    public int getEffectiveParallelism() {
+    public int getEffectiveParallelism(int defaultParallelism) {
         // PIG-4162: For intermediate reducers, use estimated parallelism over user set parallelism.
-        return getEstimatedParallelism() == -1 ? getRequestedParallelism()
+        return getEstimatedParallelism() == -1
+                ? (getRequestedParallelism() == -1 ? defaultParallelism : getRequestedParallelism())
                 : getEstimatedParallelism();
     }
 
