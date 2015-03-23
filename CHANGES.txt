@@ -54,6 +54,8 @@ PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES
 
+PIG-4478: TestCSVExcelStorage fails with jdk8 (rohini)
+
 PIG-4474: Increasing intermediate parallelism has issue with default parallelism (rohini)
 
 PIG-4465: Pig streaming ship fails for relative paths on Tez (rohini)
