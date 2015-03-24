@@ -450,6 +450,33 @@ public class TestMergeJoin {
     }
 
     @Test
+    public void testMergeJoinWithUDF() throws Exception{
+        pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:int,y:double);");
+        pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "' as (x:int,y:double);");
+        pigServer.registerQuery("A = FOREACH A GENERATE x, org.apache.pig.piggybank.evaluation.math.ABS(y) AS y;");
+
+        DataBag dbMergeJoin = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
+        {
+            pigServer.registerQuery("C = JOIN A BY x, B BY x USING 'merge';");
+            Iterator<Tuple> iter = pigServer.openIterator("C");
+
+            while(iter.hasNext()) {
+                dbMergeJoin.add(iter.next());
+            }
+        }
+        {
+            pigServer.registerQuery("C = JOIN A BY x, B BY x;");
+            Iterator<Tuple> iter = pigServer.openIterator("C");
+
+            while(iter.hasNext()) {
+                dbshj.add(iter.next());
+            }
+        }
+        Assert.assertEquals(dbMergeJoin.size(), dbshj.size());
+        Assert.assertEquals(true, TestHelper.compareBags(dbMergeJoin, dbshj));
+    }
+
+    @Test
     public void testMergeJoin3Way() throws IOException{
         try {
             pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (id, name, n);");
@@ -485,24 +512,6 @@ public class TestMergeJoin {
         // verify that this passes parsing sanity checks.
         Util.buildPp(pigServer, query);
     }
-
-    @Test
-    public void testMergeFailWithOrderUDF() throws Exception{
-        String query = "A = LOAD '" + INPUT_FILE + "' as (id, name, n);\n" +
-                "B = LOAD '" + INPUT_FILE + "' as (id, name);\n" +
-                "A = FOREACH A GENERATE LOWER($0) as id;\n" +
-                "C = ORDER B by $0 parallel 5;\n" +
-                "D = join A by id, C by id using 'merge';\n" +
-                "store D into '/dev/null/1';";
-        // verify that this fails parsing sanity checks.
-        try {
-            Util.buildPp(pigServer, query);
-        } catch (Throwable t) {
-            // expected to fail.
-            return;
-        }
-        Assert.fail("Allowed a Merge Join despite a UDF");
-    }       
 
     @Test
     public void testMergeJoinFailure2() throws IOException{

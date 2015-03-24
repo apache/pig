@@ -70,6 +70,12 @@ public class POMergeJoin extends PhysicalOperator {
 
     private static final long serialVersionUID = 1L;
 
+    private static final String keyOrderReminder = "Remember that you should " +
+        "not change the order of keys before a merge join in a FOREACH or " +
+        "manipulate join keys in a UDF in a way that would change the sort " +
+        "order. UDFs in a FOREACH are allowed as long as they do not change" +
+        "the join key values in a way that would change the sort order.\n";
+
     // flag to indicate when getNext() is called first.
     private boolean firstTime = true;
 
@@ -370,7 +376,9 @@ public class POMergeJoin extends PhysicalOperator {
                     }
                     else{   // At this point right side can't be behind.
                         int errCode = 1102;
-                        String errMsg = "Data is not sorted on right side. Last two tuples encountered were: \n"+
+                        String errMsg = "Data is not sorted on right side. \n" +
+                            keyOrderReminder +
+                            "Last two tuples encountered were: \n"+
                         curJoiningRightTup+ "\n" + (Tuple)rightInp.result ;
                         throw new ExecException(errMsg,errCode);
                     }    
@@ -398,7 +406,9 @@ public class POMergeJoin extends PhysicalOperator {
             }
             else{   // Current key < Prev Key
                 int errCode = 1102;
-                String errMsg = "Data is not sorted on left side. Last two keys encountered were: \n"+
+                String errMsg = "Data is not sorted on left side. \n" +
+                            keyOrderReminder +
+                            "Last two tuples encountered were: \n" +
                 prevLeftKey+ "\n" + curLeftKey ;
                 throw new ExecException(errMsg,errCode);
             }
@@ -468,7 +478,9 @@ public class POMergeJoin extends PhysicalOperator {
             if( prevRightKey != null && rightKey.compareTo(prevRightKey) < 0){
                 // Sanity check.
                 int errCode = 1102;
-                String errMsg = "Data is not sorted on right side. Last two keys encountered were: \n"+
+                String errMsg = "Data is not sorted on right side. \n" +
+                            keyOrderReminder +
+                            "Last two tuples encountered were: \n"+
                 prevRightKey+ "\n" + rightKey ;
                 throw new ExecException(errMsg,errCode);
             }

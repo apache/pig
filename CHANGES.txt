@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4458: Support UDFs in a FOREACH Before a Merge Join (wattsinabox via daijy)
+
 PIG-4454: Upgrade tez to 0.6.0 (daijy)
 
 PIG-4451: Log partition and predicate filter pushdown information and fix optimizer looping (rohini)
