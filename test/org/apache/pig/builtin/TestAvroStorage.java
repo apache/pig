@@ -926,9 +926,11 @@ public class TestAvroStorage {
             assertTrue(isValidPigObject(o));
         }
         for (CharSequence k : amw.keySet()) {
+            assertTrue(isValidPigObject(k));
             assertTrue(isValidPigObject(amw.get(k)));
         }
         for (Map.Entry<CharSequence, Object> e : amw.entrySet()) {
+            assertTrue(isValidPigObject(e.getKey()));
             assertTrue(isValidPigObject(e.getValue()));
         }
     }
