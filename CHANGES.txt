@@ -56,6 +56,8 @@ PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES
 
+PIG-4475: Keys in AvroMapWrapper are not proper Pig types (rdsr via daijy)
+
 PIG-4478: TestCSVExcelStorage fails with jdk8 (rohini)
 
 PIG-4474: Increasing intermediate parallelism has issue with default parallelism (rohini)
