@@ -453,7 +453,7 @@ public class TestMergeJoin {
     public void testMergeJoinWithUDF() throws Exception{
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:int,y:double);");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "' as (x:int,y:double);");
-        pigServer.registerQuery("A = FOREACH A GENERATE x, org.apache.pig.piggybank.evaluation.math.ABS(y) AS y;");
+        pigServer.registerQuery("A = FOREACH A GENERATE x, ABS(y) AS y;");
 
         DataBag dbMergeJoin = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
