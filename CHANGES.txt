@@ -56,6 +56,8 @@ PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES
 
+PIG-4479: Pig script with union within nested splits followed by join failed on Tez (rohini)
+
 PIG-4457: Error is thrown by JobStats.getOutputSize() when storing to a MySql table (rohini)
 
 PIG-4475: Keys in AvroMapWrapper are not proper Pig types (rdsr via daijy)

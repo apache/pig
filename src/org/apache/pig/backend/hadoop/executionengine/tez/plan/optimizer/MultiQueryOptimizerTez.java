@@ -65,7 +65,11 @@ public class MultiQueryOptimizerTez extends TezOpPlanVisitor {
 
                 // Detect diamond shape, we cannot merge it into split, since Tez
                 // does not handle double edge between vertexes
-                // TODO: PIG-3876 to handle this by writing to same edge
+                // TODO:
+                //    - Vertex groups handles double edges though. For the case where the
+                //      double edges are unioned (successor is a union vertex),
+                //      try merge into split if union optimizer is turned on.
+                //    - PIG-3876 to handle this by writing to same edge
                 Set<TezOperator> mergedSuccessors = new HashSet<TezOperator>();
                 Set<TezOperator> toMergeSuccessors = new HashSet<TezOperator>();
                 mergedSuccessors.addAll(successors);
