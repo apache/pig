@@ -26,6 +26,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
@@ -37,7 +39,6 @@ import org.apache.pig.data.utils.MethodHelper.NotImplemented;
 import org.apache.pig.data.utils.SedesHelper;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.ObjectSerializer;
-import org.mortbay.log.Log;
 
 import com.google.common.collect.Lists;
 
@@ -52,6 +53,7 @@ import com.google.common.collect.Lists;
 @InterfaceAudience.Public
 @InterfaceStability.Unstable
 public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTuple implements TypeAwareTuple {
+    private static final Log LOG = LogFactory.getLog(SchemaTuple.class);
 
     private static final long serialVersionUID = 1L;
     private static final int ONE_MINUTE = 60000;
@@ -924,7 +926,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
     protected static Schema staticSchemaGen(String s) {
         try {
             if (s.equals("")) {
-                Log.warn("No Schema present in SchemaTuple generated class");
+                LOG.warn("No Schema present in SchemaTuple generated class");
                 return new Schema();
             }
             return (Schema) ObjectSerializer.deserialize(s);
