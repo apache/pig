@@ -28,12 +28,13 @@ import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
 import org.apache.avro.Schema.Type;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.LoadPushDown.RequiredField;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.LoadPushDown.RequiredFieldList;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
-import org.mortbay.log.Log;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -44,6 +45,7 @@ import com.google.common.collect.Sets;
  * and vice versa.
  */
 public class AvroStorageSchemaConversionUtilities {
+    private static final Log LOG = LogFactory.getLog(AvroStorageSchemaConversionUtilities.class);
 
   /**
    * Determines the pig object type of the Avro schema.
@@ -606,7 +608,7 @@ public class AvroStorageSchemaConversionUtilities {
             return null;
           }
         } catch (ExecException e) {
-          Log.warn("ExecException caught in newSchemaFromRequiredFieldList", e);
+          LOG.warn("ExecException caught in newSchemaFromRequiredFieldList", e);
           return null;
         }
         if (rf.getSubFields() == null) {

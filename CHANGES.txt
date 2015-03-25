@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4476: Fix logging in AvroStorage* classes and SchemaTuple class (rdsr via rohini)
+
 PIG-4458: Support UDFs in a FOREACH Before a Merge Join (wattsinabox via daijy)
 
 PIG-4454: Upgrade tez to 0.6.0 (daijy)

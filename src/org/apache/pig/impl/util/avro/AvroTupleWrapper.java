@@ -28,6 +28,7 @@ import org.apache.avro.generic.GenericArray;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericEnumSymbol;
 import org.apache.avro.generic.IndexedRecord;
+import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataByteArray;
@@ -47,6 +48,7 @@ import java.util.Map;
  */
 public final class AvroTupleWrapper <T extends IndexedRecord>
     implements Tuple {
+    private static final Log LOG = LogFactory.getLog(AvroTupleWrapper.class);
 
   /**
    * The Avro object wrapped in the pig Tuple.
@@ -169,8 +171,7 @@ public final class AvroTupleWrapper <T extends IndexedRecord>
       try {
         all.add(get(f.pos()));
       } catch (ExecException e) {
-        LogFactory.getLog(getClass()).error(
-            "could not process tuple with contents " + avroObject, e);
+        LOG.error("could not process tuple with contents " + avroObject, e);
         return null;
       }
     }
