@@ -447,7 +447,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         setIntermediateOutputKeyValue(combRearrange.getKeyType(), conf, pkgTezOp);
 
         LoRearrangeDiscoverer lrDiscoverer = new LoRearrangeDiscoverer(
-                combinePlan, pkgTezOp, combPack);
+                combinePlan, null, pkgTezOp, combPack);
         lrDiscoverer.visit();
 
         combinePlan.remove(combPack);
