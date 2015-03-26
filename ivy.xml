@@ -87,11 +87,7 @@
       conf="hadoop23->master"/>
     <dependency org="javax.ws.rs" name="jsr311-api" rev="${jsr311-api.version}"
       conf="hadoop23->master"/>
-    <dependency org="org.mortbay.jetty" name="jetty" rev="${jetty.version}"
-      conf="hadoop23->master"/>
     <dependency org="com.google.protobuf" name="protobuf-java" rev="${protobuf-java.version}"
-      conf="hadoop23->master"/>
-    <dependency org="org.mortbay.jetty" name="jetty-util" rev="${jetty-util.version}"
       conf="hadoop23->master"/>
     <dependency org="javax.inject" name="javax.inject" rev="${javax-inject.version}"
       conf="hadoop23->master"/>
@@ -171,8 +167,10 @@
     <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-hs" 
       rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
     <dependency org="org.mortbay.jetty" name="jetty" rev="${jetty.version}"
-      conf="compile->master"/>
-    <dependency org="org.mortbay.jetty" name="jetty-util" rev="${jetty-util.version}"
+      conf="compile->master">
+      <artifact name="jetty" ext="jar" />
+    </dependency>
+    <dependency org="org.mortbay.jetty" name="jetty-util" rev="${jetty.version}"
       conf="compile->master"/>
     <dependency org="commons-logging" name="commons-logging" rev="${commons-logging.version}"
       conf="compile->master;checkstyle->master"/>
