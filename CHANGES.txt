@@ -58,6 +58,8 @@ PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES
 
+PIG-4484: Ant pull jetty-6.1.26.zip on some platform (daijy)
+
 PIG-4479: Pig script with union within nested splits followed by join failed on Tez (rohini)
 
 PIG-4457: Error is thrown by JobStats.getOutputSize() when storing to a MySql table (rohini)
