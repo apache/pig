@@ -30,7 +30,9 @@ import org.apache.spark.scheduler.SparkListenerApplicationStart;
 import org.apache.spark.scheduler.SparkListenerBlockManagerAdded;
 import org.apache.spark.scheduler.SparkListenerBlockManagerRemoved;
 import org.apache.spark.scheduler.SparkListenerEnvironmentUpdate;
+import org.apache.spark.scheduler.SparkListenerExecutorAdded;
 import org.apache.spark.scheduler.SparkListenerExecutorMetricsUpdate;
+import org.apache.spark.scheduler.SparkListenerExecutorRemoved;
 import org.apache.spark.scheduler.SparkListenerJobEnd;
 import org.apache.spark.scheduler.SparkListenerJobStart;
 import org.apache.spark.scheduler.SparkListenerStageCompleted;
@@ -71,6 +73,16 @@ public class JobMetricsListener implements SparkListener {
 
   @Override
   public void onTaskGettingResult(SparkListenerTaskGettingResult taskGettingResult) {
+
+  }
+
+  @Override
+  public void onExecutorRemoved(SparkListenerExecutorRemoved executorRemoved) {
+
+  }
+
+  @Override
+  public void onExecutorAdded(SparkListenerExecutorAdded executorAdded){
 
   }
 
