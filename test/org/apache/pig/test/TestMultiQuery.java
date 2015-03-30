@@ -28,6 +28,7 @@ import java.util.Properties;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecJob;
+import org.apache.pig.builtin.mock.Storage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.junit.After;
@@ -37,7 +38,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import org.apache.pig.builtin.mock.Storage;
 
 @RunWith(JUnit4.class)
 public class TestMultiQuery {
@@ -836,6 +836,37 @@ public class TestMultiQuery {
         iter = myPig.openIterator("A");
         iter.next().toString().equals("(hello,{(1,hello)})");
         iter.next().toString().equals("(world,{(2,world)})");
+    }
+
+    @Test
+    public void testMultiQueryJiraPig4480() throws Exception {
+
+        Storage.Data data = Storage.resetData(myPig);
+        data.set("inputLocation",
+                Storage.tuple(1, Storage.bag(Storage.tuple("hello"), Storage.tuple("world"), Storage.tuple("program"))),
+                Storage.tuple(2, Storage.bag(Storage.tuple("my"), Storage.tuple("world"))));
+
+        myPig.setBatchOn();
+        myPig.registerQuery("A = load 'inputLocation' using mock.Storage() as (a:int, b:bag{(c:chararray)});");
+        myPig.registerQuery("A = foreach A generate a, flatten(b);");
+        myPig.registerQuery("A1 = foreach A generate a;");
+        myPig.registerQuery("A1 = distinct A1;");
+        myPig.registerQuery("A2 = filter A by c == 'world';");
+        myPig.registerQuery("A2 = ORDER A2 by a parallel 2;");
+        myPig.registerQuery("store A1 into 'output1' using mock.Storage();");
+        myPig.registerQuery("store A2 into 'output2' using mock.Storage();");
+
+        myPig.executeBatch();
+
+        List<Tuple> actualResults = data.get("output1");
+        List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
+                new String[] {"(1)", "(2)"});
+        Util.checkQueryOutputs(actualResults.iterator(), expectedResults);
+
+        actualResults = data.get("output2");
+        expectedResults = Util.getTuplesFromConstantTupleStrings(
+                new String[] {"(1, 'world')", "(2, 'world')"});
+        Util.checkQueryOutputs(actualResults.iterator(), expectedResults);
     }
 
     // --------------------------------------------------------------------------

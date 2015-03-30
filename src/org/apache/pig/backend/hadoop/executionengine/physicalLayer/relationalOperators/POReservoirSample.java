@@ -103,6 +103,14 @@ public class POReservoirSample extends PhysicalOperator {
                 rowProcessed++;
             } else if (res.returnStatus == POStatus.STATUS_NULL) {
                 continue;
+            } else if (res.returnStatus == POStatus.STATUS_EOP) {
+                if (this.parentPlan.endOfAllInput) {
+                    break;
+                } else {
+                    // In case of Split can get EOP in between.
+                    // Return here instead of setting lastSample to EOP in getSample
+                    return res;
+                }
             } else {
                 break;
             }
