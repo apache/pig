@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+import java.util.TreeMap;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Writable;
@@ -102,7 +103,7 @@ import org.apache.pig.parser.ParserException;
  *  pigServer.registerQuery("STORE B INTO 'bar' USING mock.Storage();");
  *
  *  assertEquals(schema("a:chararray,b:chararray"), data.getSchema("bar"));
- *  
+ *
  *  List<Tuple> out = data.get("bar");
  *  assertEquals(tuple("a", "a"), out.get(0));
  *  assertEquals(tuple("b", "b"), out.get(1));
@@ -132,7 +133,7 @@ public class Storage extends LoadFunc implements StoreFuncInterface, LoadMetadat
   public static DataBag bag(Tuple... tuples) {
     return new NonSpillableDataBag(Arrays.asList(tuples));
   }
-  
+
   /**
    * @param schema
    * @return the schema represented by the string
@@ -193,7 +194,8 @@ public class Storage extends LoadFunc implements StoreFuncInterface, LoadMetadat
 
   private static class Parts {
     final String location;
-    final Map<String, Collection<Tuple>> parts = new HashMap<String, Collection<Tuple>>();
+    // TreeMap to read part files in order
+    final Map<String, Collection<Tuple>> parts = new TreeMap<String, Collection<Tuple>>();
 
     public Parts(String location) {
       super();
@@ -216,7 +218,7 @@ public class Storage extends LoadFunc implements StoreFuncInterface, LoadMetadat
     }
 
   }
-  
+
   /**
    * An isolated data store to avoid side effects
    *
@@ -249,7 +251,7 @@ public class Storage extends LoadFunc implements StoreFuncInterface, LoadMetadat
     public void set(String location, String schema, Tuple... data) throws ParserException {
       set(location, Utils.getSchemaFromString(schema), Arrays.asList(data));
     }
-    
+
     /**
      * to set the data in a location with a known schema
      *
@@ -316,7 +318,7 @@ public class Storage extends LoadFunc implements StoreFuncInterface, LoadMetadat
     public void set(String location, Tuple... data) {
         set(location, Arrays.asList(data));
     }
-    
+
     /**
      *
      * @param location
@@ -330,7 +332,7 @@ public class Storage extends LoadFunc implements StoreFuncInterface, LoadMetadat
     }
 
     /**
-     * 
+     *
      * @param location
      * @return the schema stored in this location
      */
@@ -352,7 +354,7 @@ public class Storage extends LoadFunc implements StoreFuncInterface, LoadMetadat
   private String location;
 
   private Data data;
-  
+
   private Schema schema;
 
   private Iterator<Tuple> dataBeingRead;
@@ -403,9 +405,9 @@ private MockRecordWriter mockRecordWriter;
   public void setUDFContextSignature(String signature) {
     super.setUDFContextSignature(signature);
   }
-  
+
   // LoadMetaData
-  
+
   @Override
   public ResourceSchema getSchema(String location, Job job) throws IOException {
 	init(location, job);
@@ -477,7 +479,7 @@ private MockRecordWriter mockRecordWriter;
   }
 
   // StoreMetaData
-  
+
   @Override
   public void storeStatistics(ResourceStatistics stats, String location, Job job)
   		throws IOException {
@@ -490,7 +492,7 @@ private MockRecordWriter mockRecordWriter;
 	init(location, job);
 	data.setSchema(location, Schema.getPigSchema(schema));
   }
-  
+
   // Mocks for LoadFunc
 
   private static class MockRecordReader extends RecordReader<Object, Object> {
