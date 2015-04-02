@@ -38,6 +38,7 @@ import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.tools.pigstats.JobStats;
+import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.apache.pig.tools.pigstats.PigStats.JobGraphPrinter;
 import org.apache.pig.tools.pigstats.tez.TezScriptState.TezDAGScriptInfo;
@@ -87,8 +88,11 @@ public class TezDAGStats extends JobStats {
     private long activeSpillCountObj = 0;
     private long activeSpillCountRecs = 0;
 
-    private HashMap<String, Long> multiStoreCounters
+    private Map<String, Long> multiStoreCounters
             = new HashMap<String, Long>();
+
+    private Map<String, OutputStats> outputsByLocation
+            = new HashMap<String, OutputStats>();
 
     /**
      * This class builds the graph of a Tez DAG vertices.
@@ -217,7 +221,28 @@ public class TezDAGStats extends JobStats {
                     inputs.addAll(vertexStats.getInputs());
                 }
                 if(vertexStats.getOutputs() != null  && !vertexStats.getOutputs().isEmpty()) {
-                    outputs.addAll(vertexStats.getOutputs());
+                    for (OutputStats output : vertexStats.getOutputs()) {
+                        if (outputsByLocation.get(output.getLocation()) != null) {
+                            OutputStats existingOut = outputsByLocation.get(output.getLocation());
+                            // In case of multistore, bytesWritten is already calculated
+                            // from size of all the files in the output directory.
+                            if (!output.getPOStore().isMultiStore() && output.getBytes() > -1) {
+                                long bytes = existingOut.getBytes() > -1
+                                        ? (existingOut.getBytes() + output.getBytes())
+                                        : output.getBytes();
+                                existingOut.setBytes(bytes);
+                            }
+                            if (output.getRecords() > -1) {
+                                long records = existingOut.getRecords() > -1
+                                        ? (existingOut.getRecords() + output.getRecords())
+                                        : output.getRecords();
+                                existingOut.setRecords(records);
+                            }
+                        } else {
+                            outputs.add(output);
+                            outputsByLocation.put(output.getLocation(), output);
+                        }
+                    }
                 }
                 /*if (vertexStats.getHdfsBytesRead() >= 0) {
                     hdfsBytesRead = (hdfsBytesRead == -1) ? 0 : hdfsBytesRead;
