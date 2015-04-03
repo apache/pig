@@ -65,6 +65,20 @@ public class TestStreamingUDFOutputHandler {
         Assert.assertEquals(tf.newTuple("abc\ndef\nghi\njkl"), t);
     }
     
+    @Test
+    public void testGetValue__earlyNewLine() throws Exception{
+        FieldSchema fs = new FieldSchema("", DataType.CHARARRAY);
+        String data = "\na|_\n";
+        
+        PigStreamingUDF deserializer = new PigStreamingUDF(fs);
+        OutputHandler outty = new StreamingUDFOutputHandler(deserializer);
+        outty.bindTo(null, getIn(data), 0, 0);
+        
+        Tuple t = outty.getNext();
+        
+        Assert.assertEquals(tf.newTuple("\na"), t);
+    }
+    
     private BufferedPositionedInputStream getIn(String input) throws UnsupportedEncodingException {
         InputStream stream = new ByteArrayInputStream(input.getBytes("UTF-8"));
         BufferedPositionedInputStream result = new BufferedPositionedInputStream(stream);
