@@ -100,6 +100,9 @@ public class ReadScalarsTez extends EvalFunc<Object> implements TezInput {
 
     @Override
     public Object exec(Tuple input) throws IOException {
+        if (t == null) {
+            return null;
+        }
         int pos = (Integer) input.get(0);
         Object obj = t.get(pos);
         return obj;
