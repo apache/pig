@@ -27,27 +27,27 @@ Tez vertex scope-40
 |   |
 |   1-3: Split - scope-60
 |   |   |
-|   |   d: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-33
+|   |   d: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-65
 |   |   |
-|   |   |---d: Filter[bag] - scope-29
+|   |   |---d: Filter[bag] - scope-61
 |   |       |   |
-|   |       |   Greater Than[boolean] - scope-32
+|   |       |   Greater Than[boolean] - scope-64
 |   |       |   |
-|   |       |   |---Project[int][0] - scope-30
+|   |       |   |---Project[int][0] - scope-62
 |   |       |   |
-|   |       |   |---Constant(500) - scope-31
+|   |       |   |---Constant(500) - scope-63
 |   |   |
-|   |   e: Store(file:///tmp/output/e:org.apache.pig.builtin.PigStorage) - scope-39
+|   |   e: Store(file:///tmp/output/e:org.apache.pig.builtin.PigStorage) - scope-71
 |   |   |
-|   |   |---e: Filter[bag] - scope-34
+|   |   |---e: Filter[bag] - scope-66
 |   |       |   |
-|   |       |   Not[boolean] - scope-38
+|   |       |   Not[boolean] - scope-70
 |   |       |   |
-|   |       |   |---Greater Than[boolean] - scope-37
+|   |       |   |---Greater Than[boolean] - scope-69
 |   |       |       |
-|   |       |       |---Project[int][0] - scope-35
+|   |       |       |---Project[int][0] - scope-67
 |   |       |       |
-|   |       |       |---Constant(500) - scope-36
+|   |       |       |---Constant(500) - scope-68
 |   |
 |   |---a1: Filter[bag] - scope-15
 |       |   |
@@ -70,29 +70,29 @@ Tez vertex scope-40
     |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
 Tez vertex scope-46
 # Plan on vertex
-1-3: Split - scope-61
+1-3: Split - scope-72
 |   |
-|   d: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-33
+|   d: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-77
 |   |
-|   |---d: Filter[bag] - scope-29
+|   |---d: Filter[bag] - scope-73
 |       |   |
-|       |   Greater Than[boolean] - scope-32
+|       |   Greater Than[boolean] - scope-76
 |       |   |
-|       |   |---Project[int][0] - scope-30
+|       |   |---Project[int][0] - scope-74
 |       |   |
-|       |   |---Constant(500) - scope-31
+|       |   |---Constant(500) - scope-75
 |   |
-|   e: Store(file:///tmp/output/e:org.apache.pig.builtin.PigStorage) - scope-39
+|   e: Store(file:///tmp/output/e:org.apache.pig.builtin.PigStorage) - scope-83
 |   |
-|   |---e: Filter[bag] - scope-34
+|   |---e: Filter[bag] - scope-78
 |       |   |
-|       |   Not[boolean] - scope-38
+|       |   Not[boolean] - scope-82
 |       |   |
-|       |   |---Greater Than[boolean] - scope-37
+|       |   |---Greater Than[boolean] - scope-81
 |       |       |
-|       |       |---Project[int][0] - scope-35
+|       |       |---Project[int][0] - scope-79
 |       |       |
-|       |       |---Constant(500) - scope-36
+|       |       |---Constant(500) - scope-80
 |
 |---c: New For Each(false,false)[bag] - scope-26
     |   |

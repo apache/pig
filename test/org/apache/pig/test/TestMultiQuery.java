@@ -869,6 +869,44 @@ public class TestMultiQuery {
         Util.checkQueryOutputs(actualResults.iterator(), expectedResults);
     }
 
+    @Test
+    public void testMultiQueryJiraPig4493() throws Exception {
+
+        // Union followed by Split
+        Storage.Data data = Storage.resetData(myPig);
+        data.set("inputLocation",
+                Storage.tuple("1", "Dyson"),
+                Storage.tuple("2", "Miele"),
+                Storage.tuple("3", "Black & Decker")
+                );
+
+        myPig.setBatchOn();
+        myPig.registerQuery("A = load 'inputLocation' using mock.Storage();");
+        myPig.registerQuery("A = foreach A generate (int)$0 as a, (chararray)$1 as b;");
+        myPig.registerQuery("A1 = FILTER A by b matches '.*[a-zA-Z] *& *[a-zA-Z].*';");
+        myPig.registerQuery("A1 = FOREACH A1 generate a, REPLACE(b,'&','and')  as b;");
+        myPig.registerQuery("A = UNION A1, A;");
+        myPig.registerQuery("A = FOREACH A generate a, LOWER(b) as b;");
+        myPig.registerQuery("A2 = GROUP A by a;");
+        myPig.registerQuery("A2 = FOREACH A2 generate group, COUNT(A) as cnt;");
+        myPig.registerQuery("store A2 into 'output1' using mock.Storage();");
+        myPig.registerQuery("A = FILTER A BY b is not null and b != '';");
+        myPig.registerQuery("store A into 'output2' using mock.Storage();");
+
+        myPig.executeBatch();
+
+        List<Tuple> actualResults = data.get("output1");
+        List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
+                new String[] {"(1, 1L)", "(2, 1L)", "(3, 2L)"});
+        Util.checkQueryOutputsAfterSort(actualResults.iterator(), expectedResults);
+
+        actualResults = data.get("output2");
+        expectedResults = Util.getTuplesFromConstantTupleStrings(new String[] {
+                "(1, 'dyson')", "(2, 'miele')", "(3, 'black & decker')",
+                "(3, 'black and decker')" });
+        Util.checkQueryOutputsAfterSort(actualResults.iterator(), expectedResults);
+    }
+
     // --------------------------------------------------------------------------
     // Helper methods
 
