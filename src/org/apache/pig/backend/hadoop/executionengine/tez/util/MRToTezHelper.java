@@ -123,7 +123,7 @@ public class MRToTezHelper {
 
         for (Entry<String, String> entry : mrParamToDAGParamMap.entrySet()) {
             if (dagAMConf.get(entry.getKey()) != null) {
-                dagAMConf.set(entry.getValue(), dagAMConf.get(entry.getKey()));
+                dagAMConf.setIfUnset(entry.getValue(), dagAMConf.get(entry.getKey()));
                 dagAMConf.unset(entry.getKey());
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("MR->DAG Translating MR key: " + entry.getKey()
