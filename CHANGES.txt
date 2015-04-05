@@ -58,6 +58,8 @@ PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES
 
+PIG-4499: mvn-build miss tez classes in pig-h2.jar (daijy)
+
 PIG-4488: Pig on tez mask tez.queue.name (daijy)
 
 PIG-4497: [Pig on Tez] NPE for null scalar (rohini)
