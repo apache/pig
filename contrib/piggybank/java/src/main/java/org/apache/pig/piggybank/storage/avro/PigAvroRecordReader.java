@@ -194,30 +194,43 @@ public class PigAvroRecordReader extends RecordReader<NullWritable, Writable> {
 
     @Override
     public Writable getCurrentValue() throws IOException, InterruptedException {
-        Object obj = reader.next();
-        Tuple result = null;
-        if (obj instanceof Tuple) {
-            AvroStorageLog.details("Class =" + obj.getClass());
-            result = (Tuple) obj;
-        } else {
-            if (obj != null) {
-                AvroStorageLog.details("Wrap class " + obj.getClass() + " as a tuple.");
+        try {
+            Object obj = reader.next();
+            Tuple result = null;
+            if (obj instanceof Tuple) {
+                AvroStorageLog.details("Class =" + obj.getClass());
+                result = (Tuple) obj;
+            } else {
+                if (obj != null) {
+                    AvroStorageLog.details("Wrap class " + obj.getClass() + " as a tuple.");
+                }
+                else {
+                    AvroStorageLog.details("Wrap null as a tuple.");
+                }
+                result = wrapAsTuple(obj);
+            }
+            if (schemaToMergedSchemaMap != null) {
+                // remap the position of fields to the merged schema
+                Map<Integer, Integer> map = schemaToMergedSchemaMap.get(path);
+                if (map == null) {
+                    throw new IOException("The schema of '" + path + "' " +
+                            "is not merged by AvroStorage.");
+                }
+                result = remap(result, map);
+            }
+            return result;
+        }
+        catch(Exception e) {
+            if (ignoreBadFiles) {
+                LOG.warn("Ignoring bad record for '" + path + "'.");
+                return null;
             }
             else {
-                AvroStorageLog.details("Wrap null as a tuple.");
+                //re-throw exception
+                LOG.error("Bad record for '" + path + "'.");
+                throw new IOException(e);
             }
-            result = wrapAsTuple(obj);
         }
-        if (schemaToMergedSchemaMap != null) {
-            // remap the position of fields to the merged schema
-            Map<Integer, Integer> map = schemaToMergedSchemaMap.get(path);
-            if (map == null) {
-                throw new IOException("The schema of '" + path + "' " +
-                                      "is not merged by AvroStorage.");
-            }
-            result = remap(result, map);
-        }
-        return result;
     }
 
     /**
