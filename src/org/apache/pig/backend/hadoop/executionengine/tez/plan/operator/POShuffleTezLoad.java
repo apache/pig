@@ -50,15 +50,14 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
     private static final long serialVersionUID = 1L;
 
     protected List<String> inputKeys = new ArrayList<String>();
-    protected List<LogicalInput> inputs = new ArrayList<LogicalInput>();
-    protected List<KeyValuesReader> readers = new ArrayList<KeyValuesReader>();
-
-    private boolean[] finished;
-    private boolean[] readOnce;
-
-    private WritableComparator comparator = null;
     private boolean isSkewedJoin = false;
 
+    private transient List<LogicalInput> inputs;
+    private transient List<KeyValuesReader> readers;
+    private transient int numTezInputs;
+    private transient boolean[] finished;
+    private transient boolean[] readOnce;
+    private transient WritableComparator comparator = null;
     private transient Configuration conf;
     private transient int accumulativeBatchSize;
 
@@ -86,33 +85,39 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
     public void attachInputs(Map<String, LogicalInput> inputs, Configuration conf)
             throws ExecException {
         this.conf = conf;
-        comparator = (WritableComparator) ConfigUtils.getInputKeySecondaryGroupingComparator(conf);
+        this.inputs = new ArrayList<LogicalInput>();
+        this.readers = new ArrayList<KeyValuesReader>();
+        this.comparator = (WritableComparator) ConfigUtils.getInputKeySecondaryGroupingComparator(conf);
+        this.accumulativeBatchSize = AccumulatorOptimizerUtil.getAccumulativeBatchSize();
+
         try {
-            for (String key : inputKeys) {
-                LogicalInput input = inputs.get(key);
-                this.inputs.add(input);
-                this.readers.add((KeyValuesReader)input.getReader());
+            for (String inputKey : inputKeys) {
+                LogicalInput input = inputs.get(inputKey);
+                // 1) Case of self join/cogroup/cross with Split.
+                //     - Same TezInput will contain multiple indexes in case of join
+                // 2) data unioned within Split
+                //     - Input key will be repeated, but index would be same within a TezInput
+                if (!this.inputs.contains(input)) {
+                    this.inputs.add(input);
+                    this.readers.add((KeyValuesReader)input.getReader());
+                }
             }
 
-            // We need to adjust numInputs because it's possible for both
-            // OrderedGroupedKVInput and non-OrderedGroupedKVInput to be attached
-            // to the same vertex. If so, we're only interested in
-            // OrderedGroupedKVInputs. So we ignore the others.
-            this.numInputs = this.inputs.size();
+            this.numInputs = this.pkgr.getKeyInfo().size();
+            this.numTezInputs = this.inputs.size();
 
             readOnce = new boolean[numInputs];
             for (int i = 0; i < numInputs; i++) {
                 readOnce[i] = false;
             }
 
-            finished = new boolean[numInputs];
-            for (int i = 0; i < numInputs; i++) {
+            finished = new boolean[numTezInputs];
+            for (int i = 0; i < numTezInputs; i++) {
                 finished[i] = !readers.get(i).next();
             }
         } catch (Exception e) {
             throw new ExecException(e);
         }
-        accumulativeBatchSize = AccumulatorOptimizerUtil.getAccumulativeBatchSize();
     }
 
     @Override
@@ -131,7 +136,7 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
             int minIndex = -1;
 
             try {
-                for (int i = 0; i < numInputs; i++) {
+                for (int i = 0; i < numTezInputs; i++) {
                     if (!finished[i]) {
                         hasData = true;
                         cur = readers.get(i).getCurrentKey();
@@ -172,8 +177,10 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
                 } else {
 
                     for (int i = 0; i < numInputs; i++) {
+                        bags[i] = new InternalCachedBag(numInputs);
+                    }
 
-                        DataBag bag = null;
+                    for (int i = 0; i < numTezInputs; i++) {
 
                         if (!finished[i]) {
                             cur = readers.get(i).getCurrentKey();
@@ -181,24 +188,18 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
                             while (comparator.compare(min, cur) == 0
                                     && (!min.isNull() || (min.isNull() && i == minIndex))) {
                                 Iterable<Object> vals = readers.get(i).getCurrentValues();
-                                bag = bags[i] == null ? new InternalCachedBag(numInputs) : bags[i];
                                 for (Object val : vals) {
                                     NullableTuple nTup = (NullableTuple) val;
                                     int index = nTup.getIndex();
                                     Tuple tup = pkgr.getValueTuple(keyWritable, nTup, index);
-                                    bag.add(tup);
+                                    bags[index].add(tup);
                                 }
-                                bags[i] = bag;
                                 finished[i] = !readers.get(i).next();
                                 if (finished[i]) {
                                     break;
                                 }
                                 cur = readers.get(i).getCurrentKey();
                             }
-                        }
-
-                        if (bag == null) {
-                            bags[i] = new InternalCachedBag(numInputs);
                         }
                     }
                 }
@@ -269,7 +270,7 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
         public boolean hasNextBatch() {
             Object cur = null;
             try {
-                for (int i = 0; i < numInputs; i++) {
+                for (int i = 0; i < numTezInputs; i++) {
                     if (!finished[i]) {
                         cur = readers.get(i).getCurrentKey();
                         if (comparator.compare(min, cur) == 0
@@ -292,7 +293,7 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
                 bags[i].clear();
             }
             try {
-                for (int i = 0; i < numInputs; i++) {
+                for (int i = 0; i < numTezInputs; i++) {
                     if (!finished[i]) {
                         cur = readers.get(i).getCurrentKey();
                         int batchCount = 0;
@@ -300,7 +301,9 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
                                 min.isNull() && i==minIndex)) {
                             Iterator<Object> iter = readers.get(i).getCurrentValues().iterator();
                             while (iter.hasNext() && batchCount < batchSize) {
-                                bags[i].add(pkgr.getValueTuple(keyWritable, (NullableTuple) iter.next(), i));
+                                NullableTuple nTup = (NullableTuple) iter.next();
+                                int index = nTup.getIndex();
+                                bags[index].add(pkgr.getValueTuple(keyWritable, nTup, index));
                                 batchCount++;
                             }
                             if (batchCount == batchSize) {
@@ -333,7 +336,7 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
             // early termination of accumulator
             Object cur = null;
             try {
-                for (int i = 0; i < numInputs; i++) {
+                for (int i = 0; i < numTezInputs; i++) {
                     if (!finished[i]) {
                         cur = readers.get(i).getCurrentKey();
                         while (comparator.compare(min, cur) == 0 && (!min.isNull() ||

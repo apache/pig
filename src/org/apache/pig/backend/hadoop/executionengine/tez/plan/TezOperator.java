@@ -441,7 +441,7 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         this.useSecondaryKey = useSecondaryKey;
     }
 
-    public List<OperatorKey> getUnionPredecessors() {
+    public List<OperatorKey> getUnionMembers() {
         return vertexGroupMembers;
     }
 

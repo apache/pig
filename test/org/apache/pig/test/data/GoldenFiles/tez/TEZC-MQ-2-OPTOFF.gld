@@ -294,12 +294,12 @@ f1: Store(file:///tmp/output/f1:org.apache.pig.builtin.PigStorage) - scope-310
 |---POValueInputTez - scope-383	<-	 scope-378
 Tez vertex scope-384
 # Plan on vertex
-f2: Store(file:///tmp/output/f2:org.apache.pig.builtin.PigStorage) - scope-413
+f2: Store(file:///tmp/output/f2:org.apache.pig.builtin.PigStorage) - scope-413	->	 scope-316
 |
 |---POValueInputTez - scope-385	<-	 scope-341
 Tez vertex scope-386
 # Plan on vertex
-f2: Store(file:///tmp/output/f2:org.apache.pig.builtin.PigStorage) - scope-414
+f2: Store(file:///tmp/output/f2:org.apache.pig.builtin.PigStorage) - scope-414	->	 scope-316
 |
 |---POValueInputTez - scope-387	<-	 scope-378
 Tez vertex group scope-412	<-	 [scope-384, scope-386]	->	 null

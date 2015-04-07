@@ -107,11 +107,7 @@ public class POPoissonSample extends PhysicalOperator {
                 if (res.returnStatus == POStatus.STATUS_NULL) {
                     continue;
                 } else if (res.returnStatus == POStatus.STATUS_EOP) {
-                    if (this.parentPlan.endOfAllInput) {
-                        return eop;
-                    } else {
-                        continue;
-                    }
+                    return res;
                 } else if (res.returnStatus == POStatus.STATUS_ERR) {
                     return res;
                 }

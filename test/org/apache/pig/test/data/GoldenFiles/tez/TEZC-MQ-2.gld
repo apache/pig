@@ -4,9 +4,8 @@
 #--------------------------------------------------
 # TEZ DAG plan: pig-0_scope-0
 #--------------------------------------------------
-Tez vertex scope-106	->	Tez vertex scope-113,Tez vertex scope-119,Tez vertex scope-126,Tez vertex scope-148,Tez vertex scope-158,Tez vertex scope-167,Tez vertex group scope-208,
+Tez vertex scope-106	->	Tez vertex scope-113,Tez vertex scope-126,Tez vertex scope-129,Tez vertex scope-148,Tez vertex scope-158,Tez vertex scope-167,Tez vertex group scope-208,
 Tez vertex scope-113
-Tez vertex scope-119	->	Tez vertex scope-126,Tez vertex scope-129,
 Tez vertex scope-126
 Tez vertex scope-129
 Tez vertex scope-148	->	Tez vertex scope-158,
@@ -77,11 +76,41 @@ Tez vertex scope-106
 |       |   |
 |       |   |---Constant(5) - scope-11
 |   |
+|   c: Split - scope-205
+|   |   |
+|   |   c1: Local Rearrange[tuple]{int}(false) - scope-47	->	 scope-126
+|   |   |   |
+|   |   |   Project[int][0] - scope-48
+|   |   |
+|   |   c2: Local Rearrange[tuple]{int}(false) - scope-193	->	 scope-129
+|   |   |   |
+|   |   |   Project[int][0] - scope-195
+|   |   |
+|   |   |---c3: New For Each(false,false)[bag] - scope-181
+|   |       |   |
+|   |       |   Project[int][0] - scope-182
+|   |       |   |
+|   |       |   POUserFunc(org.apache.pig.builtin.AlgebraicMathBase$Initial)[tuple] - scope-183
+|   |       |   |
+|   |       |   |---Project[bag][0] - scope-184
+|   |       |       |
+|   |       |       |---Project[bag][1] - scope-185
+|   |       |
+|   |       |---Pre Combiner Local Rearrange[tuple]{Unknown} - scope-196
+|   |
+|   |---c: Filter[bag] - scope-34
+|       |   |
+|       |   Less Than or Equal[boolean] - scope-37
+|       |   |
+|       |   |---Project[int][0] - scope-35
+|       |   |
+|       |   |---Constant(10) - scope-36
+|   |
 |   d1: Split - scope-206
 |   |   |
 |   |   d1: Store(file:///tmp/output/d1:org.apache.pig.builtin.PigStorage) - scope-80
 |   |   |
-|   |   f2: Store(file:///tmp/output/f2:org.apache.pig.builtin.PigStorage) - scope-209
+|   |   f2: Store(file:///tmp/output/f2:org.apache.pig.builtin.PigStorage) - scope-209	->	 scope-105
 |   |
 |   |---d1: Filter[bag] - scope-73
 |       |   |
@@ -98,8 +127,6 @@ Tez vertex scope-106
 |           |   |---Project[int][0] - scope-70
 |           |   |
 |           |   |---Constant(10) - scope-71
-|   |
-|   POValueOutputTez - scope-107	->	 [scope-119]
 |
 |---a: New For Each(false,false)[bag] - scope-7
     |   |
@@ -131,39 +158,6 @@ b1: Split - scope-201
 |       |       |---Project[bag][1] - scope-28
 |
 |---b1: Package(Packager)[tuple]{int} - scope-17
-Tez vertex scope-119
-# Plan on vertex
-c: Split - scope-205
-|   |
-|   c1: Local Rearrange[tuple]{int}(false) - scope-47	->	 scope-126
-|   |   |
-|   |   Project[int][0] - scope-48
-|   |
-|   c2: Local Rearrange[tuple]{int}(false) - scope-193	->	 scope-129
-|   |   |
-|   |   Project[int][0] - scope-195
-|   |
-|   |---c3: New For Each(false,false)[bag] - scope-181
-|       |   |
-|       |   Project[int][0] - scope-182
-|       |   |
-|       |   POUserFunc(org.apache.pig.builtin.AlgebraicMathBase$Initial)[tuple] - scope-183
-|       |   |
-|       |   |---Project[bag][0] - scope-184
-|       |       |
-|       |       |---Project[bag][1] - scope-185
-|       |
-|       |---Pre Combiner Local Rearrange[tuple]{Unknown} - scope-196
-|
-|---c: Filter[bag] - scope-34
-    |   |
-    |   Less Than or Equal[boolean] - scope-37
-    |   |
-    |   |---Project[int][0] - scope-35
-    |   |
-    |   |---Constant(10) - scope-36
-    |
-    |---POValueInputTez - scope-120	<-	 scope-106
 Tez vertex scope-126
 # Plan on vertex
 c1: Store(file:///tmp/output/c1:org.apache.pig.builtin.PigStorage) - scope-54
@@ -176,7 +170,7 @@ c1: Store(file:///tmp/output/c1:org.apache.pig.builtin.PigStorage) - scope-54
     |
     |---c1: Package(Packager)[tuple]{int} - scope-46
 Tez vertex scope-129
-# Combine plan on edge <scope-119>
+# Combine plan on edge <scope-106>
 c2: Local Rearrange[tuple]{int}(false) - scope-197	->	 scope-129
 |   |
 |   Project[int][0] - scope-199
@@ -239,7 +233,7 @@ f1: Split - scope-202
 |   |
 |   f1: Store(file:///tmp/output/f1:org.apache.pig.builtin.PigStorage) - scope-99
 |   |
-|   f2: Store(file:///tmp/output/f2:org.apache.pig.builtin.PigStorage) - scope-210
+|   f2: Store(file:///tmp/output/f2:org.apache.pig.builtin.PigStorage) - scope-210	->	 scope-105
 |
 |---f1: Limit - scope-169
     |

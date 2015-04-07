@@ -53,11 +53,13 @@ public class POFRJoinTez extends POFRJoin implements TezInput {
     private static final Log log = LogFactory.getLog(POFRJoinTez.class);
     private static final long serialVersionUID = 1L;
 
-    // For replicated tables
-    private List<LogicalInput> replInputs = Lists.newArrayList();
-    private List<KeyValueReader> replReaders = Lists.newArrayList();
     private List<String> inputKeys;
+
+    // For replicated tables
+    private transient List<LogicalInput> replInputs;
+    private transient List<KeyValueReader> replReaders;
     private transient boolean isInputCached;
+    private transient String cacheKey;
 
     public POFRJoinTez(POFRJoin copy, List<String> inputKeys) throws ExecException {
        super(copy);
@@ -78,7 +80,7 @@ public class POFRJoinTez extends POFRJoin implements TezInput {
 
     @Override
     public void addInputsToSkip(Set<String> inputsToSkip) {
-        String cacheKey = "replicatemap-" + getOperatorKey().toString();
+        cacheKey = "replicatemap-" + inputKeys.toString();
         Object cacheValue = ObjectCache.getInstance().retrieve(cacheKey);
         if (cacheValue != null) {
             isInputCached = true;
@@ -93,10 +95,14 @@ public class POFRJoinTez extends POFRJoin implements TezInput {
             return;
         }
         try {
+            this.replInputs = Lists.newArrayList();
+            this.replReaders = Lists.newArrayList();
             for (String key : inputKeys) {
                 LogicalInput input = inputs.get(key);
-                this.replInputs.add(input);
-                this.replReaders.add((KeyValueReader) input.getReader());
+                if (!this.replInputs.contains(input)) {
+                    this.replInputs.add(input);
+                    this.replReaders.add((KeyValueReader) input.getReader());
+                }
             }
         } catch (Exception e) {
             throw new ExecException(e);
@@ -110,10 +116,11 @@ public class POFRJoinTez extends POFRJoin implements TezInput {
      */
     @Override
     protected void setUpHashMap() throws ExecException {
-        String cacheKey = "replicatemap-" + getOperatorKey().toString();
 
-        if (isInputCached) {
-            Object cacheValue = ObjectCache.getInstance().retrieve(cacheKey);
+        // Re-check again in case of Split + union + replicate join
+        // where same POFRJoinTez occurs in different Split sub-plans
+        Object cacheValue = ObjectCache.getInstance().retrieve(cacheKey);
+        if (cacheValue != null) {
             replicates = (TupleToMapKey[]) cacheValue;
             log.info("Found " + (replicates.length - 1) + " replication hash tables in Tez cache. cachekey=" + cacheKey);
             return;

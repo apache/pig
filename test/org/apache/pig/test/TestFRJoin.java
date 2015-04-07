@@ -46,9 +46,8 @@ import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.test.utils.TestHelper;
-import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestFRJoin {
@@ -61,8 +60,8 @@ public class TestFRJoin {
         pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
     }
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeClass
+    public static void oneTimeSetup() throws Exception {
         int LOOP_SIZE = 2;
         String[] input = new String[2 * LOOP_SIZE];
         int k = 0;
@@ -85,13 +84,9 @@ public class TestFRJoin {
 
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
-        cluster.shutDown();
-    }
-
-    @After
-    public void tearDown() throws Exception {
         Util.deleteFile(cluster, INPUT_FILE);
         Util.deleteFile(cluster, INPUT_FILE2);
+        cluster.shutDown();
     }
 
     public static class FRJoin extends EvalFunc<DataBag> {

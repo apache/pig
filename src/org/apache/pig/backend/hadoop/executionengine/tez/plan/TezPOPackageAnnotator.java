@@ -182,8 +182,8 @@ public class TezPOPackageAnnotator extends TezOpPlanVisitor {
 
             Integer index = Integer.valueOf(lrearrange.getIndex());
             if(keyInfo.get(index) != null) {
-                if (isPOSplit && predTezOpVertexGrp != null ) {
-                    // Case of POSplit having more than one member of the vertex group
+                if (isPOSplit) {
+                    // Case of POSplit having more than one input in case of self join or union
                     loRearrangeFound--;
                 } else {
                     // something is wrong - we should not be getting key info

@@ -1,0 +1,67 @@
+#--------------------------------------------------
+# There are 1 DAGs in the session
+#--------------------------------------------------
+#--------------------------------------------------
+# TEZ DAG plan: pig-0_scope-0
+#--------------------------------------------------
+Tez vertex scope-27	->	Tez vertex scope-29,
+Tez vertex scope-28	->	Tez vertex scope-29,
+Tez vertex scope-29	->	Tez vertex scope-34,
+Tez vertex scope-33	->	Tez vertex scope-34,
+Tez vertex scope-34
+
+Tez vertex scope-27
+# Plan on vertex
+POValueOutputTez - scope-31	->	 [scope-29]
+|
+|---a: New For Each(false,false)[bag] - scope-7
+    |   |
+    |   Cast[int] - scope-2
+    |   |
+    |   |---Project[bytearray][0] - scope-1
+    |   |
+    |   Cast[chararray] - scope-5
+    |   |
+    |   |---Project[bytearray][1] - scope-4
+    |
+    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
+Tez vertex scope-28
+# Plan on vertex
+POValueOutputTez - scope-32	->	 [scope-29]
+|
+|---c: New For Each(false,false)[bag] - scope-15
+    |   |
+    |   Cast[int] - scope-10
+    |   |
+    |   |---Project[bytearray][1] - scope-9
+    |   |
+    |   Cast[chararray] - scope-13
+    |   |
+    |   |---Project[bytearray][0] - scope-12
+    |
+    |---b: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-8
+Tez vertex scope-29
+# Plan on vertex
+POValueOutputTez - scope-36	->	 [scope-34]
+|
+|---POShuffledValueInputTez - scope-30	<-	 [scope-27, scope-28]
+Tez vertex scope-33
+# Plan on vertex
+POValueOutputTez - scope-37	->	 [scope-34]
+|
+|---d: New For Each(false,false)[bag] - scope-24
+    |   |
+    |   Cast[int] - scope-19
+    |   |
+    |   |---Project[bytearray][0] - scope-18
+    |   |
+    |   Cast[chararray] - scope-22
+    |   |
+    |   |---Project[bytearray][1] - scope-21
+    |
+    |---d: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-17
+Tez vertex scope-34
+# Plan on vertex
+e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-26
+|
+|---POShuffledValueInputTez - scope-35	<-	 [scope-29, scope-33]

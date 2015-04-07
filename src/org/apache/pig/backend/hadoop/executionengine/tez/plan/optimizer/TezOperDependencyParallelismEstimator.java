@@ -157,7 +157,7 @@ public class TezOperDependencyParallelismEstimator implements TezParallelismEsti
         List<TezOperator> preds = plan.getPredecessors(tezOper);
         for (TezOperator pred : preds) {
             if (pred.isVertexGroup()) {
-                for (OperatorKey unionPred : pred.getUnionPredecessors()) {
+                for (OperatorKey unionPred : pred.getVertexGroupMembers()) {
                     if (unionPred.toString().equals(inputKey)) {
                         return plan.getOperator(unionPred);
                     }
