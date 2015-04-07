@@ -206,7 +206,9 @@ public class CombinerOptimizerUtil {
                 // fix projection and function time for algebraic functions in reduce foreach
                 for (Pair<PhysicalOperator, PhysicalPlan> op2plan : algebraicOps) {
                     setProjectInput(op2plan.first, op2plan.second, op2newpos.get(op2plan.first));
+                    byte resultType = op2plan.first.getResultType();
                     ((POUserFunc)op2plan.first).setAlgebraicFunction(POUserFunc.FINAL);
+                    op2plan.first.setResultType(resultType);
                 }
 
                 // we have modified the foreach inner plans - so set them again

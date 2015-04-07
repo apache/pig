@@ -643,7 +643,11 @@ public class JobControlCompiler{
                             }
                         }
                         if (!predeployed) {
-                            putJarOnClassPathThroughDistributedCache(pigContext, conf, jar);
+                            if (jar.getFile().toLowerCase().endsWith(".jar")) {
+                                putJarOnClassPathThroughDistributedCache(pigContext, conf, jar);
+                            } else {
+                                setupDistributedCache(pigContext, conf, new String[] {jar.getPath()}, true);
+                            }
                         }
                     }
 
@@ -804,6 +808,7 @@ public class JobControlCompiler{
             // set parent plan in all operators in map and reduce plans
             // currently the parent plan is really used only when POStream is present in the plan
             new PhyPlanSetter(mro.mapPlan).visit();
+            new PhyPlanSetter(mro.combinePlan).visit();
             new PhyPlanSetter(mro.reducePlan).visit();
 
             // this call modifies the ReplFiles names of POFRJoin operators

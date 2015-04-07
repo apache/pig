@@ -609,7 +609,7 @@ public class PigGenericMapReduce {
                 return;
             }
 
-            if(PigMapReduce.sJobConfInternal.get().get("pig.stream.in.reduce", "false").equals("true")) {
+            if(PigMapReduce.sJobConfInternal.get().get("pig.stream.in.reduce", "false").equals("true") && !rp.isEmpty()) {
                 // If there is a stream in the pipeline we could
                 // potentially have more to process - so lets
                 // set the flag stating that all map input has been sent
