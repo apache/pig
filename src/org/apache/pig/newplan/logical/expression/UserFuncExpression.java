@@ -26,6 +26,7 @@ import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.builtin.InvokerGenerator;
@@ -241,10 +242,20 @@ public class UserFuncExpression extends LogicalExpression {
         }
 
         ef.setUDFContextSignature(signature);
-        Properties props = UDFContext.getUDFContext().getUDFProperties(ef.getClass());
         Schema translatedInputSchema = Util.translateSchema(inputSchema);
         if(translatedInputSchema != null) {
+            Properties props = UDFContext.getUDFContext().getUDFProperties(ef.getClass());
             props.put("pig.evalfunc.inputschema."+signature, translatedInputSchema);
+            if (ef instanceof Algebraic) {
+                // In case of Algebraic func, set original inputSchema to Initial,
+                // Intermed, Final
+                for (String func : new String[]{((Algebraic)ef).getInitial(), 
+                        ((Algebraic)ef).getIntermed(), ((Algebraic)ef).getFinal()}) {
+                    Class c = PigContext.instantiateFuncFromSpec(new FuncSpec(func)).getClass();
+                    props = UDFContext.getUDFContext().getUDFProperties(c);
+                    props.put("pig.evalfunc.inputschema."+signature, translatedInputSchema);
+                }
+            }
         }
         // Store inputSchema into the UDF context
         ef.setInputSchema(translatedInputSchema);

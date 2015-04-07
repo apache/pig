@@ -31,6 +31,8 @@
     <equals arg1="${hadoopversion}" arg2="23" />
   </condition>
 
+  <property name="mvnrepo" value="http://repo2.maven.org/maven2"/>
+
   <!-- Separate property name for udfs' build.xml -->
   <property name="udf.dir" value="${basedir}/udfs"/>
   <property name="udf.java.dir" value="${udf.dir}/java"/>
@@ -155,7 +157,7 @@
   </target>
 
   <!-- Build an archive to use in the tests -->
-  <target name="tar" description="Create tar file with pig modules">
+  <target name="tar" description="Create tar file with pig modules" depends="download-datafu">
     <mkdir dir="${tar.dir}"/>
     <mkdir dir="${tar.dir}/tests"/>
     <mkdir dir="${tar.dir}/drivers"/>
@@ -406,6 +408,12 @@
     <delete file="${tar.name}"/>
     <delete dir="${tar.dir}"/>
     <ant dir="${udf.java.dir}" target="clean"/>
+  </target>
+
+  <target name="download-datafu" description="To download datafu" unless="offline">
+    <mkdir dir="lib/java"/>
+    <get src="${mvnrepo}/com/linkedin/datafu/datafu/1.2.0/datafu-1.2.0.jar"
+        dest="lib/java/datafu.jar"/>
   </target>
 
 </project>

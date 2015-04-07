@@ -354,6 +354,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         OutputDescriptor out = OutputDescriptor.create(edge.outputClassName);
 
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties(), false);
+        UDFContext.getUDFContext().serialize(conf);
         if (!combinePlan.isEmpty()) {
             addCombiner(combinePlan, to, conf);
         }

@@ -351,6 +351,9 @@ public class POUserFunc extends ExpressionOperator {
                         }
                     }
                 } else {
+                    if (parentPlan!=null && parentPlan.endOfAllInput && needEndOfAllInputProcessing()) {
+                        func.setEndOfAllInput(true);
+                    }
                     if (executor != null) {
                         result.result = executor.monitorExec((Tuple) result.result);
                     } else {
@@ -655,4 +658,7 @@ public class POUserFunc extends ExpressionOperator {
         }
     }
 
+    public boolean needEndOfAllInputProcessing() {
+        return getFunc().needEndOfAllInputProcessing();
+    }
 }
