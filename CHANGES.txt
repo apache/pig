@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4495: Better multi-query planning in case of multiple edges (rohini)
+
 PIG-3294: Allow Pig use Hive UDFs (daijy)
 
 PIG-4476: Fix logging in AvroStorage* classes and SchemaTuple class (rdsr via rohini)

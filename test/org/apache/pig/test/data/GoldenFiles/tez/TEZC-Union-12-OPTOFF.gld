@@ -1,0 +1,143 @@
+#--------------------------------------------------
+# There are 1 DAGs in the session
+#--------------------------------------------------
+#--------------------------------------------------
+# TEZ DAG plan: pig-0_scope-0
+#--------------------------------------------------
+Tez vertex scope-79	->	Tez vertex scope-86,Tez vertex scope-88,Tez vertex scope-97,Tez vertex scope-99,
+Tez vertex scope-86	->	Tez vertex scope-88,
+Tez vertex scope-88	->	Tez vertex scope-103,
+Tez vertex scope-97	->	Tez vertex scope-99,
+Tez vertex scope-99	->	Tez vertex scope-103,
+Tez vertex scope-103	->	Tez vertex scope-108,
+Tez vertex scope-107	->	Tez vertex scope-108,
+Tez vertex scope-108
+
+Tez vertex scope-79
+# Plan on vertex
+a: Split - scope-111
+|   |
+|   b: Split - scope-109
+|   |   |
+|   |   POValueOutputTez - scope-90	->	 [scope-88]
+|   |   |
+|   |   |---b1: New For Each(false,false)[bag] - scope-22
+|   |       |   |
+|   |       |   Project[int][0] - scope-18
+|   |       |   |
+|   |       |   Project[chararray][1] - scope-20
+|   |   |
+|   |   POValueOutputTez - scope-83	->	 [scope-86]
+|   |
+|   |---b: Filter[bag] - scope-11
+|       |   |
+|       |   Equal To[boolean] - scope-14
+|       |   |
+|       |   |---Project[int][0] - scope-12
+|       |   |
+|       |   |---Constant(2) - scope-13
+|   |
+|   c: Split - scope-110
+|   |   |
+|   |   POValueOutputTez - scope-101	->	 [scope-99]
+|   |   |
+|   |   |---c1: New For Each(false,false)[bag] - scope-44
+|   |       |   |
+|   |       |   Project[chararray][1] - scope-40
+|   |       |   |
+|   |       |   Project[int][0] - scope-42
+|   |   |
+|   |   POValueOutputTez - scope-94	->	 [scope-97]
+|   |
+|   |---c: Filter[bag] - scope-33
+|       |   |
+|       |   Equal To[boolean] - scope-36
+|       |   |
+|       |   |---Project[int][0] - scope-34
+|       |   |
+|       |   |---Constant(3) - scope-35
+|
+|---a: New For Each(false,false)[bag] - scope-7
+    |   |
+    |   Cast[int] - scope-2
+    |   |
+    |   |---Project[bytearray][0] - scope-1
+    |   |
+    |   Cast[chararray] - scope-5
+    |   |
+    |   |---Project[bytearray][1] - scope-4
+    |
+    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
+Tez vertex scope-86
+# Plan on vertex
+POValueOutputTez - scope-91	->	 [scope-88]
+|
+|---b2: New For Each(false,false)[bag] - scope-29
+    |   |
+    |   Project[int][0] - scope-25
+    |   |
+    |   Project[chararray][1] - scope-27
+    |
+    |---POValueInputTez - scope-87	<-	 scope-79
+Tez vertex scope-88
+# Plan on vertex
+POValueOutputTez - scope-105	->	 [scope-103]
+|
+|---POShuffledValueInputTez - scope-89	<-	 [scope-79, scope-86]
+Tez vertex scope-97
+# Plan on vertex
+POValueOutputTez - scope-102	->	 [scope-99]
+|
+|---c2: New For Each(false,false)[bag] - scope-51
+    |   |
+    |   Project[chararray][1] - scope-47
+    |   |
+    |   Project[int][0] - scope-49
+    |
+    |---POValueInputTez - scope-98	<-	 scope-79
+Tez vertex scope-99
+# Plan on vertex
+POValueOutputTez - scope-106	->	 [scope-103]
+|
+|---a1: New For Each(false,false)[bag] - scope-57
+    |   |
+    |   Project[int][1] - scope-53
+    |   |
+    |   Project[chararray][0] - scope-55
+    |
+    |---POShuffledValueInputTez - scope-100	<-	 [scope-79, scope-97]
+Tez vertex scope-103
+# Plan on vertex
+e: Local Rearrange[tuple]{int}(false) - scope-71	->	 scope-108
+|   |
+|   Project[int][0] - scope-72
+|
+|---POShuffledValueInputTez - scope-104	<-	 [scope-88, scope-99]
+Tez vertex scope-107
+# Plan on vertex
+e: Local Rearrange[tuple]{int}(false) - scope-73	->	 scope-108
+|   |
+|   Project[int][0] - scope-74
+|
+|---d: New For Each(false,false)[bag] - scope-66
+    |   |
+    |   Cast[int] - scope-61
+    |   |
+    |   |---Project[bytearray][0] - scope-60
+    |   |
+    |   Cast[chararray] - scope-64
+    |   |
+    |   |---Project[bytearray][1] - scope-63
+    |
+    |---d: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-59
+Tez vertex scope-108
+# Plan on vertex
+e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-78
+|
+|---e: New For Each(true,true)[tuple] - scope-77
+    |   |
+    |   Project[bag][1] - scope-75
+    |   |
+    |   Project[bag][2] - scope-76
+    |
+    |---e: Package(Packager)[tuple]{int} - scope-70

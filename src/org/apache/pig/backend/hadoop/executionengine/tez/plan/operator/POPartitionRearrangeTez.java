@@ -42,6 +42,7 @@ import org.apache.pig.impl.builtin.PartitionSkewedKeys;
 import org.apache.pig.impl.io.NullablePartitionWritable;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
+import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.Pair;
 
@@ -254,5 +255,17 @@ public class POPartitionRearrangeTez extends POLocalRearrangeTez {
         cache.cache(totalReducersCacheKey, totalReducers);
         cache.cache(reducerMapCacheKey, reducerMap);
         inited = true;
+    }
+
+    @Override
+    public POPartitionRearrangeTez clone() throws CloneNotSupportedException {
+        POPartitionRearrangeTez clone = new POPartitionRearrangeTez(new OperatorKey(
+                mKey.scope, NodeIdGenerator.getGenerator().getNextNodeId(
+                        mKey.scope)), requestedParallelism);
+        deepCopyTo(clone);
+        clone.isSkewedJoin = isSkewedJoin;
+        clone.connectedToPackage = connectedToPackage;
+        clone.setOutputKey(outputKey);
+        return clone;
     }
 }

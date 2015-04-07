@@ -284,6 +284,11 @@ public class TezCompiler extends PhyPlanVisitor {
                     FuncSpec newSpec = new FuncSpec(ReadScalarsTez.class.getName(), from.getOperatorKey().toString());
                     userFunc.setFuncSpec(newSpec);
 
+                    //Remove unused store filename
+                    if (userFunc.getInputs().size() == 2) {
+                        userFunc.getInputs().remove(1);
+                    }
+
                     if (storeSeen.containsKey(store)) {
                         storeSeen.get(store).addOutputKey(tezOp.getOperatorKey().toString());
                     } else {
@@ -292,9 +297,6 @@ public class TezCompiler extends PhyPlanVisitor {
                         from.plan.remove(from.plan.getOperator(store.getOperatorKey()));
                         from.plan.addAsLeaf(output);
                         storeSeen.put(store, output);
-
-                        //Remove unused store filename
-                        userFunc.getInputs().remove(1);
                     }
 
                     if (tezPlan.getPredecessors(tezOp)==null || !tezPlan.getPredecessors(tezOp).contains(from)) {

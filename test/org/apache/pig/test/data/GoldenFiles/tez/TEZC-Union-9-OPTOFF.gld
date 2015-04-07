@@ -4,30 +4,20 @@
 #--------------------------------------------------
 # TEZ DAG plan: pig-0_scope-0
 #--------------------------------------------------
-Tez vertex scope-46	->	Tez vertex scope-47,
-Tez vertex scope-40	->	Tez vertex scope-47,
-Tez vertex scope-47
+Tez vertex scope-45	->	Tez vertex scope-52,Tez vertex scope-57,
+Tez vertex scope-52	->	Tez vertex scope-57,
+Tez vertex scope-56	->	Tez vertex scope-57,
+Tez vertex scope-57
 
-Tez vertex scope-46
+Tez vertex scope-45
 # Plan on vertex
-POValueOutputTez - scope-50	->	 [scope-47]
-|
-|---c: New For Each(false,false)[bag] - scope-26
-    |   |
-    |   Cast[int] - scope-21
-    |   |
-    |   |---Project[bytearray][1] - scope-20
-    |   |
-    |   Cast[chararray] - scope-24
-    |   |
-    |   |---Project[bytearray][0] - scope-23
-    |
-    |---b: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-19
-Tez vertex scope-40
-# Plan on vertex
-1-2: Split - scope-57
+1-2: Split - scope-69
 |   |
-|   a2: Store(file:///tmp/output/a2:org.apache.pig.builtin.PigStorage) - scope-14
+|   a2: Split - scope-68
+|   |   |
+|   |   a2: Store(file:///tmp/output/a2:org.apache.pig.builtin.PigStorage) - scope-17
+|   |   |
+|   |   POValueOutputTez - scope-60	->	 [scope-57]
 |   |
 |   |---a2: Filter[bag] - scope-9
 |       |   |
@@ -39,15 +29,7 @@ Tez vertex scope-40
 |       |       |
 |       |       |---Constant(100) - scope-11
 |   |
-|   POValueOutputTez - scope-49	->	 [scope-47]
-|   |
-|   |---a1: Filter[bag] - scope-15
-|       |   |
-|       |   Greater Than[boolean] - scope-18
-|       |   |
-|       |   |---Project[int][0] - scope-16
-|       |   |
-|       |   |---Constant(100) - scope-17
+|   POValueOutputTez - scope-46	->	 [scope-52]
 |
 |---a: New For Each(false,false)[bag] - scope-7
     |   |
@@ -60,30 +42,58 @@ Tez vertex scope-40
     |   |---Project[bytearray][1] - scope-4
     |
     |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
-Tez vertex scope-47
+Tez vertex scope-52
 # Plan on vertex
-1-3: Split - scope-56
-|   |
-|   d: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-33
-|   |
-|   |---d: Filter[bag] - scope-29
-|       |   |
-|       |   Greater Than[boolean] - scope-32
-|       |   |
-|       |   |---Project[int][0] - scope-30
-|       |   |
-|       |   |---Constant(500) - scope-31
-|   |
-|   e: Store(file:///tmp/output/e:org.apache.pig.builtin.PigStorage) - scope-39
-|   |
-|   |---e: Filter[bag] - scope-34
-|       |   |
-|       |   Not[boolean] - scope-38
-|       |   |
-|       |   |---Greater Than[boolean] - scope-37
-|       |       |
-|       |       |---Project[int][0] - scope-35
-|       |       |
-|       |       |---Constant(500) - scope-36
+POValueOutputTez - scope-59	->	 [scope-57]
 |
-|---POShuffledValueInputTez - scope-48	<-	 [scope-40, scope-46]
+|---a1: Filter[bag] - scope-18
+    |   |
+    |   Greater Than[boolean] - scope-21
+    |   |
+    |   |---Project[int][0] - scope-19
+    |   |
+    |   |---Constant(100) - scope-20
+    |
+    |---POValueInputTez - scope-53	<-	 scope-45
+Tez vertex scope-56
+# Plan on vertex
+POValueOutputTez - scope-61	->	 [scope-57]
+|
+|---c: New For Each(false,false)[bag] - scope-31
+    |   |
+    |   Cast[int] - scope-26
+    |   |
+    |   |---Project[bytearray][1] - scope-25
+    |   |
+    |   Cast[chararray] - scope-29
+    |   |
+    |   |---Project[bytearray][0] - scope-28
+    |
+    |---b: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-24
+Tez vertex scope-57
+# Plan on vertex
+1-3: Split - scope-67
+|   |
+|   d: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-38
+|   |
+|   |---d: Filter[bag] - scope-34
+|       |   |
+|       |   Greater Than[boolean] - scope-37
+|       |   |
+|       |   |---Project[int][0] - scope-35
+|       |   |
+|       |   |---Constant(500) - scope-36
+|   |
+|   e: Store(file:///tmp/output/e:org.apache.pig.builtin.PigStorage) - scope-44
+|   |
+|   |---e: Filter[bag] - scope-39
+|       |   |
+|       |   Not[boolean] - scope-43
+|       |   |
+|       |   |---Greater Than[boolean] - scope-42
+|       |       |
+|       |       |---Project[int][0] - scope-40
+|       |       |
+|       |       |---Constant(500) - scope-41
+|
+|---POShuffledValueInputTez - scope-58	<-	 [scope-45, scope-52, scope-56]

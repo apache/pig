@@ -109,6 +109,7 @@ import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPOPackageAnnota
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POIdentityInOutTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POLocalRearrangeTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POShuffleTezLoad;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POStoreTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POValueInputTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.ReadScalarsTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.PartitionerDefinedVertexManager;
@@ -739,6 +740,8 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                     additionalLocalResources));
         }
 
+        // Union within a split can have multiple stores writing to same output
+        Set<String> uniqueStoreOutputs = new HashSet<String>();
         for (POStore store : stores) {
 
             ArrayList<POStore> emptyList = new ArrayList<POStore>();
@@ -763,10 +766,13 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                     continue;
                 }
             }
-            vertex.addDataSink(store.getOperatorKey().toString(),
-                    new DataSinkDescriptor(storeOutDescriptor,
-                    OutputCommitterDescriptor.create(MROutputCommitter.class.getName()),
-                    dag.getCredentials()));
+            String outputKey = ((POStoreTez) store).getOutputKey();
+            if (!uniqueStoreOutputs.contains(outputKey)) {
+                vertex.addDataSink(outputKey.toString(),
+                        new DataSinkDescriptor(storeOutDescriptor,
+                        OutputCommitterDescriptor.create(MROutputCommitter.class.getName()),
+                        dag.getCredentials()));
+            }
         }
 
         // LoadFunc and StoreFunc add delegation tokens to Job Credentials in
