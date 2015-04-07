@@ -435,8 +435,15 @@ public class SparkCompiler extends PhyPlanVisitor {
 	@Override
 	public void visitSort(POSort op) throws VisitorException {
 		try {
-			nonBlocking(op);
-			phyToSparkOpMap.put(op, curSparkOp);
+            nonBlocking(op);
+            POSort sort = op;
+            long limit = sort.getLimit();
+            if (limit!=-1) {
+                POLimit pLimit2 = new POLimit(new OperatorKey(scope,nig.getNextNodeId(scope)));
+                pLimit2.setLimit(limit);
+                curSparkOp.physicalPlan.addAsLeaf(pLimit2);
+            }
+            phyToSparkOpMap.put(op, curSparkOp);
 		} catch (Exception e) {
 			int errCode = 2034;
 			String msg = "Error compiling operator "
