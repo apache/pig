@@ -31,6 +31,9 @@
         <fileset dir="${pig.dir}">
             <include name="pig*-core-*.jar"/>
         </fileset>
+        <fileset dir="${pig.dir}/lib">
+            <include name="*.jar"/>
+        </fileset>
         <fileset dir="${hadoop.common.dir}" erroronmissingdir="false">
             <include name="hadoop-common*.jar"/>
         </fileset>
