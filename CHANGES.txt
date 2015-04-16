@@ -62,6 +62,8 @@ PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES
 
+PIG-4508: [Pig on Tez] PigProcessor check for commit only on MROutput (rohini)
+
 PIG-4505: [Pig on Tez] Auto adjust AM memory can hit OOM with 3.5GXmx (rohini)
 
 PIG-4502: E2E tests build fail with udfs compile (nmaheshwari via daijy)
