@@ -207,13 +207,15 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
                 throw new VisitorException(msg, errCode, PigException.BUG, e);
             }
 
-            while (!getContext().canCommit()) {
-                Thread.sleep(100);
-            }
-            for (MROutput fileOutput : fileOutputs){
-                fileOutput.flush();
-                if (fileOutput.isCommitRequired()) {
-                    fileOutput.commit();
+            if (!fileOutputs.isEmpty()) {
+                while (!getContext().canCommit()) {
+                    Thread.sleep(100);
+                }
+                for (MROutput fileOutput : fileOutputs){
+                    fileOutput.flush();
+                    if (fileOutput.isCommitRequired()) {
+                        fileOutput.commit();
+                    }
                 }
             }
 
@@ -233,8 +235,8 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
                 getContext().sendEvents(events);
             }
         } catch (Exception e) {
-            abortOutput();
             LOG.error("Encountered exception while processing: ", e);
+            abortOutput();
             throw e;
         }
     }
@@ -243,7 +245,7 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
         for (MROutput fileOutput : fileOutputs){
             try {
                 fileOutput.abort();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 LOG.error("Encountered exception while aborting output", e);
             }
         }
