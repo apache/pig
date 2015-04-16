@@ -102,7 +102,7 @@ public class TezSessionManager {
         } catch (Throwable e) {
             log.error("Exception while waiting for Tez client to be ready", e);
             tezClient.stop();
-            throw e;
+            throw new RuntimeException(e);
         }
         return new SessionInfo(tezClient, requestedAMResources);
     }
