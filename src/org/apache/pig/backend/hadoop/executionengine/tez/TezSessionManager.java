@@ -92,12 +92,18 @@ public class TezSessionManager {
         adjustAMConfig(amConf, tezJobConf);
         String jobName = conf.get(PigContext.JOB_NAME, "pig");
         TezClient tezClient = TezClient.create(jobName, amConf, true, requestedAMResources, creds);
-        tezClient.start();
-        TezAppMasterStatus appMasterStatus = tezClient.getAppMasterStatus();
-        if (appMasterStatus.equals(TezAppMasterStatus.SHUTDOWN)) {
-            throw new RuntimeException("TezSession has already shutdown");
+        try {
+            tezClient.start();
+            TezAppMasterStatus appMasterStatus = tezClient.getAppMasterStatus();
+            if (appMasterStatus.equals(TezAppMasterStatus.SHUTDOWN)) {
+                throw new RuntimeException("TezSession has already shutdown");
+            }
+            tezClient.waitTillReady();
+        } catch (Throwable e) {
+            log.error("Exception while waiting for Tez client to be ready", e);
+            tezClient.stop();
+            throw e;
         }
-        tezClient.waitTillReady();
         return new SessionInfo(tezClient, requestedAMResources);
     }
 
