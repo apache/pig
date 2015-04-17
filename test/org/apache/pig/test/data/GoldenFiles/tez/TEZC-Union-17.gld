@@ -1,0 +1,84 @@
+#--------------------------------------------------
+# There are 1 DAGs in the session
+#--------------------------------------------------
+#--------------------------------------------------
+# TEZ DAG plan: pig-0_scope-0
+#--------------------------------------------------
+Tez vertex scope-44	->	Tez vertex scope-45,Tez vertex scope-46,
+Tez vertex scope-45	->	Tez vertex group scope-52,
+Tez vertex scope-46	->	Tez vertex group scope-52,
+Tez vertex group scope-52
+
+Tez vertex scope-44
+# Plan on vertex
+POValueOutputTez - scope-51	->	 [scope-45, scope-46]
+|
+|---d: New For Each(false,false)[bag] - scope-15
+    |   |
+    |   Cast[int] - scope-10
+    |   |
+    |   |---Project[bytearray][0] - scope-9
+    |   |
+    |   Cast[chararray] - scope-13
+    |   |
+    |   |---Project[bytearray][1] - scope-12
+    |
+    |---d: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-8
+Tez vertex scope-45
+# Plan on vertex
+e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-53	->	 scope-43
+|
+|---e: Filter[bag] - scope-17
+    |   |
+    |   Equal To[boolean] - scope-22
+    |   |
+    |   |---Project[int][0] - scope-18
+    |   |
+    |   |---POUserFunc(org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.ReadScalarsTez)[int] - scope-21
+    |       |
+    |       |---Constant(0) - scope-19
+    |
+    |---a: New For Each(false,false)[bag] - scope-7
+        |   |
+        |   Cast[int] - scope-2
+        |   |
+        |   |---Project[bytearray][0] - scope-1
+        |   |
+        |   Cast[chararray] - scope-5
+        |   |
+        |   |---Project[bytearray][1] - scope-4
+        |
+        |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
+Tez vertex scope-46
+# Plan on vertex
+e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-54	->	 scope-43
+|
+|---c: New For Each(false,false)[bag] - scope-41
+    |   |
+    |   Project[int][1] - scope-37
+    |   |
+    |   Project[chararray][0] - scope-39
+    |
+    |---Filter[bag] - scope-31
+        |   |
+        |   Equal To[boolean] - scope-36
+        |   |
+        |   |---Project[int][1] - scope-32
+        |   |
+        |   |---POUserFunc(org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.ReadScalarsTez)[int] - scope-35
+        |       |
+        |       |---Constant(0) - scope-33
+        |
+        |---b: New For Each(false,false)[bag] - scope-30
+            |   |
+            |   Cast[chararray] - scope-25
+            |   |
+            |   |---Project[bytearray][0] - scope-24
+            |   |
+            |   Cast[int] - scope-28
+            |   |
+            |   |---Project[bytearray][1] - scope-27
+            |
+            |---b: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-23
+Tez vertex group scope-52	<-	 [scope-45, scope-46]	->	 null
+# No plan on vertex group
