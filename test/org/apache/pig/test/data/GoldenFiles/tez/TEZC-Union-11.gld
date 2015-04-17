@@ -54,5 +54,5 @@ e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-42	->	 sc
     |   |---Project[bytearray][0] - scope-12
     |
     |---b: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-8
-Tez vertex group scope-38	<-	 [scope-29, scope-33, scope-27, scope-28]	->	 null
+Tez vertex group scope-38	<-	 [scope-33, scope-27, scope-28]	->	 null
 # No plan on vertex group

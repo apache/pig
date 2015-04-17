@@ -62,6 +62,8 @@ PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES
 
+PIG-4503: [Pig on Tez] NPE in UnionOptimizer with multiple levels of union (rohini)
+
 PIG-4509: [Pig on Tez] Unassigned applications not killed on shutdown (rohini)
 
 PIG-4508: [Pig on Tez] PigProcessor check for commit only on MROutput (rohini)

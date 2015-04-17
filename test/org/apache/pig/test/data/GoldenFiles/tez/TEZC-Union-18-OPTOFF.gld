@@ -1,0 +1,71 @@
+#--------------------------------------------------
+# There are 1 DAGs in the session
+#--------------------------------------------------
+#--------------------------------------------------
+# TEZ DAG plan: pig-0_scope-0
+#--------------------------------------------------
+Tez vertex scope-33	->	Tez vertex scope-35,
+Tez vertex scope-34	->	Tez vertex scope-35,
+Tez vertex scope-35	->	Tez vertex scope-39,
+Tez vertex scope-39
+
+Tez vertex scope-33
+# Plan on vertex
+POValueOutputTez - scope-37	->	 [scope-35]
+|
+|---a: New For Each(false,false)[bag] - scope-15
+    |   |
+    |   Cast[int] - scope-10
+    |   |
+    |   |---Project[bytearray][0] - scope-9
+    |   |
+    |   Cast[chararray] - scope-13
+    |   |
+    |   |---Project[bytearray][1] - scope-12
+    |
+    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-8
+Tez vertex scope-34
+# Plan on vertex
+POValueOutputTez - scope-38	->	 [scope-35]
+|
+|---c: New For Each(false,false)[bag] - scope-23
+    |   |
+    |   Cast[int] - scope-18
+    |   |
+    |   |---Project[bytearray][1] - scope-17
+    |   |
+    |   Cast[chararray] - scope-21
+    |   |
+    |   |---Project[bytearray][0] - scope-20
+    |
+    |---b: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-16
+Tez vertex scope-35
+# Plan on vertex
+POValueOutputTez - scope-40	->	 [scope-39]
+|
+|---POShuffledValueInputTez - scope-36	<-	 [scope-33, scope-34]
+Tez vertex scope-39
+# Plan on vertex
+e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-32
+|
+|---e: Filter[bag] - scope-26
+    |   |
+    |   Equal To[boolean] - scope-31
+    |   |
+    |   |---Project[int][0] - scope-27
+    |   |
+    |   |---POUserFunc(org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.ReadScalarsTez)[int] - scope-30
+    |       |
+    |       |---Constant(0) - scope-28
+    |
+    |---d: New For Each(false,false)[bag] - scope-7
+        |   |
+        |   Cast[int] - scope-2
+        |   |
+        |   |---Project[bytearray][0] - scope-1
+        |   |
+        |   Cast[chararray] - scope-5
+        |   |
+        |   |---Project[bytearray][1] - scope-4
+        |
+        |---d: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-0

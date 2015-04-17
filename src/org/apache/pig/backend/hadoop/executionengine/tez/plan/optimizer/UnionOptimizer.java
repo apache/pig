@@ -153,13 +153,15 @@ public class UnionOptimizer extends TezOpPlanVisitor {
             TezOperator existingVertexGroup = null;
             if (successors != null) {
                 for (TezOperator succ : successors) {
-                    if (succ.isVertexGroup() && succ.getVertexGroupInfo().getSFile().equals(unionStoreOutputs.get(i).getSFile())) {
+                    if (succ.isVertexGroup() && unionStoreOutputs.get(i).getSFile().equals(succ.getVertexGroupInfo().getSFile())) {
                         existingVertexGroup = succ;
                     }
                 }
             }
             if (existingVertexGroup != null) {
                 storeVertexGroupOps[i] = existingVertexGroup;
+                existingVertexGroup.getVertexGroupMembers().remove(unionOp.getOperatorKey());
+                existingVertexGroup.getVertexGroupInfo().removeInput(unionOp.getOperatorKey());
             } else {
                 storeVertexGroupOps[i] = new TezOperator(OperatorKey.genOpKey(scope));
                 storeVertexGroupOps[i].setVertexGroupInfo(new VertexGroupInfo(unionStoreOutputs.get(i)));
@@ -471,8 +473,8 @@ public class UnionOptimizer extends TezOpPlanVisitor {
             TezOperator succOpVertexGroup = null;
             for (TezOperator succ : successors) {
                 if (succ.isVertexGroup()
-                        && succ.getVertexGroupInfo().getOutput()
-                                .equals(succOp.getOperatorKey().toString())) {
+                        && succOp.getOperatorKey().toString()
+                                .equals(succ.getVertexGroupInfo().getOutput())) {
                     succOpVertexGroup = succ;
                     break;
                 }
