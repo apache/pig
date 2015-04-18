@@ -1359,11 +1359,13 @@ public class Util {
         }
     }
 
-    public static void createLogAppender(Class clazz, String appenderName, Writer writer) {
-        Logger logger = Logger.getLogger(clazz);
-        WriterAppender writerAppender = new WriterAppender(new PatternLayout("%d [%t] %-5p %c %x - %m%n"), writer);
-        writerAppender.setName(appenderName);
-        logger.addAppender(writerAppender);
+    public static void createLogAppender(String appenderName, Writer writer, Class...clazzes) {
+        for (Class clazz : clazzes) {
+            Logger logger = Logger.getLogger(clazz);
+            WriterAppender writerAppender = new WriterAppender(new PatternLayout("%d [%t] %-5p %c %x - %m%n"), writer);
+            writerAppender.setName(appenderName);
+            logger.addAppender(writerAppender);
+        }
     }
 
     public static void removeLogAppender(Class clazz, String appenderName) {

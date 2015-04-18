@@ -17,6 +17,8 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.tez.plan;
 
+import java.io.Serializable;
+
 import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
@@ -28,7 +30,7 @@ import org.apache.tez.runtime.library.output.OrderedPartitionedKVOutput;
 /**
  * Descriptor for Tez edge. It holds combine plan as well as edge properties.
  */
-public class TezEdgeDescriptor {
+public class TezEdgeDescriptor implements Serializable {
     // Combiner runs on both input and output of Tez edge.
     public PhysicalPlan combinePlan;
 

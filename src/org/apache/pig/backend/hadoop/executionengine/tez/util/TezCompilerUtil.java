@@ -198,7 +198,7 @@ public class TezCompilerUtil {
      */
     static public boolean isIntermediateReducer(TezOperator tezOper) throws VisitorException {
         boolean intermediateReducer = false;
-        LinkedList<POStore> stores = PlanHelper.getPhysicalOperators(tezOper.plan, POStore.class);
+        LinkedList<POStore> stores = tezOper.getStores();
         // Not map and not final reducer
         if (stores.size() <= 0 &&
                 (tezOper.getLoaderInfo().getLoads() == null || tezOper.getLoaderInfo().getLoads().size() <= 0)) {

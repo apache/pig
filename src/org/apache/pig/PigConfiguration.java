@@ -117,6 +117,10 @@ public class PigConfiguration {
      * This key is used to configure auto parallelism in tez. Default is true.
      */
     public static final String PIG_TEZ_AUTO_PARALLELISM = "pig.tez.auto.parallelism";
+    /**
+     * This key is used to configure grace parallelism in tez. Default is true.
+     */
+    public static final String PIG_TEZ_GRACE_PARALLELISM = "pig.tez.grace.parallelism";
 
     /**
      * This key is used to configure compression for the pig input splits which

@@ -18,9 +18,11 @@
 package org.apache.pig.backend.hadoop.executionengine.tez.plan;
 
 import java.io.ByteArrayOutputStream;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,6 +32,8 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer.TezOperDependencyParallelismEstimator.TezParallelismFactorVisitor;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.PigProcessor;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.Operator;
@@ -50,7 +54,11 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     private static final long serialVersionUID = 1L;
 
     // Processor pipeline
-    public PhysicalPlan plan;
+    // Note TezOperator needs to be serialized and de-serialized to
+    // be used in PigGraceShuffleVertexManager, some fields are either
+    // big, or not serializable, and not in use in PigGraceShuffleVertexManager,
+    // mark them as transient: plan, vertexGroupInfo, inputSplitInfo
+    public transient PhysicalPlan plan;
 
     // Descriptors for out-bound edges.
     public Map<OperatorKey, TezEdgeDescriptor> outEdges;
@@ -133,6 +141,12 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     private boolean useMRMapSettings = false;
 
+    private boolean useGraceParallelism = false;
+
+    private double parallelismFactor = -1;
+
+    private LinkedList<POStore> stores = null;
+
     // Types of blocking operators. For now, we only support the following ones.
     public static enum OPER_FEATURE {
         // Indicate if this job is a merge indexer
@@ -170,16 +184,16 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     private List<OperatorKey> vertexGroupMembers;
     // For union
-    private VertexGroupInfo vertexGroupInfo;
+    private transient VertexGroupInfo vertexGroupInfo;
     // Mapping of OperatorKey of POStore OperatorKey to vertexGroup TezOperator
     private Map<OperatorKey, OperatorKey> vertexGroupStores = null;
 
-    public static class LoaderInfo {
+    public static class LoaderInfo implements Serializable {
         private List<POLoad> loads = null;
         private ArrayList<FileSpec> inp = new ArrayList<FileSpec>();
         private ArrayList<String> inpSignatureLists = new ArrayList<String>();
         private ArrayList<Long> inpLimits = new ArrayList<Long>();
-        private InputSplitInfo inputSplitInfo = null;
+        private transient InputSplitInfo inputSplitInfo = null;
         public List<POLoad> getLoads() {
             return loads;
         }
@@ -497,7 +511,7 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     public String toString() {
         StringBuilder sb = new StringBuilder(name() + ":\n");
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        if (!plan.isEmpty()) {
+        if (plan!=null && !plan.isEmpty()) {
             plan.explain(baos);
             String mp = new String(baos.toByteArray());
             sb.append(shiftStringByTabs(mp, "|   "));
@@ -600,6 +614,29 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     public LoaderInfo getLoaderInfo() {
         return loaderInfo;
+    }
+
+    public void setUseGraceParallelism(boolean useGraceParallelism) {
+        this.useGraceParallelism = useGraceParallelism;
+    }
+    public boolean isUseGraceParallelism() {
+        return useGraceParallelism;
+    }
+
+    public double getParallelismFactor() throws VisitorException {
+        if (parallelismFactor == -1) {
+            TezParallelismFactorVisitor parallelismFactorVisitor = new TezParallelismFactorVisitor(plan, getOperatorKey().toString());
+            parallelismFactorVisitor.visit();
+            parallelismFactor = parallelismFactorVisitor.getFactor();
+        }
+        return parallelismFactor;
+    }
+
+    public LinkedList<POStore> getStores() throws VisitorException {
+        if (stores == null) {
+            stores = PlanHelper.getPhysicalOperators(plan, POStore.class);
+        }
+        return stores;
     }
 
     public static class VertexGroupInfo {

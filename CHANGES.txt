@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4434: Improve auto-parallelism for tez (daijy)
+
 PIG-4495: Better multi-query planning in case of multiple edges (rohini)
 
 PIG-3294: Allow Pig use Hive UDFs (daijy)

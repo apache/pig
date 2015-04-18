@@ -27,7 +27,6 @@ import org.apache.pig.PigConfiguration;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezEdgeDescriptor;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
@@ -82,15 +81,15 @@ public class ParallelismSetter extends TezOpPlanVisitor {
             // splits
             int parallelism = -1;
             boolean intermediateReducer = false;
-            LinkedList<POStore> stores = PlanHelper.getPhysicalOperators(tezOp.plan, POStore.class);
+            LinkedList<POStore> stores = tezOp.getStores();
             if (stores.size() <= 0) {
                 intermediateReducer = true;
             }
             if (tezOp.getLoaderInfo().getLoads() != null && tezOp.getLoaderInfo().getLoads().size() > 0) {
-                // TODO: Can be set to -1 if TEZ-601 gets fixed and getting input
-                // splits can be moved to if(loads) block below
-                parallelism = tezOp.getLoaderInfo().getInputSplitInfo().getNumTasks();
-                tezOp.setRequestedParallelism(parallelism);
+                // requestedParallelism of Loader vertex is handled in LoaderProcessor
+                // propogate to vertexParallelism
+                tezOp.setVertexParallelism(tezOp.getRequestedParallelism());
+                return;
             } else {
                 int prevParallelism = -1;
                 boolean isOneToOneParallelism = false;
@@ -107,7 +106,12 @@ public class ParallelismSetter extends TezOpPlanVisitor {
                                     + tezOp.getOperatorKey().toString() + " are not equal");
                         }
                         tezOp.setRequestedParallelism(pred.getRequestedParallelism());
-                        tezOp.setEstimatedParallelism(pred.getEstimatedParallelism());
+                        // If tezOp.estimatedParallelism already set, don't override
+                        // The only case is in PigGraceShuffleVertexManager, which
+                        // set the estimated parallelism according to the output data size of the node
+                        if (tezOp.getEstimatedParallelism()==-1) {
+                            tezOp.setEstimatedParallelism(pred.getEstimatedParallelism());
+                        }
                         isOneToOneParallelism = true;
                         incrementTotalParallelism(tezOp, parallelism);
                         parallelism = -1;
@@ -159,7 +163,7 @@ public class ParallelismSetter extends TezOpPlanVisitor {
                                 for (TezOperator pred : mPlan.getPredecessors(tezOp)) {
                                     if (pred.isSampleBasedPartitioner()) {
                                         for (TezOperator partitionerPred : mPlan.getPredecessors(pred)) {
-                                            if (partitionerPred.isSampleAggregation()) {
+                                            if (partitionerPred.isSampleAggregation() && partitionerPred.plan!=null) {
                                                 LOG.debug("Updating parallelism constant value to " + parallelism + " in " + partitionerPred.plan);
                                                 ParallelConstantVisitor visitor =
                                                         new ParallelConstantVisitor(partitionerPred.plan, parallelism);
