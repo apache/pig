@@ -56,7 +56,7 @@ public class TestImplicitSplitOnTuple {
                 "D2 = FOREACH tuplified GENERATE tuplify.memberId as memberId, tuplify.shopId as shopId, score AS score;"+
                 "J = JOIN D1 By shopId, D2 by shopId;"+
                 "K = FOREACH J GENERATE D1::memberId AS member_id1, D2::memberId AS member_id2, D1::shopId as shop;"+
-                "L = ORDER K by shop;"+
+                "L = ORDER K by shop, member_id1, member_id2;"+
                 "STORE L into 'output' using mock.Storage;");
         List<Tuple> list = data.get("output");
         assertEquals("list: "+list, 20, list.size());

@@ -120,10 +120,8 @@ public class TezOperDependencyParallelismEstimator implements TezParallelismEsti
 
                 //For cases like Union we can just limit to sum of pred vertices parallelism
                 boolean applyFactor = !tezOper.isUnion();
-                if (pred.plan!=null && applyFactor) { // pred.plan can be null if it is a VertexGroup
-                    TezParallelismFactorVisitor parallelismFactorVisitor = new TezParallelismFactorVisitor(pred.plan, tezOper.getOperatorKey().toString());
-                    parallelismFactorVisitor.visit();
-                    predParallelism = predParallelism * parallelismFactorVisitor.getFactor();
+                if (!pred.isVertexGroup() && applyFactor) {
+                    predParallelism = predParallelism * pred.getParallelismFactor();
                 }
                 estimatedParallelism += predParallelism;
             }

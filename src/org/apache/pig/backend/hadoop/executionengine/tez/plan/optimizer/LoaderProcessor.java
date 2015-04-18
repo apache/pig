@@ -169,6 +169,10 @@ public class LoaderProcessor extends TezOpPlanVisitor {
             // Not using MRInputAMSplitGenerator because delegation tokens are
             // fetched in FileInputFormat
             tezOp.getLoaderInfo().setInputSplitInfo(MRInputHelpers.generateInputSplitsToMem(conf, false, 0));
+            // TODO: Can be set to -1 if TEZ-601 gets fixed and getting input
+            // splits can be moved to if(loads) block below
+            int parallelism = tezOp.getLoaderInfo().getInputSplitInfo().getNumTasks();
+            tezOp.setRequestedParallelism(parallelism);
         }
         return lds;
     }

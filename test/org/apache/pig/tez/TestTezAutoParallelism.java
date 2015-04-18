@@ -307,7 +307,7 @@ public class TestTezAutoParallelism {
         PigServer.resetScope();
         StringWriter writer = new StringWriter();
         // When there is a combiner operation involved user specified parallelism is overriden
-        Util.createLogAppender(ParallelismSetter.class, "testIncreaseIntermediateParallelism", writer);
+        Util.createLogAppender("testIncreaseIntermediateParallelism", writer, ParallelismSetter.class);
         try {
             pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
             pigServer.getPigContext().getProperties().setProperty(MRConfiguration.MAX_SPLIT_SIZE, "4000");

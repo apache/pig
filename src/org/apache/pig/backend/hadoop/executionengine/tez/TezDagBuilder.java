@@ -113,6 +113,7 @@ import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POStoreTe
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POValueInputTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.ReadScalarsTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.PartitionerDefinedVertexManager;
+import org.apache.pig.backend.hadoop.executionengine.tez.runtime.PigGraceShuffleVertexManager;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.PigOutputFormatTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.PigProcessor;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.MRToTezHelper;
@@ -392,6 +393,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         }
 
         conf.setBoolean(MRConfiguration.MAPPER_NEW_API, true);
+        conf.setBoolean(MRConfiguration.REDUCER_NEW_API, true);
         conf.set("pig.pigContext", ObjectSerializer.serialize(pc));
         conf.set("udf.import.list",
                 ObjectSerializer.serialize(PigContext.getPackageImportList()));
@@ -437,6 +439,11 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                     edge.dataSourceType, edge.schedulingType, out, in);
             }
 
+        if (to.isUseGraceParallelism()) {
+            // Put datamovement to null to prevent vertex "to" from starting. It will be started by PigGraceShuffleVertexManager
+            return EdgeProperty.create((EdgeManagerPluginDescriptor)null, edge.dataSourceType,
+                    edge.schedulingType, out, in);
+        }
         return EdgeProperty.create(edge.dataMovementType, edge.dataSourceType,
                 edge.schedulingType, out, in);
     }
@@ -458,6 +465,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         conf.set(MRJobConfig.COMBINE_CLASS_ATTR,
                 PigCombiner.Combine.class.getName());
         conf.setBoolean(MRConfiguration.MAPPER_NEW_API, true);
+        conf.setBoolean(MRConfiguration.REDUCER_NEW_API, true);
         conf.set("pig.pigContext", ObjectSerializer.serialize(pc));
         conf.set("udf.import.list",
                 ObjectSerializer.serialize(PigContext.getPackageImportList()));
@@ -515,6 +523,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 ObjectSerializer.serialize(PigContext.getPackageImportList()));
         payloadConf.set("exectype", "TEZ");
         payloadConf.setBoolean(MRConfiguration.MAPPER_NEW_API, true);
+        payloadConf.setBoolean(MRConfiguration.REDUCER_NEW_API, true);
         payloadConf.setClass(MRConfiguration.INPUTFORMAT_CLASS,
                 PigInputFormat.class, InputFormat.class);
 
@@ -657,9 +666,77 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         UserPayload userPayload = TezUtils.createUserPayloadFromConf(payloadConf);
         procDesc.setUserPayload(userPayload).setHistoryText(convertToHistoryText(tezOp.getOperatorKey().toString(), payloadConf));
 
-        Vertex vertex = Vertex.create(tezOp.getOperatorKey().toString(), procDesc, tezOp.getVertexParallelism(),
-                tezOp.isUseMRMapSettings() ? MRHelpers.getResourceForMRMapper(globalConf) : MRHelpers.getResourceForMRReducer(globalConf));
+        String vmPluginName = null;
+        Configuration vmPluginConf = null;
 
+        // Set the right VertexManagerPlugin
+        if (tezOp.getEstimatedParallelism() != -1) {
+            if (tezOp.isGlobalSort()||tezOp.isSkewedJoin()) {
+                // Set VertexManagerPlugin to PartitionerDefinedVertexManager, which is able
+                // to decrease/increase parallelism of sorting vertex dynamically
+                // based on the numQuantiles calculated by sample aggregation vertex
+                vmPluginName = PartitionerDefinedVertexManager.class.getName();
+                log.info("Set VertexManagerPlugin to PartitionerDefinedParallelismVertexManager for vertex " + tezOp.getOperatorKey().toString());
+            } else {
+                boolean containScatterGather = false;
+                boolean containCustomPartitioner = false;
+                for (TezEdgeDescriptor edge : tezOp.inEdges.values()) {
+                    if (edge.dataMovementType == DataMovementType.SCATTER_GATHER) {
+                        containScatterGather = true;
+                    }
+                    if (edge.partitionerClass!=null) {
+                        containCustomPartitioner = true;
+                    }
+                }
+                if (containScatterGather && !containCustomPartitioner) {
+                    // Use auto-parallelism feature of ShuffleVertexManager to dynamically
+                    // reduce the parallelism of the vertex
+                    if (payloadConf.getBoolean(PigConfiguration.PIG_TEZ_GRACE_PARALLELISM, true)
+                            && !TezOperPlan.getGrandParentsForGraceParallelism(getPlan(), tezOp).isEmpty()) {
+                        vmPluginName = PigGraceShuffleVertexManager.class.getName();
+                        tezOp.setUseGraceParallelism(true);
+                    } else {
+                        vmPluginName = ShuffleVertexManager.class.getName();
+                    }
+                    vmPluginConf = (vmPluginConf == null) ? ConfigurationUtil.toConfiguration(pc.getProperties(), false) : vmPluginConf;
+                    vmPluginConf.setBoolean(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL, true);
+                    vmPluginConf.set("pig.tez.plan", ObjectSerializer.serialize(getPlan()));
+                    vmPluginConf.set("pig.pigContext", ObjectSerializer.serialize(pc));
+                    if (stores.size() <= 0) {
+                        // Intermediate reduce. Set the bytes per reducer to be block size.
+                        vmPluginConf.setLong(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE,
+                                        intermediateTaskInputSize);
+                    } else if (vmPluginConf.getLong(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM,
+                                    InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER) !=
+                                    InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER) {
+                        vmPluginConf.setLong(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE,
+                                vmPluginConf.getLong(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM,
+                                        InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER));
+                    }
+                    log.info("Set auto parallelism for vertex " + tezOp.getOperatorKey().toString());
+                }
+            }
+        }
+        if (tezOp.isLimit() && (vmPluginName == null || vmPluginName.equals(PigGraceShuffleVertexManager.class.getName())||
+                vmPluginName.equals(ShuffleVertexManager.class.getName()))) {
+            if (tezOp.inEdges.values().iterator().next().inputClassName.equals(UnorderedKVInput.class.getName())) {
+                // Setting SRC_FRACTION to 0.00001 so that even if there are 100K source tasks,
+                // limit job starts when 1 source task finishes.
+                // If limit is part of a group by or join because their parallelism is 1,
+                // we should leave the configuration with the defaults.
+                vmPluginConf = (vmPluginConf == null) ? ConfigurationUtil.toConfiguration(pc.getProperties(), false) : vmPluginConf;
+                vmPluginConf.set(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION, "0.00001");
+                vmPluginConf.set(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION, "0.00001");
+                log.info("Set " + ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION + " to 0.00001 for limit vertex " + tezOp.getOperatorKey().toString());
+            }
+        }
+
+        int parallel = tezOp.getVertexParallelism();
+        if (tezOp.isUseGraceParallelism()) {
+            parallel = -1;
+        }
+        Vertex vertex = Vertex.create(tezOp.getOperatorKey().toString(), procDesc, parallel,
+                tezOp.isUseMRMapSettings() ? MRHelpers.getResourceForMRMapper(globalConf) : MRHelpers.getResourceForMRReducer(globalConf));
         Map<String, String> taskEnv = new HashMap<String, String>();
         MRHelpers.updateEnvBasedOnMRTaskEnv(globalConf, taskEnv, tezOp.isUseMRMapSettings());
         vertex.setTaskEnvironment(taskEnv);
@@ -772,6 +849,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                         new DataSinkDescriptor(storeOutDescriptor,
                         OutputCommitterDescriptor.create(MROutputCommitter.class.getName()),
                         dag.getCredentials()));
+                uniqueStoreOutputs.add(outputKey);
             }
         }
 
@@ -783,62 +861,6 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             new PigOutputFormat().checkOutputSpecs(job);
         }
 
-        String vmPluginName = null;
-        Configuration vmPluginConf = null;
-
-        // Set the right VertexManagerPlugin
-        if (tezOp.getEstimatedParallelism() != -1) {
-            if (tezOp.isGlobalSort()||tezOp.isSkewedJoin()) {
-                // Set VertexManagerPlugin to PartitionerDefinedVertexManager, which is able
-                // to decrease/increase parallelism of sorting vertex dynamically
-                // based on the numQuantiles calculated by sample aggregation vertex
-                vmPluginName = PartitionerDefinedVertexManager.class.getName();
-                log.info("Set VertexManagerPlugin to PartitionerDefinedParallelismVertexManager for vertex " + tezOp.getOperatorKey().toString());
-            } else {
-                boolean containScatterGather = false;
-                boolean containCustomPartitioner = false;
-                for (TezEdgeDescriptor edge : tezOp.inEdges.values()) {
-                    if (edge.dataMovementType == DataMovementType.SCATTER_GATHER) {
-                        containScatterGather = true;
-                    }
-                    if (edge.partitionerClass!=null) {
-                        containCustomPartitioner = true;
-                    }
-                }
-                if (containScatterGather && !containCustomPartitioner) {
-                    // Use auto-parallelism feature of ShuffleVertexManager to dynamically
-                    // reduce the parallelism of the vertex
-                    vmPluginName = ShuffleVertexManager.class.getName();
-                    vmPluginConf = (vmPluginConf == null) ? ConfigurationUtil.toConfiguration(pc.getProperties(), false) : vmPluginConf;
-                    vmPluginConf.setBoolean(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL, true);
-                    if (stores.size() <= 0) {
-                        // Intermediate reduce. Set the bytes per reducer to be block size.
-                        vmPluginConf.setLong(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE,
-                                        intermediateTaskInputSize);
-                    } else if (vmPluginConf.getLong(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM,
-                                    InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER) !=
-                                    InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER) {
-                        vmPluginConf.setLong(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE,
-                                vmPluginConf.getLong(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM,
-                                        InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER));
-                    }
-                    log.info("Set auto parallelism for vertex " + tezOp.getOperatorKey().toString());
-                }
-            }
-        }
-        if (tezOp.isLimit() && (vmPluginName == null || vmPluginName.equals(ShuffleVertexManager.class.getName()))) {
-            if (tezOp.inEdges.values().iterator().next().inputClassName.equals(UnorderedKVInput.class.getName())) {
-                // Setting SRC_FRACTION to 0.00001 so that even if there are 100K source tasks,
-                // limit job starts when 1 source task finishes.
-                // If limit is part of a group by or join because their parallelism is 1,
-                // we should leave the configuration with the defaults.
-                vmPluginName = ShuffleVertexManager.class.getName();
-                vmPluginConf = (vmPluginConf == null) ? ConfigurationUtil.toConfiguration(pc.getProperties(), false) : vmPluginConf;
-                vmPluginConf.set(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION, "0.00001");
-                vmPluginConf.set(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION, "0.00001");
-                log.info("Set " + ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION + " to 0.00001 for limit vertex " + tezOp.getOperatorKey().toString());
-            }
-        }
         // else if(tezOp.isLimitAfterSort())
         // TODO: PIG-4049 If standalone Limit we need a new VertexManager or new input
         // instead of ShuffledMergedInput. For limit part of the sort (order by parallel 1) itself

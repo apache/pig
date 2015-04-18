@@ -89,5 +89,10 @@ public class OperatorKey implements Serializable, Comparable<OperatorKey> {
             NodeIdGenerator.getGenerator().getNextNodeId(scope));
     }
 
+    static public OperatorKey fromString(String op) {
+        String scope = op.substring(0, op.indexOf("-"));
+        long id = Long.parseLong(op.substring(op.indexOf("-")+1));
+        return new OperatorKey(scope, id);
+    }
 
 }
