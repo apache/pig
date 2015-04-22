@@ -1350,11 +1350,15 @@ public class Util {
 
     public static ExecType getLocalTestMode() throws Exception {
         String execType = System.getProperty("test.exec.type");
-        if (execType!=null && execType.equals("tez")) {
-            return ExecTypeProvider.fromString("tez_local");
-        } else {
-            return ExecTypeProvider.fromString("local");
+        if (execType != null) {
+            if (execType.equals("tez")) {
+                return ExecTypeProvider.fromString("tez_local");
+            } else if (execType.equals("spark")) {
+                return ExecTypeProvider.fromString("spark_local");
+            }
         }
+
+        return ExecTypeProvider.fromString("local");
     }
 
     public static void createLogAppender(Class clazz, String appenderName, Writer writer) {

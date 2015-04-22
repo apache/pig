@@ -136,7 +136,7 @@ public class SparkLauncher extends Launcher {
 				.getExecutionEngine().instantiatePigStats();
 		PigStats.start(sparkStats);
 
-		startSparkIfNeeded();
+		startSparkIfNeeded(pigContext);
 
 		// Set a unique group id for this query, so we can lookup all Spark job
 		// ids
@@ -388,12 +388,17 @@ public class SparkLauncher extends Launcher {
 		return sparkPlan;
 	}
 
-	private static void startSparkIfNeeded() throws PigException {
+	private static void startSparkIfNeeded(PigContext pc) throws PigException {
 		if (sparkContext == null) {
-			String master = System.getenv("SPARK_MASTER");
-			if (master == null) {
-				LOG.info("SPARK_MASTER not specified, using \"local\"");
+			String master = null;
+			if (pc.getExecType().isLocal()) {
 				master = "local";
+			} else {
+				master = System.getenv("SPARK_MASTER");
+				if (master == null) {
+					LOG.info("SPARK_MASTER not specified, using \"local\"");
+					master = "local";
+				}
 			}
 
 			String sparkHome = System.getenv("SPARK_HOME");
