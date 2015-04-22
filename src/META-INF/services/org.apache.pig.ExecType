@@ -16,4 +16,4 @@ org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRExecType
 #org.apache.pig.backend.hadoop.executionengine.tez.TezLocalExecType
 #org.apache.pig.backend.hadoop.executionengine.tez.TezExecType
 org.apache.pig.backend.hadoop.executionengine.spark.SparkExecType
-
+org.apache.pig.backend.hadoop.executionengine.spark.SparkLocalExecType
