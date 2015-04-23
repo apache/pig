@@ -168,11 +168,7 @@ public class PigGraceShuffleVertexManager extends ShuffleVertexManager {
                         edge.getEdgeSource(), edge.getEdgeDestination());
                 edgeManagers.put(entry.getKey(), edge);
             }
-            try {
-                getContext().reconfigureVertex(thisParallelism, null, edgeManagers);
-            } catch (TezException e) {
-                throw new RuntimeException(e);
-            }
+            getContext().reconfigureVertex(thisParallelism, null, edgeManagers);
             parallelismSet = true;
             LOG.info("Initialize parallelism for " + getContext().getVertexName() + " to " + thisParallelism);
         }
