@@ -34,10 +34,10 @@ import com.google.common.collect.Lists;
 /**
  * This is a UDF which allows the user to specify a string prefix, and then
  * filter for the columns in a relation that begin with that prefix.
+ * 
+ * Additional arguments to this udf are columns to exclude from the relation matching this prefix (assuming this column is the end of the alias: e.g., if choose to exclude column y then exclude a::b::y using PluckTuple('a::','y'))
  *
  * Example:
- *
- * 1) Prefix
  * a = load 'a' as (x, y);
  * b = load 'b' as (x, y);
  * c = join a by x, b by x;
@@ -47,29 +47,28 @@ import com.google.common.collect.Lists;
  * c: {a::x: bytearray,a::y: bytearray,b::x: bytearray,b::y: bytearray}
  * describe d;
  * d: {plucked::a::x: bytearray,plucked::a::y: bytearray}
- *
- * 2) Regex
- * a = load 'a' as (x, y);
- * b = load 'b' as (x, y);
- * c = join a by x, b by x;
- * DEFINE pluck PluckTuple('.*::y');
- * d = foreach c generate FLATTEN(pluck(*));
- * describe c;
- * c: {a::x: bytearray,a::y: bytearray,b::x: bytearray,b::y: bytearray}
- * describe d;
- * d: {plucked::a::y: bytearray,plucked::a::y: bytearray}
  */
 public class PluckTuple extends EvalFunc<Tuple> {
     private static final TupleFactory mTupleFactory = TupleFactory.getInstance();
-    private static Pattern pattern;
+    private static Pattern prefixPattern;
 
     private boolean isInitialized = false;
     private int[] indicesToInclude;
     private String prefix;
+    private List<String> columnsToExclude = Lists.newArrayList();
 
-    public PluckTuple(String prefix) {
-        this.prefix = prefix;
-        pattern = Pattern.compile(prefix);
+    public PluckTuple(String...args) {
+        int i = 0;
+        for (String arg : args) {
+            if (i == 0) {
+                this.prefix = arg;
+            }
+            else {
+                this.columnsToExclude.add(arg);
+            }
+            i++;
+        }
+        prefixPattern = Pattern.compile(prefix);
     }
 
     @Override
@@ -79,7 +78,9 @@ public class PluckTuple extends EvalFunc<Tuple> {
             Schema inputSchema = getInputSchema();
             for (int i = 0; i < inputSchema.size(); i++) {
                 String alias = inputSchema.getField(i).alias;
-                if (alias.startsWith(prefix) || pattern.matcher(alias).matches()) {
+                String[] splitAlias = alias.split("::");
+                String lastAlias = splitAlias[splitAlias.length-1];
+                if ((alias.startsWith(prefix) || prefixPattern.matcher(alias).matches()) && ! this.columnsToExclude.contains(lastAlias)) {
                     indicesToInclude.add(i);
                 }
             }
@@ -103,12 +104,16 @@ public class PluckTuple extends EvalFunc<Tuple> {
             List<Integer> indicesToInclude = Lists.newArrayList();
             for (int i = 0; i < inputSchema.size(); i++) {
                 String alias;
+                String[] splitAlias;
+                String lastAlias;
                 try {
                     alias = inputSchema.getField(i).alias;
+                    splitAlias = alias.split("::");
+                    lastAlias = splitAlias[splitAlias.length-1];
                 } catch (FrontendException e) {
                     throw new RuntimeException(e); // Should never happen
                 }
-                if (alias.startsWith(prefix) || pattern.matcher(alias).matches()) {
+                if ((alias.startsWith(prefix) || prefixPattern.matcher(alias).matches()) && ! this.columnsToExclude.contains(lastAlias)) {
                     indicesToInclude.add(i);
                 }
             }
