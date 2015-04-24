@@ -26,12 +26,12 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Iterator;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.Utils;
+import org.apache.pig.test.Util;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -40,7 +40,7 @@ public class TestPluckTuple {
 
     @Before
     public void setUp() throws Exception {
-        pigServer = new PigServer(ExecType.LOCAL);
+        pigServer = new PigServer(Util.getLocalTestMode());
     }
 
     @Test
@@ -96,55 +96,6 @@ public class TestPluckTuple {
         assertEquals(exp1, it.next());
         assertTrue(it.hasNext());
         assertEquals(exp2, it.next());
-        assertFalse(it.hasNext());
-    }
-
-    @Test
-    public void testExcludeColumns() throws Exception {
-        String query = "a1 = load 'a1' as (x:int,y:chararray,z:long);" +
-                "a2 = load 'a2' as (x:int,y:chararray,z:long);" +
-                "a3 = foreach a2 generate x, y;" +
-                "b = join a1 by x, a2 by x;" +
-                "define pluck PluckTuple('a[2|3]::.*','z');" +
-                "c = foreach b generate flatten(pluck(*));";
-        pigServer.registerQuery(query);
-        assertTrue(Schema.equals(pigServer.dumpSchema("a3"), pigServer.dumpSchema("c"), false, true));
-    }
-
-    @Test
-    public void testExcludeColumnsOutput() throws Exception {
-        Data data = resetData(pigServer);
-
-        Tuple exp1 = tuple(1, "hey", 2L);
-        Tuple exp2 = tuple(2, "woah", 3L);
-
-        Tuple exp1_excl = tuple(1, 2L);
-        Tuple exp2_excl = tuple(2, 3L);
-
-        data.set("a",
-            Utils.getSchemaFromString("x:int,y:chararray,z:long"),
-            exp1,
-            exp2,
-            tuple(3, "c", 4L)
-            );
-        data.set("b",
-            Utils.getSchemaFromString("x:int,y:chararray,z:long"),
-            tuple(1, "sasf", 5L),
-            tuple(2, "woah", 6L),
-            tuple(4, "c", 7L)
-            );
-
-        String query = "a = load 'a' using mock.Storage();" +
-            "b = load 'b' using mock.Storage();" +
-            "c = join a by x, b by x;" +
-            "define pluck PluckTuple('a::','y');" +
-            "d = foreach c generate flatten(pluck(*));";
-        pigServer.registerQuery(query);
-        Iterator<Tuple> it = pigServer.openIterator("d");
-        assertTrue(it.hasNext());
-        assertEquals(exp1_excl, it.next());
-        assertTrue(it.hasNext());
-        assertEquals(exp2_excl, it.next());
         assertFalse(it.hasNext());
     }
 }
