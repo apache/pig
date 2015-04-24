@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4511: Add columns to prune from PluckTuple (jbabcock via daijy)
+
 PIG-4434: Improve auto-parallelism for tez (daijy)
 
 PIG-4495: Better multi-query planning in case of multiple edges (rohini)
