@@ -66,9 +66,15 @@ public class PluckTuple extends EvalFunc<Tuple> {
     private boolean isInitialized = false;
     private int[] indicesToInclude;
     private String prefix;
+    private boolean match;
 
     public PluckTuple(String prefix) {
+        this(prefix,"true");
+    }
+
+    public PluckTuple(String prefix, String match) {
         this.prefix = prefix;
+        this.match = Boolean.valueOf(match);
         pattern = Pattern.compile(prefix);
     }
 
@@ -79,7 +85,10 @@ public class PluckTuple extends EvalFunc<Tuple> {
             Schema inputSchema = getInputSchema();
             for (int i = 0; i < inputSchema.size(); i++) {
                 String alias = inputSchema.getField(i).alias;
-                if (alias.startsWith(prefix) || pattern.matcher(alias).matches()) {
+                if ((alias.startsWith(prefix) || pattern.matcher(alias).matches()) && this.match) {
+                    indicesToInclude.add(i);
+                }
+                else if (!alias.startsWith(prefix) && !pattern.matcher(alias).matches() && !this.match){
                     indicesToInclude.add(i);
                 }
             }
@@ -108,7 +117,10 @@ public class PluckTuple extends EvalFunc<Tuple> {
                 } catch (FrontendException e) {
                     throw new RuntimeException(e); // Should never happen
                 }
-                if (alias.startsWith(prefix) || pattern.matcher(alias).matches()) {
+                if ((alias.startsWith(prefix) || pattern.matcher(alias).matches()) && this.match) {
+                    indicesToInclude.add(i);
+                }
+                else if (!alias.startsWith(prefix) && !pattern.matcher(alias).matches() && !this.match){
                     indicesToInclude.add(i);
                 }
             }
