@@ -26,6 +26,8 @@ IMPROVEMENTS
 
 BUG FIXES
 
+PIG-4331: update README, '-x' option in usage to include tez (thejas via daijy)
+
 PIG-4409: fs.defaultFS is overwritten in JobConf by replicated join at runtime (cheolsoo)
 
 PIG-4404: LOAD with HBaseStorage on secure cluster is broken in Tez (rohini)
