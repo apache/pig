@@ -66,6 +66,8 @@ PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES
 
+PIG-4494: Pig's htrace version conflicts with that of hadoop 2.6.0 (daijy)
+
 PIG-4519: Correct link to Contribute page (gliptak via daijy)
 
 PIG-4514: pig trunk compilation is broken - VertexManagerPluginContext.reconfigureVertex change (thejas)

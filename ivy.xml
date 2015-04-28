@@ -352,6 +352,9 @@
       <exclude org="asm" module="asm"/>
     </dependency>
 
+    <dependency org="org.htrace" name="htrace-core" rev="${htrace.version}" conf="hadoop23->master"/>
+    <dependency org="org.fusesource.leveldbjni" name="leveldbjni-all" rev="${leveldbjni.version}"
+      conf="hadoop23->master"/>
     <dependency org="org.cloudera.htrace" name="htrace-core" rev="2.00" conf="hbase95->master">
       <artifact name="htrace-core" type="jar"/>
     </dependency>
@@ -452,7 +455,10 @@
       conf="hadoop23->master"/>
     <dependency org="org.apache.commons" name="commons-math3" rev="${commons-math3.version}"
       conf="hadoop23->master"/>
-
+    <dependency org="org.apache.curator" name="curator-framework" rev="${curator.version}"
+      conf="hadoop23->master"/>
+    <dependency org="org.apache.curator" name="curator-client" rev="${curator.version}"
+      conf="hadoop23->master"/>
   </dependencies>
 </ivy-module>
 
