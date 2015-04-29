@@ -308,7 +308,7 @@ public class SparkCompiler extends PhyPlanVisitor {
 
 	public void visitDistinct(PODistinct op) throws VisitorException {
 		try {
-			nonBlocking(op);
+			addToPlan(op);
 		} catch (Exception e) {
 			int errCode = 2034;
 			String msg = "Error compiling operator "
@@ -343,7 +343,7 @@ public class SparkCompiler extends PhyPlanVisitor {
 	@Override
 	public void visitLoad(POLoad op) throws VisitorException {
 		try {
-			nonBlocking(op);
+			addToPlan(op);
 			phyToSparkOpMap.put(op, curSparkOp);
 		} catch (Exception e) {
 			int errCode = 2034;
@@ -379,7 +379,7 @@ public class SparkCompiler extends PhyPlanVisitor {
 	@Override
 	public void visitStore(POStore op) throws VisitorException {
 		try {
-			nonBlocking(op);
+			addToPlan(op);
 			phyToSparkOpMap.put(op, curSparkOp);
 			if (op.getSFile() != null && op.getSFile().getFuncSpec() != null)
 				curSparkOp.UDFs.add(op.getSFile().getFuncSpec().toString());
@@ -394,7 +394,7 @@ public class SparkCompiler extends PhyPlanVisitor {
 	@Override
 	public void visitFilter(POFilter op) throws VisitorException {
 		try {
-			nonBlocking(op);
+			addToPlan(op);
 			processUDFs(op.getPlan());
 			phyToSparkOpMap.put(op, curSparkOp);
 		} catch (Exception e) {
@@ -408,7 +408,7 @@ public class SparkCompiler extends PhyPlanVisitor {
 	@Override
 	public void visitCross(POCross op) throws VisitorException {
 		try {
-			nonBlocking(op);
+			addToPlan(op);
 			phyToSparkOpMap.put(op, curSparkOp);
 		} catch (Exception e) {
 			int errCode = 2034;
@@ -422,7 +422,7 @@ public class SparkCompiler extends PhyPlanVisitor {
 	public void visitStream(POStream op) throws VisitorException {
 		try {
 			POStreamSpark poStreamSpark = new POStreamSpark(op);
-			nonBlocking(poStreamSpark);
+			addToPlan(poStreamSpark);
 			phyToSparkOpMap.put(op, curSparkOp);
 		} catch (Exception e) {
 			int errCode = 2034;
@@ -435,7 +435,7 @@ public class SparkCompiler extends PhyPlanVisitor {
 	@Override
 	public void visitSort(POSort op) throws VisitorException {
 		try {
-            nonBlocking(op);
+            addToPlan(op);
             POSort sort = op;
             long limit = sort.getLimit();
             if (limit!=-1) {
@@ -455,7 +455,7 @@ public class SparkCompiler extends PhyPlanVisitor {
 	@Override
 	public void visitLimit(POLimit op) throws VisitorException {
 		try {
-			nonBlocking(op);
+			addToPlan(op);
 		} catch (Exception e) {
 			int errCode = 2034;
 			String msg = "Error compiling operator "
@@ -468,7 +468,7 @@ public class SparkCompiler extends PhyPlanVisitor {
 	public void visitLocalRearrange(POLocalRearrange op)
 			throws VisitorException {
 		try {
-			nonBlocking(op);
+			addToPlan(op);
 			List<PhysicalPlan> plans = op.getPlans();
 			if (plans != null)
 				for (PhysicalPlan ep : plans)
@@ -520,7 +520,7 @@ public class SparkCompiler extends PhyPlanVisitor {
 		}
 
 		try {
-			nonBlocking(op);
+			addToPlan(op);
 			phyToSparkOpMap.put(op, curSparkOp);
 		} catch (Exception e) {
 			int errCode = 2034;
@@ -533,7 +533,7 @@ public class SparkCompiler extends PhyPlanVisitor {
 	@Override
 	public void visitPOForEach(POForEach op) throws VisitorException {
 		try {
-			nonBlocking(op);
+			addToPlan(op);
 			List<PhysicalPlan> plans = op.getInputPlans();
 			if (plans != null) {
 				for (PhysicalPlan ep : plans) {
@@ -553,7 +553,7 @@ public class SparkCompiler extends PhyPlanVisitor {
 	public void visitGlobalRearrange(POGlobalRearrange op)
 			throws VisitorException {
 		try {
-			blocking(op);
+			addToPlan(op);
 			curSparkOp.customPartitioner = op.getCustomPartitioner();
 			phyToSparkOpMap.put(op, curSparkOp);
 		} catch (Exception e) {
@@ -567,7 +567,7 @@ public class SparkCompiler extends PhyPlanVisitor {
 	@Override
 	public void visitPackage(POPackage op) throws VisitorException {
 		try {
-			nonBlocking(op);
+			addToPlan(op);
 			phyToSparkOpMap.put(op, curSparkOp);
 			if (op.getPkgr().getPackageType() == Packager.PackageType.JOIN) {
 				curSparkOp.markRegularJoin();
@@ -590,7 +590,7 @@ public class SparkCompiler extends PhyPlanVisitor {
 	@Override
 	public void visitUnion(POUnion op) throws VisitorException {
 		try {
-			nonBlocking(op);
+			addToPlan(op);
 			phyToSparkOpMap.put(op, curSparkOp);
 		} catch (Exception e) {
 			int errCode = 2034;
@@ -629,24 +629,13 @@ public class SparkCompiler extends PhyPlanVisitor {
 		}
 	}
 
-	private void nonBlocking(PhysicalOperator op) throws PlanException,
+	private void addToPlan(PhysicalOperator op) throws PlanException,
 			IOException {
 		SparkOperator sparkOp = null;
 		if (compiledInputs.length == 1) {
 			sparkOp = compiledInputs[0];
 		} else {
 			sparkOp = merge(compiledInputs);
-		}
-		sparkOp.physicalPlan.addAsLeaf(op);
-		curSparkOp = sparkOp;
-	}
-
-	private void blocking(PhysicalOperator op) throws PlanException,
-			IOException {
-		SparkOperator sparkOp = getSparkOp();
-		sparkPlan.add(sparkOp);
-		for (SparkOperator compileInput : compiledInputs) {
-			sparkPlan.connect(compileInput, sparkOp);
 		}
 		sparkOp.physicalPlan.addAsLeaf(op);
 		curSparkOp = sparkOp;
