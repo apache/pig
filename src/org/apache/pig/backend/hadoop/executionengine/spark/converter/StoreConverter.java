@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.FileOutputFormat;
@@ -33,7 +35,9 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCo
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigOutputFormat;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.spark.SparkLauncher;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
+import org.apache.pig.builtin.LOG;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.ObjectSerializer;
@@ -54,7 +58,8 @@ import com.google.common.collect.Lists;
 public class StoreConverter implements
         POConverter<Tuple, Tuple2<Text, Tuple>, POStore> {
 
-    private static final FromTupleFunction FROM_TUPLE_FUNCTION = new FromTupleFunction();
+  private static final Log LOG = LogFactory.getLog(StoreConverter.class);
+  private static final FromTupleFunction FROM_TUPLE_FUNCTION = new FromTupleFunction();
 
     private PigContext pigContext;
 
@@ -94,7 +99,10 @@ public class StoreConverter implements
                     .getFileName(), Text.class, Tuple.class,
                     PigOutputFormat.class, storeJobConf);
         }
-        return rddPairs.rdd();
+      RDD<Tuple2<Text, Tuple>> retRdd = rddPairs.rdd();
+      if (LOG.isDebugEnabled())
+          LOG.debug("RDD lineage: " + retRdd.toDebugString());
+      return retRdd;
     }
 
     private static POStore configureStorer(JobConf jobConf,

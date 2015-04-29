@@ -17,15 +17,19 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.spark.plan;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.LitePackager;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POGlobalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.impl.plan.DepthFirstWalker;
@@ -41,6 +45,8 @@ import org.apache.pig.impl.util.Pair;
  * stitched in to the "value"
  */
 public class SparkPOPackageAnnotator extends SparkOpPlanVisitor {
+	private static final Log LOG = LogFactory.getLog(SparkPOPackageAnnotator.class);
+
 	public SparkPOPackageAnnotator(SparkOperPlan plan) {
 		super(plan, new DepthFirstWalker<SparkOperator, SparkOperPlan>(plan));
 	}
@@ -51,86 +57,56 @@ public class SparkPOPackageAnnotator extends SparkOpPlanVisitor {
 			PackageDiscoverer pkgDiscoverer = new PackageDiscoverer(
 					sparkOp.physicalPlan);
 			pkgDiscoverer.visit();
-			POPackage pkg = pkgDiscoverer.getPkg();
-			if (pkg != null) {
-				handlePackage(sparkOp, pkg);
-			}
 		}
-	}
-
-	private void handlePackage(SparkOperator pkgSparkOp, POPackage pkg)
-			throws VisitorException {
-		int lrFound = 0;
-		List<SparkOperator> predecessors = this.mPlan
-				.getPredecessors(pkgSparkOp);
-		if (predecessors != null && predecessors.size() > 0) {
-			for (SparkOperator pred : predecessors) {
-				lrFound += patchPackage(pred, pkgSparkOp, pkg);
-				if (lrFound == pkg.getNumInps()) {
-					break;
-				}
-			}
-		}
-		if (lrFound != pkg.getNumInps()) {
-			int errCode = 2086;
-			String msg = "Unexpected problem during optimization. Could not find all LocalRearrange operators.";
-			throw new OptimizerException(msg, errCode, PigException.BUG);
-		}
-	}
-
-	private int patchPackage(SparkOperator pred, SparkOperator pkgSparkOp,
-			POPackage pkg) throws VisitorException {
-		LoRearrangeDiscoverer lrDiscoverer = new LoRearrangeDiscoverer(
-				pred.physicalPlan, pkg);
-		lrDiscoverer.visit();
-		// let our caller know if we managed to patch
-		// the package
-		return lrDiscoverer.getLoRearrangeFound();
 	}
 
 	static class PackageDiscoverer extends PhyPlanVisitor {
-
 		private POPackage pkg;
+		private PhysicalPlan plan;
 
 		public PackageDiscoverer(PhysicalPlan plan) {
 			super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(
 					plan));
+			this.plan = plan;
 		}
 
 		@Override
 		public void visitPackage(POPackage pkg) throws VisitorException {
 			this.pkg = pkg;
+
+			// Find POLocalRearrange(s) corresponding to this POPackage
+			PhysicalOperator graOp = plan.getPredecessors(pkg).get(0);
+			if (! (graOp instanceof POGlobalRearrange)) {
+				  throw new OptimizerException("Package operator is not preceded by " +
+					    "GlobalRearrange operator in Spark Plan", 2087, PigException.BUG);
+			}
+
+			List<PhysicalOperator> lraOps = plan.getPredecessors(graOp);
+			if (pkg.getNumInps() != lraOps.size()) {
+          throw new OptimizerException("Unexpected problem during optimization. " +
+							"Could not find all LocalRearrange operators. Expected " + pkg.getNumInps() +
+					    ". Got " + lraOps.size() + ".", 2086, PigException.BUG);
+			}
+			Collections.sort(lraOps);
+			for (PhysicalOperator op : lraOps) {
+				if (! (op instanceof POLocalRearrange)) {
+					throw new OptimizerException("GlobalRearrange operator can only be preceded by " +
+							"LocalRearrange operator(s) in Spark Plan", 2087, PigException.BUG);
+				}
+				annotatePkgWithLRA((POLocalRearrange)op);
+			}
 		};
 
-		/**
-		 * @return the pkg
-		 */
-		public POPackage getPkg() {
-			return pkg;
-		}
-
-	}
-
-	static class LoRearrangeDiscoverer extends PhyPlanVisitor {
-
-		private int loRearrangeFound = 0;
-		private POPackage pkg;
-
-		public LoRearrangeDiscoverer(PhysicalPlan plan, POPackage pkg) {
-			super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(
-					plan));
-			this.pkg = pkg;
-		}
-
-		@Override
-		public void visitLocalRearrange(POLocalRearrange lrearrange)
+		private void annotatePkgWithLRA(POLocalRearrange lrearrange)
 				throws VisitorException {
-			loRearrangeFound++;
+
 			Map<Integer, Pair<Boolean, Map<Integer, Integer>>> keyInfo;
+			if (LOG.isDebugEnabled())
+			     LOG.debug("Annotating package " + pkg + " with localrearrange operator "
+               + lrearrange + " with index " + lrearrange.getIndex());
 
 			if (pkg.getPkgr() instanceof LitePackager) {
 				if (lrearrange.getIndex() != 0) {
-					// Throw some exception here
 					throw new RuntimeException(
 							"POLocalRearrange for POPackageLite cannot have index other than 0, but has index - "
 									+ lrearrange.getIndex());
@@ -158,17 +134,12 @@ public class SparkPOPackageAnnotator extends SparkOpPlanVisitor {
 					Integer.valueOf(lrearrange.getIndex()),
 					new Pair<Boolean, Map<Integer, Integer>>(lrearrange
 							.isProjectStar(), lrearrange.getProjectedColsMap()));
+			if (LOG.isDebugEnabled())
+          LOG.debug("KeyInfo for packager for package operator " + pkg + " is "
+              + keyInfo );
 			pkg.getPkgr().setKeyInfo(keyInfo);
 			pkg.getPkgr().setKeyTuple(lrearrange.isKeyTuple());
 			pkg.getPkgr().setKeyCompound(lrearrange.isKeyCompound());
 		}
-
-		/**
-		 * @return the loRearrangeFound
-		 */
-		public int getLoRearrangeFound() {
-			return loRearrangeFound;
-		}
-
 	}
 }

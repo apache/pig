@@ -291,19 +291,25 @@ public class AccumulatorOptimizerUtil {
     }
 
     public static void addAccumulatorSpark(PhysicalPlan plan) throws
-            VisitorException {
+        VisitorException {
         List<PhysicalOperator> pos = plan.getRoots();
         if (pos == null || pos.size() == 0) {
             return;
         }
 
-        // See if this is a POGlobalRearrange
-        PhysicalOperator po_globalRearrange = pos.get(0);
-        if (!po_globalRearrange.getClass().equals(POGlobalRearrange.class)) {
-            return;
-        }
+        List<POGlobalRearrange> gras = PlanHelper.getPhysicalOperators(plan,
+            POGlobalRearrange.class);
 
-        List<PhysicalOperator> poPackages = plan.getSuccessors(po_globalRearrange);
+        for (POGlobalRearrange gra : gras) {
+            addAccumulatorSparkForGRASubDAG(plan, gra);
+        }
+    }
+
+
+    private static void addAccumulatorSparkForGRASubDAG(PhysicalPlan plan,
+        POGlobalRearrange gra) throws VisitorException {
+
+        List<PhysicalOperator> poPackages = plan.getSuccessors(gra);
 
         if (poPackages == null || poPackages.size() == 0) {
             return;

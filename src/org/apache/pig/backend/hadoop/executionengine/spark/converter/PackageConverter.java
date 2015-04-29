@@ -113,6 +113,10 @@ public class PackageConverter implements POConverter<Tuple, Tuple, POPackage> {
                                     (Tuple) next.get(2));
                             nullableTuple.setIndex(((Number) next.get(0))
                                     .byteValue());
+                            if (LOG.isDebugEnabled())
+                                LOG.debug("Setting index to " + next.get(0) +
+                                    " for tuple " + (Tuple)next.get(2) + " with key " +
+                                    next.get(1));
                             return nullableTuple;
                         } catch (ExecException e) {
                             throw new RuntimeException(e);
