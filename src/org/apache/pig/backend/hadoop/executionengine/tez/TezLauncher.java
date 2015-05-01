@@ -34,6 +34,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.counters.Limits;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
@@ -116,6 +117,18 @@ public class TezLauncher extends Launcher {
             pc.getProperties().setProperty(TezConfiguration.TEZ_AM_DAG_SCHEDULER_CLASS, DAGSchedulerNaturalOrderControlled.class.getName());
         }
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties(), true);
+        // Make sure MR counter does not exceed limit
+        if (conf.get(TezConfiguration.TEZ_COUNTERS_MAX) != null) {
+            conf.setInt(org.apache.hadoop.mapreduce.MRJobConfig.COUNTER_GROUPS_MAX_KEY, Math.max(
+                    conf.getInt(org.apache.hadoop.mapreduce.MRJobConfig.COUNTER_GROUPS_MAX_KEY, 0),
+                    conf.getInt(TezConfiguration.TEZ_COUNTERS_MAX, 0)));
+        }
+        if (conf.get(TezConfiguration.TEZ_COUNTERS_MAX_GROUPS) != null) {
+            conf.setInt(org.apache.hadoop.mapreduce.MRJobConfig.COUNTERS_MAX_KEY, Math.max(
+                    conf.getInt(org.apache.hadoop.mapreduce.MRJobConfig.COUNTERS_MAX_KEY, 0),
+                    conf.getInt(TezConfiguration.TEZ_COUNTERS_MAX_GROUPS, 0)));
+        }
+        Limits.init(conf);
         if (pc.defaultParallel == -1 && !conf.getBoolean(PigConfiguration.PIG_TEZ_AUTO_PARALLELISM, true)) {
             pc.defaultParallel = 1;
         }
