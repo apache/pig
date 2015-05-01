@@ -84,7 +84,8 @@ public class ReadScalarsTez extends EvalFunc<Object> implements TezInput {
                 if (reader.next()) {
                     String msg = "Scalar has more than one row in the output. "
                             + "1st : " + first + ", 2nd :"
-                            + reader.getCurrentValue();
+                            + reader.getCurrentValue()
+                            + " (common cause: \"JOIN\" then \"FOREACH ... GENERATE foo.bar\" should be \"foo::bar\" )";
                     throw new ExecException(msg);
                 }
             } else {
