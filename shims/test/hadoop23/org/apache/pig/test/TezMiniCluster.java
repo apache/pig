@@ -120,6 +120,7 @@ public class TezMiniCluster extends MiniGenericCluster {
             Configuration tez_conf = new Configuration(false);
             // TODO PIG-3659 - Remove this once memory management is fixed
             tez_conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, "20");
+            tez_conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, "false");
             tez_conf.set("tez.lib.uris", "hdfs:///tez,hdfs:///tez/lib");
             // Set to a lower value so that tests don't get stuck for long because of 1 AM running at a time
             tez_conf.set(TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS, "20");
