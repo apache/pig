@@ -66,6 +66,9 @@ PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES
 
+PIG-4537: Fix unit test failure introduced by TEZ-2392: TestCollectedGroup, TestLimitVariable,
+ TestMapSideCogroup, etc (daijy)
+
 PIG-4530: StackOverflow in TestMultiQueryLocal running under hadoop20 (nielsbasjes via rohini)
 
 PIG-4529: Pig on tez hit counter limit imposed by MR (daijy)

@@ -56,6 +56,7 @@ public class POCounterStatsTez extends PhysicalOperator implements TezInput, Tez
     // KeyValuesReader. After TEZ-661, switch to unsorted shuffle
     private transient KeyValuesReader reader;
     private transient KeyValueWriter writer;
+    private transient boolean finished = false;
 
     public POCounterStatsTez(OperatorKey k) {
         super(k);
@@ -123,6 +124,9 @@ public class POCounterStatsTez extends PhysicalOperator implements TezInput, Tez
     @Override
     public Result getNextTuple() throws ExecException {
         try {
+            if (finished) {
+                return RESULT_EOP;
+            }
             Map<Integer, Long> counterRecords = new HashMap<Integer, Long>();
             Integer key = null;
             Long value = null;
@@ -151,6 +155,7 @@ public class POCounterStatsTez extends PhysicalOperator implements TezInput, Tez
             Tuple tuple = TupleFactory.getInstance().newTuple(1);
             tuple.set(0, counterOffsets);
             writer.write(POValueOutputTez.EMPTY_KEY, tuple);
+            finished = true;
             return RESULT_EOP;
         } catch (IOException e) {
             throw new ExecException(e);

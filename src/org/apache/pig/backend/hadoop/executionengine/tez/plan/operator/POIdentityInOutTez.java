@@ -56,6 +56,7 @@ public class POIdentityInOutTez extends POLocalRearrangeTez implements TezInput,
     private transient KeyValueReader reader;
     private transient KeyValuesReader shuffleReader;
     private transient boolean shuffleInput;
+    private transient boolean finished = false;
 
     public POIdentityInOutTez(OperatorKey k, POLocalRearrange inputRearrange) {
         super(inputRearrange);
@@ -121,6 +122,9 @@ public class POIdentityInOutTez extends POLocalRearrangeTez implements TezInput,
     @Override
     public Result getNextTuple() throws ExecException {
         try {
+            if (finished) {
+                return RESULT_EOP;
+            }
             if (shuffleInput) {
                 while (shuffleReader.next()) {
                     Object curKey = shuffleReader.getCurrentKey();
@@ -152,6 +156,7 @@ public class POIdentityInOutTez extends POLocalRearrangeTez implements TezInput,
                     }
                 }
             }
+            finished = true;
             return RESULT_EOP;
         } catch (IOException e) {
             throw new ExecException(e);

@@ -50,6 +50,7 @@ public class POSimpleTezLoad extends POLoad implements TezInput {
     private MRInput input;
     private KeyValueReader reader;
     private transient Configuration conf;
+    private transient boolean finished = false;
 
     public POSimpleTezLoad(OperatorKey k, FileSpec lfile) {
         super(k, lfile);
@@ -102,6 +103,9 @@ public class POSimpleTezLoad extends POLoad implements TezInput {
     @Override
     public Result getNextTuple() throws ExecException {
         try {
+            if (finished) {
+                return RESULT_EOP;
+            }
             Result res = new Result();
             if (!reader.next()) {
                 res.result = null;
@@ -112,6 +116,7 @@ public class POSimpleTezLoad extends POLoad implements TezInput {
                 if (Boolean.valueOf(conf.get(JobControlCompiler.END_OF_INP_IN_MAP, "false"))) {
                     this.parentPlan.endOfAllInput = true;
                 }
+                finished = true;
             } else {
                 Tuple next = (Tuple) reader.getCurrentValue();
                 res.result = next;
