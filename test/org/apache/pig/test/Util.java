@@ -554,7 +554,7 @@ public class Util {
 
          Assert.assertEquals("Comparing actual and expected results. ",
                  expectedResList, actualResList);
-
+         
     }
 
     /**
@@ -1151,7 +1151,7 @@ public class Util {
     }
 
 
-    static private void convertBagToSortedBag(Tuple t) {
+    static public void convertBagToSortedBag(Tuple t) {
         for (int i=0;i<t.size();i++) {
            Object obj = null;
            try {
@@ -1325,6 +1325,14 @@ public class Util {
 
     public static boolean isMapredExecType(ExecType execType) {
         return execType == ExecType.MAPREDUCE;
+    }
+
+    public static boolean isSparkExecType(ExecType execType) {
+        if (execType.name().toLowerCase().startsWith("spark")) {
+            return true;
+        }
+
+        return false;
     }
 
     public static String findPigJarName() {
