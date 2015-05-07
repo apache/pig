@@ -284,6 +284,13 @@ public class TestSkewedJoin {
 
     @Test
     public void testSkewedJoinKeyPartition() throws IOException {
+        // This test relies on how the keys are distributed in Skew Join implementation.
+        // Spark engine currently implements skew join as regular join, and hence does
+        // not control key distribution.
+        // TODO: Enable this test when Spark engine implements Skew Join algorithm.
+        if (Util.isSparkExecType(cluster.getExecType()))
+            return;
+
         String outputDir = "testSkewedJoinKeyPartition";
         try{
              Util.deleteFile(cluster, outputDir);

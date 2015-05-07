@@ -600,10 +600,26 @@ public class SparkCompiler extends PhyPlanVisitor {
 		}
 	}
 
-	@Override
-	public void visitSkewedJoin(POSkewedJoin op) throws VisitorException {
-		// TODO
-	}
+    /**
+     * currently use regular join to replace skewedJoin
+     * Skewed join currently works with two-table inner join.
+     * More info about pig SkewedJoin, See https://wiki.apache.org/pig/PigSkewedJoinSpec
+     *
+     * @param op
+     * @throws VisitorException
+     */
+    @Override
+    public void visitSkewedJoin(POSkewedJoin op) throws VisitorException {
+        try {
+            addToPlan(op);
+            phyToSparkOpMap.put(op, curSparkOp);
+        } catch (Exception e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator " +
+                    op.getClass().getSimpleName();
+            throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
+        }
+    }
 
 	@Override
 	public void visitFRJoin(POFRJoin op) throws VisitorException {

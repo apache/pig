@@ -535,10 +535,13 @@ public class SparkLauncher extends Launcher {
 			List<RDD<Tuple>> rddsFromPredeSparkOper,
 			Map<Class<? extends PhysicalOperator>, POConverter> convertMap)
 			throws IOException {
-		RDD<Tuple> nextRDD = null;
-		List<PhysicalOperator> predecessors = plan
-				.getPredecessors(physicalOperator);
-		List<RDD<Tuple>> predecessorRdds = Lists.newArrayList();
+        RDD<Tuple> nextRDD = null;
+        List<PhysicalOperator> predecessors = plan
+                .getPredecessors(physicalOperator);
+        if (predecessors != null) {
+            Collections.sort(predecessors);
+        }
+        List<RDD<Tuple>> predecessorRdds = Lists.newArrayList();
 		if (predecessors != null) {
 			for (PhysicalOperator predecessor : predecessors) {
 				physicalToRDD(plan, predecessor, rdds, rddsFromPredeSparkOper,
