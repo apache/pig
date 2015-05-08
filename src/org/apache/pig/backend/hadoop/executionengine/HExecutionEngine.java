@@ -42,6 +42,7 @@ import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.fetch.FetchLauncher;
 import org.apache.pig.backend.hadoop.executionengine.fetch.FetchOptimizer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PhyPlanSetter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
@@ -296,6 +297,7 @@ public abstract class HExecutionEngine implements ExecutionEngine {
             //skipped; a SimpleFetchPigStats will be returned through which the result
             //can be directly fetched from the underlying storage
             if (FetchOptimizer.isPlanFetchable(pc, pp)) {
+                new PhyPlanSetter(pp).visit();
                 return new FetchLauncher(pc).launchPig(pp);
             }
             return launcher.launchPig(pp, grpName, pigContext);
