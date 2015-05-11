@@ -1942,7 +1942,7 @@ STORE A INTO 'hbase://users_table' USING org.apache.pig.backend.hadoop.hbase.HBa
    <table>
        <tr>
             <td>
-               <p>Avrostorage(['schema|record name'], ['options'])</p>
+               <p>AvroStorage(['schema|record name'], ['options'])</p>
             </td>
          </tr>
    </table>
