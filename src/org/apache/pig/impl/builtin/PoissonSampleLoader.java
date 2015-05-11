@@ -64,6 +64,9 @@ public class PoissonSampleLoader extends SampleLoader {
 
     private int sampleRate = DEFAULT_SAMPLE_RATE;
 
+    // total memory in bytes
+    private long totalMemory;
+
     private double heapPerc = PartitionSkewedKeys.DEFAULT_PERCENT_MEMUSAGE;
 
     // new Sample tuple
@@ -89,7 +92,8 @@ public class PoissonSampleLoader extends SampleLoader {
             if(t == null) {
                 return createNumRowTuple(null);
             }
-            long availRedMem = (long) (Runtime.getRuntime().maxMemory() * heapPerc);
+            long availRedMem = (long) ( totalMemory * heapPerc);
+            // availRedMem = 155084396;
             memToSkipPerSample = availRedMem/sampleRate;
             updateSkipInterval(t);
 
@@ -175,6 +179,10 @@ public class PoissonSampleLoader extends SampleLoader {
         sampleRate = conf.getInt(PigConfiguration.PIG_POISSON_SAMPLER_SAMPLE_RATE, DEFAULT_SAMPLE_RATE);
         heapPerc = conf.getFloat(PigConfiguration.PIG_SKEWEDJOIN_REDUCE_MEMUSAGE,
                 PartitionSkewedKeys.DEFAULT_PERCENT_MEMUSAGE);
+        totalMemory = conf.getLong(PigConfiguration.PIG_SKEWEDJOIN_REDUCE_MEM, -1L);
+        if (totalMemory == -1) {
+            totalMemory = Runtime.getRuntime().maxMemory();
+        }
     }
 
 }

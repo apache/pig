@@ -95,6 +95,7 @@ import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POStoreTe
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POValueInputTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POValueOutputTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.FindQuantilesTez;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.IsFirstReduceOfKeyTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.PartitionSkewedKeysTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.ReadScalarsTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.SkewedPartitionerTez;
@@ -1477,8 +1478,12 @@ public class TezCompiler extends PhyPlanVisitor {
             if (pigProperties.containsKey(PigConfiguration.PIG_SKEWEDJOIN_REDUCE_MEMUSAGE)) {
                 heapPerc = Float.valueOf(pigProperties.getProperty(PigConfiguration.PIG_SKEWEDJOIN_REDUCE_MEMUSAGE));
             }
+            long totalMemory = -1;
+            if (pigProperties.containsKey(PigConfiguration.PIG_SKEWEDJOIN_REDUCE_MEM)) {
+                totalMemory = Long.valueOf(pigProperties.getProperty(PigConfiguration.PIG_SKEWEDJOIN_REDUCE_MEM));
+            }
             POPoissonSample poSample = new POPoissonSample(new OperatorKey(scope,nig.getNextNodeId(scope)),
-                    -1, sampleRate, heapPerc);
+                    -1, sampleRate, heapPerc, totalMemory);
 
             TezOperator prevOp = compiledInputs[0];
             prevOp.plan.addAsLeaf(lrTez);
@@ -1645,7 +1650,7 @@ public class TezCompiler extends PhyPlanVisitor {
                 eps.add(ep);
                 if (!inner[i]) {
                     // Add an empty bag for outer join
-                    CompilerUtils.addEmptyBagOuterJoin(ep, op.getSchema(i));
+                    CompilerUtils.addEmptyBagOuterJoin(ep, op.getSchema(i), true, IsFirstReduceOfKeyTez.class.getName());
                 }
                 flat.add(true);
             }
@@ -1675,7 +1680,7 @@ public class TezCompiler extends PhyPlanVisitor {
             TezCompilerUtil.connect(tezPlan, prevOp, sampleJobPair.first);
 
             POValueOutputTez sampleOut = (POValueOutputTez) sampleJobPair.first.plan.getLeaves().get(0);
-            for (int i = 0; i < 2; i++) {
+            for (int i = 0; i <= 2; i++) {
                 joinJobs[i].setSampleOperator(sampleJobPair.first);
 
                 // Configure broadcast edges for distribution map
@@ -1684,8 +1689,10 @@ public class TezCompiler extends PhyPlanVisitor {
                 sampleOut.addOutputKey(joinJobs[i].getOperatorKey().toString());
 
                 // Configure skewed partitioner for join
-                edge = joinJobs[2].inEdges.get(joinJobs[i].getOperatorKey());
-                edge.partitionerClass = SkewedPartitionerTez.class;
+                if (i != 2) {
+                    edge = joinJobs[2].inEdges.get(joinJobs[i].getOperatorKey());
+                    edge.partitionerClass = SkewedPartitionerTez.class;
+                }
             }
 
             joinJobs[2].markSkewedJoin();
