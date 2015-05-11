@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -15,16 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.backend.hadoop.executionengine.tez.runtime;
+package org.apache.pig.backend.hadoop.executionengine.tez.plan.udf;
 
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.SkewedPartitioner;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.TezRuntimeUtil;
+import org.apache.pig.impl.builtin.IsFirstReduceOfKey;
 
-public class SkewedPartitionerTez extends SkewedPartitioner {
-
+public class IsFirstReduceOfKeyTez extends IsFirstReduceOfKey {
     @Override
     protected void init() {
         reducerMap = TezRuntimeUtil.readReduceMapFromSample(tf);
-        inited = true;
     }
 }
