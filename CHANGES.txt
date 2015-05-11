@@ -66,6 +66,8 @@ PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES
 
+PIG-4532: Pig Documentation contains typo for AvroStorage (fredericschmaljohann via daijy)
+
 PIG-4377: Skewed outer join produce wrong result in some cases (daijy)
 
 PIG-4538: Pig script fail with CNF in follow up MR job (daijy)
