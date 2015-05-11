@@ -97,6 +97,13 @@ public class PigConfiguration {
     public static final String PIG_SKEWEDJOIN_REDUCE_MEMUSAGE = "pig.skewedjoin.reduce.memusage";
 
     /**
+     * Memory available (in bytes) in reduce when calculating memory available for skewed join.
+     * By default, it is set to Runtime.getRuntime().maxMemory(). Override it only
+     * for debug purpose
+     */
+    public static final String PIG_SKEWEDJOIN_REDUCE_MEM = "pig.skewedjoin.reduce.mem";
+
+    /**
      * This key used to control the maximum size loaded into
      * the distributed cache when doing fragment-replicated join
      */
