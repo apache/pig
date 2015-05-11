@@ -844,7 +844,7 @@ This will cause an error …</source>
    <title>Example: Outer Bag</title>
    <p>In this example A is a relation or bag of tuples. You can think of this bag as an outer bag.</p>
 <source>
-A = LOAD 'data' as (f1:int, f2:int, f3;int);
+A = LOAD 'data' as (f1:int, f2:int, f3:int);
 DUMP A;
 (1,2,3)
 (4,2,1)
