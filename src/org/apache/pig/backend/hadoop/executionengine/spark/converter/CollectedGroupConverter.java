@@ -29,7 +29,6 @@ import org.apache.pig.data.Tuple;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.rdd.RDD;
 
-
 @SuppressWarnings({ "serial"})
 public class CollectedGroupConverter implements POConverter<Tuple, Tuple, POCollectedGroup> {
 
@@ -38,72 +37,52 @@ public class CollectedGroupConverter implements POConverter<Tuple, Tuple, POColl
       POCollectedGroup physicalOperator) throws IOException {
     SparkUtil.assertPredecessorSize(predecessors, physicalOperator, 1);
     RDD<Tuple> rdd = predecessors.get(0);
-    // return predecessors.get(0);
-    RDD<Tuple> rdd2 = rdd.coalesce(1, false, null);
-    long count = 0;
-    try {
-
-      count = rdd2.count();
-
-    } catch (Exception e) {
-
-    }
     CollectedGroupFunction collectedGroupFunction
-        = new CollectedGroupFunction(physicalOperator, count);
-    return rdd.toJavaRDD().mapPartitions(collectedGroupFunction, true).rdd();
+        = new CollectedGroupFunction(physicalOperator);
+    return rdd.toJavaRDD().mapPartitions(collectedGroupFunction, true)
+			.rdd();
   }
 
-	private static class CollectedGroupFunction implements FlatMapFunction<Iterator<Tuple>, Tuple> {
+	private static class CollectedGroupFunction
+			implements FlatMapFunction<Iterator<Tuple>, Tuple> {
 
-		/**
-		 *
-		 */
 		private POCollectedGroup poCollectedGroup;
 
-		public long total_limit;
 		public long current_val;
 		public boolean proceed;
 
-		private CollectedGroupFunction(POCollectedGroup poCollectedGroup, long count) {
+		private CollectedGroupFunction(POCollectedGroup poCollectedGroup) {
 			this.poCollectedGroup = poCollectedGroup;
-			this.total_limit = count;
 			this.current_val = 0;
 		}
 
 		public Iterable<Tuple> call(final Iterator<Tuple> input) {
 
-		  return new Iterable<Tuple>() {
+			  return new Iterable<Tuple>() {
 
-		    @Override
-		    public Iterator<Tuple> iterator() {
-		      return new POOutputConsumerIterator(input) {
-		        protected void attach(Tuple tuple) {
-		          poCollectedGroup.setInputs(null);
-		          poCollectedGroup.attachInput(tuple);
-		          poCollectedGroup.setParentPlan(poCollectedGroup.getPlans().get(0));
+				@Override
+				public Iterator<Tuple> iterator() {
 
-		          try{
+				  return new OutputConsumerIterator(input) {
 
-		            current_val = current_val + 1;
-		            //System.out.println("Row: =>" + current_val);
-		            if (current_val == total_limit) {
-		              proceed = true;
-		            } else {
-		              proceed = false;
-		            }
+					  @Override
+					  protected void attach(Tuple tuple) {
+						  poCollectedGroup.setInputs(null);
+						  poCollectedGroup.attachInput(tuple);
+					  }
 
-		          } catch(Exception e){
-		            System.out.println("Crashhh in CollectedGroupConverter :" + e);
-		            e.printStackTrace();
-		          }
-		        }
+					  @Override
+					  protected Result getNextResult() throws ExecException {
+					      return poCollectedGroup.getNextTuple();
+					  }
 
-		        protected Result getNextResult() throws ExecException {
-		          return poCollectedGroup.getNextTuple(proceed);
-		        }
-		      };
-		    }
-      };
+					  @Override
+					  protected void endOfInput() {
+						  poCollectedGroup.getParentPlan().endOfAllInput = true;
+					  }
+				  };
+				}
+		  };
 		}
 	}
 }

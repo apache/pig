@@ -56,15 +56,21 @@ public class LimitConverter implements POConverter<Tuple, Tuple, POLimit> {
             return new Iterable<Tuple>() {
 
                 public Iterator<Tuple> iterator() {
-                    return new POOutputConsumerIterator(tuples) {
+                    return new OutputConsumerIterator(tuples) {
 
+                        @Override
                         protected void attach(Tuple tuple) {
                             poLimit.setInputs(null);
                             poLimit.attachInput(tuple);
                         }
 
+                        @Override
                         protected Result getNextResult() throws ExecException {
                             return poLimit.getNextTuple();
+                        }
+
+                        @Override
+                        protected void endOfInput() {
                         }
                     };
                 }

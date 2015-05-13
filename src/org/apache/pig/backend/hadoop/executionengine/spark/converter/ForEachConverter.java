@@ -22,9 +22,7 @@ import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
 
-
 import org.apache.hadoop.mapred.JobConf;
-import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -46,6 +44,7 @@ import org.apache.spark.rdd.RDD;
  */
 @SuppressWarnings({"serial" })
 public class ForEachConverter implements POConverter<Tuple, Tuple, POForEach> {
+
     private byte[] confBytes;
 
     public ForEachConverter(byte[] confBytes) {
@@ -106,15 +105,21 @@ public class ForEachConverter implements POConverter<Tuple, Tuple, POForEach> {
 
                 @Override
                 public Iterator<Tuple> iterator() {
-                    return new POOutputConsumerIterator(input) {
+                    return new OutputConsumerIterator(input) {
 
+                        @Override
                         protected void attach(Tuple tuple) {
                             poForEach.setInputs(null);
                             poForEach.attachInput(tuple);
                         }
 
+                        @Override
                         protected Result getNextResult() throws ExecException {
                             return poForEach.getNextTuple();
+                        }
+
+                        @Override
+                        protected void endOfInput() {
                         }
                     };
                 }

@@ -22,13 +22,13 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.data.Tuple;
 
-abstract class POOutputConsumerIterator implements java.util.Iterator<Tuple> {
+abstract class OutputConsumerIterator implements java.util.Iterator<Tuple> {
     private final java.util.Iterator<Tuple> input;
     private Result result = null;
     private boolean returned = true;
-    private boolean finished = false;
+    private boolean done = false;
 
-    POOutputConsumerIterator(java.util.Iterator<Tuple> input) {
+    OutputConsumerIterator(java.util.Iterator<Tuple> input) {
         this.input = input;
     }
 
@@ -36,22 +36,36 @@ abstract class POOutputConsumerIterator implements java.util.Iterator<Tuple> {
 
     abstract protected Result getNextResult() throws ExecException;
 
+    /**
+     * Certain operators may buffer the output.
+     * We need to flush the last set of records from such operators,
+     * when we encounter the last input record, before calling
+     * getNextTuple() for the last time.
+     */
+    abstract protected void endOfInput();
+
     private void readNext() {
         while (true) {
             try {
+                // result is set in hasNext() call and returned
+                // to the user in next() call
                 if (result != null && !returned) {
                     return;
                 }
-                // see PigGenericMapBase
+
                 if (result == null) {
                     if (!input.hasNext()) {
-                        finished = true;
-
+                        done = true;
                         return;
                     }
                     Tuple v1 = input.next();
                     attach(v1);
                 }
+
+                if (!input.hasNext()) {
+                    endOfInput();
+                }
+
                 result = getNextResult();
                 returned = false;
                 switch (result.returnStatus) {
@@ -59,17 +73,18 @@ abstract class POOutputConsumerIterator implements java.util.Iterator<Tuple> {
                         returned = false;
                         break;
                     case POStatus.STATUS_NULL:
-                        returned = true; // skip: see PigGenericMapBase
+                        returned = true;
                         break;
                     case POStatus.STATUS_EOP:
-                        finished = !input.hasNext();
-                        if (!finished) {
+                        done = !input.hasNext();
+                        if (!done) {
                             result = null;
                         }
                         break;
                     case POStatus.STATUS_ERR:
                         throw new RuntimeException("Error while processing " + result);
                 }
+
             } catch (ExecException e) {
                 throw new RuntimeException(e);
             }
@@ -79,17 +94,17 @@ abstract class POOutputConsumerIterator implements java.util.Iterator<Tuple> {
     @Override
     public boolean hasNext() {
         readNext();
-        return !finished;
+        return !done;
     }
 
     @Override
     public Tuple next() {
         readNext();
-        if (finished) {
-            throw new RuntimeException("Passed the end. call hasNext() first");
+        if (done) {
+            throw new RuntimeException("Past the end. Call hasNext() before calling next()");
         }
         if (result == null || result.returnStatus != POStatus.STATUS_OK) {
-            throw new RuntimeException("Unexpected response code in ForEach: "
+            throw new RuntimeException("Unexpected response code from operator: "
                     + result);
         }
         returned = true;

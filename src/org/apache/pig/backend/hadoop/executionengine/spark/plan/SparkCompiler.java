@@ -57,7 +57,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.Packager;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.spark.operator.NativeSparkOperator;
-import org.apache.pig.backend.hadoop.executionengine.spark.operator.POStreamSpark;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.DepthFirstWalker;
@@ -421,8 +420,7 @@ public class SparkCompiler extends PhyPlanVisitor {
 	@Override
 	public void visitStream(POStream op) throws VisitorException {
 		try {
-			POStreamSpark poStreamSpark = new POStreamSpark(op);
-			addToPlan(poStreamSpark);
+			addToPlan(op);
 			phyToSparkOpMap.put(op, curSparkOp);
 		} catch (Exception e) {
 			int errCode = 2034;
