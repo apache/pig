@@ -484,6 +484,10 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
        parentPlan = physicalPlan;
     }
 
+    public PhysicalPlan getParentPlan() {
+        return parentPlan;
+    }
+
     public Log getLogger() {
         return log;
     }
