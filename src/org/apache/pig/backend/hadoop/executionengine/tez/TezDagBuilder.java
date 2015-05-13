@@ -49,6 +49,7 @@ import org.apache.hadoop.mapreduce.v2.util.MRApps;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
+import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
@@ -145,6 +146,7 @@ import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.OutputCommitterDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.VertexGroup;
@@ -735,8 +737,18 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         if (tezOp.isUseGraceParallelism()) {
             parallel = -1;
         }
-        Vertex vertex = Vertex.create(tezOp.getOperatorKey().toString(), procDesc, parallel,
-                tezOp.isUseMRMapSettings() ? MRHelpers.getResourceForMRMapper(globalConf) : MRHelpers.getResourceForMRReducer(globalConf));
+        Resource resource;
+        if (globalConf.get(TezConfiguration.TEZ_TASK_RESOURCE_MEMORY_MB)!=null && 
+                globalConf.get(TezConfiguration.TEZ_TASK_RESOURCE_CPU_VCORES)!=null) {
+            resource = Resource.newInstance(globalConf.getInt(TezConfiguration.TEZ_TASK_RESOURCE_MEMORY_MB,
+                    TezConfiguration.TEZ_TASK_RESOURCE_MEMORY_MB_DEFAULT),
+                    globalConf.getInt(TezConfiguration.TEZ_TASK_RESOURCE_CPU_VCORES,
+                    TezConfiguration.TEZ_TASK_RESOURCE_CPU_VCORES_DEFAULT));
+        } else {
+            // If tez setting is not defined, try MR setting
+            resource = tezOp.isUseMRMapSettings() ? MRHelpers.getResourceForMRMapper(globalConf) : MRHelpers.getResourceForMRReducer(globalConf);
+        }
+        Vertex vertex = Vertex.create(tezOp.getOperatorKey().toString(), procDesc, parallel, resource);
         Map<String, String> taskEnv = new HashMap<String, String>();
         MRHelpers.updateEnvBasedOnMRTaskEnv(globalConf, taskEnv, tezOp.isUseMRMapSettings());
         vertex.setTaskEnvironment(taskEnv);
@@ -751,8 +763,15 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         MRApps.setupDistributedCache(globalConf, localResources);
         vertex.addTaskLocalFiles(localResources);
 
-        vertex.setTaskLaunchCmdOpts(tezOp.isUseMRMapSettings() ? MRHelpers.getJavaOptsForMRMapper(globalConf)
-                : MRHelpers.getJavaOptsForMRReducer(globalConf));
+        String javaOpts;
+        if (globalConf.get(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS)!=null) {
+            javaOpts = globalConf.get(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS);
+        } else {
+            // If tez setting is not defined, try MR setting
+            javaOpts = tezOp.isUseMRMapSettings() ? MRHelpers.getJavaOptsForMRMapper(globalConf)
+                    : MRHelpers.getJavaOptsForMRReducer(globalConf);
+        }
+        vertex.setTaskLaunchCmdOpts(javaOpts);
 
         log.info("For vertex - " + tezOp.getOperatorKey().toString()
                 + ": parallelism=" + tezOp.getVertexParallelism()
