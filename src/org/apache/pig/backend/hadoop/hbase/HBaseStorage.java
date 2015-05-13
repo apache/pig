@@ -1046,7 +1046,8 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
      * @throws IOException
      */
     public Delete createDelete(Object key, byte type, long timestamp) throws IOException {
-        Delete delete = new Delete(objToBytes(key, type), timestamp);
+        Delete delete = new Delete(objToBytes(key, type));
+        delete.setTimestamp(timestamp);
 
         if(noWAL_) {
             delete.setWriteToWAL(false);

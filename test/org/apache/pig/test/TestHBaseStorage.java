@@ -1272,13 +1272,27 @@ public class TestHBaseStorage {
      * @throws ParseException
      */
     @Test
-    public void testNoWAL() throws IOException, ParseException {
+    public void testNoWAL() throws Exception {
         HBaseStorage hbaseStorage = new HBaseStorage(TESTCOLUMN_A, "-noWAL");
 
         Object key = "somekey";
         byte type = DataType.CHARARRAY;
-        Assert.assertFalse(hbaseStorage.createPut(key, type).getWriteToWAL());
-        Assert.assertFalse(hbaseStorage.createDelete(key, type, System.currentTimeMillis()).getWriteToWAL());
+        Put put = hbaseStorage.createPut(key, type);
+        Delete delete = hbaseStorage.createDelete(key, type, System.currentTimeMillis());
+        boolean hasDurabilityMethod = false;
+        try {
+            put.getClass().getMethod("getDurability");
+            hasDurabilityMethod = true;
+        } catch (NoSuchMethodException e) {
+        }
+        if (hasDurabilityMethod) { // Hbase version 0.95+
+            Object skipWal = Class.forName("org.apache.hadoop.hbase.client.Durability").getField("SKIP_WAL").get(put);
+            Assert.assertEquals(put.getClass().getMethod("getDurability").invoke(put), skipWal);
+            Assert.assertEquals(delete.getClass().getMethod("getDurability").invoke(delete), skipWal);
+        } else {
+            Assert.assertFalse(put.getWriteToWAL());
+            Assert.assertFalse(delete.getWriteToWAL());
+        }
     }
 
     /**
@@ -1287,13 +1301,27 @@ public class TestHBaseStorage {
      * @throws ParseException
      */
     @Test
-    public void testWIthWAL() throws IOException, ParseException {
+    public void testWIthWAL() throws Exception {
         HBaseStorage hbaseStorage = new HBaseStorage(TESTCOLUMN_A);
 
         Object key = "somekey";
         byte type = DataType.CHARARRAY;
-        Assert.assertTrue(hbaseStorage.createPut(key, type).getWriteToWAL());
-        Assert.assertTrue(hbaseStorage.createDelete(key, type, System.currentTimeMillis()).getWriteToWAL());
+        Put put = hbaseStorage.createPut(key, type);
+        Delete delete = hbaseStorage.createDelete(key, type, System.currentTimeMillis());
+        boolean hasDurabilityMethod = false;
+        try {
+            put.getClass().getMethod("getDurability");
+            hasDurabilityMethod = true;
+        } catch (NoSuchMethodException e) {
+        }
+        if (hasDurabilityMethod) { // Hbase version 0.95+
+            Object skipWal = Class.forName("org.apache.hadoop.hbase.client.Durability").getField("SKIP_WAL").get(put);
+            Assert.assertNotEquals(put.getClass().getMethod("getDurability").invoke(put), skipWal);
+            Assert.assertNotEquals(delete.getClass().getMethod("getDurability").invoke(delete), skipWal);
+        } else {
+            Assert.assertTrue(put.getWriteToWAL());
+            Assert.assertTrue(delete.getWriteToWAL());
+        }
     }
 
     /**
@@ -1552,7 +1580,7 @@ public class TestHBaseStorage {
      */
     private static long getColTimestamp(Result result, String colName) {
         byte[][] colArray = Bytes.toByteArrays(colName.split(":"));
-        return result.getColumnLatestCell(colArray[0], colArray[1]).getTimestamp();
+        return result.getColumnLatest(colArray[0], colArray[1]).getTimestamp();
     }
 
 }
