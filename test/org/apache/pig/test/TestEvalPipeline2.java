@@ -1660,4 +1660,26 @@ public class TestEvalPipeline2 {
             pigServer.getPigContext().getProperties().remove("pig.exec.reducers.bytes.per.reducer");
         }
     }
+
+    // see PIG-4392
+    @Test
+    public void testRankWithEmptyReduce() throws Exception {
+        Util.createInputFile(cluster, "table_testRankWithEmptyReduce", new String[]{"1\t2\t3", "4\t5\t6", "7\t8\t9"});
+        pigServer.setDefaultParallel(4);
+        
+        pigServer.registerQuery("d = load 'table_testRankWithEmptyReduce' as (a:int, b:int, c:int);");
+        pigServer.registerQuery("e = rank d by a parallel 4;");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("e");
+
+        Collection<String> results = new HashSet<String>();
+        results.add("(1,1,2,3)");
+        results.add("(2,4,5,6)");
+        results.add("(3,7,8,9)");
+        
+        Assert.assertTrue(results.contains(iter.next().toString()));
+        Assert.assertTrue(results.contains(iter.next().toString()));
+        Assert.assertTrue(results.contains(iter.next().toString()));
+        Assert.assertFalse(iter.hasNext());
+    }
 }
