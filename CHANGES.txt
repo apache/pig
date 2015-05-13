@@ -76,6 +76,8 @@ PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES
 
+PIG-4544: Upgrade Hbase to 0.98.12 (daijy)
+
 PIG-4481: e2e tests ComputeSpec_1, ComputeSpec_2 and StreamingPerformance_3 produce different result on Windows (daijy)
 
 PIG-4496: Fix CBZip2InputStream to close underlying stream (petersla via daijy)

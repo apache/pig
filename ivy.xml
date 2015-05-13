@@ -187,12 +187,14 @@
       conf="hadoop20->default;checkstyle->master">
       <exclude org="org.codehaus.jackson" module="jackson-core-asl"/>
       <exclude org="org.codehaus.jackson" module="jackson-mapper-asl"/>
+      <exclude org="io.netty" module="netty"/>
     </dependency>
     <dependency org="org.apache.avro" name="avro-mapred" rev="${avro.version}"
       conf="hadoop23->default;checkstyle->master">
       <artifact name="avro-mapred" type="jar" m:classifier="hadoop2"/>
       <exclude org="org.codehaus.jackson" module="jackson-core-asl"/>
       <exclude org="org.codehaus.jackson" module="jackson-mapper-asl"/>
+      <exclude org="io.netty" module="netty"/>
     </dependency>
     <dependency org="org.apache.avro" name="trevni-core" rev="${avro.version}"
       conf="compile->default;checkstyle->master">
@@ -247,7 +249,7 @@
     <dependency org="org.antlr" name="antlr-runtime" rev="${antlr.version}" conf="compile->default"/>
     <dependency org="org.antlr" name="ST4" rev="${stringtemplate.version}" conf="compile->default"/>
     <dependency org="org.apache.zookeeper" name="zookeeper" rev="${zookeeper.version}" conf="compile->master"/>
-    <dependency org="org.jboss.netty" name="netty" rev="3.2.2.Final" conf="test->master"/>
+    <dependency org="io.netty" name="netty" rev="${netty.version}" conf="test->master"/>
     <dependency org="dk.brics.automaton" name="automaton" rev="1.11-8" conf="compile->default"/>
 
     <dependency org="org.jruby" name="jruby-complete" rev="${jruby.version}" conf="compile->master"/>
@@ -352,12 +354,14 @@
       <exclude org="asm" module="asm"/>
     </dependency>
 
-    <dependency org="org.htrace" name="htrace-core" rev="${htrace.version}" conf="hadoop23->master"/>
+    <dependency org="org.htrace" name="htrace-core" rev="3.0.4" conf="hadoop23->master"/>
+    <dependency org="org.apache.htrace" name="htrace-core" rev="${htrace.version}" conf="hadoop23->master"/>
     <dependency org="org.fusesource.leveldbjni" name="leveldbjni-all" rev="${leveldbjni.version}"
       conf="hadoop23->master"/>
     <dependency org="org.cloudera.htrace" name="htrace-core" rev="2.00" conf="hbase95->master">
       <artifact name="htrace-core" type="jar"/>
     </dependency>
+    <dependency org="com.lmax" name="disruptor" rev="3.3.0" conf="hbase95->master"/>
 
     <!-- for TestHBaseStorage -->
     <dependency org="com.github.stephenc.high-scale-lib" name="high-scale-lib" rev="${high-scale-lib.version}"
