@@ -161,6 +161,7 @@ public class UnionOptimizer extends TezOpPlanVisitor {
             if (existingVertexGroup != null) {
                 storeVertexGroupOps[i] = existingVertexGroup;
                 existingVertexGroup.getVertexGroupMembers().remove(unionOp.getOperatorKey());
+                existingVertexGroup.getVertexGroupMembers().addAll(unionOp.getUnionMembers());
                 existingVertexGroup.getVertexGroupInfo().removeInput(unionOp.getOperatorKey());
             } else {
                 storeVertexGroupOps[i] = new TezOperator(OperatorKey.genOpKey(scope));
