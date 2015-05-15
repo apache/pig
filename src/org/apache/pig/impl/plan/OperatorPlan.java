@@ -534,6 +534,24 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
             connect(oper, leaf);
         }
     }
+
+    /**
+     * Adds the root operator to the plan and connects
+     * all existing roots the new root
+     *
+     * @param root
+     * @throws PlanException
+     */
+    public void addAsRoot(E root) throws PlanException {
+        List<E> oldRoots = new ArrayList<E>();
+        for (E operator : getRoots()) {
+            oldRoots.add(operator);
+        }
+        add(root);
+        for (E oper : oldRoots) {
+            connect(root, oper);
+        }
+    }
     
     public boolean isSingleLeafPlan() {
         List<E> tmpList = getLeaves() ;

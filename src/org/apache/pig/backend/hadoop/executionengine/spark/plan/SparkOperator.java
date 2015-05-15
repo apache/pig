@@ -17,6 +17,7 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.spark.plan;
 
+import java.util.BitSet;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -58,7 +59,7 @@ public class SparkOperator extends Operator<SparkOpPlanVisitor> {
 
 	public int requestedParallelism = -1;
 
-	private OPER_FEATURE feature = OPER_FEATURE.NONE;
+    private BitSet feature = new BitSet();
 
 	private boolean splitter = false;
 
@@ -118,28 +119,28 @@ public class SparkOperator extends Operator<SparkOpPlanVisitor> {
 	}
 
 	public boolean isGroupBy() {
-		return (feature == OPER_FEATURE.GROUPBY);
-	}
+        return feature.get(OPER_FEATURE.GROUPBY.ordinal());
+    }
 
 	public void markGroupBy() {
-		feature = OPER_FEATURE.GROUPBY;
-	}
+        feature.set(OPER_FEATURE.GROUPBY.ordinal());
+    }
 
 	public boolean isCogroup() {
-		return (feature == OPER_FEATURE.COGROUP);
-	}
+        return feature.get(OPER_FEATURE.COGROUP.ordinal());
+    }
 
 	public void markCogroup() {
-		feature = OPER_FEATURE.COGROUP;
-	}
+        feature.set(OPER_FEATURE.COGROUP.ordinal());
+    }
 
 	public boolean isRegularJoin() {
-		return (feature == OPER_FEATURE.HASHJOIN);
-	}
+        return feature.get(OPER_FEATURE.HASHJOIN.ordinal());
+    }
 
 	public void markRegularJoin() {
-		feature = OPER_FEATURE.HASHJOIN;
-	}
+        feature.set(OPER_FEATURE.HASHJOIN.ordinal());
+    }
 
 	public int getRequestedParallelism() {
 		return requestedParallelism;
@@ -154,12 +155,12 @@ public class SparkOperator extends Operator<SparkOpPlanVisitor> {
 	}
 
 	public boolean isSampler() {
-		return (feature == OPER_FEATURE.SAMPLER);
-	}
+        return feature.get(OPER_FEATURE.SAMPLER.ordinal());
+    }
 
 	public void markSampler() {
-		feature = OPER_FEATURE.SAMPLER;
-	}
+        feature.set(OPER_FEATURE.SAMPLER.ordinal());
+    }
 
 	public void setSkewedJoinPartitionFile(String file) {
 		skewedJoinPartitionFile = file;
@@ -186,10 +187,10 @@ public class SparkOperator extends Operator<SparkOpPlanVisitor> {
 	}
 
 	public boolean isIndexer() {
-		return (feature == OPER_FEATURE.INDEXER);
-	}
+        return feature.get(OPER_FEATURE.INDEXER.ordinal());
+    }
 
-	public void markIndexer() {
-		feature = OPER_FEATURE.INDEXER;
-	}
+    public void markIndexer() {
+        feature.set(OPER_FEATURE.INDEXER.ordinal());
+    }
 }

@@ -18,11 +18,14 @@
 package org.apache.pig.backend.hadoop.executionengine.spark.plan;
 
 import java.io.PrintStream;
+import java.util.List;
 
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PlanPrinter;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.spark.operator.NativeSparkOperator;
+import org.apache.pig.backend.hadoop.executionengine.spark.operator.POGlobalRearrangeSpark;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.VisitorException;
 
@@ -46,21 +49,27 @@ public class SparkPrinter extends SparkOpPlanVisitor {
 		isVerbose = verbose;
 	}
 
-	@Override
-	public void visitSparkOp(SparkOperator sparkOp) throws VisitorException {
-		mStream.println("");
-		mStream.println("Spark node " + sparkOp.getOperatorKey().toString());
-		if (sparkOp instanceof NativeSparkOperator) {
-			mStream.println("--------");
-			mStream.println();
-			return;
-		}
-		if (sparkOp.physicalPlan != null && sparkOp.physicalPlan.size() > 0) {
-			PlanPrinter<PhysicalOperator, PhysicalPlan> printer = new PlanPrinter<PhysicalOperator, PhysicalPlan>(
-					sparkOp.physicalPlan, mStream);
-			printer.setVerbose(isVerbose);
-			printer.visit();
-			mStream.println("--------");
-		}
-	}
+    @Override
+    public void visitSparkOp(SparkOperator sparkOp) throws VisitorException {
+        mStream.println("");
+        mStream.println("Spark node " + sparkOp.getOperatorKey().toString());
+        if (sparkOp instanceof NativeSparkOperator) {
+            mStream.println("--------");
+            mStream.println();
+            return;
+        }
+        if (sparkOp.physicalPlan != null && sparkOp.physicalPlan.size() > 0) {
+            PlanPrinter<PhysicalOperator, PhysicalPlan> printer = new PlanPrinter<PhysicalOperator, PhysicalPlan>(
+                    sparkOp.physicalPlan, mStream);
+            printer.setVerbose(isVerbose);
+            printer.visit();
+            mStream.println("--------");
+        }
+        List<POGlobalRearrangeSpark> glrList = PlanHelper.getPhysicalOperators(sparkOp.physicalPlan, POGlobalRearrangeSpark.class);
+        for (POGlobalRearrangeSpark glr : glrList) {
+            if (glr.isUseSecondaryKey()) {
+                mStream.println("POGlobalRearrange(" + glr.getOperatorKey() + ") uses secondaryKey");
+            }
+        }
+    }
 }
