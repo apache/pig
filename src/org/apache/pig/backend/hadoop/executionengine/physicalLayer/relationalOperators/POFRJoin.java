@@ -510,6 +510,10 @@ public class POFRJoin extends PhysicalOperator {
         return LRs;
     }
 
+    public boolean isLeftOuterJoin() {
+        return isLeftOuterJoin;
+    }
+
     public int getFragment() {
         return fragment;
     }
