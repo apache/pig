@@ -78,11 +78,11 @@ public class SkewedJoinConverter implements
                 rdd2Pair, SparkUtil.getManifest(Object.class),
                 SparkUtil.getManifest(Tuple.class));
 
-        // do the join
+        // join() returns (key, (t1, t2)) where (key, t1) is in this and (key, t2) is in other
         JavaPairRDD<Object, Tuple2<Tuple, Tuple>> result_KeyValue = rdd1Pair_javaRDD
                 .join(rdd2Pair_javaRDD);
 
-        // map to get RDD<Tuple> from RDD<Object, Tuple2<Tuple, Tuple>> by
+        // map to get JavaRDD<Tuple> from JAvaPairRDD<Object, Tuple2<Tuple, Tuple>> by
         // ignoring the key (of type Object) and appending the values (the
         // Tuples)
         JavaRDD<Tuple> result = result_KeyValue
