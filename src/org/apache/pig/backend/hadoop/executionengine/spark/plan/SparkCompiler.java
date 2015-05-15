@@ -57,6 +57,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.Packager;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.spark.operator.NativeSparkOperator;
+import org.apache.pig.backend.hadoop.executionengine.spark.operator.POGlobalRearrangeSpark;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.DepthFirstWalker;
@@ -551,9 +552,10 @@ public class SparkCompiler extends PhyPlanVisitor {
 	public void visitGlobalRearrange(POGlobalRearrange op)
 			throws VisitorException {
 		try {
-			addToPlan(op);
-			curSparkOp.customPartitioner = op.getCustomPartitioner();
-			phyToSparkOpMap.put(op, curSparkOp);
+            POGlobalRearrangeSpark glbOp = new POGlobalRearrangeSpark(op);
+            addToPlan(glbOp);
+            curSparkOp.customPartitioner = op.getCustomPartitioner();
+            phyToSparkOpMap.put(op, curSparkOp);
 		} catch (Exception e) {
 			int errCode = 2034;
 			String msg = "Error compiling operator "

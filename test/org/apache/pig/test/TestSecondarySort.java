@@ -483,6 +483,9 @@ public abstract class TestSecondarySort {
     @Test
     // Once custom partitioner is used, we cannot use secondary key optimizer, see PIG-3827
     public void testCustomPartitionerWithSort() throws Exception {
+        if( Util.isSparkExecType(cluster.getExecType())){
+            return;
+        }
         File tmpFile1 = Util.createTempFileDelOnExit("test", "txt");
         PrintStream ps1 = new PrintStream(new FileOutputStream(tmpFile1));
         ps1.println("1\t2\t3");

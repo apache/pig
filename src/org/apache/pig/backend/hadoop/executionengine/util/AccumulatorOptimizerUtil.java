@@ -38,6 +38,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POGlobalRearrange;
+import org.apache.pig.backend.hadoop.executionengine.spark.operator.POGlobalRearrangeSpark;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSortedDistinct;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.Packager;
@@ -297,8 +298,8 @@ public class AccumulatorOptimizerUtil {
             return;
         }
 
-        List<POGlobalRearrange> gras = PlanHelper.getPhysicalOperators(plan,
-            POGlobalRearrange.class);
+        List<POGlobalRearrangeSpark> gras = PlanHelper.getPhysicalOperators(plan,
+                POGlobalRearrangeSpark.class);
 
         for (POGlobalRearrange gra : gras) {
             addAccumulatorSparkForGRASubDAG(plan, gra);

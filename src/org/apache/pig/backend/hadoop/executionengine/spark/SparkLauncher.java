@@ -42,6 +42,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobConf;
+
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigConstants;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.BackendException;
@@ -55,7 +57,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFilter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POGlobalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLimit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
@@ -87,7 +88,9 @@ import org.apache.pig.backend.hadoop.executionengine.spark.converter.SplitConver
 import org.apache.pig.backend.hadoop.executionengine.spark.converter.StoreConverter;
 import org.apache.pig.backend.hadoop.executionengine.spark.converter.StreamConverter;
 import org.apache.pig.backend.hadoop.executionengine.spark.converter.UnionConverter;
+import org.apache.pig.backend.hadoop.executionengine.spark.operator.POGlobalRearrangeSpark;
 import org.apache.pig.backend.hadoop.executionengine.spark.optimizer.AccumulatorOptimizer;
+import org.apache.pig.backend.hadoop.executionengine.spark.optimizer.SecondaryKeyOptimizerSpark;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkCompiler;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperator;
@@ -173,9 +176,9 @@ public class SparkLauncher extends Launcher {
 		convertMap.put(POFilter.class, new FilterConverter());
 		convertMap.put(POPackage.class, new PackageConverter(confBytes));
 		convertMap.put(POLocalRearrange.class, new LocalRearrangeConverter());
-		convertMap.put(POGlobalRearrange.class, new GlobalRearrangeConverter());
-		convertMap.put(POLimit.class, new LimitConverter());
-		convertMap.put(PODistinct.class, new DistinctConverter());
+        convertMap.put(POGlobalRearrangeSpark.class, new GlobalRearrangeConverter());
+        convertMap.put(POLimit.class, new LimitConverter());
+        convertMap.put(PODistinct.class, new DistinctConverter());
 		convertMap.put(POUnion.class, new UnionConverter(sparkContext.sc()));
 		convertMap.put(POSort.class, new SortConverter());
 		convertMap.put(POSplit.class, new SplitConverter());
@@ -193,14 +196,20 @@ public class SparkLauncher extends Launcher {
 		return sparkStats;
 	}
 
-	private void optimize(PigContext pc, SparkOperPlan plan) throws VisitorException {
-		boolean isAccumulator =
-				Boolean.valueOf(pc.getProperties().getProperty("opt.accumulator","true"));
-		if (isAccumulator) {
-			AccumulatorOptimizer accumulatorOptimizer = new AccumulatorOptimizer(plan);
-			accumulatorOptimizer.visit();
-		}
-	}
+    private void optimize(PigContext pc, SparkOperPlan plan) throws VisitorException {
+        String prop = pc.getProperties().getProperty(PigConfiguration.PIG_EXEC_NO_SECONDARY_KEY);
+        if (!pc.inIllustrator && !("true".equals(prop))) {
+            SecondaryKeyOptimizerSpark skOptimizer = new SecondaryKeyOptimizerSpark(plan);
+            skOptimizer.visit();
+        }
+
+        boolean isAccum =
+                Boolean.valueOf(pc.getProperties().getProperty("opt.accumulator", "true"));
+        if (isAccum) {
+            AccumulatorOptimizer accum = new AccumulatorOptimizer(plan);
+            accum.visit();
+        }
+    }
 
 	/**
 	 * In Spark, currently only async actions return job id. There is no async
