@@ -1680,7 +1680,7 @@ public class TezCompiler extends PhyPlanVisitor {
             TezCompilerUtil.connect(tezPlan, prevOp, sampleJobPair.first);
 
             POValueOutputTez sampleOut = (POValueOutputTez) sampleJobPair.first.plan.getLeaves().get(0);
-            for (int i = 0; i <= 2; i++) {
+            for (int i = 0; i < 2; i++) {
                 joinJobs[i].setSampleOperator(sampleJobPair.first);
 
                 // Configure broadcast edges for distribution map
@@ -1689,10 +1689,8 @@ public class TezCompiler extends PhyPlanVisitor {
                 sampleOut.addOutputKey(joinJobs[i].getOperatorKey().toString());
 
                 // Configure skewed partitioner for join
-                if (i != 2) {
-                    edge = joinJobs[2].inEdges.get(joinJobs[i].getOperatorKey());
-                    edge.partitionerClass = SkewedPartitionerTez.class;
-                }
+                edge = joinJobs[2].inEdges.get(joinJobs[i].getOperatorKey());
+                edge.partitionerClass = SkewedPartitionerTez.class;
             }
 
             joinJobs[2].markSkewedJoin();
