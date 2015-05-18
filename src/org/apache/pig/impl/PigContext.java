@@ -17,9 +17,6 @@
  */
 package org.apache.pig.impl;
 
-import com.google.common.base.Splitter;
-import com.google.common.collect.Lists;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -29,8 +26,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.io.StringWriter;
 import java.lang.reflect.Constructor;
@@ -912,25 +907,5 @@ public class PigContext implements Serializable {
         } else {
             classloader = new ContextClassLoader(cl);
         }
-    }
-
-    private void writeObject(ObjectOutputStream out) throws IOException {
-        out.defaultWriteObject();
-        ArrayList<String> udfImportList = new ArrayList<String>();
-        if (packageImportList.get() == null) {
-            String udfImportListStr = properties.getProperty("udf.import.list");
-            if (udfImportListStr != null) {
-                udfImportList = Lists.newArrayList(Splitter.on(",").split(udfImportListStr));
-            }
-        } else {
-            udfImportList = packageImportList.get();
-        }
-        out.writeObject(udfImportList);
-    }
-
-    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
-        in.defaultReadObject();
-        ArrayList<String> udfImportList = (ArrayList<String>) in.readObject();
-        packageImportList.set(udfImportList);
     }
 }

@@ -17,7 +17,6 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.spark;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
 import java.io.File;
@@ -132,7 +131,6 @@ public class SparkLauncher extends Launcher {
 			PigContext pigContext) throws Exception {
 		if (LOG.isDebugEnabled())
 		    LOG.debug(physicalPlan);
-        saveUdfImportList(pigContext);
 		JobConf jobConf = SparkUtil.newJobConf(pigContext);
 		jobConf.set(PigConstants.LOCAL_CODE_DIR,
 				System.getProperty("java.io.tmpdir"));
@@ -640,9 +638,4 @@ public class SparkLauncher extends Launcher {
 		// TODO Auto-generated method stub
 
 	}
-
-    private void saveUdfImportList(PigContext pigContext) {
-        String udfImportList = Joiner.on(",").join(PigContext.getPackageImportList());
-        pigContext.getProperties().setProperty("udf.import.list", udfImportList);
-    }
 }
