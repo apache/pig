@@ -17,6 +17,7 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.spark;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
 import java.io.File;
@@ -131,6 +132,7 @@ public class SparkLauncher extends Launcher {
 			PigContext pigContext) throws Exception {
 		if (LOG.isDebugEnabled())
 		    LOG.debug(physicalPlan);
+        saveUdfImportList(pigContext);
 		JobConf jobConf = SparkUtil.newJobConf(pigContext);
 		jobConf.set(PigConstants.LOCAL_CODE_DIR,
 				System.getProperty("java.io.tmpdir"));
@@ -638,4 +640,16 @@ public class SparkLauncher extends Launcher {
 		// TODO Auto-generated method stub
 
 	}
+
+    /**
+     * We store the value of udf.import.list in PigContext#properties.getProperty("spark.udf.import.list") in spark mode.
+     * Later we will use PigContext#properties.getProperty("spark.udf.import.list")in PigContext#writeObject.
+     * we don't save this value in PigContext#properties.getProperty("udf.import.list")
+     * because this will cause OOM problem(detailed see PIG-4295).
+     * @param pigContext
+     */
+    private void saveUdfImportList(PigContext pigContext) {
+        String udfImportList = Joiner.on(",").join(PigContext.getPackageImportList());
+        pigContext.getProperties().setProperty("spark.udf.import.list", udfImportList);
+    }
 }
