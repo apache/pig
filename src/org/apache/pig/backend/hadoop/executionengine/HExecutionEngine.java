@@ -116,16 +116,17 @@ public abstract class HExecutionEngine implements ExecutionEngine {
     public JobConf getS3Conf() throws ExecException {
         JobConf jc = new JobConf();
         jc.addResource(CORE_SITE);
+        JobConf s3Jc = new JobConf(false);
         Iterator<Entry<String, String>> i = jc.iterator();
         while (i.hasNext()) {
             Entry<String, String> e = i.next();
             String key = e.getKey();
             String value = e.getValue();
             if (key.startsWith("fs.s3") || key.startsWith("fs.s3n")) {
-                jc.set(key, value);
+                s3Jc.set(key, value);
             }
         }
-        return jc;
+        return s3Jc;
     }
 
     public JobConf getLocalConf() {
