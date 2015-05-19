@@ -76,6 +76,8 @@ PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES
 
+PIG-4556: Local mode is broken in some case by PIG-4247 (daijy)
+
 PIG-4523: Tez engine should use tez config rather than mr config whenever possible (daijy)
 
 PIG-4452: Embedded SQL using "SQL" instead of "sql" fails with string index out of range: -1 error (daijy)
