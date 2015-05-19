@@ -1266,6 +1266,14 @@ public class Util {
         return false;
     }
 
+    public static boolean isSparkExecType(ExecType execType) {
+        if (execType.name().toLowerCase().startsWith("spark")) {
+            return true;
+        }
+
+        return false;
+    }
+
     public static void assertParallelValues(long defaultParallel,
                                              long requestedParallel,
                                              long estimatedParallel,
@@ -1325,14 +1333,6 @@ public class Util {
 
     public static boolean isMapredExecType(ExecType execType) {
         return execType == ExecType.MAPREDUCE;
-    }
-
-    public static boolean isSparkExecType(ExecType execType) {
-        if (execType.name().toLowerCase().startsWith("spark")) {
-            return true;
-        }
-
-        return false;
     }
 
     public static String findPigJarName() {

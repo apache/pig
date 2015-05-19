@@ -28,11 +28,14 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.pig.CollectableLoadFunc;
+import org.apache.pig.IndexableLoadFunc;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompilerException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.ScalarPhyFinder;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.UDFFinder;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCollectedGroup;
@@ -636,7 +639,16 @@ public class SparkCompiler extends PhyPlanVisitor {
 
 	@Override
 	public void visitMergeJoin(POMergeJoin joinOp) throws VisitorException {
-		// TODO
+        try {
+            addToPlan(joinOp);
+            phyToSparkOpMap.put(joinOp, curSparkOp);
+        } catch (Exception e) {
+
+            int errCode = 2034;
+            String msg = "Error compiling operator "
+                    + joinOp.getClass().getSimpleName();
+            throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
+        }
 	}
 
 	private void processUDFs(PhysicalPlan plan) throws VisitorException {
