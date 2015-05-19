@@ -717,4 +717,8 @@ public class POMergeJoin extends PhysicalOperator {
     public LOJoin.JOINTYPE getJoinType() {
         return joinType;
     }
+
+    public POLocalRearrange[] getLRs() {
+        return LRs;
+    }
 }
