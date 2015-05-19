@@ -66,6 +66,8 @@ PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES
 
+PIG-4559: Fix several new tez e2e test failures (daijy)
+
 PIG-4506: binstorage fails to write biginteger (ssavvides via daijy)
 
 PIG-4556: Local mode is broken in some case by PIG-4247 (daijy)
