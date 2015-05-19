@@ -21,6 +21,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -162,9 +164,9 @@ public class TestEvalPipeline2 {
         // if the conversion happens when minimum conditions for conversion
         // such as expected number of bytes are met.
         String[] input = {
-                    "asdf\t12\t1.1\t231\t234",
-                    "sa\t1231\t123.4\t12345678\t1234.567",
-                    "asdff\t1232123\t1.45345\t123456789\t123456789.9"
+                    "asdf\t12\t1.1\t231\t234\t3024123\t3.2492",
+                    "sa\t1231\t123.4\t12345678\t1234.567\t5081123453\t9.181817",
+                    "asdff\t1232123\t1.45345\t123456789\t123456789.9\t1234567\t1.234567"
                     };
 
         Util.createInputFile(cluster, "table_bs_ac", input);
@@ -176,7 +178,7 @@ public class TestEvalPipeline2 {
         pigServer.store("a", output, BinStorage.class.getName());
 
         pigServer.registerQuery("b = load '" + output + "' using BinStorage('Utf8StorageConverter') "
-                + "as (name: int, age: int, gpa: float, lage: long, dgpa: double);");
+                + "as (name: int, age: int, gpa: float, lage: long, dgpa: double, bi:biginteger, bd:bigdecimal);");
 
         Iterator<Tuple> it = pigServer.openIterator("b");
 
@@ -195,6 +197,8 @@ public class TestEvalPipeline2 {
         Assert.assertTrue((Float)tup.get(2) == 1.1F);
         Assert.assertTrue((Long)tup.get(3) == 231L);
         Assert.assertTrue((Double)tup.get(4) == 234.0);
+        Assert.assertEquals((BigInteger)tup.get(5), new BigInteger("3024123"));
+        Assert.assertEquals((BigDecimal)tup.get(6), new BigDecimal("3.2492"));
 
         //tuple 2
         tup = it.next();
@@ -203,6 +207,8 @@ public class TestEvalPipeline2 {
         Assert.assertTrue((Float)tup.get(2) == 123.4F);
         Assert.assertTrue((Long)tup.get(3) == 12345678L);
         Assert.assertTrue((Double)tup.get(4) == 1234.567);
+        Assert.assertEquals((BigInteger)tup.get(5), new BigInteger("5081123453"));
+        Assert.assertEquals((BigDecimal)tup.get(6), new BigDecimal("9.181817"));
 
         //tuple 3
         tup = it.next();
@@ -211,6 +217,8 @@ public class TestEvalPipeline2 {
         Assert.assertTrue((Float)tup.get(2) == 1.45345F);
         Assert.assertTrue((Long)tup.get(3) == 123456789L);
         Assert.assertTrue((Double)tup.get(4) == 1.234567899E8);
+        Assert.assertEquals((BigInteger)tup.get(5), new BigInteger("1234567"));
+        Assert.assertEquals((BigDecimal)tup.get(6), new BigDecimal("1.234567"));
 
         Util.deleteFile(cluster, "table");
     }
