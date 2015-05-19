@@ -25,31 +25,29 @@ import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.mapred.Counters;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.Reporter;
-import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.PigWarning;
 
 @Description(name = "dummycontextudf",
 value = "_FUNC_(col) - UDF to report MR counter values")
 public class DummyContextUDF extends GenericUDF {
 
   private MapredContext context;
-  private LongWritable result = new LongWritable();
+  private Text result = new Text();
 
   public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
-    return PrimitiveObjectInspectorFactory.writableLongObjectInspector;
+    return PrimitiveObjectInspectorFactory.writableStringObjectInspector;
   }
 
   public Object evaluate(DeferredObject[] arguments) throws HiveException {
     Reporter reporter = context.getReporter();
-    Counters.Counter counter;
-    if (UDFContext.getUDFContext().getJobConf().get("exectype").equals("TEZ")) {
-        counter = reporter.getCounter("org.apache.tez.common.counters.TaskCounter", "INPUT_RECORDS_PROCESSED");
-    } else {
-        counter = reporter.getCounter("org.apache.hadoop.mapred.Task$Counter", "MAP_INPUT_RECORDS");
+    int age = (Integer)arguments[0].get();
+    if (age>50) {
+        // Here use PigWarning.UDF_WARNING_1, so it is easier to verify in e2e test
+        reporter.incrCounter(PigWarning.UDF_WARNING_1, 1);
     }
-    result.set(counter.getValue());
+    result.set(arguments.toString());
     return result;
   }
 
