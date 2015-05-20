@@ -458,21 +458,23 @@ public class SparkLauncher extends Launcher {
 			SparkPigStats sparkStats, JobConf jobConf) throws IOException,
 			InterruptedException {
 		Set<Integer> seenJobIDs = new HashSet<Integer>();
-		if (sparkPlan != null) {
-			List<SparkOperator> leaves = sparkPlan.getLeaves();
-			Collections.sort(leaves);
-			Map<OperatorKey, RDD<Tuple>> sparkOpToRdds = new HashMap();
-			if (LOG.isDebugEnabled())
-			    LOG.debug("Converting " + leaves.size() + " Spark Operators");
-			for (SparkOperator leaf : leaves) {
-				new PhyPlanSetter(leaf.physicalPlan).visit();
-				Map<OperatorKey, RDD<Tuple>> physicalOpToRdds = new HashMap();
-				sparkOperToRDD(sparkPlan, leaf, sparkOpToRdds,
-						physicalOpToRdds, convertMap, seenJobIDs, sparkStats,
-						jobConf);
-			}
-		} else {
-			throw new RuntimeException("sparkPlan is null");
+		if (sparkPlan == null) {
+			throw new RuntimeException("SparkPlan is null.");
+		}
+
+		List<SparkOperator> leaves = sparkPlan.getLeaves();
+		Collections.sort(leaves);
+		Map<OperatorKey, RDD<Tuple>> sparkOpToRdds = new HashMap();
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("Converting " + leaves.size() + " Spark Operators to RDDs");
+		}
+
+		for (SparkOperator leaf : leaves) {
+			new PhyPlanSetter(leaf.physicalPlan).visit();
+			Map<OperatorKey, RDD<Tuple>> physicalOpToRdds = new HashMap();
+			sparkOperToRDD(sparkPlan, leaf, sparkOpToRdds,
+					physicalOpToRdds, convertMap, seenJobIDs, sparkStats,
+					jobConf);
 		}
 	}
 
@@ -509,21 +511,21 @@ public class SparkLauncher extends Launcher {
 									+ "sparkOperator:{}",
 							sparkOperator.physicalPlan.getLeaves().size(),
 							sparkOperator.name()));
-		} else {
-			PhysicalOperator leafPO = leafPOs.get(0);
-			try {
-				physicalToRDD(sparkOperator.physicalPlan, leafPO, physicalOpRdds,
-						predecessorRDDs, convertMap);
-				sparkOpRdds.put(sparkOperator.getOperatorKey(),
-						physicalOpRdds.get(leafPO.getOperatorKey()));
-			} catch(Exception e) {
-				if( e instanceof  SparkException) {
-					LOG.info("throw SparkException, error founds when running " +
-							"rdds in spark");
-				}
-				exception = e;
-				isFail = true;
+		}
+
+		PhysicalOperator leafPO = leafPOs.get(0);
+		try {
+			physicalToRDD(sparkOperator.physicalPlan, leafPO, physicalOpRdds,
+					predecessorRDDs, convertMap);
+			sparkOpRdds.put(sparkOperator.getOperatorKey(),
+					physicalOpRdds.get(leafPO.getOperatorKey()));
+		} catch(Exception e) {
+			if( e instanceof  SparkException) {
+				LOG.info("throw SparkException, error founds when running " +
+						"rdds in spark");
 			}
+			exception = e;
+			isFail = true;
 		}
 
 		List<POStore> poStores = PlanHelper.getPhysicalOperators(
@@ -541,10 +543,10 @@ public class SparkLauncher extends Launcher {
                         conf, exception);
             }
         } else {
-			      LOG.info(String
-					      .format(String.format("sparkOperator:{} does not have POStore or" +
-                    " sparkOperator has more than 1 POStore. {} is the size of POStore."),
-                    sparkOperator.name(), poStores.size()));
+			LOG.info(String
+					.format(String.format("sparkOperator:{} does not have POStore or" +
+									" sparkOperator has more than 1 POStore. {} is the size of POStore."),
+							sparkOperator.name(), poStores.size()));
 		}
 	}
 
@@ -557,9 +559,10 @@ public class SparkLauncher extends Launcher {
         RDD<Tuple> nextRDD = null;
         List<PhysicalOperator> predecessors = plan
                 .getPredecessors(physicalOperator);
-        if (predecessors != null) {
+        if (predecessors != null && predecessors.size() > 1) {
             Collections.sort(predecessors);
         }
+
         List<RDD<Tuple>> predecessorRdds = Lists.newArrayList();
 		if (predecessors != null) {
 			for (PhysicalOperator predecessor : predecessors) {
