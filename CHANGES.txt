@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4563: Upgrade to released Tez 0.7.0 (daijy)
+
 PIG-4511: Add columns to prune from PluckTuple (jbabcock via cheolsoo)
 
 PIG-4434: Improve auto-parallelism for tez (daijy)
