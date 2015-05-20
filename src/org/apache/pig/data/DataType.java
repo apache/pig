@@ -1126,7 +1126,7 @@ public class DataType {
             case UNKNOWN:
             default:
                 int errCode = 1071;
-                String msg = "Cannot convert a " + findTypeName(o) + " to a Boolean";
+                String msg = "Cannot convert a " + findTypeName(o) + " to a DateTime";
                 throw new ExecException(msg, errCode, PigException.INPUT);
             }
         } catch (ClassCastException cce) {
@@ -1135,11 +1135,11 @@ public class DataType {
             throw ee;
         } catch (NumberFormatException nfe) {
             int errCode = 1074;
-            String msg = "Problem with formatting. Could not convert " + o + " to Float.";
+            String msg = "Problem with formatting. Could not convert " + o + " to DateTime.";
             throw new ExecException(msg, errCode, PigException.INPUT, nfe);
         } catch (Exception e) {
             int errCode = 2054;
-            String msg = "Internal error. Could not convert " + o + " to Float.";
+            String msg = "Internal error. Could not convert " + o + " to DateTime.";
             throw new ExecException(msg, errCode, PigException.BUG);
         }
     }
