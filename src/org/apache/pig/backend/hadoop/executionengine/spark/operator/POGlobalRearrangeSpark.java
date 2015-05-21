@@ -17,6 +17,7 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.spark.operator;
 
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POGlobalRearrange;
 
 /**
@@ -28,8 +29,9 @@ public class POGlobalRearrangeSpark extends POGlobalRearrange {
     // Sort order for secondary keys;
     private boolean[] secondarySortOrder;
 
-    public POGlobalRearrangeSpark(POGlobalRearrange copy) {
-        super(copy.getOperatorKey());
+    public POGlobalRearrangeSpark(POGlobalRearrange copy)
+            throws ExecException {
+        super(copy);
     }
 
     public boolean isUseSecondaryKey() {

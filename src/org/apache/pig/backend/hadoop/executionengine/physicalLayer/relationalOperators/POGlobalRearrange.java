@@ -74,7 +74,13 @@ public class POGlobalRearrange extends PhysicalOperator {
     public POGlobalRearrange(OperatorKey k, int rp, List inp) {
         super(k, rp, inp);
     }
-    
+
+    public POGlobalRearrange(POGlobalRearrange copy) throws ExecException {
+        super(copy);
+        this.cross = copy.cross;
+        this.customPartitioner = copy.customPartitioner;
+    }
+
     @Override
     public void visit(PhyPlanVisitor v) throws VisitorException {
         v.visitGlobalRearrange(this);
