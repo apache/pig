@@ -189,10 +189,9 @@ public abstract class HExecutionEngine implements ExecutionEngine {
         // existing properties All of the above is accomplished in the method
         // call below
 
-        JobConf jc = getS3Conf();
+        JobConf jc;
         if (!this.pigContext.getExecType().isLocal()) {
-            JobConf execConf = getExecConf(properties);
-            ConfigurationUtil.mergeConf(jc, execConf);
+            jc = getExecConf(properties);
 
             // Trick to invoke static initializer of DistributedFileSystem to
             // add hdfs-default.xml into configuration
@@ -206,8 +205,9 @@ public abstract class HExecutionEngine implements ExecutionEngine {
             properties.setProperty(FILE_SYSTEM_LOCATION, "file:///");
             properties.setProperty(ALTERNATIVE_FILE_SYSTEM_LOCATION, "file:///");
 
-            JobConf localConf = getLocalConf();
-            ConfigurationUtil.mergeConf(jc, localConf);
+            jc = getLocalConf();
+            JobConf s3Jc = getS3Conf();
+            ConfigurationUtil.mergeConf(jc, s3Jc);
         }
 
         // the method below alters the properties object by overriding the
