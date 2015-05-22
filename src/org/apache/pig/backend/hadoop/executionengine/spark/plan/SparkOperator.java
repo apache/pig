@@ -17,8 +17,10 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.spark.plan;
 
+import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -55,8 +57,6 @@ public class SparkOperator extends Operator<SparkOpPlanVisitor> {
 
 	public Set<PhysicalOperator> scalars;
 
-	public boolean isUDFComparatorUsed = false;
-
 	public int requestedParallelism = -1;
 
     private BitSet feature = new BitSet();
@@ -70,6 +70,8 @@ public class SparkOperator extends Operator<SparkOpPlanVisitor> {
 	private boolean usingTypedComparator = false;
 
 	private boolean combineSmallSplits = true;
+
+	private List<String> crossKeys = null;
 
 	public SparkOperator(OperatorKey k) {
 		super(k);
@@ -116,6 +118,17 @@ public class SparkOperator extends Operator<SparkOpPlanVisitor> {
 	@Override
 	public void visit(SparkOpPlanVisitor v) throws VisitorException {
 		v.visitSparkOp(this);
+	}
+
+	public void addCrossKey(String key) {
+		if (crossKeys == null) {
+			crossKeys = new ArrayList<String>();
+		}
+		crossKeys.add(key);
+	}
+
+	public List<String> getCrossKeys() {
+		return crossKeys;
 	}
 
 	public boolean isGroupBy() {

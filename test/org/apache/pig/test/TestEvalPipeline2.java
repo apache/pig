@@ -1666,8 +1666,14 @@ public class TestEvalPipeline2 {
                     return false;
                 }
             });
-            // auto-parallelism is 2 in MR, 20 in Tez, so check >=2
-            Assert.assertTrue(partFiles.length >= 2);
+
+            if (Util.isSparkExecType(cluster.getExecType())) {
+                // TODO: Fix this when we implement auto-parallelism in Spark
+                Assert.assertTrue(partFiles.length == 1);
+            } else {
+                // auto-parallelism is 2 in MR, 20 in Tez, so check >=2
+                Assert.assertTrue(partFiles.length >= 2);
+            }
             // Check the output
             Iterator<Tuple> iter = job.getResults();
             List<Tuple> results = new ArrayList<Tuple>();
