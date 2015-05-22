@@ -76,7 +76,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPartitionRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORank;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORollupHIIForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSkewedJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
@@ -1097,11 +1096,6 @@ public class MRCompiler extends PhyPlanVisitor {
             String msg = "Error compiling operator " + op.getClass().getSimpleName();
             throw new MRCompilerException(msg, errCode, PigException.BUG, e);
         }
-    }
-
-    @Override
-    public void visitPORollupHIIForEach(PORollupHIIForEach op) throws VisitorException {
-        visitPOForEach(op);
     }
 
     @Override

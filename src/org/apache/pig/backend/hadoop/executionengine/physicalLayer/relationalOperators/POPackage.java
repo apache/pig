@@ -87,58 +87,6 @@ public class POPackage extends PhysicalOperator {
     private transient boolean useDefaultBag;
     private transient int accumulativeBatchSize;
 
-    //the pivot value
-    private int pivot = -1;
-    //the index of the first field involves in ROLLUP
-    protected int rollupFieldIndex = 0;
-    //the original index of the first field involves in ROLLUP in case it was moved to the end
-    //(if we have the combination of cube and rollup)
-    private int rollupOldFieldIndex = 0;
-    //the size of total fields that involve in CUBE clause
-    private int dimensionSize = 0;
-    //number of algebraic function that used after rollup
-    private int nAlgebraic = 0;
-
-    public void setPivot(int pvt) {
-        this.pivot = pvt;
-    }
-
-    public int getPivot() {
-        return this.pivot;
-    }
-
-    public void setDimensionSize(int ds) {
-        this.dimensionSize = ds;
-    }
-
-    public int getDimensionSize() {
-        return this.dimensionSize;
-    }
-
-    public void setNumberAlgebraic(int na) {
-        this.nAlgebraic = na;
-    }
-
-    public int getNumberAlgebraic() {
-        return this.nAlgebraic;
-    }
-
-    public void setRollupOldFieldIndex(int rofi) {
-        this.rollupOldFieldIndex = rofi;
-    }
-
-    public int getRollupOldFieldIndex() {
-        return this.rollupOldFieldIndex;
-    }
-
-    public void setRollupFieldIndex(int rfi) {
-        this.rollupFieldIndex = rfi;
-    }
-
-    public int getRollupFieldIndex() {
-        return this.rollupFieldIndex;
-    }
-
     public POPackage(OperatorKey k) {
         this(k, -1, null);
     }
