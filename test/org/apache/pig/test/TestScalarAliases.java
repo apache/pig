@@ -28,7 +28,6 @@ import java.util.Iterator;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
 import org.junit.AfterClass;
-import org.junit.Assume;
 import org.junit.Test;
 
 public class TestScalarAliases  {
@@ -93,7 +92,6 @@ public class TestScalarAliases  {
 
     @Test
     public void testScalarErrMultipleRowsInInput() throws Exception{
-        Assume.assumeTrue("Skip this test for TEZ. See PIG-3994", Util.isMapredExecType(cluster.getExecType()));
         Util.resetStateForExecModeSwitch();
         pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
         String[] input = {
