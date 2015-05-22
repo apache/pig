@@ -58,26 +58,6 @@ public class UserFuncExpression extends LogicalExpression {
     private static int sigSeq=0;
     private boolean viaDefine=false; //this represents whether the function was instantiate via a DEFINE statement or not
 
-    private boolean rollupHIIoptimizable = false;
-    //the pivot value
-    private int pivot = -1;
-
-    public void setPivot(int pvt) {
-        this.pivot = pvt;
-    }
-
-    public int getPivot() {
-        return this.pivot;
-    }
-
-    public void setRollupHIIOptimizable(boolean check) {
-        this.rollupHIIoptimizable = check;
-    }
-
-    public boolean getRollupHIIOptimizable() {
-        return this.rollupHIIoptimizable;
-    }
-
     public UserFuncExpression(OperatorPlan plan, FuncSpec funcSpec) {
         super("UserFunc", plan);
         mFuncSpec = funcSpec;
@@ -86,6 +66,7 @@ public class UserFuncExpression extends LogicalExpression {
             signature = Integer.toString(sigSeq++);
         }
     }
+
 
     public UserFuncExpression(OperatorPlan plan, FuncSpec funcSpec, List<LogicalExpression> args) {
         this( plan, funcSpec );

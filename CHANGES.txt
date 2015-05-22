@@ -72,8 +72,6 @@ PIG-4360: HBaseStorage should support setting the timestamp field (bridiver via 
 
 PIG-4337: Split Types and MultiQuery e2e tests into multiple groups (rohini)
 
-PIG-4066: An optimization for ROLLUP operation in Pig (hxquangnhat via cheolsoo)
-
 PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES

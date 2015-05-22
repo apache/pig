@@ -263,7 +263,6 @@ public class LogicalPlan extends BaseOperatorPlan {
             disabledOptimizerRules.add("ColumnMapKeyPrune");
             disabledOptimizerRules.add("AddForEach");
             disabledOptimizerRules.add("GroupByConstParallelSetter");
-            disabledOptimizerRules.add("RollupHIIOptimizer");
         }
 
         try {
