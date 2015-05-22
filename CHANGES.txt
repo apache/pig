@@ -26,6 +26,8 @@ IMPROVEMENTS
 
 PIG-4563: Upgrade to released Tez 0.7.0 (daijy)
 
+PIG-4525: Clarify "Scalar has more than one row in the output." (Niels Basjes via gates)
+
 PIG-4511: Add columns to prune from PluckTuple (jbabcock via cheolsoo)
 
 PIG-4434: Improve auto-parallelism for tez (daijy)
