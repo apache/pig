@@ -28,23 +28,42 @@ public class JVMReuseImpl {
     private static Log LOG = LogFactory.getLog(JVMReuseImpl.class);
 
     public void cleanupStaticData() {
+        String className = null;
+        String msg = null;
         List<Method> staticCleanupMethods = JVMReuseManager.getInstance()
                 .getStaticDataCleanupMethods();
         for (Method m : staticCleanupMethods) {
             try {
-                String msg = "Invoking method " + m.getName() + " in class "
-                        + m.getDeclaringClass().getName() + " for static data cleanup";
-                if (m.getDeclaringClass().getName().startsWith("org.apache.pig")) {
+                className = m.getDeclaringClass() == null ? "anonymous" : m.getDeclaringClass().getName();
+                msg = "Invoking method " + m.getName() + " in class "
+                        + className + " for static data cleanup";
+                if (className.startsWith("org.apache.pig")) {
                     LOG.debug(msg);
                 } else {
                     LOG.info(msg);
                 }
                 m.invoke(null);
+                msg = null;
             } catch (Exception e) {
-                throw new RuntimeException("Error while invoking method "
-                        + m.getName() + " in class " + m.getDeclaringClass().getName()
-                        + " for static data cleanup", e);
+                LOG.error("Exception while calling static methods:" + getMethodNames() + ". " + msg, e);
+                throw new RuntimeException("Error while " + msg, e);
             }
         }
+    }
+
+    private String getMethodNames() {
+        StringBuilder sb = new StringBuilder();
+        for (Method m : JVMReuseManager.getInstance().getStaticDataCleanupMethods()) {
+            if (m == null) {
+                sb.append("null,");
+            } else {
+                sb.append(m.getDeclaringClass() == null ? "anonymous" : m.getDeclaringClass().getName());
+                sb.append(".").append(m.getName()).append(",");
+            }
+        }
+        if (sb.length() > 1) {
+            sb.deleteCharAt(sb.length() - 1);
+        }
+        return sb.toString();
     }
 }
