@@ -178,6 +178,28 @@ public class Util {
         return t;
     }
 
+    /**
+     * Create an array of tuple bags with specified size created by splitting
+     * the input array of primitive types
+     *
+     * @param input Array of primitive types
+     * @param bagSize The number of tuples to be split and copied into each bag
+     *
+     * @return an array of tuple bags with each bag containing bagSize tuples split from the input
+     */
+    static public <T> Tuple[] splitCreateBagOfTuples(T[] input, int bagSize)
+            throws ExecException {
+        List<Tuple> result = new ArrayList<Tuple>();
+        for (int from = 0; from < input.length; from += bagSize) {
+            Tuple t = TupleFactory.getInstance().newTuple(1);
+            int to = from + bagSize < input.length ? from + bagSize
+                    : input.length;
+            T[] array = Arrays.copyOfRange(input, from, to);
+            result.add(loadNestTuple(t, array));
+        }
+        return result.toArray(new Tuple[0]);
+    }
+
     static public <T>void addToTuple(Tuple t, T[] b)
     {
         for(int i = 0; i < b.length; i++)
