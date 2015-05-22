@@ -24,6 +24,8 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -37,9 +39,8 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.StringTokenizer;
-import java.math.BigDecimal;
-import java.math.BigInteger;
 
+import org.apache.pig.Accumulator;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.LoadFunc;
@@ -178,6 +179,10 @@ public class TestBuiltin {
     // a bag of inputs of that type
     private static HashMap<String, Tuple> inputMap = new HashMap<String, Tuple>();
 
+    // A mapping between a type name (example: "Integer") and tuples containing
+    // a bag of inputs of that type for accumulator functions
+    private static HashMap<String, Tuple[]> inputMapForAccumulate = new HashMap<String, Tuple[]>();
+
     // A mapping between name of Aggregate function and the input type of its
     // argument
     private static HashMap<String, String> allowedInput = new HashMap<String, String>();
@@ -258,8 +263,8 @@ public class TestBuiltin {
         // set up allowedInput
         for (String[] aggGroups : aggs) {
             int i = 0;
-            for (String agg: aggGroups) {                
-                allowedInput.put(agg, inputTypeAsString[i++]);    
+            for (String agg: aggGroups) {
+                allowedInput.put(agg, inputTypeAsString[i++]);
             }
         }
 
@@ -339,6 +344,19 @@ public class TestBuiltin {
         inputMap.put("String", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), stringInput));
         inputMap.put("DateTime", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), datetimeInput));
 
+        // set up input hash for accumulate
+        inputMapForAccumulate.put("Integer", Util.splitCreateBagOfTuples(intInput,3));
+        inputMapForAccumulate.put("IntegerAsLong", Util.splitCreateBagOfTuples(intAsLong,3));
+        inputMapForAccumulate.put("Long", Util.splitCreateBagOfTuples(longInput,3));
+        inputMapForAccumulate.put("Float", Util.splitCreateBagOfTuples(floatInput,3));
+        inputMapForAccumulate.put("FloatAsDouble", Util.splitCreateBagOfTuples(floatAsDouble,3));
+        inputMapForAccumulate.put("Double", Util.splitCreateBagOfTuples(doubleInput,3));
+        inputMapForAccumulate.put("BigDecimal", Util.splitCreateBagOfTuples(bigDecimalInput,3));
+        inputMapForAccumulate.put("BigInteger", Util.splitCreateBagOfTuples(bigIntegerInput,3));
+        inputMapForAccumulate.put("ByteArray", Util.splitCreateBagOfTuples(ByteArrayInput,3));
+        inputMapForAccumulate.put("ByteArrayAsDouble", Util.splitCreateBagOfTuples(baAsDouble,3));
+        inputMapForAccumulate.put("String", Util.splitCreateBagOfTuples(stringInput,3));
+        inputMapForAccumulate.put("DateTime", Util.splitCreateBagOfTuples(datetimeInput,3));
     }
 
     @BeforeClass
@@ -380,7 +398,7 @@ public class TestBuiltin {
         Tuple t3 = TupleFactory.getInstance().newTuple(2);
         t3.set(0, new DateTime("2007-03-05T03:05:03.000Z"));
         t3.set(1, "P1D");
-        
+
         assertEquals(func1.exec(t1), new DateTime("2009-01-07T01:07:02.000Z"));
         assertEquals(func1.exec(t2), new DateTime("2008-02-06T02:07:02.000Z"));
         assertEquals(func1.exec(t3), new DateTime("2007-03-06T03:05:03.000Z"));
@@ -408,7 +426,7 @@ public class TestBuiltin {
         DateTime dt3 = func2.exec(t3);
         assertEquals(dt3.compareTo(new DateTime("2009-01-07T01:07:01.000+08:00", DateTimeZone.forID("+08:00"))), 0);
 
-        ToDate2ARGS func3 = new ToDate2ARGS();        
+        ToDate2ARGS func3 = new ToDate2ARGS();
         Tuple t4 = TupleFactory.getInstance().newTuple(2);
         t4.set(0, "2009.01.07 AD at 01:07:01");
         t4.set(1, "yyyy.MM.dd G 'at' HH:mm:ss");
@@ -420,8 +438,8 @@ public class TestBuiltin {
         t5.set(1, "yyyy.MM.dd G 'at' HH:mm:ss Z");
         DateTime dt5 = func3.exec(t5);
         assertEquals(dt5.compareTo(new DateTime("2009-01-07T01:07:01.000+08:00")), 0);
-        
-        ToDate3ARGS func4 = new ToDate3ARGS();        
+
+        ToDate3ARGS func4 = new ToDate3ARGS();
         Tuple t6 = TupleFactory.getInstance().newTuple(3);
         t6.set(0, "2009.01.07 AD at 01:07:01");
         t6.set(1, "yyyy.MM.dd G 'at' HH:mm:ss");
@@ -465,13 +483,13 @@ public class TestBuiltin {
         t12.set(1, "yyyy.MM.dd G 'at' HH:mm:ss Z");
         String dtStr4 = func6.exec(t12);
         assertEquals(dtStr4, "2009.01.07 AD at 01:07:01 +0800");
-        
+
         ToMilliSeconds func7 = new ToMilliSeconds();
         Tuple t13 = TupleFactory.getInstance().newTuple(1);
         t13.set(0, new DateTime(1231290421000L));
         Long ut2 = func7.exec(t11);
         assertEquals(ut2.longValue(), 1231290421000L);
-        
+
         // Null handling
         t1.set(0, null);
         assertEquals(func1.exec(t1), null);
@@ -1421,7 +1439,7 @@ public class TestBuiltin {
             else if (inputType == "BigDecimal")
                 assertEquals(msg, ((BigDecimal) output).toPlainString(), ((BigDecimal)getExpected(sumTypes[k])).toPlainString());
             else if (inputType == "BigInteger")
-                assertEquals(msg, ((BigInteger) output).toString(), ((BigInteger)getExpected(sumTypes[k])).toString()); 
+                assertEquals(msg, ((BigInteger) output).toString(), ((BigInteger)getExpected(sumTypes[k])).toString());
             else {
               assertEquals(msg, (Double)output, (Double)getExpected(sumTypes[k]), 0.00001);
             }
@@ -1439,28 +1457,7 @@ public class TestBuiltin {
 
             String msg = "[Testing " + minTypes[k] + " on input type: " + getInputType(minTypes[k]) + " ( (output) " +
                            output + " == " + getExpected(minTypes[k]) + " (expected) )]";
-
-            if (inputType == "ByteArray") {
-              assertEquals(msg, output, getExpected(minTypes[k]));
-            } else if (inputType == "Long") {
-                assertEquals(msg, output, getExpected(minTypes[k]));
-            } else if (inputType == "Integer") {
-                assertEquals(msg, output, getExpected(minTypes[k]));
-            } else if (inputType == "Double") {
-                assertEquals(msg, output, getExpected(minTypes[k]));
-            } else if (inputType == "Float") {
-                assertEquals(msg, output, getExpected(minTypes[k]));
-            } else if (inputType == "String") {
-                assertEquals(msg, output, getExpected(minTypes[k]));
-            } else if (inputType == "BigDecimal") {
-                assertEquals(msg, ((BigDecimal) output).toPlainString(),  ((BigDecimal) getExpected(minTypes[k])).toPlainString());
-            } else if (inputType == "BigInteger") {
-                assertEquals(msg, ((BigInteger) output).toString(), ((BigInteger) getExpected(minTypes[k])).toString());
-
-            } else if (inputType == "DateTime") {
-                // Compare millis so that we dont have to worry about TZ
-                assertEquals(msg, ((DateTime)output).getMillis(), ((DateTime)getExpected(minTypes[k])).getMillis());
-            }
+            assertForInputType(inputType, msg, getExpected(minTypes[k]), output);
         }
     }
 
@@ -1469,7 +1466,7 @@ public class TestBuiltin {
     public void testMINIntermediate() throws Exception {
 
         String[] minTypes = {"MINIntermediate", "LongMinIntermediate", "IntMinIntermediate", "FloatMinIntermediate",
-                             "BigDecimalMinIntermediate", "BigIntegerMinIntermediate", 
+                             "BigDecimalMinIntermediate", "BigIntegerMinIntermediate",
                              "StringMinIntermediate", "DateTimeMinIntermediate"};
         for (int k = 0; k < minTypes.length; k++) {
             EvalFunc<?> min = evalFuncMap.get(minTypes[k]);
@@ -1479,28 +1476,7 @@ public class TestBuiltin {
 
             String msg = "[Testing " + minTypes[k] + " on input type: " + getInputType(minTypes[k]) + " ( (output) " +
                            ((Tuple)output).get(0) + " == " + getExpected(minTypes[k]) + " (expected) )]";
-
-            if (inputType == "ByteArray") {
-              assertEquals(msg, ((Tuple)output).get(0), getExpected(minTypes[k]));
-            } else if (inputType == "Long") {
-                assertEquals(msg, ((Tuple)output).get(0), getExpected(minTypes[k]));
-            } else if (inputType == "Integer") {
-                assertEquals(msg, ((Tuple)output).get(0), getExpected(minTypes[k]));
-            } else if (inputType == "Double") {
-                assertEquals(msg, ((Tuple)output).get(0), getExpected(minTypes[k]));
-            } else if (inputType == "Float") {
-                assertEquals(msg, ((Tuple)output).get(0), getExpected(minTypes[k]));
-            } else if (inputType == "BigDecimal") {
-                assertEquals(msg, ((BigDecimal)((Tuple)output).get(0)).toPlainString(), ((BigDecimal)getExpected(minTypes[k])).toPlainString());
-            } else if (inputType == "BigInteger") {
-                assertEquals(msg, ((BigInteger)((Tuple)output).get(0)).toString(), ((BigInteger)getExpected(minTypes[k])).toString());
-                System.out.println("xxx: here");
-            } else if (inputType == "String") {
-                assertEquals(msg, ((Tuple)output).get(0), getExpected(minTypes[k]));
-            } else if (inputType == "DateTime") {
-                // Compare millis so that we dont have to worry about TZ
-                assertEquals(msg, ((DateTime)((Tuple)output).get(0)).getMillis(), ((DateTime)getExpected(minTypes[k])).getMillis());
-            }
+            assertForInputType(inputType, msg, getExpected(minTypes[k]), ((Tuple)output).get(0));
         }
     }
 
@@ -1515,27 +1491,23 @@ public class TestBuiltin {
 
             String msg = "[Testing " + minTypes[k] + " on input type: " + getInputType(minTypes[k]) + " ( (output) " +
                            output + " == " + getExpected(minTypes[k]) + " (expected) )]";
+            assertForInputType(inputType, msg, getExpected(minTypes[k]), output);
+        }
+    }
 
-            if (inputType == "ByteArray") {
-              assertEquals(msg, output, getExpected(minTypes[k]));
-            } else if (inputType == "Long") {
-                assertEquals(msg, output, getExpected(minTypes[k]));
-            } else if (inputType == "Integer") {
-                assertEquals(msg, output, getExpected(minTypes[k]));
-            } else if (inputType == "Double") {
-                assertEquals(msg, output, getExpected(minTypes[k]));
-            } else if (inputType == "Float") {
-                assertEquals(msg, output, getExpected(minTypes[k]));
-            } else if (inputType == "BigDecimal") {
-                assertEquals(msg, ((BigDecimal)output).toPlainString(), ((BigDecimal)getExpected(minTypes[k])).toPlainString());
-            } else if (inputType == "BigInteger") {
-                assertEquals(msg, ((BigInteger)output).toString(), ((BigInteger)getExpected(minTypes[k])).toString());
-            } else if (inputType == "String") {
-                assertEquals(msg, output, getExpected(minTypes[k]));
-            } else if (inputType == "DateTime") {
-                // Compare millis so that we dont have to worry about TZ
-                assertEquals(msg, ((DateTime)output).getMillis(), ((DateTime)getExpected(minTypes[k])).getMillis());
-            }
+    @Test
+    public void testMINAccumulate() throws Exception {
+        String[] minTypes = {"MIN", "LongMin", "IntMin", "FloatMin","BigDecimalMin","BigIntegerMin", "StringMin", "DateTimeMin"};
+        for (int k = 0; k < minTypes.length; k++) {
+            Accumulator<?> min = (Accumulator<?>)evalFuncMap.get(minTypes[k]);
+            String inputType = getInputType(minTypes[k]);
+            Tuple[] tuples = inputMapForAccumulate.get(inputType);
+            for (Tuple tup : tuples)
+            	min.accumulate(tup);
+            Object output = min.getValue();
+            String msg = "[Testing " + minTypes[k] + " accumulate on input type: " + getInputType(minTypes[k]) + " ( (output) " +
+                           output + " == " + getExpected(minTypes[k]) + " (expected) )]";
+            assertForInputType(inputType, msg, getExpected(minTypes[k]), output);
         }
     }
 
@@ -1551,30 +1523,9 @@ public class TestBuiltin {
 
             String msg = "[Testing " + maxTypes[k] + " on input type: " + getInputType(maxTypes[k]) + " ( (output) " +
                            output + " == " + getExpected(maxTypes[k]) + " (expected) )]";
-
-            if (inputType == "ByteArray") {
-              assertEquals(msg, output, getExpected(maxTypes[k]));
-            } else if (inputType == "Long") {
-                assertEquals(msg, output, getExpected(maxTypes[k]));
-            } else if (inputType == "Integer") {
-                assertEquals(msg, output, getExpected(maxTypes[k]));
-            } else if (inputType == "Double") {
-                assertEquals(msg, output, getExpected(maxTypes[k]));
-            } else if (inputType == "Float") {
-                assertEquals(msg, output, getExpected(maxTypes[k]));
-            } else if (inputType == "BigDecimal") {
-                assertEquals(msg, ((BigDecimal)output).toPlainString(), ((BigDecimal)getExpected(maxTypes[k])).toPlainString());
-            } else if (inputType == "BigInteger") {
-                assertEquals(msg, ((BigInteger)output).toString(), ((BigInteger)getExpected(maxTypes[k])).toString());
-            } else if (inputType == "String") {
-                assertEquals(msg, output, getExpected(maxTypes[k]));
-            } else if (inputType == "DateTime") {
-                // Compare millis so that we dont have to worry about TZ
-                assertEquals(msg, ((DateTime)output).getMillis(), ((DateTime)getExpected(maxTypes[k])).getMillis());
-            }
+            assertForInputType(inputType, msg, getExpected(maxTypes[k]), output);
         }
     }
-
 
     @Test
     public void testMAXIntermed() throws Exception {
@@ -1590,27 +1541,7 @@ public class TestBuiltin {
 
             String msg = "[Testing " + maxTypes[k] + " on input type: " + getInputType(maxTypes[k]) + " ( (output) " +
                            ((Tuple)output).get(0) + " == " + getExpected(maxTypes[k]) + " (expected) )]";
-
-            if (inputType == "ByteArray") {
-              assertEquals(msg, ((Tuple)output).get(0), getExpected(maxTypes[k]));
-            } else if (inputType == "Long") {
-                assertEquals(msg, ((Tuple)output).get(0), getExpected(maxTypes[k]));
-            } else if (inputType == "Integer") {
-                assertEquals(msg, ((Tuple)output).get(0), getExpected(maxTypes[k]));
-            } else if (inputType == "Double") {
-                assertEquals(msg, ((Tuple)output).get(0), getExpected(maxTypes[k]));
-            } else if (inputType == "Float") {
-                assertEquals(msg, ((Tuple)output).get(0), getExpected(maxTypes[k]));
-            } else if (inputType == "BigDecimal") {
-                assertEquals(msg, ((BigDecimal)((Tuple)output).get(0)).toPlainString(), ((BigDecimal)getExpected(maxTypes[k])).toPlainString());
-            } else if (inputType == "BigInteger") {
-                assertEquals(msg, ((BigInteger)((Tuple)output).get(0)).toString(), ((BigInteger)getExpected(maxTypes[k])).toString());
-            } else if (inputType == "String") {
-                assertEquals(msg, ((Tuple)output).get(0), getExpected(maxTypes[k]));
-            } else if (inputType == "DateTime") {
-                // Compare millis so that we dont have to worry about TZ
-                assertEquals(msg, ((DateTime)((Tuple)output).get(0)).getMillis(), ((DateTime)getExpected(maxTypes[k])).getMillis());
-            }
+            assertForInputType(inputType, msg, getExpected(maxTypes[k]), ((Tuple)output).get(0));
         }
     }
 
@@ -1626,29 +1557,26 @@ public class TestBuiltin {
 
             String msg = "[Testing " + maxTypes[k] + " on input type: " + getInputType(maxTypes[k]) + " ( (output) " +
                            output + " == " + getExpected(maxTypes[k]) + " (expected) )]";
-
-            if (inputType == "ByteArray") {
-              assertEquals(msg, output, getExpected(maxTypes[k]));
-            } else if (inputType == "Long") {
-                assertEquals(msg, output, getExpected(maxTypes[k]));
-            } else if (inputType == "Integer") {
-                assertEquals(msg, output, getExpected(maxTypes[k]));
-            } else if (inputType == "Double") {
-                assertEquals(msg, output, getExpected(maxTypes[k]));
-            } else if (inputType == "Float") {
-                assertEquals(msg, output, getExpected(maxTypes[k]));
-            } else if (inputType == "BigDecimal") {
-                assertEquals(msg, ((BigDecimal)output).toPlainString(), ((BigDecimal)getExpected(maxTypes[k])).toPlainString());
-            } else if (inputType == "BigInteger") {
-                assertEquals(msg, ((BigInteger)output).toString(), ((BigInteger)getExpected(maxTypes[k])).toString());
-            } else if (inputType == "String") {
-                assertEquals(msg, output, getExpected(maxTypes[k]));
-            } else if (inputType == "DateTime") {
-                // Compare millis so that we dont have to worry about TZ
-                assertEquals(msg, ((DateTime)output).getMillis(), ((DateTime)getExpected(maxTypes[k])).getMillis());
-            }
+            assertForInputType(inputType, msg, getExpected(maxTypes[k]), output);
         }
 
+    }
+
+    @Test
+    public void testMAXAccumulate() throws Exception {
+        String[] maxTypes = {"MAX", "LongMax", "IntMax", "FloatMax", "BigDecimalMax", "BigIntegerMax", "StringMax", "DateTimeMax"};
+        for (int k = 0; k < maxTypes.length; k++) {
+        	Accumulator<?> max = (Accumulator<?>)evalFuncMap.get(maxTypes[k]);
+            String inputType = getInputType(maxTypes[k]);
+            Tuple[] tuples = inputMapForAccumulate.get(inputType);
+            for (Tuple tup : tuples)
+            	max.accumulate(tup);
+            Object output = max.getValue();
+
+            String msg = "[Testing " + maxTypes[k] + " accumulate on input type: " + getInputType(maxTypes[k]) + " ( (output) " +
+                           output + " == " + getExpected(maxTypes[k]) + " (expected) )]";
+            assertForInputType(inputType, msg, getExpected(maxTypes[k]), output);
+        }
     }
 
     @Test
@@ -1939,7 +1867,7 @@ public class TestBuiltin {
         t3.set(0, null);
         t3.set(1, "^\\/search\\/iy\\/(.*?)\\/.*");
         t3.set(2, 2);
-        
+
         Tuple t4 = tupleFactory.newTuple(3);
         t4.set(0,"this is a match");
         t4.set(1, "this is a (.+?)");
@@ -2185,7 +2113,7 @@ public class TestBuiltin {
         }
         assertTrue("null in tobag result", s.contains(null));
     }
-        
+
     @Test
     public void testTOBAGSupportsTuplesInInput() throws IOException {
         String[][] expected = {
@@ -2401,7 +2329,7 @@ public class TestBuiltin {
         assertTrue(msg, res.equals(exp));
 
     }
-    
+
     /**
      * End-to-end testing of the CONCAT() builtin function for vararg parameters
      * @throws Exception
@@ -2412,17 +2340,17 @@ public class TestBuiltin {
         Util.createLocalInputFile(input, new String[]{"dummy"});
         PigServer pigServer = new PigServer(Util.getLocalTestMode());
         pigServer.registerQuery("A = LOAD '"+input+"' as (x:chararray);");
-        
+
         pigServer.registerQuery("B = foreach A generate CONCAT('a', CONCAT('b',CONCAT('c','d')));");
         Iterator<Tuple> its = pigServer.openIterator("B");
         Tuple t = its.next();
         assertEquals("abcd",t.get(0));
-        
+
         pigServer.registerQuery("B = foreach A generate CONCAT('a', 'b', 'c', 'd');");
         its = pigServer.openIterator("B");
         t = its.next();
         assertEquals("abcd",t.get(0));
-        
+
         pigServer.registerQuery("B = foreach A generate CONCAT('a', CONCAT('b','c'), 'd');");
         its = pigServer.openIterator("B");
         t = its.next();
@@ -2787,11 +2715,11 @@ public class TestBuiltin {
         assertTrue(rt.get(0).equals("456"));
         rt = i.next();
         assertTrue(rt.get(0).equals("789"));
-        
+
         // Check when delim specified
         Tuple t4 = tf.newTuple(2);
         t4.set(0, "123|456|78\"9");
-        t4.set(1, "|");        
+        t4.set(1, "|");
         b = f.exec(t4);
         assertTrue(b.size()==3);
         i = b.iterator();
@@ -2804,7 +2732,7 @@ public class TestBuiltin {
 
         b = f.exec(t2);
         assertTrue(b==null);
-        
+
         b = f.exec(t3);
         assertTrue(b==null);
     }
@@ -2846,7 +2774,7 @@ public class TestBuiltin {
         result = d.exec(t);
         assertEquals(2, result.size());
     }
-    
+
     //see PIG-2331
     @Test
     public void testURIwithCurlyBrace() throws Exception {
@@ -2885,6 +2813,29 @@ public class TestBuiltin {
      */
     private Object getExpected(String expectedFor) {
         return expectedMap.get(expectedFor);
+    }
+
+    private void assertForInputType(String inputType, String assertMsg, Object expected, Object actual) {
+        if (inputType == "ByteArray") {
+          assertEquals(assertMsg, expected, actual);
+        } else if (inputType == "Long") {
+            assertEquals(assertMsg, expected, actual);
+        } else if (inputType == "Integer") {
+            assertEquals(assertMsg, expected, actual);
+        } else if (inputType == "Double") {
+            assertEquals(assertMsg, expected, actual);
+        } else if (inputType == "Float") {
+            assertEquals(assertMsg, expected, actual);
+        } else if (inputType == "BigDecimal") {
+            assertEquals(assertMsg, ((BigDecimal)expected).toPlainString(), ((BigDecimal)expected).toPlainString());
+        } else if (inputType == "BigInteger") {
+            assertEquals(assertMsg, ((BigInteger)expected).toString(), ((BigInteger)actual).toString());
+        } else if (inputType == "String") {
+            assertEquals(assertMsg, expected, actual);
+        } else if (inputType == "DateTime") {
+            // Compare millis so that we dont have to worry about TZ
+            assertEquals(assertMsg, ((DateTime)expected).getMillis(), ((DateTime)actual).getMillis());
+        }
     }
 
     @Test
@@ -3084,12 +3035,12 @@ public class TestBuiltin {
         Long years = func1.exec(t);
         System.out.println("Years: " + years.toString());
         Assert.assertEquals(years.longValue(), 7L);
-        
+
         MonthsBetween func2 = new MonthsBetween();
         Long months = func2.exec(t);
         System.out.println("Months: " + months.toString());
         Assert.assertEquals(months.longValue(),84L);
-        
+
         WeeksBetween func3 = new WeeksBetween();
         Long weeks = func3.exec(t);
         System.out.println("Weeks: " + weeks.toString());
@@ -3127,7 +3078,7 @@ public class TestBuiltin {
         t1.set(0, ToDate.extractDateTime("2010-04-15T08:11:33.020Z"));
         Tuple t2 = TupleFactory.getInstance().newTuple(1);
         t2.set(0, ToDate.extractDateTime("2010-04-15T08:11:33.020+08:00"));
-        
+
         GetYear func1 = new GetYear();
         Integer year = func1.exec(t1);
         assertEquals(year.intValue(), 2010);
@@ -3139,31 +3090,31 @@ public class TestBuiltin {
         assertEquals(month.intValue(), 4);
         month = func2.exec(t2);
         assertEquals(month.intValue(), 4);
-        
+
         GetDay func3 = new GetDay();
         Integer day = func3.exec(t1);
         assertEquals(day.intValue(), 15);
         day = func3.exec(t2);
         assertEquals(day.intValue(), 15);
-        
+
         GetHour func4 = new GetHour();
         Integer hour = func4.exec(t1);
         assertEquals(hour.intValue(), 8);
         hour = func4.exec(t2);
         assertEquals(hour.intValue(), 8);
-        
+
         GetMinute func5 = new GetMinute();
         Integer minute = func5.exec(t1);
         assertEquals(minute.intValue(), 11);
         minute = func5.exec(t2);
         assertEquals(minute.intValue(), 11);
-        
+
         GetSecond func6 = new GetSecond();
         Integer second = func6.exec(t1);
         assertEquals(second.intValue(), 33);
         second = func6.exec(t2);
         assertEquals(second.intValue(), 33);
-        
+
         GetMilliSecond func7 = new GetMilliSecond();
         Integer milli = func7.exec(t1);
         assertEquals(milli.intValue(), 20);
@@ -3175,13 +3126,13 @@ public class TestBuiltin {
         assertEquals(weekyear.intValue(), 2010);
         weekyear = func8.exec(t2);
         assertEquals(weekyear.intValue(), 2010);
-        
+
         GetWeek func9 = new GetWeek();
         Integer week = func9.exec(t1);
         assertEquals(week.intValue(), 15);
         week = func9.exec(t2);
         assertEquals(week.intValue(), 15);
-        
+
         // Null handling
         t1.set(0, null);
         assertEquals(func1.exec(t1), null);
@@ -3193,7 +3144,7 @@ public class TestBuiltin {
         assertEquals(func7.exec(t1), null);
         assertEquals(func8.exec(t1), null);
         assertEquals(func9.exec(t1), null);
-        
+
     }
 
     @Test
