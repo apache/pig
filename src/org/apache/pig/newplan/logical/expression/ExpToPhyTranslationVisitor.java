@@ -60,7 +60,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.Subtract;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.builtin.RollupDimensions;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -502,28 +501,11 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
     public void visit( UserFuncExpression op ) throws FrontendException {
         Object f = PigContext.instantiateFuncFromSpec(op.getFuncSpec());
         PhysicalOperator p;
-        String ROLLUP_UDF = RollupDimensions.class.getName();
         if (f instanceof EvalFunc) {
             p = new POUserFunc(new OperatorKey(DEFAULT_SCOPE, nodeGen
                     .getNextNodeId(DEFAULT_SCOPE)), -1,
                     null, op.getFuncSpec(), (EvalFunc) f);
             ((POUserFunc)p).setSignature(op.getSignature());
-            if( op.getFuncSpec().toString().equals(ROLLUP_UDF)) {
-                //Set the pivot value
-                ((POUserFunc)p).setPivot(op.getPivot());
-                if(op.getRollupHIIOptimizable()!=false) {
-                    ((POUserFunc)p).setRollupHIIOptimizable(true);
-                    //Set value for RollupHIIOptimizable and pivot of RollupDimension
-                    EvalFunc<?> tmp = ((POUserFunc)p).getFunc();
-                    ((RollupDimensions)tmp).setRollupHIIOptimizable(true);
-                    try {
-                        ((RollupDimensions)tmp).setPivot(op.getPivot());
-                    } catch (IOException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    }
-                }
-            }
             //reinitialize input schema from signature
             if (((POUserFunc)p).getFunc().getInputSchema() == null) {
                 ((POUserFunc)p).setFuncInputSchema(op.getSignature());

@@ -47,10 +47,6 @@ public class RollupDimensions extends EvalFunc<DataBag> {
     private static BagFactory bf = BagFactory.getInstance();
     private static TupleFactory tf = TupleFactory.getInstance();
     private final String allMarker;
-    // the pivot position
-    private int pivot = -1;
-    // to check if rollup is optimized or not
-    private boolean rollupHIIoptimizable = false;
 
     public RollupDimensions() {
 	this(null);
@@ -59,18 +55,6 @@ public class RollupDimensions extends EvalFunc<DataBag> {
     public RollupDimensions(String allMarker) {
 	super();
 	this.allMarker = allMarker;
-    }
-
-    public void setRollupHIIOptimizable(boolean check) {
-        this.rollupHIIoptimizable = check;
-    }
-
-    public boolean getRollupHIIOptimizable() {
-        return this.rollupHIIoptimizable;
-    }
-
-    public void setPivot(int pvt) throws IOException {
-        this.pivot = pvt;
     }
 
     @Override
@@ -82,32 +66,12 @@ public class RollupDimensions extends EvalFunc<DataBag> {
 	return bf.newDefaultBag(result);
     }
 
-    private void iterativelyRollup(List<Tuple> result, Tuple input)
-            throws IOException {
-
-        Tuple tempTup = tf.newTuple(input.getAll());
-
-        //if (this.rollupHIIoptimizable != null) { // rule is enabled
-            if (this.rollupHIIoptimizable == true) {
-                if (this.pivot == -1) // user did not specify the pivot position
-                                      // --> IRG approach
-                    return;
-                else { // user did specify the pivot position --> IRG + IRG
-                    if (this.pivot == 0) // we use the IRG approach
-                        return;
-                    else { // we use IRG+IRG approach
-                        for (int i = this.pivot - 1; i < input.size(); i++)
-                            tempTup.set(i, allMarker);
-                        result.add(tf.newTuple(tempTup.getAll()));
-                    }
-                }
-            }
-            else { // we can not optimize --> Vanilla approach
-            for (int i = input.size() - 1; i >= 0; i--) {
-                tempTup.set(i, allMarker);
-                result.add(tf.newTuple(tempTup.getAll()));
-            }
-        }
+    private void iterativelyRollup(List<Tuple> result, Tuple input) throws ExecException {
+	Tuple tempTup = tf.newTuple(input.getAll());
+	for (int i = input.size() - 1; i >= 0; i--) {
+	    tempTup.set(i, allMarker);
+	    result.add(tf.newTuple(tempTup.getAll()));
+	}
     }
 
     @Override
