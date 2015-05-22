@@ -166,7 +166,7 @@ public class StringMin extends EvalFunc<String> implements Algebraic, Accumulato
                 return;
             }
             // check if it lexicographically follows curMax
-            if (intermediateMin == null || intermediateMin.compareTo(curMin) < 0) {
+            if (intermediateMin == null || intermediateMin.compareTo(curMin) > 0) {
                 intermediateMin = curMin;
             }            
 

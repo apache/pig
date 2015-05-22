@@ -166,7 +166,7 @@ public class StringMax extends EvalFunc<String> implements Algebraic, Accumulato
                 return;
             }
             // check if it lexicographically follows curMax
-            if (intermediateMax == null || intermediateMax.compareTo(curMax) > 0) {
+            if (intermediateMax == null || intermediateMax.compareTo(curMax) < 0) {
                 intermediateMax = curMax;
             }            
 
