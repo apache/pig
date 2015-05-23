@@ -372,7 +372,7 @@ public abstract class ScriptState {
         return (commandLine == null) ? "" : commandLine;
     }
 
-    protected String getScript() {
+    public String getScript() {
         return (script == null) ? "" : script;
     }
 

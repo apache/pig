@@ -23,6 +23,7 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -35,8 +36,11 @@ import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPlanContainer;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPlanContainerNode;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.tools.pigstats.tez.TezScriptState;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
 
 /**
  * This is compiler class that takes a TezOperPlan and converts it into a
@@ -106,12 +110,28 @@ public class TezJobCompiler {
                 log.info("Local resource: " + entry.getKey());
             }
             DAG tezDag = buildDAG(tezPlanNode, localResources);
+            String script = new String(Base64.decodeBase64(TezScriptState.get().getScript()));
+            tezDag.setDAGInfo(createDagInfo(script));
             return new TezJob(tezConf, tezDag, localResources, tezPlan.getEstimatedTotalParallelism());
         } catch (Exception e) {
             int errCode = 2017;
             String msg = "Internal error creating job configuration.";
             throw new JobCreationException(msg, errCode, PigException.BUG, e);
         }
+    }
+
+    private String createDagInfo(String script) throws IOException {
+        String dagInfo;
+        try {
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("context", "Pig");
+            jsonObject.put("description", script);
+            dagInfo = jsonObject.toString();
+        } catch (JSONException e) {
+            throw new IOException("Error when trying to convert Pig script to JSON", e);
+        }
+        log.debug("DagInfo: " + dagInfo);
+        return dagInfo;
     }
 }
 

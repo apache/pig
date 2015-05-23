@@ -23,11 +23,9 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -132,6 +130,7 @@ import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.tools.pigstats.tez.TezScriptState;
+import org.apache.pig.tools.pigstats.tez.TezScriptState.TezDAGScriptInfo;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DataSinkDescriptor;
@@ -171,8 +170,6 @@ import org.apache.tez.runtime.library.input.ConcatenatedMergedKeyValueInput;
 import org.apache.tez.runtime.library.input.OrderedGroupedKVInput;
 import org.apache.tez.runtime.library.input.OrderedGroupedMergedKVInput;
 import org.apache.tez.runtime.library.input.UnorderedKVInput;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
 
 /**
  * A visitor to construct DAG out of Tez plan.
@@ -337,8 +334,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         }
 
         return GroupInputEdge.create(from, to, edgeProperty,
-                InputDescriptor.create(groupInputClass).setUserPayload(edgeProperty.getEdgeDestination().getUserPayload())
-                    .setHistoryText(edgeProperty.getEdgeDestination().getHistoryText()));
+                InputDescriptor.create(groupInputClass).setUserPayload(edgeProperty.getEdgeDestination().getUserPayload()));
     }
 
     /**
@@ -431,9 +427,8 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         MRToTezHelper.processMRSettings(conf, globalConf);
 
-        String historyString = convertToHistoryText("", conf);
-        in.setUserPayload(TezUtils.createUserPayloadFromConf(conf)).setHistoryText(historyString);
-        out.setUserPayload(TezUtils.createUserPayloadFromConf(conf)).setHistoryText(historyString);
+        in.setUserPayload(TezUtils.createUserPayloadFromConf(conf));
+        out.setUserPayload(TezUtils.createUserPayloadFromConf(conf));
 
         if (edge.dataMovementType!=DataMovementType.BROADCAST && to.getEstimatedParallelism()!=-1 && (to.isGlobalSort()||to.isSkewedJoin())) {
             // Use custom edge
@@ -666,7 +661,9 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         // Take our assembled configuration and create a vertex
         UserPayload userPayload = TezUtils.createUserPayloadFromConf(payloadConf);
-        procDesc.setUserPayload(userPayload).setHistoryText(convertToHistoryText(tezOp.getOperatorKey().toString(), payloadConf));
+        TezDAGScriptInfo dagScriptInfo = TezScriptState.get().getDAGScriptInfo(dag.getName());
+        String vertexInfo = dagScriptInfo.getAliasLocation(tezOp) + " (" + dagScriptInfo.getPigFeatures(tezOp) + ")" ;
+        procDesc.setUserPayload(userPayload).setHistoryText(TezUtils.convertToHistoryText(vertexInfo, payloadConf));
 
         String vmPluginName = null;
         Configuration vmPluginConf = null;
@@ -827,8 +824,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             vertex.setLocationHint(VertexLocationHint.create(inputSplitInfo.getTaskLocationHints()));
             vertex.addDataSource(ld.getOperatorKey().toString(),
                     DataSourceDescriptor.create(InputDescriptor.create(MRInput.class.getName())
-                            .setUserPayload(UserPayload.create(userPayLoadBuilder.build().toByteString().asReadOnlyByteBuffer()))
-                            .setHistoryText(convertToHistoryText("", payloadConf)),
+                            .setUserPayload(UserPayload.create(userPayLoadBuilder.build().toByteString().asReadOnlyByteBuffer())),
                     InputInitializerDescriptor.create(MRInputSplitDistributor.class.getName()),
                     inputSplitInfo.getNumTasks(),
                     dag.getCredentials(),
@@ -852,8 +848,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
             OutputDescriptor storeOutDescriptor = OutputDescriptor.create(
                     MROutput.class.getName()).setUserPayload(TezUtils
-                    .createUserPayloadFromConf(outputPayLoad))
-                    .setHistoryText(convertToHistoryText("", outputPayLoad));
+                    .createUserPayloadFromConf(outputPayLoad));
             if (tezOp.getVertexGroupStores() != null) {
                 OperatorKey vertexGroupKey = tezOp.getVertexGroupStores().get(store.getOperatorKey());
                 if (vertexGroupKey != null) {
@@ -888,8 +883,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         if (vmPluginName != null) {
             VertexManagerPluginDescriptor vmPluginDescriptor = VertexManagerPluginDescriptor.create(vmPluginName);
             if (vmPluginConf != null) {
-                vmPluginDescriptor.setUserPayload(TezUtils.createUserPayloadFromConf(vmPluginConf))
-                    .setHistoryText(convertToHistoryText(vmPluginName, vmPluginConf));
+                vmPluginDescriptor.setUserPayload(TezUtils.createUserPayloadFromConf(vmPluginConf));
             }
             vertex.setVertexManagerPlugin(vmPluginDescriptor);
         }
@@ -1183,28 +1177,5 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         } else {
             job.setOutputFormatClass(PigOutputFormatTez.class);
         }
-    }
-
-    // Borrowed from TezUtils.convertToHistoryText since it is not part of Tez 0.5.2
-    public static String convertToHistoryText(String description, Configuration conf) throws IOException {
-        // Add a version if this serialization is changed
-        JSONObject jsonObject = new JSONObject();
-        try {
-            if (description != null && !description.isEmpty()) {
-                jsonObject.put("desc", description);
-        }
-        if (conf != null) {
-            JSONObject confJson = new JSONObject();
-            Iterator<Entry<String, String>> iter = conf.iterator();
-            while (iter.hasNext()) {
-                Entry<String, String> entry = iter.next();
-                confJson.put(entry.getKey(), entry.getValue());
-            }
-            jsonObject.put("config", confJson);
-        }
-        } catch (JSONException e) {
-            throw new IOException("Error when trying to convert description/conf to JSON", e);
-        }
-        return jsonObject.toString();
     }
 }
