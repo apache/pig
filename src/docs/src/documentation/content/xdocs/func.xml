@@ -1877,6 +1877,8 @@ A = LOAD 'data' USING TextLoader();
                     less than this value</li>
                 <li>-timestamp=timestamp Return cell values that have a creation timestamp equal to
                     this value</li>
+                <li>-includeTimestamp=Record will include the timestamp after the rowkey on store (rowkey, timestamp, ...)</li>
+                <li>-includeTombstone=Record will include a tombstone marker on store after the rowKey and timestamp (if included) (rowkey, [timestamp,] tombstone, ...)</li>
                </ul>
             </td>
          </tr>
@@ -6056,6 +6058,74 @@ bottomResults = FOREACH D {
 </section>
 </section>
 <!-- End Other Functions -->
-
+<!-- ======================================================== -->
+<!-- ======================================================== -->
+<!-- Other Functions -->
+<section id="hive-udf">
+<title>Hive UDF</title>
+<p>Pig invokes all types of Hive UDF, including UDF, GenericUDF, UDAF, GenericUDAF and GenericUDTF. Depending on the Hive UDF you want to use, you need to declare it in Pig with HiveUDF(handles UDF and GenericUDF), HiveUDAF(handles UDAF and GenericUDAF), HiveUDTF(handles GenericUDTF).</p>
+  <section>
+    <title>Syntax</title>
+    <p>HiveUDF, HiveUDAF, HiveUDTF share the same syntax.</p>
+    <table>
+      <tr>
+        <td>
+          <p>HiveUDF(name[, constant parameters])</p>
+        </td>
+      </tr>
+    </table>
+  </section>
+  <section>
+    <title>Terms</title>
+    <table>
+      <tr>
+        <td>
+          <p>name</p>
+        </td>
+        <td>
+          <p>Hive UDF name. This can be a fully qualified class name of the Hive UDF/UDTF/UDAF class, or a registered short name in Hive FunctionRegistry (most Hive builtin UDF does that)</p>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <p>constant parameters</p>
+        </td>
+        <td>
+          <p>Optional tuple representing constant parameters of a Hive UDF/UDTF/UDAF. If Hive UDF requires a constant parameter, there is no other way Pig can pass that information to Hive, since Pig schema does not carry the information whether a parameter is constant or not. Null item in the tuple means this field is not a constant. Non-null item represents a constant field. Data type for the item is determined by Pig contant parser.</p>
+        </td>
+      </tr>
+    </table>
+  </section>
+  <section>
+  <title>Example</title>
+  <p>HiveUDF</p>
+  <source>
+define sin HiveUDF('sin');
+A = LOAD 'student' as (name:chararray, age:int, gpa:double);
+B = foreach A generate sin(gpa);
+  </source>
+  <p>HiveUDTF</p>
+  <source>
+define explode HiveUDTF('explode');
+A = load 'mydata' as (a0:{(b0:chararray)});
+B = foreach A generate flatten(explode(a0));
+  </source>
+  <p>HiveUDAF</p>
+  <source>
+define avg HiveUDAF('avg');
+A = LOAD 'student' as (name:chararray, age:int, gpa:double);
+B = group A by name;
+C = foreach B generate group, avg(A.age);
+  </source>
+  </section>
+  <p>HiveUDAF with constant parameter</p>
+<source>
+define in_file HiveUDF('in_file', '(null, "names.txt")');
+A = load 'student' as (name:chararray, age:long, gpa:double);
+B = foreach A generate in_file(name, 'names.txt');
+</source>
+<p>In this example, we pass (null, "names.txt") to the construct of UDF in_file, meaning the first parameter is regular, the second parameter is a constant. names.txt can be double quoted (unlike other Pig syntax), or quoted in \'. Note we need to pass 'names.txt' again in line 3. This looks stupid but we need to do this to fill the semantic gap between Pig and Hive. We need to pass the constant in the data pipeline in line 3, which is similar Pig UDF. Initialization code in Hive UDF takes ObjectInspector, which capture the data type and whether or not the parameter is a constant. However, initialization code in Pig takes schema, which only capture the former. We need to use additional mechanism (construct parameter) to convey the later.</p>
+<p>Note: A few Hive 0.14 UDF contains bug which affects Pig and are fixed in Hive 1.0. Here is a list: compute_stats, context_ngrams, count, ewah_bitmap, histogram_numeric, collect_list, collect_set, ngrams, case, in, named_struct, stack, percentile_approx.</p>
+</section>
   </body>
 </document>
