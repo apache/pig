@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4560: Pig 0.15.0 Documentation (daijy)
+
 PIG-4429: Add Pig alias information and Pig script to the DAG view in Tez UI (daijy)
 
 PIG-3994: Implement getting backend exception for Tez (rohini)
