@@ -116,8 +116,13 @@ public class TestAssert {
       try {
           pigServer.openIterator("A");
       } catch (FrontendException fe) {
-          Assert.assertTrue(fe.getCause().getMessage().contains(
-                  "Job terminated with anomalous status FAILED"));
+          if (pigServer.getPigContext().getExecType().toString().startsWith("TEZ")) {
+              Assert.assertTrue(fe.getCause().getMessage().contains(
+                      "Assertion violated: i should be greater than 1"));
+          } else {
+              Assert.assertTrue(fe.getCause().getMessage().contains(
+                      "Job terminated with anomalous status FAILED"));
+          }
       }
   }
 
@@ -142,8 +147,13 @@ public class TestAssert {
       try {
           pigServer.openIterator("A");
       } catch (FrontendException fe) {
-          Assert.assertTrue(fe.getCause().getMessage().contains(
-                  "Job terminated with anomalous status FAILED"));
+          if (pigServer.getPigContext().getExecType().toString().startsWith("TEZ")) {
+              Assert.assertTrue(fe.getCause().getMessage().contains(
+                      "Assertion violated: i should be greater than 1"));
+          } else {
+              Assert.assertTrue(fe.getCause().getMessage().contains(
+                      "Job terminated with anomalous status FAILED"));
+          }
       }
   }
 
