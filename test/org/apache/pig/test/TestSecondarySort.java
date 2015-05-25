@@ -18,7 +18,6 @@
 package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -237,11 +236,10 @@ public abstract class TestSecondarySort {
         pigServer
                 .registerQuery("D = foreach C { E = limit A 10; F = E.a1; G = DISTINCT F; generate group, COUNT(G);};");
         Iterator<Tuple> iter = pigServer.openIterator("D");
-        assertTrue(iter.hasNext());
-        assertEquals("(2,1)", iter.next().toString());
-        assertTrue(iter.hasNext());
-        assertEquals("(1,2)", iter.next().toString());
-        assertFalse(iter.hasNext());
+        String[] expectedRes = new String[]{"(2,1)","(1,2)"};
+        Schema s = pigServer.dumpSchema("D");
+        Util.checkQueryOutputsAfterSortRecursive(iter,expectedRes,org.apache
+                .pig.newplan.logical.Util.translateSchema(s));
         Util.deleteFile(cluster, file1ClusterPath);
         Util.deleteFile(cluster, file2ClusterPath);
     }
@@ -265,11 +263,13 @@ public abstract class TestSecondarySort {
         pigServer.registerQuery("B = group A by $0 parallel 2;");
         pigServer.registerQuery("C = foreach B { D = distinct A; generate group, D;};");
         Iterator<Tuple> iter = pigServer.openIterator("C");
-        assertTrue(iter.hasNext());
-        assertEquals("(2,{(2,3,4)})", iter.next().toString());
-        assertTrue(iter.hasNext());
-        assertEquals("(1,{(1,2,3),(1,2,4),(1,3,4)})", iter.next().toString());
-        assertFalse(iter.hasNext());
+        Schema s = pigServer.dumpSchema("C");
+        String expected[] = {
+                "(2,{(2,3,4)})",
+                "(1,{(1,2,3),(1,2,4),(1,3,4)})"
+        };
+        Util.checkQueryOutputsAfterSortRecursive(iter, expected, org.apache
+                .pig.newplan.logical.Util.translateSchema(s));
         Util.deleteFile(cluster, clusterPath);
     }
 
@@ -359,15 +359,9 @@ public abstract class TestSecondarySort {
         pigServer.registerQuery("D = ORDER C BY group;");
         pigServer.registerQuery("E = foreach D { F = limit A 10; G = ORDER F BY a2; generate group, COUNT(G);};");
         Iterator<Tuple> iter = pigServer.openIterator("E");
-        assertTrue(iter.hasNext());
-        assertEquals("((1,2),4)", iter.next().toString());
-        assertTrue(iter.hasNext());
-        assertEquals("((1,3),1)", iter.next().toString());
-        assertTrue(iter.hasNext());
-        assertEquals("((1,4),0)", iter.next().toString());
-        assertTrue(iter.hasNext());
-        assertEquals("((2,3),1)", iter.next().toString());
-        assertFalse(iter.hasNext());
+        Schema s = pigServer.dumpSchema("E");
+        String[] expectedRes = new String[]{"((1,2),4)","((1,3),1)","((1,4),0)","((2,3),1)"};
+        Util.checkQueryOutputsAfterSortRecursive(iter, expectedRes,org.apache.pig.newplan.logical.Util.translateSchema(s) );
         Util.deleteFile(cluster, clusterPath1);
         Util.deleteFile(cluster, clusterPath2);
     }
