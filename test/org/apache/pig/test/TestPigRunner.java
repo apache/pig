@@ -914,7 +914,7 @@ public class TestPigRunner {
                         "OUTPUT_RECORDS").getValue());
                 assertEquals(20,counter.getGroup(FS_COUNTER_GROUP).getCounterForName(
                         MRPigStatsUtil.HDFS_BYTES_WRITTEN).getValue());
-                assertEquals(30,counter.getGroup(FS_COUNTER_GROUP).getCounterForName(
+                assertEquals(new File(INPUT_FILE).length(),counter.getGroup(FS_COUNTER_GROUP).getCounterForName(
                         MRPigStatsUtil.HDFS_BYTES_READ).getValue());
             } else {
                 Counters counter= ((MRJobStats)stats.getJobGraph().getSinks().get(0)).getHadoopCounters();
