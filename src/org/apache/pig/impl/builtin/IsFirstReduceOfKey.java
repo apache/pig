@@ -61,7 +61,7 @@ public class IsFirstReduceOfKey extends EvalFunc<Boolean> {
         Tuple keyTuple = tf.newTuple(1);
         keyTuple.set(0, key);
         if (!reducerMap.containsKey(keyTuple)) {
-            return false;
+            return true;
         }
         int firstReducerOfKey = reducerMap.get(keyTuple).first;
         int reduceIndex = UDFContext.getUDFContext().getJobConf().getInt(PigConstants.TASK_INDEX, 0);
