@@ -74,6 +74,9 @@ PIG-4333: Split BigData tests into multiple groups (rohini)
  
 BUG FIXES
 
+PIG-4541: Skewed full outer join does not return records if any relation is empty. Outer join does not
+ return any record if left relation is empty (daijy)
+
 PIG-4564: Pig can deadlock in POPartialAgg if there is a bag (rohini via daijy)
 
 PIG-4569: Fix e2e test Rank_1 failure (rohini)
