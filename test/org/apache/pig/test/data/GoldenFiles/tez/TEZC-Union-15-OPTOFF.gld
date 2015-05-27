@@ -7,7 +7,7 @@
 Tez vertex scope-30	->	Tez vertex scope-34,Tez vertex scope-36,
 Tez vertex scope-34	->	Tez vertex scope-36,
 Tez vertex scope-36	->	Tez vertex scope-48,Tez vertex scope-58,
-Tez vertex scope-48	->	Tez vertex scope-40,Tez vertex scope-58,
+Tez vertex scope-48	->	Tez vertex scope-40,Tez vertex scope-58,Tez vertex scope-62,
 Tez vertex scope-58	->	Tez vertex scope-62,
 Tez vertex scope-40	->	Tez vertex scope-62,
 Tez vertex scope-62
@@ -67,7 +67,7 @@ Local Rearrange[tuple]{tuple}(false) - scope-43	->	 scope-48
             |---POShuffledValueInputTez - scope-37	<-	 [scope-30, scope-34]
 Tez vertex scope-48
 # Plan on vertex
-POValueOutputTez - scope-57	->	 [scope-40, scope-58]
+POValueOutputTez - scope-57	->	 [scope-40, scope-58, scope-62]
 |
 |---New For Each(false)[tuple] - scope-56
     |   |

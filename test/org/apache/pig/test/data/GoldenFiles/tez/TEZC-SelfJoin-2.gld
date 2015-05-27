@@ -5,7 +5,7 @@
 # TEZ DAG plan: pig-0_scope-0
 #--------------------------------------------------
 Tez vertex scope-25	->	Tez vertex scope-29,Tez vertex scope-38,Tez vertex scope-48,
-Tez vertex scope-38	->	Tez vertex scope-29,Tez vertex scope-48,
+Tez vertex scope-38	->	Tez vertex scope-29,Tez vertex scope-48,Tez vertex scope-52,
 Tez vertex scope-48	->	Tez vertex scope-52,
 Tez vertex scope-29	->	Tez vertex scope-52,
 Tez vertex scope-52
@@ -55,7 +55,7 @@ a: Split - scope-58
     |---a: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-0
 Tez vertex scope-38
 # Plan on vertex
-POValueOutputTez - scope-47	->	 [scope-29, scope-48]
+POValueOutputTez - scope-47	->	 [scope-29, scope-48, scope-52]
 |
 |---New For Each(false)[tuple] - scope-46
     |   |
