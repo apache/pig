@@ -644,13 +644,13 @@ public class TestProjectRange  {
 
         Iterator<Tuple> it = pigServer.openIterator("f");
 
-        List<Tuple> expectedRes =
-            Util.getTuplesFromConstantTupleStrings(
-                    new String[] {
-                            "(10,{(10,20,30,40,50)})",
-                            "(11,{(11,21,31,41,51)})",
-                    });
-        Util.checkQueryOutputs(it, expectedRes);
+        String[] expectedRes =
+                new String[] {
+                        "(10,{(10,20,30,40,50)})",
+                        "(11,{(11,21,31,41,51)})",
+                };
+        Schema s = pigServer.dumpSchema("f");
+        Util.checkQueryOutputsAfterSortRecursive(it, expectedRes,org.apache.pig.newplan.logical.Util.translateSchema(s));
     }
 
     /**
@@ -732,12 +732,13 @@ public class TestProjectRange  {
 
         Iterator<Tuple> it = pigServer.openIterator("f");
 
-        List<Tuple> expectedRes =
-            Util.getTuplesFromConstantTupleStrings(
-                    new String[] {
-                            "(1,{(11,21,31,41,51),(10,20,30,40,50)})",
-                    });
-        Util.checkQueryOutputs(it, expectedRes);
+        String[] expectedRes =
+                new String[] {
+                        "(1,{(11,21,31,41,51),(10,20,30,40,50)})",
+                };
+        Schema s = pigServer.dumpSchema("f");
+        Util.checkQueryOutputsAfterSortRecursive(it, expectedRes,org.apache.pig.newplan.logical.Util.translateSchema(s));
+
     }
 
     private LOSort checkNumExpressionPlansForSort(LogicalPlan lp, int numPlans, boolean[] isAsc) {
@@ -938,14 +939,14 @@ public class TestProjectRange  {
 
         Util.registerMultiLineQuery(pigServer, query);
 
-        List<Tuple> expectedRes =
-            Util.getTuplesFromConstantTupleStrings(
-                    new String[] {
-                            "((10,20,30),{(10,20,30,40,50)},{(10,20,30,40,50)})",
-                            "((11,21,31),{(11,21,31,41,51)},{(11,21,31,41,51)})",
-                    });
+        String[] expectedRes =
+                new String[] {
+                        "((10,20,30),{(10,20,30,40,50)},{(10,20,30,40,50)})",
+                        "((11,21,31),{(11,21,31,41,51)},{(11,21,31,41,51)})",
+                };
         Iterator<Tuple> it = pigServer.openIterator("g");
-        Util.checkQueryOutputs(it, expectedRes);
+        Schema s = pigServer.dumpSchema("g");
+        Util.checkQueryOutputsAfterSortRecursive(it, expectedRes,org.apache.pig.newplan.logical.Util.translateSchema(s));
     }
 
     /**
@@ -1005,14 +1006,14 @@ public class TestProjectRange  {
 
         Util.registerMultiLineQuery(pigServer, query);
 
-        List<Tuple> expectedRes =
-            Util.getTuplesFromConstantTupleStrings(
-                    new String[] {
-                            "((30,30,40,50),{(10,20,30,40,50)},{(10,20,30,40,50)})",
-                            "((32,31,41,51),{(11,21,31,41,51)},{(11,21,31,41,51)})",
-                    });
+        String[] expectedRes =
+                new String[] {
+                        "((30,30,40,50),{(10,20,30,40,50)},{(10,20,30,40,50)})",
+                        "((32,31,41,51),{(11,21,31,41,51)},{(11,21,31,41,51)})",
+                };
         Iterator<Tuple> it = pigServer.openIterator("g");
-        Util.checkQueryOutputs(it, expectedRes);
+        Schema s = pigServer.dumpSchema("g");
+        Util.checkQueryOutputsAfterSortRecursive(it,expectedRes, org.apache.pig.newplan.logical.Util.translateSchema(s));
     }
 
     @Test
@@ -1056,14 +1057,14 @@ public class TestProjectRange  {
 
         Util.registerMultiLineQuery(pigServer, query);
 
-        List<Tuple> expectedRes =
-            Util.getTuplesFromConstantTupleStrings(
-                    new String[] {
-                            "((30,40,50),{(10,20L,30,40,50)})",
-                            "((31,41,51),{(11,21L,31,41,51)})",
-                    });
+        String[] expectedRes =
+                new String[] {
+                        "((30,40,50),{(10,20L,30,40,50)})",
+                        "((31,41,51),{(11,21L,31,41,51)})",
+                };
         Iterator<Tuple> it = pigServer.openIterator("lim");
-        Util.checkQueryOutputsAfterSort(it, expectedRes);
+        Schema s = pigServer.dumpSchema("lim");
+        Util.checkQueryOutputsAfterSortRecursive(it, expectedRes,org.apache.pig.newplan.logical.Util.translateSchema(s));
     }
 
 
@@ -1118,14 +1119,14 @@ public class TestProjectRange  {
 
         Util.registerMultiLineQuery(pigServer, query);
 
-        List<Tuple> expectedRes =
-            Util.getTuplesFromConstantTupleStrings(
-                    new String[] {
-                            "((30,40,50),{(10,20,30,40,50)})",
-                            "((31,41,51),{(11,21,31,41,51)})",
-                    });
+        String[] expectedRes =
+                new String[] {
+                        "((30,40,50),{(10,20,30,40,50)})",
+                        "((31,41,51),{(11,21,31,41,51)})",
+                };
         Iterator<Tuple> it = pigServer.openIterator("g");
-        Util.checkQueryOutputs(it, expectedRes);
+        Schema s = pigServer.dumpSchema("g");
+        Util.checkQueryOutputsAfterSortRecursive(it, expectedRes, org.apache.pig.newplan.logical.Util.translateSchema(s));
     }
 
     private void setAliasesToNull(Schema schema) {
@@ -1157,14 +1158,14 @@ public class TestProjectRange  {
 
         Util.registerMultiLineQuery(pigServer, query);
 
-        List<Tuple> expectedRes =
-            Util.getTuplesFromConstantTupleStrings(
-                    new String[] {
-                            "(10,20,30,40,50,10,20,30,40,50)",
-                            "(11,21,31,41,51,11,21,31,41,51)",
-                    });
+        String[] expectedRes =
+                new String[] {
+                        "(10,20,30,40,50,10,20,30,40,50)",
+                        "(11,21,31,41,51,11,21,31,41,51)",
+                };
         Iterator<Tuple> it = pigServer.openIterator("j");
-        Util.checkQueryOutputs(it, expectedRes);
+        Schema s = pigServer.dumpSchema("j");
+        Util.checkQueryOutputsAfterSortRecursive(it, expectedRes,org.apache.pig.newplan.logical.Util.translateSchema(s));
     }
 
     @Test
@@ -1185,14 +1186,14 @@ public class TestProjectRange  {
 
         Util.registerMultiLineQuery(pigServer, query);
 
-        List<Tuple> expectedRes =
-            Util.getTuplesFromConstantTupleStrings(
-                    new String[] {
-                            "(10,20,30,40,50,10,20,30,40,50)",
-                            "(11,21,31,41,51,11,21,31,41,51)",
-                    });
+        String[] expectedRes =
+                new String[] {
+                        "(10,20,30,40,50,10,20,30,40,50)",
+                        "(11,21,31,41,51,11,21,31,41,51)",
+                };
         Iterator<Tuple> it = pigServer.openIterator("j");
-        Util.checkQueryOutputs(it, expectedRes);
+        Schema s = pigServer.dumpSchema("j");
+        Util.checkQueryOutputsAfterSortRecursive(it, expectedRes, org.apache.pig.newplan.logical.Util.translateSchema(s));
     }
 
     @Test
