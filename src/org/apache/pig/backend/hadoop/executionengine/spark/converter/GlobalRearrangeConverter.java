@@ -29,14 +29,15 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.backend.hadoop.executionengine.spark.operator.POGlobalRearrangeSpark;
+import org.apache.pig.builtin.LOG;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.spark.HashPartitioner;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.FlatMapFunction;
+import org.apache.spark.api.java.function.Function;
 import org.apache.spark.rdd.CoGroupedRDD;
 import org.apache.spark.rdd.RDD;
 
@@ -53,65 +54,84 @@ public class GlobalRearrangeConverter implements
             .getLog(GlobalRearrangeConverter.class);
 
     private static final TupleFactory tf = TupleFactory.getInstance();
-  @Override
+ 
+    @Override
     public RDD<Tuple> convert(List<RDD<Tuple>> predecessors,
-                              POGlobalRearrangeSpark physicalOperator) throws IOException {
+                              POGlobalRearrangeSpark op) throws IOException {
         SparkUtil.assertPredecessorSizeGreaterThan(predecessors,
-                physicalOperator, 0);
+                op, 0);
         int parallelism = SparkUtil.getParallelism(predecessors,
-                physicalOperator);
+                op);
 
-        String reducers = System.getenv("SPARK_REDUCERS");
-        if (reducers != null) {
-            parallelism = Integer.parseInt(reducers);
+//         TODO: Figure out the tradeoff of using CoGroupRDD (even for 1 input),
+//         vs using groupBy (like we do in this commented code), vs using
+//         reduceByKey(). This is a pending task in Pig on Spark Milestone 1
+//         Once we figure that out, we can allow custom partitioning for
+//         secondary sort case as well.
+//        if (predecessors.size() == 1) {
+//            // GROUP BY
+//            JavaPairRDD<Object, Iterable<Tuple>> prdd;
+//            if (op.isUseSecondaryKey()) {
+//                prdd = handleSecondarySort(predecessors.get(0), op, parallelism);
+//            } else {
+//                JavaRDD<Tuple> jrdd = predecessors.get(0).toJavaRDD();
+//                prdd = jrdd.groupBy(new GetKeyFunction(op), parallelism);
+//                prdd.groupByKey(new CustomPartitioner(op.getCustomPartitioner(),
+//                        parallelism));
+//            }
+//            JavaRDD<Tuple> jrdd2 = prdd.map(new GroupTupleFunction(op));
+//            return jrdd2.rdd();
+//
+//        if (predecessors.size() == 1 && op.isUseSecondaryKey()) {
+//            return handleSecondarySort(predecessors.get(0), op, parallelism);
+//        }
+
+        if (predecessors.size() == 1 && op.isUseSecondaryKey()) {
+            return handleSecondarySort(predecessors.get(0), op, parallelism);
         }
-        LOG.info("Parallelism for Spark groupBy: " + parallelism);
 
-        if (predecessors.size() == 1) {
-            // GROUP
-            JavaPairRDD<Object, Iterable<Tuple>> prdd = null;
-            if (physicalOperator.isUseSecondaryKey()) {
-                RDD<Tuple> rdd = predecessors.get(0);
-                RDD<Tuple2<Tuple, Object>> rddPair = rdd.map(new ToKeyNullValueFunction(),
-                        SparkUtil.<Tuple, Object>getTuple2Manifest());
-
-                JavaPairRDD<Tuple, Object> pairRDD = new JavaPairRDD<Tuple, Object>(rddPair,
-                        SparkUtil.getManifest(Tuple.class),
-                        SparkUtil.getManifest(Object.class));
-
-                //first sort the tuple by secondary key if enable useSecondaryKey sort
-                JavaPairRDD<Tuple, Object> sorted = pairRDD.repartitionAndSortWithinPartitions(new HashPartitioner(parallelism), new PigSecondaryKeyComparatorSpark(physicalOperator.getSecondarySortOrder()));
-                JavaRDD<Tuple> mapped = sorted.mapPartitions(new ToValueFunction());
-                prdd = mapped.groupBy(new GetKeyFunction(physicalOperator), parallelism);
-            } else {
-                JavaRDD<Tuple> jrdd = predecessors.get(0).toJavaRDD();
-                prdd = jrdd.groupBy(new GetKeyFunction(physicalOperator), parallelism);
-            }
-
-            JavaRDD<Tuple> jrdd2 = prdd.map(new GroupTupleFunction(physicalOperator));
-            return jrdd2.rdd();
-        } else {
-            List<RDD<Tuple2<IndexedKey, Tuple>>> rddPairs = new ArrayList<RDD<Tuple2<IndexedKey, Tuple>>>();
-            for (RDD<Tuple> rdd : predecessors) {
-                JavaRDD<Tuple> jrdd = JavaRDD.fromRDD(rdd, SparkUtil.getManifest(Tuple.class));
-                JavaRDD<Tuple2<IndexedKey, Tuple>> rddPair = jrdd.map(new ToKeyValueFunction());
-                rddPairs.add(rddPair.rdd());
-            }
-
-            // Something's wrong with the type parameters of CoGroupedRDD
-            // key and value are the same type ???
-            CoGroupedRDD<Object> coGroupedRDD = new CoGroupedRDD<Object>(
-                    (Seq<RDD<? extends Product2<Object, ?>>>) (Object) (JavaConversions
-                            .asScalaBuffer(rddPairs).toSeq()),
-                    new HashPartitioner(parallelism));
-
-            RDD<Tuple2<IndexedKey, Seq<Seq<Tuple>>>> rdd =
-                (RDD<Tuple2<IndexedKey, Seq<Seq<Tuple>>>>) (Object) coGroupedRDD;
-            return rdd.toJavaRDD().map(new ToGroupKeyValueFunction()).rdd();
+        List<RDD<Tuple2<IndexedKey, Tuple>>> rddPairs = new ArrayList<RDD<Tuple2<IndexedKey, Tuple>>>();
+        for (RDD<Tuple> rdd : predecessors) {
+            JavaRDD<Tuple> jrdd = JavaRDD.fromRDD(rdd, SparkUtil.getManifest(Tuple.class));
+            JavaRDD<Tuple2<IndexedKey, Tuple>> rddPair = jrdd.map(new ToKeyValueFunction());
+            rddPairs.add(rddPair.rdd());
         }
+
+        // Something's wrong with the type parameters of CoGroupedRDD
+        // key and value are the same type ???
+        CoGroupedRDD<Object> coGroupedRDD = new CoGroupedRDD<Object>(
+                (Seq<RDD<? extends Product2<Object, ?>>>) (Object) (JavaConversions
+                        .asScalaBuffer(rddPairs).toSeq()),
+                SparkUtil.getPartitioner(op.getCustomPartitioner(), parallelism)
+        );
+
+        RDD<Tuple2<IndexedKey, Seq<Seq<Tuple>>>> rdd =
+            (RDD<Tuple2<IndexedKey, Seq<Seq<Tuple>>>>) (Object) coGroupedRDD;
+        return rdd.toJavaRDD().map(new ToGroupKeyValueFunction()).rdd();
     }
 
-    private static class ToValueFunction implements
+    private RDD<Tuple> handleSecondarySort(
+            RDD<Tuple> rdd, POGlobalRearrangeSpark op, int parallelism) {
+
+        RDD<Tuple2<Tuple, Object>> rddPair = rdd.map(new ToKeyNullValueFunction(),
+                SparkUtil.<Tuple, Object>getTuple2Manifest());
+
+        JavaPairRDD<Tuple, Object> pairRDD = new JavaPairRDD<Tuple, Object>(rddPair,
+                SparkUtil.getManifest(Tuple.class),
+                SparkUtil.getManifest(Object.class));
+
+        //first sort the tuple by secondary key if enable useSecondaryKey sort
+        JavaPairRDD<Tuple, Object> sorted = pairRDD.repartitionAndSortWithinPartitions(
+                new HashPartitioner(parallelism),
+                new PigSecondaryKeyComparatorSpark(op.getSecondarySortOrder()));
+        JavaRDD<Tuple> mapped = sorted.mapPartitions(new RemoveValueFunction());
+        JavaPairRDD<Object, Iterable<Tuple>> prdd = mapped.groupBy(
+                new GetKeyFunction(op), parallelism);
+        JavaRDD<Tuple> jrdd2 = prdd.map(new GroupTupleFunction(op));
+        return jrdd2.rdd();
+    }
+
+    private static class RemoveValueFunction implements
             FlatMapFunction<Iterator<Tuple2<Tuple, Object>>, Tuple>, Serializable {
 
         private class Tuple2TransformIterable implements Iterable<Tuple> {
@@ -145,15 +165,14 @@ public class GlobalRearrangeConverter implements
         @Override
         public Tuple2<Tuple, Object> apply(Tuple t) {
             if (LOG.isDebugEnabled()) {
-                LOG.debug("Sort ToKeyValueFunction in " + t);
+                LOG.debug("ToKeyNullValueFunction in " + t);
             }
-            Tuple key = t;
-            Object value = null;
-            // (key, value)
-            Tuple2<Tuple, Object> out = new Tuple2<Tuple, Object>(key, value);
+
+            Tuple2<Tuple, Object> out = new Tuple2<Tuple, Object>(t, null);
             if (LOG.isDebugEnabled()) {
-                LOG.debug("Sort ToKeyValueFunction out " + out);
+                LOG.debug("ToKeyNullValueFunction out " + out);
             }
+
             return out;
         }
     }
@@ -234,6 +253,9 @@ public class GlobalRearrangeConverter implements
         }
     }
 
+    /**
+     * Function that extract keys from locally rearranged tuples.
+     */
     private static class GetKeyFunction implements Function<Tuple, Object>, Serializable {
         public final POGlobalRearrangeSpark glrSpark;
 
@@ -246,16 +268,18 @@ public class GlobalRearrangeConverter implements
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("GetKeyFunction in " + t);
                 }
-                // see PigGenericMapReduce For the key
-                Object key = null;
+
+                Object key;
                 if ((glrSpark != null) && (glrSpark.isUseSecondaryKey())) {
                     key = ((Tuple) t.get(1)).get(0);
                 } else {
                     key = t.get(1);
                 }
+
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("GetKeyFunction out " + key);
                 }
+
                 return key;
             } catch (ExecException e) {
                 throw new RuntimeException(e);
@@ -263,8 +287,16 @@ public class GlobalRearrangeConverter implements
         }
     }
 
-    private static class GroupTupleFunction implements Function<Tuple2<Object, Iterable<Tuple>>, Tuple>,
-        Serializable {
+    /**
+     * Function that converts elements of PairRDD to regular RDD.
+     * - Input (PairRDD) contains elements of the form
+     * Tuple2<key, Iterable<(index, key, value)>>.
+     * - Output (regular RDD) contains elements of the form
+     * Tuple<(key, iterator to (index, key, value))>
+     */
+    private static class GroupTupleFunction
+            implements Function<Tuple2<Object, Iterable<Tuple>>, Tuple>,
+            Serializable {
         public final POGlobalRearrangeSpark glrSpark;
 
         public GroupTupleFunction(POGlobalRearrangeSpark globalRearrangeSpark) {
@@ -276,12 +308,16 @@ public class GlobalRearrangeConverter implements
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("GroupTupleFunction in " + v1);
                 }
+
                 Tuple tuple = tf.newTuple(2);
-                tuple.set(0, v1._1()); // the (index, key) tuple
-                tuple.set(1, v1._2().iterator()); // the Seq<Tuple> aka bag of values
+                tuple.set(0, v1._1()); // key
+                // Note that v1._2() is (index, key, value) tuple, and
+                // v1._2().iterator() is iterator to Seq<Tuple> (aka bag of values)
+                tuple.set(1, v1._2().iterator());
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("GroupTupleFunction out " + tuple);
                 }
+
                 return tuple;
             } catch (ExecException e) {
                 throw new RuntimeException(e);
@@ -290,7 +326,10 @@ public class GlobalRearrangeConverter implements
     }
 
     /**
-     * IndexedKey records the index and key info of a tuple.
+     * IndexedKey records the index and key info.
+     * This is used as key for JOINs. It addresses the case where key is
+     * either empty (or is a tuple with one or more emoty fields). In this case,
+     * we must respect the SQL standard as documented in the equals() method.
      */
     public static class IndexedKey implements Serializable {
         private byte index;
@@ -403,24 +442,27 @@ public class GlobalRearrangeConverter implements
         }
     }
 
+    /**
+     * Converts incoming locally rearranged tuple, which is of the form
+     * (index, key, value) into Tuple2<key, value>
+     */
     private static class ToKeyValueFunction implements
             Function<Tuple, Tuple2<IndexedKey, Tuple>>, Serializable {
 
         @Override
         public Tuple2<IndexedKey, Tuple> call(Tuple t) {
             try {
-                // (index, key, value)
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("ToKeyValueFunction in " + t);
                 }
-                IndexedKey indexedKey = new IndexedKey((Byte) t.get(0), t.get(1));
-                Tuple value = (Tuple) t.get(2); // value
-                // (key, value)
-                Tuple2<IndexedKey, Tuple> out = new Tuple2<IndexedKey, Tuple>(indexedKey,
-                        value);
+
+                Tuple2<IndexedKey, Tuple> out = new Tuple2<IndexedKey, Tuple>(
+                        new IndexedKey((Byte) t.get(0), t.get(1)),
+                        (Tuple) t.get(2));
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("ToKeyValueFunction out " + out);
                 }
+
                 return out;
             } catch (ExecException e) {
                 throw new RuntimeException(e);
@@ -428,6 +470,11 @@ public class GlobalRearrangeConverter implements
         }
     }
 
+    /**
+     * Converts cogroup output where each element is {key, bag[]} represented
+     * as Tuple2<Object, Seq<Seq<Tuple>>> into tuple of form
+     * (key, Iterator<(index, key, value)>)
+     */
     private static class ToGroupKeyValueFunction implements
             Function<Tuple2<IndexedKey, Seq<Seq<Tuple>>>, Tuple>, Serializable {
 
@@ -435,15 +482,16 @@ public class GlobalRearrangeConverter implements
         public Tuple call(Tuple2<IndexedKey, Seq<Seq<Tuple>>> input) {
             try {
                 if (LOG.isDebugEnabled()) {
-                    LOG.debug("ToGroupKeyValueFunction2 in " + input);
+                    LOG.debug("ToGroupKeyValueFunction in " + input);
                 }
+
                 final Object key = input._1().getKey();
                 Object obj = input._2();
                 // XXX this is a hack for Spark 1.1.0: the type is an Array, not Seq
                 Seq<Tuple>[] bags = (Seq<Tuple>[])obj;
                 int i = 0;
                 List<Iterator<Tuple>> tupleIterators = new ArrayList<Iterator<Tuple>>();
-                for (int j=0; j<bags.length; j++) {
+                for (int j = 0; j < bags.length; j ++) {
                     Seq<Tuple> bag = bags[j];
                     Iterator<Tuple> iterator = JavaConversions
                             .asJavaCollection(bag).iterator();
@@ -463,14 +511,16 @@ public class GlobalRearrangeConverter implements
                             }
                         }
                     });
-                    ++i;
+                    ++ i;
                 }
+
                 Tuple out = tf.newTuple(2);
                 out.set(0, key);
                 out.set(1, new IteratorUnion<Tuple>(tupleIterators.iterator()));
                 if (LOG.isDebugEnabled()) {
-                    LOG.debug("ToGroupKeyValueFunction2 out " + out);
+                    LOG.debug("ToGroupKeyValueFunction out " + out);
                 }
+
                 return out;
             } catch (Exception e) {
                 throw new RuntimeException(e);

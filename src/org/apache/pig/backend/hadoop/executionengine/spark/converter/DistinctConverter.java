@@ -29,10 +29,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.spark.rdd.PairRDDFunctions;
 import org.apache.spark.rdd.RDD;
 
-import scala.Function1;
-import scala.Function2;
 import scala.Tuple2;
-import scala.reflect.ClassTag;
 import scala.runtime.AbstractFunction1;
 import scala.runtime.AbstractFunction2;
 
@@ -40,30 +37,30 @@ import scala.runtime.AbstractFunction2;
 public class DistinctConverter implements POConverter<Tuple, Tuple, PODistinct> {
     private static final Log LOG = LogFactory.getLog(DistinctConverter.class);
 
-    private static final Function1<Tuple, Tuple2<Tuple, Object>> TO_KEY_VALUE_FUNCTION = new ToKeyValueFunction();
-    private static final Function2<Object, Object, Object> MERGE_VALUES_FUNCTION = new MergeValuesFunction();
-    private static final Function1<Tuple2<Tuple, Object>, Tuple> TO_VALUE_FUNCTION = new ToValueFunction();
-
     @Override
     public RDD<Tuple> convert(List<RDD<Tuple>> predecessors,
-            PODistinct poDistinct) throws IOException {
-        SparkUtil.assertPredecessorSize(predecessors, poDistinct, 1);
+            PODistinct op) throws IOException {
+        SparkUtil.assertPredecessorSize(predecessors, op, 1);
         RDD<Tuple> rdd = predecessors.get(0);
 
-        ClassTag<Tuple2<Tuple, Object>> tuple2ClassManifest = SparkUtil
-                .<Tuple, Object> getTuple2Manifest();
-
-        RDD<Tuple2<Tuple, Object>> rddPairs = rdd.map(TO_KEY_VALUE_FUNCTION,
-                tuple2ClassManifest);
+        // In DISTINCT operation, the key is the entire tuple.
+        // RDD<Tuple> -> RDD<Tuple2<Tuple, null>>
+        RDD<Tuple2<Tuple, Object>> keyValRDD = rdd.map(new ToKeyValueFunction(),
+                SparkUtil.<Tuple, Object> getTuple2Manifest());
         PairRDDFunctions<Tuple, Object> pairRDDFunctions
-          = new PairRDDFunctions<Tuple, Object>(
-                rddPairs, SparkUtil.getManifest(Tuple.class),
+          = new PairRDDFunctions<Tuple, Object>(keyValRDD,
+                SparkUtil.getManifest(Tuple.class),
                 SparkUtil.getManifest(Object.class), null);
-        int parallelism = SparkUtil.getParallelism(predecessors, poDistinct);
-        return pairRDDFunctions.reduceByKey(MERGE_VALUES_FUNCTION, parallelism)
-                .map(TO_VALUE_FUNCTION, SparkUtil.getManifest(Tuple.class));
+        int parallelism = SparkUtil.getParallelism(predecessors, op);
+        return pairRDDFunctions.reduceByKey(
+                SparkUtil.getPartitioner(op.getCustomPartitioner(), parallelism),
+                new MergeValuesFunction())
+                .map(new ToValueFunction(), SparkUtil.getManifest(Tuple.class));
     }
 
+    /**
+     * Tuple -> Tuple2<Tuple, null>
+     */
     private static final class ToKeyValueFunction extends
             AbstractFunction1<Tuple, Tuple2<Tuple, Object>> implements
             Serializable {
@@ -71,16 +68,20 @@ public class DistinctConverter implements POConverter<Tuple, Tuple, PODistinct> 
         public Tuple2<Tuple, Object> apply(Tuple t) {
             if (LOG.isDebugEnabled())
                 LOG.debug("DistinctConverter.ToKeyValueFunction in " + t);
+
             Tuple key = t;
-            Object value = null; // value
-            // (key, value)
+            Object value = null;
             Tuple2<Tuple, Object> out = new Tuple2<Tuple, Object>(key, value);
+
             if (LOG.isDebugEnabled())
                 LOG.debug("DistinctConverter.ToKeyValueFunction out " + out);
             return out;
         }
     }
 
+    /**
+     * No-op
+     */
     private static final class MergeValuesFunction extends
             AbstractFunction2<Object, Object, Object> implements Serializable {
         @Override
@@ -89,6 +90,9 @@ public class DistinctConverter implements POConverter<Tuple, Tuple, PODistinct> 
         }
     }
 
+    /**
+     * Tuple2<Tuple, null> -> Tuple
+     */
     private static final class ToValueFunction extends
             AbstractFunction1<Tuple2<Tuple, Object>, Tuple> implements
             Serializable {
