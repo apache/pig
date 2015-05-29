@@ -19,23 +19,24 @@ package org.apache.pig.backend.hadoop.executionengine.spark;
 
 import java.io.IOException;
 import java.util.List;
-import scala.Product2;
-import scala.Tuple2;
-import scala.collection.JavaConversions;
-import scala.collection.Seq;
-import scala.reflect.ClassTag;
-import scala.reflect.ClassTag$;
 
 import org.apache.hadoop.mapred.JobConf;
-
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.UDFContext;
-
+import org.apache.spark.HashPartitioner;
+import org.apache.spark.Partitioner;
 import org.apache.spark.rdd.RDD;
+
+import scala.Product2;
+import scala.Tuple2;
+import scala.collection.JavaConversions;
+import scala.collection.Seq;
+import scala.reflect.ClassTag;
+import scala.reflect.ClassTag$;
 
 public class SparkUtil {
 
@@ -88,12 +89,27 @@ public class SparkUtil {
 
     public static int getParallelism(List<RDD<Tuple>> predecessors,
             PhysicalOperator physicalOperator) {
-      int parallelism = physicalOperator.getRequestedParallelism();
-      if (parallelism <= 0) {
-        // Parallelism wasn't set in Pig, so set it to whatever Spark thinks
-        // is reasonable.
-        parallelism = predecessors.get(0).context().defaultParallelism();
-      }
-      return parallelism;
+
+        String numReducers = System.getenv("SPARK_REDUCERS");
+        if (numReducers != null) {
+            return Integer.parseInt(numReducers);
+        }
+
+        int parallelism = physicalOperator.getRequestedParallelism();
+        if (parallelism <= 0) {
+            // Parallelism wasn't set in Pig, so set it to whatever Spark thinks
+            // is reasonable.
+            parallelism = predecessors.get(0).context().defaultParallelism();
+        }
+
+        return parallelism;
+    }
+
+    public static Partitioner getPartitioner(String customPartitioner, int parallelism) {
+        if (customPartitioner == null) {
+            return new HashPartitioner(parallelism);
+        } else {
+            return new MapReducePartitionerWrapper(customPartitioner, parallelism);
+        }
     }
 }
