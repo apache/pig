@@ -82,3 +82,4 @@
 **/TestStoreLocal.java
 **/TestMultiQueryLocal.java
 **/TestUnionOnSchema.java
+**/TestIndexedKey.java
