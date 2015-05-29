@@ -91,10 +91,10 @@ public class GlobalRearrangeConverter implements
             JavaRDD<Tuple> jrdd2 = prdd.map(new GroupTupleFunction(physicalOperator));
             return jrdd2.rdd();
         } else {
-            List<RDD<Tuple2<Object, Tuple>>> rddPairs = new ArrayList<RDD<Tuple2<Object, Tuple>>>();
+            List<RDD<Tuple2<IndexedKey, Tuple>>> rddPairs = new ArrayList<RDD<Tuple2<IndexedKey, Tuple>>>();
             for (RDD<Tuple> rdd : predecessors) {
                 JavaRDD<Tuple> jrdd = JavaRDD.fromRDD(rdd, SparkUtil.getManifest(Tuple.class));
-                JavaRDD<Tuple2<Object, Tuple>> rddPair = jrdd.map(new ToKeyValueFunction());
+                JavaRDD<Tuple2<IndexedKey, Tuple>> rddPair = jrdd.map(new ToKeyValueFunction());
                 rddPairs.add(rddPair.rdd());
             }
 
@@ -105,8 +105,8 @@ public class GlobalRearrangeConverter implements
                             .asScalaBuffer(rddPairs).toSeq()),
                     new HashPartitioner(parallelism));
 
-            RDD<Tuple2<Object, Seq<Seq<Tuple>>>> rdd =
-                (RDD<Tuple2<Object, Seq<Seq<Tuple>>>>) (Object) coGroupedRDD;
+            RDD<Tuple2<IndexedKey, Seq<Seq<Tuple>>>> rdd =
+                (RDD<Tuple2<IndexedKey, Seq<Seq<Tuple>>>>) (Object) coGroupedRDD;
             return rdd.toJavaRDD().map(new ToGroupKeyValueFunction()).rdd();
         }
     }
@@ -289,20 +289,134 @@ public class GlobalRearrangeConverter implements
         }
     }
 
-    private static class ToKeyValueFunction implements
-            Function<Tuple, Tuple2<Object, Tuple>>, Serializable {
+    /**
+     * IndexedKey records the index and key info of a tuple.
+     */
+    public static class IndexedKey implements Serializable {
+        private byte index;
+        private Object key;
+
+        public IndexedKey(byte index, Object key) {
+            this.index = index;
+            this.key = key;
+        }
+
+        public Object getKey() {
+            return key;
+        }
 
         @Override
-        public Tuple2<Object, Tuple> call(Tuple t) {
+        public String toString() {
+            return "IndexedKey{" +
+                    "index=" + index +
+                    ", key=" + key +
+                    '}';
+        }
+
+        /**
+         * If key is empty, we'd like compute equality based on key and index.
+         * If key is not empty, we'd like to compute equality based on just the key (like we normally do).
+         * There are two possible cases when two tuples are compared:
+         * 1) Compare tuples of same table (same index)
+         * 2) Compare tuples of different tables (different index values)
+         * In 1)
+         * key1    key2    equal?
+         * null    null      Y
+         * foo     null      N
+         * null    foo       N
+         * foo     foo       Y
+         * (1,1)   (1,1)     Y
+         * (1,)    (1,)      Y
+         * (1,2)   (1,2)     Y
+
+         *
+         * In 2)
+         * key1    key2    equal?
+         * null    null     N
+         * foo     null     N
+         * null    foo      N
+         * foo     foo      Y
+         * (1,1)   (1,1)    Y
+         * (1,)    (1,)     N
+         * (1,2)   (1,2)    Y
+
+         *
+         * @param o
+         * @return
+         */
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            IndexedKey that = (IndexedKey) o;
+            if (index == that.index) {
+                if (key == null && that.key == null) {
+                    return true;
+                } else if (key == null || that.key == null) {
+                    return false;
+                } else{
+                    return key.equals(that.key);
+                }
+            } else {
+                if (key == null || that.key == null) {
+                    return false;
+                } else if (key.equals(that.key) && !containNullfields(key)) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        }
+
+        private boolean containNullfields(Object key) {
+            if (key instanceof Tuple) {
+                for (int i = 0; i < ((Tuple) key).size(); i++) {
+                    try {
+                        if (((Tuple) key).get(i) == null) {
+                            return true;
+                        }
+                    } catch (ExecException e) {
+                        throw new RuntimeException("exception found in " +
+                                "containNullfields", e);
+
+                    }
+                }
+            }
+            return false;
+
+        }
+
+        /**
+         * Calculate hashCode by index and key
+         * if key is empty, return index value
+         * if key is not empty, return the key.hashCode()
+         */
+        @Override
+        public int hashCode() {
+            int result = 0;
+            if (key == null) {
+                result = (int) index;
+            }else {
+                result =  key.hashCode();
+            }
+            return result;
+        }
+    }
+
+    private static class ToKeyValueFunction implements
+            Function<Tuple, Tuple2<IndexedKey, Tuple>>, Serializable {
+
+        @Override
+        public Tuple2<IndexedKey, Tuple> call(Tuple t) {
             try {
                 // (index, key, value)
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("ToKeyValueFunction in " + t);
                 }
-                Object key = t.get(1);
+                IndexedKey indexedKey = new IndexedKey((Byte) t.get(0), t.get(1));
                 Tuple value = (Tuple) t.get(2); // value
                 // (key, value)
-                Tuple2<Object, Tuple> out = new Tuple2<Object, Tuple>(key,
+                Tuple2<IndexedKey, Tuple> out = new Tuple2<IndexedKey, Tuple>(indexedKey,
                         value);
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("ToKeyValueFunction out " + out);
@@ -315,15 +429,15 @@ public class GlobalRearrangeConverter implements
     }
 
     private static class ToGroupKeyValueFunction implements
-            Function<Tuple2<Object, Seq<Seq<Tuple>>>, Tuple>, Serializable {
+            Function<Tuple2<IndexedKey, Seq<Seq<Tuple>>>, Tuple>, Serializable {
 
         @Override
-        public Tuple call(Tuple2<Object, Seq<Seq<Tuple>>> input) {
+        public Tuple call(Tuple2<IndexedKey, Seq<Seq<Tuple>>> input) {
             try {
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("ToGroupKeyValueFunction2 in " + input);
                 }
-                final Object key = input._1();
+                final Object key = input._1().getKey();
                 Object obj = input._2();
                 // XXX this is a hack for Spark 1.1.0: the type is an Array, not Seq
                 Seq<Tuple>[] bags = (Seq<Tuple>[])obj;
