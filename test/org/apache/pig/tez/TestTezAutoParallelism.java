@@ -246,6 +246,58 @@ public class TestTezAutoParallelism {
     }
 
     @Test
+    public void testSkewedFullJoinIncreaseParallelism() throws IOException{
+        // skewed full join parallelism take the initial setting, since the join vertex has a broadcast(sample) dependency,
+        // which prevent it changing parallelism
+        pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
+        pigServer.getPigContext().getProperties().setProperty(MRConfiguration.MAX_SPLIT_SIZE, "3000");
+        pigServer.getPigContext().getProperties().setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, "40000");
+        pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (name:chararray, age:int);");
+        pigServer.registerQuery("B = load '" + INPUT_FILE2 + "' as (name:chararray, gender:chararray);");
+        pigServer.registerQuery("C = join A by name full, B by name using 'skewed';");
+        pigServer.store("C", "output6");
+        FileSystem fs = cluster.getFileSystem();
+        FileStatus[] files = fs.listStatus(new Path("output5"), new PathFilter(){
+            @Override
+            public boolean accept(Path path) {
+                if (path.getName().startsWith("part")) {
+                    return true;
+                }
+                return false;
+            }
+        });
+        assertEquals(files.length, 5);
+    }
+
+    @Test
+    public void testSkewedJoinIncreaseParallelismWithScalar() throws IOException{
+        // skewed join parallelism take the initial setting, since the join vertex has a broadcast(scalar) dependency,
+        // which prevent it changing parallelism
+        pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
+        pigServer.getPigContext().getProperties().setProperty(MRConfiguration.MAX_SPLIT_SIZE, "3000");
+        pigServer.getPigContext().getProperties().setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, "40000");
+        pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (name:chararray, age:int);");
+        pigServer.registerQuery("B = load '" + INPUT_FILE2 + "' as (name:chararray, gender:chararray);");
+        pigServer.registerQuery("C = join A by name, B by name using 'skewed';");
+        pigServer.registerQuery("D = load 'org.apache.pig.tez.TestTezAutoParallelism_1' as (name:chararray, age:int);");
+        pigServer.registerQuery("E = group D all;");
+        pigServer.registerQuery("F = foreach E generate COUNT(D) as count;");
+        pigServer.registerQuery("G = foreach C generate age/F.count, gender;");
+        pigServer.store("G", "output7");
+        FileSystem fs = cluster.getFileSystem();
+        FileStatus[] files = fs.listStatus(new Path("output7"), new PathFilter(){
+            @Override
+            public boolean accept(Path path) {
+                if (path.getName().startsWith("part")) {
+                    return true;
+                }
+                return false;
+            }
+        });
+        assertEquals(files.length, 4);
+    }
+
+    @Test
     public void testIncreaseIntermediateParallelism1() throws IOException{
         // User specified parallelism is overriden for intermediate step
         String outputDir = "/tmp/testIncreaseIntermediateParallelism";

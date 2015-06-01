@@ -7,7 +7,7 @@
 Tez vertex scope-114	->	Tez vertex scope-116,
 Tez vertex scope-115	->	Tez vertex scope-116,
 Tez vertex scope-116	->	Tez vertex scope-128,Tez vertex scope-138,
-Tez vertex scope-128	->	Tez vertex scope-120,Tez vertex scope-138,Tez vertex scope-142,
+Tez vertex scope-128	->	Tez vertex scope-120,Tez vertex scope-138,
 Tez vertex scope-138	->	Tez vertex scope-142,
 Tez vertex scope-120	->	Tez vertex scope-142,
 Tez vertex scope-142
@@ -65,7 +65,7 @@ Local Rearrange[tuple]{tuple}(false) - scope-123	->	 scope-128
             |---POShuffledValueInputTez - scope-117	<-	 [scope-114, scope-115]
 Tez vertex scope-128
 # Plan on vertex
-POValueOutputTez - scope-137	->	 [scope-120, scope-138, scope-142]
+POValueOutputTez - scope-137	->	 [scope-120, scope-138]
 |
 |---New For Each(false)[tuple] - scope-136
     |   |

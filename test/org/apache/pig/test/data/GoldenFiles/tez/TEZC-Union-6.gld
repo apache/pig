@@ -7,7 +7,7 @@
 Tez vertex scope-29	->	Tez vertex group scope-63,Tez vertex group scope-64,
 Tez vertex scope-30	->	Tez vertex group scope-63,Tez vertex group scope-64,
 Tez vertex group scope-64	->	Tez vertex scope-43,
-Tez vertex scope-43	->	Tez vertex scope-35,Tez vertex scope-53,Tez vertex scope-57,
+Tez vertex scope-43	->	Tez vertex scope-35,Tez vertex scope-53,
 Tez vertex group scope-63	->	Tez vertex scope-53,
 Tez vertex scope-53	->	Tez vertex scope-57,
 Tez vertex scope-35	->	Tez vertex scope-57,
@@ -79,7 +79,7 @@ Tez vertex group scope-64	<-	 [scope-29, scope-30]	->	 scope-43
 # No plan on vertex group
 Tez vertex scope-43
 # Plan on vertex
-POValueOutputTez - scope-52	->	 [scope-35, scope-53, scope-57]
+POValueOutputTez - scope-52	->	 [scope-35, scope-53]
 |
 |---New For Each(false)[tuple] - scope-51
     |   |
