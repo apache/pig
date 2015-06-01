@@ -148,7 +148,12 @@ public class ParallelismSetter extends TezOpPlanVisitor {
                             parallelism = tezOp.getEstimatedParallelism();
                         }
                         if (tezOp.isGlobalSort() || tezOp.isSkewedJoin()) {
-                            if (!overrideRequestedParallelism) {
+                            boolean additionalEdge = false;
+                            if (tezOp.isGlobalSort() && getPlan().getPredecessors(tezOp).size() != 1 ||
+                                    tezOp.isSkewedJoin() && getPlan().getPredecessors(tezOp).size() != 2) {
+                                additionalEdge = true;
+                            }
+                            if (!overrideRequestedParallelism && !additionalEdge) {
                                 incrementTotalParallelism(tezOp, parallelism);
                                 // PartitionerDefinedVertexManager will determine parallelism.
                                 // So call setVertexParallelism with -1
@@ -168,6 +173,7 @@ public class ParallelismSetter extends TezOpPlanVisitor {
                                                 ParallelConstantVisitor visitor =
                                                         new ParallelConstantVisitor(partitionerPred.plan, parallelism);
                                                 visitor.visit();
+                                                partitionerPred.setNeedEstimatedQuantile(false);
                                                 break;
                                             }
                                         }
