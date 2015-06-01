@@ -430,7 +430,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         in.setUserPayload(TezUtils.createUserPayloadFromConf(conf));
         out.setUserPayload(TezUtils.createUserPayloadFromConf(conf));
 
-        if (edge.dataMovementType!=DataMovementType.BROADCAST && to.getEstimatedParallelism()!=-1 && (to.isGlobalSort()||to.isSkewedJoin())) {
+        if (edge.dataMovementType!=DataMovementType.BROADCAST && to.getEstimatedParallelism()!=-1 && to.getVertexParallelism()==-1 && (to.isGlobalSort()||to.isSkewedJoin())) {
             // Use custom edge
             return EdgeProperty.create((EdgeManagerPluginDescriptor)null,
                     edge.dataSourceType, edge.schedulingType, out, in);
@@ -671,11 +671,15 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         // Set the right VertexManagerPlugin
         if (tezOp.getEstimatedParallelism() != -1) {
             if (tezOp.isGlobalSort()||tezOp.isSkewedJoin()) {
-                // Set VertexManagerPlugin to PartitionerDefinedVertexManager, which is able
-                // to decrease/increase parallelism of sorting vertex dynamically
-                // based on the numQuantiles calculated by sample aggregation vertex
-                vmPluginName = PartitionerDefinedVertexManager.class.getName();
-                log.info("Set VertexManagerPlugin to PartitionerDefinedParallelismVertexManager for vertex " + tezOp.getOperatorKey().toString());
+                if (tezOp.getVertexParallelism()==-1 && (
+                        tezOp.isGlobalSort() &&getPlan().getPredecessors(tezOp).size()==1||
+                        tezOp.isSkewedJoin() &&getPlan().getPredecessors(tezOp).size()==2)) {
+                    // Set VertexManagerPlugin to PartitionerDefinedVertexManager, which is able
+                    // to decrease/increase parallelism of sorting vertex dynamically
+                    // based on the numQuantiles calculated by sample aggregation vertex
+                    vmPluginName = PartitionerDefinedVertexManager.class.getName();
+                    log.info("Set VertexManagerPlugin to PartitionerDefinedParallelismVertexManager for vertex " + tezOp.getOperatorKey().toString());
+                }
             } else {
                 boolean containScatterGather = false;
                 boolean containCustomPartitioner = false;
