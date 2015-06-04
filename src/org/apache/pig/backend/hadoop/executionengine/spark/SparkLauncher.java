@@ -107,6 +107,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.spark.SparkPigStats;
 import org.apache.pig.tools.pigstats.spark.SparkStatsUtil;
@@ -129,12 +130,15 @@ public class SparkLauncher extends Launcher {
 	private static JavaSparkContext sparkContext = null;
 	private static JobMetricsListener jobMetricsListener = new JobMetricsListener();
 	private String jobGroupID;
+    private PigContext pigContext = null;
+    private String currentDirectoryPath = null;
 
 	@Override
 	public PigStats launchPig(PhysicalPlan physicalPlan, String grpName,
 			PigContext pigContext) throws Exception {
 		if (LOG.isDebugEnabled())
 		    LOG.debug(physicalPlan);
+        this.pigContext = pigContext;
         saveUdfImportList(pigContext);
 		JobConf jobConf = SparkUtil.newJobConf(pigContext);
 		jobConf.set(PigConstants.LOCAL_CODE_DIR,
@@ -158,10 +162,10 @@ public class SparkLauncher extends Launcher {
 				false);
 		jobMetricsListener.reset();
 
-		String currentDirectoryPath = Paths.get(".").toAbsolutePath()
+		this.currentDirectoryPath = Paths.get(".").toAbsolutePath()
 				.normalize().toString()
 				+ "/";
-		startSparkJob(pigContext, currentDirectoryPath);
+		startSparkJob();
 		LinkedList<POStore> stores = PlanHelper.getPhysicalOperators(
 				physicalPlan, POStore.class);
 		POStore firstStore = stores.getFirst();
@@ -198,7 +202,7 @@ public class SparkLauncher extends Launcher {
                 convertMap.put(POFRJoin.class, new FRJoinConverter());
 
 		sparkPlanToRDD(sparkplan, convertMap, sparkStats, jobConf);
-		cleanUpSparkJob(pigContext, currentDirectoryPath);
+		cleanUpSparkJob();
 		sparkStats.finish();
 
 		return sparkStats;
@@ -252,8 +256,7 @@ public class SparkLauncher extends Launcher {
 		return unseenJobIDs;
 	}
 
-	private void cleanUpSparkJob(PigContext pigContext,
-			String currentDirectoryPath) {
+	private void cleanUpSparkJob() {
 		LOG.info("clean up Spark Job");
 		boolean isLocal = System.getenv("SPARK_MASTER") != null ? System
 				.getenv("SPARK_MASTER").equalsIgnoreCase("LOCAL") : true;
@@ -287,56 +290,34 @@ public class SparkLauncher extends Launcher {
 		}
 	}
 
-	private void startSparkJob(PigContext pigContext,
-			String currentDirectoryPath) throws IOException {
+	private void startSparkJob() throws IOException {
 		LOG.info("start Spark Job");
 		String shipFiles = pigContext.getProperties().getProperty(
 				"pig.streaming.ship.files");
-		shipFiles(shipFiles, currentDirectoryPath);
+		shipFiles(shipFiles);
 		String cacheFiles = pigContext.getProperties().getProperty(
 				"pig.streaming.cache.files");
-		cacheFiles(cacheFiles, currentDirectoryPath, pigContext);
+		cacheFiles(cacheFiles);
+
 	}
 
-	private void shipFiles(String shipFiles, String currentDirectoryPath)
+
+	private void shipFiles(String shipFiles)
 			throws IOException {
 		if (shipFiles != null) {
 			for (String file : shipFiles.split(",")) {
 				File shipFile = new File(file.trim());
 				if (shipFile.exists()) {
 					LOG.info(String.format("shipFile:%s", shipFile));
-					boolean isLocal = System.getenv("SPARK_MASTER") != null ? System
-							.getenv("SPARK_MASTER").equalsIgnoreCase("LOCAL")
-							: true;
-					if (isLocal) {
-						File localFile = new File(currentDirectoryPath + "/"
-								+ shipFile.getName());
-						if (localFile.exists()) {
-							LOG.info(String.format(
-									"ship file %s exists, ready to delete",
-									localFile.getAbsolutePath()));
-							localFile.delete();
-						} else {
-							LOG.info(String.format("ship file %s  not exists,",
-									localFile.getAbsolutePath()));
-						}
-						Files.copy(shipFile.toPath(),
-								Paths.get(localFile.getAbsolutePath()));
-					} else {
-						sparkContext.addFile(shipFile.toURI().toURL()
-								.toExternalForm());
-					}
+                    addJarToSparkJobWorkingDirectory(shipFile,shipFile.getName());
 				}
 			}
 		}
 	}
 
-	private void cacheFiles(String cacheFiles, String currentDirectoryPath,
-			PigContext pigContext) throws IOException {
+	private void cacheFiles(String cacheFiles) throws IOException {
 		if (cacheFiles != null) {
 			Configuration conf = SparkUtil.newJobConf(pigContext);
-			boolean isLocal = System.getenv("SPARK_MASTER") != null ? System
-					.getenv("SPARK_MASTER").equalsIgnoreCase("LOCAL") : true;
 			for (String file : cacheFiles.split(",")) {
 				String fileName = extractFileName(file.trim());
 				Path src = new Path(extractFileUrl(file.trim()));
@@ -345,27 +326,35 @@ public class SparkLauncher extends Launcher {
 				FileSystem fs = tmpFilePath.getFileSystem(conf);
 				fs.copyToLocalFile(src, tmpFilePath);
 				tmpFile.deleteOnExit();
-				if (isLocal) {
-					File localFile = new File(currentDirectoryPath + "/"
-							+ fileName);
-					if (localFile.exists()) {
-						LOG.info(String.format(
-								"cache file %s exists, ready to delete",
-								localFile.getAbsolutePath()));
-						localFile.delete();
-					} else {
-						LOG.info(String.format("cache file %s not exists,",
-								localFile.getAbsolutePath()));
-					}
-					Files.copy(Paths.get(tmpFilePath.toString()),
-							Paths.get(localFile.getAbsolutePath()));
-				} else {
-					sparkContext.addFile(tmpFile.toURI().toURL()
-							.toExternalForm());
-				}
+                LOG.info(String.format("cacheFile:%s", fileName));
+			    addJarToSparkJobWorkingDirectory(tmpFile, fileName);
 			}
 		}
 	}
+
+    private void addJarToSparkJobWorkingDirectory(File jarFile, String jarName) throws IOException {
+        LOG.info("Added jar "+jarName);
+        boolean isLocal = System.getenv("SPARK_MASTER") != null ? System
+                .getenv("SPARK_MASTER").equalsIgnoreCase("LOCAL") : true;
+        if (isLocal) {
+            File localFile = new File(currentDirectoryPath + "/"
+                    + jarName);
+            if (localFile.exists()) {
+                LOG.info(String.format(
+                        "jar file %s exists, ready to delete",
+                        localFile.getAbsolutePath()));
+                localFile.delete();
+            } else {
+                LOG.info(String.format("jar file %s not exists,",
+                        localFile.getAbsolutePath()));
+            }
+            Files.copy(Paths.get(new Path(jarFile.getAbsolutePath()).toString()),
+                    Paths.get(localFile.getAbsolutePath()));
+        } else {
+            sparkContext.addFile(jarFile.toURI().toURL()
+                    .toExternalForm());
+        }
+    }
 
 	private String extractFileName(String cacheFileUrl) {
 		String[] tmpAry = cacheFileUrl.split("#");
@@ -481,13 +470,28 @@ public class SparkLauncher extends Launcher {
 		}
 	}
 
-	private void sparkOperToRDD(SparkOperPlan sparkPlan,
+    private void addUDFJarsToSparkJobWorkingDirectory(SparkOperator leaf) throws IOException {
+
+        for (String udf : leaf.UDFs) {
+            Class clazz = pigContext.getClassForAlias(udf);
+            if (clazz != null) {
+                String jar = JarManager.findContainingJar(clazz);
+                if( jar != null) {
+                    File jarFile = new File(jar);
+                    addJarToSparkJobWorkingDirectory(jarFile, jarFile.getName());
+                }
+            }
+        }
+    }
+
+    private void sparkOperToRDD(SparkOperPlan sparkPlan,
 			SparkOperator sparkOperator,
 			Map<OperatorKey, RDD<Tuple>> sparkOpRdds,
 			Map<OperatorKey, RDD<Tuple>> physicalOpRdds,
 			Map<Class<? extends PhysicalOperator>, POConverter> convertMap,
 			Set<Integer> seenJobIDs, SparkPigStats sparkStats, JobConf conf)
 			throws IOException, InterruptedException {
+        addUDFJarsToSparkJobWorkingDirectory(sparkOperator);
 		List<SparkOperator> predecessors = sparkPlan
 				.getPredecessors(sparkOperator);
 		List<RDD<Tuple>> predecessorRDDs = Lists.newArrayList();
