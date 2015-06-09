@@ -43,7 +43,7 @@ import org.apache.spark.rdd.RDD;
  * Convert that is able to convert an RRD to another RRD using a POForEach
  */
 @SuppressWarnings({"serial" })
-public class ForEachConverter implements POConverter<Tuple, Tuple, POForEach> {
+public class ForEachConverter implements RDDConverter<Tuple, Tuple, POForEach> {
 
     private byte[] confBytes;
 

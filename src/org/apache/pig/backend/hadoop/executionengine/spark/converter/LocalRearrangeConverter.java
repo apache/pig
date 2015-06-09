@@ -35,7 +35,7 @@ import org.apache.spark.rdd.RDD;
 
 @SuppressWarnings({ "serial" })
 public class LocalRearrangeConverter implements
-        POConverter<Tuple, Tuple, POLocalRearrange> {
+        RDDConverter<Tuple, Tuple, POLocalRearrange> {
     private static final Log LOG = LogFactory
             .getLog(GlobalRearrangeConverter.class);
 

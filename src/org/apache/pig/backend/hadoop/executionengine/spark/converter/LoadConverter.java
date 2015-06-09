@@ -55,7 +55,7 @@ import org.apache.commons.logging.LogFactory;
  *
  */
 @SuppressWarnings({ "serial" })
-public class LoadConverter implements POConverter<Tuple, Tuple, POLoad> {
+public class LoadConverter implements RDDConverter<Tuple, Tuple, POLoad> {
 
     private static final ToTupleFunction TO_TUPLE_FUNCTION = new ToTupleFunction();
     private static Log log = LogFactory.getLog(LoadConverter.class);

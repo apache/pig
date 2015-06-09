@@ -48,7 +48,7 @@ import scala.runtime.AbstractFunction1;
 
 @SuppressWarnings({ "serial" })
 public class GlobalRearrangeConverter implements
-        POConverter<Tuple, Tuple, POGlobalRearrangeSpark> {
+        RDDConverter<Tuple, Tuple, POGlobalRearrangeSpark> {
     private static final Log LOG = LogFactory
             .getLog(GlobalRearrangeConverter.class);
 

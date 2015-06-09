@@ -27,7 +27,7 @@ import org.apache.pig.data.Tuple;
 
 import org.apache.spark.rdd.RDD;
 
-public class SplitConverter implements POConverter<Tuple, Tuple, POSplit> {
+public class SplitConverter implements RDDConverter<Tuple, Tuple, POSplit> {
 
     @Override
     public RDD<Tuple> convert(List<RDD<Tuple>> predecessors, POSplit poSplit)

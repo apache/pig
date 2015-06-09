@@ -30,7 +30,7 @@ import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.rdd.RDD;
 
 @SuppressWarnings({ "serial"})
-public class CollectedGroupConverter implements POConverter<Tuple, Tuple, POCollectedGroup> {
+public class CollectedGroupConverter implements RDDConverter<Tuple, Tuple, POCollectedGroup> {
 
 	@Override
   public RDD<Tuple> convert(List<RDD<Tuple>> predecessors,

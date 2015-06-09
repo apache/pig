@@ -30,7 +30,7 @@ import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.rdd.RDD;
 
 @SuppressWarnings({ "serial" })
-public class LimitConverter implements POConverter<Tuple, Tuple, POLimit> {
+public class LimitConverter implements RDDConverter<Tuple, Tuple, POLimit> {
 
     @Override
     public RDD<Tuple> convert(List<RDD<Tuple>> predecessors, POLimit poLimit)

@@ -34,7 +34,7 @@ import scala.runtime.AbstractFunction1;
 import scala.runtime.AbstractFunction2;
 
 @SuppressWarnings({ "serial" })
-public class DistinctConverter implements POConverter<Tuple, Tuple, PODistinct> {
+public class DistinctConverter implements RDDConverter<Tuple, Tuple, PODistinct> {
     private static final Log LOG = LogFactory.getLog(DistinctConverter.class);
 
     @Override
