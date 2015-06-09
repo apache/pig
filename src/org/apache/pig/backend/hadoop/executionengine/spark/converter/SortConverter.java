@@ -38,7 +38,7 @@ import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.rdd.RDD;
 
 @SuppressWarnings("serial")
-public class SortConverter implements POConverter<Tuple, Tuple, POSort> {
+public class SortConverter implements RDDConverter<Tuple, Tuple, POSort> {
     private static final Log LOG = LogFactory.getLog(SortConverter.class);
 
     private static final FlatMapFunction<Iterator<Tuple2<Tuple, Object>>, Tuple> TO_VALUE_FUNCTION = new ToValueFunction();

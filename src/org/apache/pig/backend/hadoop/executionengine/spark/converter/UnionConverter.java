@@ -29,7 +29,7 @@ import org.apache.spark.rdd.UnionRDD;
 import org.apache.spark.rdd.RDD;
 import org.apache.spark.SparkContext;
 
-public class UnionConverter implements POConverter<Tuple, Tuple, POUnion> {
+public class UnionConverter implements RDDConverter<Tuple, Tuple, POUnion> {
 
     private final SparkContext sc;
 

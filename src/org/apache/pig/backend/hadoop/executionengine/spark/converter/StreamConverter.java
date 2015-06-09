@@ -38,7 +38,7 @@ import org.apache.spark.rdd.RDD;
 import org.apache.spark.api.java.function.FlatMapFunction;
 
 public class StreamConverter implements
-		POConverter<Tuple, Tuple, POStream> {
+		RDDConverter<Tuple, Tuple, POStream> {
 	private byte[] confBytes;
 
 	public StreamConverter(byte[] confBytes) {

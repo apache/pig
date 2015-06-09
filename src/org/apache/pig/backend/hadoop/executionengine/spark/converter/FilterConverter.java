@@ -34,7 +34,7 @@ import org.apache.spark.rdd.RDD;
  * Converter that converts an RDD to a filtered RRD using POFilter
  */
 @SuppressWarnings({ "serial" })
-public class FilterConverter implements POConverter<Tuple, Tuple, POFilter> {
+public class FilterConverter implements RDDConverter<Tuple, Tuple, POFilter> {
 
     @Override
     public RDD<Tuple> convert(List<RDD<Tuple>> predecessors,

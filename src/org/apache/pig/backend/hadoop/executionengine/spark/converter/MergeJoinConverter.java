@@ -41,7 +41,7 @@ import scala.runtime.AbstractFunction1;
 
 @SuppressWarnings("serial")
 public class MergeJoinConverter implements
-        POConverter<Tuple, Tuple, POMergeJoin> {
+        RDDConverter<Tuple, Tuple, POMergeJoin> {
 
     @Override
     public RDD<Tuple> convert(List<RDD<Tuple>> predecessors,

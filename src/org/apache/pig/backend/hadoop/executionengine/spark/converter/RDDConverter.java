@@ -28,6 +28,6 @@ import org.apache.spark.rdd.RDD;
  * Given an RDD and a PhysicalOperater, and implementation of this class can
  * convert the RDD to another RDD.
  */
-public interface POConverter<IN, OUT, T extends PhysicalOperator> {
+public interface RDDConverter<IN, OUT, T extends PhysicalOperator> {
     RDD<OUT> convert(List<RDD<IN>> rdd, T physicalOperator) throws IOException;
 }

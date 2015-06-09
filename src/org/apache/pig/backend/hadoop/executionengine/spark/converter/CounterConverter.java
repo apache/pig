@@ -35,7 +35,7 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.rdd.RDD;
 
-public class CounterConverter implements POConverter<Tuple, Tuple, POCounter> {
+public class CounterConverter implements RDDConverter<Tuple, Tuple, POCounter> {
 
 	private static final Log LOG = LogFactory.getLog(CounterConverter.class);
 	

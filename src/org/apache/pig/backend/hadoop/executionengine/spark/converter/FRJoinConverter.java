@@ -44,7 +44,7 @@ import scala.runtime.AbstractFunction1;
 
 @SuppressWarnings("serial")
 public class FRJoinConverter implements
-        POConverter<Tuple, Tuple, POFRJoin> {
+        RDDConverter<Tuple, Tuple, POFRJoin> {
     private static final Log LOG = LogFactory.getLog(FRJoinConverter.class);
 
     @Override

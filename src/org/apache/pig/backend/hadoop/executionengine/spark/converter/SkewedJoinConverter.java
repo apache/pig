@@ -45,7 +45,7 @@ import scala.Tuple2;
 import scala.runtime.AbstractFunction1;
 
 public class SkewedJoinConverter implements
-        POConverter<Tuple, Tuple, POSkewedJoin>, Serializable {
+        RDDConverter<Tuple, Tuple, POSkewedJoin>, Serializable {
 
     private POLocalRearrange[] LRs;
     private POSkewedJoin poSkewedJoin;

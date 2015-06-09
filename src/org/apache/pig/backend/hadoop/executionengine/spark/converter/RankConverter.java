@@ -38,7 +38,7 @@ import org.apache.spark.rdd.RDD;
 
 import scala.Tuple2;
 
-public class RankConverter implements POConverter<Tuple, Tuple, PORank> {
+public class RankConverter implements RDDConverter<Tuple, Tuple, PORank> {
 
 	private static final Log LOG = LogFactory.getLog(RankConverter.class);
 	

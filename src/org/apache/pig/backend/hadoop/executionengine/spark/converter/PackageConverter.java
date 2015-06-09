@@ -40,7 +40,7 @@ import org.apache.spark.rdd.RDD;
 import scala.runtime.AbstractFunction1;
 
 @SuppressWarnings({ "serial" })
-public class PackageConverter implements POConverter<Tuple, Tuple, POPackage> {
+public class PackageConverter implements RDDConverter<Tuple, Tuple, POPackage> {
     private static final Log LOG = LogFactory.getLog(PackageConverter.class);
 
     private transient JobConf jobConf;

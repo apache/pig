@@ -56,7 +56,7 @@ import com.google.common.collect.Lists;
  */
 @SuppressWarnings({ "serial" })
 public class StoreConverter implements
-        POConverter<Tuple, Tuple2<Text, Tuple>, POStore> {
+        RDDConverter<Tuple, Tuple2<Text, Tuple>, POStore> {
 
   private static final Log LOG = LogFactory.getLog(StoreConverter.class);
   private static final FromTupleFunction FROM_TUPLE_FUNCTION = new FromTupleFunction();
