@@ -29,6 +29,7 @@ import org.apache.pig.PigServer;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.junit.Test;
 
 public class TestCase {
@@ -267,10 +268,14 @@ public class TestCase {
         pigServer.registerQuery("STORE C INTO 'bar' USING mock.Storage();");
 
         List<Tuple> out = data.get("bar");
-        assertEquals(3, out.size());
-        assertEquals(tuple(1, "3n+1", bag(tuple("a","x"), tuple("a","y"))), out.get(0));
-        assertEquals(tuple(2, "3n+2", bag(tuple("b","x"), tuple("b","y"))), out.get(1));
-        assertEquals(tuple(3, "3n",   bag(tuple("c","x"), tuple("c","y"))), out.get(2));
+
+        String[] expected = new String[] {
+                "(1,3n+1,{(a,x),(a,y)})",
+                "(2,3n+2,{(b,x),(b,y)})",
+                "(3,3n,{(c,x),(c,y)})"
+        };
+        Schema s = pigServer.dumpSchema("C");
+        Util.checkQueryOutputsAfterSortRecursive(out.iterator(), expected, org.apache.pig.newplan.logical.Util.translateSchema(s));
     }
 
     /**
