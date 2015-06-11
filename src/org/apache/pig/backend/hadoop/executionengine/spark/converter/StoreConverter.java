@@ -17,6 +17,8 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.spark.converter;
 
+import com.google.common.collect.Lists;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,16 +30,13 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.FileOutputFormat;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigOutputFormat;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
-import org.apache.pig.backend.hadoop.executionengine.spark.SparkLauncher;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
-import org.apache.pig.builtin.LOG;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.ObjectSerializer;
@@ -49,8 +48,6 @@ import org.apache.hadoop.mapreduce.lib.output.LazyOutputFormat;
 
 import scala.Tuple2;
 
-import com.google.common.collect.Lists;
-
 /**
  * Converter that takes a POStore and stores it's content.
  */
@@ -59,7 +56,6 @@ public class StoreConverter implements
         RDDConverter<Tuple, Tuple2<Text, Tuple>, POStore> {
 
   private static final Log LOG = LogFactory.getLog(StoreConverter.class);
-  private static final FromTupleFunction FROM_TUPLE_FUNCTION = new FromTupleFunction();
 
     private PigContext pigContext;
 
@@ -69,46 +65,48 @@ public class StoreConverter implements
 
     @Override
     public RDD<Tuple2<Text, Tuple>> convert(List<RDD<Tuple>> predecessors,
-            POStore physicalOperator) throws IOException {
-        SparkUtil.assertPredecessorSize(predecessors, physicalOperator, 1);
+            POStore op) throws IOException {
+        SparkUtil.assertPredecessorSize(predecessors, op, 1);
         RDD<Tuple> rdd = predecessors.get(0);
         // convert back to KV pairs
-        JavaRDD<Tuple2<Text, Tuple>> rddPairs = rdd.toJavaRDD().map(FROM_TUPLE_FUNCTION);
+        JavaRDD<Tuple2<Text, Tuple>> rddPairs = rdd.toJavaRDD().map(
+                new FromTupleFunction());
 
         PairRDDFunctions<Text, Tuple> pairRDDFunctions = new PairRDDFunctions<Text, Tuple>(
                 rddPairs.rdd(), SparkUtil.getManifest(Text.class),
                 SparkUtil.getManifest(Tuple.class), null);
 
-        JobConf storeJobConf = SparkUtil.newJobConf(pigContext);
-        POStore poStore = configureStorer(storeJobConf, physicalOperator);
+        JobConf jobConf = SparkUtil.newJobConf(pigContext);
+        POStore poStore = configureStorer(jobConf, op);
 
-        if ("true".equalsIgnoreCase(storeJobConf
+        if ("true".equalsIgnoreCase(jobConf
                 .get(PigConfiguration.PIG_OUTPUT_LAZY))) {
-            Job storeJob = new Job(storeJobConf);
+            Job storeJob = new Job(jobConf);
             LazyOutputFormat.setOutputFormatClass(storeJob,
                     PigOutputFormat.class);
-            storeJobConf = (JobConf) storeJob.getConfiguration();
-            storeJobConf.setOutputKeyClass(Text.class);
-            storeJobConf.setOutputValueClass(Tuple.class);
+            jobConf = (JobConf) storeJob.getConfiguration();
+            jobConf.setOutputKeyClass(Text.class);
+            jobConf.setOutputValueClass(Tuple.class);
             String fileName = poStore.getSFile().getFileName();
             Path filePath = new Path(fileName);
-            FileOutputFormat.setOutputPath(storeJobConf,filePath);
-            pairRDDFunctions.saveAsNewAPIHadoopDataset(storeJobConf);
+            FileOutputFormat.setOutputPath(jobConf,filePath);
+            pairRDDFunctions.saveAsNewAPIHadoopDataset(jobConf);
         } else {
             pairRDDFunctions.saveAsNewAPIHadoopFile(poStore.getSFile()
                     .getFileName(), Text.class, Tuple.class,
-                    PigOutputFormat.class, storeJobConf);
+                    PigOutputFormat.class, jobConf);
         }
-      RDD<Tuple2<Text, Tuple>> retRdd = rddPairs.rdd();
-      if (LOG.isDebugEnabled())
-          LOG.debug("RDD lineage: " + retRdd.toDebugString());
-      return retRdd;
+
+        RDD<Tuple2<Text, Tuple>> retRdd = rddPairs.rdd();
+        if (LOG.isDebugEnabled())
+            LOG.debug("RDD lineage: " + retRdd.toDebugString());
+        return retRdd;
     }
 
     private static POStore configureStorer(JobConf jobConf,
-            PhysicalOperator physicalOperator) throws IOException {
+            PhysicalOperator op) throws IOException {
         ArrayList<POStore> storeLocations = Lists.newArrayList();
-        POStore poStore = (POStore) physicalOperator;
+        POStore poStore = (POStore) op;
         storeLocations.add(poStore);
         StoreFuncInterface sFunc = poStore.getStoreFunc();
         sFunc.setStoreLocation(poStore.getSFile().getFileName(),

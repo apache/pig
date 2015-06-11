@@ -17,6 +17,8 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.spark.running;
 
+import java.io.IOException;
+
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
@@ -28,9 +30,8 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
 
-import java.io.IOException;
-
 public class PigInputFormatSpark extends PigInputFormat {
+
 	@Override
 	public RecordReader<Text, Tuple> createRecordReader(InputSplit split,
 			TaskAttemptContext context) throws IOException,
@@ -45,9 +46,8 @@ public class PigInputFormatSpark extends PigInputFormat {
 	}
 
 	private void init() {
-		PigStatusReporter pigStatusReporter = PigStatusReporter.getInstance();
 		PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
-		pigHadoopLogger.setReporter(pigStatusReporter);
+		pigHadoopLogger.setReporter(PigStatusReporter.getInstance());
 		PhysicalOperator.setPigLogger(pigHadoopLogger);
 	}
 }

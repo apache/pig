@@ -17,6 +17,8 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.spark.converter;
 
+import com.google.common.collect.Lists;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
@@ -25,7 +27,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
@@ -40,25 +43,22 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.ObjectSerializer;
-import com.google.common.collect.Lists;
+import org.apache.spark.rdd.RDD;
+import org.apache.spark.SparkContext;
+
 import scala.Function1;
 import scala.Tuple2;
 import scala.runtime.AbstractFunction1;
-import org.apache.spark.rdd.RDD;
-import org.apache.spark.SparkContext;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+
 /**
  * Converter that loads data via POLoad and converts it to RRD&lt;Tuple>. Abuses
- * the interface a bit in that there is no inoput RRD to convert in this case.
+ * the interface a bit in that there is no input RRD to convert in this case.
  * Instead input is the source path of the POLoad.
- *
  */
 @SuppressWarnings({ "serial" })
 public class LoadConverter implements RDDConverter<Tuple, Tuple, POLoad> {
+    private static Log LOG = LogFactory.getLog(LoadConverter.class);
 
-    private static final ToTupleFunction TO_TUPLE_FUNCTION = new ToTupleFunction();
-    private static Log log = LogFactory.getLog(LoadConverter.class);
     private PigContext pigContext;
     private PhysicalPlan physicalPlan;
     private SparkContext sparkContext;
@@ -71,24 +71,26 @@ public class LoadConverter implements RDDConverter<Tuple, Tuple, POLoad> {
     }
 
     @Override
-    public RDD<Tuple> convert(List<RDD<Tuple>> predecessorRdds, POLoad poLoad)
+    public RDD<Tuple> convert(List<RDD<Tuple>> predecessorRdds, POLoad op)
             throws IOException {
-        // if (predecessors.size()!=0) {
-        // throw new
-        // RuntimeException("Should not have predecessors for Load. Got : "+predecessors);
-        // }
 
-        JobConf loadJobConf = SparkUtil.newJobConf(pigContext);
-        configureLoader(physicalPlan, poLoad, loadJobConf);
+        // This configuration will be "broadcasted" by Spark, one to every
+        // node. Since we are changing the config here, the safe approach is
+        // to create a new conf for a new RDD.
+        JobConf jobConf = SparkUtil.newJobConf(pigContext);
+        configureLoader(physicalPlan, op, jobConf);
 
-        // don't know why but just doing this cast for now
-        RDD<Tuple2<Text, Tuple>> hadoopRDD = sparkContext.newAPIHadoopFile(
-                poLoad.getLFile().getFileName(), PigInputFormatSpark.class,
-                Text.class, Tuple.class, loadJobConf);
+        // Set the input directory for input formats that are backed by a
+        // filesystem. (Does not apply to HBase, for example).
+        jobConf.set("mapreduce.input.fileinputformat.inputdir",
+                op.getLFile().getFileName());
+
+        RDD<Tuple2<Text, Tuple>> hadoopRDD = sparkContext.newAPIHadoopRDD(
+                jobConf, PigInputFormatSpark.class, Text.class, Tuple.class);
 
         registerUdfFiles();
         // map to get just RDD<Tuple>
-        return hadoopRDD.map(TO_TUPLE_FUNCTION,
+        return hadoopRDD.map(new ToTupleFunction(),
                 SparkUtil.getManifest(Tuple.class));
     }
 
