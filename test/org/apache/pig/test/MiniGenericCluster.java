@@ -160,7 +160,9 @@ abstract public class MiniGenericCluster {
             return MiniCluster.getLauncher();
         } else if (execType.equalsIgnoreCase(EXECTYPE_TEZ)) {
             return TezMiniCluster.getLauncher();
-        } else {
+        } else if(execType.equalsIgnoreCase(EXECTYPE_SPARK)){
+            return SparkMiniCluster.getLauncher();
+        } else{
             throw new RuntimeException("Unknown test.exec.type: " + execType);
         }
     }
