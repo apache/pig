@@ -57,10 +57,12 @@ public class SparkUtil {
     public static JobConf newJobConf(PigContext pigContext) throws IOException {
         JobConf jobConf = new JobConf(
                 ConfigurationUtil.toConfiguration(pigContext.getProperties()));
+        // Serialize the PigContext so it's available in Executor thread.
         jobConf.set("pig.pigContext", ObjectSerializer.serialize(pigContext));
-        UDFContext.getUDFContext().serialize(jobConf);
+        // Serialize the thread local variable inside PigContext separately
         jobConf.set("udf.import.list",
                 ObjectSerializer.serialize(PigContext.getPackageImportList()));
+        UDFContext.getUDFContext().serialize(jobConf);
         return jobConf;
     }
 
