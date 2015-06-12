@@ -547,6 +547,29 @@ public class Util {
          checkQueryOutputsAfterSort(actualResList, expectedResList);
      }
 
+    /**
+     * Helper function to check if the result of Pig Query is in line with expected results.
+     * It sorts actual and expected results before comparison.
+     * The tuple size in the tuple list can vary. Pass by a two-dimension array, it will be converted to be a tuple list.
+     * e.g.  expectedTwoDimensionObjects is [{{10, "will_join", 10, "will_join"}, {11, "will_not_join", null}, {null, 12, "will_not_join"}}],
+     * the field size of these 3 tuples are [4,3,3]
+     *
+     * @param actualResultsIt
+     * @param expectedTwoDimensionObjects represents a tuple list, in which the tuple can have variable size.
+     */
+    static public void checkQueryOutputsAfterSort(Iterator<Tuple> actualResultsIt,
+                                                  Object[][] expectedTwoDimensionObjects) {
+        List<Tuple> expectedResTupleList = new ArrayList<Tuple>();
+        for (int i = 0; i < expectedTwoDimensionObjects.length; ++i) {
+            Tuple t = TupleFactory.getInstance().newTuple();
+            for (int j = 0; j < expectedTwoDimensionObjects[i].length; ++j) {
+                t.append(expectedTwoDimensionObjects[i][j]);
+            }
+            expectedResTupleList.add(t);
+        }
+        checkQueryOutputsAfterSort(actualResultsIt, expectedResTupleList);
+    }
+
      static public void checkQueryOutputsAfterSort(
             List<Tuple> actualResList, List<Tuple> expectedResList) {
          Collections.sort(actualResList);
