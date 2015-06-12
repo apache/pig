@@ -52,16 +52,16 @@ public class FRJoinConverter implements
                               POFRJoin poFRJoin) throws IOException {
 
         SparkUtil.assertPredecessorSizeGreaterThan(predecessors, poFRJoin, 1);
-        JavaPairRDD<Object, Tuple2<Tuple, Tuple>> joinedPairRDD;
+        JavaPairRDD<IndexedKey, Tuple2<Tuple, Tuple>> joinedPairRDD;
         int lr_idx = 0;
-        // RDD<Tuple> -> RDD<Tuple2<Object, Tuple>> -> JavaPairRDD<Object, Tuple>
-        JavaPairRDD<Object, Tuple> pairRDD1 = getPairRDD(predecessors.get(lr_idx),
+        // RDD<Tuple> -> RDD<Tuple2<IndexedKey, Tuple>> -> JavaPairRDD<IndexedKey, Tuple>
+        JavaPairRDD<IndexedKey, Tuple> pairRDD1 = getPairRDD(predecessors.get(lr_idx),
                 poFRJoin, lr_idx);
         lr_idx ++;
         // RDD transformations to support multiple join inputs:
         //  join().mapPartitions().join().mapPartitions,...
         while (true) {
-            JavaPairRDD<Object, Tuple> pairRDD2 = getPairRDD(predecessors.get(lr_idx),
+            JavaPairRDD<IndexedKey, Tuple> pairRDD2 = getPairRDD(predecessors.get(lr_idx),
                     poFRJoin, lr_idx);
 
             joinedPairRDD = join(pairRDD1, pairRDD2, poFRJoin);
@@ -72,27 +72,27 @@ public class FRJoinConverter implements
             // (key, (tuple from table1, tuple from table2, tuple from table3,...)
             // We need to convert these to the form (key, (tuple)) to
             // prepare it for the next join, i.e.
-            // RDD<Tuple2<Object, Tuple2<Tuple, Tuple>>> ->
-            // RDD<Tuple2<Object, Tuple>> -> JavaPairRDD<Object, Tuple>
-            JavaRDD<Tuple2<Object, Tuple>> resultRDD = joinedPairRDD
+            // RDD<Tuple2<IndexedKey, Tuple2<Tuple, Tuple>>> ->
+            // RDD<Tuple2<IndexedKey, Tuple> -> JavaPairRDD<IndexedKey, Tuple>
+            JavaRDD<Tuple2<IndexedKey, Tuple>> resultRDD = joinedPairRDD
                     .mapPartitions(new ToKeyValueFunction());
-            pairRDD1 = new JavaPairRDD<Object, Tuple>(
-                    resultRDD.rdd(), SparkUtil.getManifest(Object.class),
+            pairRDD1 = new JavaPairRDD<IndexedKey, Tuple>(
+                    resultRDD.rdd(), SparkUtil.getManifest(IndexedKey.class),
                     SparkUtil.getManifest(Tuple.class));
         }
 
         // map to get JavaRDD<Tuple> from join() output (which is
-        // JavaPairRDD<Object, Tuple2<Tuple, Tuple>>, i.e. tuples are separated)
-        // by ignoring the key (of type Object) and concatenating the values
+        // JavaPairRDD<IndexedKey, Tuple2<Tuple, Tuple>>, i.e. tuples are separated)
+        // by ignoring the key (of type IndexedKey) and concatenating the values
         // (i.e. the tuples)
         JavaRDD<Tuple> result = joinedPairRDD.mapPartitions(new ToValueFunction());
 
         return result.rdd();
     }
 
-    private JavaPairRDD<Object, Tuple2<Tuple, Tuple>> join(
-            JavaPairRDD<Object, Tuple> pairRDD1,
-            JavaPairRDD<Object, Tuple> pairRDD2,
+    private JavaPairRDD<IndexedKey, Tuple2<Tuple, Tuple>> join(
+            JavaPairRDD<IndexedKey, Tuple> pairRDD1,
+            JavaPairRDD<IndexedKey, Tuple> pairRDD2,
             POFRJoin pofrJoin) {
         if (pofrJoin.isLeftOuterJoin()) {
             return leftOuterJoin(pairRDD1, pairRDD2);
@@ -101,33 +101,33 @@ public class FRJoinConverter implements
         }
     }
 
-    private JavaPairRDD<Object, Tuple2<Tuple, Tuple>> leftOuterJoin(
-            JavaPairRDD<Object, Tuple> pairRDD1,
-            JavaPairRDD<Object, Tuple> pairRDD2) {
+    private JavaPairRDD<IndexedKey, Tuple2<Tuple, Tuple>> leftOuterJoin(
+            JavaPairRDD<IndexedKey, Tuple> pairRDD1,
+            JavaPairRDD<IndexedKey, Tuple> pairRDD2) {
 
         // leftouterjoin() returns RDD containing pairs of the form
         // (k, (v, optional(w)))
-        JavaPairRDD<Object, Tuple2<Tuple, Optional<Tuple>>> pairRDD =
+        JavaPairRDD<IndexedKey, Tuple2<Tuple, Optional<Tuple>>> pairRDD =
                 pairRDD1.leftOuterJoin(pairRDD2);
         return pairRDD.mapToPair(new AbsentToEmptyTupleFunction(
                 ((Tuple) pairRDD2.first()._2()).size()));
     }
 
-    private static JavaPairRDD<Object, Tuple> getPairRDD(RDD<Tuple> rdd,
+    private static JavaPairRDD<IndexedKey, Tuple> getPairRDD(RDD<Tuple> rdd,
                                                          POFRJoin poFRJoin,
                                                          int lr_idx) {
-        RDD<Tuple2<Object, Tuple>> keyValRdd = rdd.map(
+        RDD<Tuple2<IndexedKey, Tuple>> keyValRdd = rdd.map(
                 new ExtractKeyFunction(poFRJoin, lr_idx),
-                SparkUtil.<Object, Tuple>getTuple2Manifest());
-        JavaPairRDD<Object, Tuple> pairRDD = new JavaPairRDD<Object, Tuple>(
-                keyValRdd, SparkUtil.getManifest(Object.class),
+                SparkUtil.<IndexedKey, Tuple>getTuple2Manifest());
+        JavaPairRDD<IndexedKey, Tuple> pairRDD = new JavaPairRDD<IndexedKey, Tuple>(
+                keyValRdd, SparkUtil.getManifest(IndexedKey.class),
                 SparkUtil.getManifest(Tuple.class));
         return pairRDD;
     }
 
 
     private static class ExtractKeyFunction extends
-            AbstractFunction1<Tuple, Tuple2<Object, Tuple>> implements
+            AbstractFunction1<Tuple, Tuple2<IndexedKey, Tuple>> implements
             Serializable {
 
         private final POFRJoin poFRJoin;
@@ -139,7 +139,7 @@ public class FRJoinConverter implements
         }
 
         @Override
-        public Tuple2<Object, Tuple> apply(Tuple tuple) {
+        public Tuple2<IndexedKey, Tuple> apply(Tuple tuple) {
             poFRJoin.getLRs()[lr_index].attachInput(tuple);
 
             try {
@@ -156,9 +156,10 @@ public class FRJoinConverter implements
 
                 // If tuple is (AA, 5) and key index is $1, then
                 // lrOut is 0 5 (AA), so get(1) returns key
+                Object index = ((Tuple) lrOut.result).get(0);
                 Object key = ((Tuple) lrOut.result).get(1);
                 Tuple value = tuple;
-                Tuple2<Object, Tuple> tuple_KeyValue = new Tuple2<Object, Tuple>(key,
+                Tuple2<IndexedKey, Tuple> tuple_KeyValue = new Tuple2<IndexedKey, Tuple>(new IndexedKey((Byte) index, key),
                         value);
 
                 return tuple_KeyValue;
@@ -170,24 +171,24 @@ public class FRJoinConverter implements
     }
 
     private static class ToValueFunction
-            implements FlatMapFunction<Iterator<Tuple2<Object, Tuple2<Tuple, Tuple>>>, Tuple>,
+            implements FlatMapFunction<Iterator<Tuple2<IndexedKey, Tuple2<Tuple, Tuple>>>, Tuple>,
             Serializable {
 
         private class Tuple2TransformIterable implements Iterable<Tuple> {
 
-            Iterator<Tuple2<Object, Tuple2<Tuple, Tuple>>> in;
+            Iterator<Tuple2<IndexedKey, Tuple2<Tuple, Tuple>>> in;
 
             Tuple2TransformIterable(
-                    Iterator<Tuple2<Object, Tuple2<Tuple, Tuple>>> input) {
+                    Iterator<Tuple2<IndexedKey, Tuple2<Tuple, Tuple>>> input) {
                 in = input;
             }
 
             public Iterator<Tuple> iterator() {
-                return new IteratorTransform<Tuple2<Object, Tuple2<Tuple, Tuple>>, Tuple>(
+                return new IteratorTransform<Tuple2<IndexedKey, Tuple2<Tuple, Tuple>>, Tuple>(
                         in) {
                     @Override
                     protected Tuple transform(
-                            Tuple2<Object, Tuple2<Tuple, Tuple>> next) {
+                            Tuple2<IndexedKey, Tuple2<Tuple, Tuple>> next) {
                         try {
 
                             Tuple leftTuple = next._2()._1();
@@ -218,32 +219,32 @@ public class FRJoinConverter implements
 
         @Override
         public Iterable<Tuple> call(
-                Iterator<Tuple2<Object, Tuple2<Tuple, Tuple>>> input) {
+                Iterator<Tuple2<IndexedKey, Tuple2<Tuple, Tuple>>> input) {
             return new Tuple2TransformIterable(input);
         }
     }
 
         private static class ToKeyValueFunction
-                implements FlatMapFunction<Iterator<Tuple2<Object, Tuple2<Tuple, Tuple>>>,
-                Tuple2<Object, Tuple>>, Serializable {
+                implements FlatMapFunction<Iterator<Tuple2<IndexedKey, Tuple2<Tuple, Tuple>>>,
+                Tuple2<IndexedKey, Tuple>>, Serializable {
 
             private class Tuple2TransformIterable implements
-                    Iterable<Tuple2<Object, Tuple>> {
+                    Iterable<Tuple2<IndexedKey, Tuple>> {
 
-                Iterator<Tuple2<Object, Tuple2<Tuple, Tuple>>> in;
+                Iterator<Tuple2<IndexedKey, Tuple2<Tuple, Tuple>>> in;
 
                 Tuple2TransformIterable(
-                        Iterator<Tuple2<Object, Tuple2<Tuple, Tuple>>> input) {
+                        Iterator<Tuple2<IndexedKey, Tuple2<Tuple, Tuple>>> input) {
                     in = input;
                 }
 
-                public Iterator<Tuple2<Object, Tuple>> iterator() {
-                    return new IteratorTransform<Tuple2<Object, Tuple2<Tuple, Tuple>>,
-                            Tuple2<Object, Tuple> >(
+                public Iterator<Tuple2<IndexedKey, Tuple>> iterator() {
+                    return new IteratorTransform<Tuple2<IndexedKey, Tuple2<Tuple, Tuple>>,
+                            Tuple2<IndexedKey, Tuple>>(
                             in) {
                         @Override
-                        protected Tuple2<Object, Tuple> transform(
-                                Tuple2<Object, Tuple2<Tuple, Tuple>> next) {
+                        protected Tuple2<IndexedKey, Tuple> transform(
+                                Tuple2<IndexedKey, Tuple2<Tuple, Tuple>> next) {
                             try {
 
                                 Tuple leftTuple = next._2()._1();
@@ -260,7 +261,7 @@ public class FRJoinConverter implements
                                     value.set(i + leftTuple.size(),
                                             rightTuple.get(i));
 
-                                Tuple2<Object, Tuple> result = new Tuple2<Object, Tuple>(
+                                Tuple2<IndexedKey, Tuple> result = new Tuple2<IndexedKey, Tuple>(
                                         next._1(),
                                         value);
                                 return result;
@@ -275,15 +276,15 @@ public class FRJoinConverter implements
 
 
             @Override
-        public Iterable<Tuple2<Object, Tuple>> call(
-                Iterator<Tuple2<Object, Tuple2<Tuple, Tuple>>> input) {
+            public Iterable<Tuple2<IndexedKey, Tuple>> call(
+                    Iterator<Tuple2<IndexedKey, Tuple2<Tuple, Tuple>>> input) {
             return new Tuple2TransformIterable(input);
         }
     }
 
     private static class AbsentToEmptyTupleFunction implements
-            PairFunction<Tuple2<Object, Tuple2<Tuple, Optional<Tuple>>>,
-                    Object, Tuple2<Tuple, Tuple>>, Serializable {
+            PairFunction<Tuple2<IndexedKey, Tuple2<Tuple, Optional<Tuple>>>,
+                    IndexedKey, Tuple2<Tuple, Tuple>>, Serializable {
 
         private int rightTupleSize;
 
@@ -294,20 +295,20 @@ public class FRJoinConverter implements
         // When w is absent in the input tuple (key, (v, optional(w))),
         // the output tuple will contain an empty tuple in it's place.
         @Override
-        public Tuple2<Object, Tuple2<Tuple, Tuple>> call(
-                Tuple2<Object, Tuple2<Tuple, Optional<Tuple>>> input) {
-            final Object key = input._1();
-            Tuple2<Object, Tuple2<Tuple, Tuple>> result;
+        public Tuple2<IndexedKey, Tuple2<Tuple, Tuple>> call(
+                Tuple2<IndexedKey, Tuple2<Tuple, Optional<Tuple>>> input) {
+            final IndexedKey key = input._1();
+            Tuple2<IndexedKey, Tuple2<Tuple, Tuple>> result;
             Tuple2<Tuple, Optional<Tuple>> inval = input._2();
             if (inval._2().isPresent()) {
-                result = new Tuple2<Object, Tuple2<Tuple, Tuple>>(
+                result = new Tuple2<IndexedKey, Tuple2<Tuple, Tuple>>(
                         key,
                         new Tuple2<Tuple, Tuple>(
                                 inval._1(),
                                 inval._2().get())
                 );
             } else {
-                result = new Tuple2<Object, Tuple2<Tuple, Tuple>>(
+                result = new Tuple2<IndexedKey, Tuple2<Tuple, Tuple>>(
                         key,
                         new Tuple2<Tuple, Tuple>(
                                 inval._1(),
