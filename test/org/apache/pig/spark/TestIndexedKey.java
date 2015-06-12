@@ -16,8 +16,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import org.apache.pig.backend.hadoop.executionengine.spark.converter
-        .GlobalRearrangeConverter;
+import org.apache.pig.backend.hadoop.executionengine.spark.converter.IndexedKey;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import static org.junit.Assert.assertEquals;
@@ -37,23 +36,23 @@ public class TestIndexedKey {
      */
     @Test
     public void testIndexedKeyWithSameIndexValue() throws Exception {
-        GlobalRearrangeConverter.IndexedKey a0 = new GlobalRearrangeConverter.IndexedKey(new Byte("0"),"foo");
-        GlobalRearrangeConverter.IndexedKey a1 = new GlobalRearrangeConverter.IndexedKey(new Byte("0"),null);
+        IndexedKey a0 = new IndexedKey(new Byte("0"), "foo");
+        IndexedKey a1 = new IndexedKey(new Byte("0"), null);
         assertEquals(a0.equals(a1), false);
         assertEquals(a0.hashCode()==a1.hashCode(),false);
 
-        GlobalRearrangeConverter.IndexedKey a2 = new GlobalRearrangeConverter.IndexedKey(new Byte("0"),null);
-        GlobalRearrangeConverter.IndexedKey a3 = new GlobalRearrangeConverter.IndexedKey(new Byte("0"),"foo");
+        IndexedKey a2 = new IndexedKey(new Byte("0"), null);
+        IndexedKey a3 = new IndexedKey(new Byte("0"), "foo");
         assertEquals(a2.equals(a3),false);
         assertEquals(a2.hashCode()==a3.hashCode(),false);
 
-        GlobalRearrangeConverter.IndexedKey a4 = new GlobalRearrangeConverter.IndexedKey(new Byte("0"),"foo");
-        GlobalRearrangeConverter.IndexedKey a5 = new GlobalRearrangeConverter.IndexedKey(new Byte("0"),"foo");
+        IndexedKey a4 = new IndexedKey(new Byte("0"), "foo");
+        IndexedKey a5 = new IndexedKey(new Byte("0"), "foo");
         assertEquals(a4.equals(a5),true);
         assertEquals(a4.hashCode()==a5.hashCode(),true);
 
-        GlobalRearrangeConverter.IndexedKey a6 = new GlobalRearrangeConverter.IndexedKey(new Byte("0"),null);
-        GlobalRearrangeConverter.IndexedKey a7 = new GlobalRearrangeConverter.IndexedKey(new Byte("0"),null);
+        IndexedKey a6 = new IndexedKey(new Byte("0"), null);
+        IndexedKey a7 = new IndexedKey(new Byte("0"), null);
         assertEquals(a6.equals(a7),true);
         assertEquals(a6.hashCode()==a7.hashCode(),true);
 
@@ -63,8 +62,8 @@ public class TestIndexedKey {
         Tuple t2 = TupleFactory.getInstance().newTuple(2);
         t2.set(0,"1");
         t2.set(1,"1");
-        GlobalRearrangeConverter.IndexedKey a8 = new GlobalRearrangeConverter.IndexedKey(new Byte("0"),t1);
-        GlobalRearrangeConverter.IndexedKey a9 = new GlobalRearrangeConverter.IndexedKey(new Byte("0"),t2);
+        IndexedKey a8 = new IndexedKey(new Byte("0"), t1);
+        IndexedKey a9 = new IndexedKey(new Byte("0"), t2);
         assertEquals(a8.equals(a9),true);
         assertEquals(a8.hashCode()==a9.hashCode(),true);
 
@@ -74,8 +73,8 @@ public class TestIndexedKey {
         Tuple t4 = TupleFactory.getInstance().newTuple(2);
         t4.set(0,"1");
         t4.set(1,null);
-        GlobalRearrangeConverter.IndexedKey a10 = new GlobalRearrangeConverter.IndexedKey(new Byte("0"),t3);
-        GlobalRearrangeConverter.IndexedKey a11 = new GlobalRearrangeConverter.IndexedKey(new Byte("0"),t4);
+        IndexedKey a10 = new IndexedKey(new Byte("0"), t3);
+        IndexedKey a11 = new IndexedKey(new Byte("0"), t4);
         assertEquals(a10.equals(a11),true);
         assertEquals(a10.hashCode()==a11.hashCode(),true);
 
@@ -85,8 +84,8 @@ public class TestIndexedKey {
         Tuple t6 = TupleFactory.getInstance().newTuple(2);
         t6.set(0,"1");
         t6.set(1,"2");
-        GlobalRearrangeConverter.IndexedKey a12 = new GlobalRearrangeConverter.IndexedKey(new Byte("0"),t5);
-        GlobalRearrangeConverter.IndexedKey a13 = new GlobalRearrangeConverter.IndexedKey(new Byte("0"),t6);
+        IndexedKey a12 = new IndexedKey(new Byte("0"), t5);
+        IndexedKey a13 = new IndexedKey(new Byte("0"), t6);
         assertEquals(a12.equals(a13),false);
         assertEquals(a12.hashCode()==a13.hashCode(),false);
     }
@@ -104,23 +103,23 @@ public class TestIndexedKey {
      */
     @Test
     public void testIndexedKeyWithDifferentIndexValue() throws Exception {
-        GlobalRearrangeConverter.IndexedKey a0 = new GlobalRearrangeConverter.IndexedKey(new Byte("0"), "foo");
-        GlobalRearrangeConverter.IndexedKey a1 = new GlobalRearrangeConverter.IndexedKey(new Byte("1"), null);
+        IndexedKey a0 = new IndexedKey(new Byte("0"), "foo");
+        IndexedKey a1 = new IndexedKey(new Byte("1"), null);
         assertEquals(a0.equals(a1), false);
         assertEquals(a0.hashCode() == a1.hashCode(), false);
 
-        GlobalRearrangeConverter.IndexedKey a2 = new GlobalRearrangeConverter.IndexedKey(new Byte("0"), null);
-        GlobalRearrangeConverter.IndexedKey a3 = new GlobalRearrangeConverter.IndexedKey(new Byte("1"), "foo");
+        IndexedKey a2 = new IndexedKey(new Byte("0"), null);
+        IndexedKey a3 = new IndexedKey(new Byte("1"), "foo");
         assertEquals(a2.equals(a3), false);
         assertEquals(a2.hashCode() == a3.hashCode(), false);
 
-        GlobalRearrangeConverter.IndexedKey a4 = new GlobalRearrangeConverter.IndexedKey(new Byte("0"), "foo");
-        GlobalRearrangeConverter.IndexedKey a5 = new GlobalRearrangeConverter.IndexedKey(new Byte("1"), "foo");
+        IndexedKey a4 = new IndexedKey(new Byte("0"), "foo");
+        IndexedKey a5 = new IndexedKey(new Byte("1"), "foo");
         assertEquals(a4.equals(a5), true);
         assertEquals(a4.hashCode() == a5.hashCode(), true);
 
-        GlobalRearrangeConverter.IndexedKey a6 = new GlobalRearrangeConverter.IndexedKey(new Byte("0"), null);
-        GlobalRearrangeConverter.IndexedKey a7 = new GlobalRearrangeConverter.IndexedKey(new Byte("1"), null);
+        IndexedKey a6 = new IndexedKey(new Byte("0"), null);
+        IndexedKey a7 = new IndexedKey(new Byte("1"), null);
         assertEquals(a6.equals(a7), false);
         assertEquals(a6.hashCode() == a7.hashCode(), false);
 
@@ -130,8 +129,8 @@ public class TestIndexedKey {
         Tuple t2 = TupleFactory.getInstance().newTuple(2);
         t2.set(0, "1");
         t2.set(1, "1");
-        GlobalRearrangeConverter.IndexedKey a8 = new GlobalRearrangeConverter.IndexedKey(new Byte("0"), t1);
-        GlobalRearrangeConverter.IndexedKey a9 = new GlobalRearrangeConverter.IndexedKey(new Byte("1"), t2);
+        IndexedKey a8 = new IndexedKey(new Byte("0"), t1);
+        IndexedKey a9 = new IndexedKey(new Byte("1"), t2);
         assertEquals(a8.equals(a9), true);
         assertEquals(a8.hashCode() == a9.hashCode(), true);
 
@@ -141,8 +140,8 @@ public class TestIndexedKey {
         Tuple t4 = TupleFactory.getInstance().newTuple(2);
         t4.set(0, "1");
         t4.set(1, null);
-        GlobalRearrangeConverter.IndexedKey a10 = new GlobalRearrangeConverter.IndexedKey(new Byte("0"), t3);
-        GlobalRearrangeConverter.IndexedKey a11 = new GlobalRearrangeConverter.IndexedKey(new Byte("1"), t4);
+        IndexedKey a10 = new IndexedKey(new Byte("0"), t3);
+        IndexedKey a11 = new IndexedKey(new Byte("1"), t4);
         assertEquals(a10.equals(a11), false);
         assertEquals(a10.hashCode() == a11.hashCode(), true); //hashcode of a10 and a11 are equal but they are not equal
 
@@ -152,8 +151,8 @@ public class TestIndexedKey {
         Tuple t6 = TupleFactory.getInstance().newTuple(2);
         t6.set(0, "1");
         t6.set(1, "2");
-        GlobalRearrangeConverter.IndexedKey a12 = new GlobalRearrangeConverter.IndexedKey(new Byte("0"), t5);
-        GlobalRearrangeConverter.IndexedKey a13 = new GlobalRearrangeConverter.IndexedKey(new Byte("1"), t6);
+        IndexedKey a12 = new IndexedKey(new Byte("0"), t5);
+        IndexedKey a13 = new IndexedKey(new Byte("1"), t6);
         assertEquals(a12.equals(a13), false);
         assertEquals(a12.hashCode() == a13.hashCode(), false);
     }
