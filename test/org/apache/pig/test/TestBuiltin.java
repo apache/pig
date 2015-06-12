@@ -421,10 +421,40 @@ public class TestBuiltin {
         DateTime dt2 = func2.exec(t2);
         assertEquals(dt2.compareTo(new DateTime("2009-01-07T01:07:01.000Z")), 0);
 
+        Tuple t2space = TupleFactory.getInstance().newTuple(1);
+        t2space.set(0, "2009-01-07 01:07:01.000Z");
+        DateTime dt2space = func2.exec(t2space);
+        assertEquals(dt2space.compareTo(new DateTime("2009-01-07T01:07:01.000Z")), 0);
+
+        Tuple t2dateOnly = TupleFactory.getInstance().newTuple(1);
+        t2dateOnly.set(0, "2015-05-29");
+        DateTime dt2dateOnly = func2.exec(t2dateOnly);
+        assertEquals(dt2dateOnly.compareTo(new DateTime("2015-05-29")), 0);
+
+        Tuple t2dateSpaceHour = TupleFactory.getInstance().newTuple(1);
+        t2dateSpaceHour.set(0, "2015-05-29 11");
+        DateTime dt2dateSpaceHour = func2.exec(t2dateSpaceHour);
+        assertEquals(dt2dateSpaceHour.compareTo(new DateTime("2015-05-29T11")), 0);
+
+        Tuple t2dateSpaceHourMin = TupleFactory.getInstance().newTuple(1);
+        t2dateSpaceHourMin.set(0, "2015-05-29 11:38");
+        DateTime dt2dateSpaceHourMin = func2.exec(t2dateSpaceHourMin);
+        assertEquals(dt2dateSpaceHourMin.compareTo(new DateTime("2015-05-29T11:38")), 0);
+
+        Tuple t2dateSpaceHourMinSec = TupleFactory.getInstance().newTuple(1);
+        t2dateSpaceHourMinSec.set(0, "2015-05-29 11:38:39");
+        DateTime dt2dateSpaceHourMinSec = func2.exec(t2dateSpaceHourMinSec);
+        assertEquals(dt2dateSpaceHourMinSec.compareTo(new DateTime("2015-05-29T11:38:39")), 0);
+
         Tuple t3 = TupleFactory.getInstance().newTuple(1);
         t3.set(0, "2009-01-07T01:07:01.000+08:00");
         DateTime dt3 = func2.exec(t3);
         assertEquals(dt3.compareTo(new DateTime("2009-01-07T01:07:01.000+08:00", DateTimeZone.forID("+08:00"))), 0);
+
+        Tuple t3space = TupleFactory.getInstance().newTuple(1);
+        t3space.set(0, "2009-01-07 01:07:01.000+08:00");
+        DateTime dt3space = func2.exec(t3space);
+        assertEquals(dt3space.compareTo(new DateTime("2009-01-07T01:07:01.000+08:00", DateTimeZone.forID("+08:00"))), 0);
 
         ToDate2ARGS func3 = new ToDate2ARGS();
         Tuple t4 = TupleFactory.getInstance().newTuple(2);

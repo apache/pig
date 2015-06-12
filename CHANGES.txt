@@ -24,9 +24,13 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4570: Allow AvroStorage to use a class for the schema (pmazak via daijy)
+
 BUG FIXES
 
-Release 0.15.0 - Unreleased
+PIG-4578: ToDateISO should support optional ' ' space variant used by JDBC (michaelthoward via daijy)
+
+Release 0.15.0
  
 INCOMPATIBLE CHANGES
  
