@@ -1,0 +1,16 @@
+{
+  "name" : "RecordPojo",
+  "namespace" : "org.apache.pig.builtin.avro.code.java",
+  "type" : "record",
+  "doc" : "to test a generated Avro Java class",
+  "fields" : [
+    {"name" : "key", "type" : "string"},
+    {"name" : "intValue", "type" : "int"},
+    {"name" : "longValue", "type" : "long"},
+    {"name" : "booleanValue", "type" : "boolean"},
+    {"name" : "floatValue", "type" : "float"},
+    {"name" : "doubleValue", "type" : "double"},
+    {"name" : "bytesValue", "type" : "bytes"},
+    {"name" : "nullValue", "type" : "null"}    
+  ]
+}
