@@ -429,6 +429,21 @@ public class TestAvroStorage {
     }
 
     @Test
+    public void testLoadRecordsSpecifyFullSchemaFromClass() throws Exception {
+      final String input = basedir + "data/avro/uncompressed/records.avro";
+      final String check = basedir + "data/avro/uncompressed/recordsAsOutputByPig.avro";
+      testAvroStorage(true, basedir + "code/pig/identity.pig",
+          ImmutableMap.of(
+               "INFILE",            input,
+               "OUTFILE",           createOutputName(),
+               "AVROSTORAGE_IN_2",  "-c org.apache.pig.builtin.avro.code.java.RecordPojo",
+               "AVROSTORAGE_OUT_1", "''",
+               "AVROSTORAGE_OUT_2", "-c org.apache.pig.builtin.avro.code.java.RecordPojo")
+        );
+      verifyResults(createOutputName(),check);
+    }
+
+    @Test
     public void testLoadRecordsSpecifyFullSchemaFromFile() throws Exception {
       final String input = basedir + "data/avro/uncompressed/records.avro";
       final String check = basedir + "data/avro/uncompressed/recordsAsOutputByPig.avro";

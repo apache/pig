@@ -29,6 +29,7 @@ import org.apache.avro.Schema;
 import org.apache.avro.SchemaParseException;
 import org.apache.avro.Schema.Type;
 import org.apache.avro.file.DataFileStream;
+import org.apache.avro.generic.GenericContainer;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.mapred.AvroInputFormat;
@@ -120,6 +121,8 @@ public class AvroStorage extends LoadFunc
    *  <li><code>-schemafile</code> Specifies URL for avro schema file
    *    from which to read the input schema (can be local file, hdfs,
    *    url, etc).</li>
+   *  <li><code>-schemaclass</code> Specifies fully qualified class name for avro
+   *    class in your classpath which implements GenericContainer.</li>
    *  <li><code>-examplefile</code> Specifies URL for avro data file from
    *    which to copy the input schema (can be local file, hdfs, url, etc).</li>
    *  <li><code>-allowrecursive</code> Option to allow recursive schema
@@ -153,6 +156,9 @@ public class AvroStorage extends LoadFunc
         validOptions.addOption("f", "schemafile", true,
             "Specifies URL for avro schema file from which to read "
             + "the input or output schema");
+        validOptions.addOption("c", "schemaclass", true,
+            "Specifies fully qualified class name for avro "
+            + "class in your classpath which implements GenericContainer.");
         validOptions.addOption("e", "examplefile", true,
             "Specifies URL for avro data file from which to copy "
             + "the output schema");
@@ -178,6 +184,25 @@ public class AvroStorage extends LoadFunc
             log.warn("Schema file not found when instantiating AvroStorage. (If the " + 
                 "schema was described in a local file on the front end, and this message " + 
                 "is in the back end log, you can ignore this mesasge.)", fnfe);
+          }
+        } else if (configuredOptions.hasOption('c')) {
+          String schemaClass = configuredOptions.getOptionValue('c');
+          try {
+            Schema s = ((GenericContainer) Class.forName(schemaClass).newInstance()).getSchema();
+            setInputAvroSchema(s);
+            setOutputAvroSchema(s);
+          } catch (ClassNotFoundException | IllegalAccessException cnfe) {
+            System.err.printf("class not found exception\n");
+            log.error("Schema class '" + schemaClass + "' was not found in the classpath.", cnfe);
+            throw new RuntimeException(cnfe);
+          } catch (InstantiationException ie) {
+            System.err.printf("instantiation exception\n");
+            log.error("Schema class '" + schemaClass + "' must have a public empty args constructor.", ie);
+            throw new RuntimeException(ie);
+          } catch (ClassCastException cce) {
+            System.err.printf("class cast exception\n");
+            log.error("Schema class '" + schemaClass + "' must implement org.apache.avro.generic.GenericContainer interface.", cce);
+            throw new RuntimeException(cce);
           }
         } else if (configuredOptions.hasOption('e')) {
           setOutputAvroSchema(
