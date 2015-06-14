@@ -558,6 +558,21 @@ public class TestAccumulator {
         }
     }
 
+    // Pig 4365
+    @Test
+    public void testAccumWithTOP() throws IOException{
+        pigServer.registerQuery("A = load '" + INPUT_FILE3 + "' as (id:int, v:double);");
+        pigServer.registerQuery("B = group A all;");
+        pigServer.registerQuery("D = foreach B { C = TOP(5, 0, A); generate flatten(C); }");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("D");
+    
+        List<Tuple> expected = Util.getTuplesFromConstantTupleStrings(
+                new String[] {"(200,1.1)", "(200,2.1)", "(300,3.3)", "(400,null)", "(400,null)" });
+        
+        Util.checkQueryOutputsAfterSort(iter, expected);
+    }
+
     @Test
     public void testAccumWithMultiBuiltin() throws IOException{
         pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (id:int, c:chararray);");
