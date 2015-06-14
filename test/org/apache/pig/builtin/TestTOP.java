@@ -33,25 +33,34 @@ import org.junit.Test;
 public class TestTOP {
     private static TupleFactory tupleFactory_ = TupleFactory.getInstance();
     private static BagFactory bagFactory_ = BagFactory.getInstance();
-    private static Tuple inputTuple_ = tupleFactory_.newTuple(3);
-    private static DataBag dBag_ = bagFactory_.newDefaultBag();
+    private static Tuple inputTuple_ = null;
 
     @BeforeClass
     public static void setup() throws ExecException {
+        inputTuple_ = fillTuple(0, 100);
+    }
+    
+    public static Tuple fillTuple(int start, int stop) throws ExecException {
+        Tuple tuple = tupleFactory_.newTuple(3);
+        
+        DataBag dBag = bagFactory_.newDefaultBag();
+
         // set N = 10 i.e retain top 10 tuples
-        inputTuple_.set(0, 10);
+        tuple.set(0, 10);
         // compare tuples by field number 1
-        inputTuple_.set(1, 1);
+        tuple.set(1, 1);
         // set the data bag containing the tuples
-        inputTuple_.set(2, dBag_);
+        tuple.set(2, dBag);
 
         // generate tuples of the form (group-1, 1), (group-2, 2) ...
-        for (long i = 0; i < 100; i++) {
+        for (long i = start; i < stop; i++) {
             Tuple nestedTuple = tupleFactory_.newTuple(2);
             nestedTuple.set(0, "group-" + i);
             nestedTuple.set(1, i);
-            dBag_.add(nestedTuple);
+            dBag.add(nestedTuple);
         }
+        
+        return tuple;
     }
 
     @Test
@@ -63,6 +72,26 @@ public class TestTOP {
 
         top = new TOP("ASC");
         outBag = top.exec(inputTuple_);
+        assertEquals(outBag.size(), 10L);
+        checkItemsLT(outBag, 1, 10);
+    }
+
+    @Test
+    public void testTOPAccumulator() throws Exception {
+        Tuple firstTuple = fillTuple(0, 50);
+        Tuple secondTuple = fillTuple(50, 100);
+        
+        TOP top = new TOP("DESC");
+        top.accumulate(firstTuple);
+        top.accumulate(secondTuple);
+        DataBag outBag = top.getValue();
+        assertEquals(outBag.size(), 10L);
+        checkItemsGT(outBag, 1, 89);
+
+        top = new TOP("ASC");
+        top.accumulate(firstTuple);
+        top.accumulate(secondTuple);
+        outBag = top.getValue();
         assertEquals(outBag.size(), 10L);
         checkItemsLT(outBag, 1, 10);
     }

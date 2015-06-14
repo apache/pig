@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4365: TOP udf should implement Accumulator interface (eyal via rohini)
+
 PIG-4570: Allow AvroStorage to use a class for the schema (pmazak via daijy)
 
 BUG FIXES
