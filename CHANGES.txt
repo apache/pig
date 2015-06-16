@@ -30,6 +30,8 @@ PIG-4570: Allow AvroStorage to use a class for the schema (pmazak via daijy)
 
 BUG FIXES
 
+PIG-4533: Document error: Pig does support concatenated gz file (xhudik via daijy)
+
 PIG-4578: ToDateISO should support optional ' ' space variant used by JDBC (michaelthoward via daijy)
 
 Release 0.15.0
