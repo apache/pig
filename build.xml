@@ -1260,8 +1260,8 @@
     <target name="mvn-build" depends="jar-h12, source-jar,
                                       javadoc-jar, smoketests-jar, pigunit-jar, piggybank"
          description="To build the pig jar artifacts to be deployed to apache maven repository">
-        <move file="${output.jarfile.withouthadoop-h1}" tofile="${output.jarfile.core-h1}"/>
-        <move file="${output.jarfile.withouthadoop-h2}" tofile="${output.jarfile.core-h2}"/>
+        <move file="${output.jarfile.backcompat-core-h1}" tofile="${output.jarfile.core}"/>
+        <move file="${output.jarfile.backcompat-core-h2}" tofile="${output.jarfile.core-h2}"/>
     </target>
 
     <!-- Expects that mvn-build has already been run but does not run it. In some cases building
