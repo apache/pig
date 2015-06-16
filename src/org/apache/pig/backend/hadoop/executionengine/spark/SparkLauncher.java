@@ -321,6 +321,10 @@ public class SparkLauncher extends Launcher {
         if (isLocal) {
             File localFile = new File(currentDirectoryPath + "/"
                     + jarName);
+            if (jarFile.getAbsolutePath().equals(localFile.getAbsolutePath()) 
+                    && jarFile.exists()) {
+                return;
+            }
             if (localFile.exists()) {
                 LOG.info(String.format(
                         "jar file %s exists, ready to delete",
