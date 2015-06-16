@@ -1394,11 +1394,8 @@ A = load 'myinput.bz';
 store A into 'myoutput.bz';
 </source>
 
-<p>Note: PigStorage and TextLoader correctly read compressed files as long as they are NOT CONCATENATED FILES generated in this manner: </p>
+<p>Note: PigStorage and TextLoader correctly read compressed files as long as they are NOT CONCATENATED bz/bz2 FILES generated in this manner: </p>
   <ul>
-      <li>
-         <p>cat *.gz > text/concat.gz</p>
-      </li>
       <li>
          <p>cat *.bz > text/concat.bz </p>
       </li>
@@ -1407,7 +1404,7 @@ store A into 'myoutput.bz';
       </li>
    </ul>
 <p></p>
-<p>If you use concatenated gzip or bzip files with your Pig jobs, you will NOT see a failure but the results will be INCORRECT.</p>
+<p>If you use concatenated bzip files with your Pig jobs, you will NOT see a failure but the results will be INCORRECT.</p>
 <p></p>
 
 </section>
