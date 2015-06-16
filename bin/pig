@@ -190,7 +190,7 @@ if [ "$includeHCatalog" == "true" ]; then
   HCAT_CLASSPATHS=$hiveMetaStoreVersion:$thriftVersion:$hiveExecVersion:$fbJarVersion:$jdoECJarVersion:$slfJarVersion:$hbaseHiveVersion:$hcatJarPath:$hbaseHCatJarPath:$pigHCatJarPath
   ADDITIONAL_CLASSPATHS=file://$hiveMetaStoreVersion,file://$thriftVersion,file://$hiveExecVersion,file://$fbJarVersion,file://$jdoECJarVersion,file://$slfJarVersion,file://$hbaseHiveVersion,file://$hcatJarPath,file://$hbaseHCatJarPath,file://$pigHCatJarPath
   if [ "$additionalJars" != "" ]; then
-    ADDITIONAL_CLASSPATHS=$ADDITIONAL_CLASSPATHS:$additionalJars
+    ADDITIONAL_CLASSPATHS=$ADDITIONAL_CLASSPATHS,$additionalJars
   fi
   CLASSPATH=${CLASSPATH}:$HCAT_CLASSPATHS:$HIVE_HOME/conf
 fi
@@ -355,7 +355,7 @@ PIG_OPTS="$PIG_OPTS -Dpig.home.dir=$PIG_HOME"
 if [ "$includeHCatalog" == "true" ]; then
   addJars=`echo $PIG_OPTS | awk '{ for (i=1; i<=NF; i++) print $i; }' | grep "\-Dpig.additional.jars.uris=" | sed s/-Dpig.additional.jars.uris=//`
   if [ "$addJars" != "" ]; then
-    ADDITIONAL_CLASSPATHS=$addJars:$ADDITIONAL_CLASSPATHS
+    ADDITIONAL_CLASSPATHS=$addJars,$ADDITIONAL_CLASSPATHS
     PIG_OPTS=`echo $PIG_OPTS | sed 's/-Dpig.additional.jars.uris=[^ ]*//'`
   fi
   PIG_OPTS="$PIG_OPTS -Dpig.additional.jars.uris=$ADDITIONAL_CLASSPATHS"

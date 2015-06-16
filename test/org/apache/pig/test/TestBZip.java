@@ -45,15 +45,22 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfigurat
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.test.utils.CloseAwareFSDataInputStream;
+import org.apache.pig.test.utils.CloseAwareOutputStream;
 import org.apache.tools.bzip2r.CBZip2InputStream;
 import org.apache.tools.bzip2r.CBZip2OutputStream;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class TestBZip {
     private static Properties properties;
     private static MiniGenericCluster cluster;
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
 
     @BeforeClass
     public static void oneTimeSetUp() throws Exception {
@@ -73,10 +80,9 @@ public class TestBZip {
     public void testBzipInPig() throws Exception {
         PigServer pig = new PigServer(cluster.getExecType(), properties);
 
-        File in = File.createTempFile("junit", ".bz2");
-        in.deleteOnExit();
+        File in = folder.newFile("junit-in.bz2");
 
-        File out = File.createTempFile("junit", ".bz2");
+        File out = folder.newFile("junit-out.bz2");
         out.delete();
         String clusterOutput = Util.removeColon(out.getAbsolutePath());
 
@@ -121,9 +127,6 @@ public class TestBZip {
         for (int j = 1; j < 100; j++) {
             assertEquals(new Integer(j), map.get(j));
         }
-
-        in.delete();
-        Util.deleteFile(cluster, clusterOutput);
     }
 
    /**
@@ -133,10 +136,9 @@ public class TestBZip {
     public void testBzipInPig2() throws Exception {
         PigServer pig = new PigServer(cluster.getExecType(), properties);
 
-        File in = File.createTempFile("junit", ".bz2");
-        in.deleteOnExit();
+        File in = folder.newFile("junit-in.bz2");
 
-        File out = File.createTempFile("junit", ".bz2");
+        File out = folder.newFile("junit-out.bz2");
         out.delete();
         String clusterOutput = Util.removeColon(out.getAbsolutePath());
 
@@ -181,9 +183,6 @@ public class TestBZip {
         for (int j = 1; j < 100; j++) {
             assertEquals(new Integer(j), map.get(j));
         }
-
-        in.delete();
-        out.delete();
     }
 
     //see PIG-2391
@@ -197,10 +196,9 @@ public class TestBZip {
         };
 
         // bzip compressed input
-        File in = File.createTempFile("junit", ".bz2");
+        File in = folder.newFile("junit-in.bz2");
         String compressedInputFileName = in.getAbsolutePath();
         String clusterCompressedFilePath = Util.removeColon(compressedInputFileName);
-        in.deleteOnExit();
 
         try {
             CBZip2OutputStream cos =
@@ -230,7 +228,6 @@ public class TestBZip {
                 it2.next();
             }
         } finally {
-            in.delete();
             Util.deleteFile(cluster, "intermediate.bz");
             Util.deleteFile(cluster, "final.bz");
         }
@@ -249,9 +246,8 @@ public class TestBZip {
         };
 
         // bzip compressed input
-        File in = File.createTempFile("junit", ".bz2");
+        File in = folder.newFile("junit-in.bz2");
         String compressedInputFileName = in.getAbsolutePath();
-        in.deleteOnExit();
         String clusterCompressedFilePath = Util.removeColon(compressedInputFileName);
 
         String unCompressedInputFileName = "testRecordDelims-uncomp.txt";
@@ -291,7 +287,6 @@ public class TestBZip {
             assertFalse(it2.hasNext());
 
         } finally {
-            in.delete();
             Util.deleteFile(cluster, unCompressedInputFileName);
             Util.deleteFile(cluster, clusterCompressedFilePath);
         }
@@ -305,10 +300,9 @@ public class TestBZip {
      public void testEmptyBzipInPig() throws Exception {
         PigServer pig = new PigServer(cluster.getExecType(), properties);
 
-        File in = File.createTempFile("junit", ".tmp");
-        in.deleteOnExit();
+        File in = folder.newFile("junit-in.tmp");
 
-        File out = File.createTempFile("junit", ".bz2");
+        File out = folder.newFile("junit-out.bz2");
         out.delete();
         String clusterOutputFilePath = Util.removeColon(out.getAbsolutePath());
 
@@ -336,10 +330,6 @@ public class TestBZip {
 
         pig.registerQuery("B = load '" + Util.encodeEscape(clusterOutputFilePath) + "';");
         pig.openIterator("B");
-
-        in.delete();
-        Util.deleteFile(cluster, clusterOutputFilePath);
-
     }
 
     /**
@@ -347,8 +337,7 @@ public class TestBZip {
      */
     @Test
     public void testEmptyBzip() throws Exception {
-        File tmp = File.createTempFile("junit", ".tmp");
-        tmp.deleteOnExit();
+        File tmp = folder.newFile("junit.tmp");
         CBZip2OutputStream cos = new CBZip2OutputStream(new FileOutputStream(
                 tmp));
         cos.close();
@@ -358,7 +347,25 @@ public class TestBZip {
                 fs.open(new Path(tmp.getAbsolutePath())), -1, tmp.length());
         assertEquals(-1, cis.read(new byte[100]));
         cis.close();
-        tmp.delete();
+    }
+
+    @Test
+    public void testInnerStreamGetsClosed() throws Exception {
+        File tmp = folder.newFile("junit.tmp");
+
+        CloseAwareOutputStream out = new CloseAwareOutputStream(new FileOutputStream(tmp));
+        CBZip2OutputStream cos = new CBZip2OutputStream(out);
+        assertFalse(out.isClosed());
+        cos.close();
+        assertTrue(out.isClosed());
+
+        FileSystem fs = FileSystem.getLocal(new Configuration(false));
+        Path path = new Path(tmp.getAbsolutePath());
+        CloseAwareFSDataInputStream in = new CloseAwareFSDataInputStream(fs.open(path));
+        CBZip2InputStream cis = new CBZip2InputStream(in, -1, tmp.length());
+        assertFalse(in.isClosed());
+        cis.close();
+        assertTrue(in.isClosed());
     }
 
     /**
@@ -556,14 +563,12 @@ public class TestBZip {
         };
 
         // bzip compressed input file1
-        File in1 = File.createTempFile("junit", ".bz2");
+        File in1 = folder.newFile("junit-in1.bz2");
         String compressedInputFileName1 = in1.getAbsolutePath();
-        in1.deleteOnExit();
 
         // file2
-        File in2 = File.createTempFile("junit", ".bz2");
+        File in2 = folder.newFile("junit-in2.bz2");
         String compressedInputFileName2 = in2.getAbsolutePath();
-        in1.deleteOnExit();
 
         String unCompressedInputFileName = "testRecordDelims-uncomp.txt";
         Util.createInputFile(cluster, unCompressedInputFileName, inputDataMerged);
@@ -614,8 +619,6 @@ public class TestBZip {
             assertFalse(it2.hasNext());
 
         } finally {
-            in1.delete();
-            in2.delete();
             Util.deleteFile(cluster, unCompressedInputFileName);
         }
 

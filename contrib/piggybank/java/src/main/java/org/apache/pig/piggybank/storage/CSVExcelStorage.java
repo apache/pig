@@ -103,6 +103,7 @@ public class CSVExcelStorage extends PigStorage implements StoreFuncInterface, L
     public static enum Headers { DEFAULT, READ_INPUT_HEADER, SKIP_INPUT_HEADER, WRITE_OUTPUT_HEADER, SKIP_OUTPUT_HEADER }
 
     protected final static byte LINEFEED = '\n';
+    protected final static byte CARRIAGE_RETURN = '\r';
     protected final static byte DOUBLE_QUOTE = '"';
     protected final static byte RECORD_DEL = LINEFEED;
 
@@ -293,6 +294,7 @@ public class CSVExcelStorage extends PigStorage implements StoreFuncInterface, L
 
         ArrayList<Object> mProtoTuple = new ArrayList<Object>();
         int embeddedNewlineIndex = -1;
+        int embeddedCarriageReturn = -1;
         String fieldStr = null;
         // For good debug messages:
         int fieldCounter = -1;
@@ -303,6 +305,7 @@ public class CSVExcelStorage extends PigStorage implements StoreFuncInterface, L
 
             // Substitute a null value with an empty string. See PIG-2470.
             if (field == null) {
+                fieldStr = null;
                 mProtoTuple.add("");
                 continue;
             }
@@ -315,13 +318,15 @@ public class CSVExcelStorage extends PigStorage implements StoreFuncInterface, L
             // If any field delimiters are in the field, or if we did replace
             // any double quotes with a pair of double quotes above,
             // or if the string includes a newline character (LF:\n:0x0A)
+            //               or includes a carriage return (CR:\r:0x0D)
             // and we are to allow newlines in fields,
             // then the entire field must be enclosed in double quotes:
             embeddedNewlineIndex =  fieldStr.indexOf(LINEFEED);
+            embeddedCarriageReturn = fieldStr.indexOf(CARRIAGE_RETURN);
             
             if ((fieldStr.indexOf(fieldDelimiter) != -1) || 
                 (fieldStr.indexOf(DOUBLE_QUOTE) != -1) ||
-                (multilineTreatment == Multiline.YES) && (embeddedNewlineIndex != -1))  {
+                (multilineTreatment == Multiline.YES) && (embeddedNewlineIndex != -1 || embeddedCarriageReturn != -1))  {
                 fieldStr = "\"" + fieldStr + "\"";
             }
             

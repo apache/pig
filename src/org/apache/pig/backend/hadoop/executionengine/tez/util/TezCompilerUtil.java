@@ -37,7 +37,7 @@ import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperator;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POLocalRearrangeTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POStoreTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POValueOutputTez;
-import org.apache.pig.backend.hadoop.executionengine.tez.runtime.RoundRobinPartitioner;
+import org.apache.pig.builtin.RoundRobinPartitioner;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
@@ -198,7 +198,7 @@ public class TezCompilerUtil {
      */
     static public boolean isIntermediateReducer(TezOperator tezOper) throws VisitorException {
         boolean intermediateReducer = false;
-        LinkedList<POStore> stores = PlanHelper.getPhysicalOperators(tezOper.plan, POStore.class);
+        LinkedList<POStore> stores = tezOper.getStores();
         // Not map and not final reducer
         if (stores.size() <= 0 &&
                 (tezOper.getLoaderInfo().getLoads() == null || tezOper.getLoaderInfo().getLoads().size() <= 0)) {

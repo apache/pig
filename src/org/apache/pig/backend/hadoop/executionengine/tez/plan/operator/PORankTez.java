@@ -50,6 +50,7 @@ public class PORankTez extends PORank implements TezInput {
     private transient KeyValueReader reader;
     private transient Map<Integer, Long> counterOffsets;
     private transient Configuration conf;
+    private transient boolean finished = false;
 
     public PORankTez(PORank copy) {
         super(copy);
@@ -133,6 +134,9 @@ public class PORankTez extends PORank implements TezInput {
 
     @Override
     public Result getNextTuple() throws ExecException {
+        if (finished) {
+            return RESULT_EOP;
+        }
         Result inp = null;
 
         try {
@@ -150,6 +154,7 @@ public class PORankTez extends PORank implements TezInput {
         if (Boolean.valueOf(conf.get(JobControlCompiler.END_OF_INP_IN_MAP, "false"))) {
             this.parentPlan.endOfAllInput = true;
         }
+        finished = true;
         return RESULT_EOP;
     }
 

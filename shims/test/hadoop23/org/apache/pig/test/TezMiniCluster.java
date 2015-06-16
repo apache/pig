@@ -33,7 +33,9 @@ import org.apache.hadoop.mapreduce.v2.MiniMRYarnCluster;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigConfiguration;
+import org.apache.pig.backend.hadoop.executionengine.Launcher;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezExecType;
+import org.apache.pig.backend.hadoop.executionengine.tez.TezLauncher;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezSessionManager;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
@@ -118,6 +120,7 @@ public class TezMiniCluster extends MiniGenericCluster {
             Configuration tez_conf = new Configuration(false);
             // TODO PIG-3659 - Remove this once memory management is fixed
             tez_conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, "20");
+            tez_conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, "false");
             tez_conf.set("tez.lib.uris", "hdfs:///tez,hdfs:///tez/lib");
             // Set to a lower value so that tests don't get stuck for long because of 1 AM running at a time
             tez_conf.set(TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS, "20");
@@ -184,5 +187,9 @@ public class TezMiniCluster extends MiniGenericCluster {
         if(YARN_CONF_FILE.exists()) {
             YARN_CONF_FILE.delete();
         }
+    }
+
+    static public Launcher getLauncher() {
+        return new TezLauncher();
     }
 }

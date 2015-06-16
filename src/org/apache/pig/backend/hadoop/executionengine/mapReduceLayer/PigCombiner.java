@@ -38,6 +38,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.JoinPackager;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
+import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.NullableTuple;
@@ -98,6 +99,7 @@ public class PigCombiner {
                 pigContext = (PigContext)ObjectSerializer.deserialize(jConf.get("pig.pigContext"));
                 if (pigContext.getLog4jProperties()!=null)
                     PropertyConfigurator.configure(pigContext.getLog4jProperties());
+                MapRedUtil.setupUDFContext(context.getConfiguration());
 
                 cp = (PhysicalPlan) ObjectSerializer.deserialize(jConf
                         .get("pig.combinePlan"));
@@ -268,6 +270,8 @@ public class PigCombiner {
             leaf = null;
             pack = null;
             pigReporter = null;
+            // Avoid OOM in Tez.
+            PhysicalOperator.setReporter(null);
             pigContext = null;
             roots = null;
             cp = null;

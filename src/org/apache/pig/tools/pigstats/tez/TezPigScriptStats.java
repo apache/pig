@@ -43,6 +43,8 @@ import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.ScriptState;
 import org.apache.pig.tools.pigstats.tez.TezScriptState.TezDAGScriptInfo;
+import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.client.DAGStatus;
 
 import com.google.common.collect.Maps;
@@ -186,10 +188,23 @@ public class TezPigScriptStats extends PigStats {
                 tezScriptState.emitjobFinishedNotification(tezDAGStats);
             } else if (dagStatus.getState() == DAGStatus.State.FAILED) {
                 tezDAGStats.setSuccessful(false);
-                tezDAGStats.setErrorMsg(tezJob.getDiagnostics());
+                String diagnostics = tezJob.getDiagnostics();
+                tezDAGStats.setErrorMsg(diagnostics);
+                tezDAGStats.setBackendException(new TezException(diagnostics));
                 tezScriptState.emitJobFailedNotification(tezDAGStats);
             }
             tezScriptState.dagCompletedNotification(tezJob.getName(), tezDAGStats);
+        }
+
+        if (!tezDAGStats.isSuccessful()) {
+            String outputCommitOnDAGSuccess = pigContext.getProperties().getProperty(
+                    TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS);
+            if ((outputCommitOnDAGSuccess == null && TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS_DEFAULT)
+                    || "true".equals(outputCommitOnDAGSuccess)) {
+                for (OutputStats stats : tezDAGStats.getOutputs()) {
+                    stats.setSuccessful(false);
+                }
+            }
         }
     }
 

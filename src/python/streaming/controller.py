@@ -125,7 +125,12 @@ class PythonStreamingController:
                 try:
                     func_output = func(*inputs)
                     if should_log:
-                        log_message("Row %s: UDF Output: %s" % (self.input_count, unicode(func_output)))
+                        try:
+                            log_message("Row %s: UDF Output: %s" % (self.input_count, unicode(func_output)))
+                        except:
+                            #This is probably an error with unicoding the output.  Calling unicode on bytearray will
+                            #throw an exception.  Since its just a log statement, just skip and carry on.
+                            logging.exception("Couldn't log output.  Try to continue.")
                 except:
                     #These errors should always be caused by user code.
                     write_user_exception(module_name, self.stream_error, NUM_LINES_OFFSET_TRACE)

@@ -43,10 +43,12 @@ import org.apache.tez.runtime.library.api.KeyValueWriter;
 public class POStoreTez extends POStore implements TezOutput, TezTaskConfigurable {
 
     private static final long serialVersionUID = 1L;
+
+    private String outputKey;
+
     private transient MROutput output;
     private transient KeyValueWriter writer;
-    private String outputKey;
-    private TezCounter outputRecordCounter;
+    private transient TezCounter outputRecordCounter;
 
     public POStoreTez(OperatorKey k) {
         super(k);
@@ -141,6 +143,11 @@ public class POStoreTez extends POStore implements TezOutput, TezTaskConfigurabl
             throw new ExecException(msg, errCode, ioe);
         }
         return res;
+    }
+
+    @Override
+    public String name() {
+        return super.name() + (getOperatorKey().toString().equals(outputKey) ? "" : "\t->\t " +outputKey);
     }
 
 }

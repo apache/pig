@@ -39,7 +39,8 @@ public class MapSideMergeValidator {
                 if (!(lo instanceof LOFilter
                         || lo instanceof LOGenerate || lo instanceof LOInnerLoad
                         || lo instanceof LOLoad || lo instanceof LOSplitOutput
-                        || lo instanceof LOSplit
+                        || lo instanceof LOSplit 
+                        || (lo instanceof LOJoin && ((LOJoin)lo).getJoinType() == LOJoin.JOINTYPE.REPLICATED)
                         || isAcceptableSortOp(lo)
                         || isAcceptableForEachOp(lo))) {
                     throw new LogicalToPhysicalTranslatorException(errMsg, errCode);
@@ -58,8 +59,7 @@ public class MapSideMergeValidator {
     private boolean isAcceptableForEachOp(Operator lo) throws LogicalToPhysicalTranslatorException {
         if (lo instanceof LOForEach) {
             OperatorPlan innerPlan = ((LOForEach) lo).getInnerPlan();
-            validateMapSideMerge(innerPlan.getSinks(), innerPlan);
-            return !containsUDFs((LOForEach) lo);
+            return validateMapSideMerge(innerPlan.getSinks(), innerPlan);
         } else {
             return false;
         }
@@ -81,23 +81,5 @@ public class MapSideMergeValidator {
            throw new LogicalToPhysicalTranslatorException(e);
         }
         return true;
-    }
-
-    private boolean containsUDFs(LOForEach fo) throws LogicalToPhysicalTranslatorException {
-        LogicalPlan logExpPlan = fo.getInnerPlan();
-        UDFFinder udfFinder;
-        try {
-            udfFinder = new UDFFinder(logExpPlan);
-            udfFinder.visit();
-            // TODO (dvryaboy): in the future we could relax this rule by tracing what fields
-            // are being passed into the UDF, and only refusing if the UDF is working on the
-            // join key. Transforms of other fields should be ok.
-            if (udfFinder.getUDFList().size() != 0) {
-                return true;
-            }
-        } catch (FrontendException e) {
-            throw new LogicalToPhysicalTranslatorException(e);
-        }
-        return false;
     }
 }

@@ -49,7 +49,7 @@ public class TestAccumulator {
     private static final String INPUT_FILE2 = "AccumulatorInput2.txt";
     private static final String INPUT_FILE3 = "AccumulatorInput3.txt";
     private static final String INPUT_FILE4 = "AccumulatorInput4.txt";
-    private static final String INPUT_DIR = "build/test/data";
+    private static final String INPUT_DIR = Util.getTestDirectory(TestAccumulator.class);
 
     private static PigServer pigServer;
     private static Properties properties;
@@ -88,7 +88,7 @@ public class TestAccumulator {
     }
 
     private static void createFiles() throws IOException {
-        new File(INPUT_DIR).mkdir();
+        new File(INPUT_DIR).mkdirs();
 
         PrintWriter w = new PrintWriter(new FileWriter(INPUT_DIR + "/" + INPUT_FILE1));
 
@@ -556,6 +556,21 @@ public class TestAccumulator {
                 }
             }
         }
+    }
+
+    // Pig 4365
+    @Test
+    public void testAccumWithTOP() throws IOException{
+        pigServer.registerQuery("A = load '" + INPUT_FILE3 + "' as (id:int, v:double);");
+        pigServer.registerQuery("B = group A all;");
+        pigServer.registerQuery("D = foreach B { C = TOP(5, 0, A); generate flatten(C); }");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("D");
+    
+        List<Tuple> expected = Util.getTuplesFromConstantTupleStrings(
+                new String[] {"(200,1.1)", "(200,2.1)", "(300,3.3)", "(400,null)", "(400,null)" });
+        
+        Util.checkQueryOutputsAfterSort(iter, expected);
     }
 
     @Test

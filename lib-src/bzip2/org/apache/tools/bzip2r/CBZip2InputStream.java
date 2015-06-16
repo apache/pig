@@ -223,6 +223,10 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
 
     @Override
     public int read() throws IOException {
+        if (this.innerBsStream == null) {
+            throw new IOException("stream closed");
+        }
+
         if (streamEnd) {
             return -1;
         } else {
@@ -264,6 +268,18 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
         }
     }
 
+    @Override
+    public void close() throws IOException {
+        if (this.innerBsStream == null) {
+            return;
+        }
+        try {
+            innerBsStream.close();
+        } finally {
+            this.innerBsStream = null;
+        }
+    }
+
     /**
      * getPos is used by the caller to know when the processing of the current 
      * {@link InputSplit} is complete. In this method, as we read each bzip
@@ -291,7 +307,6 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
             magic4 = bsGetUChar();
             if (magic1 != 'B' || magic2 != 'Z' || 
                     magic3 != 'h' || magic4 < '1' || magic4 > '9') {
-                bsFinishedWithStream();
                 streamEnd = true;
                 return;
             }
@@ -308,7 +323,6 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
     
     private void initBlock(boolean searchForMagic) throws IOException {
         if (readCount >= readLimit) {
-            bsFinishedWithStream();
             streamEnd = true;
             return;
         }
@@ -408,7 +422,6 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
         	throw new IOException("Encountered additional bytes in the filesplit past the crc block. "
         			+ "Loading of concatenated bz2 files is not supported");
         }
-        bsFinishedWithStream();
         streamEnd = true;
     }
 
@@ -422,14 +435,6 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
 
     private static void crcError() throws IOException {
         cadvise("CRC error");
-    }
-
-    private void bsFinishedWithStream() {
-        if (this.innerBsStream != null) {
-            if (this.innerBsStream != System.in) {
-                this.innerBsStream = null;
-            }
-        }
     }
 
     private void bsSetStream(FSDataInputStream f) {

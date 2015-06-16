@@ -20,10 +20,17 @@ package org.apache.pig.tez;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
+import java.util.Iterator;
+
+import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezExecType;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezLauncher;
+import org.apache.pig.backend.hadoop.executionengine.tez.util.MRToTezHelper;
+import org.apache.pig.data.DataBag;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.test.MiniGenericCluster;
 import org.apache.pig.test.Util;
@@ -54,8 +61,8 @@ public class TestTezLauncher {
     };
 
     private static final String OUTPUT_FILE = "TestTezLauncherOutput";
-    private static final String[] OUTPUT_RECORDS = {
-        "all\t{(apple),(pear),(pear),(strawberry),(orange)}"
+    private static final String[] OUTPUT_RECORDS = new String[] {
+        "(apple)", "(pear)", "(pear)", "(strawberry)", "(orange)"
     };
 
     @BeforeClass
@@ -94,16 +101,34 @@ public class TestTezLauncher {
         PigStats pigStats = launcher.launchPig(pp, "testRun1", pc);
         assertTrue(pigStats.isSuccessful());
 
-        String[] output = Util.readOutput(cluster.getFileSystem(), OUTPUT_FILE);
-        for (int i = 0; i < output.length; i++) {
-            assertEquals(OUTPUT_RECORDS[i], output[i]);
-        }
-
         assertEquals(1, pigStats.getInputStats().size());
         assertEquals(INPUT_FILE, pigStats.getInputStats().get(0).getName());
 
         assertEquals(1, pigStats.getOutputStats().size());
         assertEquals(OUTPUT_FILE, pigStats.getOutputStats().get(0).getName());
+
+        query = "m = load '" + OUTPUT_FILE + "' as (a:chararray, b:{(y:chararray)});";
+        pigServer = new PigServer(pc);
+        pigServer.registerQuery(query);
+        Iterator<Tuple> iter = pigServer.openIterator("m");
+        Tuple result = iter.next();
+        assertEquals(result.get(0).toString(), "all");
+        Iterator<Tuple> innerIter = ((DataBag)result.get(1)).iterator();
+        int count = 0;
+        while (innerIter.hasNext()) {
+            assertTrue(Arrays.asList(OUTPUT_RECORDS).contains(innerIter.next().toString()));
+            count++;
+        }
+        assertEquals(count, OUTPUT_RECORDS.length);
+    }
+
+    @Test
+    public void testQueueName() throws Exception {
+        Configuration conf = new Configuration();
+        conf.set("tez.queue.name", "special");
+        conf = MRToTezHelper.getDAGAMConfFromMRConf(conf);
+        assertEquals(conf.get("tez.queue.name"), "special");
+        
     }
 }
 

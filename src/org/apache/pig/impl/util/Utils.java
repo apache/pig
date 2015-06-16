@@ -255,6 +255,13 @@ public class Utils {
         return schema;
     }
 
+    public static Object parseConstant(String constantString) throws ParserException {
+        QueryParserDriver queryParser = new QueryParserDriver( new PigContext(),
+                "util", new HashMap<String, String>() ) ;
+        Object constant = queryParser.parseConstant(constantString);
+        return constant;
+    }
+
     /**
      * This method adds FieldSchema of 'input source tag/path' as the first
      * field. This will be called only when PigStorage is invoked with

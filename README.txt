@@ -35,5 +35,4 @@ Contributing to the Project
 ===========================
 
 We welcome all contributions. For the details, please, visit
-http://wiki.apache.org/pig/HowToContribute.
-
+https://cwiki.apache.org/confluence/display/PIG/HowToContribute

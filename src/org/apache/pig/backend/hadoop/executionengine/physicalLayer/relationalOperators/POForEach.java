@@ -25,6 +25,7 @@ import java.util.List;
 
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.UDFEndOfAllInputNeededVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -41,6 +42,7 @@ import org.apache.pig.data.SchemaTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.data.TupleMaker;
+import org.apache.pig.data.UnlimitedNullTuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -92,9 +94,13 @@ public class POForEach extends PhysicalOperator {
 
     protected Tuple inpTuple;
 
+    protected boolean endOfAllInputProcessed = false;
+
     // Indicate the foreach statement can only in map side
     // Currently only used in MR cross (See PIG-4175)
     protected boolean mapSideOnly = false;
+
+    protected Boolean endOfAllInputProcessing = false;
 
     private Schema schema;
 
@@ -244,12 +250,20 @@ public class POForEach extends PhysicalOperator {
             //read
             while (true) {
                 inp = processInput();
-                if (inp.returnStatus == POStatus.STATUS_EOP ||
-                        inp.returnStatus == POStatus.STATUS_ERR) {
+
+                if (inp.returnStatus == POStatus.STATUS_ERR) {
                     return inp;
                 }
                 if (inp.returnStatus == POStatus.STATUS_NULL) {
                     continue;
+                }
+                if (inp.returnStatus == POStatus.STATUS_EOP) {
+                    if (parentPlan!=null && parentPlan.endOfAllInput && !endOfAllInputProcessed && endOfAllInputProcessing) {
+                        // continue pull one more output
+                        inp = new Result(POStatus.STATUS_OK, new UnlimitedNullTuple());
+                    } else {
+                        return inp;
+                    }
                 }
 
                 attachInputToPlans((Tuple) inp.result);
@@ -357,6 +371,9 @@ public class POForEach extends PhysicalOperator {
 
 
         if(its == null) {
+            if (endOfAllInputProcessed) {
+                return new Result(POStatus.STATUS_EOP, null);
+            }
             //getNext being called for the first time OR starting with a set of new data from inputs
             its = new Iterator[noItems];
             bags = new Object[noItems];
@@ -423,6 +440,9 @@ public class POForEach extends PhysicalOperator {
                 } else {
                     its[i] = null;
                 }
+            }
+            if (parentPlan!=null && parentPlan.endOfAllInput && endOfAllInputProcessing) {
+                endOfAllInputProcessed = true;
             }
         }
 
@@ -793,5 +813,22 @@ public class POForEach extends PhysicalOperator {
 
     public boolean isMapSideOnly() {
         return mapSideOnly;
+    }
+
+    public boolean needEndOfAllInputProcessing() throws ExecException {
+        try {
+            for (PhysicalPlan innerPlan : inputPlans) {
+                UDFEndOfAllInputNeededVisitor endOfAllInputNeededVisitor
+                     = new UDFEndOfAllInputNeededVisitor(innerPlan);
+                endOfAllInputNeededVisitor.visit();
+                if (endOfAllInputNeededVisitor.needEndOfAllInputProcessing()) {
+                    endOfAllInputProcessing = true;
+                    return true;
+                }
+            }
+            return false;
+        } catch (Exception e) {
+            throw new ExecException(e);
+        }
     }
 }

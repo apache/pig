@@ -42,6 +42,7 @@ import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.fetch.FetchLauncher;
 import org.apache.pig.backend.hadoop.executionengine.fetch.FetchOptimizer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PhyPlanSetter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
@@ -115,16 +116,17 @@ public abstract class HExecutionEngine implements ExecutionEngine {
     public JobConf getS3Conf() throws ExecException {
         JobConf jc = new JobConf();
         jc.addResource(CORE_SITE);
+        JobConf s3Jc = new JobConf(false);
         Iterator<Entry<String, String>> i = jc.iterator();
         while (i.hasNext()) {
             Entry<String, String> e = i.next();
             String key = e.getKey();
             String value = e.getValue();
             if (key.startsWith("fs.s3") || key.startsWith("fs.s3n")) {
-                jc.set(key, value);
+                s3Jc.set(key, value);
             }
         }
-        return jc;
+        return s3Jc;
     }
 
     public JobConf getLocalConf() {
@@ -187,10 +189,9 @@ public abstract class HExecutionEngine implements ExecutionEngine {
         // existing properties All of the above is accomplished in the method
         // call below
 
-        JobConf jc = getS3Conf();
+        JobConf jc;
         if (!this.pigContext.getExecType().isLocal()) {
-            JobConf execConf = getExecConf(properties);
-            ConfigurationUtil.mergeConf(jc, execConf);
+            jc = getExecConf(properties);
 
             // Trick to invoke static initializer of DistributedFileSystem to
             // add hdfs-default.xml into configuration
@@ -204,8 +205,9 @@ public abstract class HExecutionEngine implements ExecutionEngine {
             properties.setProperty(FILE_SYSTEM_LOCATION, "file:///");
             properties.setProperty(ALTERNATIVE_FILE_SYSTEM_LOCATION, "file:///");
 
-            JobConf localConf = getLocalConf();
-            ConfigurationUtil.mergeConf(jc, localConf);
+            jc = getLocalConf();
+            JobConf s3Jc = getS3Conf();
+            ConfigurationUtil.mergeConf(jc, s3Jc);
         }
 
         // the method below alters the properties object by overriding the
@@ -296,6 +298,7 @@ public abstract class HExecutionEngine implements ExecutionEngine {
             //skipped; a SimpleFetchPigStats will be returned through which the result
             //can be directly fetched from the underlying storage
             if (FetchOptimizer.isPlanFetchable(pc, pp)) {
+                new PhyPlanSetter(pp).visit();
                 return new FetchLauncher(pc).launchPig(pp);
             }
             return launcher.launchPig(pp, grpName, pigContext);

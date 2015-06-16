@@ -54,10 +54,8 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.util.Utils;
-import org.apache.pig.parser.ParserException;
 
 /**
  * A loader for data stored using {@link JsonStorage}.  This is not a generic
@@ -171,7 +169,7 @@ public class JsonLoader extends LoadFunc implements LoadMetadata {
                 return t;
             }
             
-        } catch (JsonParseException jpe) {
+        } catch (Exception jpe) {
             warn("Bad record, returning null for " + val, PigWarning.UDF_WARNING_1);
         } finally {
             p.close();
@@ -180,6 +178,52 @@ public class JsonLoader extends LoadFunc implements LoadMetadata {
         return t;
     }
 
+    private Object readPrimitive(JsonParser p, JsonToken tok, ResourceFieldSchema field) throws IOException {
+
+        if (tok == JsonToken.VALUE_NULL) return null;
+
+        switch(field.getType()) {
+            // Read based on our expected type
+            case DataType.BOOLEAN:
+                return p.getBooleanValue();
+    
+            case DataType.INTEGER:
+                return p.getIntValue();
+    
+            case DataType.LONG:
+                return p.getLongValue();
+    
+            case DataType.FLOAT:
+                return p.getFloatValue();
+    
+            case DataType.DOUBLE:
+                return p.getDoubleValue();
+    
+            case DataType.DATETIME:
+                DateTimeFormatter formatter = ISODateTimeFormat.dateTimeParser();
+                return formatter.withOffsetParsed().parseDateTime(p.getText());
+    
+            case DataType.BYTEARRAY:
+                byte[] b = p.getText().getBytes();
+                // Use the DBA constructor that copies the bytes so that we own
+                // the memory
+                return new DataByteArray(b, 0, b.length);
+    
+            case DataType.CHARARRAY:
+                return p.getText();
+    
+            case DataType.BIGINTEGER:
+                return p.getBigIntegerValue();
+    
+            case DataType.BIGDECIMAL:
+                return new BigDecimal(p.getText());
+    
+            default:
+                throw new IOException("Unknown type in input schema: " +
+                        field.getType() );
+        }
+    }
+    
     private Object readField(JsonParser p,
                              ResourceFieldSchema field,
                              int fieldnum) throws IOException {
@@ -193,67 +237,14 @@ public class JsonLoader extends LoadFunc implements LoadMetadata {
 
         // Check to see if this value was null
         if (tok == JsonToken.VALUE_NULL) return null;
+        
+        tok = p.nextToken();
 
         // Read based on our expected type
         switch (field.getType()) {
-        case DataType.BOOLEAN:
-            tok = p.nextToken();
-            if (tok == JsonToken.VALUE_NULL) return null;
-            return p.getBooleanValue();
-
-        case DataType.INTEGER:
-            // Read the field name
-            tok = p.nextToken();
-            if (tok == JsonToken.VALUE_NULL) return null;
-            return p.getIntValue();
-
-        case DataType.LONG:
-            tok = p.nextToken();
-            if (tok == JsonToken.VALUE_NULL) return null;
-            return p.getLongValue();
-
-        case DataType.FLOAT:
-            tok = p.nextToken();
-            if (tok == JsonToken.VALUE_NULL) return null;
-            return p.getFloatValue();
-
-        case DataType.DOUBLE:
-            tok = p.nextToken();
-            if (tok == JsonToken.VALUE_NULL) return null;
-            return p.getDoubleValue();
-
-        case DataType.DATETIME:
-            tok = p.nextToken();
-            if (tok == JsonToken.VALUE_NULL) return null;
-            DateTimeFormatter formatter = ISODateTimeFormat.dateTimeParser();
-            return formatter.withOffsetParsed().parseDateTime(p.getText());
-
-        case DataType.BYTEARRAY:
-            tok = p.nextToken();
-            if (tok == JsonToken.VALUE_NULL) return null;
-            byte[] b = p.getText().getBytes();
-            // Use the DBA constructor that copies the bytes so that we own
-            // the memory
-            return new DataByteArray(b, 0, b.length);
-
-        case DataType.CHARARRAY:
-            tok = p.nextToken();
-            if (tok == JsonToken.VALUE_NULL) return null;
-            return p.getText();
-
-        case DataType.BIGINTEGER:
-            tok = p.nextToken();
-            if (tok == JsonToken.VALUE_NULL) return null;
-            return p.getBigIntegerValue();
-
-        case DataType.BIGDECIMAL:
-            tok = p.nextToken();
-            if (tok == JsonToken.VALUE_NULL) return null;
-            return new BigDecimal(p.getText());
-
         case DataType.MAP:
             // Should be a start of the map object
-            if (p.nextToken() != JsonToken.START_OBJECT) {
+            if (tok != JsonToken.START_OBJECT) {
                 warn("Bad map field, could not find start of object, field "
                     + fieldnum, PigWarning.UDF_WARNING_1);
                 return null;
@@ -267,7 +258,7 @@ public class JsonLoader extends LoadFunc implements LoadMetadata {
             return m;
 
         case DataType.TUPLE:
-            if (p.nextToken() != JsonToken.START_OBJECT) {
+            if (tok != JsonToken.START_OBJECT) {
                 warn("Bad tuple field, could not find start of object, "
                     + "field " + fieldnum, PigWarning.UDF_WARNING_1);
                 return null;
@@ -289,7 +280,7 @@ public class JsonLoader extends LoadFunc implements LoadMetadata {
             return t;
 
         case DataType.BAG:
-            if (p.nextToken() != JsonToken.START_ARRAY) {
+            if (tok != JsonToken.START_ARRAY) {
                 warn("Bad bag field, could not find start of array, "
                     + "field " + fieldnum, PigWarning.UDF_WARNING_1);
                 return null;
@@ -305,28 +296,29 @@ public class JsonLoader extends LoadFunc implements LoadMetadata {
 
             JsonToken innerTok;
             while ((innerTok = p.nextToken()) != JsonToken.END_ARRAY) {
-                if (innerTok != JsonToken.START_OBJECT) {
-                    warn("Bad bag tuple field, could not find start of "
-                        + "object, field " + fieldnum, PigWarning.UDF_WARNING_1);
-                    return null;
-                }
-
                 t = tupleFactory.newTuple(fs.length);
-                for (int j = 0; j < fs.length; j++) {
-                    t.set(j, readField(p, fs[j], j));
-                }
+                if (innerTok == JsonToken.START_OBJECT) {
+                    for (int j = 0; j < fs.length; j++) {
+                        t.set(j, readField(p, fs[j], j));
+                    }
 
-                if (p.nextToken() != JsonToken.END_OBJECT) {
-                    warn("Bad bag tuple field, could not find end of "
-                        + "object, field " + fieldnum, PigWarning.UDF_WARNING_1);
-                    return null;
+                    if (p.nextToken() != JsonToken.END_OBJECT) {
+                        warn("Bad bag tuple field, could not find end of "
+                             + "object, field " + fieldnum, PigWarning.UDF_WARNING_1);
+                        return null;
+                    }
+                    bag.add(t);
+                } else {
+
+                    // handle array of kind [ primitive, primitive ... ]
+                    t.set(0, readPrimitive(p, innerTok, fs[0]));
+                    bag.add(t);
                 }
-                bag.add(t);
             }
             return bag;
+
         default:
-            throw new IOException("Unknown type in input schema: " +
-                field.getType());
+            return readPrimitive(p, tok, field);
         }
 
     }

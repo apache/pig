@@ -238,8 +238,9 @@ public class TestTezJobControlCompiler {
                 + "store e into 'output';";
         Pair<TezOperPlan, DAG> compiledPlan = compile(query);
         TezOperator leafOper = compiledPlan.first.getLeaves().get(0);
+        assertTrue(leafOper.isUseGraceParallelism());
         Vertex leafVertex = compiledPlan.second.getVertex(leafOper.getOperatorKey().toString());
-        assertEquals(leafVertex.getParallelism(), 70);
+        assertEquals(leafVertex.getParallelism(), -1);
     }
 
     @Test
@@ -271,8 +272,9 @@ public class TestTezJobControlCompiler {
         List<TezOperator> leaves = compiledPlan.first.getLeaves();
         Collections.sort(leaves);
         TezOperator leafOper = leaves.get(1);
+        assertTrue(leafOper.isUseGraceParallelism());
         Vertex leafVertex = compiledPlan.second.getVertex(leafOper.getOperatorKey().toString());
-        assertEquals(leafVertex.getParallelism(), 7);
+        assertEquals(leafVertex.getParallelism(), -1);
     }
 
     @Test

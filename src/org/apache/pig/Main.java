@@ -17,6 +17,11 @@
  */
 package org.apache.pig;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Strings;
+import com.google.common.io.Closeables;
+import com.google.common.io.InputSupplier;
+import com.google.common.io.Resources;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -28,8 +33,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.Reader;
 import java.io.StringReader;
-import java.io.Writer;
+import java.net.URL;
+import java.nio.charset.Charset;
 import java.text.ParseException;
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -546,7 +553,7 @@ public class Main {
                 // Interactive
                 mode = ExecMode.SHELL;
               //Reader is created by first loading "pig.load.default.statements" or .pigbootup file if available
-                ConsoleReader reader = new ConsoleReaderWithParamSub(Utils.getCompositeStream(System.in, properties), new OutputStreamWriter(System.out), pigContext);
+                ConsoleReader reader = new ConsoleReader(Utils.getCompositeStream(System.in, properties), new OutputStreamWriter(System.out));
                 reader.setDefaultPrompt("grunt> ");
                 final String HISTORYFILE = ".pig_history";
                 String historyFile = System.getProperty("user.home") + File.separator  + HISTORYFILE;
@@ -742,22 +749,7 @@ public class Main {
             logLevel = Level.toLevel(logLevelString, Level.INFO);
         }
 
-        Properties props = new Properties();
-        FileReader propertyReader = null;
-        if (log4jconf != null) {
-            try {
-                propertyReader = new FileReader(log4jconf);
-                props.load(propertyReader);
-            }
-            catch (IOException e)
-            {
-                System.err.println("Warn: Cannot open log4j properties file, use default");
-            }
-            finally
-            {
-                if (propertyReader != null) try {propertyReader.close();} catch(Exception e) {}
-            }
-        }
+        final Properties props = log4jConfAsProperties(log4jconf);
         if (props.size() == 0) {
             props.setProperty("log4j.logger.org.apache.pig", logLevel.toString());
             if((logLevelString = System.getProperty("pig.logfile.level")) == null){
@@ -790,8 +782,37 @@ public class Main {
         pigContext.setDefaultLogLevel(logLevel);
     }
 
+   @VisibleForTesting
+   static Properties log4jConfAsProperties(String log4jconf) {
+       final Properties properties = new Properties();
+       if (!Strings.isNullOrEmpty(log4jconf)) {
+           Reader propertyReader = null;
+           try {
+               final File file = new File(log4jconf);
+               if (file.exists()) {
+                   propertyReader = new FileReader(file);
+                   properties.load(propertyReader);
+                   log.info("Loaded log4j properties from file: " + file);
+               } else {
+                   final URL resource = Main.class.getClassLoader().getResource(log4jconf);
+                   if (resource != null) {
+                       propertyReader = new InputStreamReader(resource.openStream(), Charset.forName("UTF-8"));
+                       properties.load(propertyReader);
+                       log.info("Loaded log4j properties from resource: " +  resource);
+                   } else {
+                       log.warn("No file or resource found by the name: " + log4jconf);
+                   }
+               }
+           } catch (IOException e)  {
+               log.warn("Cannot open log4j properties file " + log4jconf + ", using default");
+           } finally {
+               Closeables.closeQuietly(propertyReader);
+           }
+       }
+       return properties;
+  }
 
-    private static List<String> fetchRemoteParamFiles(List<String> paramFiles, Properties properties)
+  private static List<String> fetchRemoteParamFiles(List<String> paramFiles, Properties properties)
             throws IOException {
         List<String> paramFiles2 = new ArrayList<String>();
         for (String param: paramFiles) {
@@ -895,7 +916,6 @@ public class Main {
             System.out.println("            GroupByConstParallelSetter - Force parallel 1 for \"group all\" statement");
             System.out.println("            PartitionFilterOptimizer - Pushdown partition filter conditions to loader implementing LoadMetaData");
             System.out.println("            PredicatePushdownOptimizer - Pushdown filter predicates to loader implementing LoadPredicatePushDown");
-            System.out.println("            RollupHIIOptimizer - Apply Rollup HII optimization");
             System.out.println("            All - Disable all optimizations");
             System.out.println("        All optimizations listed here are enabled by default. Optimization values are case insensitive.");
             System.out.println("    -v, -verbose - Print all error messages to screen");
@@ -1071,25 +1091,6 @@ public class Main {
         return (totalCount > 0 && failCount == totalCount) ? ReturnCode.FAILURE
                 : (failCount > 0) ? ReturnCode.PARTIAL_FAILURE
                         : ReturnCode.SUCCESS;
-    }
-
-    static class ConsoleReaderWithParamSub extends ConsoleReader {
-        PigContext pc;
-        ConsoleReaderWithParamSub(InputStream in, Writer out, PigContext pigContext) throws IOException {
-            super(in, out);
-            pc = pigContext;
-        }
-
-        @Override
-        public String readLine() throws IOException {
-            String line = super.readLine();
-            if (null == line) {
-                return line;
-            }
-            String paramSubLine = pc.doParamSubstitution(new BufferedReader(new StringReader(line)));
-            return paramSubLine;
-        }
-
     }
 
 }

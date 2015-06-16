@@ -20,6 +20,7 @@ package org.apache.pig.impl.util.avro;
 
 import java.util.AbstractMap;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -65,6 +66,10 @@ public final class AvroMapWrapper implements Map<CharSequence, Object> {
 
   @Override
   public boolean containsKey(final Object key) {
+    if (isUtf8key && !(key instanceof  Utf8)) {
+      // Assuming keys can either be utf8 or string
+      return innerMap.containsKey(new Utf8((String) key));
+    }
     return innerMap.containsKey(key);
   }
 
@@ -81,12 +86,7 @@ public final class AvroMapWrapper implements Map<CharSequence, Object> {
     } else {
       v = innerMap.get(key);
     }
-
-    if (v instanceof Utf8) {
-      return v.toString();
-    } else {
-      return v;
-    }
+    return AvroTupleWrapper.getPigObject(v);
   }
 
   @Override
@@ -112,6 +112,13 @@ public final class AvroMapWrapper implements Map<CharSequence, Object> {
 
   @Override
   public Set<CharSequence> keySet() {
+    if (isUtf8key) {
+      final Set<CharSequence> keySet = new HashSet<CharSequence>();
+      for (CharSequence cs : innerMap.keySet()) {
+        keySet.add(cs.toString());
+      }
+      return keySet;
+    }
     return innerMap.keySet();
   }
 
@@ -122,11 +129,7 @@ public final class AvroMapWrapper implements Map<CharSequence, Object> {
         new Function() {
             @Override
             public Object apply(final Object v) {
-              if (v instanceof Utf8) {
-                return v.toString();
-              } else {
-                return v;
-              }
+              return AvroTupleWrapper.getPigObject(v);
             }
           }
         );
@@ -138,18 +141,13 @@ public final class AvroMapWrapper implements Map<CharSequence, Object> {
         Sets.newHashSetWithExpectedSize(innerMap.size());
     for (java.util.Map.Entry<CharSequence, Object> e : innerMap.entrySet()) {
       CharSequence k = e.getKey();
-      Object v = e.getValue();
+      final Object v = AvroTupleWrapper.getPigObject(e.getValue());
       if (k instanceof Utf8) {
         k = k.toString();
       }
-      if (v instanceof Utf8) {
-        v = v.toString();
-      }
       theSet.add(new AbstractMap.SimpleEntry<CharSequence, Object>(k, v));
     }
-
     return theSet;
-
   }
 
 }

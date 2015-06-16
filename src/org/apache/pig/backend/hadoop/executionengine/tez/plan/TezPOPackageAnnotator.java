@@ -30,6 +30,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.LitePackager;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POLocalRearrangeTez;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.VisitorException;
@@ -67,11 +68,13 @@ public class TezPOPackageAnnotator extends TezOpPlanVisitor {
         List<TezOperator> preds = this.mPlan.getPredecessors(pkgTezOp);
         for (Iterator<TezOperator> it = preds.iterator(); it.hasNext();) {
             TezOperator predTezOp = it.next();
+            TezOperator predTezOpVertexGrp = null;
             if (predTezOp.isVertexGroup()) {
+                predTezOpVertexGrp = predTezOp;
                 // Just get one of the inputs to vertex group
                 predTezOp = getPlan().getOperator(predTezOp.getVertexGroupMembers().get(0));
             }
-            lrFound += patchPackage(predTezOp, pkgTezOp, pkg);
+            lrFound += patchPackage(predTezOp, predTezOpVertexGrp, pkgTezOp, pkg);
             if(lrFound == pkg.getNumInps()) {
                 break;
             }
@@ -79,13 +82,19 @@ public class TezPOPackageAnnotator extends TezOpPlanVisitor {
 
         if(lrFound != pkg.getNumInps()) {
             int errCode = 2086;
-            String msg = "Unexpected problem during optimization. Could not find all LocalRearrange operators.";
+            String msg = "Unexpected problem during optimization. "
+                    + "Could not find all LocalRearrange operators. Expected: "
+                    + pkg.getNumInps() + ", Found: " + lrFound;
             throw new OptimizerException(msg, errCode, PigException.BUG);
         }
     }
 
-    private int patchPackage(TezOperator predTezOp, TezOperator pkgTezOp, POPackage pkg) throws VisitorException {
-        LoRearrangeDiscoverer lrDiscoverer = new LoRearrangeDiscoverer(predTezOp.plan, pkgTezOp, pkg);
+    private int patchPackage(TezOperator predTezOp,
+            TezOperator predTezOpVertexGrp,
+            TezOperator pkgTezOp,
+            POPackage pkg) throws VisitorException {
+        LoRearrangeDiscoverer lrDiscoverer = new LoRearrangeDiscoverer(
+                predTezOp.plan, predTezOpVertexGrp, pkgTezOp, pkg);
         lrDiscoverer.visit();
         // let our caller know if we managed to patch
         // the package
@@ -131,12 +140,23 @@ public class TezPOPackageAnnotator extends TezOpPlanVisitor {
         private int loRearrangeFound = 0;
         private TezOperator pkgTezOp;
         private POPackage pkg;
+        private TezOperator predTezOpVertexGrp;
+        private boolean isPOSplit;
 
-        public LoRearrangeDiscoverer(PhysicalPlan plan, TezOperator pkgTezOp, POPackage pkg) {
-            super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(plan));
+        public LoRearrangeDiscoverer(PhysicalPlan predPlan, TezOperator predTezOpVertexGrp, TezOperator pkgTezOp, POPackage pkg) {
+            super(predPlan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(predPlan));
             this.pkgTezOp = pkgTezOp;
             this.pkg = pkg;
+            this.predTezOpVertexGrp = predTezOpVertexGrp;
         }
+
+        @Override
+        public void visitSplit(POSplit spl) throws VisitorException {
+            isPOSplit = true;
+            super.visitSplit(spl);
+        }
+
+
 
         @Override
         public void visitLocalRearrange(POLocalRearrange lrearrange) throws VisitorException {
@@ -160,17 +180,24 @@ public class TezPOPackageAnnotator extends TezOpPlanVisitor {
             if(keyInfo == null)
                 keyInfo = new HashMap<Integer, Pair<Boolean, Map<Integer, Integer>>>();
 
-            if(keyInfo.get(Integer.valueOf(lrearrange.getIndex())) != null) {
-                // something is wrong - we should not be getting key info
-                // for the same index from two different Local Rearranges
-                int errCode = 2087;
-                String msg = "Unexpected problem during optimization." +
-                        " Found index:" + lrearrange.getIndex() +
-                        " in multiple LocalRearrange operators.";
-                throw new OptimizerException(msg, errCode, PigException.BUG);
+            Integer index = Integer.valueOf(lrearrange.getIndex());
+            if(keyInfo.get(index) != null) {
+                if (isPOSplit) {
+                    // Case of POSplit having more than one input in case of self join or union
+                    loRearrangeFound--;
+                } else {
+                    // something is wrong - we should not be getting key info
+                    // for the same index from two different Local Rearranges
+                    int errCode = 2087;
+                    String msg = "Unexpected problem during optimization." +
+                            " Found index:" + lrearrange.getIndex() +
+                            " in multiple LocalRearrange operators.";
+                    throw new OptimizerException(msg, errCode, PigException.BUG);
+                }
 
             }
-            keyInfo.put(Integer.valueOf(lrearrange.getIndex()),
+
+            keyInfo.put(index,
                     new Pair<Boolean, Map<Integer, Integer>>(
                             lrearrange.isProjectStar(), lrearrange.getProjectedColsMap()));
             pkg.getPkgr().setKeyInfo(keyInfo);

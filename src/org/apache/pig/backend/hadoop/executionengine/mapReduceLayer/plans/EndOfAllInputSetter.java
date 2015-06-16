@@ -21,6 +21,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeCogroup;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPartialAgg;
@@ -109,6 +110,18 @@ public class EndOfAllInputSetter extends MROpPlanVisitor {
         public void visitPoissonSample(POPoissonSample poissonSample) throws VisitorException {
             endOfAllInputFlag = true;
         }
+
+        @Override
+        public void visitPOForEach(POForEach foreach) throws VisitorException {
+            try {
+                if (foreach.needEndOfAllInputProcessing()) {
+                    endOfAllInputFlag = true;
+                }
+            } catch (Exception e) {
+                throw new VisitorException(e);
+            }
+        }
+
 
         /**
          * @return if end of all input is present

@@ -386,6 +386,10 @@ public class TestConversions {
         m = ps.getLoadCaster().bytesToMap(s.getBytes(), rfs);
         assertNull(m);
 
+        s = "[]";
+        m = ps.getLoadCaster().bytesToMap(s.getBytes(), rfs);
+        assertTrue(m.isEmpty());
+
         s = "(a,b)";
         schema = Utils.getSchemaFromString("t:tuple()");
         rfs = new ResourceSchema(schema).getFields()[0];

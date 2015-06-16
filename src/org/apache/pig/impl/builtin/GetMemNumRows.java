@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 
 import org.apache.pig.EvalFunc;
+import org.apache.pig.data.SizeUtil;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 
@@ -56,6 +57,7 @@ public class GetMemNumRows extends EvalFunc<Tuple>{
         int tSize = in.size();
     	if(tSize >=2 && 
     	    PoissonSampleLoader.NUMROWS_TUPLE_MARKER.equals(in.get(tSize-2)) ){
+    	    memSize -= SizeUtil.getPigObjMemSize(PoissonSampleLoader.NUMROWS_TUPLE_MARKER);
     	    numRows = (Long)in.get(tSize-1);
     	}
     	

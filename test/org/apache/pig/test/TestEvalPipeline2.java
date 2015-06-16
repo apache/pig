@@ -21,6 +21,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -58,7 +60,6 @@ import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.test.utils.Identity;
 import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -162,9 +163,9 @@ public class TestEvalPipeline2 {
         // if the conversion happens when minimum conditions for conversion
         // such as expected number of bytes are met.
         String[] input = {
-                    "asdf\t12\t1.1\t231\t234",
-                    "sa\t1231\t123.4\t12345678\t1234.567",
-                    "asdff\t1232123\t1.45345\t123456789\t123456789.9"
+                    "asdf\t12\t1.1\t231\t234\t3024123\t3.2492",
+                    "sa\t1231\t123.4\t12345678\t1234.567\t5081123453\t9.181817",
+                    "asdff\t1232123\t1.45345\t123456789\t123456789.9\t1234567\t1.234567"
                     };
 
         Util.createInputFile(cluster, "table_bs_ac", input);
@@ -176,7 +177,7 @@ public class TestEvalPipeline2 {
         pigServer.store("a", output, BinStorage.class.getName());
 
         pigServer.registerQuery("b = load '" + output + "' using BinStorage('Utf8StorageConverter') "
-                + "as (name: int, age: int, gpa: float, lage: long, dgpa: double);");
+                + "as (name: int, age: int, gpa: float, lage: long, dgpa: double, bi:biginteger, bd:bigdecimal);");
 
         Iterator<Tuple> it = pigServer.openIterator("b");
 
@@ -195,6 +196,8 @@ public class TestEvalPipeline2 {
         Assert.assertTrue((Float)tup.get(2) == 1.1F);
         Assert.assertTrue((Long)tup.get(3) == 231L);
         Assert.assertTrue((Double)tup.get(4) == 234.0);
+        Assert.assertEquals((BigInteger)tup.get(5), new BigInteger("3024123"));
+        Assert.assertEquals((BigDecimal)tup.get(6), new BigDecimal("3.2492"));
 
         //tuple 2
         tup = it.next();
@@ -203,6 +206,8 @@ public class TestEvalPipeline2 {
         Assert.assertTrue((Float)tup.get(2) == 123.4F);
         Assert.assertTrue((Long)tup.get(3) == 12345678L);
         Assert.assertTrue((Double)tup.get(4) == 1234.567);
+        Assert.assertEquals((BigInteger)tup.get(5), new BigInteger("5081123453"));
+        Assert.assertEquals((BigDecimal)tup.get(6), new BigDecimal("9.181817"));
 
         //tuple 3
         tup = it.next();
@@ -211,6 +216,8 @@ public class TestEvalPipeline2 {
         Assert.assertTrue((Float)tup.get(2) == 1.45345F);
         Assert.assertTrue((Long)tup.get(3) == 123456789L);
         Assert.assertTrue((Double)tup.get(4) == 1.234567899E8);
+        Assert.assertEquals((BigInteger)tup.get(5), new BigInteger("1234567"));
+        Assert.assertEquals((BigDecimal)tup.get(6), new BigDecimal("1.234567"));
 
         Util.deleteFile(cluster, "table");
     }
@@ -1408,7 +1415,6 @@ public class TestEvalPipeline2 {
     // See PIG-1826
     @Test
     public void testNonStandardData() throws Exception{
-        Assume.assumeTrue("Skip this test for TEZ. See PIG-3994", Util.isMapredExecType(cluster.getExecType()));
         String[] input1 = {
                 "0",
         };
@@ -1421,7 +1427,10 @@ public class TestEvalPipeline2 {
             pigServer.openIterator("b");
             Assert.fail();
         } catch (Exception e) {
-            String message = e.getCause().getCause().getMessage();
+            // Tez does not construct exceptions from stacktrace as it will have multiple ones.
+            // So e.getCause().getCause() will be null
+            Throwable cause = e.getCause().getCause() ==  null ? e.getCause() : e.getCause().getCause();
+            String message = cause.getMessage();
             Assert.assertTrue(message.contains(ArrayList.class.getName()));
         }
     }
@@ -1429,7 +1438,6 @@ public class TestEvalPipeline2 {
     // See PIG-1826
     @Test
     public void testNonStandardDataWithoutFetch() throws Exception{
-        Assume.assumeTrue("Skip this test for TEZ. See PIG-3994", Util.isMapredExecType(cluster.getExecType()));
         Properties props = pigServer.getPigContext().getProperties();
         props.setProperty(PigConfiguration.PIG_OPT_FETCH, "false");
         String[] input1 = {
@@ -1659,5 +1667,27 @@ public class TestEvalPipeline2 {
         } finally {
             pigServer.getPigContext().getProperties().remove("pig.exec.reducers.bytes.per.reducer");
         }
+    }
+
+    // see PIG-4392
+    @Test
+    public void testRankWithEmptyReduce() throws Exception {
+        Util.createInputFile(cluster, "table_testRankWithEmptyReduce", new String[]{"1\t2\t3", "4\t5\t6", "7\t8\t9"});
+        pigServer.setDefaultParallel(4);
+
+        pigServer.registerQuery("d = load 'table_testRankWithEmptyReduce' as (a:int, b:int, c:int);");
+        pigServer.registerQuery("e = rank d by a parallel 4;");
+
+        Iterator<Tuple> iter = pigServer.openIterator("e");
+
+        Collection<String> results = new HashSet<String>();
+        results.add("(1,1,2,3)");
+        results.add("(2,4,5,6)");
+        results.add("(3,7,8,9)");
+
+        Assert.assertTrue(results.contains(iter.next().toString()));
+        Assert.assertTrue(results.contains(iter.next().toString()));
+        Assert.assertTrue(results.contains(iter.next().toString()));
+        Assert.assertFalse(iter.hasNext());
     }
 }

@@ -112,7 +112,7 @@ public abstract class PigGenericMapBase extends Mapper<Text, Tuple, PigNullableW
             return;
         }
 
-        if(PigMapReduce.sJobConfInternal.get().get(JobControlCompiler.END_OF_INP_IN_MAP, "false").equals("true")) {
+        if(PigMapReduce.sJobConfInternal.get().get(JobControlCompiler.END_OF_INP_IN_MAP, "false").equals("true") && !mp.isEmpty()) {
             // If there is a stream in the pipeline or if this map job belongs to merge-join we could
             // potentially have more to process - so lets
             // set the flag stating that all map input has been sent

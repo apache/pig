@@ -39,6 +39,7 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.newplan.Operator;
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -53,7 +54,7 @@ public class TestCubeOperator {
 
     @BeforeClass
     public static void oneTimeSetUp() throws Exception {
-        pigServer = new PigServer("local");
+        pigServer = new PigServer(Util.getLocalTestMode());
     }
 
     @Before
@@ -142,70 +143,10 @@ public class TestCubeOperator {
     }
 
     @Test
-    public void testRollupHIIBasic() throws IOException {
-        // basic correctness test
-        String query = "a = load 'input' USING mock.Storage() as (x:chararray,y:chararray,z:long);"
-                + "b = cube a by rollup(x,y) pivot 1;"
-                + "c = foreach b generate flatten(group) as (type,location), COUNT_STAR(cube) as count, SUM(cube.z) as total;"
-                + "store c into 'output' using mock.Storage();";
-        Util.registerMultiLineQuery(pigServer, query);
-
-        Set<Tuple> expected = ImmutableSet.of(
-                tf.newTuple(Lists.newArrayList("cat", "miami", (long) 1, (long) 18)),
-                tf.newTuple(Lists.newArrayList("cat", "naples", (long) 1, (long) 9)),
-                tf.newTuple(Lists.newArrayList("cat", null, (long) 2, (long) 27)),
-                tf.newTuple(Lists.newArrayList("dog", "miami", (long) 1, (long) 12)),
-                tf.newTuple(Lists.newArrayList("dog", "tampa", (long) 1, (long) 14)),
-                tf.newTuple(Lists.newArrayList("dog", "naples", (long) 1, (long) 5)),
-                tf.newTuple(Lists.newArrayList("dog", null, (long) 3, (long) 31)),
-                tf.newTuple(Lists.newArrayList("turtle", "tampa", (long) 1, (long) 4)),
-                tf.newTuple(Lists.newArrayList("turtle", "naples", (long) 1, (long) 1)),
-                tf.newTuple(Lists.newArrayList("turtle", null, (long) 2, (long) 5)),
-                tf.newTuple(Lists.newArrayList(null, null, (long) 7, (long) 63)));
-
-        List<Tuple> out = data.get("output");
-        for (Tuple tup : out) {
-            assertTrue(expected + " contains " + tup, expected.contains(tup));
-        }
-    }
-
-    @Test
     public void testCubeAndRollup() throws IOException {
         // basic correctness test
         String query = "a = load 'input2' USING mock.Storage() as (v:chararray,w:chararray,x:chararray,y:chararray,z:long);"
                 + "b = cube a by cube(v,w), rollup(x,y);"
-                + "c = foreach b generate flatten(group) as (type,location,color,category), COUNT_STAR(cube) as count, SUM(cube.z) as total;"
-                + "store c into 'output' using mock.Storage();";
-        Util.registerMultiLineQuery(pigServer, query);
-
-        Set<Tuple> expected = ImmutableSet
-                .of(tf.newTuple(Lists.newArrayList("dog", "miami", "white", "pet", (long) 1,
-                        (long) 5)), tf.newTuple(Lists.newArrayList("dog", null, "white", "pet",
-                        (long) 1, (long) 5)), tf.newTuple(Lists.newArrayList(null, "miami",
-                        "white", "pet", (long) 1, (long) 5)), tf.newTuple(Lists.newArrayList(null,
-                        null, "white", "pet", (long) 1, (long) 5)), tf.newTuple(Lists.newArrayList(
-                        "dog", "miami", "white", null, (long) 1, (long) 5)), tf.newTuple(Lists
-                        .newArrayList("dog", null, "white", null, (long) 1, (long) 5)), tf
-                        .newTuple(Lists.newArrayList(null, "miami", "white", null, (long) 1,
-                                (long) 5)), tf.newTuple(Lists.newArrayList(null, null, "white",
-                        null, (long) 1, (long) 5)), tf.newTuple(Lists.newArrayList("dog", "miami",
-                        null, null, (long) 1, (long) 5)), tf.newTuple(Lists.newArrayList("dog",
-                        null, null, null, (long) 1, (long) 5)), tf.newTuple(Lists.newArrayList(
-                        null, "miami", null, null, (long) 1, (long) 5)), tf.newTuple(Lists
-                        .newArrayList(null, null, null, null, (long) 1, (long) 5)));
-
-        List<Tuple> out = data.get("output");
-        for (Tuple tup : out) {
-            assertTrue(expected + " contains " + tup, expected.contains(tup));
-        }
-
-    }
-
-    @Test
-    public void testCubeAndRollupHII() throws IOException {
-        // basic correctness test
-        String query = "a = load 'input2' USING mock.Storage() as (v:chararray,w:chararray,x:chararray,y:chararray,z:long);"
-                + "b = cube a by cube(v,w), rollup(x,y) pivot 1;"
                 + "c = foreach b generate flatten(group) as (type,location,color,category), COUNT_STAR(cube) as count, SUM(cube.z) as total;"
                 + "store c into 'output' using mock.Storage();";
         Util.registerMultiLineQuery(pigServer, query);
@@ -622,40 +563,11 @@ public class TestCubeOperator {
     }
 
     @Test
-    public void testRollupHIIAfterCogroup() throws IOException {
-        // test for cubing on co-grouped relation
-        String query = "a = load 'input1' USING mock.Storage() as (a1:chararray,b1,c1,d1); "
-                + "b = load 'input' USING mock.Storage() as (a2,b2,c2:long,d2:chararray);"
-                + "c = cogroup a by a1, b by d2;"
-                + "d = foreach c generate flatten(a), flatten(b);"
-                + "e = cube d by rollup(a2,b2) pivot 1;"
-                + "f = foreach e generate flatten(group), COUNT(cube) as count, SUM(cube.c2) as total;"
-                + "store f into 'output' using mock.Storage();";
-
-        Util.registerMultiLineQuery(pigServer, query);
-
-        Set<Tuple> expected = ImmutableSet.of(
-                tf.newTuple(Lists.newArrayList("cat", "miami", (long) 1, (long) 18)),
-                tf.newTuple(Lists.newArrayList("cat", null, (long) 1, (long) 18)),
-                tf.newTuple(Lists.newArrayList("dog", "miami", (long) 1, (long) 12)),
-                tf.newTuple(Lists.newArrayList("dog", "tampa", (long) 1, (long) 14)),
-                tf.newTuple(Lists.newArrayList("dog", null, (long) 2, (long) 26)),
-                tf.newTuple(Lists.newArrayList("turtle", "tampa", (long) 1, (long) 4)),
-                tf.newTuple(Lists.newArrayList("turtle", "naples", (long) 1, (long) 1)),
-                tf.newTuple(Lists.newArrayList("turtle", null, (long) 2, (long) 5)),
-                tf.newTuple(Lists.newArrayList(null, null, (long) 5, (long) 49)));
-
-        List<Tuple> out = data.get("output");
-        for (Tuple tup : out) {
-            assertTrue(expected + " contains " + tup, expected.contains(tup));
-        }
-    }
-
-    @Test
-    public void testIllustrate() throws IOException {
-        // test for illustrate
-        String query = "a = load 'input' USING mock.Storage() as (a1:chararray,b1:chararray,c1:long); "
-                + "b = cube a by cube(a1,b1);";
+    public void testIllustrate() throws Exception {
+	// test for illustrate
+        Assume.assumeTrue("illustrate does not work in tez (PIG-3993)", !Util.getLocalTestMode().toString().startsWith("TEZ"));
+	String query = "a = load 'input' USING mock.Storage() as (a1:chararray,b1:chararray,c1:long); "
+	        + "b = cube a by cube(a1,b1);";
 
         Util.registerMultiLineQuery(pigServer, query);
         Map<Operator, DataBag> examples = pigServer.getExamples("b");
@@ -680,19 +592,6 @@ public class TestCubeOperator {
         // test for explain
         String query = "a = load 'input' USING mock.Storage() as (a1:chararray,b1:chararray,c1:long); "
                 + "b = cube a by rollup(a1,b1);";
-
-        Util.registerMultiLineQuery(pigServer, query);
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        PrintStream ps = new PrintStream(baos);
-        pigServer.explain("b", ps);
-        assertTrue(baos.toString().contains("RollupDimensions"));
-    }
-
-    @Test
-    public void testExplainRollupHII() throws IOException {
-        // test for explain
-        String query = "a = load 'input' USING mock.Storage() as (a1:chararray,b1:chararray,c1:long); "
-                + "b = cube a by rollup(a1,b1) pivot 1;";
 
         Util.registerMultiLineQuery(pigServer, query);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();

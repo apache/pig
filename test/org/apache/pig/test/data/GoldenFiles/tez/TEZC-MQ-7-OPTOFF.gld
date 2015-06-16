@@ -1,0 +1,82 @@
+#--------------------------------------------------
+# There are 1 DAGs in the session
+#--------------------------------------------------
+#--------------------------------------------------
+# TEZ DAG plan: pig-0_scope-0
+#--------------------------------------------------
+Tez vertex scope-44	->	Tez vertex scope-46,Tez vertex scope-52,
+Tez vertex scope-48	->	Tez vertex scope-50,Tez vertex scope-54,
+Tez vertex scope-50	->	Tez vertex scope-46,
+Tez vertex scope-46	->	Tez vertex group scope-60,
+Tez vertex scope-54	->	Tez vertex scope-52,
+Tez vertex scope-52	->	Tez vertex group scope-60,
+Tez vertex group scope-60
+
+Tez vertex scope-44
+# Plan on vertex
+POValueOutputTez - scope-45	->	 [scope-46, scope-52]
+|
+|---a: New For Each(false,false)[bag] - scope-7
+    |   |
+    |   Cast[int] - scope-2
+    |   |
+    |   |---Project[bytearray][0] - scope-1
+    |   |
+    |   Cast[int] - scope-5
+    |   |
+    |   |---Project[bytearray][1] - scope-4
+    |
+    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
+Tez vertex scope-48
+# Plan on vertex
+POValueOutputTez - scope-49	->	 [scope-50, scope-54]
+|
+|---b: New For Each(false,false)[bag] - scope-18
+    |   |
+    |   Cast[int] - scope-13
+    |   |
+    |   |---Project[bytearray][0] - scope-12
+    |   |
+    |   Cast[int] - scope-16
+    |   |
+    |   |---Project[bytearray][1] - scope-15
+    |
+    |---b: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-11
+Tez vertex scope-50
+# Plan on vertex
+Local Rearrange[tuple]{int}(false) - scope-27	->	 scope-46
+|   |
+|   Project[int][0] - scope-23
+|
+|---POValueInputTez - scope-51	<-	 scope-48
+Tez vertex scope-46
+# Plan on vertex
+e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-61	->	 scope-43
+|
+|---c: FRJoin[tuple] - scope-24	<-	 scope-50
+    |   |
+    |   Project[int][0] - scope-22
+    |   |
+    |   Project[int][0] - scope-23
+    |
+    |---POValueInputTez - scope-47	<-	 scope-44
+Tez vertex scope-54
+# Plan on vertex
+Local Rearrange[tuple]{int}(false) - scope-39	->	 scope-52
+|   |
+|   Project[int][1] - scope-35
+|
+|---POValueInputTez - scope-55	<-	 scope-48
+Tez vertex scope-52
+# Plan on vertex
+e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-62	->	 scope-43
+|
+|---d: FRJoin[tuple] - scope-36	<-	 scope-54
+    |   |
+    |   Project[int][1] - scope-34
+    |   |
+    |   Project[int][1] - scope-35
+    |
+    |---POValueInputTez - scope-53	<-	 scope-44
+Tez vertex group scope-60	<-	 [scope-46, scope-52]	->	 null
+# No plan on vertex group

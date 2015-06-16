@@ -24,13 +24,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.Expression;
+import org.apache.pig.Expression.BinaryExpression;
+import org.apache.pig.Expression.Column;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.LoadMetadata;
 import org.apache.pig.LoadPredicatePushdown;
-import org.apache.pig.Expression.BinaryExpression;
-import org.apache.pig.Expression.Column;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
@@ -45,6 +47,8 @@ import org.apache.pig.newplan.optimizer.Rule;
 import org.apache.pig.newplan.optimizer.Transformer;
 
 public class PredicatePushdownOptimizer extends Rule {
+
+    private static final Log LOG = LogFactory.getLog(PredicatePushdownOptimizer.class);
 
     public PredicatePushdownOptimizer(String name) {
         super(name, false);
@@ -153,6 +157,7 @@ public class PredicatePushdownOptimizer extends Rule {
                 // LoadFunc.getSchema()
                 updateMappedColNames(pushDownPredicate);
                 try {
+                    LOG.info("Setting predicate pushdown filter [" + pushDownPredicate + "] on loader " + loadPredPushdown);
                     loadPredPushdown.setPushdownPredicate(pushDownPredicate);
                 } catch (IOException e) {
                     throw new FrontendException( e );

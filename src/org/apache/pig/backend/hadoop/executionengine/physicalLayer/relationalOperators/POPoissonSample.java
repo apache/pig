@@ -63,10 +63,12 @@ public class POPoissonSample extends PhysicalOperator {
 
     private float heapPerc = 0f;
 
+    private long totalMemory = Runtime.getRuntime().maxMemory();
+
     // new Sample result
     private Result newSample = null;
 
-    public POPoissonSample(OperatorKey k, int rp, int sr, float hp) {
+    public POPoissonSample(OperatorKey k, int rp, int sr, float hp, long tm) {
         super(k, rp, null);
         numRowsSampled = 0;
         avgTupleMemSz = 0;
@@ -77,6 +79,9 @@ public class POPoissonSample extends PhysicalOperator {
         newSample = null;
         sampleRate = sr;
         heapPerc = hp;
+        if (tm != -1) {
+            totalMemory = tm;
+        }
     }
 
     @Override
@@ -107,11 +112,7 @@ public class POPoissonSample extends PhysicalOperator {
                 if (res.returnStatus == POStatus.STATUS_NULL) {
                     continue;
                 } else if (res.returnStatus == POStatus.STATUS_EOP) {
-                    if (this.parentPlan.endOfAllInput) {
-                        return eop;
-                    } else {
-                        continue;
-                    }
+                    return res;
                 } else if (res.returnStatus == POStatus.STATUS_ERR) {
                     return res;
                 }
@@ -119,7 +120,7 @@ public class POPoissonSample extends PhysicalOperator {
                 if (res.result == null) {
                     continue;
                 }
-                long availRedMem = (long) (Runtime.getRuntime().maxMemory() * heapPerc);
+                long availRedMem = (long) (totalMemory * heapPerc);
                 memToSkipPerSample = availRedMem/sampleRate;
                 updateSkipInterval((Tuple)res.result);
 

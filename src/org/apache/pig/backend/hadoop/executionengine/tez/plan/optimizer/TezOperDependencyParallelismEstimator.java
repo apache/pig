@@ -111,7 +111,7 @@ public class TezOperDependencyParallelismEstimator implements TezParallelismEsti
             // and sample/scalar (does not impact parallelism)
             if (entry.getValue().dataMovementType==DataMovementType.SCATTER_GATHER ||
                     entry.getValue().dataMovementType==DataMovementType.ONE_TO_ONE) {
-                double predParallelism = pred.getEffectiveParallelism();
+                double predParallelism = pred.getEffectiveParallelism(pc.defaultParallel);
                 if (predParallelism==-1) {
                     throw new IOException("Cannot estimate parallelism for " + tezOper.getOperatorKey().toString()
                             + ", effective parallelism for predecessor " + tezOper.getOperatorKey().toString()
@@ -120,10 +120,8 @@ public class TezOperDependencyParallelismEstimator implements TezParallelismEsti
 
                 //For cases like Union we can just limit to sum of pred vertices parallelism
                 boolean applyFactor = !tezOper.isUnion();
-                if (pred.plan!=null && applyFactor) { // pred.plan can be null if it is a VertexGroup
-                    TezParallelismFactorVisitor parallelismFactorVisitor = new TezParallelismFactorVisitor(pred.plan, tezOper.getOperatorKey().toString());
-                    parallelismFactorVisitor.visit();
-                    predParallelism = predParallelism * parallelismFactorVisitor.getFactor();
+                if (!pred.isVertexGroup() && applyFactor) {
+                    predParallelism = predParallelism * pred.getParallelismFactor();
                 }
                 estimatedParallelism += predParallelism;
             }
@@ -157,7 +155,7 @@ public class TezOperDependencyParallelismEstimator implements TezParallelismEsti
         List<TezOperator> preds = plan.getPredecessors(tezOper);
         for (TezOperator pred : preds) {
             if (pred.isVertexGroup()) {
-                for (OperatorKey unionPred : pred.getUnionPredecessors()) {
+                for (OperatorKey unionPred : pred.getVertexGroupMembers()) {
                     if (unionPred.toString().equals(inputKey)) {
                         return plan.getOperator(unionPred);
                     }

@@ -76,7 +76,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPartitionRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORank;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORollupHIIForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSkewedJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
@@ -93,6 +92,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.DefaultIndexableLoader;
 import org.apache.pig.impl.builtin.FindQuantiles;
 import org.apache.pig.impl.builtin.GetMemNumRows;
+import org.apache.pig.impl.builtin.IsFirstReduceOfKey;
 import org.apache.pig.impl.builtin.PartitionSkewedKeys;
 import org.apache.pig.impl.builtin.PoissonSampleLoader;
 import org.apache.pig.impl.builtin.RandomSampleLoader;
@@ -1099,11 +1099,6 @@ public class MRCompiler extends PhyPlanVisitor {
     }
 
     @Override
-    public void visitPORollupHIIForEach(PORollupHIIForEach op) throws VisitorException {
-        visitPOForEach(op);
-    }
-
-    @Override
     public void visitGlobalRearrange(POGlobalRearrange op) throws VisitorException{
         try{
             blocking(op);
@@ -1951,7 +1946,7 @@ public class MRCompiler extends PhyPlanVisitor {
                 eps.add(ep);
                 if (!inner[i]) {
                     // Add an empty bag for outer join
-                    CompilerUtils.addEmptyBagOuterJoin(ep, op.getSchema(i));
+                    CompilerUtils.addEmptyBagOuterJoin(ep, op.getSchema(i), true, IsFirstReduceOfKey.class.getName());
                 }
                 flat.add(true);
             }

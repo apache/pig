@@ -196,6 +196,7 @@ public class Utf8StorageConverter implements LoadStoreCaster {
 
     private Map<String, Object> consumeMap(PushbackInputStream in, ResourceFieldSchema fieldSchema) throws IOException {
         int buf;
+        boolean emptyMap = true;
 
         while ((buf=in.read())!='[') {
             if (buf==-1) {
@@ -207,9 +208,14 @@ public class Utf8StorageConverter implements LoadStoreCaster {
         while (true) {
             // Read key (assume key can not contains special character such as #, (, [, {, }, ], )
             while ((buf=in.read())!='#') {
+                // end of map
+                if (emptyMap && buf==']') {
+                    return m;
+                }
                 if (buf==-1) {
                     throw new IOException("Unexpect end of map");
                 }
+                emptyMap = false;
                 mOut.write(buf);
             }
             String key = bytesToCharArray(mOut.toByteArray());
@@ -315,6 +321,7 @@ public class Utf8StorageConverter implements LoadStoreCaster {
             break;
         case DataType.BIGDECIMAL:
             field = bytesToBigDecimal(b);
+            break;
         case DataType.DATETIME:
             field = bytesToDateTime(b);
             break;

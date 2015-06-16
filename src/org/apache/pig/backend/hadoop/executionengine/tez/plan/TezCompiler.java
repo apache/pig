@@ -95,6 +95,7 @@ import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POStoreTe
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POValueInputTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POValueOutputTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.FindQuantilesTez;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.IsFirstReduceOfKeyTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.PartitionSkewedKeysTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.ReadScalarsTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.SkewedPartitionerTez;
@@ -284,6 +285,11 @@ public class TezCompiler extends PhyPlanVisitor {
                     FuncSpec newSpec = new FuncSpec(ReadScalarsTez.class.getName(), from.getOperatorKey().toString());
                     userFunc.setFuncSpec(newSpec);
 
+                    //Remove unused store filename
+                    if (userFunc.getInputs().size() == 2) {
+                        userFunc.getInputs().remove(1);
+                    }
+
                     if (storeSeen.containsKey(store)) {
                         storeSeen.get(store).addOutputKey(tezOp.getOperatorKey().toString());
                     } else {
@@ -292,14 +298,13 @@ public class TezCompiler extends PhyPlanVisitor {
                         from.plan.remove(from.plan.getOperator(store.getOperatorKey()));
                         from.plan.addAsLeaf(output);
                         storeSeen.put(store, output);
-
-                        //Remove unused store filename
-                        userFunc.getInputs().remove(1);
                     }
 
-                    TezEdgeDescriptor edge = TezCompilerUtil.connect(tezPlan, from, tezOp);
-                    //TODO shared edge once support is available in Tez
-                    TezCompilerUtil.configureValueOnlyTupleOutput(edge, DataMovementType.BROADCAST);
+                    if (tezPlan.getPredecessors(tezOp)==null || !tezPlan.getPredecessors(tezOp).contains(from)) {
+                        TezEdgeDescriptor edge = TezCompilerUtil.connect(tezPlan, from, tezOp);
+                        //TODO shared edge once support is available in Tez
+                        TezCompilerUtil.configureValueOnlyTupleOutput(edge, DataMovementType.BROADCAST);
+                    }
                 }
             }
         }
@@ -366,7 +371,7 @@ public class TezCompiler extends PhyPlanVisitor {
                     storeOnlyPhyPlan.addAsLeaf(store);
                     storeOnlyTezOperator.plan = storeOnlyPhyPlan;
                     tezPlan.add(storeOnlyTezOperator);
-                    phyToTezOpMap.put(store, storeOnlyTezOperator);
+                    phyToTezOpMap.put(p, storeOnlyTezOperator);
 
                     // Create new operator as second splittee
                     curTezOp = getTezOp();
@@ -1132,7 +1137,6 @@ public class TezCompiler extends PhyPlanVisitor {
     public void visitMergeJoin(POMergeJoin joinOp) throws VisitorException {
 
         try{
-            joinOp.setEndOfRecordMark(POStatus.STATUS_NULL);
             if(compiledInputs.length != 2 || joinOp.getInputs().size() != 2){
                 int errCode=1101;
                 throw new TezCompilerException("Merge Join must have exactly two inputs. Found : "+compiledInputs.length, errCode);
@@ -1474,8 +1478,12 @@ public class TezCompiler extends PhyPlanVisitor {
             if (pigProperties.containsKey(PigConfiguration.PIG_SKEWEDJOIN_REDUCE_MEMUSAGE)) {
                 heapPerc = Float.valueOf(pigProperties.getProperty(PigConfiguration.PIG_SKEWEDJOIN_REDUCE_MEMUSAGE));
             }
+            long totalMemory = -1;
+            if (pigProperties.containsKey(PigConfiguration.PIG_SKEWEDJOIN_REDUCE_MEM)) {
+                totalMemory = Long.valueOf(pigProperties.getProperty(PigConfiguration.PIG_SKEWEDJOIN_REDUCE_MEM));
+            }
             POPoissonSample poSample = new POPoissonSample(new OperatorKey(scope,nig.getNextNodeId(scope)),
-                    -1, sampleRate, heapPerc);
+                    -1, sampleRate, heapPerc, totalMemory);
 
             TezOperator prevOp = compiledInputs[0];
             prevOp.plan.addAsLeaf(lrTez);
@@ -1631,6 +1639,7 @@ public class TezCompiler extends PhyPlanVisitor {
             List<PhysicalPlan> eps = new ArrayList<PhysicalPlan>();
             List<Boolean> flat = new ArrayList<Boolean>();
 
+            boolean containsOuter = false;
             // Add corresponding POProjects
             for (int i=0; i < 2; i++) {
                 ep = new PhysicalPlan();
@@ -1642,7 +1651,8 @@ public class TezCompiler extends PhyPlanVisitor {
                 eps.add(ep);
                 if (!inner[i]) {
                     // Add an empty bag for outer join
-                    CompilerUtils.addEmptyBagOuterJoin(ep, op.getSchema(i));
+                    CompilerUtils.addEmptyBagOuterJoin(ep, op.getSchema(i), true, IsFirstReduceOfKeyTez.class.getName());
+                    containsOuter = true;
                 }
                 flat.add(true);
             }
@@ -1672,17 +1682,23 @@ public class TezCompiler extends PhyPlanVisitor {
             TezCompilerUtil.connect(tezPlan, prevOp, sampleJobPair.first);
 
             POValueOutputTez sampleOut = (POValueOutputTez) sampleJobPair.first.plan.getLeaves().get(0);
-            for (int i = 0; i < 2; i++) {
-                joinJobs[i].setSampleOperator(sampleJobPair.first);
-
-                // Configure broadcast edges for distribution map
-                edge = TezCompilerUtil.connect(tezPlan, sampleJobPair.first, joinJobs[i]);
-                TezCompilerUtil.configureValueOnlyTupleOutput(edge, DataMovementType.BROADCAST);
-                sampleOut.addOutputKey(joinJobs[i].getOperatorKey().toString());
+            for (int i = 0; i <= 2; i++) {
+                if (i != 2 || containsOuter) {
+                    // We need to send sample to left relation partitioner vertex, right relation load vertex,
+                    // and join vertex (IsFirstReduceOfKey in join vertex need sample file as well)
+                    joinJobs[i].setSampleOperator(sampleJobPair.first);
+    
+                    // Configure broadcast edges for distribution map
+                    edge = TezCompilerUtil.connect(tezPlan, sampleJobPair.first, joinJobs[i]);
+                    TezCompilerUtil.configureValueOnlyTupleOutput(edge, DataMovementType.BROADCAST);
+                    sampleOut.addOutputKey(joinJobs[i].getOperatorKey().toString());
+                }
 
                 // Configure skewed partitioner for join
-                edge = joinJobs[2].inEdges.get(joinJobs[i].getOperatorKey());
-                edge.partitionerClass = SkewedPartitionerTez.class;
+                if (i != 2) {
+                    edge = joinJobs[2].inEdges.get(joinJobs[i].getOperatorKey());
+                    edge.partitionerClass = SkewedPartitionerTez.class;
+                }
             }
 
             joinJobs[2].markSkewedJoin();

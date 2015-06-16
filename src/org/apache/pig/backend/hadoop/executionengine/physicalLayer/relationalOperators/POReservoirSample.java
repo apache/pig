@@ -103,28 +103,37 @@ public class POReservoirSample extends PhysicalOperator {
                 rowProcessed++;
             } else if (res.returnStatus == POStatus.STATUS_NULL) {
                 continue;
+            } else if (res.returnStatus == POStatus.STATUS_EOP) {
+                if (this.parentPlan.endOfAllInput) {
+                    break;
+                } else {
+                    // In case of Split can get EOP in between.
+                    // Return here instead of setting lastSample to EOP in getSample
+                    return res;
+                }
             } else {
                 break;
             }
         }
 
-        Random randGen = new Random();
+        if (res == null || res.returnStatus != POStatus.STATUS_EOP) {
+            Random randGen = new Random();
+            while (true) {
+                // pick this as sample
+                res = processInput();
+                if (res.returnStatus == POStatus.STATUS_NULL) {
+                    continue;
+                } else if (res.returnStatus != POStatus.STATUS_OK) {
+                    break;
+                }
 
-        while (true) {
-            // pick this as sample
-            res = processInput();
-            if (res.returnStatus == POStatus.STATUS_NULL) {
-                continue;
-            } else if (res.returnStatus != POStatus.STATUS_OK) {
-                break;
+                // collect samples until input is exhausted
+                int rand = randGen.nextInt(rowProcessed);
+                if (rand < numSamples) {
+                    samples[rand] = res;
+                }
+                rowProcessed++;
             }
-
-            // collect samples until input is exhausted
-            int rand = randGen.nextInt(rowProcessed);
-            if (rand < numSamples) {
-                samples[rand] = res;
-            }
-            rowProcessed++;
         }
 
         if (this.parentPlan.endOfAllInput && res.returnStatus == POStatus.STATUS_EOP) {
@@ -141,7 +150,7 @@ public class POReservoirSample extends PhysicalOperator {
         if (lastSample.returnStatus==POStatus.STATUS_EOP) {
             return lastSample;
         }
-        
+
         Result currentSample = retrieveSample();
         // If this is the last sample, tag with number of rows
         if (currentSample.returnStatus == POStatus.STATUS_EOP) {
@@ -155,7 +164,7 @@ public class POReservoirSample extends PhysicalOperator {
     }
 
     private Result retrieveSample() throws ExecException {
-        if(nextSampleIdx < samples.length){
+        if(nextSampleIdx < Math.min(rowProcessed, samples.length)){
             if (illustrator != null) {
                 illustratorMarkup(samples[nextSampleIdx].result, samples[nextSampleIdx].result, 0);
             }

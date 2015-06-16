@@ -28,6 +28,7 @@ import org.apache.avro.generic.GenericArray;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericEnumSymbol;
 import org.apache.avro.generic.IndexedRecord;
+import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataByteArray;
@@ -47,6 +48,7 @@ import java.util.Map;
  */
 public final class AvroTupleWrapper <T extends IndexedRecord>
     implements Tuple {
+    private static final Log LOG = LogFactory.getLog(AvroTupleWrapper.class);
 
   /**
    * The Avro object wrapped in the pig Tuple.
@@ -130,13 +132,17 @@ public final class AvroTupleWrapper <T extends IndexedRecord>
       case BYTES:
         return new DataByteArray(((ByteBuffer) o).array());
       case UNION:
-        return unionResolver(o);
+        return getPigObject(o);
       default:
         return o;
     }
   }
 
-  public static Object unionResolver(Object o) {
+  /**
+   * @param o An Avro object to convert to an equivalent type in Pig
+   * @return Equivalent Pig object
+   */
+  public static Object getPigObject(Object o) {
     if (o instanceof org.apache.avro.util.Utf8) {
       return o.toString();
     } else if (o instanceof IndexedRecord) {
@@ -165,8 +171,7 @@ public final class AvroTupleWrapper <T extends IndexedRecord>
       try {
         all.add(get(f.pos()));
       } catch (ExecException e) {
-        LogFactory.getLog(getClass()).error(
-            "could not process tuple with contents " + avroObject, e);
+        LOG.error("could not process tuple with contents " + avroObject, e);
         return null;
       }
     }

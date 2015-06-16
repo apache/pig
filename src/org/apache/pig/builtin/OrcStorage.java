@@ -91,7 +91,7 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.util.Utils;
-import org.apache.pig.impl.util.orc.OrcUtils;
+import org.apache.pig.impl.util.hive.HiveUtils;
 import org.joda.time.DateTime;
 
 import com.esotericsoftware.kryo.io.Input;
@@ -235,7 +235,7 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
             typeInfo = (TypeInfo)ObjectSerializer.deserialize(p.getProperty(signature + SchemaSignatureSuffix));
         }
         if (oi==null) {
-            oi = OrcUtils.createObjectInspector(typeInfo);
+            oi = HiveUtils.createObjectInspector(typeInfo);
         }
     }
 
@@ -244,7 +244,7 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
         ResourceFieldSchema fs = new ResourceFieldSchema();
         fs.setType(DataType.TUPLE);
         fs.setSchema(rs);
-        typeInfo = OrcUtils.getTypeInfo(fs);
+        typeInfo = HiveUtils.getTypeInfo(fs);
         Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass());
         p.setProperty(signature + SchemaSignatureSuffix, ObjectSerializer.serialize(typeInfo));
     }
@@ -376,7 +376,7 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
             }
             Object value = in.getCurrentValue();
 
-            Tuple t = (Tuple)OrcUtils.convertOrcToPig(value, oi, mRequiredColumns);
+            Tuple t = (Tuple)HiveUtils.convertHiveToPig(value, oi, mRequiredColumns);
             return t;
         } catch (InterruptedException e) {
             int errCode = 6018;
@@ -438,7 +438,7 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
             }
         }
 
-        ResourceFieldSchema fs = OrcUtils.getResourceFieldSchema(typeInfo);
+        ResourceFieldSchema fs = HiveUtils.getResourceFieldSchema(typeInfo);
         return fs.getSchema();
     }
 

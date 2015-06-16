@@ -20,16 +20,19 @@ package org.apache.pig.newplan.logical.rules;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.Expression;
-import org.apache.pig.LoadFunc;
-import org.apache.pig.LoadMetadata;
 import org.apache.pig.Expression.BinaryExpression;
 import org.apache.pig.Expression.Column;
+import org.apache.pig.LoadFunc;
+import org.apache.pig.LoadMetadata;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.FilterExtractor;
 import org.apache.pig.newplan.Operator;
@@ -45,6 +48,8 @@ import org.apache.pig.newplan.optimizer.Rule;
 import org.apache.pig.newplan.optimizer.Transformer;
 
 public class PartitionFilterOptimizer extends Rule {
+
+    private static final Log LOG = LogFactory.getLog(PartitionFilterOptimizer.class);
     private String[] partitionKeys;
 
     /**
@@ -100,6 +105,7 @@ public class PartitionFilterOptimizer extends Rule {
 
     public class PartitionFilterPushDownTransformer extends Transformer {
         protected OperatorSubPlan subPlan;
+        private boolean planChanged;
 
         @Override
         public boolean check(OperatorPlan matched) throws FrontendException {
@@ -136,7 +142,10 @@ public class PartitionFilterOptimizer extends Rule {
 
         @Override
         public OperatorPlan reportChanges() {
-            return subPlan;
+            // Return null in case there is no partition filter extracted
+            // which means the plan hasn't changed.
+            // If not return the modified plan which has filters removed.
+            return planChanged ? subPlan : null;
         }
 
         @Override
@@ -148,6 +157,7 @@ public class PartitionFilterOptimizer extends Rule {
             FilterExtractor filterFinder = new PartitionFilterExtractor(loFilter.getFilterPlan(),
                     getMappedKeys(partitionKeys));
             filterFinder.visit();
+            LOG.info("Partition keys are " + Arrays.asList(partitionKeys));
             Expression partitionFilter = filterFinder.getPushDownExpression();
 
             if(partitionFilter != null) {
@@ -157,7 +167,9 @@ public class PartitionFilterOptimizer extends Rule {
                 // LoadFunc.getSchema()
                 updateMappedColNames(partitionFilter);
                 try {
+                    LOG.info("Setting partition filter [" + partitionFilter + "] on loader " + loadMetadata);
                     loadMetadata.setPartitionFilter(partitionFilter);
+                    planChanged = true;
                 } catch (IOException e) {
                     throw new FrontendException( e );
                 }

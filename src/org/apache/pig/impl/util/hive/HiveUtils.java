@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.impl.util.orc;
+package org.apache.pig.impl.util.hive;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -32,6 +32,7 @@ import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.common.type.HiveVarchar;
 import org.apache.hadoop.hive.serde2.io.HiveDecimalWritable;
 import org.apache.hadoop.hive.serde2.io.TimestampWritable;
+import org.apache.hadoop.hive.serde2.objectinspector.ConstantObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.MapObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
@@ -42,7 +43,14 @@ import org.apache.hadoop.hive.serde2.objectinspector.primitive.AbstractPrimitive
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.BinaryObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.HiveDecimalObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.JavaConstantBooleanObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.JavaConstantDoubleObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.JavaConstantFloatObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.JavaConstantIntObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.JavaConstantLongObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.JavaConstantStringObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.TimestampObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.WritableConstantFloatObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.ListTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.MapTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.PrimitiveTypeInfo;
@@ -50,6 +58,7 @@ import org.apache.hadoop.hive.serde2.typeinfo.StructTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.io.FloatWritable;
 import org.apache.pig.PigWarning;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
@@ -63,8 +72,11 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
 import org.joda.time.DateTime;
 
-public class OrcUtils {
-    public static Object convertOrcToPig(Object obj, ObjectInspector oi, boolean[] includedColumns) {
+public class HiveUtils {
+
+    static TupleFactory tf = TupleFactory.getInstance();
+
+    public static Object convertHiveToPig(Object obj, ObjectInspector oi, boolean[] includedColumns) {
         Object result = null;
         if (obj == null) {
             return result;
@@ -72,16 +84,16 @@ public class OrcUtils {
         switch (oi.getCategory()) {
         case PRIMITIVE:
             PrimitiveObjectInspector poi = (PrimitiveObjectInspector)oi;
-            result = getPrimaryFromOrc(obj, poi);
+            result = getPrimaryFromHive(obj, poi);
             break;
         case STRUCT:
             StructObjectInspector soi = (StructObjectInspector)oi;
             List<StructField> elementFields = (List<StructField>) soi.getAllStructFieldRefs();
             List<Object> items = soi.getStructFieldsDataAsList(obj);
-            Tuple t = TupleFactory.getInstance().newTuple();
+            Tuple t = tf.newTuple();
             for (int i=0;i<items.size();i++) {
                 if (includedColumns==null || includedColumns[i]) {
-                    Object convertedItem = convertOrcToPig(items.get(i), elementFields.get(i).getFieldObjectInspector(), null);
+                    Object convertedItem = convertHiveToPig(items.get(i), elementFields.get(i).getFieldObjectInspector(), null);
                     t.append(convertedItem);
                 }
             }
@@ -94,8 +106,8 @@ public class OrcUtils {
             Map<Object, Object> m = (Map<Object, Object>)obj;
             result = new HashMap();
             for (Map.Entry<Object, Object> entry : m.entrySet()) {
-                Object convertedKey = convertOrcToPig(entry.getKey(), keyObjectInspector, null);
-                Object convertedValue = convertOrcToPig(entry.getValue(), valueObjectInspector, null);
+                Object convertedKey = convertHiveToPig(entry.getKey(), keyObjectInspector, null);
+                Object convertedValue = convertHiveToPig(entry.getValue(), valueObjectInspector, null);
                 if (convertedKey!=null) {
                     ((Map)result).put(convertedKey.toString(), convertedValue);
                 } else {
@@ -111,8 +123,21 @@ public class OrcUtils {
             result = BagFactory.getInstance().newDefaultBag();
             ObjectInspector itemObjectInspector = loi.getListElementObjectInspector();
             for (Object item : loi.getList(obj)) {
-                Tuple convertedItem = (Tuple)convertOrcToPig(item, itemObjectInspector, null);
-                ((DataBag)result).add(convertedItem);
+                Object convertedItem = convertHiveToPig(item, itemObjectInspector, null);
+                Tuple innerTuple;
+                // Hive array contains a single item of any type, if it is not tuple, 
+                // need to wrap it in tuple
+                if (convertedItem instanceof Tuple) {
+                    innerTuple = (Tuple)convertedItem;
+                } else {
+                    innerTuple = tf.newTuple(1);
+                    try {
+                        innerTuple.set(0, convertedItem);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                ((DataBag)result).add(innerTuple);
             }
             break;
         default:
@@ -122,7 +147,7 @@ public class OrcUtils {
         return result;
     }
 
-    public static Object getPrimaryFromOrc(Object obj, PrimitiveObjectInspector poi) {
+    public static Object getPrimaryFromHive(Object obj, PrimitiveObjectInspector poi) {
         Object result = null;
         if (obj == null) {
             return result;
@@ -149,9 +174,9 @@ public class OrcUtils {
             result = (int)(Short)poi.getPrimitiveJavaObject(obj);
             break;
         case BINARY:
-            BytesWritable bw = (BytesWritable) obj;
+            byte[] b = (byte[])poi.getPrimitiveJavaObject(obj);
             // Make a copy
-            result = new DataByteArray(bw.getBytes(), 0, bw.getLength());
+            result = new DataByteArray(b, 0, b.length);
             break;
         case TIMESTAMP:
             java.sql.Timestamp origTimeStamp = (java.sql.Timestamp)poi.getPrimitiveJavaObject(obj);
@@ -196,7 +221,18 @@ public class OrcUtils {
             ListTypeInfo lti = (ListTypeInfo)ti;
             fieldSchema.setType(DataType.BAG);
             innerFs = new ResourceFieldSchema[1];
-            innerFs[0] = getResourceFieldSchema(lti.getListElementTypeInfo());
+            ResourceFieldSchema itemSchema = getResourceFieldSchema(lti.getListElementTypeInfo());
+            if (itemSchema.getType() == DataType.TUPLE) {
+                innerFs[0] = itemSchema;
+            } else {
+                // If item is not tuple, wrap it into tuple
+                ResourceFieldSchema tupleFieldSchema = new ResourceFieldSchema();
+                tupleFieldSchema.setType(DataType.TUPLE);
+                ResourceSchema tupleSchema = new ResourceSchema();
+                tupleSchema.setFields(new ResourceFieldSchema[] {itemSchema});
+                innerFs[0] = tupleFieldSchema;
+            }
+
             innerSchema = new ResourceSchema();
             innerSchema.setFields(innerFs);
             fieldSchema.setSchema(innerSchema);
@@ -284,7 +320,13 @@ public class OrcUtils {
             if (fs.getSchema()==null || fs.getSchema().getFields().length!=1) {
                 throw new IOException("Wrong bag inner schema");
             }
-            TypeInfo elementField = getTypeInfo(fs.getSchema().getFields()[0]);
+            ResourceFieldSchema tupleSchema = fs.getSchema().getFields()[0];
+            ResourceFieldSchema itemSchema = tupleSchema;
+            // If single item tuple, remove the tuple, put the inner item into list directly
+            if (tupleSchema.getSchema().getFields().length == 1) {
+                itemSchema = tupleSchema.getSchema().getFields()[0];
+            }
+            TypeInfo elementField = getTypeInfo(itemSchema);
             ((ListTypeInfo)ti).setListElementTypeInfo(elementField);
             break;
         case DataType.MAP:
@@ -335,12 +377,12 @@ public class OrcUtils {
         return ti;
     }
 
-    static class Field implements StructField {
+    static public class Field implements StructField {
         private final String name;
         private final ObjectInspector inspector;
         private final int offset;
 
-        Field(String name, ObjectInspector inspector, int offset) {
+        public Field(String name, ObjectInspector inspector, int offset) {
           this.name = name;
           this.inspector = inspector;
           this.offset = offset;
@@ -378,6 +420,10 @@ public class OrcUtils {
                 fields.add(new Field(fieldNames.get(i),
                         createObjectInspector(fieldTypes.get(i)), i));
             }
+        }
+
+        PigStructInspector(List<StructField> fields) {
+            this.fields = fields;
         }
 
         @Override
@@ -463,7 +509,7 @@ public class OrcUtils {
         private ObjectInspector value;
 
         PigMapObjectInspector(MapTypeInfo info) {
-            key = createObjectInspector(info.getMapKeyTypeInfo());
+            key = PrimitiveObjectInspectorFactory.javaStringObjectInspector;
             value = createObjectInspector(info.getMapValueTypeInfo());
         }
 
@@ -532,7 +578,7 @@ public class OrcUtils {
 
         @Override
         public Object getListElement(Object list, int i) {
-            if (list!=cachedObject) {
+            if (i==0 || list!=cachedObject) {
                 cachedObject = list;
                 index = -1;
                 DataBag db = (DataBag)list;
@@ -540,7 +586,17 @@ public class OrcUtils {
             }
             if (i==index+1) {
                 index++;
-                return iter.next();
+                try {
+                    Tuple t = iter.next();
+                    // If single item tuple, take the item directly from list
+                    if (t.size() == 1) {
+                        return t.get(0);
+                    } else {
+                        return t;
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
             } else {
                 throw new RuntimeException("Only sequential read is supported");
             }
@@ -557,7 +613,15 @@ public class OrcUtils {
             List<Object> result = new ArrayList<Object>();
             DataBag bag = (DataBag)list;
             for (Tuple t : bag) {
-                result.add(t);
+                if (t.size() == 1) {
+                    try {
+                        result.add(t.get(0));
+                    } catch (ExecException e) {
+                        throw new RuntimeException(e);
+                    }
+                } else {
+                    result.add(t);
+                }
             }
             return result;
         }
@@ -692,6 +756,25 @@ public class OrcUtils {
         default:
           throw new IllegalArgumentException("Unknown type " +
             info.getCategory());
-      }
+        }
+    }
+
+    public static ConstantObjectInspector getConstantObjectInspector(Object obj) {
+        switch (DataType.findType(obj)) {
+        case DataType.FLOAT:
+            return new JavaConstantFloatObjectInspector((Float)obj);
+        case DataType.DOUBLE:
+            return new JavaConstantDoubleObjectInspector((Double)obj);
+        case DataType.BOOLEAN:
+            return new JavaConstantBooleanObjectInspector((Boolean)obj);
+        case DataType.INTEGER:
+            return new JavaConstantIntObjectInspector((Integer)obj);
+        case DataType.LONG:
+            return new JavaConstantLongObjectInspector((Long)obj);
+        case DataType.CHARARRAY:
+            return new JavaConstantStringObjectInspector((String)obj);
+        default:
+            throw new IllegalArgumentException("Not implemented " + obj.getClass().getName());
+        }
     }
 }

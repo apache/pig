@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezResourceManager;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.TezCompilerUtil;
@@ -50,11 +51,18 @@ public class TezOperPlan extends OperatorPlan<TezOperator> {
 
     private static final long serialVersionUID = 1L;
 
-    private Map<String, Path> extraResources = new HashMap<String, Path>();
+    private transient Map<String, Path> extraResources = new HashMap<String, Path>();
 
     private int estimatedTotalParallelism = -1;
 
+    private transient Credentials creds;
+
     public TezOperPlan() {
+        creds = new Credentials();
+    }
+
+    public Credentials getCredentials() {
+        return creds;
     }
 
     public int getEstimatedTotalParallelism() {
@@ -233,6 +241,48 @@ public class TezOperPlan extends OperatorPlan<TezOperator> {
             // Simply remove from plan, don't deal with inEdges/outEdges
             super.remove(node);
         }
+    }
+
+    // This method is used in PigGraceShuffleVertexManager to get a list of grandparents. 
+    // Also need to exclude grandparents which also a parent (a is both parent and grandparent in the diagram below)
+    //    a   ->    c
+    //      \  b  /
+    // 
+    public static List<TezOperator> getGrandParentsForGraceParallelism(TezOperPlan tezPlan, TezOperator op) {
+        List<TezOperator> grandParents = new ArrayList<TezOperator>();
+        List<TezOperator> preds = tezPlan.getPredecessors(op);
+        if (preds != null) {
+            for (TezOperator pred : preds) {
+                if (pred.isVertexGroup()) {
+                    grandParents.clear();
+                    return grandParents;
+                }
+                List<TezOperator> predPreds = tezPlan.getPredecessors(pred);
+                if (predPreds!=null) {
+                    for (TezOperator predPred : predPreds) {
+                        if (predPred.isVertexGroup()) {
+                            grandParents.clear();
+                            return grandParents;
+                        }
+                        if (!grandParents.contains(predPred)) {
+                            grandParents.add(predPred);
+                        }
+                    }
+                } else {
+                    grandParents.clear();
+                    break;
+                }
+            }
+
+            if (!grandParents.isEmpty()) {
+                for (TezOperator pred : preds) {
+                    if (grandParents.contains(pred)) {
+                        grandParents.remove(pred);
+                    }
+                }
+            }
+        }
+        return grandParents;
     }
 }
 

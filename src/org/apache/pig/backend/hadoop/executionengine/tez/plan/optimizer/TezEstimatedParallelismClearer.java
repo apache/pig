@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -15,17 +15,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.backend.hadoop.executionengine.tez.runtime;
+package org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer;
 
-import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.mapreduce.Partitioner;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOpPlanVisitor;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperator;
+import org.apache.pig.impl.plan.DependencyOrderWalker;
+import org.apache.pig.impl.plan.VisitorException;
 
-public class RoundRobinPartitioner extends Partitioner<Writable, Writable> {
-    private int num = 0;
+public class TezEstimatedParallelismClearer extends TezOpPlanVisitor{
+    public TezEstimatedParallelismClearer(TezOperPlan plan) {
+        super(plan, new DependencyOrderWalker<TezOperator, TezOperPlan>(plan));
+    }
 
     @Override
-    public int getPartition(Writable key, Writable value, int numPartitions) {
-        num = ++num % numPartitions;
-        return num;
+    public void visitTezOp(TezOperator tezOp) throws VisitorException {
+        tezOp.setEstimatedParallelism(-1);
     }
 }

@@ -1,0 +1,77 @@
+#--------------------------------------------------
+# There are 1 DAGs in the session
+#--------------------------------------------------
+#--------------------------------------------------
+# TEZ DAG plan: pig-0_scope-0
+#--------------------------------------------------
+Tez vertex scope-39	->	Tez vertex scope-41,Tez vertex scope-43,Tez vertex scope-45,
+Tez vertex scope-43	->	Tez vertex scope-41,
+Tez vertex scope-45	->	Tez vertex scope-41,
+Tez vertex scope-41
+
+Tez vertex scope-39
+# Plan on vertex
+POValueOutputTez - scope-40	->	 [scope-41, scope-43, scope-45]
+|
+|---a: New For Each(false,false)[bag] - scope-7
+    |   |
+    |   Cast[int] - scope-2
+    |   |
+    |   |---Project[bytearray][0] - scope-1
+    |   |
+    |   Cast[int] - scope-5
+    |   |
+    |   |---Project[bytearray][1] - scope-4
+    |
+    |---a: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-0
+Tez vertex scope-43
+# Plan on vertex
+Local Rearrange[tuple]{int}(false) - scope-33	->	 scope-41
+|   |
+|   Project[int][0] - scope-28
+|
+|---c: Filter[bag] - scope-17
+    |   |
+    |   Equal To[boolean] - scope-20
+    |   |
+    |   |---Project[int][0] - scope-18
+    |   |
+    |   |---Constant(10) - scope-19
+    |
+    |---POValueInputTez - scope-44	<-	 scope-39
+Tez vertex scope-45
+# Plan on vertex
+Local Rearrange[tuple]{int}(false) - scope-35	->	 scope-41
+|   |
+|   Project[int][0] - scope-29
+|
+|---d: Filter[bag] - scope-23
+    |   |
+    |   Greater Than[boolean] - scope-26
+    |   |
+    |   |---Project[int][0] - scope-24
+    |   |
+    |   |---Constant(10) - scope-25
+    |
+    |---POValueInputTez - scope-46	<-	 scope-39
+Tez vertex scope-41
+# Plan on vertex
+e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-38
+|
+|---e: FRJoin[tuple] - scope-30	<-	 scope-43,scope-45
+    |   |
+    |   Project[int][0] - scope-27
+    |   |
+    |   Project[int][0] - scope-28
+    |   |
+    |   Project[int][0] - scope-29
+    |
+    |---b: Filter[bag] - scope-11
+        |   |
+        |   Less Than[boolean] - scope-14
+        |   |
+        |   |---Project[int][0] - scope-12
+        |   |
+        |   |---Constant(5) - scope-13
+        |
+        |---POValueInputTez - scope-42	<-	 scope-39

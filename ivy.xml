@@ -87,11 +87,7 @@
       conf="hadoop23->master"/>
     <dependency org="javax.ws.rs" name="jsr311-api" rev="${jsr311-api.version}"
       conf="hadoop23->master"/>
-    <dependency org="org.mortbay.jetty" name="jetty" rev="${jetty.version}"
-      conf="hadoop23->master"/>
     <dependency org="com.google.protobuf" name="protobuf-java" rev="${protobuf-java.version}"
-      conf="hadoop23->master"/>
-    <dependency org="org.mortbay.jetty" name="jetty-util" rev="${jetty-util.version}"
       conf="hadoop23->master"/>
     <dependency org="javax.inject" name="javax.inject" rev="${javax-inject.version}"
       conf="hadoop23->master"/>
@@ -171,8 +167,10 @@
     <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-hs" 
       rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
     <dependency org="org.mortbay.jetty" name="jetty" rev="${jetty.version}"
-      conf="compile->master"/>
-    <dependency org="org.mortbay.jetty" name="jetty-util" rev="${jetty-util.version}"
+      conf="compile->master">
+      <artifact name="jetty" ext="jar" />
+    </dependency>
+    <dependency org="org.mortbay.jetty" name="jetty-util" rev="${jetty.version}"
       conf="compile->master"/>
     <dependency org="commons-logging" name="commons-logging" rev="${commons-logging.version}"
       conf="compile->master;checkstyle->master"/>
@@ -189,12 +187,14 @@
       conf="hadoop20->default;checkstyle->master">
       <exclude org="org.codehaus.jackson" module="jackson-core-asl"/>
       <exclude org="org.codehaus.jackson" module="jackson-mapper-asl"/>
+      <exclude org="io.netty" module="netty"/>
     </dependency>
     <dependency org="org.apache.avro" name="avro-mapred" rev="${avro.version}"
       conf="hadoop23->default;checkstyle->master">
       <artifact name="avro-mapred" type="jar" m:classifier="hadoop2"/>
       <exclude org="org.codehaus.jackson" module="jackson-core-asl"/>
       <exclude org="org.codehaus.jackson" module="jackson-mapper-asl"/>
+      <exclude org="io.netty" module="netty"/>
     </dependency>
     <dependency org="org.apache.avro" name="trevni-core" rev="${avro.version}"
       conf="compile->default;checkstyle->master">
@@ -213,7 +213,7 @@
     </dependency>
     <dependency org="net.sf.jopt-simple" name="jopt-simple" rev="${jopt.version}"
       conf="test->default" />
-    <dependency org="org.xerial.snappy" name="snappy-java" rev="${snappy.version}"
+    <dependency org="org.xerial.snappy" name="snappy-java" rev="${snappy-java.version}"
       conf="compile->default;checkstyle->master"/>
     <dependency org="com.googlecode.json-simple" name="json-simple" rev="${json-simple.version}"
       conf="compile->master;checkstyle->master"/>
@@ -249,7 +249,7 @@
     <dependency org="org.antlr" name="antlr-runtime" rev="${antlr.version}" conf="compile->default"/>
     <dependency org="org.antlr" name="ST4" rev="${stringtemplate.version}" conf="compile->default"/>
     <dependency org="org.apache.zookeeper" name="zookeeper" rev="${zookeeper.version}" conf="compile->master"/>
-    <dependency org="org.jboss.netty" name="netty" rev="3.2.2.Final" conf="test->master"/>
+    <dependency org="io.netty" name="netty" rev="${netty.version}" conf="test->master"/>
     <dependency org="dk.brics.automaton" name="automaton" rev="1.11-8" conf="compile->default"/>
 
     <dependency org="org.jruby" name="jruby-complete" rev="${jruby.version}" conf="compile->master"/>
@@ -354,9 +354,14 @@
       <exclude org="asm" module="asm"/>
     </dependency>
 
+    <dependency org="org.htrace" name="htrace-core" rev="3.0.4" conf="hadoop23->master"/>
+    <dependency org="org.apache.htrace" name="htrace-core" rev="${htrace.version}" conf="hadoop23->master"/>
+    <dependency org="org.fusesource.leveldbjni" name="leveldbjni-all" rev="${leveldbjni.version}"
+      conf="hadoop23->master"/>
     <dependency org="org.cloudera.htrace" name="htrace-core" rev="2.00" conf="hbase95->master">
       <artifact name="htrace-core" type="jar"/>
     </dependency>
+    <dependency org="com.lmax" name="disruptor" rev="3.3.0" conf="hbase95->master"/>
 
     <!-- for TestHBaseStorage -->
     <dependency org="com.github.stephenc.high-scale-lib" name="high-scale-lib" rev="${high-scale-lib.version}"
@@ -446,13 +451,18 @@
        conf="hadoop23->master"/>
     <dependency org="org.apache.tez" name="tez-mapreduce" rev="${tez.version}"
        conf="hadoop23->master"/>
+    <dependency org="org.apache.tez" name="tez-yarn-timeline-history-with-acls" rev="${tez.version}"
+       conf="hadoop23->master"/>
     <dependency org="org.apache.commons" name="commons-collections4" rev="${commons-collections4.version}"
       conf="hadoop23->master"/>
     <dependency org="org.codehaus.jettison" name="jettison" rev="${jettison.version}"
       conf="hadoop23->master"/>
     <dependency org="org.apache.commons" name="commons-math3" rev="${commons-math3.version}"
       conf="hadoop23->master"/>
-
+    <dependency org="org.apache.curator" name="curator-framework" rev="${curator.version}"
+      conf="hadoop23->master"/>
+    <dependency org="org.apache.curator" name="curator-client" rev="${curator.version}"
+      conf="hadoop23->master"/>
   </dependencies>
 </ivy-module>
 
