@@ -20,14 +20,14 @@ package org.apache.pig.backend.hadoop.executionengine.spark.converter;
 import java.io.Serializable;
 import java.util.List;
 
+import scala.runtime.AbstractFunction1;
+
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFilter;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.data.Tuple;
-
-import scala.runtime.AbstractFunction1;
 import org.apache.spark.rdd.RDD;
 
 /**
