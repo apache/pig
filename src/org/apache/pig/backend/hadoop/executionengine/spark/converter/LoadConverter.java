@@ -17,8 +17,6 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.spark.converter;
 
-import com.google.common.collect.Lists;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
@@ -26,6 +24,10 @@ import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import scala.Function1;
+import scala.Tuple2;
+import scala.runtime.AbstractFunction1;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -43,12 +45,10 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.ObjectSerializer;
-import org.apache.spark.rdd.RDD;
 import org.apache.spark.SparkContext;
+import org.apache.spark.rdd.RDD;
 
-import scala.Function1;
-import scala.Tuple2;
-import scala.runtime.AbstractFunction1;
+import com.google.common.collect.Lists;
 
 /**
  * Converter that loads data via POLoad and converts it to RRD&lt;Tuple>. Abuses

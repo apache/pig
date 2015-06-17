@@ -21,6 +21,10 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.List;
 
+import scala.Tuple2;
+import scala.runtime.AbstractFunction1;
+import scala.runtime.AbstractFunction2;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODistinct;
@@ -28,10 +32,6 @@ import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.data.Tuple;
 import org.apache.spark.rdd.PairRDDFunctions;
 import org.apache.spark.rdd.RDD;
-
-import scala.Tuple2;
-import scala.runtime.AbstractFunction1;
-import scala.runtime.AbstractFunction2;
 
 @SuppressWarnings({ "serial" })
 public class DistinctConverter implements RDDConverter<Tuple, Tuple, PODistinct> {

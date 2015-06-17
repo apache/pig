@@ -34,8 +34,8 @@ import org.apache.pig.data.SchemaTupleBackend;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.ObjectSerializer;
-import org.apache.spark.rdd.RDD;
 import org.apache.spark.api.java.function.FlatMapFunction;
+import org.apache.spark.rdd.RDD;
 
 public class StreamConverter implements
 		RDDConverter<Tuple, Tuple, POStream> {

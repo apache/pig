@@ -22,6 +22,9 @@ import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
 
+import scala.Tuple2;
+import scala.runtime.AbstractFunction1;
+
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -40,9 +43,6 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.rdd.RDD;
-
-import scala.Tuple2;
-import scala.runtime.AbstractFunction1;
 
 public class SkewedJoinConverter implements
         RDDConverter<Tuple, Tuple, POSkewedJoin>, Serializable {

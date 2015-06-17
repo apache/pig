@@ -20,14 +20,14 @@ package org.apache.pig.backend.hadoop.executionengine.spark.converter;
 import java.io.IOException;
 import java.util.List;
 
+import scala.collection.JavaConversions;
+
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.data.Tuple;
-
-import scala.collection.JavaConversions;
-import org.apache.spark.rdd.UnionRDD;
-import org.apache.spark.rdd.RDD;
 import org.apache.spark.SparkContext;
+import org.apache.spark.rdd.RDD;
+import org.apache.spark.rdd.UnionRDD;
 
 public class UnionConverter implements RDDConverter<Tuple, Tuple, POUnion> {
 

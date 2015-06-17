@@ -22,6 +22,8 @@ import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
 
+import scala.runtime.AbstractFunction1;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.mapred.JobConf;
@@ -36,8 +38,6 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.spark.rdd.RDD;
-
-import scala.runtime.AbstractFunction1;
 
 @SuppressWarnings({ "serial" })
 public class PackageConverter implements RDDConverter<Tuple, Tuple, POPackage> {
