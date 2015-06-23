@@ -19,9 +19,12 @@ package org.apache.pig.backend.hadoop.executionengine.spark;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Random;
+import java.util.UUID;
 
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
@@ -63,6 +66,8 @@ public class SparkUtil {
         jobConf.set("udf.import.list",
                 ObjectSerializer.serialize(PigContext.getPackageImportList()));
         UDFContext.getUDFContext().serialize(jobConf);
+        Random rand = new Random();
+        jobConf.set(MRConfiguration.JOB_APPLICATION_ATTEMPT_ID, Integer.toString(rand.nextInt()));
         return jobConf;
     }
 
