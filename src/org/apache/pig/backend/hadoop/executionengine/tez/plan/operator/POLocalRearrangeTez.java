@@ -31,6 +31,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.TezOutput;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.io.NullablePartitionWritable;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -144,6 +145,13 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
                     // assign the tuple to its slot in the projection.
                     key.setIndex(index);
                     val.setIndex(index);
+                    if (isSkewedJoin) {
+                        // Wrap into a NullablePartitionWritable to match the key
+                        // of the right table from POPartitionRearrangeTez for the skewed join
+                        NullablePartitionWritable wrappedKey = new NullablePartitionWritable(key);
+                        wrappedKey.setPartition(-1);
+                        key = wrappedKey;
+                    }
                     writer.write(key, val);
                 } else {
                     illustratorMarkup(res.result, res.result, 0);

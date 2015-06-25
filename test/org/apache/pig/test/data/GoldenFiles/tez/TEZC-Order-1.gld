@@ -4,70 +4,78 @@
 #--------------------------------------------------
 # TEZ DAG plan: pig-0_scope-0
 #--------------------------------------------------
-Tez vertex scope-11	->	Tez vertex scope-20,Tez vertex scope-30,
-Tez vertex scope-20	->	Tez vertex scope-30,
-Tez vertex scope-30	->	Tez vertex scope-32,
-Tez vertex scope-32
+Tez vertex scope-11	->	Tez vertex scope-26,
+Tez vertex scope-26	->	Tez vertex scope-36,
+Tez vertex scope-36	->	Tez vertex scope-37,
+Tez vertex scope-37
 
 Tez vertex scope-11
 # Plan on vertex
-Local Rearrange[tuple]{tuple}(false) - scope-14	->	 scope-20
+Local Rearrange[tuple]{tuple}(false) - scope-20	->	 scope-26
 |   |
-|   Constant(DummyVal) - scope-13
+|   Constant(DummyVal) - scope-19
 |
-|---New For Each(false,true)[tuple] - scope-19
+|---New For Each(false,true)[tuple] - scope-25
     |   |
     |   Project[int][0] - scope-8
     |   |
-    |   POUserFunc(org.apache.pig.impl.builtin.GetMemNumRows)[tuple] - scope-18
+    |   POUserFunc(org.apache.pig.impl.builtin.GetMemNumRows)[tuple] - scope-24
     |   |
-    |   |---Project[tuple][*] - scope-17
+    |   |---Project[tuple][*] - scope-23
     |
-    |---ReservoirSample - scope-16
+    |---ReservoirSample - scope-22
         |
-        |---b: Local Rearrange[tuple]{int}(false) - scope-12	->	 scope-30
+        |---a: New For Each(false,false)[bag] - scope-7
             |   |
-            |   Project[int][0] - scope-8
+            |   Cast[int] - scope-2
+            |   |
+            |   |---Project[bytearray][0] - scope-1
+            |   |
+            |   Cast[int] - scope-5
+            |   |
+            |   |---Project[bytearray][1] - scope-4
             |
-            |---a: New For Each(false,false)[bag] - scope-7
-                |   |
-                |   Cast[int] - scope-2
-                |   |
-                |   |---Project[bytearray][0] - scope-1
-                |   |
-                |   Cast[int] - scope-5
-                |   |
-                |   |---Project[bytearray][1] - scope-4
-                |
-                |---a: Load(file:///tmp/input:PigStorage(',')) - scope-0
-Tez vertex scope-20
+            |---a: Load(file:///tmp/input:PigStorage(',')) - scope-0
+Tez vertex scope-26
 # Plan on vertex
-POValueOutputTez - scope-29	->	 [scope-30]
+POValueOutputTez - scope-35	->	 [scope-36]
 |
-|---New For Each(false)[tuple] - scope-28
+|---New For Each(false)[tuple] - scope-34
     |   |
-    |   POUserFunc(org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.FindQuantilesTez)[tuple] - scope-27
+    |   POUserFunc(org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.FindQuantilesTez)[tuple] - scope-33
     |   |
-    |   |---Project[tuple][*] - scope-26
+    |   |---Project[tuple][*] - scope-32
     |
-    |---New For Each(false,false)[tuple] - scope-25
+    |---New For Each(false,false)[tuple] - scope-31
         |   |
-        |   Constant(-1) - scope-24
+        |   Constant(-1) - scope-30
         |   |
-        |   Project[bag][1] - scope-22
+        |   Project[bag][1] - scope-28
         |
-        |---Package(Packager)[tuple]{bytearray} - scope-21
-Tez vertex scope-30
+        |---Package(Packager)[tuple]{bytearray} - scope-27
+Tez vertex scope-36
 # Plan on vertex
-POIdentityInOutTez - scope-31	<-	 scope-11	->	 scope-32
+b: Local Rearrange[tuple]{int}(false) - scope-12	->	 scope-37
 |   |
 |   Project[int][0] - scope-8
-Tez vertex scope-32
+|
+|---a: New For Each(false,false)[bag] - scope-18
+    |   |
+    |   Cast[int] - scope-15
+    |   |
+    |   |---Project[bytearray][0] - scope-14
+    |   |
+    |   Cast[int] - scope-17
+    |   |
+    |   |---Project[bytearray][1] - scope-16
+    |
+    |---a: Load(file:///tmp/input:PigStorage(',')) - scope-13
+Tez vertex scope-37
 # Plan on vertex
 b: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-10
 |
-|---New For Each(true)[tuple] - scope-35
+|---New For Each(true)[tuple] - scope-40
     |   |
-    |   Project[bag][1] - scope-34
+    |   Project[bag][1] - scope-39
     |
-    |---Package(LitePackager)[tuple]{int} - scope-33
+    |---Package(LitePackager)[tuple]{int} - scope-38

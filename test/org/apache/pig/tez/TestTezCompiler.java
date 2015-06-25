@@ -194,6 +194,19 @@ public class TestTezCompiler {
     }
 
     @Test
+    public void testSkewedJoinFilter() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
+                "a = filter a by x == 1;" +
+                "b = load 'file:///tmp/input2' as (x:int, z:int);" +
+                "c = join a by x, b by x using 'skewed';" +
+                "d = foreach c generate a::x as x, y, z;" +
+                "store d into 'file:///tmp/output';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-SkewJoin-2.gld");
+    }
+
+    @Test
     public void testLimit() throws Exception {
         String query =
                 "a = load 'file:///tmp/input' as (x:int, y:int);" +
@@ -310,6 +323,17 @@ public class TestTezCompiler {
                 "STORE b INTO 'file:///tmp/output';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Order-1.gld");
+    }
+
+    @Test
+    public void testOrderByWithFilter() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' using PigStorage(',') as (x:int, y:int);" +
+                "b = filter a by x == 1;" +
+                "c = order b by x;" +
+                "STORE c INTO 'file:///tmp/output';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Order-2.gld");
     }
 
     // PIG-3759, PIG-3781
@@ -545,6 +569,8 @@ public class TestTezCompiler {
 
     @Test
     public void testUnionSkewedJoin() throws Exception {
+        // TODO: PIG-4574 optimization needs to be done for this as well.
+        // Requires changes in UnionOptimizer
         String query =
                 "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
                 "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
@@ -561,6 +587,8 @@ public class TestTezCompiler {
 
     @Test
     public void testUnionOrderby() throws Exception {
+        // TODO: PIG-4574 optimization needs to be done for this as well.
+        // Requires changes in UnionOptimizer
         String query =
                 "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
                 "b = load 'file:///tmp/input' as (y:chararray, x:int);" +

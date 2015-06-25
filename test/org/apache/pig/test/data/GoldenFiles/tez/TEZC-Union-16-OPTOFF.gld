@@ -4,70 +4,78 @@
 #--------------------------------------------------
 # TEZ DAG plan: pig-0_scope-0
 #--------------------------------------------------
-Tez vertex scope-30	->	Tez vertex scope-48,Tez vertex scope-58,
-Tez vertex scope-48	->	Tez vertex scope-37,Tez vertex scope-58,
-Tez vertex scope-58	->	Tez vertex scope-62,
+Tez vertex scope-30	->	Tez vertex scope-54,
+Tez vertex scope-54	->	Tez vertex scope-37,Tez vertex scope-64,
+Tez vertex scope-64	->	Tez vertex scope-67,
 Tez vertex scope-31	->	Tez vertex scope-35,Tez vertex scope-37,
 Tez vertex scope-35	->	Tez vertex scope-37,
-Tez vertex scope-37	->	Tez vertex scope-62,
-Tez vertex scope-62
+Tez vertex scope-37	->	Tez vertex scope-67,
+Tez vertex scope-67
 
 Tez vertex scope-30
 # Plan on vertex
-Local Rearrange[tuple]{tuple}(false) - scope-43	->	 scope-48
+Local Rearrange[tuple]{tuple}(false) - scope-43	->	 scope-54
 |   |
 |   Constant(DummyVal) - scope-42
 |
-|---New For Each(true,true)[tuple] - scope-47
+|---New For Each(true,true)[tuple] - scope-53
     |   |
     |   Project[int][0] - scope-26
     |   |
-    |   POUserFunc(org.apache.pig.impl.builtin.GetMemNumRows)[tuple] - scope-46
+    |   POUserFunc(org.apache.pig.impl.builtin.GetMemNumRows)[tuple] - scope-52
     |   |
-    |   |---Project[tuple][*] - scope-45
+    |   |---Project[tuple][*] - scope-51
     |
     |---PoissonSample - scope-44
         |
-        |---Local Rearrange[tuple]{int}(false) - scope-41	->	 scope-58
+        |---d: New For Each(false,false)[bag] - scope-7
             |   |
-            |   Project[int][0] - scope-26
+            |   Cast[int] - scope-2
+            |   |
+            |   |---Project[bytearray][0] - scope-1
+            |   |
+            |   Cast[chararray] - scope-5
+            |   |
+            |   |---Project[bytearray][1] - scope-4
             |
-            |---d: New For Each(false,false)[bag] - scope-7
-                |   |
-                |   Cast[int] - scope-2
-                |   |
-                |   |---Project[bytearray][0] - scope-1
-                |   |
-                |   Cast[chararray] - scope-5
-                |   |
-                |   |---Project[bytearray][1] - scope-4
-                |
-                |---d: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-0
-Tez vertex scope-48
+            |---d: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-0
+Tez vertex scope-54
 # Plan on vertex
-POValueOutputTez - scope-57	->	 [scope-37, scope-58]
+POValueOutputTez - scope-63	->	 [scope-37, scope-64]
 |
-|---New For Each(false)[tuple] - scope-56
+|---New For Each(false)[tuple] - scope-62
     |   |
-    |   POUserFunc(org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.PartitionSkewedKeysTez)[tuple] - scope-55
+    |   POUserFunc(org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.PartitionSkewedKeysTez)[tuple] - scope-61
     |   |
-    |   |---Project[tuple][*] - scope-54
+    |   |---Project[tuple][*] - scope-60
     |
-    |---New For Each(false,false)[tuple] - scope-53
+    |---New For Each(false,false)[tuple] - scope-59
         |   |
-        |   Constant(-1) - scope-52
+        |   Constant(-1) - scope-58
         |   |
-        |   Project[bag][1] - scope-50
+        |   Project[bag][1] - scope-56
         |
-        |---Package(Packager)[tuple]{bytearray} - scope-49
-Tez vertex scope-58
+        |---Package(Packager)[tuple]{bytearray} - scope-55
+Tez vertex scope-64
 # Plan on vertex
-POIdentityInOutTez - scope-59	<-	 scope-30	->	 scope-62
+Local Rearrange[tuple]{int}(false) - scope-41	->	 scope-67
 |   |
 |   Project[int][0] - scope-26
+|
+|---d: New For Each(false,false)[bag] - scope-50
+    |   |
+    |   Cast[int] - scope-47
+    |   |
+    |   |---Project[bytearray][0] - scope-46
+    |   |
+    |   Cast[chararray] - scope-49
+    |   |
+    |   |---Project[bytearray][1] - scope-48
+    |
+    |---d: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-45
 Tez vertex scope-31
 # Plan on vertex
-a: Split - scope-68
+a: Split - scope-73
 |   |
 |   POValueOutputTez - scope-39	->	 [scope-37]
 |   |
@@ -99,19 +107,19 @@ POValueOutputTez - scope-40	->	 [scope-37]
     |---POValueInputTez - scope-36	<-	 scope-31
 Tez vertex scope-37
 # Plan on vertex
-Partition Rearrange[tuple]{int}(false) - scope-60	->	 scope-62
+Partition Rearrange[tuple]{int}(false) - scope-65	->	 scope-67
 |   |
 |   Project[int][0] - scope-27
 |
 |---POShuffledValueInputTez - scope-38	<-	 [scope-31, scope-35]
-Tez vertex scope-62
+Tez vertex scope-67
 # Plan on vertex
 e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-29
 |
-|---New For Each(true,true)[tuple] - scope-66
+|---New For Each(true,true)[tuple] - scope-71
     |   |
-    |   Project[bag][1] - scope-64
+    |   Project[bag][1] - scope-69
     |   |
-    |   Project[bag][2] - scope-65
+    |   Project[bag][2] - scope-70
     |
-    |---Package(Packager)[tuple]{int} - scope-63
+    |---Package(Packager)[tuple]{int} - scope-68

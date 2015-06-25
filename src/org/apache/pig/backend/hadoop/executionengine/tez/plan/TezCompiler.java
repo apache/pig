@@ -1485,10 +1485,19 @@ public class TezCompiler extends PhyPlanVisitor {
             POPoissonSample poSample = new POPoissonSample(new OperatorKey(scope,nig.getNextNodeId(scope)),
                     -1, sampleRate, heapPerc, totalMemory);
 
-            TezOperator prevOp = compiledInputs[0];
-            prevOp.plan.addAsLeaf(lrTez);
-            prevOp.plan.addAsLeaf(poSample);
-            prevOp.markSampler();
+            TezOperator samplerOper = compiledInputs[0];
+            boolean writeDataForPartitioner = shouldWriteDataForPartitioner(samplerOper);
+
+            PhysicalPlan partitionerPlan = null;
+            if (writeDataForPartitioner) {
+                samplerOper.plan.addAsLeaf(lrTez);
+            } else {
+                partitionerPlan = samplerOper.plan.clone();
+                partitionerPlan.addAsLeaf(lrTez);
+            }
+
+            samplerOper.plan.addAsLeaf(poSample);
+            samplerOper.markSampler();
 
             MultiMap<PhysicalOperator, PhysicalPlan> joinPlans = op.getJoinPlans();
             List<PhysicalOperator> l = plan.getPredecessors(op);
@@ -1532,9 +1541,9 @@ public class TezCompiler extends PhyPlanVisitor {
             // This foreach will pick the sort key columns from the POPoissonSample output
             POForEach nfe1 = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)),
                     -1, eps1, flat1);
-            prevOp.plan.addAsLeaf(nfe1);
-            prevOp.plan.addAsLeaf(lrTezSample);
-            prevOp.setClosed(true);
+            samplerOper.plan.addAsLeaf(nfe1);
+            samplerOper.plan.addAsLeaf(lrTezSample);
+            samplerOper.setClosed(true);
 
             int rp = op.getRequestedParallelism();
             if (rp == -1) {
@@ -1557,10 +1566,9 @@ public class TezCompiler extends PhyPlanVisitor {
 
             compiledInputs = new TezOperator[] {joinInputs[0]};
 
-            blocking();
-
-            // Add a POIdentityInOutTez to the joinJobs[0] which is a partition vertex.
-            // It just partitions the data from first vertex based on the quantiles from sample vertex.
+            // Add a partitioner vertex that partitions the data based on the quantiles from sample vertex.
+            curTezOp = getTezOp();
+            tezPlan.add(curTezOp);
             joinJobs[0] = curTezOp;
 
             try {
@@ -1578,15 +1586,38 @@ public class TezCompiler extends PhyPlanVisitor {
             }
             lrTez.setKeyType(type);
             lrTez.setPlans(groups);
-            lrTez.setSkewedJoin(true);
             lrTez.setResultType(DataType.TUPLE);
 
-            POIdentityInOutTez identityInOutTez = new POIdentityInOutTez(
-                    OperatorKey.genOpKey(scope), lrTez);
-            identityInOutTez.setInputKey(prevOp.getOperatorKey().toString());
-            joinJobs[0].plan.addAsLeaf(identityInOutTez);
+            POLocalRearrangeTez partitionerLR = null;
+            if (!writeDataForPartitioner) {
+                // Read input from hdfs again
+                joinJobs[0].plan = partitionerPlan;
+                partitionerLR = lrTez;
+                lrTez.setSkewedJoin(true);
+            } else {
+                // Add a POIdentityInOutTez which just passes data through from sampler vertex
+                partitionerLR = new POIdentityInOutTez(
+                        OperatorKey.genOpKey(scope),
+                        lrTez,
+                        samplerOper.getOperatorKey().toString());
+                partitionerLR.setSkewedJoin(true);
+                joinJobs[0].plan.addAsLeaf(partitionerLR);
+
+                // Connect the sampler vertex to the partitioner vertex
+                lrTez.setOutputKey(joinJobs[0].getOperatorKey().toString());
+                TezEdgeDescriptor edge = TezCompilerUtil.connect(tezPlan, samplerOper, joinJobs[0]);
+                // TODO: PIG-3775 unsorted shuffle
+                edge.dataMovementType = DataMovementType.ONE_TO_ONE;
+                edge.outputClassName = UnorderedKVOutput.class.getName();
+                edge.inputClassName = UnorderedKVInput.class.getName();
+                // If prevOp.requestedParallelism changes based on no. of input splits
+                // it will reflect for joinJobs[0] so that 1-1 edge will work.
+                joinJobs[0].setRequestedParallelismByReference(samplerOper);
+            }
             joinJobs[0].setClosed(true);
             joinJobs[0].markSampleBasedPartitioner();
+            joinJobs[0].setUseMRMapSettings(samplerOper.isUseMRMapSettings());
+
             rearrangeOutputs[0] = joinJobs[0];
 
             compiledInputs = new TezOperator[] {joinInputs[1]};
@@ -1663,23 +1694,11 @@ public class TezCompiler extends PhyPlanVisitor {
             fe.visit(this);
 
             // Connect vertices
-            lrTez.setOutputKey(joinJobs[0].getOperatorKey().toString());
             lrTezSample.setOutputKey(sampleJobPair.first.getOperatorKey().toString());
-            identityInOutTez.setOutputKey(joinJobs[2].getOperatorKey().toString());
+            partitionerLR.setOutputKey(joinJobs[2].getOperatorKey().toString());
             pr.setOutputKey(joinJobs[2].getOperatorKey().toString());
 
-            TezEdgeDescriptor edge = joinJobs[0].inEdges.get(prevOp.getOperatorKey());
-            joinJobs[0].setUseMRMapSettings(prevOp.isUseMRMapSettings());
-            // TODO: Convert to unsorted shuffle after TEZ-661
-            // Use 1-1 edge
-            edge.dataMovementType = DataMovementType.ONE_TO_ONE;
-            edge.outputClassName = UnorderedKVOutput.class.getName();
-            edge.inputClassName = UnorderedKVInput.class.getName();
-            // If prevOp.requestedParallelism changes based on no. of input splits
-            // it will reflect for joinJobs[0] so that 1-1 edge will work.
-            joinJobs[0].setRequestedParallelismByReference(prevOp);
-
-            TezCompilerUtil.connect(tezPlan, prevOp, sampleJobPair.first);
+            TezCompilerUtil.connect(tezPlan, samplerOper, sampleJobPair.first);
 
             POValueOutputTez sampleOut = (POValueOutputTez) sampleJobPair.first.plan.getLeaves().get(0);
             for (int i = 0; i <= 2; i++) {
@@ -1687,16 +1706,16 @@ public class TezCompiler extends PhyPlanVisitor {
                     // We need to send sample to left relation partitioner vertex, right relation load vertex,
                     // and join vertex (IsFirstReduceOfKey in join vertex need sample file as well)
                     joinJobs[i].setSampleOperator(sampleJobPair.first);
-    
+
                     // Configure broadcast edges for distribution map
-                    edge = TezCompilerUtil.connect(tezPlan, sampleJobPair.first, joinJobs[i]);
+                    TezEdgeDescriptor edge = TezCompilerUtil.connect(tezPlan, sampleJobPair.first, joinJobs[i]);
                     TezCompilerUtil.configureValueOnlyTupleOutput(edge, DataMovementType.BROADCAST);
                     sampleOut.addOutputKey(joinJobs[i].getOperatorKey().toString());
                 }
 
                 // Configure skewed partitioner for join
                 if (i != 2) {
-                    edge = joinJobs[2].inEdges.get(joinJobs[i].getOperatorKey());
+                    TezEdgeDescriptor edge = joinJobs[2].inEdges.get(joinJobs[i].getOperatorKey());
                     edge.partitionerClass = SkewedPartitionerTez.class;
                 }
             }
@@ -1726,55 +1745,71 @@ public class TezCompiler extends PhyPlanVisitor {
                 new FuncSpec(Utils.getTmpFileCompressorName(pigContext)));
     }
 
-    /**
-     * Force an end to the current vertex with store and sample
-     * @return Tez operator that now is finished with a store.
-     * @throws PlanException
-     */
-    private TezOperator endSingleInputWithStoreAndSample(
-            POSort sort,
-            POLocalRearrangeTez lr,
-            POLocalRearrangeTez lrSample,
-            byte keyType,
-            Pair<POProject, Byte>[] fields) throws PlanException {
-        if(compiledInputs.length>1) {
-            int errCode = 2023;
-            String msg = "Received a multi input plan when expecting only a single input one.";
-            throw new PlanException(msg, errCode, PigException.BUG);
+    private boolean shouldWriteDataForPartitioner(TezOperator samplerOper) {
+        // If there are operators other than load and foreach (like filter
+        // split, etc) in the plan, then process and write the data out
+        // and save the cost of processing in the partitioner vertex
+        // Else read from hdfs again save the IO cost of the extra write
+        boolean writeDataForPartitioner = false;
+        if (samplerOper.plan.getRoots().get(0) instanceof POLoad) {
+            for (PhysicalOperator oper : samplerOper.plan) {
+                if (oper instanceof POForEach || oper instanceof POLoad) {
+                    continue;
+                }
+                writeDataForPartitioner = true;
+                break;
+            }
+        } else {
+            writeDataForPartitioner = true;
         }
-        TezOperator oper = compiledInputs[0];
+        return writeDataForPartitioner;
+    }
+
+    /**
+     * Get LocalRearrange for POSort input
+     */
+    private POLocalRearrangeTez getLocalRearrangeForSortInput(POSort sort,
+            byte keyType, Pair<POProject, Byte>[] fields)
+            throws PlanException {
+        POLocalRearrangeTez lr = new POLocalRearrangeTez(OperatorKey.genOpKey(scope));
+        List<PhysicalPlan> eps = new ArrayList<PhysicalPlan>();
+        if (fields == null) {
+            // This is project *
+            PhysicalPlan ep = new PhysicalPlan();
+            POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
+            prj.setStar(true);
+            prj.setOverloaded(false);
+            prj.setResultType(DataType.TUPLE);
+            ep.add(prj);
+            eps.add(ep);
+        } else {
+            // Attach the sort plans to the local rearrange to get the
+            // projection.
+            eps.addAll(sort.getSortPlans());
+        }
+
+        try {
+            lr.setIndex(0);
+        } catch (ExecException e) {
+            int errCode = 2058;
+            String msg = "Unable to set index on newly created POLocalRearrange.";
+            throw new PlanException(msg, errCode, PigException.BUG, e);
+        }
+        lr.setKeyType((fields == null || fields.length>1) ? DataType.TUPLE : keyType);
+        lr.setPlans(eps);
+        lr.setResultType(DataType.TUPLE);
+        lr.addOriginalLocation(sort.getAlias(), sort.getOriginalLocations());
+        return lr;
+    }
+
+    /**
+     * Add a sampler to the sort input
+     */
+    private POLocalRearrangeTez addSamplingToSortInput(POSort sort, TezOperator oper,
+            byte keyType, Pair<POProject, Byte>[] fields) throws PlanException {
+
+        POLocalRearrangeTez lrSample = localRearrangeFactory.create(LocalRearrangeType.NULL);
         if (!oper.isClosed()) {
-
-            List<PhysicalPlan> eps = new ArrayList<PhysicalPlan>();
-            if (fields == null) {
-                // This is project *
-                PhysicalPlan ep = new PhysicalPlan();
-                POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
-                prj.setStar(true);
-                prj.setOverloaded(false);
-                prj.setResultType(DataType.TUPLE);
-                ep.add(prj);
-                eps.add(ep);
-            } else {
-                // Attach the sort plans to the local rearrange to get the
-                // projection.
-                eps.addAll(sort.getSortPlans());
-            }
-
-            try {
-                lr.setIndex(0);
-            } catch (ExecException e) {
-                int errCode = 2058;
-                String msg = "Unable to set index on newly created POLocalRearrange.";
-                throw new PlanException(msg, errCode, PigException.BUG, e);
-            }
-            lr.setKeyType((fields == null || fields.length>1) ? DataType.TUPLE : keyType);
-            lr.setPlans(eps);
-            lr.setResultType(DataType.TUPLE);
-            lr.addOriginalLocation(sort.getAlias(), sort.getOriginalLocations());
-
-            lr.setOutputKey(curTezOp.getOperatorKey().toString());
-            oper.plan.addAsLeaf(lr);
 
             List<Boolean> flat1 = new ArrayList<Boolean>();
             List<PhysicalPlan> eps1 = new ArrayList<PhysicalPlan>();
@@ -1875,7 +1910,8 @@ public class TezCompiler extends PhyPlanVisitor {
             String msg = "The current operator is closed. This is unexpected while compiling.";
             throw new PlanException(msg, errCode, PigException.BUG);
         }
-        return oper;
+        oper.markSampler();
+        return lrSample;
     }
 
     private Pair<TezOperator,Integer> getOrderbySamplingAggregationJob(
@@ -2112,32 +2148,42 @@ public class TezCompiler extends PhyPlanVisitor {
 
     private TezOperator[] getSortJobs(
             TezOperator inputOper,
+            PhysicalPlan partitionerPlan,
             POLocalRearrangeTez inputOperRearrange,
             POSort sort,
             byte keyType,
             Pair<POProject, Byte>[] fields) throws PlanException{
+
         TezOperator[] opers = new TezOperator[2];
+
+        // Partitioner Vertex
         TezOperator oper1 = getTezOp();
         tezPlan.add(oper1);
         opers[0] = oper1;
-
-        POIdentityInOutTez identityInOutTez = new POIdentityInOutTez(
-                OperatorKey.genOpKey(scope),
-                inputOperRearrange);
-        identityInOutTez.setInputKey(inputOper.getOperatorKey().toString());
-        oper1.plan.addAsLeaf(identityInOutTez);
+        POLocalRearrangeTez partitionerLR = null;
+        if (partitionerPlan != null) {
+            // Read from hdfs again
+            oper1.plan = partitionerPlan;
+            partitionerLR = inputOperRearrange;
+        } else {
+            partitionerLR = new POIdentityInOutTez(
+                    OperatorKey.genOpKey(scope),
+                    inputOperRearrange,
+                    inputOper.getOperatorKey().toString());
+            oper1.plan.addAsLeaf(partitionerLR);
+        }
         oper1.setClosed(true);
         oper1.markSampleBasedPartitioner();
 
+        // Global Sort Vertex
         TezOperator oper2 = getTezOp();
+        partitionerLR.setOutputKey(oper2.getOperatorKey().toString());
         oper2.markGlobalSort();
         opers[1] = oper2;
         tezPlan.add(oper2);
 
         long limit = sort.getLimit();
-
         boolean[] sortOrder;
-
         List<Boolean> sortOrderList = sort.getMAscCols();
         if(sortOrderList != null) {
             sortOrder = new boolean[sortOrderList.size()];
@@ -2146,8 +2192,6 @@ public class TezCompiler extends PhyPlanVisitor {
             }
             oper2.setSortOrder(sortOrder);
         }
-
-        identityInOutTez.setOutputKey(oper2.getOperatorKey().toString());
 
         if (limit!=-1) {
             POPackage pkg_c = new POPackage(OperatorKey.genOpKey(scope));
@@ -2228,6 +2272,13 @@ public class TezCompiler extends PhyPlanVisitor {
     @Override
     public void visitSort(POSort op) throws VisitorException {
         try{
+
+            if (compiledInputs.length > 1) {
+                int errCode = 2023;
+                String msg = "Received a multi input plan when expecting only a single input one.";
+                throw new PlanException(msg, errCode, PigException.BUG);
+            }
+
             Pair<POProject, Byte>[] fields = getSortCols(op.getSortPlans());
             byte keyType = DataType.UNKNOWN;
 
@@ -2242,58 +2293,65 @@ public class TezCompiler extends PhyPlanVisitor {
                 throw new PlanException(msg, errCode, PigException.BUG, ve);
             }
 
-            POLocalRearrangeTez lr = new POLocalRearrangeTez(OperatorKey.genOpKey(scope));
-            POLocalRearrangeTez lrSample = localRearrangeFactory.create(LocalRearrangeType.NULL);
+            TezOperator samplerOper = compiledInputs[0];
+            boolean writeDataForPartitioner = shouldWriteDataForPartitioner(samplerOper);
 
-            TezOperator prevOper = endSingleInputWithStoreAndSample(op, lr, lrSample, keyType, fields);
-            prevOper.markSampler();
+            POLocalRearrangeTez lr = getLocalRearrangeForSortInput(op, keyType, fields);
+            PhysicalPlan partitionerPlan = null;
+            if (writeDataForPartitioner) {
+                samplerOper.plan.addAsLeaf(lr);
+            } else {
+                partitionerPlan = samplerOper.plan.clone();
+                partitionerPlan.addAsLeaf(lr);
+            }
 
+            // if rp is still -1, let it be, TezParallelismEstimator will set it to an estimated rp
             int rp = op.getRequestedParallelism();
             if (rp == -1) {
                 rp = pigContext.defaultParallel;
             }
 
-            // if rp is still -1, let it be, TezParallelismEstimator will set it to an estimated rp
+            // Add sampling to sort input. Create a sample aggregation operator and connect both
+            POLocalRearrangeTez lrSample = addSamplingToSortInput(op, samplerOper, keyType, fields);
             Pair<TezOperator, Integer> quantJobParallelismPair = getOrderbySamplingAggregationJob(op, rp);
-            TezOperator[] sortOpers = getSortJobs(prevOper, lr, op, keyType, fields);
+            TezCompilerUtil.connect(tezPlan, samplerOper, quantJobParallelismPair.first);
 
-            TezEdgeDescriptor edge = TezCompilerUtil.connect(tezPlan, prevOper, sortOpers[0]);
-            sortOpers[0].setUseMRMapSettings(prevOper.isUseMRMapSettings());
+            // Create the partitioner and the global sort vertices
+            TezOperator[] sortOpers = getSortJobs(samplerOper, partitionerPlan, lr, op, keyType, fields);
+            sortOpers[0].setUseMRMapSettings(samplerOper.isUseMRMapSettings());
 
-            // Use 1-1 edge
-            edge.dataMovementType = DataMovementType.ONE_TO_ONE;
-            edge.outputClassName = UnorderedKVOutput.class.getName();
-            edge.inputClassName = UnorderedKVInput.class.getName();
-            // If prevOper.requestedParallelism changes based on no. of input splits
-            // it will reflect for sortOpers[0] so that 1-1 edge will work.
-            sortOpers[0].setRequestedParallelismByReference(prevOper);
-            if (rp==-1) {
+            if (writeDataForPartitioner) {
+                // Connect the sampler and partitioner vertex
+                lr.setOutputKey(sortOpers[0].getOperatorKey().toString());
+                TezEdgeDescriptor edge = TezCompilerUtil.connect(tezPlan, samplerOper, sortOpers[0]);
+
+                // Use 1-1 edge
+                edge.dataMovementType = DataMovementType.ONE_TO_ONE;
+                edge.outputClassName = UnorderedKVOutput.class.getName();
+                edge.inputClassName = UnorderedKVInput.class.getName();
+                // If prevOper.requestedParallelism changes based on no. of input splits
+                // it will reflect for sortOpers[0] so that 1-1 edge will work.
+                sortOpers[0].setRequestedParallelismByReference(samplerOper);
+            }
+
+            if (rp == -1) {
                 quantJobParallelismPair.first.setNeedEstimatedQuantile(true);
             }
+            quantJobParallelismPair.first.setSortOperator(sortOpers[1]);
             sortOpers[1].setRequestedParallelism(quantJobParallelismPair.second);
 
-            /*
-            // TODO: Convert to unsorted shuffle after TEZ-661
-            // edge.outputClassName = UnorderedKVOutput.class.getName();
-            // edge.inputClassName = UnorderedKVInput.class.getName();
-            edge.partitionerClass = RoundRobinPartitioner.class;
-            sortOpers[0].setRequestedParallelism(quantJobParallelismPair.second);
-            sortOpers[1].setRequestedParallelism(quantJobParallelismPair.second);
-            */
-
-            TezCompilerUtil.connect(tezPlan, prevOper, quantJobParallelismPair.first);
-            lr.setOutputKey(sortOpers[0].getOperatorKey().toString());
-            lrSample.setOutputKey(quantJobParallelismPair.first.getOperatorKey().toString());
-
-            edge = TezCompilerUtil.connect(tezPlan, quantJobParallelismPair.first, sortOpers[0]);
+            // Broadcast the sample to Partitioner vertex
+            TezEdgeDescriptor edge = TezCompilerUtil.connect(tezPlan, quantJobParallelismPair.first, sortOpers[0]);
             TezCompilerUtil.configureValueOnlyTupleOutput(edge, DataMovementType.BROADCAST);
             POValueOutputTez sampleOut = (POValueOutputTez)quantJobParallelismPair.first.plan.getLeaves().get(0);
             sampleOut.addOutputKey(sortOpers[0].getOperatorKey().toString());
             sortOpers[0].setSampleOperator(quantJobParallelismPair.first);
 
+            lrSample.setOutputKey(quantJobParallelismPair.first.getOperatorKey().toString());
+
+            // Connect the Partitioner and Global Sort vertex
             edge = TezCompilerUtil.connect(tezPlan, sortOpers[0], sortOpers[1]);
             edge.partitionerClass = WeightedRangePartitionerTez.class;
-
             curTezOp = sortOpers[1];
 
             // TODO: Review sort udf
@@ -2301,7 +2359,6 @@ public class TezCompiler extends PhyPlanVisitor {
 //                curTezOp.UDFs.add(op.getMSortFunc().getFuncSpec().toString());
 //                curTezOp.isUDFComparatorUsed = true;
 //            }
-            quantJobParallelismPair.first.setSortOperator(sortOpers[1]);
 
             // If Order by followed by Limit and parallelism of order by is not 1
             // add a new vertex for Limit with parallelism 1.
