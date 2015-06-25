@@ -309,7 +309,7 @@ public class TestTezAutoParallelism {
                 + "STORE E into '" + outputDir + "/finalout';";
         String log = testIncreaseIntermediateParallelism(script, outputDir, true);
         // Parallelism of C should be increased
-        assertTrue(log.contains("Increased requested parallelism of scope-54 to 4"));
+        assertTrue(log.contains("Increased requested parallelism of scope-59 to 4"));
         assertEquals(1, StringUtils.countMatches(log, "Increased requested parallelism"));
     }
 
