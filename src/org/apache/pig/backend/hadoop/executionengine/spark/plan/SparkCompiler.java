@@ -57,6 +57,8 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.Packager;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCounter;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORank;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkLauncher;
 import org.apache.pig.backend.hadoop.executionengine.spark.operator.NativeSparkOperator;
@@ -555,6 +557,32 @@ public class SparkCompiler extends PhyPlanVisitor {
 					processUDFs(ep);
 				}
 			}
+			phyToSparkOpMap.put(op, curSparkOp);
+		} catch (Exception e) {
+			int errCode = 2034;
+			String msg = "Error compiling operator "
+					+ op.getClass().getSimpleName();
+			throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
+		}
+	}
+
+	@Override
+	public void visitCounter(POCounter op) throws VisitorException {
+		try {
+			addToPlan(op);
+			phyToSparkOpMap.put(op, curSparkOp);
+		} catch (Exception e) {
+			int errCode = 2034;
+			String msg = "Error compiling operator "
+					+ op.getClass().getSimpleName();
+			throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
+		}
+	}
+
+	@Override
+	public void visitRank(PORank op) throws VisitorException {
+		try {
+			addToPlan(op);
 			phyToSparkOpMap.put(op, curSparkOp);
 		} catch (Exception e) {
 			int errCode = 2034;

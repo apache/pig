@@ -19,11 +19,9 @@ package org.apache.pig.test;
 
 import static org.apache.pig.builtin.mock.Storage.resetData;
 import static org.apache.pig.builtin.mock.Storage.tuple;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.mock.Storage.Data;
@@ -32,8 +30,6 @@ import org.apache.pig.data.TupleFactory;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 
 public class TestRank2 {
     private static PigServer pigServer;
@@ -75,21 +71,20 @@ public class TestRank2 {
             + "store C into 'result' using mock.Storage();";
 
         Util.registerMultiLineQuery(pigServer, query);
-
-        Set<Tuple> expected = ImmutableSet.of(
-                tf.newTuple(ImmutableList.of((long) 1, "C", 3, "M")),
-                tf.newTuple(ImmutableList.of((long) 2, "A", 1, "N")),
-                tf.newTuple(ImmutableList.of((long) 2, "B", 2, "N")),
-                tf.newTuple(ImmutableList.of((long) 3, "D", 4, "P")),
-                tf.newTuple(ImmutableList.of((long) 4, "E", 4, "Q")),
-                tf.newTuple(ImmutableList.of((long) 4, "E", 4, "Q")),
-                tf.newTuple(ImmutableList.of((long) 4, "F", 8, "Q")),
-                tf.newTuple(ImmutableList.of((long) 4, "F", 7, "Q")),
-                tf.newTuple(ImmutableList.of((long) 4, "F", 8, "Q")),
-                tf.newTuple(ImmutableList.of((long) 5, "F", 8, "T")),
-                tf.newTuple(ImmutableList.of((long) 6, "G", 10, "V")));
-
-        verifyExpected(data.get("result"), expected);
+        List<Tuple> expected = Util.getTuplesFromConstantTupleStrings(new String[]{
+                "(1L,'C',3,'M')",
+                "(2L,'A',1,'N')",
+                "(2L,'B',2,'N')",
+                "(3L,'D',4,'P')",
+                "(4L,'E',4,'Q')",
+                "(4L,'E',4,'Q')",
+                "(4L,'F',8,'Q')",
+                "(4L,'F',7,'Q')",
+                "(4L,'F',8,'Q')",
+                "(5L,'F',8,'T')",
+                "(6L,'G',10,'V')"
+        });
+        Util.checkQueryOutputsAfterSort(data.get("result"), expected);
     }
 
     @Test
@@ -99,21 +94,20 @@ public class TestRank2 {
             + "store C into 'result' using mock.Storage();";
 
         Util.registerMultiLineQuery(pigServer, query);
-
-        Set<Tuple> expected = ImmutableSet.of(
-                tf.newTuple(ImmutableList.of((long) 1, "A", 1, "N")),
-                tf.newTuple(ImmutableList.of((long) 2, "B", 2, "N")),
-                tf.newTuple(ImmutableList.of((long) 3, "C", 3, "M")),
-                tf.newTuple(ImmutableList.of((long) 4, "D", 4, "P")),
-                tf.newTuple(ImmutableList.of((long) 4, "E", 4, "Q")),
-                tf.newTuple(ImmutableList.of((long) 4, "E", 4, "Q")),
-                tf.newTuple(ImmutableList.of((long) 5, "F", 7, "Q")),
-                tf.newTuple(ImmutableList.of((long) 6, "F", 8, "Q")),
-                tf.newTuple(ImmutableList.of((long) 6, "F", 8, "Q")),
-                tf.newTuple(ImmutableList.of((long) 6, "F", 8, "T")),
-                tf.newTuple(ImmutableList.of((long) 7, "G", 10, "V")));
-
-        verifyExpected(data.get("result"), expected);
+        List<Tuple> expected = Util.getTuplesFromConstantTupleStrings(new String[]{
+                "(1L,'A',1,'N')",
+                "(2L,'B',2,'N')",
+                "(3L,'C',3,'M')",
+                "(4L,'D',4,'P')",
+                "(4L,'E',4,'Q')",
+                "(4L,'E',4,'Q')",
+                "(5L,'F',7,'Q')",
+                "(6L,'F',8,'Q')",
+                "(6L,'F',8,'Q')",
+                "(6L,'F',8,'T')",
+                "(7L,'G',10,'V')"
+        });
+        Util.checkQueryOutputsAfterSort(data.get("result"), expected);
     }
 
     @Test
@@ -123,21 +117,20 @@ public class TestRank2 {
             + "store C into 'result' using mock.Storage();";
 
         Util.registerMultiLineQuery(pigServer, query);
-
-        Set<Tuple> expected = ImmutableSet.of(
-                tf.newTuple(ImmutableList.of((long) 1, "G", 10, "V")),
-                tf.newTuple(ImmutableList.of((long) 2, "F", 8, "T")),
-                tf.newTuple(ImmutableList.of((long) 2, "F", 8, "Q")),
-                tf.newTuple(ImmutableList.of((long) 2, "F", 8, "Q")),
-                tf.newTuple(ImmutableList.of((long) 2, "F", 7, "Q")),
-                tf.newTuple(ImmutableList.of((long) 3, "E", 4, "Q")),
-                tf.newTuple(ImmutableList.of((long) 3, "E", 4, "Q")),
-                tf.newTuple(ImmutableList.of((long) 4, "D", 4, "P")),
-                tf.newTuple(ImmutableList.of((long) 5, "C", 3, "M")),
-                tf.newTuple(ImmutableList.of((long) 6, "B", 2, "N")),
-                tf.newTuple(ImmutableList.of((long) 7, "A", 1, "N")));
-
-        verifyExpected(data.get("result"), expected);
+        List<Tuple> expected = Util.getTuplesFromConstantTupleStrings(new String[]{
+                "(1L,'G',10,'V')",
+                "(2L,'F',8,'T')",
+                "(2L,'F',8,'Q')",
+                "(2L,'F',8,'Q')",
+                "(2L,'F',7,'Q')",
+                "(3L,'E',4,'Q')",
+                "(3L,'E',4,'Q')",
+                "(4L,'D',4,'P')",
+                "(5L,'C',3,'M')",
+                "(6L,'B',2,'N')",
+                "(7L,'A',1,'N')"
+        });
+        Util.checkQueryOutputsAfterSort(data.get("result"), expected);
     }
 
     @Test
@@ -147,26 +140,20 @@ public class TestRank2 {
             + "store C into 'result' using mock.Storage();";
 
         Util.registerMultiLineQuery(pigServer, query);
-
-        Set<Tuple> expected = ImmutableSet.of(
-                tf.newTuple(ImmutableList.of((long) 1, "A", 1, "N")),
-                tf.newTuple(ImmutableList.of((long) 2, "B", 2, "N")),
-                tf.newTuple(ImmutableList.of((long) 3, "C", 3, "M")),
-                tf.newTuple(ImmutableList.of((long) 4, "D", 4, "P")),
-                tf.newTuple(ImmutableList.of((long) 5, "E", 4, "Q")),
-                tf.newTuple(ImmutableList.of((long) 5, "E", 4, "Q")),
-                tf.newTuple(ImmutableList.of((long) 6, "F", 8, "Q")),
-                tf.newTuple(ImmutableList.of((long) 6, "F", 8, "Q")),
-                tf.newTuple(ImmutableList.of((long) 6, "F", 8, "T")),
-                tf.newTuple(ImmutableList.of((long) 7, "F", 7, "Q")),
-                tf.newTuple(ImmutableList.of((long) 8, "G", 10, "V")));
-
-        verifyExpected(data.get("result"), expected);
+        List<Tuple> expected = Util.getTuplesFromConstantTupleStrings(new String[]{
+                "(1L,'A',1,'N')",
+                "(2L,'B',2,'N')",
+                "(3L,'C',3,'M')",
+                "(4L,'D',4,'P')",
+                "(5L,'E',4,'Q')",
+                "(5L,'E',4,'Q')",
+                "(6L,'F',8,'Q')",
+                "(6L,'F',8,'Q')",
+                "(6L,'F',8,'T')",
+                "(7L,'F',7,'Q')",
+                "(8L,'G',10,'V')"
+        });
+        Util.checkQueryOutputsAfterSort(data.get("result"), expected);
     }
-
-    public void verifyExpected(List<Tuple> out, Set<Tuple> expected) {
-        for (Tuple tup : out) {
-            assertTrue(expected + " contains " + tup, expected.contains(tup));
-        }
-    }
+    
 }
