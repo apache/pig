@@ -128,6 +128,7 @@ public class SparkLauncher extends Launcher {
 			  explain(sparkplan, System.out, "text", true);
 		SparkPigStats sparkStats = (SparkPigStats) pigContext
 				.getExecutionEngine().instantiatePigStats();
+        sparkStats.initialize(sparkplan);
 		PigStats.start(sparkStats);
 
 		startSparkIfNeeded(pigContext);
@@ -523,12 +524,12 @@ public class SparkLauncher extends Launcher {
 			  POStore poStore = poStores.get(0);
             if (!isFail) {
                 for (int jobID : getJobIDs(seenJobIDs)) {
-                    SparkStatsUtil.waitForJobAddStats(jobID, poStore,
+                    SparkStatsUtil.waitForJobAddStats(jobID, poStore, sparkOperator,
                             jobMetricsListener, sparkContext, sparkStats, conf);
                 }
             } else {
                 String failJobID = sparkOperator.name().concat("_fail");
-                SparkStatsUtil.addFailJobStats(failJobID, poStore, sparkStats,
+                SparkStatsUtil.addFailJobStats(failJobID, poStore, sparkOperator, sparkStats,
                         conf, exception);
             }
         } else {
