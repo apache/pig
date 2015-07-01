@@ -376,6 +376,7 @@ public class SparkCompiler extends PhyPlanVisitor {
 		try {
 			SparkOperator nativesparkOpper = getNativeSparkOp(
 					op.getNativeMRjar(), op.getParams());
+            nativesparkOpper.markNative();
 			sparkPlan.add(nativesparkOpper);
 			sparkPlan.connect(curSparkOp, nativesparkOpper);
 			phyToSparkOpMap.put(op, nativesparkOpper);
@@ -459,6 +460,7 @@ public class SparkCompiler extends PhyPlanVisitor {
                 POLimit pLimit2 = new POLimit(new OperatorKey(scope,nig.getNextNodeId(scope)));
                 pLimit2.setLimit(limit);
                 curSparkOp.physicalPlan.addAsLeaf(pLimit2);
+                curSparkOp.markLimitAfterSort();
             }
             phyToSparkOpMap.put(op, curSparkOp);
 		} catch (Exception e) {
@@ -473,6 +475,7 @@ public class SparkCompiler extends PhyPlanVisitor {
 	public void visitLimit(POLimit op) throws VisitorException {
 		try {
 			addToPlan(op);
+            curSparkOp.markLimit();
 		} catch (Exception e) {
 			int errCode = 2034;
 			String msg = "Error compiling operator "
@@ -640,6 +643,7 @@ public class SparkCompiler extends PhyPlanVisitor {
 		try {
 			addToPlan(op);
 			phyToSparkOpMap.put(op, curSparkOp);
+            curSparkOp.markUnion();
 		} catch (Exception e) {
 			int errCode = 2034;
 			String msg = "Error compiling operator "

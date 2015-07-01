@@ -23,8 +23,8 @@ import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.ScriptState;
-import org.apache.pig.tools.pigstats.mapreduce.MRScriptState;
 import org.apache.pig.tools.pigstats.spark.SparkPigStats;
+import org.apache.pig.tools.pigstats.spark.SparkScriptState;
 
 public class SparkExecutionEngine extends HExecutionEngine {
 
@@ -35,7 +35,7 @@ public class SparkExecutionEngine extends HExecutionEngine {
 
     @Override
     public ScriptState instantiateScriptState() {
-        MRScriptState ss = new MRScriptState(UUID.randomUUID().toString());
+        SparkScriptState ss = new SparkScriptState(UUID.randomUUID().toString());
         ss.setPigContext(pigContext);
         return ss;
     }

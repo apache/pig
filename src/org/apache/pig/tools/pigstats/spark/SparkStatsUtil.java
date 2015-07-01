@@ -21,6 +21,7 @@ package org.apache.pig.tools.pigstats.spark;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.spark.JobMetricsListener;
+import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperator;
 import org.apache.spark.JobExecutionStatus;
 import org.apache.spark.SparkJobInfo;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -28,7 +29,7 @@ import org.apache.spark.api.java.JavaSparkContext;
 public class SparkStatsUtil {
 
   public static void waitForJobAddStats(int jobID,
-                                        POStore poStore,
+                                        POStore poStore, SparkOperator sparkOperator,
                                         JobMetricsListener jobMetricsListener,
                                         JavaSparkContext sparkContext,
                                         SparkPigStats sparkPigStats,
@@ -42,18 +43,18 @@ public class SparkStatsUtil {
       // this driver thread calling SparkStatusTracker.
       // To workaround this, we will wait for this job to "finish".
       jobMetricsListener.waitForJobToEnd(jobID);
-      sparkPigStats.addJobStats(poStore, jobID, jobMetricsListener,
+      sparkPigStats.addJobStats(poStore, sparkOperator, jobID, jobMetricsListener,
               sparkContext, jobConf);
       jobMetricsListener.cleanup(jobID);
   }
 
     public static void addFailJobStats(String jobID,
-                                       POStore poStore,
+                                       POStore poStore, SparkOperator sparkOperator,
                                        SparkPigStats sparkPigStats,
                                        JobConf jobConf, Exception e) {
         JobMetricsListener jobMetricsListener = null;
         JavaSparkContext sparkContext = null;
-        sparkPigStats.addFailJobStats(poStore, jobID, jobMetricsListener,
+        sparkPigStats.addFailJobStats(poStore, sparkOperator, jobID, jobMetricsListener,
                 sparkContext, jobConf, e);
     }
 

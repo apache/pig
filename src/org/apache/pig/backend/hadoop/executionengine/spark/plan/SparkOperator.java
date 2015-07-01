@@ -45,7 +45,15 @@ public class SparkOperator extends Operator<SparkOpPlanVisitor> {
 		// Indicate if this job is a cogroup job
 		COGROUP,
 		// Indicate if this job is a regular join job
-		HASHJOIN;
+		HASHJOIN,
+        // Indicate if this job is a union job
+        UNION,
+        // Indicate if this job is a native job
+        NATIVE,
+        // Indicate if this job is a limit job
+        LIMIT,
+        // Indicate if this job is a limit job after sort
+        LIMIT_AFTER_SORT;
 	};
 
 	public PhysicalPlan physicalPlan;
@@ -205,5 +213,36 @@ public class SparkOperator extends Operator<SparkOpPlanVisitor> {
 
     public void markIndexer() {
         feature.set(OPER_FEATURE.INDEXER.ordinal());
+    }
+    public boolean isUnion() {
+        return feature.get(OPER_FEATURE.UNION.ordinal());
+    }
+
+    public void markUnion() {
+        feature.set(OPER_FEATURE.UNION.ordinal());
+    }
+
+    public boolean isNative() {
+        return feature.get(OPER_FEATURE.NATIVE.ordinal());
+    }
+
+    public void markNative() {
+        feature.set(OPER_FEATURE.NATIVE.ordinal());
+    }
+
+    public boolean isLimit() {
+        return feature.get(OPER_FEATURE.LIMIT.ordinal());
+    }
+
+    public void markLimit() {
+        feature.set(OPER_FEATURE.LIMIT.ordinal());
+    }
+
+    public boolean isLimitAfterSort() {
+        return feature.get(OPER_FEATURE.LIMIT_AFTER_SORT.ordinal());
+    }
+
+    public void markLimitAfterSort() {
+        feature.set(OPER_FEATURE.LIMIT_AFTER_SORT.ordinal());
     }
 }
