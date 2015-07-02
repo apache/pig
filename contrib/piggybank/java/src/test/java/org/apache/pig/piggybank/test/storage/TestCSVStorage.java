@@ -30,7 +30,6 @@ import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.test.MiniCluster;
 import org.apache.pig.test.Util;
 import org.junit.Test;
 
@@ -38,10 +37,10 @@ public class TestCSVStorage {
     protected static final Log LOG = LogFactory.getLog(TestCSVStorage.class);
     
     private PigServer pigServer;
-    private MiniCluster cluster;
+    //private MiniCluster cluster;
     
     public TestCSVStorage() throws ExecException, IOException {
-        cluster = MiniCluster.buildCluster();
+        //cluster = MiniCluster.buildCluster();
         pigServer = new PigServer(ExecType.LOCAL, new Properties());
         pigServer.getPigContext().getProperties()
                 .setProperty(MRConfiguration.MAP_MAX_ATTEMPTS, "1");
