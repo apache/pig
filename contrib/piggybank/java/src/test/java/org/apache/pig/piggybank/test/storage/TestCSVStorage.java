@@ -37,10 +37,8 @@ public class TestCSVStorage {
     protected static final Log LOG = LogFactory.getLog(TestCSVStorage.class);
     
     private PigServer pigServer;
-    //private MiniCluster cluster;
     
     public TestCSVStorage() throws ExecException, IOException {
-        //cluster = MiniCluster.buildCluster();
         pigServer = new PigServer(ExecType.LOCAL, new Properties());
         pigServer.getPigContext().getProperties()
                 .setProperty(MRConfiguration.MAP_MAX_ATTEMPTS, "1");
