@@ -84,4 +84,21 @@ public class TestCSVStorage {
         assertEquals(Util.createTuple(new String[] {"\"\"\""}), it.next());
     }
     
+    /*
+     * https://github.com/apache/pig/pull/20
+     * Fixed the 'new line' character inside double-quote causing the csv parsing failure
+     */
+    @Test
+    public void testQuotedQuotesWithNewLines() throws IOException {
+        String inputFileName = "TestCSVLoader-quotedquotes.txt";
+        Util.createLocalInputFile(inputFileName, 
+                new String[] {"\"foo \n ,\"\"bar\"\",baz\"", "\"\"\"\"\"\"\"\""});
+        String script = "a = load '" + inputFileName + "' using org.apache.pig.piggybank.storage.CSVLoader() " +
+        "   as (a:chararray); ";
+        Util.registerMultiLineQuery(pigServer, script);
+        Iterator<Tuple> it = pigServer.openIterator("a");
+        assertEquals(Util.createTuple(new String[] {"foo   ,\"bar\",baz"}), it.next());
+        assertEquals(Util.createTuple(new String[] {"\"\"\""}), it.next());
+    }
+    
 }

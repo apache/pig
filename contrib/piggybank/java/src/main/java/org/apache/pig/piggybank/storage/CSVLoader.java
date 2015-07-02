@@ -155,9 +155,6 @@ public class CSVLoader extends FileInputLoadFunc implements LoadPushDown {
 	                            inField = false;
 	                            readField(fieldBuffer, fieldID++);
 	                        } else {
-	                        	//if (b == RECORD_DEL){
-	                        	//	System.out.println("hello");
-	                        	//}
 	                            fieldBuffer.put(b);
 	                        }
 	                } else if (b == DOUBLE_QUOTE) {
@@ -174,7 +171,7 @@ public class CSVLoader extends FileInputLoadFunc implements LoadPushDown {
 	            doneThisLineLogically = true;
 	            
 	            if (inField)  {
-	            	if (inQuotedField) {
+	            	if (inQuotedField && evenQuotesSeen) {
 	            		doneThisLineLogically = false;
 	            		previousBufferToBeRead = fieldBuffer;
 	            	} else {
@@ -182,7 +179,7 @@ public class CSVLoader extends FileInputLoadFunc implements LoadPushDown {
 	            	}
 	            }
 	            
-        	}	//End of while loop
+        	}	//End of while loo\
         } catch (InterruptedException e) {
             int errCode = 6018;
             String errMsg = "Error while reading input";
