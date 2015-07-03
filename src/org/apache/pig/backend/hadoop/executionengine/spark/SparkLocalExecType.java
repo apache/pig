@@ -25,25 +25,25 @@ import java.util.Properties;
  */
 public class SparkLocalExecType extends SparkExecType {
 
-  private static final long serialVersionUID = 1L;
-  private static final String mode ="SPARK_LOCAL";
+    private static final long serialVersionUID = 1L;
+    private static final String mode = "SPARK_LOCAL";
 
-  @Override
-  public boolean accepts(Properties properties) {
-    String execTypeSpecified = properties.getProperty("exectype", "")
-        .toUpperCase();
-    if (execTypeSpecified.equals(mode))
-      return true;
-    return false;
-  }
+    @Override
+    public boolean accepts(Properties properties) {
+        String execTypeSpecified = properties.getProperty("exectype", "")
+                .toUpperCase();
+        if (execTypeSpecified.equals(mode))
+            return true;
+        return false;
+    }
 
-  @Override
-  public boolean isLocal() {
-    return true;
-  }
+    @Override
+    public boolean isLocal() {
+        return true;
+    }
 
-  @Override
-  public String name() {
-    return "SPARK_LOCAL";
-  }
+    @Override
+    public String name() {
+        return "SPARK_LOCAL";
+    }
 }

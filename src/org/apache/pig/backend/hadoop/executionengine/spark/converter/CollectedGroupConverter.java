@@ -29,60 +29,60 @@ import org.apache.pig.data.Tuple;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.rdd.RDD;
 
-@SuppressWarnings({ "serial"})
+@SuppressWarnings({"serial"})
 public class CollectedGroupConverter implements RDDConverter<Tuple, Tuple, POCollectedGroup> {
 
-	@Override
-  public RDD<Tuple> convert(List<RDD<Tuple>> predecessors,
-      POCollectedGroup physicalOperator) throws IOException {
-    SparkUtil.assertPredecessorSize(predecessors, physicalOperator, 1);
-    RDD<Tuple> rdd = predecessors.get(0);
-    CollectedGroupFunction collectedGroupFunction
-        = new CollectedGroupFunction(physicalOperator);
-    return rdd.toJavaRDD().mapPartitions(collectedGroupFunction, true)
-			.rdd();
-  }
+    @Override
+    public RDD<Tuple> convert(List<RDD<Tuple>> predecessors,
+                              POCollectedGroup physicalOperator) throws IOException {
+        SparkUtil.assertPredecessorSize(predecessors, physicalOperator, 1);
+        RDD<Tuple> rdd = predecessors.get(0);
+        CollectedGroupFunction collectedGroupFunction
+                = new CollectedGroupFunction(physicalOperator);
+        return rdd.toJavaRDD().mapPartitions(collectedGroupFunction, true)
+                .rdd();
+    }
 
-	private static class CollectedGroupFunction
-			implements FlatMapFunction<Iterator<Tuple>, Tuple> {
+    private static class CollectedGroupFunction
+            implements FlatMapFunction<Iterator<Tuple>, Tuple> {
 
-		private POCollectedGroup poCollectedGroup;
+        private POCollectedGroup poCollectedGroup;
 
-		public long current_val;
-		public boolean proceed;
+        public long current_val;
+        public boolean proceed;
 
-		private CollectedGroupFunction(POCollectedGroup poCollectedGroup) {
-			this.poCollectedGroup = poCollectedGroup;
-			this.current_val = 0;
-		}
+        private CollectedGroupFunction(POCollectedGroup poCollectedGroup) {
+            this.poCollectedGroup = poCollectedGroup;
+            this.current_val = 0;
+        }
 
-		public Iterable<Tuple> call(final Iterator<Tuple> input) {
+        public Iterable<Tuple> call(final Iterator<Tuple> input) {
 
-			  return new Iterable<Tuple>() {
+            return new Iterable<Tuple>() {
 
-				@Override
-				public Iterator<Tuple> iterator() {
+                @Override
+                public Iterator<Tuple> iterator() {
 
-				  return new OutputConsumerIterator(input) {
+                    return new OutputConsumerIterator(input) {
 
-					  @Override
-					  protected void attach(Tuple tuple) {
-						  poCollectedGroup.setInputs(null);
-						  poCollectedGroup.attachInput(tuple);
-					  }
+                        @Override
+                        protected void attach(Tuple tuple) {
+                            poCollectedGroup.setInputs(null);
+                            poCollectedGroup.attachInput(tuple);
+                        }
 
-					  @Override
-					  protected Result getNextResult() throws ExecException {
-					      return poCollectedGroup.getNextTuple();
-					  }
+                        @Override
+                        protected Result getNextResult() throws ExecException {
+                            return poCollectedGroup.getNextTuple();
+                        }
 
-					  @Override
-					  protected void endOfInput() {
-						  poCollectedGroup.getParentPlan().endOfAllInput = true;
-					  }
-				  };
-				}
-		  };
-		}
-	}
+                        @Override
+                        protected void endOfInput() {
+                            poCollectedGroup.getParentPlan().endOfAllInput = true;
+                        }
+                    };
+                }
+            };
+        }
+    }
 }

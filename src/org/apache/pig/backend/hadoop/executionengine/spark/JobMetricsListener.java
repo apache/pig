@@ -21,6 +21,7 @@ package org.apache.pig.backend.hadoop.executionengine.spark;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.spark.executor.TaskMetrics;
@@ -49,150 +50,150 @@ import java.util.Set;
 
 public class JobMetricsListener implements SparkListener {
 
-  private static final Log LOG = LogFactory.getLog(JobMetricsListener.class);
+    private static final Log LOG = LogFactory.getLog(JobMetricsListener.class);
 
-  private final Map<Integer, int[]> jobIdToStageId = Maps.newHashMap();
-  private final Map<Integer, Integer> stageIdToJobId = Maps.newHashMap();
-  private final Map<Integer, Map<String, List<TaskMetrics>>> allJobMetrics = Maps.newHashMap();
-  private final Set<Integer> finishedJobIds = Sets.newHashSet();
+    private final Map<Integer, int[]> jobIdToStageId = Maps.newHashMap();
+    private final Map<Integer, Integer> stageIdToJobId = Maps.newHashMap();
+    private final Map<Integer, Map<String, List<TaskMetrics>>> allJobMetrics = Maps.newHashMap();
+    private final Set<Integer> finishedJobIds = Sets.newHashSet();
 
-  @Override
-  public void onStageCompleted(SparkListenerStageCompleted stageCompleted) {
+    @Override
+    public void onStageCompleted(SparkListenerStageCompleted stageCompleted) {
 
-  }
+    }
 
-  @Override
-  public void onStageSubmitted(SparkListenerStageSubmitted stageSubmitted) {
+    @Override
+    public void onStageSubmitted(SparkListenerStageSubmitted stageSubmitted) {
 
-  }
+    }
 
-  @Override
-  public void onTaskStart(SparkListenerTaskStart taskStart) {
+    @Override
+    public void onTaskStart(SparkListenerTaskStart taskStart) {
 
-  }
+    }
 
-  @Override
-  public void onTaskGettingResult(SparkListenerTaskGettingResult taskGettingResult) {
+    @Override
+    public void onTaskGettingResult(SparkListenerTaskGettingResult taskGettingResult) {
 
-  }
+    }
 
-  @Override
-  public void onExecutorRemoved(SparkListenerExecutorRemoved executorRemoved) {
+    @Override
+    public void onExecutorRemoved(SparkListenerExecutorRemoved executorRemoved) {
 
-  }
+    }
 
-  @Override
-  public void onExecutorAdded(SparkListenerExecutorAdded executorAdded){
+    @Override
+    public void onExecutorAdded(SparkListenerExecutorAdded executorAdded) {
 
-  }
+    }
 
-  @Override
-  public synchronized void onTaskEnd(SparkListenerTaskEnd taskEnd) {
-      int stageId = taskEnd.stageId();
-      int stageAttemptId = taskEnd.stageAttemptId();
-      String stageIdentifier = stageId + "_" + stageAttemptId;
-      Integer jobId = stageIdToJobId.get(stageId);
-      if (jobId == null) {
-          LOG.warn("Cannot find job id for stage[" + stageId + "].");
-      } else {
-          Map<String, List<TaskMetrics>> jobMetrics = allJobMetrics.get(jobId);
-          if (jobMetrics == null) {
-              jobMetrics = Maps.newHashMap();
-              allJobMetrics.put(jobId, jobMetrics);
-          }
-          List<TaskMetrics> stageMetrics = jobMetrics.get(stageIdentifier);
-          if (stageMetrics == null) {
-              stageMetrics = Lists.newLinkedList();
-              jobMetrics.put(stageIdentifier, stageMetrics);
-          }
-          stageMetrics.add(taskEnd.taskMetrics());
-      }
-  }
+    @Override
+    public synchronized void onTaskEnd(SparkListenerTaskEnd taskEnd) {
+        int stageId = taskEnd.stageId();
+        int stageAttemptId = taskEnd.stageAttemptId();
+        String stageIdentifier = stageId + "_" + stageAttemptId;
+        Integer jobId = stageIdToJobId.get(stageId);
+        if (jobId == null) {
+            LOG.warn("Cannot find job id for stage[" + stageId + "].");
+        } else {
+            Map<String, List<TaskMetrics>> jobMetrics = allJobMetrics.get(jobId);
+            if (jobMetrics == null) {
+                jobMetrics = Maps.newHashMap();
+                allJobMetrics.put(jobId, jobMetrics);
+            }
+            List<TaskMetrics> stageMetrics = jobMetrics.get(stageIdentifier);
+            if (stageMetrics == null) {
+                stageMetrics = Lists.newLinkedList();
+                jobMetrics.put(stageIdentifier, stageMetrics);
+            }
+            stageMetrics.add(taskEnd.taskMetrics());
+        }
+    }
 
-  @Override
-  public synchronized void onJobStart(SparkListenerJobStart jobStart) {
-      int jobId = jobStart.jobId();
-      int size = jobStart.stageIds().size();
-      int[] intStageIds = new int[size];
-      for (int i = 0; i < size; i++) {
-          Integer stageId = (Integer) jobStart.stageIds().apply(i);
-          intStageIds[i] = stageId;
-          stageIdToJobId.put(stageId, jobId);
-      }
-      jobIdToStageId.put(jobId, intStageIds);
-  }
+    @Override
+    public synchronized void onJobStart(SparkListenerJobStart jobStart) {
+        int jobId = jobStart.jobId();
+        int size = jobStart.stageIds().size();
+        int[] intStageIds = new int[size];
+        for (int i = 0; i < size; i++) {
+            Integer stageId = (Integer) jobStart.stageIds().apply(i);
+            intStageIds[i] = stageId;
+            stageIdToJobId.put(stageId, jobId);
+        }
+        jobIdToStageId.put(jobId, intStageIds);
+    }
 
-  @Override
-  public synchronized void onJobEnd(SparkListenerJobEnd jobEnd) {
-      finishedJobIds.add(jobEnd.jobId());
-      notify();
-  }
+    @Override
+    public synchronized void onJobEnd(SparkListenerJobEnd jobEnd) {
+        finishedJobIds.add(jobEnd.jobId());
+        notify();
+    }
 
-  @Override
-  public void onEnvironmentUpdate(SparkListenerEnvironmentUpdate environmentUpdate) {
+    @Override
+    public void onEnvironmentUpdate(SparkListenerEnvironmentUpdate environmentUpdate) {
 
-  }
+    }
 
-  @Override
-  public void onBlockManagerAdded(SparkListenerBlockManagerAdded blockManagerAdded) {
+    @Override
+    public void onBlockManagerAdded(SparkListenerBlockManagerAdded blockManagerAdded) {
 
-  }
+    }
 
-  @Override
-  public void onBlockManagerRemoved(SparkListenerBlockManagerRemoved blockManagerRemoved) {
+    @Override
+    public void onBlockManagerRemoved(SparkListenerBlockManagerRemoved blockManagerRemoved) {
 
-  }
+    }
 
-  @Override
-  public void onUnpersistRDD(SparkListenerUnpersistRDD unpersistRDD) {
+    @Override
+    public void onUnpersistRDD(SparkListenerUnpersistRDD unpersistRDD) {
 
-  }
+    }
 
-  @Override
-  public void onApplicationStart(SparkListenerApplicationStart applicationStart) {
+    @Override
+    public void onApplicationStart(SparkListenerApplicationStart applicationStart) {
 
-  }
+    }
 
-  @Override
-  public void onApplicationEnd(SparkListenerApplicationEnd applicationEnd) {
+    @Override
+    public void onApplicationEnd(SparkListenerApplicationEnd applicationEnd) {
 
-  }
+    }
 
-  @Override
-  public void onExecutorMetricsUpdate(SparkListenerExecutorMetricsUpdate executorMetricsUpdate) {
+    @Override
+    public void onExecutorMetricsUpdate(SparkListenerExecutorMetricsUpdate executorMetricsUpdate) {
 
-  }
+    }
 
-  public synchronized  Map<String, List<TaskMetrics>> getJobMetric(int jobId) {
-      return allJobMetrics.get(jobId);
-  }
+    public synchronized Map<String, List<TaskMetrics>> getJobMetric(int jobId) {
+        return allJobMetrics.get(jobId);
+    }
 
-  public synchronized boolean waitForJobToEnd(int jobId) throws InterruptedException {
-      if (finishedJobIds.contains(jobId)) {
-        finishedJobIds.remove(jobId);
-        return true;
-      }
+    public synchronized boolean waitForJobToEnd(int jobId) throws InterruptedException {
+        if (finishedJobIds.contains(jobId)) {
+            finishedJobIds.remove(jobId);
+            return true;
+        }
 
-      wait();
-      return false;
-  }
+        wait();
+        return false;
+    }
 
-  public synchronized void cleanup(int jobId) {
-      allJobMetrics.remove(jobId);
-      jobIdToStageId.remove(jobId);
-      Iterator<Map.Entry<Integer, Integer>> iterator = stageIdToJobId.entrySet().iterator();
-      while (iterator.hasNext()) {
-          Map.Entry<Integer, Integer> entry = iterator.next();
-          if (entry.getValue() == jobId) {
-              iterator.remove();
-          }
-      }
-  }
+    public synchronized void cleanup(int jobId) {
+        allJobMetrics.remove(jobId);
+        jobIdToStageId.remove(jobId);
+        Iterator<Map.Entry<Integer, Integer>> iterator = stageIdToJobId.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<Integer, Integer> entry = iterator.next();
+            if (entry.getValue() == jobId) {
+                iterator.remove();
+            }
+        }
+    }
 
-  public synchronized void reset() {
-      stageIdToJobId.clear();
-      jobIdToStageId.clear();
-      allJobMetrics.clear();
-      finishedJobIds.clear();
-  }
+    public synchronized void reset() {
+        stageIdToJobId.clear();
+        jobIdToStageId.clear();
+        allJobMetrics.clear();
+        finishedJobIds.clear();
+    }
 }
