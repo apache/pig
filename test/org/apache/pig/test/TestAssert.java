@@ -116,8 +116,14 @@ public class TestAssert {
       try {
           pigServer.openIterator("A");
       } catch (FrontendException fe) {
-          Assert.assertTrue(fe.getCause().getMessage().contains(
-                  "Job terminated with anomalous status FAILED"));
+          if (!Util.isSparkExecType(Util.getLocalTestMode())) {
+              Assert.assertTrue(fe.getCause().getMessage().contains(
+                      "Job terminated with anomalous status FAILED"));
+          }
+          else {
+              Assert.assertTrue(fe.getCause().getMessage().contains(
+                      "i should be greater than 1"));
+          }
       }
   }
 
@@ -142,8 +148,14 @@ public class TestAssert {
       try {
           pigServer.openIterator("A");
       } catch (FrontendException fe) {
-          Assert.assertTrue(fe.getCause().getMessage().contains(
-                  "Job terminated with anomalous status FAILED"));
+          if (!Util.isSparkExecType(Util.getLocalTestMode())) {
+              Assert.assertTrue(fe.getCause().getMessage().contains(
+                      "Job terminated with anomalous status FAILED"));
+          }
+          else {
+              Assert.assertTrue(fe.getCause().getMessage().contains(
+                      "i should be greater than 1"));
+          }
       }
   }
 
