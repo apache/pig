@@ -626,6 +626,7 @@ public class TestCubeOperator {
     public void testIllustrate() throws Exception {
 	// test for illustrate
         Assume.assumeTrue("illustrate does not work in tez (PIG-3993)", !Util.getLocalTestMode().toString().startsWith("TEZ"));
+        Assume.assumeTrue("illustrate does not work in tez (PIG-4621)", !Util.getLocalTestMode().toString().startsWith("SPARK"));
 	String query = "a = load 'input' USING mock.Storage() as (a1:chararray,b1:chararray,c1:long); "
 	        + "b = cube a by cube(a1,b1);";
 
