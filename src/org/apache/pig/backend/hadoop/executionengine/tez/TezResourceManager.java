@@ -35,6 +35,9 @@ import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.PigConfiguration;
+import static org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.getFromCache;
+import static org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.getCacheStagingDir;
 
 public class TezResourceManager {
     private static TezResourceManager instance = null;
@@ -79,6 +82,18 @@ public class TezResourceManager {
 
             // Ship the local resource to the staging directory on the remote FS
             if (!pigContext.getExecType().isLocal() && uri.toString().startsWith("file:")) {
+                boolean cacheEnabled =
+                        conf.getBoolean(PigConfiguration.PIG_USER_CACHE_ENABLED, false);
+
+                if(cacheEnabled){
+                    Path pathOnDfs = getFromCache(pigContext, conf, uri.toURL());
+                    if(pathOnDfs != null) {
+                        resources.put(resourceName, pathOnDfs);
+                        return pathOnDfs;
+                    }
+
+                }
+
                 Path remoteFsPath = remoteFs.makeQualified(new Path(stagingDir, resourceName));
                 remoteFs.copyFromLocalFile(resourcePath, remoteFsPath);
                 remoteFs.setReplication(remoteFsPath, (short)conf.getInt(Job.SUBMIT_REPLICATION, 3));
