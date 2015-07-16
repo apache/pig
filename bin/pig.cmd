@@ -39,7 +39,7 @@
 
 setlocal enabledelayedexpansion
 
-set HADOOP_BIN_PATH=%HADOOP_HOME%\bin
+set HADOOP_BIN_PATH=%HADOOP_HOME%\libexec
 
 set hadoop-config-script=%HADOOP_BIN_PATH%\hadoop-config.cmd
 call %hadoop-config-script%
