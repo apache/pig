@@ -30,6 +30,7 @@ import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -106,33 +107,23 @@ public class TestMultiQuery {
         myPig.registerQuery("E = load 'output1' as (a:int, b:int);");
         Iterator<Tuple> iter = myPig.openIterator("E");
 
-        List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
-                new String[] {
+        String[] expectedResults = new String[]{
                         "(1,2)",
                         "(2,3)"
-                });
+        };
+        Schema s = myPig.dumpSchema("E");
+        Util.checkQueryOutputsAfterSortRecursive(iter, expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(s));
 
-        int counter = 0;
-        while (iter.hasNext()) {
-            assertEquals(expectedResults.get(counter++).toString(), iter.next().toString());
-        }
-        assertEquals(expectedResults.size(), counter);
 
         myPig.registerQuery("E = load 'output2' as (a:int, b:int);");
         iter = myPig.openIterator("E");
 
-        expectedResults = Util.getTuplesFromConstantTupleStrings(
-                new String[] {
+        expectedResults = new String[]{
                         "(2,3)",
                         "(3,4)"
-                });
-
-        counter = 0;
-        while (iter.hasNext()) {
-            assertEquals(expectedResults.get(counter++).toString(), iter.next().toString());
-        }
-
-        assertEquals(expectedResults.size(), counter);
+        };
+        s = myPig.dumpSchema("E");
+        Util.checkQueryOutputsAfterSortRecursive(iter, expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(s));
     }
 
     @Test
@@ -165,20 +156,14 @@ public class TestMultiQuery {
 
         Iterator<Tuple> iter = myPig.openIterator("F");
 
-        List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
-                new String[] {
+        String[] expectedResults = new String[]{
                         "(1,2)",
                         "(2,3)",
                         "(3,5)",
                         "(5,6)"
-                });
-
-        int counter = 0;
-        while (iter.hasNext()) {
-            assertEquals(expectedResults.get(counter++).toString(), iter.next().toString());
-        }
-
-        assertEquals(expectedResults.size(), counter);
+        };
+        Schema s = myPig.dumpSchema("F");
+        Util.checkQueryOutputsAfterSortRecursive(iter, expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(s));
     }
 
     @Test
@@ -299,19 +284,13 @@ public class TestMultiQuery {
 
         Iterator<Tuple> iter = myPig.openIterator("E");
 
-        List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
-                new String[] {
-                        "(1L,'apple',3,1L,'apple',1L,{(1L)})",
-                        "(2L,'orange',4,2L,'orange',2L,{(2L)})",
-                        "(3L,'persimmon',5,3L,'persimmon',3L,{(3L)})"
-                });
-
-        int counter = 0;
-        while (iter.hasNext()) {
-            assertEquals(expectedResults.get(counter++).toString(), iter.next().toString());
-        }
-
-        assertEquals(expectedResults.size(), counter);
+        String[] expectedResults = new String[]{
+                "(1L,apple,3,1L,apple,1L,{(1L)})",
+                "(2L,orange,4,2L,orange,2L,{(2L)})",
+                "(3L,persimmon,5,3L,persimmon,3L,{(3L)})"
+        };
+        Schema s = myPig.dumpSchema("E");
+        Util.checkQueryOutputsAfterSortRecursive(iter, expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(s));
     }
 
     @Test
@@ -345,19 +324,13 @@ public class TestMultiQuery {
 
         Iterator<Tuple> iter = myPig.openIterator("joined_session_info");
 
-        List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
-                new String[] {
-                        "('apple',{},{('apple','jar',1L)})",
-                        "('orange',{},{('orange','box',1L)})",
-                        "('strawberry',{(30,'strawberry','quit','bot')},{})"
-                });
+        String[] expectedResults = new String[]{
+                "(apple,{},{(apple,jar,1L)})",
+                "(orange,{},{(orange,box,1L)})",
+                "(strawberry,{(30,strawberry,quit,bot)},{})"};
 
-        int counter = 0;
-        while (iter.hasNext()) {
-            assertEquals(expectedResults.get(counter++).toString(), iter.next().toString());
-        }
-
-        assertEquals(expectedResults.size(), counter);
+        Schema s = myPig.dumpSchema("joined_session_info");
+        Util.checkQueryOutputsAfterSortRecursive(iter, expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(s));
     }
 
     @Test
