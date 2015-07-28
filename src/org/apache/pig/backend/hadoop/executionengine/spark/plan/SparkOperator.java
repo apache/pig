@@ -245,4 +245,23 @@ public class SparkOperator extends Operator<SparkOpPlanVisitor> {
     public void markLimitAfterSort() {
         feature.set(OPER_FEATURE.LIMIT_AFTER_SORT.ordinal());
     }
+
+    public void copyFeatures(SparkOperator copyFrom, List<OPER_FEATURE> excludeFeatures) {
+        for (OPER_FEATURE opf : OPER_FEATURE.values()) {
+            if (excludeFeatures != null && excludeFeatures.contains(opf)) {
+                continue;
+            }
+            if (copyFrom.feature.get(opf.ordinal())) {
+                feature.set(opf.ordinal());
+            }
+        }
+    }
+
+    public void setRequestedParallelism(int requestedParallelism) {
+        this.requestedParallelism = requestedParallelism;
+    }
+
+    public void setRequestedParallelismByReference(SparkOperator oper) {
+        this.requestedParallelism = oper.requestedParallelism;
+    }
 }
