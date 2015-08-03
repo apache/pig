@@ -488,7 +488,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
     public void visit(CastExpression cast) throws FrontendException {
         byte inType = cast.getExpression().getType();
         byte outType = cast.getType();
-        if(outType == DataType.BYTEARRAY){
+        if(outType == DataType.BYTEARRAY && inType != outType) {
             int errCode = 1051;
             String msg = "Cannot cast to bytearray";
             msgCollector.collect(msg, MessageType.Error) ;
