@@ -37,6 +37,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.io.orc.CompressionKind;
 import org.apache.hadoop.hive.ql.io.orc.OrcFile;
@@ -406,7 +407,7 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
         return FuncUtils.getShipFiles(classList);
     }
 
-    private static Path getFirstFile(String location, FileSystem fs) throws IOException {
+    private static Path getFirstFile(String location, FileSystem fs, PathFilter filter) throws IOException {
         String[] locations = getPathStrings(location);
         Path[] paths = new Path[locations.length];
         for (int i = 0; i < paths.length; ++i) {
@@ -423,7 +424,7 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
         }
         FileStatus[] statusArray = (FileStatus[]) statusList
                 .toArray(new FileStatus[statusList.size()]);
-        Path p = Utils.depthFirstSearchForFile(statusArray, fs);
+        Path p = Utils.depthFirstSearchForFile(statusArray, fs, filter);
         return p;
     }
 
@@ -456,7 +457,7 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
 
     private TypeInfo getTypeInfoFromLocation(String location, Job job) throws IOException {
         FileSystem fs = FileSystem.get(job.getConfiguration());
-        Path path = getFirstFile(location, fs);
+        Path path = getFirstFile(location, fs, new NonEmptyOrcFileFilter(fs));
         if (path == null) {
             log.info("Cannot find any ORC files from " + location +
                     ". Probably multiple load store in script.");
@@ -465,6 +466,28 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
         Reader reader = OrcFile.createReader(fs, path);
         ObjectInspector oip = (ObjectInspector)reader.getObjectInspector();
         return TypeInfoUtils.getTypeInfoFromObjectInspector(oip);
+    }
+
+    public static class NonEmptyOrcFileFilter implements PathFilter {
+        private FileSystem fs;
+        public NonEmptyOrcFileFilter(FileSystem fs) {
+            this.fs = fs;
+        }
+        @Override
+        public boolean accept(Path path) {
+            Reader reader;
+            try {
+                reader = OrcFile.createReader(fs, path);
+                ObjectInspector oip = (ObjectInspector)reader.getObjectInspector();
+                ResourceFieldSchema rs = HiveUtils.getResourceFieldSchema(TypeInfoUtils.getTypeInfoFromObjectInspector(oip));
+                if (rs.getSchema().getFields().length!=0) {
+                    return true;
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            return false;
+        }
     }
 
     @Override

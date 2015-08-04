@@ -623,16 +623,9 @@ public class Utils {
      * @throws IOException
      */
 
-    public static Path depthFirstSearchForFile(final FileStatus fileStatus,
-        final FileSystem fileSystem) throws IOException {
-      if (fileSystem.isFile(fileStatus.getPath())) {
-        return fileStatus.getPath();
-      } else {
-        return depthFirstSearchForFile(
-            fileSystem.listStatus(fileStatus.getPath(), VISIBLE_FILES),
-            fileSystem);
-      }
-
+    public static Path depthFirstSearchForFile(final FileStatus[] statusArray,
+            final FileSystem fileSystem) throws IOException {
+        return depthFirstSearchForFile(statusArray, fileSystem, null);
     }
 
     /**
@@ -644,7 +637,7 @@ public class Utils {
      * @throws IOException
      */
     public static Path depthFirstSearchForFile(final FileStatus[] statusArray,
-        final FileSystem fileSystem) throws IOException {
+        final FileSystem fileSystem, PathFilter filter) throws IOException {
 
       // Most recent files first
       Arrays.sort(statusArray,
@@ -657,10 +650,17 @@ public class Utils {
       );
 
       for (FileStatus f : statusArray) {
-        Path p = depthFirstSearchForFile(f, fileSystem);
-        if (p != null) {
-          return p;
-        }
+          if (fileSystem.isFile(f.getPath())) {
+              if (filter == null || filter.accept(f.getPath())) {
+                  return f.getPath();
+              } else {
+                  continue;
+              }
+            } else {
+              return depthFirstSearchForFile(
+                  fileSystem.listStatus(f.getPath(), VISIBLE_FILES),
+                  fileSystem, filter);
+            }
       }
 
       return null;
