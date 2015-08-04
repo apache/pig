@@ -32,6 +32,8 @@ PIG-4570: Allow AvroStorage to use a class for the schema (pmazak via daijy)
 
 BUG FIXES
 
+PIG-4636: Occurred spelled incorrectly in error message for Launcher and POMergeCogroup (stevenmz via daijy)
+
 PIG-4624: Error on ORC empty file without schema (daijy)
 
 PIG-3622: Allow casting bytearray fields to bytearray type (redisliu via daijy)

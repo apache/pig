@@ -581,7 +581,7 @@ public class POMergeCogroup extends PhysicalOperator {
                 } catch (ExecException e) {
 
                     // Alas, no choice but to throw Runtime exception.
-                    String errMsg = "Exception occured in compare() of heap in POMergeCogroup.";
+                    String errMsg = "Exception occurred in compare() of heap in POMergeCogroup.";
                     throw new RuntimeException(errMsg,e);
                 }
             } 
