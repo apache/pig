@@ -38,6 +38,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-4623: Fixed the 'new line' character inside double-quote causing the csv parsing failure (ken11223 via daijy)
+
 PIG-4649: [Pig on Tez] Union followed by HCatStorer misses some data (rohini)
 
 PIG-4636: Occurred spelled incorrectly in error message for Launcher and POMergeCogroup (stevenmz via daijy)
