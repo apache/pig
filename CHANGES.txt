@@ -38,6 +38,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-4650: ant mvn-deploy target is broken (daijy)
+
 PIG-4623: Fixed the 'new line' character inside double-quote causing the csv parsing failure (ken11223 via daijy)
 
 PIG-4649: [Pig on Tez] Union followed by HCatStorer misses some data (rohini)

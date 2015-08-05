@@ -1317,7 +1317,7 @@
     <target name="simpledeploy" unless="staging">
       <artifact:pom file="${pig.pom}" id="pig"/>
       <artifact:install-provider artifactId="wagon-http" version="${wagon-http.version}"/>
-      <artifact:deploy file="${output.jarfile.core-h1}">
+      <artifact:deploy file="${output.jarfile.core}">
               <remoteRepository id="${snapshots_repo_id}" url="${asfsnapshotrepo}"/>
               <pom refid="pig"/>
               <attach file="${output.jarfile.core-h2}" classifier="h2" />
