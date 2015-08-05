@@ -60,6 +60,7 @@ public class PigConfiguration {
      * This key is used to enable or disable union optimization in tez. True by default
      */
     public static final String PIG_TEZ_OPT_UNION = "pig.tez.opt.union";
+    public static final String PIG_TEZ_OPT_UNION_UNSUPPORTED_STOREFUNCS = "pig.tez.opt.union.unsupported.storefuncs";
 
     /**
      * Boolean value to enable or disable partial aggregation in map. Disabled by default

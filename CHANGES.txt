@@ -18,10 +18,23 @@
 
 Pig Change Log
 
-Release 0.15.0 - Unreleased
+Release 0.15.1 - Unreleased
  
 INCOMPATIBLE CHANGES
  
+IMPROVEMENTS
+
+OPTIMIZATIONS
+
+BUG FIXES
+
+PIG-4649: [Pig on Tez] Union followed by HCatStorer misses some data (rohini)
+
+
+Release 0.15.0
+
+INCOMPATIBLE CHANGES
+
 IMPROVEMENTS
 
 PIG-4560: Pig 0.15.0 Documentation (daijy)

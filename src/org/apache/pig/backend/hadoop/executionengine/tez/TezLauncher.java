@@ -20,6 +20,7 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +36,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.counters.Limits;
+import org.apache.hadoop.util.StringUtils;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
@@ -417,11 +419,18 @@ public class TezLauncher extends Launcher {
         }
 
         boolean isUnionOpt = conf.getBoolean(PigConfiguration.PIG_TEZ_OPT_UNION, true);
+        List<String> unionUnsupportedStoreFuncs = null;
+        String unionUnSupported = conf.get(PigConfiguration.PIG_TEZ_OPT_UNION_UNSUPPORTED_STOREFUNCS);
+        if (unionUnSupported != null && unionUnSupported.trim().length() > 0) {
+            unionUnsupportedStoreFuncs = Arrays
+                    .asList(StringUtils.split(unionUnSupported.trim()));
+        }
+
         boolean isMultiQuery = conf.getBoolean(PigConfiguration.PIG_OPT_MULTIQUERY, true);
         if (isMultiQuery) {
             // reduces the number of TezOpers in the Tez plan generated
             // by multi-query (multi-store) script.
-            MultiQueryOptimizerTez mqOptimizer = new MultiQueryOptimizerTez(tezPlan, isUnionOpt);
+            MultiQueryOptimizerTez mqOptimizer = new MultiQueryOptimizerTez(tezPlan, isUnionOpt, unionUnsupportedStoreFuncs);
             mqOptimizer.visit();
         }
 
@@ -434,7 +443,7 @@ public class TezLauncher extends Launcher {
 
         // Use VertexGroup in Tez
         if (isUnionOpt) {
-            UnionOptimizer uo = new UnionOptimizer(tezPlan);
+            UnionOptimizer uo = new UnionOptimizer(tezPlan, unionUnsupportedStoreFuncs);
             uo.visit();
         }
 
