@@ -30,6 +30,7 @@ import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.test.MiniCluster;
 import org.apache.pig.test.Util;
 import org.junit.Test;
 
@@ -37,8 +38,10 @@ public class TestCSVStorage {
     protected static final Log LOG = LogFactory.getLog(TestCSVStorage.class);
     
     private PigServer pigServer;
+    private MiniCluster cluster;
     
     public TestCSVStorage() throws ExecException, IOException {
+        cluster = MiniCluster.buildCluster();
         pigServer = new PigServer(ExecType.LOCAL, new Properties());
         pigServer.getPigContext().getProperties()
                 .setProperty(MRConfiguration.MAP_MAX_ATTEMPTS, "1");
@@ -79,22 +82,6 @@ public class TestCSVStorage {
         Util.registerMultiLineQuery(pigServer, script);
         Iterator<Tuple> it = pigServer.openIterator("a");
         assertEquals(Util.createTuple(new String[] {"foo,\"bar\",baz"}), it.next());
-        assertEquals(Util.createTuple(new String[] {"\"\"\""}), it.next());
-    }
-    
-    /*
-     * See PIG-4623
-     */
-    @Test
-    public void testQuotedQuotesWithNewLines() throws IOException {
-        String inputFileName = "TestCSVLoader-quotedquotes.txt";
-        Util.createLocalInputFile(inputFileName, 
-                new String[] {"\"foo \n ,\"\"bar\"\",baz\"", "\"\"\"\"\"\"\"\""});
-        String script = "a = load '" + inputFileName + "' using org.apache.pig.piggybank.storage.CSVLoader() " +
-        "   as (a:chararray); ";
-        Util.registerMultiLineQuery(pigServer, script);
-        Iterator<Tuple> it = pigServer.openIterator("a");
-        assertEquals(Util.createTuple(new String[] {"foo   ,\"bar\",baz"}), it.next());
         assertEquals(Util.createTuple(new String[] {"\"\"\""}), it.next());
     }
     

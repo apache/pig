@@ -40,8 +40,6 @@ BUG FIXES
 
 PIG-4650: ant mvn-deploy target is broken (daijy)
 
-PIG-4623: Fixed the 'new line' character inside double-quote causing the csv parsing failure (ken11223 via daijy)
-
 PIG-4649: [Pig on Tez] Union followed by HCatStorer misses some data (rohini)
 
 PIG-4636: Occurred spelled incorrectly in error message for Launcher and POMergeCogroup (stevenmz via daijy)
