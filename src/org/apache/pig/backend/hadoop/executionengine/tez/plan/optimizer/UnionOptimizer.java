@@ -71,14 +71,26 @@ import org.apache.tez.runtime.library.output.UnorderedPartitionedKVOutput;
 public class UnionOptimizer extends TezOpPlanVisitor {
 
     private TezOperPlan tezPlan;
-    public UnionOptimizer(TezOperPlan plan) {
+    private List<String> unsupportedStoreFuncs;
+
+    public UnionOptimizer(TezOperPlan plan, List<String> unsupportedStoreFuncs) {
         super(plan, new ReverseDependencyOrderWalker<TezOperator, TezOperPlan>(plan));
         tezPlan = plan;
+        this.unsupportedStoreFuncs = unsupportedStoreFuncs;
     }
 
-    public static boolean isOptimizable(TezOperator tezOp) {
+    public static boolean isOptimizable(TezOperator tezOp, List<String> unsupportedStoreFuncs)
+            throws VisitorException {
         if((tezOp.isLimit() || tezOp.isLimitAfterSort()) && tezOp.getRequestedParallelism() == 1) {
             return false;
+        }
+        if (unsupportedStoreFuncs != null) {
+            List<POStoreTez> stores = PlanHelper.getPhysicalOperators(tezOp.plan, POStoreTez.class);
+            for (POStoreTez store : stores) {
+                if (unsupportedStoreFuncs.contains(store.getStoreFunc().getClass().getName())) {
+                    return false;
+                }
+            }
         }
         return true;
     }
@@ -89,7 +101,7 @@ public class UnionOptimizer extends TezOpPlanVisitor {
             return;
         }
 
-        if (!isOptimizable(tezOp)) {
+        if (!isOptimizable(tezOp, unsupportedStoreFuncs)) {
             return;
         }
 
