@@ -17,13 +17,15 @@
  */
 package org.apache.pig.builtin.mock;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertTrue;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.fail;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 import static org.apache.pig.builtin.mock.Storage.resetData;
 import static org.apache.pig.builtin.mock.Storage.schema;
 import static org.apache.pig.builtin.mock.Storage.tuple;
+import static org.apache.pig.builtin.mock.Storage.bag;
+import static org.apache.pig.builtin.mock.Storage.map;
 
 import java.util.HashSet;
 import java.util.List;
@@ -47,7 +49,9 @@ public class TestMockStorage {
     data.set("foo",
         tuple("a"),
         tuple("b"),
-        tuple("c")
+        tuple("c"),
+        tuple(map("d","e", "f","g")),
+        tuple(bag(tuple("h"),tuple("i")))
         );
 
     pigServer.registerQuery("A = LOAD 'foo' USING mock.Storage();");
@@ -57,8 +61,10 @@ public class TestMockStorage {
     assertEquals(tuple("a"), out.get(0));
     assertEquals(tuple("b"), out.get(1));
     assertEquals(tuple("c"), out.get(2));
+    assertEquals(tuple(map("f", "g", "d", "e" )), out.get(3));
+    assertEquals(tuple(bag(tuple("h"),tuple("i"))), out.get(4));
   }
-  
+
   @Test
   public void testMockSchema() throws Exception {
     PigServer pigServer = new PigServer(Util.getLocalTestMode());
