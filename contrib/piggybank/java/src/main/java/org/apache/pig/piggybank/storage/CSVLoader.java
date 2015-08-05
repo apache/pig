@@ -87,25 +87,6 @@ public class CSVLoader extends FileInputLoadFunc implements LoadPushDown {
     public CSVLoader() {
     }
 
-    /*
-     * Merge two ByteBuffer
-     * Precondition is both input buffer cannot be null nor empty
-     */
-    private ByteBuffer enlargeBuffer(ByteBuffer a, int extraLen, boolean putSpaceInBetween) {
-    	int totalLen = a.capacity() + extraLen;
-    	if (putSpaceInBetween) {
-    		totalLen++;
-    	}
-    	ByteBuffer c = ByteBuffer.allocate(totalLen);
-    	for(int i=0; i<a.position(); i++) {
-    		c.put(a.get(i));
-    	}
-    	if (putSpaceInBetween) {
-    		c.put((byte) 32);	//Put a space afterwards
-    	}
-    	return c;
-    }
-    
     @Override
     public Tuple getNext() throws IOException {
         mProtoTuple = new ArrayList<Object>();
@@ -122,64 +103,46 @@ public class CSVLoader extends FileInputLoadFunc implements LoadPushDown {
             mRequiredColumnsInitialized = true;
         }
         try {
-        	boolean doneThisLineLogically = false;
-        	ByteBuffer previousBufferToBeRead = null;
-        	int fieldID = 0;
-        	while(!doneThisLineLogically)	{
-	            if (!in.nextKeyValue()) {
-	                return null;
-	            }
-	            Text value = (Text) in.getCurrentValue();
-	            byte[] buf = value.getBytes();
-	            int len = value.getLength();
-	            ByteBuffer fieldBuffer = null;
-	            if (previousBufferToBeRead != null) {
-	            	fieldBuffer = enlargeBuffer(previousBufferToBeRead, len, true);
-	            } else {
-	            	fieldBuffer = ByteBuffer.allocate(len);	
-	            }
-	
-	            for (int i = 0; i < len; i++) {
-	                byte b = buf[i];
-	                inField = true;
-	                if (inQuotedField) {
-	                    if (b == DOUBLE_QUOTE) {
-	                        evenQuotesSeen = !evenQuotesSeen;
-	                        if (evenQuotesSeen) {
-	                            fieldBuffer.put(DOUBLE_QUOTE);
-	                        }
-	                    } else
-	                        if (!evenQuotesSeen &&
-	                                (b == FIELD_DEL || b == RECORD_DEL)) {
-	                            inQuotedField = false;
-	                            inField = false;
-	                            readField(fieldBuffer, fieldID++);
-	                        } else {
-	                            fieldBuffer.put(b);
-	                        }
-	                } else if (b == DOUBLE_QUOTE) {
-	                    inQuotedField = true;
-	                    evenQuotesSeen = true;
-	                } else if (b == FIELD_DEL) {
-	                    inField = false;
-	                    readField(fieldBuffer, fieldID++); // end of the field
-	                } else {
-	                    evenQuotesSeen = true;
-	                    fieldBuffer.put(b);
-	                }
-	            }
-	            doneThisLineLogically = true;
-	            
-	            if (inField)  {
-	            	if (inQuotedField && evenQuotesSeen) {
-	            		doneThisLineLogically = false;
-	            		previousBufferToBeRead = fieldBuffer;
-	            	} else {
-	            		readField(fieldBuffer, fieldID++);
-	            	}
-	            }
-	            
-        	}	//End of while loo\
+            if (!in.nextKeyValue()) {
+                return null;
+            }                                                                                           
+            Text value = (Text) in.getCurrentValue();
+            byte[] buf = value.getBytes();
+            int len = value.getLength();
+            int fieldID = 0;
+
+            ByteBuffer fieldBuffer = ByteBuffer.allocate(len);
+
+            for (int i = 0; i < len; i++) {
+                byte b = buf[i];
+                inField = true;
+                if (inQuotedField) {
+                    if (b == DOUBLE_QUOTE) {
+                        evenQuotesSeen = !evenQuotesSeen;
+                        if (evenQuotesSeen) {
+                            fieldBuffer.put(DOUBLE_QUOTE);
+                        }
+                    } else
+                        if (!evenQuotesSeen &&
+                                (b == FIELD_DEL || b == RECORD_DEL)) {
+                            inQuotedField = false;
+                            inField = false;
+                            readField(fieldBuffer, fieldID++);
+                        } else {
+                            fieldBuffer.put(b);
+                        }
+                } else if (b == DOUBLE_QUOTE) {
+                    inQuotedField = true;
+                    evenQuotesSeen = true;
+                } else if (b == FIELD_DEL) {
+                    inField = false;
+                    readField(fieldBuffer, fieldID++); // end of the field
+                } else {
+                    evenQuotesSeen = true;
+                    fieldBuffer.put(b);
+                }
+            }
+            if (inField) readField(fieldBuffer, fieldID++);
         } catch (InterruptedException e) {
             int errCode = 6018;
             String errMsg = "Error while reading input";
@@ -190,7 +153,7 @@ public class CSVLoader extends FileInputLoadFunc implements LoadPushDown {
         Tuple t =  mTupleFactory.newTupleNoCopy(mProtoTuple);
         return t;
     }
-    
+
     private void readField(ByteBuffer buf, int fieldID) {
         if (mRequiredColumns==null || (mRequiredColumns.length>fieldID && mRequiredColumns[fieldID])) {
             byte[] bytes = new byte[buf.position()];
