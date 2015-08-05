@@ -79,6 +79,14 @@
       conf="compile->master"/>
     <dependency org="org.apache.httpcomponents" name="httpcore" rev="${httpcomponents.version}"
       conf="compile->master"/>
+    <dependency org="nl.basjes.parse.httpdlog" name="httpdlog-pigloader" rev="${basjes-httpdlog-pigloader.version}"
+      conf="compile->master"/>
+    <dependency org="nl.basjes.parse.httpdlog" name="httpdlog-inputformat" rev="${basjes-httpdlog-pigloader.version}"
+      conf="compile->master"/>
+    <dependency org="nl.basjes.parse.httpdlog" name="httpdlog-parser" rev="${basjes-httpdlog-pigloader.version}"
+      conf="compile->master"/>
+    <dependency org="nl.basjes.parse" name="parser-core" rev="${basjes-httpdlog-pigloader.version}"
+      conf="compile->master"/>
     <dependency org="commons-configuration" name="commons-configuration" rev="${commons-configuration.version}"
       conf="hadoop23->master"/>
     <dependency org="commons-collections" name="commons-collections" rev="${commons-collections.version}"
