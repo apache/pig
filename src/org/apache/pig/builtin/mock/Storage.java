@@ -75,7 +75,9 @@ import org.apache.pig.parser.ParserException;
  *      data.set("foo",
  *      tuple("a"),
  *      tuple("b"),
- *      tuple("c")
+ *      tuple("c"),
+ *      tuple(map("d","e", "f","g")),
+ *      tuple(bag(tuple("h"),tuple("i")))
  *      );
  *
  *  pigServer.registerQuery("A = LOAD 'foo' USING mock.Storage();");
@@ -86,6 +88,8 @@ import org.apache.pig.parser.ParserException;
  *  assertEquals(tuple("a"), out.get(0));
  *  assertEquals(tuple("b"), out.get(1));
  *  assertEquals(tuple("c"), out.get(2));
+ *  assertEquals(tuple(map("f", "g", "d", "e" )), out.get(3));
+ *  assertEquals(tuple(bag(tuple("h"),tuple("i"))), out.get(4));
  * </pre>
  * With Schema:
  *  <pre>
@@ -132,6 +136,36 @@ public class Storage extends LoadFunc implements StoreFuncInterface, LoadMetadat
    */
   public static DataBag bag(Tuple... tuples) {
     return new NonSpillableDataBag(Arrays.asList(tuples));
+  }
+
+  /**
+   * @param input These params are alternating "key", "value". So the number of params MUST be even !!
+   * Implementation is very similar to the TOMAP UDF.
+   * So map("A", B, "C", D) generates a map "A"->B, "C"->D
+   * @return a map containing the provided objects
+   */
+  public static Map<String, Object> map(Object... input) {
+    if (input == null || input.length < 2) {
+      return null;
+    }
+
+    try {
+      Map<String, Object> output = new HashMap<String, Object>();
+
+      for (int i = 0; i < input.length; i=i+2) {
+        String key = (String)input[i];
+        Object val = input[i+1];
+        output.put(key, val);
+      }
+
+      return output;
+    } catch (ClassCastException e){
+      throw new IllegalArgumentException("Map key must be a String");
+    } catch (ArrayIndexOutOfBoundsException e){
+      throw new IllegalArgumentException("Function input must have even number of parameters");
+    } catch (Exception e) {
+      throw new RuntimeException("Error while creating a map", e);
+    }
   }
 
   /**
