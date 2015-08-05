@@ -30,6 +30,7 @@ BUG FIXES
 
 PIG-4649: [Pig on Tez] Union followed by HCatStorer misses some data (rohini)
 
+PIG-4650: ant mvn-deploy target is broken (daijy)
 
 Release 0.15.0
 
