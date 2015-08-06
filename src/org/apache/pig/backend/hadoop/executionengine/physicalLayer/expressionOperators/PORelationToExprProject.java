@@ -25,6 +25,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.NonSpillableDataBag;
+import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 
@@ -139,9 +140,23 @@ public class PORelationToExprProject extends POProject {
         return(r);
     }
        
+    // See PIG-4644
     @Override
     public PORelationToExprProject clone() throws CloneNotSupportedException {
-        return (PORelationToExprProject) super.clone();
+        ArrayList<Integer> cols = new ArrayList<Integer>(columns.size());
+        // Can reuse the same Integer objects, as they are immutable
+        for (Integer i : columns) {
+            cols.add(i);
+        }
+        PORelationToExprProject clone = new PORelationToExprProject(new OperatorKey(mKey.scope,
+            NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
+            requestedParallelism, cols);
+        clone.cloneHelper(this);
+        clone.overloaded = overloaded;
+        clone.startCol = startCol;
+        clone.isProjectToEnd = isProjectToEnd;
+        clone.resultType = resultType;
+        clone.sendEmptyBagOnEOP = sendEmptyBagOnEOP;
+        return clone;
     }
-    
 }
