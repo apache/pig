@@ -62,20 +62,20 @@ public class POProject extends ExpressionOperator {
 
     //True if we are in the middle of streaming tuples
     //in a bag
-    boolean processingBagOfTuples = false;
+    private boolean processingBagOfTuples = false;
 
     //The bag iterator used while straeming tuple
-    transient Iterator<Tuple> bagIterator = null;
+    private transient Iterator<Tuple> bagIterator = null;
 
     //Represents the fact that this instance of POProject
     //is overloaded to stream tuples in the bag rather
     //than passing the entire bag. It is the responsibility
     //of the translator to set this.
-    boolean overloaded = false;
+    protected boolean overloaded = false;
 
 
-    private boolean isProjectToEnd = false;
-    private int startCol;
+    protected boolean isProjectToEnd = false;
+    protected int startCol;
 
     public POProject(OperatorKey k) {
         this(k,-1,0);
