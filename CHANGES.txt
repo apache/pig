@@ -38,6 +38,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-4627: [Pig on Tez] Self join does not handle null values correctly (rohini)
+
 PIG-4644: PORelationToExprProject.clone() is broken (erwaman via rohini)
 
 PIG-4650: ant mvn-deploy target is broken (daijy)

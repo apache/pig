@@ -21,22 +21,18 @@ import java.io.IOException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.WritableComparator;
-import org.apache.hadoop.mapred.JobConf;
-
-import org.apache.pig.impl.io.NullableLongWritable;
 import org.apache.pig.impl.io.NullableLongWritable;
 import org.apache.pig.impl.util.ObjectSerializer;
 
 public class PigLongRawComparator extends WritableComparator implements Configurable {
 
-    private final Log mLog = LogFactory.getLog(getClass());
-    private boolean[] mAsc;
-    private LongWritable.Comparator mWrappedComp;
+    protected final Log mLog = LogFactory.getLog(getClass());
+    protected boolean[] mAsc;
+    protected LongWritable.Comparator mWrappedComp;
 
     public PigLongRawComparator() {
         super(NullableLongWritable.class);
@@ -44,6 +40,7 @@ public class PigLongRawComparator extends WritableComparator implements Configur
     }
 
 
+    @Override
     public void setConf(Configuration conf) {
         try {
             mAsc = (boolean[])ObjectSerializer.deserialize(conf.get(
@@ -59,6 +56,7 @@ public class PigLongRawComparator extends WritableComparator implements Configur
         }
     }
 
+    @Override
     public Configuration getConf() {
         return null;
     }
@@ -68,6 +66,7 @@ public class PigLongRawComparator extends WritableComparator implements Configur
      * then IntWritable.compare() is used.  If both are null then the indices
      * are compared.  Otherwise the null one is defined to be less.
      */
+    @Override
     public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2) {
         int rc = 0;
 
@@ -75,8 +74,10 @@ public class PigLongRawComparator extends WritableComparator implements Configur
         if (b1[s1] == 0 && b2[s2] == 0) {
             rc = mWrappedComp.compare(b1, s1 + 1, l1 - 2, b2, s2 + 1, l2 - 2);
         } else {
-            // For sorting purposes two nulls are equal.
-            if (b1[s1] != 0 && b2[s2] != 0) rc = 0;
+            // Two nulls are equal if indices are same
+            if (b1[s1] != 0 && b2[s2] != 0) {
+                rc = b1[s1 + 1] - b2[s2 + 1];
+            }
             else if (b1[s1] != 0) rc = -1;
             else rc = 1;
         }
@@ -84,6 +85,7 @@ public class PigLongRawComparator extends WritableComparator implements Configur
         return rc;
     }
 
+    @Override
     public int compare(Object o1, Object o2) {
         NullableLongWritable nlw1 = (NullableLongWritable)o1;
         NullableLongWritable nlw2 = (NullableLongWritable)o2;
@@ -93,8 +95,10 @@ public class PigLongRawComparator extends WritableComparator implements Configur
         if (!nlw1.isNull() && !nlw2.isNull()) {
             rc = ((Long)nlw1.getValueAsPigType()).compareTo((Long)nlw2.getValueAsPigType());
         } else {
-            // For sorting purposes two nulls are equal.
-            if (nlw1.isNull() && nlw2.isNull()) rc = 0;
+            // Two nulls are equal if indices are same
+            if (nlw1.isNull() && nlw2.isNull()) {
+                rc = nlw1.getIndex() - nlw2.getIndex();
+            }
             else if (nlw1.isNull()) rc = -1;
             else rc = 1;
         }

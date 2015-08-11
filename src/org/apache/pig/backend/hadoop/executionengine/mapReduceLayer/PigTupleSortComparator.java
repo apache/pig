@@ -23,9 +23,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.WritableComparator;
-import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -90,18 +88,26 @@ public class PigTupleSortComparator extends WritableComparator implements Config
     }
 
     /**
-     * Compare two NullableTuples as raw bytes. Tuples are compared field-wise. If both are null they are defined equal.
+     * Compare two NullableTuples as raw bytes. Tuples are compared field-wise.
+     * If both are null, then the indices are compared.
      * Otherwise the null one is defined to be less.
      */
+    @Override
     public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2) {
         int rc = 0;
         if (b1[s1] == 0 && b2[s2] == 0) {
             // skip mNull and mIndex
             rc = mComparator.compare(b1, s1 + 1, l1 - 2, b2, s2 + 1, l2 - 2);
+            // handle PIG-927. If tuples are equal but any field inside tuple is null,
+            // then we do not merge keys if indices are not same
+            if (rc == 0 && mComparator.hasComparedTupleNull()) {
+                rc = b1[s1 + 1] - b2[s2 + 1];
+            }
         } else {
-            // for sorting purposes two nulls are equal, null sorts first
-            if (b1[s1] != 0 && b2[s2] != 0)
-                rc = 0;
+            // Two nulls are equal if indices are same
+            if (b1[s1] != 0 && b2[s2] != 0) {
+                rc = b1[s1 + 1] - b2[s2 + 1];
+            }
             else if (b1[s1] != 0)
                 rc = -1;
             else
@@ -112,6 +118,7 @@ public class PigTupleSortComparator extends WritableComparator implements Config
         return rc;
     }
 
+    @Override
     @SuppressWarnings("unchecked")
     public int compare(Object o1, Object o2) {
         NullableTuple nt1 = (NullableTuple) o1;
@@ -121,10 +128,16 @@ public class PigTupleSortComparator extends WritableComparator implements Config
         // If either are null, handle differently.
         if (!nt1.isNull() && !nt2.isNull()) {
             rc = mComparator.compare((Tuple) nt1.getValueAsPigType(), (Tuple) nt2.getValueAsPigType());
+            // handle PIG-927. If tuples are equal but any field inside tuple is null,
+            // then we do not merge keys if indices are not same
+            if (rc == 0 && mComparator.hasComparedTupleNull()) {
+                rc = nt1.getIndex() - nt2.getIndex();
+            }
         } else {
-            // For sorting purposes two nulls are equal.
-            if (nt1.isNull() && nt2.isNull())
-                rc = 0;
+            // Two nulls are equal if indices are same
+            if (nt1.isNull() && nt2.isNull()) {
+                rc = nt1.getIndex() - nt2.getIndex();
+            }
             else if (nt1.isNull())
                 rc = -1;
             else
