@@ -25,7 +25,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.WritableComparator;
-import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.backend.hadoop.BigDecimalWritable;
 import org.apache.pig.impl.io.NullableBigDecimalWritable;
 import org.apache.pig.impl.util.ObjectSerializer;
@@ -74,8 +73,10 @@ public class PigBigDecimalRawComparator extends WritableComparator implements Co
         if (b1[s1] == 0 && b2[s2] == 0) {
             rc = mWrappedComp.compare(b1, s1 + 1, l1 - 2, b2, s2 + 1, l2 - 2);
         } else {
-            // For sorting purposes two nulls are equal.
-            if (b1[s1] != 0 && b2[s2] != 0) rc = 0;
+            // Two nulls are equal if indices are same
+            if (b1[s1] != 0 && b2[s2] != 0) {
+                rc = b1[s1 + 1] - b2[s2 + 1];
+            }
             else if (b1[s1] != 0) rc = -1;
             else rc = 1;
         }
@@ -93,8 +94,10 @@ public class PigBigDecimalRawComparator extends WritableComparator implements Co
         if (!ndw1.isNull() && !ndw2.isNull()) {
             rc = ((BigDecimal)ndw1.getValueAsPigType()).compareTo((BigDecimal)ndw2.getValueAsPigType());
         } else {
-            // For sorting purposes two nulls are equal.
-            if (ndw1.isNull() && ndw2.isNull()) rc = 0;
+            // Two nulls are equal if indices are same
+            if (ndw1.isNull() && ndw2.isNull()) {
+                rc = ndw1.getIndex() - ndw2.getIndex();
+            }
             else if (ndw1.isNull()) rc = -1;
             else rc = 1;
         }

@@ -25,7 +25,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.WritableComparator;
-import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BinInterSedes;
 import org.apache.pig.data.DataType;
@@ -46,6 +45,7 @@ public class PigTupleDefaultRawComparator extends WritableComparator implements 
         super(TupleFactory.getInstance().tupleClass());
     }
 
+    @Override
     public void setConf(Configuration conf) {
         try {
             mAsc = (boolean[]) ObjectSerializer.deserialize(conf.get("pig.sortOrder"));
@@ -62,6 +62,7 @@ public class PigTupleDefaultRawComparator extends WritableComparator implements 
         mWholeTuple = (mAsc.length == 1);
     }
 
+    @Override
     public Configuration getConf() {
         return null;
     }
@@ -78,9 +79,9 @@ public class PigTupleDefaultRawComparator extends WritableComparator implements 
      * IntWritable.compare() is used. If both are null then the indices are
      * compared. Otherwise the null one is defined to be less.
      */
+    @Override
     public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2) {
         int rc = 0;
-        mHasNullField = false;
 
         Tuple t1;
         Tuple t2;
@@ -99,9 +100,16 @@ public class PigTupleDefaultRawComparator extends WritableComparator implements 
 
         rc = compareTuple(t1, t2); //TODO think about how SchemaTuple could speed this up
 
+        // handle PIG-927. If tuples are equal but any field inside tuple is null,
+        // then we do not merge keys if indices are not same
+        if (rc == 0 && mHasNullField) {
+            rc = ((NullableTuple) t1).getIndex() - ((NullableTuple) t2).getIndex();
+        }
+
         return rc;
     }
 
+    @Override
     public int compare(Object o1, Object o2) {
         NullableTuple nt1 = (NullableTuple) o1;
         NullableTuple nt2 = (NullableTuple) o2;
@@ -110,10 +118,16 @@ public class PigTupleDefaultRawComparator extends WritableComparator implements 
         // If either are null, handle differently.
         if (!nt1.isNull() && !nt2.isNull()) {
             rc = compareTuple((Tuple) nt1.getValueAsPigType(), (Tuple) nt2.getValueAsPigType());
+            // handle PIG-927. If tuples are equal but any field inside tuple is null,
+            // then we do not merge keys if indices are not same
+            if (rc == 0 && mHasNullField) {
+                rc = nt1.getIndex() - nt2.getIndex();
+            }
         } else {
-            // For sorting purposes two nulls are equal.
-            if (nt1.isNull() && nt2.isNull())
-                rc = 0;
+            // Two nulls are equal if indices are same
+            if (nt1.isNull() && nt2.isNull()) {
+                rc = nt1.getIndex() - nt2.getIndex();
+            }
             else if (nt1.isNull())
                 rc = -1;
             else
@@ -125,6 +139,7 @@ public class PigTupleDefaultRawComparator extends WritableComparator implements 
     }
 
     private int compareTuple(Tuple t1, Tuple t2) {
+        mHasNullField = false;
         int sz1 = t1.size();
         int sz2 = t2.size();
         if (sz2 < sz1) {

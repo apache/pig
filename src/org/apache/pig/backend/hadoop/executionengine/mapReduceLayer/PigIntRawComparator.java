@@ -21,12 +21,9 @@ import java.io.IOException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.WritableComparator;
-import org.apache.hadoop.mapred.JobConf;
-
 import org.apache.pig.impl.io.NullableIntWritable;
 import org.apache.pig.impl.util.ObjectSerializer;
 
@@ -39,6 +36,7 @@ public class PigIntRawComparator extends WritableComparator implements Configura
         super(NullableIntWritable.class);
     }
 
+    @Override
     public void setConf(Configuration conf) {
         try {
             mAsc = (boolean[])ObjectSerializer.deserialize(conf.get(
@@ -54,6 +52,7 @@ public class PigIntRawComparator extends WritableComparator implements Configura
         }
     }
 
+    @Override
     public Configuration getConf() {
         return null;
     }
@@ -63,6 +62,7 @@ public class PigIntRawComparator extends WritableComparator implements Configura
      * then IntWritable.compare() is used.  If both are null then the indices
      * are compared.  Otherwise the null one is defined to be less.
      */
+    @Override
     public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2) {
         int rc = 0;
 
@@ -72,8 +72,10 @@ public class PigIntRawComparator extends WritableComparator implements Configura
             int int2 = readInt(b2, s2 + 1);
             rc = (int1 < int2) ? -1 : ((int1 > int2) ? 1 : 0);
         } else {
-            // For sorting purposes two nulls are equal.
-            if (b1[s1] != 0 && b2[s2] != 0) rc = 0;
+            // Two nulls are equal if indices are same
+            if (b1[s1] != 0 && b2[s2] != 0) {
+                rc = b1[s1 + 1] - b2[s2 + 1];
+            }
             else if (b1[s1] != 0) rc = -1;
             else rc = 1;
         }
@@ -81,6 +83,7 @@ public class PigIntRawComparator extends WritableComparator implements Configura
         return rc;
     }
 
+    @Override
     public int compare(Object o1, Object o2) {
         NullableIntWritable niw1 = (NullableIntWritable)o1;
         NullableIntWritable niw2 = (NullableIntWritable)o2;
@@ -90,8 +93,10 @@ public class PigIntRawComparator extends WritableComparator implements Configura
         if (!niw1.isNull() && !niw2.isNull()) {
             rc = ((Integer)niw1.getValueAsPigType()).compareTo((Integer)niw2.getValueAsPigType());
         } else {
-            // For sorting purposes two nulls are equal.
-            if (niw1.isNull() && niw2.isNull()) rc = 0;
+            // Two nulls are equal if indices are same
+            if (niw1.isNull() && niw2.isNull()) {
+                rc = niw1.getIndex() - niw2.getIndex();
+            }
             else if (niw1.isNull()) rc = -1;
             else rc = 1;
         }
