@@ -58,18 +58,7 @@ import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.InputSizeReducerEstimator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingBigDecimalWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingBigIntegerWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingBooleanWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingCharArrayWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingDBAWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingDateTimeWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingDoubleWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingFloatWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingIntWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingLongWritableComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingPartitionWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingTupleWritableComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigSecondaryKeyGroupComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PhyPlanSetter;
@@ -739,7 +728,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             parallel = -1;
         }
         Resource resource;
-        if (globalConf.get(TezConfiguration.TEZ_TASK_RESOURCE_MEMORY_MB)!=null && 
+        if (globalConf.get(TezConfiguration.TEZ_TASK_RESOURCE_MEMORY_MB)!=null &&
                 globalConf.get(TezConfiguration.TEZ_TASK_RESOURCE_CPU_VCORES)!=null) {
             resource = Resource.newInstance(globalConf.getInt(TezConfiguration.TEZ_TASK_RESOURCE_MEMORY_MB,
                     TezConfiguration.TEZ_TASK_RESOURCE_MEMORY_MB_DEFAULT),
@@ -992,7 +981,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         selectOutputComparator(keyType, conf, tezOp);
     }
 
-    private static Class<? extends WritableComparator> comparatorForKeyType(byte keyType, boolean hasOrderBy)
+    private static Class<? extends WritableComparator> getRawComparator(byte keyType)
             throws JobCreationException {
 
         switch (keyType) {
@@ -1024,11 +1013,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             return PigTextRawComparator.class;
 
         case DataType.BYTEARRAY:
-            //if (hasOrderBy) {
-                return PigBytesRawComparator.class;
-            //} else {
-            //    return PigDBAWritableComparator.class;
-            //}
+            return PigBytesRawComparator.class;
 
         case DataType.MAP:
             int errCode = 1068;
@@ -1036,68 +1021,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             throw new JobCreationException(msg, errCode, PigException.INPUT);
 
         case DataType.TUPLE:
-            //TODO: PigTupleWritableComparator gives wrong results with cogroup in
-            //Checkin_2 and few other e2e tests. But MR has PigTupleWritableComparator
-            //Investigate the difference later
-            //if (hasOrderBy) {
-                return PigTupleSortComparator.class;
-            //} else {
-            //    return PigTupleWritableComparator.class;
-            //}
-
-        case DataType.BAG:
-            errCode = 1068;
-            msg = "Using Bag as key not supported.";
-            throw new JobCreationException(msg, errCode, PigException.INPUT);
-
-        default:
-            errCode = 2036;
-            msg = "Unhandled key type " + DataType.findTypeName(keyType);
-            throw new JobCreationException(msg, errCode, PigException.BUG);
-        }
-    }
-
-    private static Class<? extends WritableComparator> getGroupingComparatorForKeyType(byte keyType)
-            throws JobCreationException {
-
-        switch (keyType) {
-        case DataType.BOOLEAN:
-            return PigGroupingBooleanWritableComparator.class;
-
-        case DataType.INTEGER:
-            return PigGroupingIntWritableComparator.class;
-
-        case DataType.BIGINTEGER:
-            return PigGroupingBigIntegerWritableComparator.class;
-
-        case DataType.BIGDECIMAL:
-            return PigGroupingBigDecimalWritableComparator.class;
-
-        case DataType.LONG:
-            return PigGroupingLongWritableComparator.class;
-
-        case DataType.FLOAT:
-            return PigGroupingFloatWritableComparator.class;
-
-        case DataType.DOUBLE:
-            return PigGroupingDoubleWritableComparator.class;
-
-        case DataType.DATETIME:
-            return PigGroupingDateTimeWritableComparator.class;
-
-        case DataType.CHARARRAY:
-            return PigGroupingCharArrayWritableComparator.class;
-
-        case DataType.BYTEARRAY:
-            return PigGroupingDBAWritableComparator.class;
-
-        case DataType.MAP:
-            int errCode = 1068;
-            String msg = "Using Map as key not supported.";
-            throw new JobCreationException(msg, errCode, PigException.INPUT);
-
-        case DataType.TUPLE:
-            return PigGroupingTupleWritableComparator.class;
+            return PigTupleSortComparator.class;
 
         case DataType.BAG:
             errCode = 1068;
@@ -1127,29 +1051,11 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                         PigGroupingPartitionWritableComparator.class.getName());
                 setGroupingComparator(conf, PigGroupingPartitionWritableComparator.class.getName());
             } else {
-                boolean hasOrderby = hasOrderby(tezOp);
                 conf.setClass(
                         TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS,
-                        comparatorForKeyType(keyType, hasOrderby), RawComparator.class);
-                if (!hasOrderby) {
-                    setGroupingComparator(conf, getGroupingComparatorForKeyType(keyType).getName());
-                }
+                        getRawComparator(keyType), RawComparator.class);
             }
         }
-    }
-
-    private boolean hasOrderby(TezOperator tezOp) {
-        boolean hasOrderBy = tezOp.isGlobalSort() || tezOp.isLimitAfterSort();
-        if (!hasOrderBy) {
-            // Check if it is a Orderby sampler job
-            List<TezOperator> succs = getPlan().getSuccessors(tezOp);
-            if (succs != null && succs.size() == 1) {
-                if (succs.get(0).isGlobalSort()) {
-                    hasOrderBy = true;
-                }
-            }
-        }
-        return hasOrderBy;
     }
 
     private void setGroupingComparator(Configuration conf, String comparatorClass) {
