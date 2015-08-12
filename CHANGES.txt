@@ -28,6 +28,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-4628: Pig 0.14 job with order by fails in mapreduce mode with Oozie (knoguchi)
+
 PIG-4627: [Pig on Tez] Self join does not handle null values correctly (rohini)
 
 PIG-4649: [Pig on Tez] Union followed by HCatStorer misses some data (rohini)
