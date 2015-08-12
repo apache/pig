@@ -697,6 +697,11 @@ public class JobControlCompiler{
             conf.set("pig.inpTargets", ObjectSerializer.serialize(inpTargets));
             conf.set("pig.inpSignatures", ObjectSerializer.serialize(inpSignatureLists));
             conf.set("pig.inpLimits", ObjectSerializer.serialize(inpLimits));
+
+            // Removing job credential entry before serializing pigcontext into jobconf
+            // since this path would be invalid for the new job being created 
+            pigContext.getProperties().remove("mapreduce.job.credentials.binary");
+
             conf.set("pig.pigContext", ObjectSerializer.serialize(pigContext));
             conf.set("udf.import.list", ObjectSerializer.serialize(PigContext.getPackageImportList()));
             // this is for unit tests since some don't create PigServer
