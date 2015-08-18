@@ -462,6 +462,9 @@ PIG-3939: SPRINTF function to format strings using a printf-style template (mrfl
 PIG-3970: Merge Tez branch into trunk (daijy)
  
 OPTIMIZATIONS
+
+PIG-4657: [Pig on Tez] Optimize GroupBy and Distinct key comparison (rohini)
+
  
 BUG FIXES
 

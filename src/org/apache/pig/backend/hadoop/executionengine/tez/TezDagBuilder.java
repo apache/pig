@@ -283,7 +283,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                         if (tezOp.isVertexGroup()) {
                             groupMembers[i] = from;
                         } else {
-                            EdgeProperty prop = newEdge(pred, tezOp);
+                            EdgeProperty prop = newEdge(pred, tezOp, false);
                             Edge edge = Edge.create(from, to, prop);
                             dag.addEdge(edge);
                         }
@@ -311,7 +311,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
     private GroupInputEdge newGroupInputEdge(TezOperator fromOp,
             TezOperator toOp, VertexGroup from, Vertex to) throws IOException {
 
-        EdgeProperty edgeProperty = newEdge(fromOp, toOp);
+        EdgeProperty edgeProperty = newEdge(fromOp, toOp, true);
 
         String groupInputClass = ConcatenatedMergedKeyValueInput.class.getName();
 
@@ -334,7 +334,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
      * @return EdgeProperty
      * @throws IOException
      */
-    private EdgeProperty newEdge(TezOperator from, TezOperator to)
+    private EdgeProperty newEdge(TezOperator from, TezOperator to, boolean isMergedInput)
             throws IOException {
         TezEdgeDescriptor edge = to.inEdges.get(from.getOperatorKey());
         PhysicalPlan combinePlan = edge.combinePlan;
@@ -345,7 +345,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties(), false);
         UDFContext.getUDFContext().serialize(conf);
         if (!combinePlan.isEmpty()) {
-            addCombiner(combinePlan, to, conf);
+            addCombiner(combinePlan, to, conf, isMergedInput);
         }
 
         List<POLocalRearrangeTez> lrs = PlanHelper.getPhysicalOperators(from.plan,
@@ -354,7 +354,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         for (POLocalRearrangeTez lr : lrs) {
             if (lr.getOutputKey().equals(to.getOperatorKey().toString())) {
                 byte keyType = lr.getKeyType();
-                setIntermediateOutputKeyValue(keyType, conf, to, lr.isConnectedToPackage());
+                setIntermediateOutputKeyValue(keyType, conf, to, lr.isConnectedToPackage(), isMergedInput);
                 // In case of secondary key sort, main key type is the actual key type
                 conf.set("pig.reduce.key.type", Byte.toString(lr.getMainKeyType()));
                 break;
@@ -435,11 +435,11 @@ public class TezDagBuilder extends TezOpPlanVisitor {
     }
 
     private void addCombiner(PhysicalPlan combinePlan, TezOperator pkgTezOp,
-            Configuration conf) throws IOException {
+            Configuration conf, boolean isMergedInput) throws IOException {
         POPackage combPack = (POPackage) combinePlan.getRoots().get(0);
         POLocalRearrange combRearrange = (POLocalRearrange) combinePlan
                 .getLeaves().get(0);
-        setIntermediateOutputKeyValue(combRearrange.getKeyType(), conf, pkgTezOp);
+        setIntermediateOutputKeyValue(combRearrange.getKeyType(), conf, pkgTezOp, true, isMergedInput);
 
         LoRearrangeDiscoverer lrDiscoverer = new LoRearrangeDiscoverer(
                 combinePlan, null, pkgTezOp, combPack);
@@ -538,13 +538,14 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             byte keyType = pack.getPkgr().getKeyType();
             tezOp.plan.remove(pack);
             payloadConf.set("pig.reduce.package", ObjectSerializer.serialize(pack));
-            setIntermediateOutputKeyValue(keyType, payloadConf, tezOp);
+
             POShuffleTezLoad newPack = new POShuffleTezLoad(pack);
             if (tezOp.isSkewedJoin()) {
                 newPack.setSkewedJoins(true);
             }
             tezOp.plan.add(newPack);
 
+            boolean isMergedInput = false;
             // Set input keys for POShuffleTezLoad. This is used to identify
             // the inputs that are attached to the POShuffleTezLoad in the
             // backend.
@@ -554,7 +555,9 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                     // skip sample vertex input
                 } else {
                     String inputKey = pred.getOperatorKey().toString();
+                    boolean isVertexGroup = false;
                     if (pred.isVertexGroup()) {
+                        isVertexGroup = true;
                         pred = mPlan.getOperator(pred.getVertexGroupMembers().get(0));
                     }
                     LinkedList<POLocalRearrangeTez> lrs =
@@ -563,6 +566,9 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                         if (lr.isConnectedToPackage()
                                 && lr.getOutputKey().equals(tezOp.getOperatorKey().toString())) {
                             localRearrangeMap.put((int) lr.getIndex(), inputKey);
+                            if (isVertexGroup) {
+                                isMergedInput = true;
+                            }
                         }
                     }
                 }
@@ -577,7 +583,8 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 }
             }
 
-            setIntermediateOutputKeyValue(pack.getPkgr().getKeyType(), payloadConf, tezOp);
+            //POShuffleTezLoad accesses the comparator setting
+            selectKeyComparator(keyType, payloadConf, tezOp, isMergedInput);
         } else if (roots.size() == 1 && roots.get(0) instanceof POIdentityInOutTez) {
             POIdentityInOutTez identityInOut = (POIdentityInOutTez) roots.get(0);
             // TODO Need to fix multiple input key mapping
@@ -953,14 +960,9 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         return stores;
     }
 
-    private void setIntermediateOutputKeyValue(byte keyType, Configuration conf, TezOperator tezOp)
-            throws JobCreationException, ExecException {
-        setIntermediateOutputKeyValue(keyType, conf, tezOp, true);
-    }
-
     @SuppressWarnings("rawtypes")
     private void setIntermediateOutputKeyValue(byte keyType, Configuration conf, TezOperator tezOp,
-            boolean isConnectedToPackage) throws JobCreationException, ExecException {
+            boolean isConnectedToPackage, boolean isMergedInput) throws JobCreationException, ExecException {
         if (tezOp != null && tezOp.isUseSecondaryKey() && isConnectedToPackage) {
             conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS,
                     NullableTuple.class.getName());
@@ -978,11 +980,85 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 NullableTuple.class.getName());
         conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS,
                 MRPartitioner.class.getName());
-        selectOutputComparator(keyType, conf, tezOp);
+        selectKeyComparator(keyType, conf, tezOp, isMergedInput);
+    }
+
+    private static Class<? extends WritableComparator> getRawBytesComparator(
+            byte keyType) throws JobCreationException {
+
+        // These comparators only compare bytes and we will use them except for
+        // order by for faster sorting.
+        // This ordering is good enough to be fed to reducer (POShuffleTezLoad)
+        // which will use the full comparator (GroupingComparator) for correct
+        // sorting and grouping.
+        // TODO: PIG-4652. Till Tez exposes a way to get bytes of keys being compared,
+        // we can use this only for groupby and distinct which are single inputs in
+        // POShuffleTezLoad and not join which has multiple inputs.
+
+        switch (keyType) {
+        case DataType.BOOLEAN:
+            return PigWritableComparators.PigBooleanRawBytesComparator.class;
+
+        case DataType.INTEGER:
+            return PigWritableComparators.PigIntRawBytesComparator.class;
+
+        case DataType.BIGINTEGER:
+            return PigWritableComparators.PigBigIntegerRawBytesComparator.class;
+
+        case DataType.BIGDECIMAL:
+            return PigWritableComparators.PigBigDecimalRawBytesComparator.class;
+
+        case DataType.LONG:
+            return PigWritableComparators.PigLongRawBytesComparator.class;
+
+        case DataType.FLOAT:
+            return PigWritableComparators.PigFloatRawBytesComparator.class;
+
+        case DataType.DOUBLE:
+            return PigWritableComparators.PigDoubleRawBytesComparator.class;
+
+        case DataType.DATETIME:
+            return PigWritableComparators.PigDateTimeRawBytesComparator.class;
+
+        case DataType.CHARARRAY:
+            return PigWritableComparators.PigTextRawBytesComparator.class;
+
+        case DataType.BYTEARRAY:
+            return PigWritableComparators.PigBytesRawBytesComparator.class;
+
+        case DataType.MAP:
+            int errCode = 1068;
+            String msg = "Using Map as key not supported.";
+            throw new JobCreationException(msg, errCode, PigException.INPUT);
+
+        case DataType.TUPLE:
+            return PigWritableComparators.PigTupleSortBytesComparator.class;
+
+        case DataType.BAG:
+            errCode = 1068;
+            msg = "Using Bag as key not supported.";
+            throw new JobCreationException(msg, errCode, PigException.INPUT);
+
+        default:
+            errCode = 2036;
+            msg = "Unhandled key type " + DataType.findTypeName(keyType);
+            throw new JobCreationException(msg, errCode, PigException.BUG);
+        }
     }
 
     private static Class<? extends WritableComparator> getRawComparator(byte keyType)
             throws JobCreationException {
+
+        // These are full comparators used in order by jobs and as GroupingComparator in
+        // POShuffleTezLoad for other operations.
+
+        // Mapreduce uses PigGrouping<DataType>WritableComparator for non-orderby jobs.
+        // In Tez, we will use the raw comparators itself on the reduce side as well as it is
+        // now fixed to handle nulls for different indexes.
+        // Also PigGrouping<DataType>WritableComparator use PigNullablePartitionWritable.compareTo
+        // which is not that efficient for cases like tuple where tuple is iterated for null checking
+        // instead of taking advantage of TupleRawComparator.hasComparedTupleNull().
+        // Also skips multi-query index checking
 
         switch (keyType) {
         case DataType.BOOLEAN:
@@ -1022,6 +1098,61 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         case DataType.TUPLE:
             return PigTupleSortComparator.class;
+
+        case DataType.BAG:
+            errCode = 1068;
+            msg = "Using Bag as key not supported.";
+            throw new JobCreationException(msg, errCode, PigException.INPUT);
+
+        default:
+            errCode = 2036;
+            msg = "Unhandled key type " + DataType.findTypeName(keyType);
+            throw new JobCreationException(msg, errCode, PigException.BUG);
+        }
+    }
+
+    private static Class<? extends WritableComparator> getRawBytesComparatorForSkewedJoin(byte keyType)
+            throws JobCreationException {
+
+        // Extended Raw Bytes Comparators for SkewedJoin which unwrap the NullablePartitionWritable
+        switch (keyType) {
+        case DataType.BOOLEAN:
+            return PigWritableComparators.PigBooleanRawBytesPartitionComparator.class;
+
+        case DataType.INTEGER:
+            return PigWritableComparators.PigIntRawBytesPartitionComparator.class;
+
+        case DataType.BIGINTEGER:
+            return PigWritableComparators.PigBigIntegerRawBytesPartitionComparator.class;
+
+        case DataType.BIGDECIMAL:
+            return PigWritableComparators.PigBigDecimalRawBytesPartitionComparator.class;
+
+        case DataType.LONG:
+            return PigWritableComparators.PigLongRawBytesPartitionComparator.class;
+
+        case DataType.FLOAT:
+            return PigWritableComparators.PigFloatRawBytesPartitionComparator.class;
+
+        case DataType.DOUBLE:
+            return PigWritableComparators.PigDoubleRawBytesPartitionComparator.class;
+
+        case DataType.DATETIME:
+            return PigWritableComparators.PigDateTimeRawBytesPartitionComparator.class;
+
+        case DataType.CHARARRAY:
+            return PigWritableComparators.PigTextRawBytesPartitionComparator.class;
+
+        case DataType.BYTEARRAY:
+            return PigWritableComparators.PigBytesRawBytesPartitionComparator.class;
+
+        case DataType.MAP:
+            int errCode = 1068;
+            String msg = "Using Map as key not supported.";
+            throw new JobCreationException(msg, errCode, PigException.INPUT);
+
+        case DataType.TUPLE:
+            return PigWritableComparators.PigTupleSortBytesPartitionComparator.class;
 
         case DataType.BAG:
             errCode = 1068;
@@ -1090,7 +1221,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         }
     }
 
-    void selectOutputComparator(byte keyType, Configuration conf, TezOperator tezOp)
+    void selectKeyComparator(byte keyType, Configuration conf, TezOperator tezOp, boolean isMergedInput)
             throws JobCreationException {
         // TODO: Handle sorting like in JobControlCompiler
         // TODO: Group comparators as in JobControlCompiler
@@ -1102,7 +1233,13 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                     PigSecondaryKeyComparator.class.getName());
             setGroupingComparator(conf, PigSecondaryKeyGroupComparator.class.getName());
         } else {
-            if (tezOp.isSkewedJoin()) {
+            // If it is not a merged input (OrderedGroupedMergedKVInput) from union then
+            // use bytes only comparator. This is temporary till PIG-4652 is done
+            if (!isMergedInput && (tezOp.isGroupBy() || tezOp.isDistinct())) {
+                conf.setClass(
+                        TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS,
+                        getRawBytesComparator(keyType), RawComparator.class);
+            } else if (tezOp.isSkewedJoin()) {
                 conf.setClass(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS,
                         getRawComparatorForSkewedJoin(keyType), RawComparator.class);
             } else {
@@ -1110,8 +1247,57 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                         TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS,
                         getRawComparator(keyType), RawComparator.class);
             }
+
+            // Comparators now
+            //             groupby/distinct : Comparator - RawBytesComparator
+            // groupby/distinct after union : Comparator - RawComparator
+            //                      orderby : Comparator - RawComparator
+            //                  skewed join : Comparator - RawPartitionComparator
+            //           Rest (other joins) : Comparator - RawComparator
+
+            //TODO: In PIG-4652: After Tez support for exposing key bytes
+            //    groupby/distinct : Comparator - RawBytesComparator. No grouping comparator required.
+            //             orderby : Comparator - RawComparator. No grouping comparator required.
+            //         skewed join : Comparator - RawBytesPartitionComparator, GroupingComparator - RawPartitionComparator
+            //  Rest (other joins) : Comparator - RawBytesComparator, GroupingComparator - RawComparator
+
+            /*
+            if (tezOp.isSkewedJoin()) {
+                conf.setClass(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS,
+                        getRawBytesComparatorForSkewedJoin(keyType), RawComparator.class);
+                setGroupingComparator(conf,  getRawComparatorForSkewedJoin(keyType).getName());
+            } else if (tezOp.isGroupBy() || tezOp.isDistinct()) {
+                conf.setClass(
+                        TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS,
+                        getRawBytesComparator(keyType), RawComparator.class);
+            } else if (hasOrderby(tezOp)) {
+                conf.setClass(
+                        TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS,
+                        getRawComparator(keyType), RawComparator.class);
+            } else {
+                conf.setClass(
+                        TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS,
+                        getRawBytesComparator(keyType), RawComparator.class);
+                setGroupingComparator(conf, getRawComparator(keyType).getName());
+            }
+            */
         }
     }
+
+    private boolean hasOrderby(TezOperator tezOp) {
+        boolean hasOrderBy = tezOp.isGlobalSort() || tezOp.isLimitAfterSort();
+        if (!hasOrderBy) {
+            // Check if it is a Orderby sampler job
+            List<TezOperator> succs = getPlan().getSuccessors(tezOp);
+            if (succs != null && succs.size() == 1) {
+                if (succs.get(0).isGlobalSort()) {
+                    hasOrderBy = true;
+                }
+            }
+        }
+        return hasOrderBy;
+    }
+
 
     private void setGroupingComparator(Configuration conf, String comparatorClass) {
         // In MR - job.setGroupingComparatorClass() or MRJobConfig.GROUP_COMPARATOR_CLASS
