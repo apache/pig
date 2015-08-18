@@ -58,6 +58,7 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
     private transient boolean[] finished;
     private transient boolean[] readOnce;
     private transient WritableComparator comparator = null;
+    private transient WritableComparator groupingComparator = null;
     private transient Configuration conf;
     private transient int accumulativeBatchSize;
 
@@ -87,7 +88,8 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
         this.conf = conf;
         this.inputs = new ArrayList<LogicalInput>();
         this.readers = new ArrayList<KeyValuesReader>();
-        this.comparator = (WritableComparator) ConfigUtils.getInputKeySecondaryGroupingComparator(conf);
+        this.comparator = (WritableComparator) ConfigUtils.getIntermediateInputKeyComparator(conf);
+        this.groupingComparator = (WritableComparator) ConfigUtils.getInputKeySecondaryGroupingComparator(conf);
         this.accumulativeBatchSize = AccumulatorOptimizerUtil.getAccumulativeBatchSize();
 
         try {
@@ -135,13 +137,25 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
             PigNullableWritable min = null;
 
             try {
-                for (int i = 0; i < numTezInputs; i++) {
-                    if (!finished[i]) {
+                if (numTezInputs == 1) {
+                    if (!finished[0]) {
                         hasData = true;
-                        cur = readers.get(i).getCurrentKey();
-                        if (min == null || comparator.compare(min, cur) > 0) {
-                            //Not a deep clone. Writable is referenced.
-                            min = ((PigNullableWritable)cur).clone();
+                        cur = readers.get(0).getCurrentKey();
+                        // Just move to the next key without comparison
+                        min = ((PigNullableWritable)cur).clone();
+                    }
+                } else {
+                    for (int i = 0; i < numTezInputs; i++) {
+                        if (!finished[i]) {
+                            hasData = true;
+                            cur = readers.get(i).getCurrentKey();
+                            // TODO: PIG-4652 should compare key bytes instead
+                            // of deserialized objects when using BytesComparator
+                            // for faster comparison
+                            if (min == null || comparator.compare(min, cur) > 0) {
+                                //Not a deep clone. Writable is referenced.
+                                min = ((PigNullableWritable)cur).clone();
+                            }
                         }
                     }
                 }
@@ -177,24 +191,40 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
                         bags[i] = new InternalCachedBag(numInputs);
                     }
 
-                    for (int i = 0; i < numTezInputs; i++) {
-
-                        if (!finished[i]) {
-                            cur = readers.get(i).getCurrentKey();
-                            // We need to loop in case of Grouping Comparators
-                            while (comparator.compare(min, cur) == 0) {
-                                Iterable<Object> vals = readers.get(i).getCurrentValues();
-                                for (Object val : vals) {
-                                    NullableTuple nTup = (NullableTuple) val;
-                                    int index = nTup.getIndex();
-                                    Tuple tup = pkgr.getValueTuple(keyWritable, nTup, index);
-                                    bags[index].add(tup);
-                                }
-                                finished[i] = !readers.get(i).next();
-                                if (finished[i]) {
-                                    break;
-                                }
+                    if (numTezInputs == 1) {
+                        do {
+                            Iterable<Object> vals = readers.get(0).getCurrentValues();
+                            for (Object val : vals) {
+                                NullableTuple nTup = (NullableTuple) val;
+                                int index = nTup.getIndex();
+                                Tuple tup = pkgr.getValueTuple(keyWritable, nTup, index);
+                                bags[index].add(tup);
+                            }
+                            finished[0] = !readers.get(0).next();
+                            if (finished[0]) {
+                                break;
+                            }
+                            cur = readers.get(0).getCurrentKey();
+                        } while (groupingComparator.compare(min, cur) == 0); // We need to loop in case of Grouping Comparators
+                    } else {
+                        for (int i = 0; i < numTezInputs; i++) {
+                            if (!finished[i]) {
                                 cur = readers.get(i).getCurrentKey();
+                                // We need to loop in case of Grouping Comparators
+                                while (groupingComparator.compare(min, cur) == 0) {
+                                    Iterable<Object> vals = readers.get(i).getCurrentValues();
+                                    for (Object val : vals) {
+                                        NullableTuple nTup = (NullableTuple) val;
+                                        int index = nTup.getIndex();
+                                        Tuple tup = pkgr.getValueTuple(keyWritable, nTup, index);
+                                        bags[index].add(tup);
+                                    }
+                                    finished[i] = !readers.get(i).next();
+                                    if (finished[i]) {
+                                        break;
+                                    }
+                                    cur = readers.get(i).getCurrentKey();
+                                }
                             }
                         }
                     }
@@ -264,7 +294,7 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
                 for (int i = 0; i < numTezInputs; i++) {
                     if (!finished[i]) {
                         cur = readers.get(i).getCurrentKey();
-                        if (comparator.compare(min, cur) == 0) {
+                        if (groupingComparator.compare(min, cur) == 0) {
                             return true;
                         }
                     }
@@ -287,7 +317,7 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
                     if (!finished[i]) {
                         cur = readers.get(i).getCurrentKey();
                         int batchCount = 0;
-                        while (comparator.compare(min, cur) == 0) {
+                        while (groupingComparator.compare(min, cur) == 0) {
                             Iterator<Object> iter = readers.get(i).getCurrentValues().iterator();
                             while (iter.hasNext() && batchCount < batchSize) {
                                 NullableTuple nTup = (NullableTuple) iter.next();
@@ -328,7 +358,7 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
                 for (int i = 0; i < numTezInputs; i++) {
                     if (!finished[i]) {
                         cur = readers.get(i).getCurrentKey();
-                        while (comparator.compare(min, cur) == 0) {
+                        while (groupingComparator.compare(min, cur) == 0) {
                             finished[i] = !readers.get(i).next();
                             if (finished[i]) {
                                 break;

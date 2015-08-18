@@ -688,6 +688,7 @@ public class TezCompiler extends PhyPlanVisitor {
             clr.setDistinct(true);
             combinePlan.addAsLeaf(clr);
 
+            curTezOp.markDistinct();
             addDistinctPlan(curTezOp.plan, op.getRequestedParallelism());
             curTezOp.setRequestedParallelism(op.getRequestedParallelism());
             phyToTezOpMap.put(op, curTezOp);
