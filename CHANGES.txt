@@ -38,6 +38,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-4654: Reduce tez memory.reserve-fraction and clear spillables for better memory utilization (rohini)
+
 PIG-4628: Pig 0.14 job with order by fails in mapreduce mode with Oozie (knoguchi)
 
 PIG-4651: Optimize NullablePartitionWritable serialization for skewed join (rohini)

@@ -180,6 +180,9 @@ public class MRToTezHelper {
                     tezConf.get(MRJobConfig.JOB_CANCEL_DELEGATION_TOKEN));
         }
 
+        // Hardcoding at AM level instead of setting per vertex till TEZ-2710 is available
+        dagAMConf.setIfUnset(TezConfiguration.TEZ_TASK_SCALE_MEMORY_RESERVE_FRACTION, "0.5");
+
         removeUnwantedMRSettings(dagAMConf);
 
         return dagAMConf;
