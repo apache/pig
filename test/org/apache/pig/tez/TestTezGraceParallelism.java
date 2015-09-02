@@ -18,8 +18,8 @@
 package org.apache.pig.tez;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -118,8 +118,8 @@ public class TestTezGraceParallelism {
             //      48(1) /
             // However, when 49 finishes, the actual output of 49 only justify parallelism 1.
             // We adjust the parallelism for 61 to 100 based on this.
-            // At runtime, ShuffleVertexManager still kick in and further reduce parallelism from 100 to 1. 
-            // 
+            // At runtime, ShuffleVertexManager still kick in and further reduce parallelism from 100 to 1.
+            //
             pigServer.registerQuery("A = load '" + INPUT_DIR + "/" + INPUT_FILE1 + "' as (name:chararray, age:int);");
             pigServer.registerQuery("B = load '" + INPUT_DIR + "/" + INPUT_FILE2 + "' as (name:chararray, gender:chararray);");
             pigServer.registerQuery("C = join A by name, B by name;");
@@ -159,7 +159,7 @@ public class TestTezGraceParallelism {
             //      36(1) /
             // However, when 56 finishes, the actual output of 56 need parallelism 5.
             // We adjust the parallelism for 64 to 50 based on this.
-            // At runtime, ShuffleVertexManager will play and reduce parallelism from 50 
+            // At runtime, ShuffleVertexManager will play and reduce parallelism from 50
             pigServer.getPigContext().getProperties().setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, "80000");
             pigServer.registerQuery("A = load '" + INPUT_DIR + "/" + INPUT_FILE1 + "' as (name:chararray, age:int);");
             pigServer.registerQuery("B = load '" + INPUT_DIR + "/" + INPUT_FILE2 + "' as (name:chararray, gender:chararray);");
@@ -212,8 +212,8 @@ public class TestTezGraceParallelism {
                 count++;
             }
             assertEquals(count, 20);
-            assertTrue(writer.toString().contains("All predecessors for scope-79 are finished, time to set parallelism for scope-80"));
-            assertTrue(writer.toString().contains("Initialize parallelism for scope-80 to 101"));
+            assertTrue(writer.toString().contains("All predecessors for scope-84 are finished, time to set parallelism for scope-85"));
+            assertTrue(writer.toString().contains("Initialize parallelism for scope-85 to 101"));
         } finally {
             Util.removeLogAppender(PigGraceShuffleVertexManager.class, "testJoinWithDifferentDepth");
         }
