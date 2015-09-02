@@ -745,8 +745,8 @@ public class TestTypeCheckingValidatorNewLP {
         // value of datetime and one of other type
         LogicalExpressionPlan plan = new LogicalExpressionPlan();
         ConstantExpression constant0 = new ConstantExpression(plan, new DateTime(0L));
-        ConstantExpression constant1 = new ConstantExpression(plan, new DataByteArray("1970-01-01T00:00:00.000Z"));
-        CastExpression cast1 = new CastExpression(plan,  constant1, createFS(DataType.BYTEARRAY));
+        ConstantExpression constant1 = new ConstantExpression(plan, new String("1970-01-01T00:00:00.000Z"));
+        CastExpression cast1 = new CastExpression(plan,  constant1, createFS(DataType.CHARARRAY));
         EqualExpression eq1 = new EqualExpression(plan, constant0, cast1);
 
         CompilationMessageCollector collector = new CompilationMessageCollector();
@@ -3685,6 +3685,7 @@ public class TestTypeCheckingValidatorNewLP {
                     super(p, walker);
                 }
 
+                @Override
                 public void visit(CastExpression cExp){
                     casts.add(cExp);
                 }
