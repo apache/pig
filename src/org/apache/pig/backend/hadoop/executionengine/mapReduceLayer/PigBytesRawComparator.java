@@ -124,14 +124,20 @@ public class PigBytesRawComparator extends WritableComparator implements Configu
             if( dataByteArraysCompare ) {
               rc = WritableComparator.compareBytes(b1, offset1, length1, b2, offset2, length2);
             } else {
-              // Subtract 2, one for null byte and one for index byte. Also, do not reverse the sign
-              // of rc when mAsc[0] is false because BinInterSedesTupleRawComparator.compare() already
-              // takes that into account.
+              // Subtract 2, one for null byte and one for index byte.
               rc = mWrappedComp.compare(b1, s1 + 1, l1 - 2, b2, s2 + 1, l2 - 2);
               // handle PIG-927. If tuples are equal but any field inside tuple is null,
               // then we do not merge keys if indices are not same
-              if (rc == 0 && mWrappedComp.hasComparedTupleNull())
-                  rc = b1[s1 + 1] - b2[s2 + 1];
+              if (rc == 0 && mWrappedComp.hasComparedTupleNull()) {
+                rc = b1[s1 + 1] - b2[s2 + 1];
+                // Redundant as there will not be any sort order with multiple indices
+                // But just for sake of completeness.
+                if (!mAsc[0]) rc *= -1;
+              }
+              // PIG-4298 - Return here to avoid reversing the sign of rc when
+              // mAsc[0] is false because BinInterSedesTupleRawComparator.compare()
+              // already takes that into account.
+              return rc;
             }
         } else {
             // Two nulls are equal if indices are same
