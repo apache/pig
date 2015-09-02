@@ -96,7 +96,7 @@ public class POValueOutputTez extends PhysicalOperator implements TezOutput, Tez
 
     @Override
     public void replaceOutput(String oldOutputKey, String newOutputKey) {
-        if (outputKeys.remove(oldOutputKey)) {
+        while (outputKeys.remove(oldOutputKey)) {
             outputKeys.add(newOutputKey);
         }
     }

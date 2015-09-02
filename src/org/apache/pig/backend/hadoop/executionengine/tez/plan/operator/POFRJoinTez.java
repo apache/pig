@@ -73,7 +73,7 @@ public class POFRJoinTez extends POFRJoin implements TezInput {
 
     @Override
     public void replaceInput(String oldInputKey, String newInputKey) {
-        if (inputKeys.remove(oldInputKey)) {
+        while (inputKeys.remove(oldInputKey)) {
             inputKeys.add(newInputKey);
         }
     }
