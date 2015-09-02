@@ -254,8 +254,8 @@ public class TestPigServerLocal {
         // createRecordReader->RandomSampleLoader, getSplits, createRecordReader)
         // numTimesSchemaCalled = 4 (once per registerQuery)
         if (Util.getLocalTestMode().toString().startsWith("TEZ")) {
-            _testSkipParseInRegisterForBatch(false, 6, 4);
-            _testSkipParseInRegisterForBatch(true, 3, 1);
+            _testSkipParseInRegisterForBatch(false, 8, 4);
+            _testSkipParseInRegisterForBatch(true, 5, 1);
         } else {
             _testSkipParseInRegisterForBatch(false, 10, 4);
             _testSkipParseInRegisterForBatch(true, 7, 1);
