@@ -22,10 +22,12 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
@@ -37,6 +39,9 @@ import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperator;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POLocalRearrangeTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POStoreTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POValueOutputTez;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.ReadScalarsTez;
+import org.apache.pig.backend.hadoop.executionengine.tez.runtime.TezInput;
+import org.apache.pig.backend.hadoop.executionengine.tez.runtime.TezOutput;
 import org.apache.pig.builtin.RoundRobinPartitioner;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.TupleFactory;
@@ -123,17 +128,71 @@ public class TezCompilerUtil {
 
     static public void connect(TezOperPlan plan, TezOperator from, TezOperator to, TezEdgeDescriptor edge) throws PlanException {
         plan.connect(from, to);
-        if (from.plan.getLeaves()!=null && !from.plan.getLeaves().isEmpty()) {
-            PhysicalOperator leaf = from.plan.getLeaves().get(0);
-            // It could be POStoreTez incase of sampling job in order by
-            if (leaf instanceof POLocalRearrangeTez) {
-                POLocalRearrangeTez lr = (POLocalRearrangeTez) leaf;
-                lr.setOutputKey(to.getOperatorKey().toString());
-            }
-        }
+
         // Add edge descriptors to old and new operators
         to.inEdges.put(from.getOperatorKey(), edge);
         from.outEdges.put(to.getOperatorKey(), edge);
+    }
+
+    static public void connectTezOpToNewPredecessor(TezOperPlan plan,
+            TezOperator tezOp, TezOperator newPredecessor,
+            TezEdgeDescriptor edge, String oldInputKey) throws PlanException {
+        plan.connect(newPredecessor, tezOp);
+        // Add edge descriptors to old and new operators
+        tezOp.inEdges.put(newPredecessor.getOperatorKey(), edge);
+        newPredecessor.outEdges.put(tezOp.getOperatorKey(), edge);
+
+        if (oldInputKey != null) {
+            replaceInput(tezOp, oldInputKey, newPredecessor.getOperatorKey().toString());
+        }
+    }
+
+    public static void replaceInput(TezOperator tezOp, String oldInputKey,
+            String newInputKey) throws PlanException {
+        try {
+            List<TezInput> inputs = PlanHelper.getPhysicalOperators(tezOp.plan, TezInput.class);
+            for (TezInput input : inputs) {
+                input.replaceInput(oldInputKey, newInputKey);
+            }
+            List<POUserFunc> userFuncs = PlanHelper.getPhysicalOperators(tezOp.plan, POUserFunc.class);
+            for (POUserFunc userFunc : userFuncs) {
+                if (userFunc.getFunc() instanceof ReadScalarsTez) {
+                    TezInput input = (TezInput)userFunc.getFunc();
+                    input.replaceInput(oldInputKey, newInputKey);
+                    userFunc.getFuncSpec().setCtorArgs(input.getTezInputs());
+                }
+            }
+        } catch (VisitorException e) {
+            throw new PlanException(e);
+        }
+    }
+
+    static public void connectTezOpToNewSuccesor(TezOperPlan plan,
+            TezOperator tezOp, TezOperator newSuccessor,
+            TezEdgeDescriptor edge, String oldOutputKey) throws PlanException {
+        plan.connect(tezOp, newSuccessor);
+        // Add edge descriptors to old and new operators
+        newSuccessor.inEdges.put(tezOp.getOperatorKey(), edge);
+        tezOp.outEdges.put(newSuccessor.getOperatorKey(), edge);
+
+        if (oldOutputKey != null) {
+            replaceOutput(tezOp, oldOutputKey, newSuccessor.getOperatorKey().toString());
+        }
+    }
+
+    public static void replaceOutput(TezOperator tezOp, String oldOutputKey,
+            String newOutputKey) throws PlanException {
+        try {
+            List<TezOutput> tezOutputs = PlanHelper.getPhysicalOperators(tezOp.plan,
+                    TezOutput.class);
+            for (TezOutput tezOut : tezOutputs) {
+                if (ArrayUtils.contains(tezOut.getTezOutputs(), oldOutputKey)) {
+                    tezOut.replaceOutput(oldOutputKey, newOutputKey);
+                }
+            }
+        } catch (VisitorException e) {
+            throw new PlanException(e);
+        }
     }
 
     static public POForEach getForEach(POProject project, int rp, String scope, NodeIdGenerator nig) {

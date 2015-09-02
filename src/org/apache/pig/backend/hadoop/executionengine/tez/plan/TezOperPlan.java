@@ -193,10 +193,8 @@ public class TezOperPlan extends OperatorPlan<TezOperator> {
     public void moveTree(TezOperator root, TezOperPlan newPlan) throws PlanException {
         List<TezOperator> list = new ArrayList<TezOperator>();
         list.add(root);
-        int prevSize = 0;
         int pos = 0;
-        while (list.size() > prevSize) {
-            prevSize = list.size();
+        while (list.size() > pos) {
             TezOperator node = list.get(pos);
             if (getSuccessors(node)!=null) {
                 for (TezOperator succ : getSuccessors(node)) {
@@ -243,11 +241,11 @@ public class TezOperPlan extends OperatorPlan<TezOperator> {
         }
     }
 
-    // This method is used in PigGraceShuffleVertexManager to get a list of grandparents. 
+    // This method is used in PigGraceShuffleVertexManager to get a list of grandparents.
     // Also need to exclude grandparents which also a parent (a is both parent and grandparent in the diagram below)
     //    a   ->    c
     //      \  b  /
-    // 
+    //
     public static List<TezOperator> getGrandParentsForGraceParallelism(TezOperPlan tezPlan, TezOperator op) {
         List<TezOperator> grandParents = new ArrayList<TezOperator>();
         List<TezOperator> preds = tezPlan.getPredecessors(op);
