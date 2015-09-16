@@ -50,8 +50,7 @@ public abstract class TestLoaderStorerShipCacheFiles {
             hadoopVersion = "23";
         }
         String[] expectedJars = new String[] {"hive-common", "hive-exec", "hive-serde", 
-                "hive-shims-0." + hadoopVersion, "hive-shims-common-0", "hive-shims-common-secure",
-                "kryo"};
+                "hive-shims-0." + hadoopVersion, "hive-shims-common", "kryo"};
 
         checkPlan(pp, expectedJars, 7, pigServer.getPigContext());
     }
@@ -67,8 +66,7 @@ public abstract class TestLoaderStorerShipCacheFiles {
             hadoopVersion = "23";
         }
         String[] expectedJars = new String[] {"hive-common", "hive-exec", "hive-serde", 
-                "hive-shims-0." + hadoopVersion, "hive-shims-common-0", "hive-shims-common-secure",
-                "kryo"};
+                "hive-shims-0." + hadoopVersion, "hive-shims-common", "kryo"};
 
         checkPlan(pp, expectedJars, 7, pigServer.getPigContext());
     }

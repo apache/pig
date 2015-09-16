@@ -425,8 +425,6 @@
       conf="compile->master" />
     <dependency org="org.apache.hive.shims" name="hive-shims-common" rev="${hive.version}" changing="true"
       conf="compile->master" />
-    <dependency org="org.apache.hive.shims" name="hive-shims-common-secure" rev="${hive.version}" changing="true"
-      conf="compile->master" />
     <dependency org="org.apache.hive.shims" name="hive-shims-0.23" rev="${hive.version}" changing="true"
       conf="hadoop23->master" />
     <dependency org="org.apache.hive.shims" name="hive-shims-0.20S" rev="${hive.version}" changing="true"
@@ -434,6 +432,8 @@
     <dependency org="org.iq80.snappy" name="snappy" rev="${snappy.version}"
       conf="test->master" />
     <dependency org="com.esotericsoftware.kryo" name="kryo" rev="${kryo.version}"
+      conf="compile->master" />
+    <dependency org="org.apache.commons" name="commons-lang3" rev="${commons-lang3.version}"
       conf="compile->master" />
 
     <dependency org="org.vafer" name="jdeb" rev="${jdeb.version}"

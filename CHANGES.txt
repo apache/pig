@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4676: Upgrade Hive to 1.2.1 (daijy)
+
 PIG-4574: Eliminate identity vertex for order by and skewed join right after LOAD (rohini)
 
 PIG-4365: TOP udf should implement Accumulator interface (eyal via rohini)
