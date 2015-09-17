@@ -39,6 +39,7 @@
 
     <!-- source properties -->
     <property name="lib.dir" value="${basedir}/lib" />
+    <property name="spark.lib.dir" value="${basedir}/lib/spark" />
     <property name="src.dir" value="${basedir}/src" />
     <property name="python.src.dir" value="${src.dir}/python" />
     <property name="src.lib.dir" value="${basedir}/lib-src" />
@@ -256,6 +257,7 @@
     <property name="build.dir" location="build" />
     <property name="build.ivy.dir" location="${build.dir}/ivy" />
     <property name="build.ivy.lib.dir" location="${build.ivy.dir}/lib" />
+    <property name="build.ivy.spark.lib.dir" location="${build.ivy.dir}/lib/spark" />
     <property name="ivy.lib.dir" location="${build.ivy.lib.dir}/${ant.project.name}"/>
     <property name="build.ivy.report.dir" location="${build.ivy.dir}/report" />
     <property name="build.ivy.maven.dir" location="${build.ivy.dir}/maven" />
@@ -357,6 +359,7 @@
         <path refid="compile.classpath"/>
         <fileset file="${ivy.lib.dir}/${zookeeper.jarfile}"/>
         <fileset dir="${ivy.lib.dir}" includes="*.jar"/>
+        <fileset dir="${build.ivy.spark.lib.dir}/${ant.project.name}" includes="*.jar"/>
     </path>
 
     <!-- javadoc-classpath -->
@@ -719,6 +722,7 @@
         <buildJar svnString="${svn.revision}" outputFile="${output.jarfile.core}" includedJars="core.dependencies.jar"/>
         <buildJar svnString="${svn.revision}" outputFile="${output.jarfile.withouthadoop}" includedJars="runtime.dependencies-withouthadoop.jar"/>
         <antcall target="copyCommonDependencies"/>
+        <antcall target="copySparkDependencies"/>
         <antcall target="copyh1Dependencies"/>
         <antcall target="copyh2Dependencies"/>
     </target>
@@ -750,24 +754,14 @@
             <fileset dir="${ivy.lib.dir}" includes="zookeeper-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="accumulo-*.jar" excludes="accumulo-minicluster*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="json-simple-*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="spark*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="scala*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="akka*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="jcl-over-slf4j*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="jul-to-slf4j*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="slf4j*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="commons-lang3*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="config*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="netty*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="jetty*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="metrics-core*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="jackson*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="metrics-json-*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="json4s-*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="javax.servlet-*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="reflectasm*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="mesos*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="kryo-*.jar"/>
+        </copy>
+    </target>
+
+    <target name="copySparkDependencies">
+        <mkdir dir="${spark.lib.dir}" />
+        <copy todir="${spark.lib.dir}">
+            <fileset dir="${build.ivy.spark.lib.dir}/${ant.project.name}" includes="*.jar"/>
         </copy>
     </target>
 
@@ -1720,6 +1714,8 @@
      <target name="ivy-compile" depends="ivy-resolve" description="Retrieve Ivy-managed artifacts for compile configuration">
        <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings" log="${loglevel}"
                  pattern="${build.ivy.lib.dir}/${ivy.artifact.retrieve.pattern}" conf="compile"/>
+       <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings" log="${loglevel}"
+                 pattern="${build.ivy.spark.lib.dir}/${ivy.artifact.retrieve.pattern}" conf="spark"/>
        <ivy:cachepath pathid="compile.classpath" conf="compile"/>
      </target>
 
