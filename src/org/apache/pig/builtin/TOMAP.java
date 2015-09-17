@@ -18,7 +18,6 @@
 package org.apache.pig.builtin;
 
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.HashMap;
 
@@ -86,7 +85,34 @@ public class TOMAP extends EvalFunc<Map> {
 
     @Override
     public Schema outputSchema(Schema input) {
-        return new Schema(new Schema.FieldSchema(null, DataType.MAP));
+        Byte valueType = null;
+        if (input.size() == 1) {
+            // If input is bag with 'pair' tuples
+            Schema bagSchema = input.getFields().get(0).schema;
+            if (bagSchema != null && bagSchema.size() == 1) {
+                Schema tupleSchema = bagSchema.getFields().get(0).schema;
+                if (tupleSchema != null) {
+                    valueType = tupleSchema.getFields().get(1).type;
+                }
+            }
+        } else if (input != null && input.getFields()!=null) {
+            for (int i=0;i<input.size();i++) {
+                if (i % 2 == 1) {
+                    if (valueType == null) {
+                        valueType = input.getFields().get(i).type;
+                    } else if  (valueType != input.getFields().get(i).type) {
+                        valueType = DataType.BYTEARRAY;
+                        break;
+                    }
+                }
+            }
+        }
+        Schema s = new Schema(new Schema.FieldSchema(null, DataType.MAP));
+        if (valueType != DataType.BYTEARRAY) {
+            s.getFields().get(0).schema = new Schema(new Schema.FieldSchema(null, valueType));
+            return s;
+        }
+        return s;
     }
 
     @Override

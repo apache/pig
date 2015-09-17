@@ -3201,4 +3201,28 @@ public class TestBuiltin {
         iter.next().get(1).equals("1-3");
         iter.next().get(1).equals("1-4");
     }
+
+    @Test
+    public void testToMapSchema() throws Exception {
+        PigServer pigServer = new PigServer(Util.getLocalTestMode(), new Properties());
+        pigServer.registerQuery("A = load '1.txt' as (a0:chararray, a1:int, a2:double, a3);");
+        pigServer.registerQuery("B = foreach A generate [a0,a1];");
+        Schema s = pigServer.dumpSchema("B");
+        Assert.assertEquals(s.toString(), "{map[int]}");
+        pigServer.registerQuery("B = foreach A generate [a0,a1,a0,a2];");
+        s = pigServer.dumpSchema("B");
+        Assert.assertEquals(s.toString(), "{map[]}");
+        pigServer.registerQuery("B = foreach A generate [a0,a3];");
+        s = pigServer.dumpSchema("B");
+        Assert.assertEquals(s.toString(), "{map[]}");
+        pigServer.registerQuery("A = load '1.txt' as (a:{(a0:chararray, a1:int)};");
+        pigServer.registerQuery("B = foreach A generate TOMAP(a);");
+        s = pigServer.dumpSchema("B");
+        Assert.assertEquals(s.toString(), "{map[int]}");
+        pigServer.registerQuery("A = load '1.txt' as (a:{(a0, a1, a2, a3:int)};");
+        pigServer.registerQuery("B = foreach A generate TOMAP(a);");
+        s = pigServer.dumpSchema("B");
+        Assert.assertEquals(s.toString(), "{map[]}");
+        
+    }
 }
