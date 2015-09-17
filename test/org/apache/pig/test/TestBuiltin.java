@@ -3215,11 +3215,11 @@ public class TestBuiltin {
         pigServer.registerQuery("B = foreach A generate [a0,a3];");
         s = pigServer.dumpSchema("B");
         Assert.assertEquals(s.toString(), "{map[]}");
-        pigServer.registerQuery("A = load '1.txt' as (a:{(a0:chararray, a1:int)};");
+        pigServer.registerQuery("A = load '1.txt' as (a:{(a0:chararray, a1:int)});");
         pigServer.registerQuery("B = foreach A generate TOMAP(a);");
         s = pigServer.dumpSchema("B");
         Assert.assertEquals(s.toString(), "{map[int]}");
-        pigServer.registerQuery("A = load '1.txt' as (a:{(a0, a1, a2, a3:int)};");
+        pigServer.registerQuery("A = load '1.txt' as (a:{(a0, a1, a2, a3:int)});");
         pigServer.registerQuery("B = foreach A generate TOMAP(a);");
         s = pigServer.dumpSchema("B");
         Assert.assertEquals(s.toString(), "{map[]}");
