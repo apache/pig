@@ -24,6 +24,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4673: Built In UDF - REPLACE_MULTI : For a given string, search and replace all occurrences
+ of search keys with replacement values (murali.k.h.rao@gmail.com via daijy)
+
 PIG-4674: TOMAP should infer schema (daijy)
 
 PIG-4676: Upgrade Hive to 1.2.1 (daijy)
