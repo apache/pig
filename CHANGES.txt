@@ -40,6 +40,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-4679: Performance degradation due to InputSizeReducerEstimator since PIG-3754 (daijy)
+
 PIG-4315: MergeJoin or Split followed by order by gives NPE in Tez (rohini)
 
 PIG-4654: Reduce tez memory.reserve-fraction and clear spillables for better memory utilization (rohini)

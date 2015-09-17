@@ -137,11 +137,11 @@ public class InputSizeReducerEstimator implements PigReducerEstimator {
                             }
                         } else {
                             // If file is not found, we should report -1
-                            return -1;
+                            continue;
                         }
                     } else {
                         // If we cannot estimate size of a location, we should report -1
-                        return -1;
+                        continue;
                     }
                 }
             }
