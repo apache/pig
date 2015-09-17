@@ -49,9 +49,10 @@ public class TestTOMAP {
                 tuple("a", "b", "c", "d")
         );
 
-        pigServer.registerQuery("A = LOAD 'foo' USING mock.Storage();");
+        pigServer.registerQuery("A = LOAD 'foo' USING mock.Storage() as (a0:chararray, a1:chararray, a2:chararray, a3:chararray);");
         pigServer.registerQuery("B = FOREACH A GENERATE TOMAP($0, $1, $2, $3);");
         pigServer.registerQuery("STORE B INTO 'bar' USING mock.Storage();");
+        assertEquals(pigServer.dumpSchema("B").toString(), "{map[chararray]}");
 
         List<Tuple> out = data.get("bar");
         assertEquals(tuple(map("c", "d", "a", "b")), out.get(0));
@@ -82,10 +83,11 @@ public class TestTOMAP {
                 tuple("c", "d")
         );
 
-        pigServer.registerQuery("A = LOAD 'foo' USING mock.Storage();");
+        pigServer.registerQuery("A = LOAD 'foo' USING mock.Storage() as (a0:chararray, a1:chararray);");
         pigServer.registerQuery("B = GROUP A ALL;");
         pigServer.registerQuery("C = FOREACH B GENERATE TOMAP(A);");
         pigServer.registerQuery("STORE C INTO 'bar' USING mock.Storage();");
+        assertEquals(pigServer.dumpSchema("C").toString(), "{map[chararray]}");
 
         List<Tuple> out = data.get("bar");
         assertEquals(tuple(map("a", "b", "c", "d")), out.get(0));
