@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4663: HBaseStorage should allow the MaxResultsPerColumnFamily limit to avoid memory or scan timeout issues (pmazak via rohini)
+
 PIG-4673: Built In UDF - REPLACE_MULTI : For a given string, search and replace all occurrences
  of search keys with replacement values (murali.k.h.rao@gmail.com via daijy)
 

@@ -204,6 +204,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         validOptions_.addOption("cacheBlocks", true, "Set whether blocks should be cached for the scan");
         validOptions_.addOption("caching", true, "Number of rows scanners should cache");
         validOptions_.addOption("limit", true, "Per-region limit");
+        validOptions_.addOption("maxResultsPerColumnFamily", true, "Limit the maximum number of values returned per row per column family");
         validOptions_.addOption("delim", true, "Column delimiter");
         validOptions_.addOption("ignoreWhitespace", true, "Ignore spaces when parsing columns");
         validOptions_.addOption("caster", true, "Caster to use for converting values. A class name, " +
@@ -250,6 +251,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
      * <li>-lte=maxKeyVal
      * <li>-regex=match regex on KeyVal
      * <li>-limit=numRowsPerRegion max number of rows to retrieve per region
+     * <li>-maxResultsPerColumnFamily= Limit the maximum number of values returned per row per column family
      * <li>-delim=char delimiter to use when parsing column names (default is space or comma)
      * <li>-ignoreWhitespace=(true|false) ignore spaces when parsing column names (default true)
      * <li>-cacheBlocks=(true|false) Set whether blocks should be cached for the scan (default false).
@@ -274,7 +276,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
             configuredOptions_ = parser_.parse(validOptions_, optsArr);
         } catch (ParseException e) {
             HelpFormatter formatter = new HelpFormatter();
-            formatter.printHelp( "[-loadKey] [-gt] [-gte] [-lt] [-lte] [-regex] [-cacheBlocks] [-caching] [-caster] [-noWAL] [-limit] [-delim] [-ignoreWhitespace] [-minTimestamp] [-maxTimestamp] [-timestamp] [-includeTimestamp] [-includeTombstone]", validOptions_ );
+            formatter.printHelp( "[-loadKey] [-gt] [-gte] [-lt] [-lte] [-regex] [-cacheBlocks] [-caching] [-caster] [-noWAL] [-limit] [-maxResultsPerColumnFamily] [-delim] [-ignoreWhitespace] [-minTimestamp] [-maxTimestamp] [-timestamp] [-includeTimestamp] [-includeTombstone]", validOptions_ );
             throw e;
         }
 
@@ -467,6 +469,10 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         }
         if (configuredOptions_.hasOption("timestamp")){
             scan.setTimeStamp(timestamp_);
+        }
+        if (configuredOptions_.hasOption("maxResultsPerColumnFamily")){
+            int maxResultsPerColumnFamily_ = Integer.valueOf(configuredOptions_.getOptionValue("maxResultsPerColumnFamily"));
+            scan.setMaxResultsPerColumnFamily(maxResultsPerColumnFamily_);
         }
 
         // if the group of columnInfos for this family doesn't contain a prefix, we don't need
