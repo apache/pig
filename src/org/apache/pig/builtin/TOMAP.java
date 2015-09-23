@@ -108,7 +108,7 @@ public class TOMAP extends EvalFunc<Map> {
             }
         }
         Schema s = new Schema(new Schema.FieldSchema(null, DataType.MAP));
-        if (valueType != DataType.BYTEARRAY) {
+        if (valueType != null && valueType != DataType.BYTEARRAY) {
             s.getFields().get(0).schema = new Schema(new Schema.FieldSchema(null, valueType));
             return s;
         }
