@@ -448,6 +448,38 @@ public abstract class TestSecondarySort {
 
     }
 
+    @Test
+    public void testNestedSortMultiQueryEndToEnd3() throws Exception {
+        File input1 = Util.createTempFileDelOnExit("test", "txt");
+        PrintStream ps1 = new PrintStream(new FileOutputStream(input1));
+        ps1.println("a\t0");
+        ps1.println("a\t2");
+        ps1.println("a\t1");
+        ps1.close();
+        Util.copyFromLocalToCluster(cluster, input1.getCanonicalPath(), "testNestedSortMultiQueryEndToEnd3-input-1.txt");
+
+        File input2 = Util.createTempFileDelOnExit("test", "txt");
+        PrintStream ps2 = new PrintStream(new FileOutputStream(input2));
+        ps2.println("a");
+        ps2.close();
+        Util.copyFromLocalToCluster(cluster, input2.getCanonicalPath(), "testNestedSortMultiQueryEndToEnd3-input-2.txt");
+
+        try {
+            pigServer.setBatchOn();
+            pigServer.registerQuery("a = load 'testNestedSortMultiQueryEndToEnd3-input-1.txt' as (a0:chararray, a1:chararray);");
+            pigServer.registerQuery("b = load 'testNestedSortMultiQueryEndToEnd3-input-2.txt' as (b0);");
+            pigServer.registerQuery("c = cogroup b by b0, a by a0;");
+            pigServer.registerQuery("d = foreach c {a_sorted = order a by a1 desc;generate group, a_sorted, b;}");
+            Iterator<Tuple> iter = pigServer.openIterator("d");
+
+            assertEquals(iter.next().toString(), "(a,{(a,2),(a,1),(a,0)},{(a)})");
+        } finally {
+            Util.deleteFile(cluster, "testNestedSortMultiQueryEndToEnd3-input-1.txt");
+            Util.deleteFile(cluster, "testNestedSortMultiQueryEndToEnd3-input-2.txt");
+        }
+
+    }
+
     // See PIG-1978
     @Test
     public void testForEachTwoInput() throws Exception {

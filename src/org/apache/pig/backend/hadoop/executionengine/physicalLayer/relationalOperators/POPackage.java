@@ -257,8 +257,15 @@ public class POPackage extends PhysicalOperator {
                     NullableTuple ntup = tupIter.next();
                     int index = ntup.getIndex();
                     if (index == numInputs - 1) {
-                        dbs[index] = new PeekedBag(pkgr, ntup, tupIter, keyWritable);
-                        break;
+                        if (pkgr.getUseSecondaryKey()) {
+                            if (dbs[index] == null) {
+                                dbs[index] = useDefaultBag ? BagFactory.getInstance()
+                                        .newDefaultBag() : new InternalCachedBag(numInputs);
+                            }
+                        } else {
+                            dbs[index] = new PeekedBag(pkgr, ntup, tupIter, keyWritable);
+                            break;
+                        }
                     }
                     Tuple copy = pkgr.getValueTuple(keyWritable, ntup, index);
 
