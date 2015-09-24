@@ -353,6 +353,9 @@ public class Packager implements Illustrable, Serializable, Cloneable {
     public void setUseSecondaryKey(boolean useSecondaryKey) {
         this.useSecondaryKey = useSecondaryKey;
     }
+    public boolean getUseSecondaryKey() {
+        return useSecondaryKey;
+    }
 
     public void setPackageType(PackageType type) {
         this.pkgType = type;
