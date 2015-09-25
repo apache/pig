@@ -47,6 +47,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-4635: NPE while running pig script in tez mode (daijy)
+
 PIG-4683: Nested order is broken after PIG-3591 in some cases (daijy)
 
 PIG-4679: Performance degradation due to InputSizeReducerEstimator since PIG-3754 (daijy)
