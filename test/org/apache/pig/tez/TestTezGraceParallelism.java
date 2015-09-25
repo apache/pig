@@ -26,6 +26,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
@@ -246,6 +247,39 @@ public class TestTezGraceParallelism {
             assertFalse(writer.toString().contains("scope-68"));
         } finally {
             Util.removeLogAppender(PigGraceShuffleVertexManager.class, "testJoinWithDifferentDepth2");
+        }
+    }
+
+    @Test
+    // See PIG-4635 for a NPE in TezOperDependencyParallelismEstimator
+    public void testJoinWithUnion() throws IOException{
+        NodeIdGenerator.reset();
+        PigServer.resetScope();
+        StringWriter writer = new StringWriter();
+        Util.createLogAppender("testJoinWithUnion", writer, PigGraceShuffleVertexManager.class);
+        try {
+            // DAG: 29 -> 32 -> 41 \
+            //                       -> 70 (vertex group) -> 61
+            //      42 -> 45 -> 54 /
+            pigServer.registerQuery("A = load '" + INPUT_DIR + "/" + INPUT_FILE2 + "' as (name:chararray, gender:chararray);");
+            pigServer.registerQuery("B = distinct A;");
+            pigServer.registerQuery("C = group B by name;");
+            pigServer.registerQuery("D = load '" + INPUT_DIR + "/" + INPUT_FILE2 + "' as (name:chararray, gender:chararray);");
+            pigServer.registerQuery("E = distinct D;");
+            pigServer.registerQuery("F = group E by name;");
+            pigServer.registerQuery("G = union C, F;");
+            pigServer.registerQuery("H = distinct G;");
+            Iterator<Tuple> iter = pigServer.openIterator("H");
+            int count = 0;
+            while (iter.hasNext()) {
+                iter.next();
+                count++;
+            }
+            assertEquals(count, 20);
+            assertTrue(writer.toString().contains("time to set parallelism for scope-41"));
+            assertTrue(writer.toString().contains("time to set parallelism for scope-54"));
+        } finally {
+            Util.removeLogAppender(PigGraceShuffleVertexManager.class, "testJoinWithUnion");
         }
     }
 }

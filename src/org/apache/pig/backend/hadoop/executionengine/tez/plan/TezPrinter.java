@@ -55,9 +55,13 @@ public class TezPrinter extends TezOpPlanVisitor {
     public void visitTezOp(TezOperator tezOper) throws VisitorException {
         if (tezOper.isVertexGroup()) {
             VertexGroupInfo info = tezOper.getVertexGroupInfo();
-            mStream.println("Tez vertex group "
-                    + tezOper.getOperatorKey().toString() + "\t<-\t "
-                    + info.getInputs() + "\t->\t " + info.getOutput());
+            mStream.print("Tez vertex group "
+                    + tezOper.getOperatorKey().toString());
+            if (info!=null) {
+                mStream.println("\t<-\t " + info.getInputs() + "\t->\t " + info.getOutput());
+            } else {
+                mStream.println();
+            }
             mStream.println("# No plan on vertex group");
         } else {
             mStream.println("Tez vertex " + tezOper.getOperatorKey().toString());

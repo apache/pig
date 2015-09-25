@@ -187,6 +187,7 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     private transient VertexGroupInfo vertexGroupInfo;
     // Mapping of OperatorKey of POStore OperatorKey to vertexGroup TezOperator
     private Map<OperatorKey, OperatorKey> vertexGroupStores = null;
+    private boolean isVertexGroup = false;
 
     public static class LoaderInfo implements Serializable {
         private List<POLoad> loads = null;
@@ -477,7 +478,7 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     // Union is the only operator that uses alias vertex (VertexGroup) now. But
     // more operators could be added to the list in the future.
     public boolean isVertexGroup() {
-        return vertexGroupInfo != null;
+        return isVertexGroup;
     }
 
     public VertexGroupInfo getVertexGroupInfo() {
@@ -486,6 +487,7 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     public void setVertexGroupInfo(VertexGroupInfo vertexGroup) {
         this.vertexGroupInfo = vertexGroup;
+        this.isVertexGroup = true;
     }
 
     public void addVertexGroupStore(OperatorKey storeKey, OperatorKey vertexGroupKey) {
