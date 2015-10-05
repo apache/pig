@@ -34,6 +34,7 @@ import org.apache.pig.JVMReuseImpl;
 import org.apache.pig.PigConstants;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigHadoopLogger;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
@@ -194,6 +195,18 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
             }
 
             runPipeline(leaf);
+
+            if (Boolean.valueOf(conf.get(JobControlCompiler.END_OF_INP_IN_MAP, "false"))
+                    && !execPlan.endOfAllInput) {
+                // If there is a stream in the pipeline or if this map job belongs to merge-join we could
+                // potentially have more to process - so lets
+                // set the flag stating that all map input has been sent
+                // already and then lets run the pipeline one more time
+                // This will result in nothing happening in the case
+                // where there is no stream or it is not a merge-join in the pipeline
+                execPlan.endOfAllInput = true;
+                runPipeline(leaf);
+            }
 
             // Calling EvalFunc.finish()
             UDFFinishVisitor finisher = new UDFFinishVisitor(execPlan,
