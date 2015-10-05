@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Tuple;
@@ -64,20 +65,24 @@ public class TestLimitVariable {
 
     @Test
     public void testLimitVariable1() throws IOException {
+        pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_EXEC_MAP_PARTAGG, "" + true);
         String query =
-            "a = load '" + inputFile.getName() + "';" +
+            "a = load '" + inputFile.getName() + "' as (f1:int, f2:int);" +
             "b = group a all;" +
             "c = foreach b generate COUNT(a) as sum;" +
             "d = order a by $0 DESC;" +
-            "e = limit d c.sum/2;" // return top half of the tuples
+            "e = limit d c.sum/2;" + // return top half of the tuples
+            "f = group e all;" +
+            "g = foreach f generate AVG(e.$0), SUM(e.$1);"
             ;
 
         Util.registerMultiLineQuery(pigServer, query);
-        Iterator<Tuple> it = pigServer.openIterator("e");
+        Iterator<Tuple> it = pigServer.openIterator("g");
 
         List<Tuple> expectedRes = Util.getTuplesFromConstantTupleStrings(new String[] {
-                "(6,15)", "(5,10)", "(4,11)" });
+                "(5.0,36)"});
         Util.checkQueryOutputs(it, expectedRes);
+        pigServer.getPigContext().getProperties().remove(PigConfiguration.PIG_EXEC_MAP_PARTAGG);
     }
 
     @Test
