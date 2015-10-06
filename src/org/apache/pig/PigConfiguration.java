@@ -60,6 +60,13 @@ public class PigConfiguration {
      * This key is used to enable or disable union optimization in tez. True by default
      */
     public static final String PIG_TEZ_OPT_UNION = "pig.tez.opt.union";
+    /**
+     * These keys are used to enable or disable tez union optimization for
+     * specific StoreFuncs so that optimization is only applied to StoreFuncs
+     * that do not hard part file names and honor mapreduce.output.basename and
+     * is turned of for those that do not. Refer PIG-4649
+     */
+    public static final String PIG_TEZ_OPT_UNION_SUPPORTED_STOREFUNCS = "pig.tez.opt.union.supported.storefuncs";
     public static final String PIG_TEZ_OPT_UNION_UNSUPPORTED_STOREFUNCS = "pig.tez.opt.union.unsupported.storefuncs";
 
     /**

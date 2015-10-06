@@ -40,11 +40,15 @@ import org.apache.pig.impl.plan.VisitorException;
 public class MultiQueryOptimizerTez extends TezOpPlanVisitor {
 
     private boolean unionOptimizerOn;
+    private List<String> unionSupportedStoreFuncs;
     private List<String> unionUnsupportedStoreFuncs;
 
-    public MultiQueryOptimizerTez(TezOperPlan plan, boolean unionOptimizerOn, List<String> unionUnsupportedStoreFuncs) {
+    public MultiQueryOptimizerTez(TezOperPlan plan, boolean unionOptimizerOn,
+            List<String> unionSupportedStoreFuncs,
+            List<String> unionUnsupportedStoreFuncs) {
         super(plan, new ReverseDependencyOrderWalker<TezOperator, TezOperPlan>(plan));
         this.unionOptimizerOn = unionOptimizerOn;
+        this.unionSupportedStoreFuncs = unionSupportedStoreFuncs;;
         this.unionUnsupportedStoreFuncs = unionUnsupportedStoreFuncs;
     }
 
@@ -128,8 +132,10 @@ public class MultiQueryOptimizerTez extends TezOpPlanVisitor {
                 if (getPlan().getSuccessors(successor) != null) {
                     for (TezOperator succSuccessor : getPlan().getSuccessors(successor)) {
                         if (succSuccessor.isUnion()) {
-                            if (!(unionOptimizerOn
-                                    && UnionOptimizer.isOptimizable(succSuccessor, unionUnsupportedStoreFuncs))) {
+                            if (!(unionOptimizerOn &&
+                                    UnionOptimizer.isOptimizable(succSuccessor,
+                                            unionSupportedStoreFuncs,
+                                            unionUnsupportedStoreFuncs))) {
                                 toMergeSuccessors.add(succSuccessor);
                             }
                         } else if (successors.contains(succSuccessor)) {

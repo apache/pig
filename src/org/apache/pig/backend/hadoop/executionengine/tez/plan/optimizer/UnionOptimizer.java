@@ -26,6 +26,9 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -43,7 +46,13 @@ import org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.ReadScalarsTez
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.TezInput;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.TezOutput;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.TezCompilerUtil;
+import org.apache.pig.backend.hadoop.hbase.HBaseStorage;
+import org.apache.pig.builtin.AvroStorage;
+import org.apache.pig.builtin.JsonStorage;
+import org.apache.pig.builtin.OrcStorage;
+import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.builtin.RoundRobinPartitioner;
+import org.apache.pig.builtin.mock.Storage;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.ReverseDependencyOrderWalker;
@@ -70,25 +79,56 @@ import org.apache.tez.runtime.library.output.UnorderedPartitionedKVOutput;
  */
 public class UnionOptimizer extends TezOpPlanVisitor {
 
+    private static final Log LOG = LogFactory.getLog(UnionOptimizer.class);
     private TezOperPlan tezPlan;
+    private static Set<String> builtinSupportedStoreFuncs = new HashSet<String>();
+    private List<String> supportedStoreFuncs;
     private List<String> unsupportedStoreFuncs;
 
-    public UnionOptimizer(TezOperPlan plan, List<String> unsupportedStoreFuncs) {
+    static {
+        builtinSupportedStoreFuncs.add(PigStorage.class.getName());
+        builtinSupportedStoreFuncs.add(JsonStorage.class.getName());
+        builtinSupportedStoreFuncs.add(OrcStorage.class.getName());
+        builtinSupportedStoreFuncs.add(HBaseStorage.class.getName());
+        builtinSupportedStoreFuncs.add(AvroStorage.class.getName());
+        builtinSupportedStoreFuncs.add("org.apache.pig.piggybank.storage.avro.AvroStorage");
+        builtinSupportedStoreFuncs.add("org.apache.pig.piggybank.storage.avro.CSVExcelStorage");
+        builtinSupportedStoreFuncs.add(Storage.class.getName());
+    }
+
+    public UnionOptimizer(TezOperPlan plan, List<String> supportedStoreFuncs, List<String> unsupportedStoreFuncs) {
         super(plan, new ReverseDependencyOrderWalker<TezOperator, TezOperPlan>(plan));
         tezPlan = plan;
+        this.supportedStoreFuncs = supportedStoreFuncs;
         this.unsupportedStoreFuncs = unsupportedStoreFuncs;
     }
 
-    public static boolean isOptimizable(TezOperator tezOp, List<String> unsupportedStoreFuncs)
+    public static boolean isOptimizable(TezOperator tezOp,
+            List<String> supportedStoreFuncs, List<String> unsupportedStoreFuncs)
             throws VisitorException {
         if((tezOp.isLimit() || tezOp.isLimitAfterSort()) && tezOp.getRequestedParallelism() == 1) {
             return false;
         }
-        if (unsupportedStoreFuncs != null) {
+        if (supportedStoreFuncs != null || unsupportedStoreFuncs != null) {
             List<POStoreTez> stores = PlanHelper.getPhysicalOperators(tezOp.plan, POStoreTez.class);
             for (POStoreTez store : stores) {
-                if (unsupportedStoreFuncs.contains(store.getStoreFunc().getClass().getName())) {
+                String name = store.getStoreFunc().getClass().getName();
+                if (unsupportedStoreFuncs != null
+                        && unsupportedStoreFuncs.contains(name)) {
                     return false;
+                }
+                if (supportedStoreFuncs != null
+                        && !supportedStoreFuncs.contains(name)) {
+                    if (!builtinSupportedStoreFuncs.contains(name)) {
+                        LOG.warn(PigConfiguration.PIG_TEZ_OPT_UNION_SUPPORTED_STOREFUNCS
+                                + " does not contain " + name
+                                + " and so disabling union optimization. There will be some performance degradation. "
+                                + "If your storefunc does not hardcode part file names and can work with multiple vertices writing to the output location,"
+                                + " run pig with -D"
+                                + PigConfiguration.PIG_TEZ_OPT_UNION_SUPPORTED_STOREFUNCS
+                                + "=<Comma separated list of fully qualified StoreFunc class names> to enable the optimization. Refer PIG-4691");
+                        return false;
+                    }
                 }
             }
         }
@@ -101,7 +141,7 @@ public class UnionOptimizer extends TezOpPlanVisitor {
             return;
         }
 
-        if (!isOptimizable(tezOp, unsupportedStoreFuncs)) {
+        if (!isOptimizable(tezOp, supportedStoreFuncs, unsupportedStoreFuncs)) {
             return;
         }
 
