@@ -437,7 +437,7 @@ public class TestFRJoin {
         Map<String, Tuple> hashJoin = new HashMap<String, Tuple>();
         {
             pigServer.registerQuery("C = join A by $0 left, B by $0 using 'replicated';");
-            pigServer.registerQuery("D = join A by $1 left, B by $1 using 'replicated';");
+            pigServer.registerQuery("D = join A by $1 left, B by $1 using 'repl';");
             pigServer.registerQuery("E = union C,D;");
             Iterator<Tuple> iter = pigServer.openIterator("E");
 
@@ -470,14 +470,14 @@ public class TestFRJoin {
     public void testFRJoinOut9() throws IOException {
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE2 + "' as (x:int,y:int);");
+        pigServer.registerQuery("C = UNION A, B;");
+        pigServer.registerQuery("D = FILTER C BY x == 1;");
         DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance()
                 .newDefaultBag();
         Map<String, Tuple> hashFRJoin = new HashMap<String, Tuple>();
         Map<String, Tuple> hashJoin = new HashMap<String, Tuple>();
         {
-            pigServer.registerQuery("C = join A by $0 left, B by $0 using 'repl';");
-            pigServer.registerQuery("D = join A by $1 left, B by $1 using 'repl';");
-            pigServer.registerQuery("E = union C,D;");
+            pigServer.registerQuery("E = join C by $0 left, D by $0 using 'repl';");
             Iterator<Tuple> iter = pigServer.openIterator("E");
 
             while (iter.hasNext()) {
@@ -489,9 +489,7 @@ public class TestFRJoin {
             }
         }
         {
-            pigServer.registerQuery("C = join A by $0 left, B by $0;");
-            pigServer.registerQuery("D = join A by $1 left, B by $1;");
-            pigServer.registerQuery("E = union C,D;");
+            pigServer.registerQuery("E = join C by $0 left, D by $0;");
             Iterator<Tuple> iter = pigServer.openIterator("E");
             while (iter.hasNext()) {
                 Tuple tuple = iter.next();

@@ -80,7 +80,6 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigWritableC
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.SecondaryKeyPartitioner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.EndOfAllInputSetter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
@@ -94,12 +93,9 @@ import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperator;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPOPackageAnnotator.LoRearrangeDiscoverer;
-import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POIdentityInOutTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POLocalRearrangeTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POShuffleTezLoad;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POStoreTez;
-import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POValueInputTez;
-import org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.ReadScalarsTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.PartitionerDefinedVertexManager;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.PigGraceShuffleVertexManager;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.PigOutputFormatTez;
@@ -585,33 +581,6 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
             //POShuffleTezLoad accesses the comparator setting
             selectKeyComparator(keyType, payloadConf, tezOp, isMergedInput);
-        } else if (roots.size() == 1 && roots.get(0) instanceof POIdentityInOutTez) {
-            POIdentityInOutTez identityInOut = (POIdentityInOutTez) roots.get(0);
-            // TODO Need to fix multiple input key mapping
-            TezOperator identityInOutPred = null;
-            for (TezOperator pred : mPlan.getPredecessors(tezOp)) {
-                if (!pred.isSampleAggregation()) {
-                    identityInOutPred = pred;
-                    break;
-                }
-            }
-            identityInOut.setInputKey(identityInOutPred.getOperatorKey().toString());
-        } else if (roots.size() == 1 && roots.get(0) instanceof POValueInputTez) {
-            POValueInputTez valueInput = (POValueInputTez) roots.get(0);
-
-            LinkedList<String> scalarInputs = new LinkedList<String>();
-            for (POUserFunc userFunc : PlanHelper.getPhysicalOperators(tezOp.plan, POUserFunc.class) ) {
-                if (userFunc.getFunc() instanceof ReadScalarsTez) {
-                    scalarInputs.add(((ReadScalarsTez)userFunc.getFunc()).getTezInputs()[0]);
-                }
-            }
-            // Make sure we don't find the scalar
-            for (TezOperator pred : mPlan.getPredecessors(tezOp)) {
-                if (!scalarInputs.contains(pred.getOperatorKey().toString())) {
-                    valueInput.setInputKey(pred.getOperatorKey().toString());
-                    break;
-                }
-            }
         }
         setOutputFormat(job);
 

@@ -294,6 +294,7 @@ public class TezCompiler extends PhyPlanVisitor {
                         storeSeen.get(store).addOutputKey(tezOp.getOperatorKey().toString());
                     } else {
                         POValueOutputTez output = new POValueOutputTez(OperatorKey.genOpKey(scope));
+                        output.setScalarOutput(true);
                         output.addOutputKey(tezOp.getOperatorKey().toString());
                         from.plan.remove(from.plan.getOperator(store.getOperatorKey()));
                         from.plan.addAsLeaf(output);
