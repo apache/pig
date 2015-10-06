@@ -120,12 +120,10 @@ public class POValueInputTez extends PhysicalOperator implements TezInput {
                     }
                     hasNext = shuffleReader.next();
                 }
-            } else {
-                if (reader.next()) {
-                    Tuple origTuple = (Tuple)reader.getCurrentValue();
-                    Tuple copy = mTupleFactory.newTuple(origTuple.getAll());
-                    return new Result(POStatus.STATUS_OK, copy);
-                }
+            } else if (reader.next()) {
+                Tuple origTuple = (Tuple) reader.getCurrentValue();
+                Tuple copy = mTupleFactory.newTuple(origTuple.getAll());
+                return new Result(POStatus.STATUS_OK, copy);
             }
             finished = true;
             // For certain operators (such as STREAM), we could still have some work
