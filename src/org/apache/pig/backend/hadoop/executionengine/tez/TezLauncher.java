@@ -419,6 +419,12 @@ public class TezLauncher extends Launcher {
         }
 
         boolean isUnionOpt = conf.getBoolean(PigConfiguration.PIG_TEZ_OPT_UNION, true);
+        List<String> supportedStoreFuncs = null;
+        String unionSupported = conf.get(PigConfiguration.PIG_TEZ_OPT_UNION_SUPPORTED_STOREFUNCS);
+        if (unionSupported != null && unionSupported.trim().length() > 0) {
+            supportedStoreFuncs = Arrays
+                    .asList(StringUtils.split(unionSupported.trim()));
+        }
         List<String> unionUnsupportedStoreFuncs = null;
         String unionUnSupported = conf.get(PigConfiguration.PIG_TEZ_OPT_UNION_UNSUPPORTED_STOREFUNCS);
         if (unionUnSupported != null && unionUnSupported.trim().length() > 0) {
@@ -430,7 +436,9 @@ public class TezLauncher extends Launcher {
         if (isMultiQuery) {
             // reduces the number of TezOpers in the Tez plan generated
             // by multi-query (multi-store) script.
-            MultiQueryOptimizerTez mqOptimizer = new MultiQueryOptimizerTez(tezPlan, isUnionOpt, unionUnsupportedStoreFuncs);
+            MultiQueryOptimizerTez mqOptimizer = new MultiQueryOptimizerTez(
+                    tezPlan, isUnionOpt, supportedStoreFuncs,
+                    unionUnsupportedStoreFuncs);
             mqOptimizer.visit();
         }
 
@@ -443,7 +451,7 @@ public class TezLauncher extends Launcher {
 
         // Use VertexGroup in Tez
         if (isUnionOpt) {
-            UnionOptimizer uo = new UnionOptimizer(tezPlan, unionUnsupportedStoreFuncs);
+            UnionOptimizer uo = new UnionOptimizer(tezPlan, supportedStoreFuncs, unionUnsupportedStoreFuncs);
             uo.visit();
         }
 
