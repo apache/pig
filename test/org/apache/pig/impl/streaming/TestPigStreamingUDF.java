@@ -369,6 +369,18 @@ public class TestPigStreamingUDF {
     }
     
     @Test
+    public void testDeserialize__emptyMap() throws IOException {
+        byte[] input = "|[_|]_|_".getBytes();
+        FieldSchema fs = new FieldSchema("", DataType.MAP);
+        PigStreamingUDF sp = new PigStreamingUDF(fs);
+
+        Map<String, String> expectedOutput = new TreeMap<String, String>();
+
+        Object out = sp.deserialize(input, 0, input.length);
+        Assert.assertEquals(tf.newTuple(expectedOutput), out);
+    }
+
+    @Test
     public void testDeserialize__bug() throws Exception {
         byte[] input = "|(_|-_|,_32|,_987654321098765432|,_987654321098765432|)_|_".getBytes();
 
