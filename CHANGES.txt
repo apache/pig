@@ -24,7 +24,7 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
-PIG-4657: Compress pig.script before encoding (sandyridgeracer via rohini)
+PIG-4554: Compress pig.script before encoding (sandyridgeracer via rohini)
 
 PIG-4670: Embedded Python scripts still parse line by line (rohini)
 
