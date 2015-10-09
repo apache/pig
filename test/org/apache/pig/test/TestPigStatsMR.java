@@ -73,7 +73,7 @@ public class TestPigStatsMR extends TestPigStats {
     }
 
     @Override
-    public void addSettingsToConf(Configuration conf, String scriptFileName) {
+    public void addSettingsToConf(Configuration conf, String scriptFileName) throws IOException {
         MRScriptState ss = MRScriptState.get();
         ss.setScript(new File(scriptFileName));
         MapReduceOper mro = new MapReduceOper(new OperatorKey());

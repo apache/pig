@@ -110,8 +110,7 @@ public class TezJobCompiler {
                 log.info("Local resource: " + entry.getKey());
             }
             DAG tezDag = buildDAG(tezPlanNode, localResources);
-            String script = new String(Base64.decodeBase64(TezScriptState.get().getScript()));
-            tezDag.setDAGInfo(createDagInfo(script));
+            tezDag.setDAGInfo(createDagInfo(TezScriptState.get().getScript()));
             return new TezJob(tezConf, tezDag, localResources, tezPlan.getEstimatedTotalParallelism());
         } catch (Exception e) {
             int errCode = 2017;

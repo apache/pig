@@ -20,6 +20,7 @@ package org.apache.pig.tez;
 import static org.junit.Assert.assertEquals;
 
 import java.io.File;
+import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.backend.executionengine.ExecJob;
@@ -38,7 +39,7 @@ import org.apache.pig.tools.pigstats.tez.TezScriptState.TezDAGScriptInfo;
 
 public class TestPigStatsTez extends TestPigStats {
     @Override
-    public void addSettingsToConf(Configuration conf, String scriptFileName) {
+    public void addSettingsToConf(Configuration conf, String scriptFileName) throws IOException {
         TezScriptState ss = TezScriptState.get();
         ss.setScript(new File(scriptFileName));
         ss.addDAGSettingsToConf(conf);
