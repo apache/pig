@@ -26,7 +26,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -36,6 +35,7 @@ import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.junit.Ignore;
@@ -46,7 +46,7 @@ abstract public class TestPigStats  {
 
     protected static final Log LOG = LogFactory.getLog(TestPigStats.class);
 
-    abstract public void addSettingsToConf(Configuration conf, String scriptFileName);
+    abstract public void addSettingsToConf(Configuration conf, String scriptFileName) throws IOException;
 
     @Test
     public void testPigScriptInConf() throws Exception {
@@ -61,7 +61,7 @@ abstract public class TestPigStats  {
         addSettingsToConf(conf, "test.pig");
 
         String s = conf.get("pig.script");
-        String script = new String(Base64.decodeBase64(s.getBytes()));
+        String script = (String) ObjectSerializer.deserialize(s);
 
         String expected =
             "register /mydir/sath.jar\n" +
@@ -95,7 +95,7 @@ abstract public class TestPigStats  {
         addSettingsToConf(conf, "testScript.py");
 
         String s = conf.get("pig.script");
-        String actual = new String(Base64.decodeBase64(s.getBytes()));
+        String actual = (String) ObjectSerializer.deserialize(s);
 
         String expected =
             "#!/usr/bin/python\n" +

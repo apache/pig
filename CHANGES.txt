@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4657: Compress pig.script before encoding (sandyridgeracer via rohini)
+
 PIG-4670: Embedded Python scripts still parse line by line (rohini)
 
 PIG-4663: HBaseStorage should allow the MaxResultsPerColumnFamily limit to avoid memory or scan timeout issues (pmazak via rohini)

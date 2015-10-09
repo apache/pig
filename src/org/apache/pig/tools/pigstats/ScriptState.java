@@ -63,6 +63,7 @@ import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.JarManager;
+import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.newplan.logical.relational.LOCogroup;
 import org.apache.pig.newplan.logical.relational.LOCogroup.GROUPTYPE;
 import org.apache.pig.newplan.logical.relational.LOCross;
@@ -165,7 +166,8 @@ public abstract class ScriptState {
 
     protected String id;
 
-    protected String script;
+    protected String serializedScript;
+    protected String truncatedScript;
     protected String commandLine;
     protected String fileName;
 
@@ -180,7 +182,8 @@ public abstract class ScriptState {
 
     protected ScriptState(String id) {
         this.id = id;
-        this.script = "";
+        this.serializedScript = "";
+        this.truncatedScript = "";
     }
 
     public static ScriptState get() {
@@ -272,7 +275,7 @@ public abstract class ScriptState {
         }
     }
 
-    public void setScript(File file) {
+    public void setScript(File file) throws IOException {
         BufferedReader reader = null;
         try {
             reader = new BufferedReader(new FileReader(file));
@@ -289,10 +292,18 @@ public abstract class ScriptState {
         }
     }
 
-    public void setScript(String script) {
+    public void setScript(String script) throws IOException {
         if (script == null)
             return;
 
+        //Retain the truncated script
+        setTruncatedScript(script);
+
+        //Serialize and encode the string.
+        this.serializedScript =  ObjectSerializer.serialize(script);
+    }
+
+    private void setTruncatedScript(String script) {
         // restrict the size of the script to be stored in job conf
         int maxScriptSize = 10240;
         if (pigContext != null) {
@@ -301,13 +312,10 @@ public abstract class ScriptState {
                 maxScriptSize = Integer.valueOf(prop);
             }
         }
-        script = (script.length() > maxScriptSize) ? script.substring(0, maxScriptSize)
+       
+        this.truncatedScript = (script.length() > maxScriptSize) ? script.substring(0, maxScriptSize)
                                                    : script;
 
-        // XML parser cann't handle certain characters, including
-        // the control character (&#1). Use Base64 encoding to
-        // get around this problem
-        this.script = new String(Base64.encodeBase64(script.getBytes()));
     }
 
     public void setScriptFeatures(LogicalPlan plan) {
@@ -372,11 +380,15 @@ public abstract class ScriptState {
         return (commandLine == null) ? "" : commandLine;
     }
 
-    public String getScript() {
-        return (script == null) ? "" : script;
+    public String getSerializedScript() {
+        return (serializedScript == null) ? "" : serializedScript;
     }
 
-    protected void setScript(BufferedReader reader) {
+    public String getScript() {
+        return (truncatedScript == null) ? "" : truncatedScript;
+    }
+
+    protected void setScript(BufferedReader reader) throws IOException {
         StringBuilder sb = new StringBuilder();
         try {
             String line = reader.readLine();
