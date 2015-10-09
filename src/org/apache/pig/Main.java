@@ -17,11 +17,6 @@
  */
 package org.apache.pig;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Strings;
-import com.google.common.io.Closeables;
-import com.google.common.io.InputSupplier;
-import com.google.common.io.Resources;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -92,6 +87,10 @@ import org.joda.time.Duration;
 import org.joda.time.Period;
 import org.joda.time.PeriodType;
 import org.joda.time.format.PeriodFormat;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Strings;
+import com.google.common.io.Closeables;
 
 /**
  * Main class for Pig engine.
@@ -963,7 +962,7 @@ public class Main {
             System.out.println("    Miscellaneous:");
             System.out.println("        exectype=mapreduce|tez|local; default is mapreduce. This property is the same as -x switch");
             System.out.println("        pig.additional.jars.uris=<comma seperated list of jars>. Used in place of register command.");
-            System.out.println("        udf.import.list=<comma seperated list of imports>. Used to avoid package names in UDF.");
+            System.out.println("        udf.import.list=<Colon seperated list of imports>. Used to avoid package names in UDF.");
             System.out.println("        stop.on.failure=true|false; default is false. Set to true to terminate on the first error.");
             System.out.println("        pig.datetime.default.tz=<UTC time offset>. e.g. +08:00. Default is the default timezone of the host.");
             System.out.println("            Determines the timezone used to handle datetime datatype and UDFs. ");

@@ -17,6 +17,10 @@
  */
 package org.apache.pig.piggybank.test.evaluation.string;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -31,18 +35,18 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.piggybank.evaluation.string.REPLACE_MULTI;
 import org.apache.pig.test.Util;
-import org.junit.Test;
 import org.junit.Before;
+import org.junit.Test;
 
-import static junit.framework.Assert.*;
-
-public class TestBuiltinReplaceMulti {
+public class TestReplaceMulti {
 
     private static PigServer pigServer;
 
     @Before
     public void setUp() throws Exception {
-        pigServer = new PigServer(Util.getLocalTestMode(), new Properties());
+        Properties properties = new Properties();
+        properties.put("udf.import.list", "org.apache.pig.builtin:org.apache.pig.piggybank.evaluation.string");
+        pigServer = new PigServer(Util.getLocalTestMode(), properties);
     }
 
     @Test
@@ -138,7 +142,7 @@ public class TestBuiltinReplaceMulti {
                 + Util.encodeEscape(inputFile.getAbsolutePath())
                 + "' AS (name: chararray);");
         pigServer
-                .registerQuery("B = FOREACH A GENERATE REPLACE_MULTI(NULL, NULL);");
+                .registerQuery("B = FOREACH A GENERATE org.apache.pig.piggybank.evaluation.string.REPLACE_MULTI(NULL, NULL);");
 
         Iterator<Tuple> it = pigServer.openIterator("B");
         assertTrue(it.hasNext());
