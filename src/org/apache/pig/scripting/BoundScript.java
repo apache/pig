@@ -224,7 +224,7 @@ public class BoundScript {
             return;
         }
         PigServer pigServer = new PigServer(scriptContext.getPigContext(), false);
-        registerQuery(pigServer, queries.get(0));
+        registerQueryForDiagnostics(pigServer, queries.get(0));
         pigServer.getExamples(null);
     }
 
@@ -238,7 +238,7 @@ public class BoundScript {
             return;
         }
         PigServer pigServer = new PigServer(scriptContext.getPigContext(), false);
-        registerQuery(pigServer, queries.get(0));
+        registerQueryForDiagnostics(pigServer, queries.get(0));
         pigServer.explain(null, System.out);
     }
 
@@ -254,7 +254,7 @@ public class BoundScript {
             return;
         }
         PigServer pigServer = new PigServer(scriptContext.getPigContext(), false);
-        registerQuery(pigServer, queries.get(0));
+        registerQueryForDiagnostics(pigServer, queries.get(0));
         pigServer.dumpSchema(alias);
     }
 
@@ -281,11 +281,14 @@ public class BoundScript {
         return PigStats.get();
     }
 
-    private void registerQuery(PigServer pigServer, String pl) throws IOException {
+    private void registerQueryForDiagnostics(PigServer pigServer, String pl) throws IOException {
         GruntParser grunt = new GruntParser(new StringReader(pl), pigServer);
         grunt.setInteractive(false);
+        // We want parsing to happen in batch. But no execution as this is for diagnostics
+        pigServer.setBatchOn();
+        pigServer.setSkipParseInRegisterForBatch(true);
       try {
-            grunt.parseStopOnError(false);
+            grunt.parseStopOnError(true);
         } catch (ParseException e) {
             throw new IOException("Failed to parse query: " + pl, e);
         }
