@@ -98,21 +98,25 @@ public class TezPrinter extends TezOpPlanVisitor {
      */
     public static class TezGraphPrinter extends TezOpPlanVisitor {
 
-        StringBuffer buf;
+        StringBuilder buf;
 
         public TezGraphPrinter(TezOperPlan plan) {
             super(plan, new DependencyOrderWalker<TezOperator, TezOperPlan>(plan, true));
-            buf = new StringBuffer();
+            buf = new StringBuilder();
         }
 
         @Override
         public void visitTezOp(TezOperator tezOper) throws VisitorException {
+            writePlan(mPlan, tezOper, buf);
+        }
+
+        public static void writePlan(TezOperPlan plan, TezOperator tezOper, StringBuilder buf) {
             if (tezOper.isVertexGroup()) {
                 buf.append("Tez vertex group " + tezOper.getOperatorKey().toString());
             } else {
                 buf.append("Tez vertex " + tezOper.getOperatorKey().toString());
             }
-            List<TezOperator> succs = mPlan.getSuccessors(tezOper);
+            List<TezOperator> succs = plan.getSuccessors(tezOper);
             if (succs != null) {
                 Collections.sort(succs);
                 buf.append("\t->\t");

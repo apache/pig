@@ -33,6 +33,8 @@ import org.apache.pig.backend.hadoop.executionengine.tez.TezJob;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperator;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPlanContainerNode;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPrinter;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
@@ -41,6 +43,7 @@ import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.apache.pig.tools.pigstats.PigStats.JobGraphPrinter;
+import org.apache.pig.tools.pigstats.PigStatsUtil;
 import org.apache.pig.tools.pigstats.tez.TezScriptState.TezDAGScriptInfo;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.CounterGroup;
@@ -67,9 +70,20 @@ public class TezDAGStats extends JobStats {
     public static final String TASK_COUNTER_GROUP = TaskCounter.class.getName();
     public static final String PIG_COUNTER_GROUP = org.apache.pig.PigCounters.class.getName();
 
+    public static final String SUCCESS_HEADER = String.format("VertexId Parallelism TotalTasks"
+            + " %1$14s %2$14s %3$14s %4$16s %5$14s %6$16s"
+            + " Alias\tFeature\tOutputs",
+            "InputRecords", "OutputRecords", "FileBytesRead", "FileBytesWritten", "HdfsBytesRead", "HdfsBytesWritten");
+
+    public static final String FAILURE_HEADER = String.format("VertexId  State Parallelism TotalTasks"
+            + " %1$14s %2$14s %3$14s %4$16s %5$14s %6$16s"
+            + " Alias\tFeature\tOutputs",
+            "InputRecords", "OutputRecords", "FileBytesRead", "FileBytesWritten", "HdfsBytesRead", "HdfsBytesWritten");
+
     private Map<String, TezVertexStats> tezVertexStatsMap;
 
     private String appId;
+    private StringBuilder tezDAGPlan;
 
     private int totalTasks = -1;
     private long fileBytesRead = -1;
@@ -97,31 +111,35 @@ public class TezDAGStats extends JobStats {
     /**
      * This class builds the graph of a Tez DAG vertices.
      */
-    static class JobGraphBuilder extends TezOpPlanVisitor {
+    static class TezDAGStatsBuilder extends TezOpPlanVisitor {
 
+        private TezPlanContainerNode tezPlanNode;
         private JobGraph jobPlan;
         private Map<String, TezVertexStats> tezVertexStatsMap;
         private List<TezVertexStats> vertexStatsToBeRemoved;
         private TezDAGScriptInfo dagScriptInfo;
+        private StringBuilder tezDAGPlan;
 
-        public JobGraphBuilder(TezOperPlan plan, TezDAGScriptInfo dagScriptInfo) {
-            super(plan, new DependencyOrderWalker<TezOperator, TezOperPlan>(plan));
-            tezVertexStatsMap = new HashMap<String, TezVertexStats>();
-            vertexStatsToBeRemoved = new ArrayList<TezVertexStats>();
-            jobPlan = new JobGraph();
+        public TezDAGStatsBuilder(TezPlanContainerNode tezPlanNode, TezDAGScriptInfo dagScriptInfo) {
+            super(tezPlanNode.getTezOperPlan(), new DependencyOrderWalker<TezOperator, TezOperPlan>(tezPlanNode.getTezOperPlan()));
+            this.tezPlanNode = tezPlanNode;
+            this.tezVertexStatsMap = new HashMap<String, TezVertexStats>();
+            this.vertexStatsToBeRemoved = new ArrayList<TezVertexStats>();
+            this.jobPlan = new JobGraph();
+            this.tezDAGPlan = new StringBuilder();
             this.dagScriptInfo = dagScriptInfo;
         }
 
-        public Map<String, TezVertexStats> getTezVertexStatsMap() {
-            return tezVertexStatsMap;
-        }
-
-        public JobGraph getJobPlan() {
-            return jobPlan;
+        public TezDAGStats build() throws VisitorException {
+            visit();
+            TezDAGStats dagStats = new TezDAGStats(tezPlanNode.getOperatorKey().toString(), jobPlan, tezVertexStatsMap, tezDAGPlan);
+            dagStats.setAlias(dagScriptInfo);
+            return dagStats;
         }
 
         @Override
         public void visitTezOp(TezOperator tezOp) throws VisitorException {
+            TezPrinter.TezGraphPrinter.writePlan(mPlan, tezOp, tezDAGPlan);
             TezVertexStats currStats =
                     new TezVertexStats(tezOp.getOperatorKey().toString(), jobPlan, tezOp.isUseMRMapSettings());
             jobPlan.add(currStats);
@@ -135,7 +153,7 @@ public class TezDAGStats extends JobStats {
                 }
             }
 
-         // Remove VertexGroups (union) from JobGraph since they're not
+            // Remove VertexGroups (union) from JobGraph since they're not
             // materialized as real vertices by Tez.
             if (tezOp.isVertexGroup()) {
                 vertexStatsToBeRemoved.add(currStats);
@@ -162,9 +180,10 @@ public class TezDAGStats extends JobStats {
 
     }
 
-    protected TezDAGStats(String name, JobGraph plan, Map<String, TezVertexStats> tezVertexStatsMap) {
+    protected TezDAGStats(String name, JobGraph plan, Map<String, TezVertexStats> tezVertexStatsMap, StringBuilder tezDAGPlan) {
         super(name, plan);
         this.tezVertexStatsMap = tezVertexStatsMap;
+        this.tezDAGPlan = tezDAGPlan;
     }
 
     public TezVertexStats getVertexStats(String vertexName) {
@@ -195,10 +214,10 @@ public class TezDAGStats extends JobStats {
             totalTasks = (int) dagGrp.findCounter("TOTAL_LAUNCHED_TASKS").getValue();
 
             CounterGroup fsGrp = tezCounters.getGroup(FS_COUNTER_GROUP);
-            fileBytesRead = fsGrp.findCounter("FILE_BYTES_READ").getValue();
-            fileBytesWritten = fsGrp.findCounter("FILE_BYTES_WRITTEN").getValue();
-            hdfsBytesRead = fsGrp.findCounter("HDFS_BYTES_READ").getValue();
-            hdfsBytesWritten = fsGrp.findCounter("HDFS_BYTES_WRITTEN").getValue();
+            fileBytesRead = fsGrp.findCounter(PigStatsUtil.FILE_BYTES_READ).getValue();
+            fileBytesWritten = fsGrp.findCounter(PigStatsUtil.FILE_BYTES_WRITTEN).getValue();
+            hdfsBytesRead = fsGrp.findCounter(PigStatsUtil.HDFS_BYTES_READ).getValue();
+            hdfsBytesWritten = fsGrp.findCounter(PigStatsUtil.HDFS_BYTES_WRITTEN).getValue();
         } else {
             LOG.warn("Failed to get counters for DAG: " + dag.getName());
         }
@@ -300,20 +319,52 @@ public class TezDAGStats extends JobStats {
     public String getDisplayString() {
             StringBuilder sb = new StringBuilder();
 
-            sb.append("DAG " + name + ":\n");
-            sb.append(String.format("%1$20s: %2$-100s%n", "ApplicationId",
+            sb.append(String.format("%1$40s: %2$-100s%n", "Name",
+                    name));
+            sb.append(String.format("%1$40s: %2$-100s%n", "ApplicationId",
                     appId));
-            sb.append(String.format("%1$20s: %2$-100s%n", "TotalLaunchedTasks",
+            sb.append(String.format("%1$40s: %2$-100s%n", "TotalLaunchedTasks",
                     totalTasks));
 
-            sb.append(String.format("%1$20s: %2$-100s%n", "FileBytesRead",
+            sb.append(String.format("%1$40s: %2$-100s%n", "FileBytesRead",
                     fileBytesRead));
-            sb.append(String.format("%1$20s: %2$-100s%n", "FileBytesWritten",
+            sb.append(String.format("%1$40s: %2$-100s%n", "FileBytesWritten",
                     fileBytesWritten));
-            sb.append(String.format("%1$20s: %2$-100s%n", "HdfsBytesRead",
+            sb.append(String.format("%1$40s: %2$-100s%n", "HdfsBytesRead",
                     hdfsBytesRead));
-            sb.append(String.format("%1$20s: %2$-100s%n", "HdfsBytesWritten",
+            sb.append(String.format("%1$40s: %2$-100s%n", "HdfsBytesWritten",
                     hdfsBytesWritten));
+
+            sb.append(String.format("%1$40s: %2$-100s%n", "SpillableMemoryManager spill count",
+                    spillCount));
+            sb.append(String.format("%1$40s: %2$-100s%n", "Bags proactively spilled",
+                    activeSpillCountObj));
+            sb.append(String.format("%1$40s: %2$-100s%n", "Records proactively spilled",
+                    activeSpillCountRecs));
+
+
+            sb.append("\nDAG Plan:\n");
+            sb.append(tezDAGPlan);
+
+            List<JobStats> success = ((JobGraph)getPlan()).getSuccessfulJobs();
+            List<JobStats> failed = ((JobGraph)getPlan()).getFailedJobs();
+
+            if (success != null && !success.isEmpty()) {
+                sb.append("\nVertex Stats:\n");
+                sb.append(SUCCESS_HEADER).append("\n");
+                for (JobStats js : success) {
+                    sb.append(js.getDisplayString());
+                }
+            }
+
+            if (failed != null && !failed.isEmpty()) {
+                sb.append("\nFailed vertices:\n");
+                sb.append(FAILURE_HEADER).append("\n");
+                for (JobStats js : failed) {
+                    sb.append(js.getDisplayString());
+                }
+                sb.append("\n");
+            }
 
             return sb.toString();
     }
