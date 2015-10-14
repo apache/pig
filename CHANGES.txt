@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4699: Print Job stats information in Tez like mapreduce (rohini)
+
 PIG-4554: Compress pig.script before encoding (sandyridgeracer via rohini)
 
 PIG-4670: Embedded Python scripts still parse line by line (rohini)

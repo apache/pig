@@ -75,10 +75,8 @@ public class TezPigScriptStats extends PigStats {
         public void visitTezPlanContainerNode(TezPlanContainerNode tezPlanNode) throws VisitorException {
             TezScriptState ss = TezScriptState.get();
             TezDAGScriptInfo dagScriptInfo = ss.setDAGScriptInfo(tezPlanNode);
-            TezDAGStats.JobGraphBuilder jobGraphBuilder = new TezDAGStats.JobGraphBuilder(tezPlanNode.getTezOperPlan(), dagScriptInfo);
-            jobGraphBuilder.visit();
-            TezDAGStats currStats = new TezDAGStats(tezPlanNode.getOperatorKey().toString(), jobGraphBuilder.getJobPlan(), jobGraphBuilder.getTezVertexStatsMap());
-            currStats.setAlias(dagScriptInfo);
+            TezDAGStats.TezDAGStatsBuilder builder = new TezDAGStats.TezDAGStatsBuilder(tezPlanNode, dagScriptInfo);
+            TezDAGStats currStats = builder.build();
             jobPlan.add(currStats);
             List<TezPlanContainerNode> preds = getPlan().getPredecessors(tezPlanNode);
             if (preds != null) {
@@ -111,7 +109,11 @@ public class TezPigScriptStats extends PigStats {
 
     public void finish() {
         super.stop();
-        display();
+        try {
+            display();
+        } catch (Throwable e) {
+            LOG.warn("Exception while displaying stats:", e);
+        }
     }
 
     private void display() {
@@ -151,7 +153,10 @@ public class TezPigScriptStats extends PigStats {
             }
         }
 
+        int count = 0;
         for (TezDAGStats dagStats : tezDAGStatsMap.values()) {
+            sb.append("\n");
+            sb.append("DAG " + count++ + ":\n");
             sb.append(dagStats.getDisplayString());
             sb.append("\n");
         }

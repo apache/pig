@@ -297,7 +297,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 POStore store = tezOp.getVertexGroupInfo().getStore();
                 if (store != null) {
                     vertexGroup.addDataSink(store.getOperatorKey().toString(),
-                            new DataSinkDescriptor(tezOp.getVertexGroupInfo().getStoreOutputDescriptor(),
+                            DataSinkDescriptor.create(tezOp.getVertexGroupInfo().getStoreOutputDescriptor(),
                             OutputCommitterDescriptor.create(MROutputCommitter.class.getName()), dag.getCredentials()));
                 }
             }
@@ -627,7 +627,10 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         // Take our assembled configuration and create a vertex
         UserPayload userPayload = TezUtils.createUserPayloadFromConf(payloadConf);
         TezDAGScriptInfo dagScriptInfo = TezScriptState.get().getDAGScriptInfo(dag.getName());
-        String vertexInfo = dagScriptInfo.getAliasLocation(tezOp) + " (" + dagScriptInfo.getPigFeatures(tezOp) + ")" ;
+        String alias = dagScriptInfo.getAlias(tezOp);
+        String aliasLocation = dagScriptInfo.getAliasLocation(tezOp);
+        String features = dagScriptInfo.getPigFeatures(tezOp);
+        String vertexInfo = aliasLocation + " (" + features + ")" ;
         procDesc.setUserPayload(userPayload).setHistoryText(TezUtils.convertToHistoryText(vertexInfo, payloadConf));
 
         String vmPluginName = null;
@@ -744,6 +747,9 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 + ", memory=" + vertex.getTaskResource().getMemory()
                 + ", java opts=" + vertex.getTaskLaunchCmdOpts()
                 );
+        log.info("Processing aliases: " + alias);
+        log.info("Detailed locations: " + aliasLocation);
+        log.info("Pig features in the vertex: " + features);
         // Right now there can only be one of each of these. Will need to be
         // more generic when there can be more.
         for (POLoad ld : tezOp.getLoaderInfo().getLoads()) {
@@ -829,7 +835,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             String outputKey = ((POStoreTez) store).getOutputKey();
             if (!uniqueStoreOutputs.contains(outputKey)) {
                 vertex.addDataSink(outputKey.toString(),
-                        new DataSinkDescriptor(storeOutDescriptor,
+                        DataSinkDescriptor.create(storeOutDescriptor,
                         OutputCommitterDescriptor.create(MROutputCommitter.class.getName()),
                         dag.getCredentials()));
                 uniqueStoreOutputs.add(outputKey);

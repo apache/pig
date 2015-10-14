@@ -44,6 +44,11 @@ public class PigStatsUtil {
             = "HDFS_BYTES_WRITTEN";
     public static final String HDFS_BYTES_READ
             = "HDFS_BYTES_READ";
+    public static final String FILE_BYTES_WRITTEN
+            = "FILE_BYTES_WRITTEN";
+    public static final String FILE_BYTES_READ
+            = "FILE_BYTES_READ";
+
 
     public static final String MULTI_INPUTS_RECORD_COUNTER
             = "Input records from ";
