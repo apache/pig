@@ -339,6 +339,18 @@ public class TestTezCompiler {
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Order-2.gld");
     }
 
+    @Test
+    public void testOrderByReadOnceLoadFunc() throws Exception {
+        setProperty("pig.sort.readonce.loadfuncs","org.apache.pig.backend.hadoop.hbase.HBaseStorage,org.apache.pig.backend.hadoop.accumulo.AccumuloStorage");
+        String query =
+                "a = load 'file:///tmp/input' using org.apache.pig.backend.hadoop.hbase.HBaseStorage(',') as (x:int, y:int);" +
+                "b = order a by x;" +
+                "STORE b INTO 'file:///tmp/output';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Order-3.gld");
+        setProperty("pig.sort.readonce.loadfuncs", null);
+    }
+
     // PIG-3759, PIG-3781
     // Combiner should not be added in case of co-group
     @Test

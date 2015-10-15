@@ -20,6 +20,7 @@ package org.apache.pig.backend.hadoop.executionengine.tez.plan;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -34,6 +35,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.lib.partition.HashPartitioner;
+import org.apache.hadoop.util.StringUtils;
 import org.apache.pig.CollectableLoadFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.IndexableLoadFunc;
@@ -171,6 +173,7 @@ public class TezCompiler extends PhyPlanVisitor {
 
     private int fileConcatenationThreshold = 100;
     private boolean optimisticFileConcatenation = false;
+    private List<String> readOnceLoadFuncs = null;
 
     private POLocalRearrangeTezFactory localRearrangeFactory;
 
@@ -201,6 +204,12 @@ public class TezCompiler extends PhyPlanVisitor {
                 OPTIMISTIC_FILE_CONCATENATION, "false").equals("true");
         LOG.info("File concatenation threshold: " + fileConcatenationThreshold
                 + " optimistic? " + optimisticFileConcatenation);
+
+        String loadFuncs = pigContext.getProperties().getProperty(
+                PigConfiguration.PIG_SORT_READONCE_LOADFUNCS);
+        if (loadFuncs != null && loadFuncs.trim().length() > 0) {
+            readOnceLoadFuncs = Arrays.asList(StringUtils.split(loadFuncs.trim()));
+        }
     }
 
     public TezOperPlan getTezPlan() {
@@ -1755,8 +1764,16 @@ public class TezCompiler extends PhyPlanVisitor {
         boolean writeDataForPartitioner = false;
         if (samplerOper.plan.getRoots().get(0) instanceof POLoad) {
             for (PhysicalOperator oper : samplerOper.plan) {
-                if (oper instanceof POForEach || oper instanceof POLoad) {
+                if (oper instanceof POForEach) {
                     continue;
+                } else if (oper instanceof POLoad && oper.getInputs() == null) {
+                    // TODO: oper.getInputs() is not null in case of PONative and
+                    // clone needs to be fixed in that case. e2e test - Native_2.
+                    String loadFunc = ((POLoad) oper).getLoadFunc().getClass().getName();
+                    // We do not want to read all data again from hbase/accumulo for sampling.
+                    if (readOnceLoadFuncs == null || !readOnceLoadFuncs.contains(loadFunc)) {
+                        continue;
+                    }
                 }
                 writeDataForPartitioner = true;
                 break;

@@ -70,6 +70,14 @@ public class PigConfiguration {
     public static final String PIG_TEZ_OPT_UNION_UNSUPPORTED_STOREFUNCS = "pig.tez.opt.union.unsupported.storefuncs";
 
     /**
+     * Pig only reads once from datasource for LoadFuncs specified here during sort instead of
+     * loading once for sampling and loading again for partitioning.
+     * Used to avoid hitting external non-filesystem datasources like HBase and Accumulo twice.
+     * Honored only by Pig on Tez now.
+     */
+    public static final String PIG_SORT_READONCE_LOADFUNCS = "pig.sort.readonce.loadfuncs";
+
+    /**
      * Boolean value to enable or disable partial aggregation in map. Disabled by default
      */
     public static final String PIG_EXEC_MAP_PARTAGG = "pig.exec.mapPartAgg";
