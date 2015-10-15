@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4702: Load once for sampling and partitioning in order by for certain LoadFuncs (rohini)
+
 PIG-4699: Print Job stats information in Tez like mapreduce (rohini)
 
 PIG-4554: Compress pig.script before encoding (sandyridgeracer via rohini)
