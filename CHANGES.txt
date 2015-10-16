@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4697: Pig needs to serialize only part of the udfcontext for each vertex (rohini)
+
 PIG-4702: Load once for sampling and partitioning in order by for certain LoadFuncs (rohini)
 
 PIG-4699: Print Job stats information in Tez like mapreduce (rohini)

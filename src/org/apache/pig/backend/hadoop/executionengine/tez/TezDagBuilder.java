@@ -98,14 +98,17 @@ import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POShuffle
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POStoreTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.PartitionerDefinedVertexManager;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.PigGraceShuffleVertexManager;
+import org.apache.pig.backend.hadoop.executionengine.tez.runtime.PigInputFormatTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.PigOutputFormatTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.PigProcessor;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.MRToTezHelper;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.SecurityHelper;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.TezCompilerUtil;
+import org.apache.pig.backend.hadoop.executionengine.tez.util.TezUDFContextSeparator;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.PigImplConstants;
+import org.apache.pig.impl.builtin.DefaultIndexableLoader;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.NullablePartitionWritable;
 import org.apache.pig.impl.io.NullableTuple;
@@ -114,6 +117,7 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.impl.util.UDFContextSeparator.UDFType;
 import org.apache.pig.tools.pigstats.tez.TezScriptState;
 import org.apache.pig.tools.pigstats.tez.TezScriptState.TezDAGScriptInfo;
 import org.apache.tez.common.TezUtils;
@@ -169,6 +173,11 @@ public class TezDagBuilder extends TezOpPlanVisitor {
     private FileSystem fs;
     private long intermediateTaskInputSize;
     private Set<String> inputSplitInDiskVertices;
+    private TezUDFContextSeparator udfContextSeparator;
+
+    private String serializedTezPlan;
+    private String serializedPigContext;
+    private String serializedUDFImportList;
 
     public TezDagBuilder(PigContext pc, TezOperPlan plan, DAG dag,
             Map<String, LocalResource> localResources) {
@@ -200,6 +209,25 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 globalConf.getLong(
                         InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM,
                         InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER));
+
+        try {
+            serializedPigContext = ObjectSerializer.serialize(pc);
+            serializedUDFImportList = ObjectSerializer.serialize(PigContext.getPackageImportList());
+
+            udfContextSeparator = new TezUDFContextSeparator(plan,
+                    new DependencyOrderWalker<TezOperator, TezOperPlan>(plan));
+            udfContextSeparator.visit();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public String getSerializedTezPlan() throws IOException {
+        if (serializedTezPlan == null) {
+            // Initialize lazy as auto parallelism might not be in play
+            serializedTezPlan = ObjectSerializer.serialize(getPlan());
+        }
+        return serializedTezPlan;
     }
 
     // Hack to turn off relocalization till TEZ-2192 is fixed.
@@ -339,8 +367,9 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         OutputDescriptor out = OutputDescriptor.create(edge.outputClassName);
 
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties(), false);
-        UDFContext.getUDFContext().serialize(conf);
+
         if (!combinePlan.isEmpty()) {
+            udfContextSeparator.serializeUDFContextForEdge(conf, from, to, UDFType.USERFUNC);
             addCombiner(combinePlan, to, conf, isMergedInput);
         }
 
@@ -377,9 +406,8 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         conf.setBoolean(MRConfiguration.MAPPER_NEW_API, true);
         conf.setBoolean(MRConfiguration.REDUCER_NEW_API, true);
-        conf.set("pig.pigContext", ObjectSerializer.serialize(pc));
-        conf.set("udf.import.list",
-                ObjectSerializer.serialize(PigContext.getPackageImportList()));
+        conf.set("pig.pigContext", serializedPigContext);
+        conf.set("udf.import.list", serializedUDFImportList);
 
         if(to.isGlobalSort() || to.isLimitAfterSort()){
             conf.set("pig.sortOrder",
@@ -406,9 +434,6 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             conf.set(org.apache.hadoop.mapreduce.MRJobConfig.PARTITIONER_CLASS_ATTR,
                     edge.partitionerClass.getName());
         }
-
-        conf.set("udf.import.list",
-                ObjectSerializer.serialize(PigContext.getPackageImportList()));
 
         MRToTezHelper.processMRSettings(conf, globalConf);
 
@@ -446,11 +471,6 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 MRCombiner.class.getName());
         conf.set(MRJobConfig.COMBINE_CLASS_ATTR,
                 PigCombiner.Combine.class.getName());
-        conf.setBoolean(MRConfiguration.MAPPER_NEW_API, true);
-        conf.setBoolean(MRConfiguration.REDUCER_NEW_API, true);
-        conf.set("pig.pigContext", ObjectSerializer.serialize(pc));
-        conf.set("udf.import.list",
-                ObjectSerializer.serialize(PigContext.getPackageImportList()));
         conf.set("pig.combinePlan", ObjectSerializer.serialize(combinePlan));
         conf.set("pig.combine.package", ObjectSerializer.serialize(combPack));
         conf.set("pig.map.keytype", ObjectSerializer
@@ -473,6 +493,37 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         @SuppressWarnings("deprecation")
         Job job = new Job(payloadConf);
         payloadConf = (JobConf) job.getConfiguration();
+        payloadConf.setBoolean(MRConfiguration.MAPPER_NEW_API, true);
+        payloadConf.setBoolean(MRConfiguration.REDUCER_NEW_API, true);
+        payloadConf.setClass(MRConfiguration.INPUTFORMAT_CLASS,
+                PigInputFormatTez.class, InputFormat.class);
+        setOutputFormat(job);
+        payloadConf.set("udf.import.list", serializedUDFImportList);
+        payloadConf.set("exectype", "TEZ");
+        MRToTezHelper.processMRSettings(payloadConf, globalConf);
+
+        // Process stores
+        LinkedList<POStore> stores = processStores(tezOp, payloadConf, job);
+
+        Configuration inputPayLoad = null;
+        Configuration outputPayLoad = null;
+
+        if (!stores.isEmpty()) {
+            outputPayLoad = new Configuration(payloadConf);
+            outputPayLoad.set(JobControlCompiler.PIG_MAP_STORES,
+                    ObjectSerializer.serialize(new ArrayList<POStore>()));
+        }
+
+        if (!(tezOp.getLoaderInfo().getLoads().isEmpty())) {
+            payloadConf.set(PigInputFormat.PIG_INPUTS, ObjectSerializer.serialize(tezOp.getLoaderInfo().getInp()));
+            payloadConf.set(PigInputFormat.PIG_INPUT_SIGNATURES, ObjectSerializer.serialize(tezOp.getLoaderInfo().getInpSignatureLists()));
+            payloadConf.set(PigInputFormat.PIG_INPUT_LIMITS, ObjectSerializer.serialize(tezOp.getLoaderInfo().getInpLimits()));
+            inputPayLoad = new Configuration(payloadConf);
+            if (tezOp.getLoaderInfo().getLoads().get(0).getLoadFunc() instanceof DefaultIndexableLoader) {
+                inputPayLoad.set("pig.pigContext", serializedPigContext);
+            }
+        }
+        payloadConf.set("pig.pigContext", serializedPigContext);
 
         if (tezOp.getSampleOperator() != null) {
             payloadConf.set(PigProcessor.SAMPLE_VERTEX, tezOp.getSampleOperator().getOperatorKey().toString());
@@ -493,21 +544,6 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             }
 
         }
-
-        payloadConf.set("pig.inputs", ObjectSerializer.serialize(tezOp.getLoaderInfo().getInp()));
-        payloadConf.set("pig.inpSignatures", ObjectSerializer.serialize(tezOp.getLoaderInfo().getInpSignatureLists()));
-        payloadConf.set("pig.inpLimits", ObjectSerializer.serialize(tezOp.getLoaderInfo().getInpLimits()));
-        // Process stores
-        LinkedList<POStore> stores = processStores(tezOp, payloadConf, job);
-
-        payloadConf.set("pig.pigContext", ObjectSerializer.serialize(pc));
-        payloadConf.set("udf.import.list",
-                ObjectSerializer.serialize(PigContext.getPackageImportList()));
-        payloadConf.set("exectype", "TEZ");
-        payloadConf.setBoolean(MRConfiguration.MAPPER_NEW_API, true);
-        payloadConf.setBoolean(MRConfiguration.REDUCER_NEW_API, true);
-        payloadConf.setClass(MRConfiguration.INPUTFORMAT_CLASS,
-                PigInputFormat.class, InputFormat.class);
 
         // Set parent plan for all operators in the Tez plan.
         new PhyPlanSetter(tezOp.plan).visit();
@@ -582,7 +618,6 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             //POShuffleTezLoad accesses the comparator setting
             selectKeyComparator(keyType, payloadConf, tezOp, isMergedInput);
         }
-        setOutputFormat(job);
 
         // set parent plan in all operators. currently the parent plan is really
         // used only when POStream, POSplit are present in the plan
@@ -592,9 +627,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         payloadConf.set(PigProcessor.PLAN,
                 ObjectSerializer.serialize(tezOp.plan));
 
-        UDFContext.getUDFContext().serialize(payloadConf);
-
-        MRToTezHelper.processMRSettings(payloadConf, globalConf);
+        udfContextSeparator.serializeUDFContext(payloadConf, tezOp);
 
         if (!pc.inIllustrator) {
             for (POStore store : stores) {
@@ -660,19 +693,19 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                     }
                 }
                 if (containScatterGather && !containCustomPartitioner) {
+                    vmPluginConf = (vmPluginConf == null) ? ConfigurationUtil.toConfiguration(pc.getProperties(), false) : vmPluginConf;
                     // Use auto-parallelism feature of ShuffleVertexManager to dynamically
                     // reduce the parallelism of the vertex
                     if (payloadConf.getBoolean(PigConfiguration.PIG_TEZ_GRACE_PARALLELISM, true)
                             && !TezOperPlan.getGrandParentsForGraceParallelism(getPlan(), tezOp).isEmpty()) {
                         vmPluginName = PigGraceShuffleVertexManager.class.getName();
                         tezOp.setUseGraceParallelism(true);
+                        vmPluginConf.set("pig.tez.plan", getSerializedTezPlan());
+                        vmPluginConf.set("pig.pigContext", serializedPigContext);
                     } else {
                         vmPluginName = ShuffleVertexManager.class.getName();
                     }
-                    vmPluginConf = (vmPluginConf == null) ? ConfigurationUtil.toConfiguration(pc.getProperties(), false) : vmPluginConf;
                     vmPluginConf.setBoolean(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL, true);
-                    vmPluginConf.set("pig.tez.plan", ObjectSerializer.serialize(getPlan()));
-                    vmPluginConf.set("pig.pigContext", ObjectSerializer.serialize(pc));
                     if (stores.size() <= 0) {
                         // Intermediate reduce. Set the bytes per reducer to be block size.
                         vmPluginConf.setLong(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE,
@@ -769,7 +802,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 MRSplitsProto splitsProto = inputSplitInfo.getSplitsProto();
                 int splitsSerializedSize = splitsProto.getSerializedSize();
                 if(splitsSerializedSize > spillThreshold) {
-                    payloadConf.setBoolean(
+                    inputPayLoad.setBoolean(
                             org.apache.tez.mapreduce.hadoop.MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS,
                             false);
                     // Write splits to disk
@@ -794,7 +827,9 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 //Free up memory
                 tezOp.getLoaderInfo().setInputSplitInfo(null);
             }
-            userPayLoadBuilder.setConfigurationBytes(TezUtils.createByteStringFromConf(payloadConf));
+
+            udfContextSeparator.serializeUDFContext(inputPayLoad, tezOp, UDFType.LOADFUNC);
+            userPayLoadBuilder.setConfigurationBytes(TezUtils.createByteStringFromConf(inputPayLoad));
 
             vertex.setLocationHint(VertexLocationHint.create(inputSplitInfo.getTaskLocationHints()));
             vertex.addDataSource(ld.getOperatorKey().toString(),
@@ -811,19 +846,17 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         Set<String> uniqueStoreOutputs = new HashSet<String>();
         for (POStore store : stores) {
 
-            ArrayList<POStore> emptyList = new ArrayList<POStore>();
             ArrayList<POStore> singleStore = new ArrayList<POStore>();
             singleStore.add(store);
 
-            Configuration outputPayLoad = new Configuration(payloadConf);
-            outputPayLoad.set(JobControlCompiler.PIG_MAP_STORES,
-                    ObjectSerializer.serialize(emptyList));
-            outputPayLoad.set(JobControlCompiler.PIG_REDUCE_STORES,
+            Configuration outPayLoad = new Configuration(outputPayLoad);
+            udfContextSeparator.serializeUDFContext(outPayLoad, tezOp, store);
+            outPayLoad.set(JobControlCompiler.PIG_REDUCE_STORES,
                     ObjectSerializer.serialize(singleStore));
 
             OutputDescriptor storeOutDescriptor = OutputDescriptor.create(
                     MROutput.class.getName()).setUserPayload(TezUtils
-                    .createUserPayloadFromConf(outputPayLoad));
+                    .createUserPayloadFromConf(outPayLoad));
             if (tezOp.getVertexGroupStores() != null) {
                 OperatorKey vertexGroupKey = tezOp.getVertexGroupStores().get(store.getOperatorKey());
                 if (vertexGroupKey != null) {
