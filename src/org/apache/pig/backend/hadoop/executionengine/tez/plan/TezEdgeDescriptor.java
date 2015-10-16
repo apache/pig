@@ -32,7 +32,7 @@ import org.apache.tez.runtime.library.output.OrderedPartitionedKVOutput;
  */
 public class TezEdgeDescriptor implements Serializable {
     // Combiner runs on both input and output of Tez edge.
-    public PhysicalPlan combinePlan;
+    transient public PhysicalPlan combinePlan;
 
     public String inputClassName;
     public String outputClassName;

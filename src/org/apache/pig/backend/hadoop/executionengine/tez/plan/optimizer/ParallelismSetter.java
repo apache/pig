@@ -17,7 +17,6 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer;
 
-import java.util.LinkedList;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
@@ -26,13 +25,11 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezEdgeDescriptor;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperator;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.NativeTezOper;
-import org.apache.pig.backend.hadoop.executionengine.tez.util.TezCompilerUtil;
 import org.apache.pig.backend.hadoop.executionengine.util.ParallelConstantVisitor;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.PigImplConstants;
@@ -80,11 +77,6 @@ public class ParallelismSetter extends TezOpPlanVisitor {
             // Can only set parallelism here if the parallelism isn't derived from
             // splits
             int parallelism = -1;
-            boolean intermediateReducer = false;
-            LinkedList<POStore> stores = tezOp.getStores();
-            if (stores.size() <= 0) {
-                intermediateReducer = true;
-            }
             if (tezOp.getLoaderInfo().getLoads() != null && tezOp.getLoaderInfo().getLoads().size() > 0) {
                 // requestedParallelism of Loader vertex is handled in LoaderProcessor
                 // propogate to vertexParallelism
@@ -93,7 +85,6 @@ public class ParallelismSetter extends TezOpPlanVisitor {
             } else {
                 int prevParallelism = -1;
                 boolean isOneToOneParallelism = false;
-                intermediateReducer = TezCompilerUtil.isIntermediateReducer(tezOp);
 
                 for (Map.Entry<OperatorKey,TezEdgeDescriptor> entry : tezOp.inEdges.entrySet()) {
                     if (entry.getValue().dataMovementType == DataMovementType.ONE_TO_ONE) {
@@ -126,7 +117,7 @@ public class ParallelismSetter extends TezOpPlanVisitor {
                     boolean overrideRequestedParallelism = false;
                     if (parallelism != -1
                             && autoParallelismEnabled
-                            && intermediateReducer
+                            && tezOp.isIntermediateReducer()
                             && !tezOp.isDontEstimateParallelism()
                             && tezOp.isOverrideIntermediateParallelism()) {
                         overrideRequestedParallelism = true;

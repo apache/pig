@@ -251,19 +251,4 @@ public class TezCompilerUtil {
         edge.setIntermediateOutputValueClass(TUPLE_CLASS);
     }
 
-    /**
-     * Returns true if there are no loads or stores in a TezOperator.
-     * To be called only after LoaderProcessor is called
-     */
-    static public boolean isIntermediateReducer(TezOperator tezOper) throws VisitorException {
-        boolean intermediateReducer = false;
-        LinkedList<POStore> stores = tezOper.getStores();
-        // Not map and not final reducer
-        if (stores.size() <= 0 &&
-                (tezOper.getLoaderInfo().getLoads() == null || tezOper.getLoaderInfo().getLoads().size() <= 0)) {
-            intermediateReducer = true;
-        }
-        return intermediateReducer;
-    }
-
 }

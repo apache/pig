@@ -26,17 +26,23 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 import java.util.Random;
 import java.util.regex.Pattern;
 
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.PigServer;
+import org.apache.pig.ResourceSchema;
+import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.InputSizeReducerEstimator;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.PigGraceShuffleVertexManager;
+import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.NodeIdGenerator;
+import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.test.Util;
 import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
 import org.junit.AfterClass;
@@ -280,6 +286,42 @@ public class TestTezGraceParallelism {
             assertTrue(writer.toString().contains("time to set parallelism for scope-54"));
         } finally {
             Util.removeLogAppender(PigGraceShuffleVertexManager.class, "testJoinWithUnion");
+        }
+    }
+
+    @Test
+    // See PIG-4703
+    public void testUDFContextSetInBackend() throws IOException{
+        NodeIdGenerator.reset();
+        PigServer.resetScope();
+        File outputDir = File.createTempFile("intemediate", "txt");
+        outputDir.delete();
+        pigServer.registerQuery("A = load '" + INPUT_DIR + "/" + INPUT_FILE2 + "' as (name:chararray, gender:chararray);");
+        pigServer.registerQuery("B = order A by name;");
+        pigServer.registerQuery("C = distinct B;");
+        pigServer.registerQuery("D = load '" + INPUT_DIR + "/" + INPUT_FILE1 + "' as (name:chararray, age:int);");
+        pigServer.registerQuery("E = group D by name;");
+        pigServer.registerQuery("F = foreach E generate group as name, AVG(D.age) as avg_age;");
+        pigServer.registerQuery("G = join C by name left, F by name;");
+        ExecJob job = pigServer.store("G", Util.removeColon(outputDir.getAbsolutePath()), StorerWithUDFContextCheck.class.getName());
+        assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
+    }
+
+    static public class StorerWithUDFContextCheck extends PigStorage {
+        @Override
+        public void checkSchema(ResourceSchema resourceSchema) throws IOException {
+            UDFContext.getUDFContext().getUDFProperties(this.getClass(), new String[]{signature})
+            .setProperty("schema", ObjectSerializer.serialize(resourceSchema));
+        }
+        @Override
+        public void setStoreLocation(String location, Job job) throws IOException {
+            Properties udfProps = UDFContext.getUDFContext().getUDFProperties(
+                    this.getClass(), new String[]{signature});
+            ResourceSchema rs = (ResourceSchema)ObjectSerializer.deserialize(udfProps.getProperty("schema"));
+            if (rs == null) {
+                throw new IOException("Should not be null");
+            }
+            super.setStoreLocation(location, job);
         }
     }
 }

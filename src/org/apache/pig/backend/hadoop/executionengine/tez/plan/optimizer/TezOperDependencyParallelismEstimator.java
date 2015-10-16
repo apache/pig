@@ -36,6 +36,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezEdgeDescriptor;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
@@ -79,15 +80,13 @@ public class TezOperDependencyParallelismEstimator implements TezParallelismEsti
             return -1;
         }
 
-        boolean intermediateReducer = TezCompilerUtil.isIntermediateReducer(tezOper);
-
         // TODO: If map opts and reduce opts are same estimate higher parallelism
         // for tasks based on the count of number of map tasks else be conservative as now
         maxTaskCount = conf.getInt(PigReducerEstimator.MAX_REDUCER_COUNT_PARAM,
                 PigReducerEstimator.DEFAULT_MAX_REDUCER_COUNT_PARAM);
 
         // If parallelism is set explicitly, respect it
-        if (!intermediateReducer && tezOper.getRequestedParallelism()!=-1) {
+        if (!tezOper.isIntermediateReducer() && tezOper.getRequestedParallelism()!=-1) {
             return tezOper.getRequestedParallelism();
         }
 
@@ -129,7 +128,7 @@ public class TezOperDependencyParallelismEstimator implements TezParallelismEsti
 
         int roundedEstimatedParallelism = (int)Math.ceil(estimatedParallelism);
 
-        if (intermediateReducer && tezOper.isOverrideIntermediateParallelism()) {
+        if (tezOper.isIntermediateReducer() && tezOper.isOverrideIntermediateParallelism()) {
             // Estimated reducers should not be more than the configured limit
             roundedEstimatedParallelism = Math.min(roundedEstimatedParallelism, maxTaskCount);
             int userSpecifiedParallelism = pc.defaultParallel;
