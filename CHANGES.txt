@@ -28,6 +28,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-4703: TezOperator.stores shall not ship to backend (daijy)
+
 PIG-4688: Limit followed by POPartialAgg can give empty or partial results in Tez (rohini)
 
 PIG-4635: NPE while running pig script in tez mode (daijy)
