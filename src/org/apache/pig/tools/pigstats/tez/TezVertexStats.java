@@ -33,6 +33,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.Counters;
 import org.apache.pig.PigCounters;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigInputFormat;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -134,7 +135,7 @@ public class TezVertexStats extends JobStats {
             this.stores = (List<POStore>) ObjectSerializer.deserialize(
                     conf.get(JobControlCompiler.PIG_REDUCE_STORES));
             this.loads = (List<FileSpec>) ObjectSerializer.deserialize(
-                    conf.get("pig.inputs"));
+                    conf.get(PigInputFormat.PIG_INPUTS));
         } catch (IOException e) {
             LOG.warn("Failed to deserialize the store list", e);
         }

@@ -57,6 +57,9 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
             .getLog(PigInputFormat.class);
 
     public static final String PIG_INPUTS = "pig.inputs";
+    public static final String PIG_INPUT_TARGETS = "pig.inpTargets";
+    public static final String PIG_INPUT_SIGNATURES = "pig.inpSignatures";
+    public static final String PIG_INPUT_LIMITS = "pig.inpLimits";
 
     /**
      * @deprecated Use {@link UDFContext} instead in the following way to get
@@ -109,7 +112,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
 
         List<Long> inpLimitLists =
                 (ArrayList<Long>)ObjectSerializer.deserialize(
-                        conf.get("pig.inpLimits"));
+                        conf.get(PIG_INPUT_LIMITS));
 
         return new PigRecordReader(inputFormat, pigSplit, loadFunc, context, inpLimitLists.get(pigSplit.getInputIndex()));
     }
@@ -171,7 +174,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
             Configuration conf) throws IOException {
         List<String> inpSignatureLists =
                 (ArrayList<String>)ObjectSerializer.deserialize(
-                        conf.get("pig.inpSignatures"));
+                        conf.get(PIG_INPUT_SIGNATURES));
         // signature can be null for intermediate jobs where it will not
         // be required to be passed down
         if(inpSignatureLists.get(inputIndex) != null) {
@@ -197,9 +200,9 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
         PigContext pigContext;
         try {
             inputs = (ArrayList<FileSpec>) ObjectSerializer
-                    .deserialize(conf.get("pig.inputs"));
+                    .deserialize(conf.get(PIG_INPUTS));
             inpTargets = (ArrayList<ArrayList<OperatorKey>>) ObjectSerializer
-                    .deserialize(conf.get("pig.inpTargets"));
+                    .deserialize(conf.get(PIG_INPUT_TARGETS));
             pigContext = (PigContext) ObjectSerializer.deserialize(conf
                     .get("pig.pigContext"));
             PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.deserialize(conf.get("udf.import.list")));

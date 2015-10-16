@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
@@ -33,8 +35,9 @@ public class UDFContext {
     private Configuration jconf = null;
     private HashMap<UDFContextKey, Properties> udfConfs;
     private Properties clientSysProps;
-    private static final String CLIENT_SYS_PROPS = "pig.client.sys.props";
-    private static final String UDF_CONTEXT = "pig.udf.context";
+
+    static final String CLIENT_SYS_PROPS = "pig.client.sys.props";
+    static final String UDF_CONTEXT = "pig.udf.context";
 
     private static ThreadLocal<UDFContext> tss = new ThreadLocal<UDFContext>() {
         @Override
@@ -77,6 +80,14 @@ public class UDFContext {
             }
         };
     }
+
+    /*
+     *  internal pig use only - should NOT be called from user code
+     */
+    HashMap<UDFContextKey, Properties> getUdfConfs() {
+        return udfConfs;
+    }
+
 
     /*
      *  internal pig use only - should NOT be called from user code
@@ -197,9 +208,18 @@ public class UDFContext {
      * @throws IOException if underlying serialization throws it
      */
     public void serialize(Configuration conf) throws IOException {
+        // Minor optimziation. Remove empty properties before serialization.
+        Iterator<Entry<UDFContextKey, Properties>> iter = udfConfs.entrySet().iterator();
+        while (iter.hasNext()) {
+            Entry<UDFContextKey, Properties> entry = iter.next();
+            if (entry.getValue().isEmpty()) {
+                iter.remove();
+            }
+        }
         conf.set(UDF_CONTEXT, ObjectSerializer.serialize(udfConfs));
         conf.set(CLIENT_SYS_PROPS, ObjectSerializer.serialize(clientSysProps));
     }
+
 
     /**
      * Populate the udfConfs field.  This function is intended to
@@ -255,23 +275,31 @@ public class UDFContext {
      *  it holds the class and args of the udf, and
      *  implements equals() and hashCode()
      */
-    private static class UDFContextKey implements Serializable{
+    static class UDFContextKey implements Serializable{
 
         private static final long serialVersionUID = 1;
         private String className;
         private String[] args;
-
-        UDFContextKey(){
-        }
 
         UDFContextKey(String className, String [] args){
             this.className = className;
             this.args = args;
         }
 
-        /* (non-Javadoc)
-         * @see java.lang.Object#hashCode()
-         */
+        String getClassName() {
+            return className;
+        }
+
+        String[] getArgs() {
+            return args;
+        }
+
+        @Override
+        public String toString() {
+            return "UDFContextKey [className=" + className + ", args="
+                    + Arrays.toString(args) + "]";
+        }
+
         @Override
         public int hashCode() {
             final int prime = 31;
@@ -282,9 +310,6 @@ public class UDFContext {
             return result;
         }
 
-        /* (non-Javadoc)
-         * @see java.lang.Object#equals(java.lang.Object)
-         */
         @Override
         public boolean equals(Object obj) {
             if (this == obj)

@@ -605,6 +605,10 @@ public class POUserFunc extends ExpressionOperator {
         return func;
     }
 
+    public String getSignature() {
+        return signature;
+    }
+
     public void setSignature(String signature) {
         this.signature = signature;
         if (this.func!=null) {
