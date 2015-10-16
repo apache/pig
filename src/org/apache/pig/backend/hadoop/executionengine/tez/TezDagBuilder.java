@@ -486,7 +486,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             // usually followed by limit other than store. But would benefit
             // cases like skewed join followed by group by.
             if (tezOp.getSortOperator().getEstimatedParallelism() != -1
-                    && TezCompilerUtil.isIntermediateReducer(tezOp.getSortOperator())) {
+                    && tezOp.getSortOperator().isIntermediateReducer()) {
                 payloadConf.setLong(
                         InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM,
                         intermediateTaskInputSize);

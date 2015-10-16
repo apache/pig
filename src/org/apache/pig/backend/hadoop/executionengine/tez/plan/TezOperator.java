@@ -18,6 +18,7 @@
 package org.apache.pig.backend.hadoop.executionengine.tez.plan;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -35,6 +36,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer.TezOperDependencyParallelismEstimator.TezParallelismFactorVisitor;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.PigProcessor;
+import org.apache.pig.backend.hadoop.executionengine.tez.util.TezCompilerUtil;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -145,7 +147,7 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     private double parallelismFactor = -1;
 
-    private LinkedList<POStore> stores = null;
+    private Boolean intermediateReducer = null;
 
     // Types of blocking operators. For now, we only support the following ones.
     public static enum OPER_FEATURE {
@@ -644,11 +646,22 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         return parallelismFactor;
     }
 
-    public LinkedList<POStore> getStores() throws VisitorException {
-        if (stores == null) {
-            stores = PlanHelper.getPhysicalOperators(plan, POStore.class);
+    public Boolean isIntermediateReducer() throws IOException {
+        if (intermediateReducer == null) {
+            intermediateReducer = false;
+            // set intermediateReducer to true if are no loads or stores in a TezOperator
+            LinkedList<POStore> stores = PlanHelper.getPhysicalOperators(plan, POStore.class);
+            // Not map and not final reducer
+            if (stores.size() <= 0 &&
+                    (getLoaderInfo().getLoads() == null || getLoaderInfo().getLoads().size() <= 0)) {
+                intermediateReducer = true;
+            }
         }
-        return stores;
+        return intermediateReducer;
+    }
+
+    public void setIntermediateReducer(Boolean intermediateReducer) {
+        this.intermediateReducer = intermediateReducer;
     }
 
     public static class VertexGroupInfo {
