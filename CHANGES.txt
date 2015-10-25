@@ -57,6 +57,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-4707: [Pig on Tez] Streaming job hangs with pig.exec.mapPartAgg=true (rohini)
+
 PIG-4703: TezOperator.stores shall not ship to backend (daijy)
 
 PIG-4696: Empty map returned by a streaming_python udf wrongly contains a null key (cheolsoo)
