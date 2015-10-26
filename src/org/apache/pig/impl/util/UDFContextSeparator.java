@@ -64,7 +64,7 @@ public class UDFContextSeparator extends PhyPlanVisitor {
         udfContext = UDFContext.getUDFContext();
         allKeys = udfContext.getUdfConfs().keySet();
         knownKeys = new HashSet<UDFContext.UDFContextKey>();
-        algebraicUDFKeys = udfContext.getUdfConfs().keySet();
+        algebraicUDFKeys = new HashSet<UDFContext.UDFContextKey>();
         udfContextsPerPlan = new HashMap<String, Map<Enum<UDFType>, List<UDFContext.UDFContextKey>>>();
     }
 
