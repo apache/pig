@@ -152,7 +152,7 @@ public class TestRegisteredJarVisibility {
         // When jackson jar is not registered, jackson-core from the first jar in
         // classpath (pig.jar) should be picked up (version 1.8.8 in this case).
         String jacksonJar = JarManager.findContainingJar(org.codehaus.jackson.JsonParser.class);
-        Assert.assertTrue(new File(jacksonJar).getName().contains("1.8.8"));
+        Assert.assertTrue(new File(jacksonJar).getName().contains("1.9.13"));
 
         PigServer pigServer = new PigServer(Util.getLocalTestMode(), new Properties());
         pigServer.registerJar("test/resources/jackson-core-asl-1.9.9.jar");
