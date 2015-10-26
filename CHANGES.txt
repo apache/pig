@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4708: Upgrade joda-time to 2.8 (rohini)
+
 PIG-4697: Pig needs to serialize only part of the udfcontext for each vertex (rohini)
 
 PIG-4702: Load once for sampling and partitioning in order by for certain LoadFuncs (rohini)
