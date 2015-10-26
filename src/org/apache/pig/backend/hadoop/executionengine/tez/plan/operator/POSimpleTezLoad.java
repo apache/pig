@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.pig.LoadFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
@@ -33,7 +34,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.TezInput;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigImplConstants;
-import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.lib.MRReader;
@@ -52,8 +52,8 @@ public class POSimpleTezLoad extends POLoad implements TezInput {
     private transient Configuration conf;
     private transient boolean finished = false;
 
-    public POSimpleTezLoad(OperatorKey k, FileSpec lfile) {
-        super(k, lfile);
+    public POSimpleTezLoad(OperatorKey k, LoadFunc loader) {
+        super(k, loader);
     }
 
     @Override

@@ -133,7 +133,8 @@ public class LoaderProcessor extends TezOpPlanVisitor {
                 tezOp.plan.remove(ld);
                 // Now add the input handling operator for the Tez backend
                 // TODO: Move this upstream to the PhysicalPlan generation
-                POSimpleTezLoad tezLoad = new POSimpleTezLoad(ld.getOperatorKey(), ld.getLFile());
+                POSimpleTezLoad tezLoad = new POSimpleTezLoad(ld.getOperatorKey(), ld.getLoadFunc());
+                tezLoad.setLFile(ld.getLFile());
                 tezLoad.setSignature(ld.getSignature());
                 tezLoad.setInputKey(ld.getOperatorKey().toString());
                 tezLoad.copyAliasFrom(ld);
