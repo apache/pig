@@ -360,8 +360,6 @@
 
     <dependency org="org.cloudera.htrace" name="htrace-core" rev="2.00" conf="hbase95->master">
       <artifact name="htrace-core" type="jar"/>
-    <dependency org="org.fusesource.leveldbjni" name="leveldbjni-all" rev="${leveldbjni.version}"
-      conf="hadoop23->master"/>
     </dependency>
 
     <!-- for TestHBaseStorage -->
@@ -452,6 +450,7 @@
     </dependency>
     <dependency org="asm" name="asm" rev="${asm.version}" conf="compile->master"/>
     <dependency org="javax.servlet" name="javax.servlet-api" rev="3.0.1" conf="spark->default"/>
+
 
     <!-- for Tez integration -->
     <dependency org="org.apache.tez" name="tez" rev="${tez.version}"
