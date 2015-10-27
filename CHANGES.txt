@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4717: Update Apache HTTPD LogParser to latest version (nielsbasjes via daijy)
+
 PIG-4468: Pig's jackson version conflicts with that of hadoop 2.6.0 or newer (zjffdu via daijy)
 
 PIG-4708: Upgrade joda-time to 2.8 (rohini)
