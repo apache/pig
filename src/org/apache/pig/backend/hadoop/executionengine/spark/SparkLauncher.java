@@ -30,6 +30,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 
@@ -110,6 +111,7 @@ import org.apache.pig.impl.util.Utils;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.spark.SparkPigStats;
 import org.apache.pig.tools.pigstats.spark.SparkStatsUtil;
+import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.rdd.RDD;
 import org.apache.spark.scheduler.JobLogger;
@@ -377,7 +379,7 @@ public class SparkLauncher extends Launcher {
                     Paths.get(localFile.getAbsolutePath()));
         } else {
             sparkContext.addFile(jarFile.toURI().toURL()
-                    .toExternalForm());
+                .toExternalForm());
         }
     }
 
@@ -454,11 +456,47 @@ public class SparkLauncher extends Launcher {
                 }
             }
 
-            sparkContext = new JavaSparkContext(master, "PigOnSpark", sparkHome,
-                    jars.toArray(new String[jars.size()]));
+            SparkConf sparkConf = new SparkConf();
+            Properties pigCtxtProperties = pc.getProperties();
+
+            sparkConf.setMaster(master);
+            sparkConf.setAppName("PigOnSpark:" + pigCtxtProperties.getProperty(PigContext.JOB_NAME));
+            sparkConf.setJars(jars.toArray(new String[jars.size()]));
+            if (sparkHome != null && !sparkHome.isEmpty()) {
+                sparkConf.setSparkHome(sparkHome);
+            } else {
+                LOG.warn("SPARK_HOME is not set");
+            }
+
+            //Copy all spark.* properties to SparkConf
+            for (String key : pigCtxtProperties.stringPropertyNames()) {
+                if (key.startsWith("spark.")) {
+                    LOG.debug("Copying key " + key + " with value " +
+                        pigCtxtProperties.getProperty(key) + " to SparkConf");
+                    sparkConf.set(key, pigCtxtProperties.getProperty(key));
+                }
+            }
+
+            checkAndConfigureDynamicAllocation(master, sparkConf);
+
+            sparkContext = new JavaSparkContext(sparkConf);
             sparkContext.sc().addSparkListener(new StatsReportListener());
             sparkContext.sc().addSparkListener(new JobLogger());
             sparkContext.sc().addSparkListener(jobMetricsListener);
+        }
+    }
+
+    private static void checkAndConfigureDynamicAllocation(String master, SparkConf sparkConf) {
+        if (sparkConf.getBoolean("spark.dynamicAllocation.enabled", false)) {
+            if (!master.startsWith("yarn")) {
+                LOG.warn("Dynamic allocation is enabled, but " +
+                    "script isn't running on yarn. Ignoring ...");
+            }
+            if (!sparkConf.getBoolean("spark.shuffle.service.enabled", false)) {
+                LOG.info("Spark shuffle service is being enabled as dynamic " +
+                    "allocation is enabled");
+                sparkConf.set("spark.shuffle.service.enabled", "true");
+            }
         }
     }
 
