@@ -52,6 +52,7 @@ public class POStore extends PhysicalOperator {
     private static final long serialVersionUID = 1L;
     protected static Result empty = new Result(POStatus.STATUS_NULL, null);
     transient private StoreFuncInterface storer;
+    transient private StoreFuncDecorator sDecorator;
     transient private POStoreImpl impl;
     transient private String counterName = null;
     private FileSpec sFile;
@@ -116,7 +117,7 @@ public class POStore extends PhysicalOperator {
     public void setUp() throws IOException{
         if (impl != null) {
             try{
-                storer = impl.createStoreFunc(this);
+                storer = impl.createStoreFunc(this); 
                 if (!isTmpStore && !disableCounter && impl instanceof MapReducePOStoreImpl) {
                     counterName = PigStatsUtil.getMultiStoreCounterName(this);
                     if (counterName != null) {
@@ -161,7 +162,7 @@ public class POStore extends PhysicalOperator {
             switch (res.returnStatus) {
             case POStatus.STATUS_OK:
                 if (illustrator == null) {
-                    storer.putNext((Tuple)res.result);
+                    sDecorator.putNext((Tuple) res.result);
                 } else
                     illustratorMarkup(res.result, res.result, 0);
                 res = empty;
@@ -250,10 +251,24 @@ public class POStore extends PhysicalOperator {
         if(storer == null){
             storer = (StoreFuncInterface)PigContext.instantiateFuncFromSpec(sFile.getFuncSpec());
             storer.setStoreFuncUDFContextSignature(signature);
+            // Init the Decorator we use for writing Tuples
+            setStoreFuncDecorator(new StoreFuncDecorator(storer, signature));
         }
         return storer;
     }
+    
+    void setStoreFuncDecorator(StoreFuncDecorator sDecorator) {
+        this.sDecorator = sDecorator;
+    }
 
+    /**
+     * 
+     * @return The {@link StoreFuncDecorator} used to write Tuples
+     */
+    public StoreFuncDecorator getStoreFuncDecorator() {
+        return sDecorator;
+    }
+    
     /**
      * @param sortInfo the sortInfo to set
      */
