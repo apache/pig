@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4704: Customizable Error Handling for Storers in Pig (siddhimehta via daijy)
+
 PIG-4717: Update Apache HTTPD LogParser to latest version (nielsbasjes via daijy)
 
 PIG-4468: Pig's jackson version conflicts with that of hadoop 2.6.0 or newer (zjffdu via daijy)

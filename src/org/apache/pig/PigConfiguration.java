@@ -315,6 +315,21 @@ public class PigConfiguration {
     public static final String PIG_USER_CACHE_REPLICATION = "pig.user.cache.replication";
 
     /**
+     * Boolean value used to enable or disable error handling for storers
+     */
+    public static final String PIG_ALLOW_STORE_ERRORS = "pig.allow.store.errors";
+
+    /**
+     * Controls the minimum number of errors
+     */
+    public static final String PIG_ERRORS_MIN_RECORDS = "pig.errors.min.records";
+
+    /**
+     * Set the threshold for percentage of errors
+     */
+    public static final String PIG_ERROR_THRESHOLD_PERCENT = "pig.error.threshold.percent";
+    
+    /**
      * Comma-delimited entries of commands/operators that must be disallowed.
      * This is a security feature to be used by administrators to block use of
      * commands by users. For eg, an admin might like to block all filesystem
