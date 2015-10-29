@@ -357,6 +357,12 @@ public class PigConfiguration {
      */
     public static final String PIG_DATETIME_DEFAULT_TIMEZONE = "pig.datetime.default.tz";
 
+    /**
+     * Using hadoop's TextInputFormat for reading bzip input instead of using Pig's Bzip2TextInputFormat. True by default
+     * (only valid for 0.23/2.X)
+     */
+    public static final String PIG_BZIP_USE_HADOOP_INPUTFORMAT = "pig.bzip.use.hadoop.inputformat";
+
 
     // Pig on Tez runtime settings
     /**
