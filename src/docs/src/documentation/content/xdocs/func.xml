@@ -634,8 +634,8 @@ SSN = load 'ssn.txt' using PigStorage() as (ssn:long);
 
 SSN_NAME = load 'students.txt' using PigStorage() as (ssn:long, name:chararray);
 
-/* do a left outer join of SSN with SSN_Name */
-X = JOIN SSN by ssn LEFT OUTER, SSN_NAME by ssn;
+/* do a cogroup of SSN with SSN_Name */
+X = COGROUP SSN by ssn, SSN_NAME by ssn;
 
 /* only keep those ssn's for which there is no name */
 Y = filter X by IsEmpty(SSN_NAME);
