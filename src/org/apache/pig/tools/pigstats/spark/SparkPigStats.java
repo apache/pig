@@ -18,20 +18,25 @@
 package org.apache.pig.tools.pigstats.spark;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobClient;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.spark.JobMetricsListener;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperator;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
@@ -42,6 +47,8 @@ public class SparkPigStats extends PigStats {
 
     private Map<SparkJobStats,SparkOperator> jobSparkOperatorMap = new HashMap<SparkJobStats, SparkOperator>();
     private static final Log LOG = LogFactory.getLog(SparkPigStats.class);
+
+    private Set<SparkOperator> sparkOperatorsSet = new HashSet<SparkOperator>();
 
     private SparkScriptState sparkScriptState;
 
@@ -63,11 +70,13 @@ public class SparkPigStats extends PigStats {
         boolean isSuccess = SparkStatsUtil.isJobSuccess(jobId, sparkContext);
         SparkJobStats jobStats = new SparkJobStats(jobId, jobPlan);
         jobStats.setSuccessful(isSuccess);
-        jobStats.addOutputInfo(poStore, isSuccess, jobMetricsListener, conf);
         jobStats.collectStats(jobMetricsListener);
+        jobStats.addOutputInfo(poStore, isSuccess, jobMetricsListener, conf);
+        addInputInfoForSparkOper(sparkOperator, jobStats, isSuccess, jobMetricsListener, conf);
         jobSparkOperatorMap.put(jobStats, sparkOperator);
         jobPlan.add(jobStats);
     }
+
 
     public void addFailJobStats(POStore poStore, SparkOperator sparkOperator, String jobId,
                                 JobMetricsListener jobMetricsListener,
@@ -77,8 +86,9 @@ public class SparkPigStats extends PigStats {
         boolean isSuccess = false;
         SparkJobStats jobStats = new SparkJobStats(jobId, jobPlan);
         jobStats.setSuccessful(isSuccess);
-        jobStats.addOutputInfo(poStore, isSuccess, jobMetricsListener, conf);
         jobStats.collectStats(jobMetricsListener);
+        jobStats.addOutputInfo(poStore, isSuccess, jobMetricsListener, conf);
+        addInputInfoForSparkOper(sparkOperator, jobStats, isSuccess, jobMetricsListener, conf);
         jobSparkOperatorMap.put(jobStats, sparkOperator);
         jobPlan.add(jobStats);
         if (e != null) {
@@ -158,4 +168,42 @@ public class SparkPigStats extends PigStats {
     public OutputStats result(String alias) {
         return null;
     }
+
+    /**
+     * SparkPlan can have many SparkOperators.
+     * Each SparkOperator can have multiple POStores
+     * We currently collect stats once for every POStore,
+     * But do not want to collect input stats for every POStore
+     *
+     * e.g. After multiQuery optimization, the sparkOperator may look like this:
+     * POLoad_1             (PhysicalPlan) ...POStore_A
+     *         \          /
+     *          ...POSplit
+     *         /          \
+     * POLoad_2            (PhysicalPlan) ...POStore_B
+     */
+    private void addInputInfoForSparkOper(SparkOperator sparkOperator,
+                                          SparkJobStats jobStats,
+                                          boolean isSuccess,
+                                          JobMetricsListener jobMetricsListener,
+                                          Configuration conf) {
+        //to avoid repetition
+        if (sparkOperatorsSet.contains(sparkOperator)) {
+            return;
+        }
+
+        try {
+            List<POLoad> poLoads = PlanHelper.getPhysicalOperators(sparkOperator.physicalPlan, POLoad.class);
+            for (POLoad load : poLoads) {
+                if (!load.isTmpLoad()) {
+                    jobStats.addInputStats(load, isSuccess, (poLoads.size() == 1), conf);
+                }
+            }
+        } catch (VisitorException ve) {
+            LOG.warn(ve);
+        }
+
+        sparkOperatorsSet.add(sparkOperator);
+    }
+
 }

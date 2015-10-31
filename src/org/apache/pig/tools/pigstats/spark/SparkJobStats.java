@@ -21,7 +21,7 @@ package org.apache.pig.tools.pigstats.spark;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.pig.tools.pigstats.PigStatsUtil;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import scala.Option;
 
 import com.google.common.collect.Maps;
@@ -33,6 +33,7 @@ import org.apache.pig.backend.hadoop.executionengine.spark.JobMetricsListener;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperator;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.PlanVisitor;
+import org.apache.pig.tools.pigstats.InputStats;
 import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
@@ -70,6 +71,21 @@ public class SparkJobStats extends JobStats {
         }
     }
 
+    public void addInputStats(POLoad po, boolean success,
+                              boolean singleInput,
+                              Configuration conf){
+
+        long recordsCount = SparkStatsUtil.getLoadSparkCounterValue(po);
+        long bytesRead = -1;
+        if (singleInput && stats.get("BytesRead") != null) {
+            bytesRead = stats.get("BytesRead");
+        }
+        InputStats inputStats = new InputStats(po.getLFile().getFileName(),
+                bytesRead, recordsCount, success);
+        inputStats.setConf(conf);
+
+        inputs.add(inputStats);
+    }
 
     public void collectStats(JobMetricsListener jobMetricsListener) {
         if (jobMetricsListener != null) {

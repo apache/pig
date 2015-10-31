@@ -19,6 +19,7 @@
 package org.apache.pig.tools.pigstats.spark;
 
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.spark.JobMetricsListener;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperator;
@@ -29,8 +30,10 @@ import org.apache.spark.api.java.JavaSparkContext;
 
 public class SparkStatsUtil {
 
-    public static final String SPARK_STORE_COUNTER_GROUP = "SparkStoreCounters";
+    public static final String SPARK_STORE_COUNTER_GROUP = "Spark Store Counters";
     public static final String SPARK_STORE_RECORD_COUNTER = "Output records in ";
+    public static final String SPARK_INPUT_COUNTER_GROUP = "Spark Input Counters";
+    public static final String SPARK_INPUT_RECORD_COUNTER = "Input records from ";
 
   public static void waitForJobAddStats(int jobID,
                                         POStore poStore, SparkOperator sparkOperator,
@@ -75,9 +78,25 @@ public class SparkStatsUtil {
         return sb.toString();
     }
 
+    public static String getLoadSparkCounterName(POLoad load) {
+        String shortName = PigStatsUtil.getShortName(load.getLFile().getFileName());
+
+        StringBuffer sb = new StringBuffer(SPARK_INPUT_RECORD_COUNTER);
+        sb.append("_");
+        sb.append(load.getOperatorKey());
+        sb.append("_");
+        sb.append(shortName);
+        return sb.toString();
+    }
+
     public static long getStoreSparkCounterValue(POStore store) {
         SparkPigStatusReporter reporter = SparkPigStatusReporter.getInstance();
         return reporter.getCounters().getValue(SPARK_STORE_COUNTER_GROUP, getStoreSparkCounterName(store));
+    }
+
+    public static long getLoadSparkCounterValue(POLoad load) {
+        SparkPigStatusReporter reporter = SparkPigStatusReporter.getInstance();
+        return reporter.getCounters().getValue(SPARK_INPUT_COUNTER_GROUP, getLoadSparkCounterName(load));
     }
 
     public static boolean isJobSuccess(int jobID,

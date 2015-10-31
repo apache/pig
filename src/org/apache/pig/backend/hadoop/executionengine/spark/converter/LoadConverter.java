@@ -25,6 +25,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.pig.tools.pigstats.spark.SparkCounters;
+import org.apache.pig.tools.pigstats.spark.SparkPigStatusReporter;
+import org.apache.pig.tools.pigstats.spark.SparkStatsUtil;
 import scala.Function1;
 import scala.Tuple2;
 import scala.runtime.AbstractFunction1;
@@ -89,8 +92,26 @@ public class LoadConverter implements RDDConverter<Tuple, Tuple, POLoad> {
                 jobConf, PigInputFormatSpark.class, Text.class, Tuple.class);
 
         registerUdfFiles();
+
+        ToTupleFunction ttf = new ToTupleFunction();
+
+        //create SparkCounter and set it for ToTupleFunction
+        if (!op.isTmpLoad()) {
+            String counterName = SparkStatsUtil.getLoadSparkCounterName(op);
+            SparkPigStatusReporter counterReporter = SparkPigStatusReporter.getInstance();
+            if (counterReporter.getCounters() != null) {
+                counterReporter.getCounters().createCounter(
+                        SparkStatsUtil.SPARK_INPUT_COUNTER_GROUP,
+                        counterName);
+            }
+
+            ttf.setCounterGroupName(SparkStatsUtil.SPARK_INPUT_COUNTER_GROUP);
+            ttf.setCounterName(counterName);
+            ttf.setSparkCounters(SparkPigStatusReporter.getInstance().getCounters());
+        }
+
         // map to get just RDD<Tuple>
-        return hadoopRDD.map(new ToTupleFunction(),
+        return hadoopRDD.map(ttf,
                 SparkUtil.getManifest(Tuple.class));
     }
 
@@ -113,9 +134,28 @@ public class LoadConverter implements RDDConverter<Tuple, Tuple, POLoad> {
             AbstractFunction1<Tuple2<Text, Tuple>, Tuple> implements
             Function1<Tuple2<Text, Tuple>, Tuple>, Serializable {
 
+        private String counterGroupName;
+        private String counterName;
+        private SparkCounters sparkCounters;
+
         @Override
         public Tuple apply(Tuple2<Text, Tuple> v1) {
+            if (sparkCounters != null) {
+                sparkCounters.increment(counterGroupName, counterName, 1L);
+            }
             return v1._2();
+        }
+
+        public void setCounterGroupName(String counterGroupName) {
+            this.counterGroupName = counterGroupName;
+        }
+
+        public void setCounterName(String counterName) {
+            this.counterName = counterName;
+        }
+
+        public void setSparkCounters(SparkCounters sparkCounters) {
+            this.sparkCounters = sparkCounters;
         }
     }
 
@@ -166,4 +206,5 @@ public class LoadConverter implements RDDConverter<Tuple, Tuple, POLoad> {
 
         return jobConf;
     }
+
 }
