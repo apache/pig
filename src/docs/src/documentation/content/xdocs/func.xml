@@ -294,6 +294,87 @@ team_parkyearslist = FOREACH (GROUP team_park_yearslist BY team_id) {
   </section>
 </section>
 
+<section id="bloom">
+  <title>Bloom</title>
+  <p>Bloom filters are a common way to select a limited set of records before
+    moving data for a join or other heavy weight operation.</p>
+
+  <section>
+    <title>Syntax</title>
+    <table>
+      <tr>
+        <td>
+          <p>BuildBloom(String hashType, String mode, String vectorSize, String nbHash)</p>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <p>Bloom(String filename)</p>
+        </td>
+      </tr>
+  </table></section>
+
+  <section>
+    <title>Terms</title>
+    <table>
+      <tr>
+	<td><p>hashtype</p></td>
+        <td><p>The type of hash function to use. Valid values for the hash functions are 'jenkins' and 'murmur'.</p></td>
+      </tr>
+      <tr>
+	<td><p>mode</p></td>
+        <td><p>Will be ignored, though by convention it should be "fixed" or "fixedsize"</p></td>
+      </tr>
+      <tr>
+	<td><p>vectorSize</p></td>
+        <td><p>The number of bits in the bloom filter.</p></td>
+      </tr>
+      <tr>
+	<td><p>nbHash</p></td>
+        <td><p>The number of hash functions used in constructing the bloom filter.</p></td>
+      </tr>
+      <tr>
+	<td><p>filename</p></td>
+        <td><p>File containing the serialized Bloom filter.</p></td>
+      </tr>
+    </table>
+    <p>See <a href="http://en.wikipedia.org/wiki/Bloom_filter">Bloom Filter</a> for
+      a discussion of how to select the number of bits and the number of hash
+      functions.
+    </p>
+  </section>
+
+  <section>
+    <title>Usage</title>
+    <p>Bloom filters are a common way to select a limited set of records before
+      moving data for a join or other heavy weight operation. For example, if
+      one wanted to join a very large data set L with a smaller set S, and it
+      was known that the number of keys in L that will match with S is small,
+      building a bloom filter on S and then applying it to L before the join
+      can greatly reduce the number of records from L that have to be moved
+      from the map to the reduce, thus speeding the join.
+    </p>
+    <p>The implementation uses Hadoop's bloom filters
+      (org.apache.hadoop.util.bloom.BloomFilter) internally.
+    </p>
+  </section>
+  <section>
+    <title>Examples</title>
+<source>
+  define bb BuildBloom('128', '3', 'jenkins');
+  small = load 'S' as (x, y, z);
+  grpd = group small all;
+  fltrd = foreach grpd generate bb(small.x);
+  store fltrd in 'mybloom';
+  exec;
+  define bloom Bloom('mybloom');
+  large = load 'L' as (a, b, c);
+  flarge = filter large by bloom(L.a);
+  joined = join small by x, flarge by a;
+  store joined into 'results';
+</source>
+  </section>
+</section>
    
    <!-- ++++++++++++++++++++++++++++++++++++++++++++++ --> 
    <section id="concat">
