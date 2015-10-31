@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4713: Document Bloom UDF (gliptak via daijy)
+
 PIG-3251: Bzip2TextInputFormat requires double the memory of maximum record size (knoguchi)
 
 PIG-4704: Customizable Error Handling for Storers in Pig (siddhimehta via daijy)
