@@ -109,7 +109,9 @@ import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.tools.pigstats.PigStats;
+import org.apache.pig.tools.pigstats.spark.SparkCounters;
 import org.apache.pig.tools.pigstats.spark.SparkPigStats;
+import org.apache.pig.tools.pigstats.spark.SparkPigStatusReporter;
 import org.apache.pig.tools.pigstats.spark.SparkStatsUtil;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -149,7 +151,7 @@ public class SparkLauncher extends Launcher {
             explain(sparkplan, System.out, "text", true);
         SparkPigStats sparkStats = (SparkPigStats) pigContext
                 .getExecutionEngine().instantiatePigStats();
-        sparkStats.initialize(sparkplan);
+        sparkStats.initialize(pigContext, sparkplan);
         PigStats.start(sparkStats);
 
         startSparkIfNeeded(pigContext);
@@ -177,6 +179,8 @@ public class SparkLauncher extends Launcher {
         new ParallelismSetter(sparkplan, jobConf).visit();
 
         byte[] confBytes = KryoSerializer.serializeJobConf(jobConf);
+
+        SparkPigStatusReporter.getInstance().setCounters(new SparkCounters(sparkContext));
 
         // Create conversion map, mapping between pig operator and spark convertor
         Map<Class<? extends PhysicalOperator>, RDDConverter> convertMap

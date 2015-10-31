@@ -22,11 +22,15 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.spark.JobMetricsListener;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperator;
+import org.apache.pig.tools.pigstats.PigStatsUtil;
 import org.apache.spark.JobExecutionStatus;
 import org.apache.spark.SparkJobInfo;
 import org.apache.spark.api.java.JavaSparkContext;
 
 public class SparkStatsUtil {
+
+    public static final String SPARK_STORE_COUNTER_GROUP = "SparkStoreCounters";
+    public static final String SPARK_STORE_RECORD_COUNTER = "Output records in ";
 
   public static void waitForJobAddStats(int jobID,
                                         POStore poStore, SparkOperator sparkOperator,
@@ -58,7 +62,25 @@ public class SparkStatsUtil {
                 sparkContext, jobConf, e);
     }
 
-  public static boolean isJobSuccess(int jobID,
+    public static String getStoreSparkCounterName(POStore store) {
+        String shortName = PigStatsUtil.getShortName(store.getSFile().getFileName());
+
+        StringBuffer sb = new StringBuffer(SPARK_STORE_RECORD_COUNTER);
+        sb.append("_");
+        sb.append(store.getIndex());
+        sb.append("_");
+        sb.append(store.getOperatorKey());
+        sb.append("_");
+        sb.append(shortName);
+        return sb.toString();
+    }
+
+    public static long getStoreSparkCounterValue(POStore store) {
+        SparkPigStatusReporter reporter = SparkPigStatusReporter.getInstance();
+        return reporter.getCounters().getValue(SPARK_STORE_COUNTER_GROUP, getStoreSparkCounterName(store));
+    }
+
+    public static boolean isJobSuccess(int jobID,
                                     JavaSparkContext sparkContext) {
       JobExecutionStatus status = getJobInfo(jobID, sparkContext).status();
       if (status == JobExecutionStatus.SUCCEEDED) {

@@ -160,7 +160,7 @@ public class PigStatsUtil {
     private static final String SEPARATOR = "/";
     private static final String SEMICOLON = ";";
 
-    private static String getShortName(String uri) {
+    public static String getShortName(String uri) {
         int scolon = uri.indexOf(SEMICOLON);
         int slash;
         if (scolon!=-1) {

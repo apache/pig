@@ -21,6 +21,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.pig.tools.pigstats.PigStatsUtil;
+import org.apache.pig.tools.pigstats.spark.SparkCounters;
+import org.apache.pig.tools.pigstats.spark.SparkPigStatusReporter;
+import org.apache.pig.tools.pigstats.spark.SparkStatsUtil;
 import scala.Tuple2;
 
 import org.apache.commons.logging.Log;
@@ -68,9 +72,13 @@ public class StoreConverter implements
             POStore op) throws IOException {
         SparkUtil.assertPredecessorSize(predecessors, op, 1);
         RDD<Tuple> rdd = predecessors.get(0);
+
+        SparkPigStatusReporter.getInstance().createCounter(SparkStatsUtil.SPARK_STORE_COUNTER_GROUP,
+                SparkStatsUtil.getStoreSparkCounterName(op));
+
         // convert back to KV pairs
         JavaRDD<Tuple2<Text, Tuple>> rddPairs = rdd.toJavaRDD().map(
-                new FromTupleFunction());
+                buildFromTupleFunction(op));
 
         PairRDDFunctions<Text, Tuple> pairRDDFunctions = new PairRDDFunctions<Text, Tuple>(
                 rddPairs.rdd(), SparkUtil.getManifest(Text.class),
@@ -103,6 +111,7 @@ public class StoreConverter implements
         return retRdd;
     }
 
+
     private static POStore configureStorer(JobConf jobConf,
             PhysicalOperator op) throws IOException {
         ArrayList<POStore> storeLocations = Lists.newArrayList();
@@ -125,9 +134,39 @@ public class StoreConverter implements
             Function<Tuple, Tuple2<Text, Tuple>> {
 
         private static Text EMPTY_TEXT = new Text();
+        private String counterGroupName;
+        private String counterName;
+        private SparkCounters sparkCounters;
+
 
         public Tuple2<Text, Tuple> call(Tuple v1) {
+            if (sparkCounters != null) {
+                sparkCounters.increment(counterGroupName, counterName, 1L);
+            }
             return new Tuple2<Text, Tuple>(EMPTY_TEXT, v1);
         }
+
+        public void setCounterGroupName(String counterGroupName) {
+            this.counterGroupName = counterGroupName;
+        }
+
+        public void setCounterName(String counterName) {
+            this.counterName = counterName;
+        }
+
+        public void setSparkCounters(SparkCounters sparkCounter) {
+            this.sparkCounters = sparkCounter;
+        }
+    }
+
+    private FromTupleFunction buildFromTupleFunction(POStore op) {
+        FromTupleFunction ftf = new FromTupleFunction();
+        if (!op.isTmpStore()) {
+            ftf.setCounterGroupName(SparkStatsUtil.SPARK_STORE_COUNTER_GROUP);
+            ftf.setCounterName(SparkStatsUtil.getStoreSparkCounterName(op));
+            SparkPigStatusReporter counterReporter = SparkPigStatusReporter.getInstance();
+            ftf.setSparkCounters(counterReporter.getCounters());
+        }
+        return ftf;
     }
 }

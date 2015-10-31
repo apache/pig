@@ -31,6 +31,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.spark.JobMetricsListener;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperator;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
@@ -49,8 +50,9 @@ public class SparkPigStats extends PigStats {
         this.sparkScriptState = (SparkScriptState) ScriptState.get();
     }
 
-    public void initialize(SparkOperPlan sparkPlan){
+    public void initialize(PigContext pigContext, SparkOperPlan sparkPlan){
         super.start();
+        this.pigContext = pigContext;
         sparkScriptState.setScriptInfo(sparkPlan);
     }
 
@@ -133,17 +135,6 @@ public class SparkPigStats extends PigStats {
     }
 
     @Override
-    public Properties getPigProperties() {
-        return null;
-    }
-
-    @Override
-    public String getOutputAlias(String location) {
-        // TODO
-        return null;
-    }
-
-    @Override
     public long getSMMSpillCount() {
         throw new UnsupportedOperationException();
     }
@@ -156,18 +147,6 @@ public class SparkPigStats extends PigStats {
     @Override
     public long getProactiveSpillCountRecords() {
         throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public long getBytesWritten() {
-        // TODO
-        return 0;
-    }
-
-    @Override
-    public long getRecordWritten() {
-        // TODO
-        return 0;
     }
 
     @Override

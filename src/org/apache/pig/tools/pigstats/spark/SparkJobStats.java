@@ -21,6 +21,7 @@ package org.apache.pig.tools.pigstats.spark;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.pig.tools.pigstats.PigStatsUtil;
 import scala.Option;
 
 import com.google.common.collect.Maps;
@@ -57,16 +58,18 @@ public class SparkJobStats extends JobStats {
     public void addOutputInfo(POStore poStore, boolean success,
                               JobMetricsListener jobMetricsListener,
                               Configuration conf) {
-        // TODO: Compute #records
-        long bytes = getOutputSize(poStore, conf);
-        OutputStats outputStats = new OutputStats(poStore.getSFile().getFileName(),
-                bytes, 1, success);
-        outputStats.setPOStore(poStore);
-        outputStats.setConf(conf);
         if (!poStore.isTmpStore()) {
+            long bytes = getOutputSize(poStore, conf);
+            long recordsCount = SparkStatsUtil.getStoreSparkCounterValue(poStore);
+            OutputStats outputStats = new OutputStats(poStore.getSFile().getFileName(),
+                    bytes, recordsCount, success);
+            outputStats.setPOStore(poStore);
+            outputStats.setConf(conf);
+
             outputs.add(outputStats);
         }
     }
+
 
     public void collectStats(JobMetricsListener jobMetricsListener) {
         if (jobMetricsListener != null) {
