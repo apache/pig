@@ -28,6 +28,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-4696: Empty map returned by a streaming_python udf wrongly contains a null key (cheolsoo)
+
 PIG-4712: [Pig on Tez] NPE in Bloom UDF after Union (rohini)
 
 PIG-4707: [Pig on Tez] Streaming job hangs with pig.exec.mapPartAgg=true (rohini)
