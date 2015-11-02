@@ -28,6 +28,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-4707: [Pig on Tez] Streaming job hangs with pig.exec.mapPartAgg=true (rohini)
+
 PIG-4679: Performance degradation due to InputSizeReducerEstimator since PIG-3754 (daijy)
 
 PIG-4644: PORelationToExprProject.clone() is broken (erwaman via rohini)
