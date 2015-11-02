@@ -566,6 +566,8 @@ public class POUserFunc extends ExpressionOperator {
             requestedParallelism, null, funcSpec.clone());
         clone.setResultType(resultType);
         clone.signature = signature;
+        clone.cacheFiles = cacheFiles;
+        clone.shipFiles = shipFiles;
         return clone;
     }
 
