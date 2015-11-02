@@ -28,6 +28,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-4679: Performance degradation due to InputSizeReducerEstimator since PIG-3754 (daijy)
+
 PIG-4644: PORelationToExprProject.clone() is broken (erwaman via rohini)
 
 PIG-4703: TezOperator.stores shall not ship to backend (daijy)

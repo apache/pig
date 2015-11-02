@@ -251,7 +251,7 @@ abstract public class TestJobSubmission {
         jc=jcc.compile(mrPlan, "Test");
         job = jc.getWaitingJobs().get(0);
 
-        Util.assertParallelValues(-1, -1, -1, 1, job.getJobConf());
+        Util.assertParallelValues(-1, -1, 1, 1, job.getJobConf());
 
         util.deleteTable(Bytes.toBytesBinary("test_table"));
         // In HBase 0.90.1 and above we can use util.shutdownMiniHBaseCluster()
