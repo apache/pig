@@ -28,6 +28,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-4644: PORelationToExprProject.clone() is broken (erwaman via rohini)
+
 PIG-4703: TezOperator.stores shall not ship to backend (daijy)
 
 PIG-4688: Limit followed by POPartialAgg can give empty or partial results in Tez (rohini)
