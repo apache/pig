@@ -164,11 +164,6 @@ public class SparkPigStats extends PigStats {
         return jobPlan.size();
     }
 
-    @Override
-    public OutputStats result(String alias) {
-        return null;
-    }
-
     /**
      * SparkPlan can have many SparkOperators.
      * Each SparkOperator can have multiple POStores
