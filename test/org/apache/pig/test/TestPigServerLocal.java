@@ -256,6 +256,14 @@ public class TestPigServerLocal {
         if (Util.getLocalTestMode().toString().startsWith("TEZ")) {
             _testSkipParseInRegisterForBatch(false, 6, 4);
             _testSkipParseInRegisterForBatch(true, 3, 1);
+        } else if (Util.getLocalTestMode().toString().startsWith("SPARK")) {
+            // 6 = 4 (Once per registerQuery) + 2 (SortConverter , PigRecordReader)
+            // 4 (Once per registerQuery)
+            _testSkipParseInRegisterForBatch(false, 6, 4);
+
+            // 3 = 1 (registerQuery) + 2 (SortConverter, PigRecordReader)
+            // 1 (registerQuery)
+            _testSkipParseInRegisterForBatch(true, 3, 1);
         } else {
             _testSkipParseInRegisterForBatch(false, 10, 4);
             _testSkipParseInRegisterForBatch(true, 7, 1);
