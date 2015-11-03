@@ -328,6 +328,9 @@
             <fileset dir="${ivy.lib.dir}">
                 <include name="**.*jar"/>
             </fileset>
+            <fileset dir="${build.ivy.spark.lib.dir}/${ant.project.name}">
+                <include name="**.*jar"/>
+            </fileset>
         </path>
         <taskdef name="eclipse"
                  classname="prantl.ant.eclipse.EclipseTask"
