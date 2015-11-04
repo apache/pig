@@ -167,10 +167,10 @@ DUMP C;
                <p>AVG </p>
             </td>
             <td>
-               <p>long </p>
+               <p>double </p>
             </td>
             <td>
-               <p>long </p>
+               <p>double </p>
             </td>
             <td>
                <p>double </p>
