@@ -69,6 +69,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-4725: Typo in FrontendException messages "Incompatable" (nsmith via daijy)
+
 PIG-4721: IsEmpty documentation error (nsmith via daijy)
 
 PIG-4712: [Pig on Tez] NPE in Bloom UDF after Union (rohini)
