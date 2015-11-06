@@ -671,6 +671,11 @@ public class CSVExcelStorage extends PigStorage implements StoreFuncInterface, L
     }
 
     @Override
+    public void setStoreFuncUDFContextSignature(String signature) {
+        this.udfContextSignature = signature; 
+    }
+
+    @Override
     public List<OperatorSet> getFeatures() {
         return Arrays.asList(LoadPushDown.OperatorSet.PROJECTION);
     }
