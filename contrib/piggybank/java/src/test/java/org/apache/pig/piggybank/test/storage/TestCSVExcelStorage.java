@@ -40,6 +40,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.apache.pig.builtin.mock.Storage.resetData;
+import static org.apache.pig.builtin.mock.Storage.tuple;
+
 public class TestCSVExcelStorage  {
 
     Properties props = new Properties();
@@ -482,6 +485,73 @@ public class TestCSVExcelStorage  {
         resultFile.close();
         actual = new String(actualBytes);
         Assert.assertEquals(expectedNoMultiline, actual);
+    }
+
+    // Test to validate that each CSV file gets the correct header if they are run at the same time (PIG-4689)
+    @Test
+    public void storeTwoFilesWithDifferentHeaders() throws IOException, ParseException {
+        pig.setBatchOn(); // Very important to reproduce this bug
+
+        Storage.Data data = resetData(pig);
+
+        String fooOutFileName = createOutputFileName();
+        data.set(
+                "foo",
+                "foo_1:chararray",
+                tuple("A")
+        );
+        pig.registerQuery(
+                "foo = LOAD 'foo' USING mock.Storage();"
+        );
+        pig.registerQuery(
+                "STORE foo INTO '" + fooOutFileName + "' " +
+                "USING org.apache.pig.piggybank.storage.CSVExcelStorage(',', 'YES_MULTILINE', 'UNIX', 'WRITE_OUTPUT_HEADER');"
+        );
+
+        String barOutFileName = createOutputFileName();
+        data.set(
+                "bar",
+                "bar_1:chararray, bar_2:chararray",
+                tuple("B","C")
+        );
+        pig.registerQuery(
+                "bar = LOAD 'bar' USING mock.Storage();"
+        );
+        pig.registerQuery(
+                "STORE bar INTO '" + barOutFileName + "' " +
+                "USING org.apache.pig.piggybank.storage.CSVExcelStorage(',', 'YES_MULTILINE', 'UNIX', 'WRITE_OUTPUT_HEADER');"
+        );
+
+        pig.executeBatch();
+
+        // -----
+
+        pig.registerQuery(
+                "fooCsv = load '" + fooOutFileName + "' ;"
+        );
+
+        Iterator<Tuple> fooCsv = pig.openIterator("fooCsv");
+        String[] expectedFooCsv = {
+                // header should be written because we used the 'WRITE_OUTPUT_HEADER' argument
+                "(foo_1)",
+                "(A)"
+        };
+
+        Assert.assertEquals(StringUtils.join(expectedFooCsv, "\n"), StringUtils.join(fooCsv, "\n"));
+
+        // -----
+
+        pig.registerQuery(
+                "barCsv = load '" + barOutFileName + "' ;"
+        );
+        Iterator<Tuple> barCsv = pig.openIterator("barCsv");
+        String[] expectedbarCsv = {
+                // header should be written because we used the 'WRITE_OUTPUT_HEADER' argument
+                "(bar_1,bar_2)",
+                "(B,C)"
+        };
+
+        Assert.assertEquals(StringUtils.join(expectedbarCsv, "\n"), StringUtils.join(barCsv, "\n"));
     }
 
 }
