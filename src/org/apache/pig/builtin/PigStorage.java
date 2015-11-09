@@ -172,7 +172,7 @@ LoadPushDown, LoadMetadata, StoreMetadata, OverwritableStoreFunc {
         validOptions.addOption(TAG_SOURCE_FILE, false, "Appends input source file name to beginning of each tuple.");
         validOptions.addOption(TAG_SOURCE_PATH, false, "Appends input source file path to beginning of each tuple.");
         validOptions.addOption("tagsource", false, "Appends input source file name to beginning of each tuple.");
-        Option overwrite = new Option(" ", "Overwrites the destination.");
+        Option overwrite = new Option("overwrite", "Overwrites the destination.");
         overwrite.setLongOpt("overwrite");
         overwrite.setOptionalArg(true);
         overwrite.setArgs(1);
