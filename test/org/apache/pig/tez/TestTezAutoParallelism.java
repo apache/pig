@@ -40,6 +40,7 @@ import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.InputSizeReducerEstimator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
+import org.apache.pig.backend.hadoop.executionengine.tez.TezJobCompiler;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer.ParallelismSetter;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -311,6 +312,7 @@ public class TestTezAutoParallelism {
         // Parallelism of C should be increased
         assertTrue(log.contains("Increased requested parallelism of scope-59 to 4"));
         assertEquals(1, StringUtils.countMatches(log, "Increased requested parallelism"));
+        assertTrue(log.contains("Total estimated parallelism is 52"));
     }
 
     @Test
@@ -349,6 +351,7 @@ public class TestTezAutoParallelism {
             // Parallelism of C1 should be increased. C2 will not be increased due to order by
             assertEquals(1, StringUtils.countMatches(log, "Increased requested parallelism"));
             assertTrue(log.contains("Increased requested parallelism of scope-65 to 10"));
+            assertTrue(log.contains("Total estimated parallelism is 19"));
         } finally {
             pigServer.setDefaultParallel(-1);
         }
@@ -359,7 +362,7 @@ public class TestTezAutoParallelism {
         PigServer.resetScope();
         StringWriter writer = new StringWriter();
         // When there is a combiner operation involved user specified parallelism is overriden
-        Util.createLogAppender("testIncreaseIntermediateParallelism", writer, ParallelismSetter.class);
+        Util.createLogAppender("testIncreaseIntermediateParallelism", writer, ParallelismSetter.class, TezJobCompiler.class);
         try {
             pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
             pigServer.getPigContext().getProperties().setProperty(MRConfiguration.MAX_SPLIT_SIZE, "4000");
@@ -387,7 +390,7 @@ public class TestTezAutoParallelism {
             }
             return writer.toString();
         } finally {
-            Util.removeLogAppender(ParallelismSetter.class, "testIncreaseIntermediateParallelism");
+            Util.removeLogAppender("testIncreaseIntermediateParallelism", ParallelismSetter.class, TezJobCompiler.class);
             Util.deleteFile(cluster, outputDir);
         }
     }

@@ -103,7 +103,6 @@ import org.apache.pig.backend.hadoop.executionengine.tez.runtime.PigOutputFormat
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.PigProcessor;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.MRToTezHelper;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.SecurityHelper;
-import org.apache.pig.backend.hadoop.executionengine.tez.util.TezCompilerUtil;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.TezUDFContextSeparator;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
@@ -164,7 +163,7 @@ import org.apache.tez.runtime.library.input.UnorderedKVInput;
  * A visitor to construct DAG out of Tez plan.
  */
 public class TezDagBuilder extends TezOpPlanVisitor {
-    private static final Log log = LogFactory.getLog(TezJobCompiler.class);
+    private static final Log log = LogFactory.getLog(TezDagBuilder.class);
 
     private DAG dag;
     private Map<String, LocalResource> localResources;

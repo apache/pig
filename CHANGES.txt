@@ -69,6 +69,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-4730: [Pig on Tez] Total parallelism estimation does not account load parallelism (rohini)
+
 PIG-4689: CSV Writes incorrect header if two CSV files are created in one script (nielsbasjes via daijy)
 
 PIG-4727: Incorrect types table for AVG in docs (nsmith via daijy)
