@@ -81,6 +81,7 @@ public class ParallelismSetter extends TezOpPlanVisitor {
                 // requestedParallelism of Loader vertex is handled in LoaderProcessor
                 // propogate to vertexParallelism
                 tezOp.setVertexParallelism(tezOp.getRequestedParallelism());
+                incrementTotalParallelism(tezOp, tezOp.getRequestedParallelism());
                 return;
             } else {
                 int prevParallelism = -1;

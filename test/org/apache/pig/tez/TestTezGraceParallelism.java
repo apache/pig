@@ -145,8 +145,7 @@ public class TestTezGraceParallelism {
             assertTrue(writer.toString().contains("Reduce auto parallelism for vertex: scope-52 to 1 from 20"));
             assertTrue(writer.toString().contains("Reduce auto parallelism for vertex: scope-61 to 1 from 100"));
         } finally {
-            Util.removeLogAppender(PigGraceShuffleVertexManager.class, "testDecreaseParallelism");
-            Util.removeLogAppender(ShuffleVertexManager.class, "testDecreaseParallelism");
+            Util.removeLogAppender("testDecreaseParallelism", PigGraceShuffleVertexManager.class, ShuffleVertexManager.class);
         }
     }
 
@@ -186,8 +185,7 @@ public class TestTezGraceParallelism {
             // There are randomness in which task finishes first, so the auto parallelism could result different result
             assertTrue(Pattern.compile("Reduce auto parallelism for vertex: scope-64 to (\\d+)* from 50").matcher(writer.toString()).find());
         } finally {
-            Util.removeLogAppender(PigGraceShuffleVertexManager.class, "testIncreaseParallelism");
-            Util.removeLogAppender(ShuffleVertexManager.class, "testIncreaseParallelism");
+            Util.removeLogAppender("testIncreaseParallelism", PigGraceShuffleVertexManager.class, ShuffleVertexManager.class);
         }
     }
 
@@ -222,7 +220,7 @@ public class TestTezGraceParallelism {
             assertTrue(writer.toString().contains("All predecessors for scope-84 are finished, time to set parallelism for scope-85"));
             assertTrue(writer.toString().contains("Initialize parallelism for scope-85 to 101"));
         } finally {
-            Util.removeLogAppender(PigGraceShuffleVertexManager.class, "testJoinWithDifferentDepth");
+            Util.removeLogAppender("testJoinWithDifferentDepth", PigGraceShuffleVertexManager.class);
         }
     }
 
@@ -252,7 +250,7 @@ public class TestTezGraceParallelism {
             assertEquals(count, 1000);
             assertFalse(writer.toString().contains("scope-68"));
         } finally {
-            Util.removeLogAppender(PigGraceShuffleVertexManager.class, "testJoinWithDifferentDepth2");
+            Util.removeLogAppender("testJoinWithDifferentDepth2", PigGraceShuffleVertexManager.class);
         }
     }
 
@@ -285,7 +283,7 @@ public class TestTezGraceParallelism {
             assertTrue(writer.toString().contains("time to set parallelism for scope-41"));
             assertTrue(writer.toString().contains("time to set parallelism for scope-54"));
         } finally {
-            Util.removeLogAppender(PigGraceShuffleVertexManager.class, "testJoinWithUnion");
+            Util.removeLogAppender("testJoinWithUnion", PigGraceShuffleVertexManager.class);
         }
     }
 
