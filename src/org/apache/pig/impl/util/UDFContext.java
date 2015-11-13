@@ -26,8 +26,6 @@ import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.pig.JVMReuseManager;
-import org.apache.pig.StaticDataCleanup;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 
 public class UDFContext {
@@ -45,10 +43,6 @@ public class UDFContext {
             return new UDFContext();
         }
     };
-
-    static {
-        JVMReuseManager.getInstance().registerForStaticDataCleanup(UDFContext.class);
-    }
 
     private UDFContext() {
         udfConfs = new HashMap<UDFContextKey, Properties>();
@@ -71,8 +65,8 @@ public class UDFContext {
     /*
      *  internal pig use only - should NOT be called from user code
      */
-    @StaticDataCleanup
-    public static void cleanupStaticData() {
+    //@StaticDataCleanup
+    public static void staticDataCleanup() {
         tss = new ThreadLocal<UDFContext>() {
             @Override
             public UDFContext initialValue() {

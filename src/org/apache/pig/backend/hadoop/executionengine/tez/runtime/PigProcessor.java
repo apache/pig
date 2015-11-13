@@ -162,7 +162,6 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
 
     @Override
     public void close() throws Exception {
-
         execPlan = null;
         fileOutputs = null;
         leaf = null;

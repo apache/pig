@@ -22,9 +22,7 @@ import java.io.IOException;
 
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
-import org.apache.pig.JVMReuseManager;
 import org.apache.pig.PigConfiguration;
-import org.apache.pig.StaticDataCleanup;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.data.BagFactory;
@@ -44,16 +42,6 @@ public class Distinct  extends EvalFunc<DataBag> implements Algebraic {
     private static TupleFactory tupleFactory = TupleFactory.getInstance();
     private static boolean initialized = false;
     private static boolean useDefaultBag = false;
-
-    static {
-        JVMReuseManager.getInstance().registerForStaticDataCleanup(Distinct.class);
-    }
-
-    @StaticDataCleanup
-    public static void staticDataCleanup() {
-        initialized = false;
-        useDefaultBag = false;
-    }
 
     @Override
     public DataBag exec(Tuple input) throws IOException {
