@@ -299,8 +299,9 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
             }
 
             // Should be removed once the model is clear
-            if (getReporter() != null) {
-                getReporter().progress();
+            PigProgressable progRep = getReporter();
+            if (progRep != null) {
+                progRep.progress();
             }
 
             if (!isInputAttached()) {
