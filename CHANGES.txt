@@ -69,6 +69,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-4733: Avoid NullPointerException in JVMReuseImpl for builtin classes (rohini)
+
 PIG-4722: [Pig on Tez] NPE while running Combiner (rohini)
 
 PIG-4730: [Pig on Tez] Total parallelism estimation does not account load parallelism (rohini)

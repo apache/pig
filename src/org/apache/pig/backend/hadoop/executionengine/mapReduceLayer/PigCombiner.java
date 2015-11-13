@@ -27,9 +27,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.log4j.PropertyConfigurator;
-import org.apache.pig.JVMReuseManager;
 import org.apache.pig.PigException;
-import org.apache.pig.StaticDataCleanup;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -76,11 +74,7 @@ public class PigCombiner {
         PigContext pigContext = null;
         private volatile boolean initialized = false;
 
-        static {
-            JVMReuseManager.getInstance().registerForStaticDataCleanup(Combine.class);
-        }
-
-        @StaticDataCleanup
+        //@StaticDataCleanup
         public static void staticDataCleanup() {
             firstTime = true;
         }
