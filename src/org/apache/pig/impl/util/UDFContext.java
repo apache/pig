@@ -21,8 +21,6 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
@@ -202,14 +200,6 @@ public class UDFContext {
      * @throws IOException if underlying serialization throws it
      */
     public void serialize(Configuration conf) throws IOException {
-        // Minor optimziation. Remove empty properties before serialization.
-        Iterator<Entry<UDFContextKey, Properties>> iter = udfConfs.entrySet().iterator();
-        while (iter.hasNext()) {
-            Entry<UDFContextKey, Properties> entry = iter.next();
-            if (entry.getValue().isEmpty()) {
-                iter.remove();
-            }
-        }
         conf.set(UDF_CONTEXT, ObjectSerializer.serialize(udfConfs));
         conf.set(CLIENT_SYS_PROPS, ObjectSerializer.serialize(clientSysProps));
     }
