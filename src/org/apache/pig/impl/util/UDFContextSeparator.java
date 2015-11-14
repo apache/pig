@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -99,6 +100,7 @@ public class UDFContextSeparator extends PhyPlanVisitor {
                     // as user might be just accessing properties by base class name
                     // instead of by Initial, Intermediate and Final classes
                     algebraicUDFKeys.add(key);
+                    knownKeys.add(key);
                 }
             }
         } else {
@@ -199,6 +201,16 @@ public class UDFContextSeparator extends PhyPlanVisitor {
             HashMap<UDFContextKey, Properties> udfConfsToSerialize)
             throws IOException {
         HashMap<UDFContextKey, Properties> udfConfs = udfContext.getUdfConfs();
+
+        // Save empty values from being serialized unnecessarily
+        Iterator<Entry<UDFContextKey, Properties>> iter = udfConfsToSerialize.entrySet().iterator();
+        while (iter.hasNext()) {
+            Entry<UDFContextKey, Properties> entry = iter.next();
+            if (entry.getValue().isEmpty()) {
+                iter.remove();
+            }
+        }
+
         // Add unknown ones for serialization
         for (UDFContextKey key : getUnKnownKeys()) {
             udfConfsToSerialize.put(key, udfConfs.get(key));
