@@ -363,6 +363,10 @@ public class PigConfiguration {
      */
     public static final String PIG_BZIP_USE_HADOOP_INPUTFORMAT = "pig.bzip.use.hadoop.inputformat";
 
+    /**
+     * This key is used to set the download location when registering an artifact using ivy coordinate
+     */
+    public static final String PIG_ARTIFACTS_DOWNLOAD_LOCATION = "pig.artifacts.download.location";
 
     // Pig on Tez runtime settings
     /**

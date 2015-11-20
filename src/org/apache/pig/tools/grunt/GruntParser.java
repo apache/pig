@@ -66,6 +66,7 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileLocalizer.FetchFileRet;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.TupleFormat;
+import org.apache.pig.parser.RegisterResolver;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.apache.pig.tools.pigscript.parser.PigScriptParser;
 import org.apache.pig.tools.pigscript.parser.PigScriptParserTokenManager;
@@ -461,15 +462,7 @@ public class GruntParser extends PigScriptParser {
         path = parameterSubstitutionInGrunt(path);
         scriptingLang = parameterSubstitutionInGrunt(scriptingLang);
         namespace = parameterSubstitutionInGrunt(namespace);
-        if(path.endsWith(".jar")) {
-            if(scriptingLang != null || namespace != null) {
-                throw new ParseException("Cannot register a jar with a scripting language or namespace");
-            }
-            mPigServer.registerJar(path);
-        }
-        else {
-            mPigServer.registerCode(path, scriptingLang, namespace);
-        }
+        new RegisterResolver(mPigServer).parseRegister(path, scriptingLang, namespace);
     }
 
     private String runPreprocessor(String scriptPath, List<String> params, List<String> paramFiles)

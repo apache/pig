@@ -731,6 +731,7 @@
             <fileset dir="${ivy.lib.dir}" includes="kryo-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="httpdlog-*-${basjes-httpdlog-pigloader.version}.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="parser-core-${basjes-httpdlog-pigloader.version}.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="ivy-*.jar"/>
         </copy>
     </target>
 
@@ -813,6 +814,7 @@
                 <zipgroupfileset refid="@{includedJars}" />
                 <fileset file="${basedir}/src/pig-default.properties" />
                 <fileset file="${basedir}/src/main/jruby/pigudf.rb" />
+                <fileset file="${basedir}/conf/ivysettings.xml" />
                 <exclude name="hadoop-site.xml" />
             </jar>
         </sequential>

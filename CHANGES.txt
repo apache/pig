@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4417: Pig's register command should support automatic fetching of jars from repo (akshayrai09 via daijy)
+
 PIG-4713: Document Bloom UDF (gliptak via daijy)
 
 PIG-3251: Bzip2TextInputFormat requires double the memory of maximum record size (knoguchi)

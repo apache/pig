@@ -315,32 +315,14 @@ public class QueryParserDriver {
         if (t.getText().equalsIgnoreCase(REGISTER_DEF)) {
             String path = t.getChild(0).getText();
             path = path.substring(1, path.length()-1);
-
-            if (path.endsWith(".jar")) {
-                if (t.getChildCount() != 1) {
-                    throw new ParserException("REGISTER statement refers to JAR but has a USING..AS scripting engine clause. " +
-                                              "Statement: " + t.toStringTree());
+            try {
+                if (t.getChildCount() == 5) {
+                    new RegisterResolver(getPigServer()).parseRegister(path, t.getChild(2).getText(), t.getChild(4).getText());
+                } else {
+                    new RegisterResolver(getPigServer()).parseRegister(path, null, null);
                 }
-
-                try {
-                    getPigServer().registerJar(path);
-                } catch (IOException ioe) {
-                    throw new ParserException(ioe.getMessage());
-                }
-            } else {
-                if (t.getChildCount() != 5) {
-                    throw new ParserException("REGISTER statement for non-JAR file requires a USING scripting_lang AS namespace clause. " +
-                                              "Ex. REGISTER 'my_file.py' USING jython AS my_jython_udfs;");
-                }
-
-                String scriptingLang = t.getChild(2).getText();
-                String namespace = t.getChild(4).getText();
-
-                try {
-                    getPigServer().registerCode(path, scriptingLang, namespace);
-                } catch (IOException ioe) {
-                    throw new ParserException(ioe.getMessage());
-                }
+            } catch (IOException ioe) {
+                throw new ParserException(ioe.getMessage());
             }
         } else {
             for (int i = 0; i < t.getChildCount(); i++) {
