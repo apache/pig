@@ -966,6 +966,8 @@ public class Main {
             System.out.println("        stop.on.failure=true|false; default is false. Set to true to terminate on the first error.");
             System.out.println("        pig.datetime.default.tz=<UTC time offset>. e.g. +08:00. Default is the default timezone of the host.");
             System.out.println("            Determines the timezone used to handle datetime datatype and UDFs. ");
+            System.out.println("        pig.artifacts.download.location=<path to download artifacts>; default is ~/.groovy/grapes");
+            System.out.println("            Determines the location to download the artifacts when registering jars using ivy coordinates.");
             System.out.println("Additionally, any Hadoop property can be specified.");
     }
 
