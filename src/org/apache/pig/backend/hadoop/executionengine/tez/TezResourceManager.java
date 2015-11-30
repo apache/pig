@@ -17,6 +17,8 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
+import static org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.getFromCache;
+
 import java.io.IOException;
 import java.net.URI;
 import java.util.HashMap;
@@ -33,16 +35,14 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.util.ConverterUtils;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.PigConfiguration;
-import static org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.getFromCache;
-import static org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.getCacheStagingDir;
 
 public class TezResourceManager {
     private static TezResourceManager instance = null;
     private boolean inited = false;
-    private Path stagingDir;
+    private Path resourcesDir;
     private FileSystem remoteFs;
     private Configuration conf;
     private PigContext pigContext;
@@ -57,7 +57,7 @@ public class TezResourceManager {
 
     public void init(PigContext pigContext, Configuration conf) throws IOException {
         if (!inited) {
-            this.stagingDir = FileLocalizer.getTemporaryResourcePath(pigContext);
+            this.resourcesDir = FileLocalizer.getTemporaryResourcePath(pigContext);
             this.remoteFs = FileSystem.get(conf);
             this.conf = conf;
             this.pigContext = pigContext;
@@ -65,8 +65,8 @@ public class TezResourceManager {
         }
     }
 
-    public Path getStagingDir() {
-        return stagingDir;
+    public Path getResourcesDir() {
+        return resourcesDir;
     }
 
     // Add files from the source FS as local resources. The resource name will
@@ -94,7 +94,7 @@ public class TezResourceManager {
 
                 }
 
-                Path remoteFsPath = remoteFs.makeQualified(new Path(stagingDir, resourceName));
+                Path remoteFsPath = remoteFs.makeQualified(new Path(resourcesDir, resourceName));
                 remoteFs.copyFromLocalFile(resourcePath, remoteFsPath);
                 remoteFs.setReplication(remoteFsPath, (short)conf.getInt(Job.SUBMIT_REPLICATION, 3));
                 resources.put(resourceName, remoteFsPath);
