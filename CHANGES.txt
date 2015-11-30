@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4744: Honor tez.staging-dir setting in tez-site.xml (rohini via daijy)
+
 PIG-4742: Document Pig's Register Artifact Command added in PIG-4417 (akshayrai09 via daijy)
 
 PIG-4417: Pig's register command should support automatic fetching of jars from repo (akshayrai09 via daijy)

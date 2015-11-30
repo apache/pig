@@ -33,7 +33,6 @@ import java.util.concurrent.ThreadFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.counters.Limits;
 import org.apache.hadoop.util.StringUtils;
@@ -139,9 +138,16 @@ public class TezLauncher extends Launcher {
         TezResourceManager tezResourceManager = TezResourceManager.getInstance();
         tezResourceManager.init(pc, conf);
 
-        Path stagingDir = tezResourceManager.getStagingDir();
-        log.info("Tez staging directory is " + stagingDir.toString());
-        conf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDir.toString());
+        String stagingDir = conf.get(TezConfiguration.TEZ_AM_STAGING_DIR);
+        String resourcesDir = tezResourceManager.getResourcesDir().toString();
+        if (stagingDir == null) {
+            // If not set in tez-site.xml, use Pig's tez resources directory as staging directory
+            // instead of TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT
+            stagingDir = resourcesDir;
+            conf.set(TezConfiguration.TEZ_AM_STAGING_DIR, resourcesDir);
+        }
+        log.info("Tez staging directory is " + stagingDir + " and resources directory is " + resourcesDir);
+
 
         List<TezOperPlan> processedPlans = new ArrayList<TezOperPlan>();
 
