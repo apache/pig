@@ -8922,8 +8922,8 @@ B = FOREACH A GENERATE myFunc($0);
    
    
    <!-- =========================================================================== -->
-   <section id="register">
-   <title>REGISTER</title>
+   <section id="register-jar">
+   <title>REGISTER (a jar/script)</title>
    <p>Registers a JAR file so that the UDFs in the file can be used.</p>
    
    <section>
@@ -8995,7 +8995,222 @@ register jars/*.jar
 </source>
    </section>
    </section>
-   </section>  
 
+      <!-- =========================================================================== -->
+      <section id="register-artifact">
+
+        <title>REGISTER (an artifact)</title>
+
+        <p>
+          Instead of figuring out the dependencies manually, downloading them and registering each jar using the above
+          <a href="#register-jar">register command</a>, you can specify the artifact's coordinates and expect pig to automatically
+          fetch the required dependencies, download and register them.
+        </p>
+
+        <!-- Command Syntax-->
+        <section>
+          <title>Syntax</title>
+          <p>
+            To download an Artifact (and its dependencies), you need to specify the artifact's group, module and version following
+            the syntax shown below. This command will download the Jar specified and all its dependencies and load it into the
+            classpath.
+          </p>
+          <table>
+            <tr>
+              <td>
+                <p>REGISTER ivy://group:module:version?querystring</p>
+              </td>
+            </tr>
+          </table>
+        </section>
+
+        <!-- Terms -->
+        <section>
+          <title>Terms</title>
+          <table>
+            <tr>
+              <td>
+                <p>group</p>
+              </td>
+              <td>
+                <p>Which module group the module comes from. Translates directly to a Maven groupId or an Ivy Organization.</p>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <p>module</p>
+              </td>
+              <td>
+                <p>The name of the module to load. Translated directly to a Maven artifactId or an Ivy artifact.</p>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <p>version</p>
+              </td>
+              <td>
+                <p>The version of the module to use. You can specify a specific version or use "+" or "*" to use the latest version.</p>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <p>querystring</p>
+              </td>
+              <td>
+                <p>This will contain "&amp;" separated key-value pairs to help us exclude all or specific dependencies etc.</p>
+              </td>
+            </tr>
+          </table>
+        </section>
+
+        <section>
+          <title>Usage</title>
+
+          <p>
+            The Register artifact command is an extension to the above register command used to <a href="#register-jar">register a
+            jar</a>. In addition to registering a jar from a local system or from hdfs, you can now specify the coordinates of the
+            artifact and pig will download the artifact (and its dependencies if needed) from the configured repository.
+          </p>
+
+          <section>
+            <title>Parameters Supported in the Query String</title>
+
+            <ul>
+              <li>
+                <strong>Transitive</strong>
+                <p>
+                  Transitive helps specifying if you need the dependencies along with the registering jar. By setting transitive to
+                  false in the querystring we can tell pig to register only the artifact without its dependencies. This will
+                  download only the artifact specified and will not download the dependencies of the jar. The default value of
+                  transitive is true.
+                </p>
+                <strong>Syntax</strong>
+                <table>
+                  <tr>
+                    <td>
+                      <p>REGISTER ivy://org:module:version?transitive=false</p>
+                    </td>
+                  </tr>
+                </table>
+              </li>
+              <li>
+                <strong>Exclude</strong>
+                <p>
+                  While registering an artifact if you wish to exclude some dependencies you can specify them using the exclude
+                  key. Suppose you want to use a specific version of a dependent jar which doesn't match the version of the jar
+                  when automatically fetched, then you could exclude such dependencies by specifying a comma separated list of
+                  dependencies and register the dependent jar separately.
+                </p>
+                <strong>Syntax</strong>
+                <table>
+                  <tr>
+                    <td>
+                      <p>REGISTER ivy://org:module:version?exclude=org:mod,org:mod,...</p>
+                    </td>
+                  </tr>
+                </table>
+              </li>
+              <li>
+                <strong>Classifier</strong>
+                <p>
+                  Some maven dependencies need classifiers in order to be able to resolve. You can specify them using a classifier
+                  key.
+                </p>
+                <strong>Syntax</strong>
+                <table>
+                  <tr>
+                    <td>
+                      <p>REGISTER ivy://org:module:version?classifier=value</p>
+                    </td>
+                  </tr>
+                </table>
+              </li>
+            </ul>
+          </section>
+
+          <section>
+            <title>Other properties</title>
+
+            <ul>
+              <li>
+                <p>
+                  An optional pig property, pig.artifacts.download.location, can be used to configure the location where the
+                  artifacts should be downloaded. By default, they will be downloaded to ~/.groovy/grapes
+                </p>
+              </li>
+
+              <li>
+                <p>
+                  This command can be used or can replace the <a href="#register-jar">register jar</a> command wherever used
+                  including macros.<br></br>
+                </p>
+              </li>
+
+              <li>
+                <p>
+                  Group/Organization and Version are optional fields. In such cases you can leave them blank.<br></br>
+                </p>
+              </li>
+
+              <li>
+                <p>
+                  The repositories can be configured using an ivysettings file. Pig will search for an ivysettings.xml file
+                  in the following locations in order. PIG_CONF_DIR > PIG_HOME > Classpath<br></br>
+                </p>
+              </li>
+            </ul>
+          </section>
+        </section>
+
+        <!-- Examples-->
+        <section>
+          <title>Examples</title>
+
+          <ul>
+            <li>
+              <p>Registering an Artifact and all its dependencies.</p>
+              <source>
+                -- Both are the same<br></br>
+                REGISTER ivy://org.apache.avro:avro:1.5.1<br></br>
+                REGISTER ivy://org.apache.avro:avro:1.5.1?transitive=true</source>
+            </li>
+
+            <li>
+              <p>Registering an artifact without getting its dependencies.</p>
+              <source>
+               REGISTER ivy://org.apache.avro:avro:1.5.1?transitive=false</source>
+            </li>
+
+            <li>
+              <p>Registering the latest artifact.</p>
+              <source>
+                -- Both of the following syntaxes work.<br></br>
+                REGISTER ivy://org.apache.avro:avro:+<br></br>
+                REGISTER ivy://org.apache.avro:avro:*</source>
+            </li>
+
+            <li>
+              <p>Registering an artifact by excluding specific dependencies.</p>
+              <source>
+                REGISTER ivy://org.apache.pig:pig:0.10.0?exclude=commons-cli:commons-cli,commons-codec:commons-codec</source>
+            </li>
+
+            <li>
+              <p>Specifying a classifier</p>
+              <source>
+                REGISTER ivy://net.sf.json-lib:json-lib:2.4?classifier=jdk15</source>
+            </li>
+
+            <li>
+              <p>Registering an artifact without a group or organization. Just skip them.</p>
+              <source>
+                REGISTER ivy://:module:</source>
+            </li>
+          </ul>
+        </section>
+      </section>
+
+      <!-- =========================================================================== -->
+    </section>
   </body>
 </document>
