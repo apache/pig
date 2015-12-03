@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4753: Pigmix should have option to delete outputs after completing the tests (mitdesai via rohini)
+
 PIG-4744: Honor tez.staging-dir setting in tez-site.xml (rohini via daijy)
 
 PIG-4742: Document Pig's Register Artifact Command added in PIG-4417 (akshayrai09 via daijy)
