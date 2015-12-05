@@ -16,7 +16,7 @@ my $pigmixoutput = shift;
 my $parallel = shift;
 my $runs = shift;
 my $runmapreduce = shift;
-my $cleanup_after_tests = shift;
+my $cleanup_after_test = shift;
 my $pigjar = "$pighome/pig-withouthadoop.jar";
 if(!defined($parallel)) {
     $parallel = 40;
