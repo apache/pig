@@ -371,17 +371,20 @@ public class SparkLauncher extends Launcher {
                     && jarFile.exists()) {
                 return;
             }
-            if (localFile.exists()) {
-                LOG.info(String.format(
-                        "jar file %s exists, ready to delete",
-                        localFile.getAbsolutePath()));
-                localFile.delete();
-            } else {
-                LOG.info(String.format("jar file %s not exists,",
-                        localFile.getAbsolutePath()));
+            // When multiple threads start SparkLauncher, delete/copy actions should be in a critical section
+            synchronized(SparkLauncher.class) {
+                if (localFile.exists()) {
+                    LOG.info(String.format(
+                            "jar file %s exists, ready to delete",
+                            localFile.getAbsolutePath()));
+                    localFile.delete();
+                } else {
+                    LOG.info(String.format("jar file %s not exists,",
+                            localFile.getAbsolutePath()));
+                }
+                Files.copy(Paths.get(new Path(jarFile.getAbsolutePath()).toString()),
+                        Paths.get(localFile.getAbsolutePath()));
             }
-            Files.copy(Paths.get(new Path(jarFile.getAbsolutePath()).toString()),
-                    Paths.get(localFile.getAbsolutePath()));
         } else {
             sparkContext.addFile(jarFile.toURI().toURL()
                 .toExternalForm());
@@ -431,7 +434,11 @@ public class SparkLauncher extends Launcher {
         return sparkPlan;
     }
 
-    private static void startSparkIfNeeded(PigContext pc) throws PigException {
+    /**
+     * Only one SparkContext may be active per JVM (SPARK-2243). When multiple threads start SparkLaucher,
+     * the static member sparkContext should be initialized only once
+     */
+    private static synchronized void startSparkIfNeeded(PigContext pc) throws PigException {
         if (sparkContext == null) {
             String master = null;
             if (pc.getExecType().isLocal()) {
