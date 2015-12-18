@@ -88,6 +88,7 @@ import org.apache.pig.backend.hadoop.executionengine.spark.converter.SplitConver
 import org.apache.pig.backend.hadoop.executionengine.spark.converter.StoreConverter;
 import org.apache.pig.backend.hadoop.executionengine.spark.converter.StreamConverter;
 import org.apache.pig.backend.hadoop.executionengine.spark.converter.UnionConverter;
+import org.apache.pig.backend.hadoop.executionengine.spark.operator.NativeSparkOperator;
 import org.apache.pig.backend.hadoop.executionengine.spark.operator.POGlobalRearrangeSpark;
 import org.apache.pig.backend.hadoop.executionengine.spark.optimizer.AccumulatorOptimizer;
 import org.apache.pig.backend.hadoop.executionengine.spark.optimizer.MultiQueryOptimizerSpark;
@@ -573,6 +574,10 @@ public class SparkLauncher extends Launcher {
             }
         }
 
+        if (sparkOperator instanceof NativeSparkOperator) {
+            ((NativeSparkOperator) sparkOperator).runJob();
+            return;
+        }
         List<PhysicalOperator> leafPOs = sparkOperator.physicalPlan.getLeaves();
         boolean isFail = false;
         Exception exception = null;

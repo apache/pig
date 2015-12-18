@@ -54,6 +54,7 @@ public class SparkPrinter extends SparkOpPlanVisitor {
         mStream.println("");
         mStream.println("Spark node " + sparkOp.getOperatorKey().toString());
         if (sparkOp instanceof NativeSparkOperator) {
+            mStream.println(((NativeSparkOperator)sparkOp).getCommandString());
             mStream.println("--------");
             mStream.println();
             return;

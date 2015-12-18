@@ -22,8 +22,10 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.spark.JobMetricsListener;
+import org.apache.pig.backend.hadoop.executionengine.spark.operator.NativeSparkOperator;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperator;
 import org.apache.pig.tools.pigstats.PigStatsUtil;
+import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.spark.JobExecutionStatus;
 import org.apache.spark.SparkJobInfo;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -35,25 +37,25 @@ public class SparkStatsUtil {
     public static final String SPARK_INPUT_COUNTER_GROUP = "Spark Input Counters";
     public static final String SPARK_INPUT_RECORD_COUNTER = "Input records from ";
 
-  public static void waitForJobAddStats(int jobID,
-                                        POStore poStore, SparkOperator sparkOperator,
-                                        JobMetricsListener jobMetricsListener,
-                                        JavaSparkContext sparkContext,
-                                        SparkPigStats sparkPigStats,
-                                        JobConf jobConf)
-      throws InterruptedException {
-      // Even though we are not making any async calls to spark,
-      // the SparkStatusTracker can still return RUNNING status
-      // for a finished job.
-      // Looks like there is a race condition between spark
-      // "event bus" thread updating it's internal listener and
-      // this driver thread calling SparkStatusTracker.
-      // To workaround this, we will wait for this job to "finish".
-      jobMetricsListener.waitForJobToEnd(jobID);
-      sparkPigStats.addJobStats(poStore, sparkOperator, jobID, jobMetricsListener,
-              sparkContext, jobConf);
-      jobMetricsListener.cleanup(jobID);
-  }
+    public static void waitForJobAddStats(int jobID,
+                                          POStore poStore, SparkOperator sparkOperator,
+                                          JobMetricsListener jobMetricsListener,
+                                          JavaSparkContext sparkContext,
+                                          SparkPigStats sparkPigStats,
+                                          JobConf jobConf)
+            throws InterruptedException {
+        // Even though we are not making any async calls to spark,
+        // the SparkStatusTracker can still return RUNNING status
+        // for a finished job.
+        // Looks like there is a race condition between spark
+        // "event bus" thread updating it's internal listener and
+        // this driver thread calling SparkStatusTracker.
+        // To workaround this, we will wait for this job to "finish".
+        jobMetricsListener.waitForJobToEnd(jobID);
+        sparkPigStats.addJobStats(poStore, sparkOperator, jobID, jobMetricsListener,
+                sparkContext, jobConf);
+        jobMetricsListener.cleanup(jobID);
+    }
 
     public static void addFailJobStats(String jobID,
                                        POStore poStore, SparkOperator sparkOperator,
@@ -100,26 +102,34 @@ public class SparkStatsUtil {
     }
 
     public static boolean isJobSuccess(int jobID,
-                                    JavaSparkContext sparkContext) {
-      JobExecutionStatus status = getJobInfo(jobID, sparkContext).status();
-      if (status == JobExecutionStatus.SUCCEEDED) {
-        return true;
-      } else if (status != JobExecutionStatus.FAILED) {
-        throw new RuntimeException("Unexpected job execution status " +
-            status);
-      }
+                                       JavaSparkContext sparkContext) {
+        JobExecutionStatus status = getJobInfo(jobID, sparkContext).status();
+        if (status == JobExecutionStatus.SUCCEEDED) {
+            return true;
+        } else if (status != JobExecutionStatus.FAILED) {
+            throw new RuntimeException("Unexpected job execution status " +
+                    status);
+        }
 
-      return false;
-  }
+        return false;
+    }
 
-  private static SparkJobInfo getJobInfo(int jobID,
-                                         JavaSparkContext sparkContext) {
-      SparkJobInfo jobInfo = sparkContext.statusTracker().getJobInfo(jobID);
-      if (jobInfo == null) {
-        throw new RuntimeException("No jobInfo available for jobID "
-            + jobID);
-      }
+    private static SparkJobInfo getJobInfo(int jobID,
+                                           JavaSparkContext sparkContext) {
+        SparkJobInfo jobInfo = sparkContext.statusTracker().getJobInfo(jobID);
+        if (jobInfo == null) {
+            throw new RuntimeException("No jobInfo available for jobID "
+                    + jobID);
+        }
 
-      return jobInfo;
-  }
+        return jobInfo;
+    }
+
+    public static void addNativeJobStats(PigStats ps, NativeSparkOperator nativeSparkOperator) {
+        ((SparkPigStats) ps).addNativeJobStats(nativeSparkOperator, nativeSparkOperator.getJobId(), true, null);
+    }
+
+    public static void addFailedNativeJobStats(PigStats ps, NativeSparkOperator nativeSparkOperator, Exception e) {
+        ((SparkPigStats) ps).addNativeJobStats(nativeSparkOperator, nativeSparkOperator.getJobId(), false, e);
+    }
 }

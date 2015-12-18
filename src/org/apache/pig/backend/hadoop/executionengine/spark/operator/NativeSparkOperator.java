@@ -17,8 +17,13 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.spark.operator;
 
+import org.apache.hadoop.util.RunJar;
+import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.RunJarSecurityManager;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperator;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.tools.pigstats.PigStats;
+import org.apache.pig.tools.pigstats.spark.SparkStatsUtil;
 
 /**
  * NativeSparkOperator:
@@ -40,5 +45,51 @@ public class NativeSparkOperator extends SparkOperator {
     private static int getJobNumber() {
         countJobs++;
         return countJobs;
+    }
+
+    public String getJobId() {
+        return jobId;
+    }
+
+    public void runJob() throws JobCreationException {
+        RunJarSecurityManager secMan = new RunJarSecurityManager();
+        try {
+            RunJar.main(getNativeMRParams());
+            SparkStatsUtil.addNativeJobStats(PigStats.get(), this);
+        } catch (SecurityException se) {   //java.lang.reflect.InvocationTargetException
+            if (secMan.getExitInvoked()) {
+                if (secMan.getExitCode() != 0) {
+                    throw new JobCreationException("Native job returned with non-zero return code");
+                } else {
+                    SparkStatsUtil.addNativeJobStats(PigStats.get(), this);
+                }
+            }
+        } catch (Throwable t) {
+            JobCreationException e = new JobCreationException(
+                    "Cannot run native spark job " + t.getMessage(), t);
+            SparkStatsUtil.addFailedNativeJobStats(PigStats.get(), this, e);
+            throw e;
+        } finally {
+            secMan.retire();
+        }
+    }
+
+    private String[] getNativeMRParams() {
+        String[] paramArr = new String[params.length + 1];
+        paramArr[0] = nativeSparkJar;
+        for (int i = 0; i < params.length; i++) {
+            paramArr[i + 1] = params[i];
+        }
+        return paramArr;
+    }
+
+    public String getCommandString() {
+        StringBuilder sb = new StringBuilder("hadoop jar ");
+        sb.append(nativeSparkJar);
+        for (String pr : params) {
+            sb.append(" ");
+            sb.append(pr);
+        }
+        return sb.toString();
     }
 }
