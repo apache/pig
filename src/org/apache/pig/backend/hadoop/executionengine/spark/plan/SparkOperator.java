@@ -28,6 +28,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.MultiMap;
 
 /**
  * An operator model for a Spark job. Acts as a host to the plans that will
@@ -81,12 +82,14 @@ public class SparkOperator extends Operator<SparkOpPlanVisitor> {
 
 	private List<String> crossKeys = null;
 
-	public SparkOperator(OperatorKey k) {
-		super(k);
-		physicalPlan = new PhysicalPlan();
-		UDFs = new HashSet<String>();
-		scalars = new HashSet<PhysicalOperator>();
-	}
+    private MultiMap<OperatorKey, OperatorKey> multiQueryOptimizeConnectionMap = new MultiMap<OperatorKey, OperatorKey>();
+
+    public SparkOperator(OperatorKey k) {
+        super(k);
+        physicalPlan = new PhysicalPlan();
+        UDFs = new HashSet<String>();
+        scalars = new HashSet<PhysicalOperator>();
+    }
 
 	@Override
 	public boolean supportsMultipleInputs() {
@@ -263,5 +266,15 @@ public class SparkOperator extends Operator<SparkOpPlanVisitor> {
 
     public void setRequestedParallelismByReference(SparkOperator oper) {
         this.requestedParallelism = oper.requestedParallelism;
+    }
+
+    //If enable multiquery optimizer, in some cases, the predecessor(from) of a physicalOp(to) will be the leaf physicalOperator of
+    //previous sparkOperator.More detail see PIG-4675
+    public void addMultiQueryOptimizeConnectionItem(OperatorKey to, OperatorKey from) {
+        multiQueryOptimizeConnectionMap.put(to, from);
+    }
+
+    public MultiMap<OperatorKey, OperatorKey> getMultiQueryOptimizeConnectionItem() {
+        return multiQueryOptimizeConnectionMap;
     }
 }
