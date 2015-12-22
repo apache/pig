@@ -19,6 +19,7 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -120,16 +121,26 @@ public class TezLauncher extends Launcher {
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties(), true);
         // Make sure MR counter does not exceed limit
         if (conf.get(TezConfiguration.TEZ_COUNTERS_MAX) != null) {
-            conf.setInt(org.apache.hadoop.mapreduce.MRJobConfig.COUNTER_GROUPS_MAX_KEY, Math.max(
-                    conf.getInt(org.apache.hadoop.mapreduce.MRJobConfig.COUNTER_GROUPS_MAX_KEY, 0),
+            conf.setInt(org.apache.hadoop.mapreduce.MRJobConfig.COUNTERS_MAX_KEY, Math.max(
+                    conf.getInt(org.apache.hadoop.mapreduce.MRJobConfig.COUNTERS_MAX_KEY, 0),
                     conf.getInt(TezConfiguration.TEZ_COUNTERS_MAX, 0)));
         }
         if (conf.get(TezConfiguration.TEZ_COUNTERS_MAX_GROUPS) != null) {
-            conf.setInt(org.apache.hadoop.mapreduce.MRJobConfig.COUNTERS_MAX_KEY, Math.max(
-                    conf.getInt(org.apache.hadoop.mapreduce.MRJobConfig.COUNTERS_MAX_KEY, 0),
+            conf.setInt(org.apache.hadoop.mapreduce.MRJobConfig.COUNTER_GROUPS_MAX_KEY, Math.max(
+                    conf.getInt(org.apache.hadoop.mapreduce.MRJobConfig.COUNTER_GROUPS_MAX_KEY, 0),
                     conf.getInt(TezConfiguration.TEZ_COUNTERS_MAX_GROUPS, 0)));
         }
-        Limits.init(conf);
+
+        // This is hacky, but Limits cannot be initialized twice
+        try {
+            Field f = Limits.class.getDeclaredField("isInited");
+            f.setAccessible(true);
+            f.setBoolean(null, false);
+            Limits.init(conf);
+        } catch (Throwable e) {
+            log.warn("Error when setting counter limit: " + e.getMessage());
+        }
+
         if (pc.defaultParallel == -1 && !conf.getBoolean(PigConfiguration.PIG_TEZ_AUTO_PARALLELISM, true)) {
             pc.defaultParallel = 1;
         }

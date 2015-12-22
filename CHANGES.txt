@@ -77,6 +77,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-4760: TezDAGStats.convertToHadoopCounters is not used, but impose MR counter limit (daijy)
+
 PIG-4755: Typo in runpigmix script (mitdesai via daijy)
 
 PIG-4736: Removing empty keys in UDFContext broke one LoadFunc (rohini)
