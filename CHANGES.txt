@@ -28,6 +28,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-4760: TezDAGStats.convertToHadoopCounters is not used, but impose MR counter limit (daijy)
+
 PIG-4696: Empty map returned by a streaming_python udf wrongly contains a null key (cheolsoo)
 
 PIG-4712: [Pig on Tez] NPE in Bloom UDF after Union (rohini)
