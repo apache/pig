@@ -33,6 +33,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezEdgeDescriptor;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOpPlanVisitor;
@@ -219,7 +220,7 @@ public class UnionOptimizer extends TezOpPlanVisitor {
                 storeVertexGroupOps[i] = new TezOperator(OperatorKey.genOpKey(scope));
                 storeVertexGroupOps[i].setVertexGroupInfo(new VertexGroupInfo(unionStoreOutputs.get(i)));
                 storeVertexGroupOps[i].getVertexGroupInfo().setSFile(unionStoreOutputs.get(i).getSFile());
-                storeVertexGroupOps[i].setVertexGroupMembers(unionOp.getUnionMembers());
+                storeVertexGroupOps[i].setVertexGroupMembers(new ArrayList<OperatorKey>(unionOp.getUnionMembers()));
                 tezPlan.add(storeVertexGroupOps[i]);
             }
         }
@@ -243,7 +244,7 @@ public class UnionOptimizer extends TezOpPlanVisitor {
             outputVertexGroupOps[i] = new TezOperator(OperatorKey.genOpKey(scope));
             outputVertexGroupOps[i].setVertexGroupInfo(new VertexGroupInfo());
             outputVertexGroupOps[i].getVertexGroupInfo().setOutput(unionOutputKeys.get(i));
-            outputVertexGroupOps[i].setVertexGroupMembers(unionOp.getUnionMembers());
+            outputVertexGroupOps[i].setVertexGroupMembers(new ArrayList<OperatorKey>(unionOp.getUnionMembers()));
             newOutputKeys[i] = outputVertexGroupOps[i].getOperatorKey().toString();
             tezPlan.add(outputVertexGroupOps[i]);
         }
@@ -365,6 +366,17 @@ public class UnionOptimizer extends TezOpPlanVisitor {
                         succ.getVertexGroupMembers().set(index, splitPredOp.getOperatorKey());
                         index = succ.getVertexGroupMembers().indexOf(unionOp.getOperatorKey());
                     }
+                    // Store vertex group
+                    POStore store = successorVertexGroup.getVertexGroupInfo().getStore();
+                    if (store != null) {
+                        //Clone changes the operator keys
+                        List<POStoreTez> storeOutputs = PlanHelper.getPhysicalOperators(splitPredOp.plan, POStoreTez.class);
+                        for (POStoreTez storeOut : storeOutputs) {
+                            if (storeOut.getOutputKey().equals(store.getOperatorKey().toString())) {
+                                splitPredOp.addVertexGroupStore(storeOut.getOperatorKey(), successorVertexGroup.getOperatorKey());
+                            }
+                        }
+                    }
                     tezPlan.disconnect(unionOp, successorVertexGroup);
                     Set<OperatorKey> uniqueVertexGroupMembers = new HashSet<OperatorKey>(succ.getVertexGroupMembers());
                     if (uniqueVertexGroupMembers.size() == 1) {
@@ -377,9 +389,15 @@ public class UnionOptimizer extends TezOpPlanVisitor {
                     actualSuccs.add(succ);
                 }
 
+                // Store vertex group
+                if (actualSuccs.isEmpty() && removeSuccessorVertexGroup) {
+                    splitPredOp.removeVertexGroupStore(successorVertexGroup.getOperatorKey());
+                    tezPlan.remove(successorVertexGroup);
+                }
+
                 for (TezOperator actualSucc : actualSuccs) {
 
-                    TezCompilerUtil.replaceInput(succ, unionOpKey, splitPredOpKey);
+                    TezCompilerUtil.replaceInput(actualSucc, unionOpKey, splitPredOpKey);
 
                     TezEdgeDescriptor edge = actualSucc.inEdges.remove(unionOp.getOperatorKey());
                     if (edge == null) {
@@ -393,6 +411,7 @@ public class UnionOptimizer extends TezOpPlanVisitor {
                             // to SplitOp -> Successor
                             tezPlan.disconnect(successorVertexGroup, actualSucc);
                             tezPlan.remove(successorVertexGroup);
+                            TezCompilerUtil.replaceInput(actualSucc, successorVertexGroup.getOperatorKey().toString(), splitPredOpKey);
                         } else {
                             // Changes plan from SplitOp -> Union -> Successor
                             // to SplitOp -> Successor

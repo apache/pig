@@ -732,9 +732,10 @@ public class TestTezCompiler {
                 "c2 = foreach c generate y, x;" +
                 "c3 = union c1, c2;" +
                 "a1 = union onschema b3, c3;" +
+                "store a1 into 'file:///tmp/output1';" +
                 "d = load 'file:///tmp/input1' as (x:int, z:chararray);" +
-                "e = join a1 by x, d by x;" +
-                "store e into 'file:///tmp/output';";
+                "e = join a1 by x, d by x using 'skewed';" +
+                "store e into 'file:///tmp/output2';";
 
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-12.gld");

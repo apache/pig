@@ -23,9 +23,11 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -36,7 +38,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer.TezOperDependencyParallelismEstimator.TezParallelismFactorVisitor;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.PigProcessor;
-import org.apache.pig.backend.hadoop.executionengine.tez.util.TezCompilerUtil;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -507,6 +508,16 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
             this.vertexGroupStores = new HashMap<OperatorKey, OperatorKey>();
         }
         this.vertexGroupStores.put(storeKey, vertexGroupKey);
+    }
+
+    public void removeVertexGroupStore(OperatorKey vertexGroupKey) {
+        Iterator<Entry<OperatorKey, OperatorKey>> iter = vertexGroupStores.entrySet().iterator();
+        while (iter.hasNext()) {
+            Entry<OperatorKey, OperatorKey> entry = iter.next();
+            if (entry.getValue().equals(vertexGroupKey)) {
+                iter.remove();
+            }
+        }
     }
 
     public Map<OperatorKey, OperatorKey> getVertexGroupStores() {
