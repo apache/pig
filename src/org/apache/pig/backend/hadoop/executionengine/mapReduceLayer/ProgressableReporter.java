@@ -17,8 +17,6 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
-import java.io.IOException;
-
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigProgressable;
 
@@ -26,7 +24,7 @@ public class ProgressableReporter implements PigProgressable {
     TaskAttemptContext rep;
 
     public ProgressableReporter(){
-        
+
     }
 
     public ProgressableReporter(TaskAttemptContext rep) {
@@ -34,14 +32,19 @@ public class ProgressableReporter implements PigProgressable {
         this.rep = rep;
     }
 
+    @Override
     public void progress() {
-        if(rep!=null)
+        if (rep != null) {
             rep.progress();
+        }
     }
 
+    @Override
     public void progress(String msg) {
         try {
-            rep.setStatus(msg);
+            if (rep != null) {
+                rep.setStatus(msg);
+            }
         }catch (Exception e) {
             rep.progress();
         }

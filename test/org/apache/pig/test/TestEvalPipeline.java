@@ -249,6 +249,7 @@ public class TestEvalPipeline {
             return sb.toString();
         }
 
+        @Override
         public Schema outputSchema(Schema input) {
             try {
             Schema stringSchema = new Schema(new Schema.FieldSchema(null, DataType.CHARARRAY));
@@ -263,6 +264,8 @@ public class TestEvalPipeline {
     static public class MapUDF extends EvalFunc<Map<String, Object>> {
         @Override
         public Map<String, Object> exec(Tuple input) throws IOException {
+
+            super.reporter.progress();
 
             TupleFactory tupleFactory = TupleFactory.getInstance();
             ArrayList<Object> objList = new ArrayList<Object>();
@@ -293,6 +296,7 @@ public class TestEvalPipeline {
             return myMap;
         }
 
+        @Override
         public Schema outputSchema(Schema input) {
             return new Schema(new Schema.FieldSchema(null, DataType.MAP));
         }
