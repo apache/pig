@@ -38,6 +38,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCo
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigHadoopLogger;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.ProgressableReporter;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.UDFFinishVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -116,6 +117,11 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
 
         // Reset static variables cleared for avoiding OOM.
         new JVMReuseImpl().cleanupStaticData();
+
+        // Set an empty reporter for now. Once we go to Tez 0.8
+        // which adds support for mapreduce like progress (TEZ-808),
+        // we need to call progress on Tez API
+        PhysicalOperator.setReporter(new ProgressableReporter());
 
         UserPayload payload = getContext().getUserPayload();
         conf = TezUtils.createConfFromUserPayload(payload);
