@@ -22,7 +22,7 @@ import static org.apache.pig.tools.pigstats.tez.TezDAGStats.PIG_COUNTER_GROUP;
 import static org.apache.pig.tools.pigstats.tez.TezDAGStats.TASK_COUNTER_GROUP;
 
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -80,8 +80,8 @@ public class TezVertexStats extends JobStats {
     private long activeSpillCountObj = 0;
     private long activeSpillCountRecs = 0;
 
-    private Map<String, Long> multiStoreCounters
-            = new HashMap<String, Long>();
+    private Map<String, Long> multiInputCounters = Maps.newHashMap();
+    private Map<String, Long> multiStoreCounters = Maps.newHashMap();
 
     public TezVertexStats(String name, JobGraph plan, boolean isMapOpts) {
         super(name, plan);
@@ -217,18 +217,33 @@ public class TezVertexStats extends JobStats {
             return;
         }
 
+        Map<String, Long> mIGroup = counters.get(PigStatsUtil.MULTI_INPUTS_COUNTER_GROUP);
+        if (mIGroup != null) {
+            multiInputCounters.putAll(mIGroup);
+        }
+
         // There is always only one load in a Tez vertex
         for (FileSpec fs : loads) {
             long records = -1;
             long hdfsBytesRead = -1;
             String filename = fs.getFileName();
             if (counters != null) {
-                Map<String, Long> taskCounter = counters.get(TASK_COUNTER_GROUP);
-                if (taskCounter != null
-                        && taskCounter.get(TaskCounter.INPUT_RECORDS_PROCESSED.name()) != null) {
-                    records = taskCounter.get(TaskCounter.INPUT_RECORDS_PROCESSED.name());
-                    numInputRecords = records;
+                if (mIGroup != null) {
+                    Long n = mIGroup.get(PigStatsUtil.getMultiInputsCounterName(fs.getFileName(), 0));
+                    if (n != null) records = n;
                 }
+                if (records == -1) {
+                    Map<String, Long> taskCounters = counters.get(TASK_COUNTER_GROUP);
+                    if (taskCounters != null
+                            && taskCounters.get(TaskCounter.INPUT_RECORDS_PROCESSED.name()) != null) {
+                        records = taskCounters.get(TaskCounter.INPUT_RECORDS_PROCESSED.name());
+                    }
+                }
+                if (isSuccessful() && records == -1) {
+                    // Tez removes 0 value counters for efficiency.
+                    records = 0;
+                }
+                numInputRecords = records;
                 if (counters.get(FS_COUNTER_GROUP) != null &&
                         counters.get(FS_COUNTER_GROUP).get(PigStatsUtil.HDFS_BYTES_READ) != null) {
                     hdfsBytesRead = counters.get(FS_COUNTER_GROUP).get(PigStatsUtil.HDFS_BYTES_READ);
@@ -246,6 +261,11 @@ public class TezVertexStats extends JobStats {
             return;
         }
 
+        Map<String, Long> msGroup = counters.get(PigStatsUtil.MULTI_STORE_COUNTER_GROUP);
+        if (msGroup != null) {
+            multiStoreCounters.putAll(msGroup);
+        }
+
         for (POStore sto : stores) {
             if (sto.isTmpStore()) {
                 continue;
@@ -254,16 +274,20 @@ public class TezVertexStats extends JobStats {
             long hdfsBytesWritten = -1;
             String filename = sto.getSFile().getFileName();
             if (counters != null) {
-                if (sto.isMultiStore()) {
-                    Map<String, Long> msGroup = counters.get(PigStatsUtil.MULTI_STORE_COUNTER_GROUP);
-                    if (msGroup != null) {
-                        multiStoreCounters.putAll(msGroup);
-                        Long n = msGroup.get(PigStatsUtil.getMultiStoreCounterName(sto));
-                        if (n != null) records = n;
+                if (msGroup != null) {
+                    Long n = msGroup.get(PigStatsUtil.getMultiStoreCounterName(sto));
+                    if (n != null) records = n;
+                }
+                if (records == -1) {
+                    Map<String, Long> taskCounters = counters.get(TASK_COUNTER_GROUP);
+                    if (taskCounters != null
+                            && taskCounters.get(TaskCounter.OUTPUT_RECORDS.name()) != null) {
+                        records = taskCounters.get(TaskCounter.OUTPUT_RECORDS.name());
                     }
-                } else if (counters.get(TASK_COUNTER_GROUP) != null
-                        && counters.get(TASK_COUNTER_GROUP).get(TaskCounter.OUTPUT_RECORDS.name()) != null) {
-                    records = counters.get(TASK_COUNTER_GROUP).get(TaskCounter.OUTPUT_RECORDS.name());
+                }
+                if (isSuccessful() && records == -1) {
+                    // Tez removes 0 value counters for efficiency.
+                    records = 0;
                 }
                 if (records != -1) {
                     numOutputRecords += records;
@@ -385,7 +409,7 @@ public class TezVertexStats extends JobStats {
     @Override
     @Deprecated
     public Map<String, Long> getMultiStoreCounters() {
-        return multiStoreCounters;
+        return Collections.unmodifiableMap(multiStoreCounters);
     }
 
     @Override
