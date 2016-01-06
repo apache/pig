@@ -26,6 +26,9 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -35,7 +38,6 @@ import java.util.Properties;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.Counters;
-import org.apache.pig.ExecType;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigRunner;
 import org.apache.pig.PigRunner.ReturnCode;
@@ -45,7 +47,6 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.newplan.Operator;
-import org.apache.pig.tools.pigstats.EmptyPigStats;
 import org.apache.pig.tools.pigstats.InputStats;
 import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.OutputStats;
@@ -391,6 +392,89 @@ public class TestPigRunner {
                     ((JobStats)stats.getJobGraph().getSinks().get(0)).getAlias());
         } finally {
             new File(PIG_FILE).delete();
+            Util.deleteFile(cluster, OUTPUT_FILE);
+            Util.deleteFile(cluster, OUTPUT_FILE_2);
+        }
+    }
+
+    @Test
+    public void simpleMultiQueryTest3() throws Exception {
+        final String INPUT_FILE_2 = "input2";
+        final String OUTPUT_FILE_2 = "output2";
+
+        PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE_2));
+        w.println("3\t4\t5");
+        w.println("5\t6\t7");
+        w.println("3\t7\t8");
+        w.close();
+        Util.copyFromLocalToCluster(cluster, INPUT_FILE_2, INPUT_FILE_2);
+        new File(INPUT_FILE_2).delete();
+
+        w = new PrintWriter(new FileWriter(PIG_FILE));
+        w.println("A = load '" + INPUT_FILE + "' as (a0:int, a1:int, a2:int);");
+        w.println("A1 = load '" + INPUT_FILE_2 + "' as (a0:int, a1:int, a2:int);");
+        w.println("B = filter A by a0 == 3;");
+        w.println("C = filter A by a1 <=5;");
+        w.println("D = join C by a0, B by a0, A1 by a0 using 'replicated';");
+        w.println("store C into '" + OUTPUT_FILE + "';");
+        w.println("store D into '" + OUTPUT_FILE_2 + "';");
+        w.close();
+
+        try {
+            String[] args = { "-x", execType, PIG_FILE };
+            PigStats stats = PigRunner.run(args, new TestNotificationListener(execType));
+            assertTrue(stats.isSuccessful());
+            if (Util.isMapredExecType(cluster.getExecType())) {
+                assertEquals(3, stats.getJobGraph().size());
+            } else {
+                assertEquals(1, stats.getJobGraph().size());
+            }
+
+            // Each output file should include the following:
+            // output:
+            //   1\t2\t3\n
+            //   5\t3\t4\n
+            //   3\t4\t5\n
+            // output2:
+            //   3\t4\t5\t3\t4\t5\t3\t4\t5\n
+            //   3\t4\t5\t3\t4\t5\t3\t7\t8\n
+            //   3\t4\t5\t3\t7\t8\t3\t4\t5\n
+            //   3\t4\t5\t3\t4\t5\t3\t7\t8\n
+            final int numOfRecords1 = 3;
+            final int numOfRecords2 = 4;
+            final int numOfBytesWritten1 = 18;
+            final int numOfBytesWritten2 = 72;
+
+            assertEquals(numOfRecords1 + numOfRecords2, stats.getRecordWritten());
+            assertEquals(numOfBytesWritten1 + numOfBytesWritten2, stats.getBytesWritten());
+
+            List<String> outputNames = new ArrayList<String>(stats.getOutputNames());
+            assertTrue(outputNames.size() == 2);
+            Collections.sort(outputNames);
+            assertEquals(OUTPUT_FILE, outputNames.get(0));
+            assertEquals(OUTPUT_FILE_2, outputNames.get(1));
+            assertEquals(3, stats.getNumberRecords(OUTPUT_FILE));
+            assertEquals(4, stats.getNumberRecords(OUTPUT_FILE_2));
+
+            List<InputStats> inputStats = new ArrayList<InputStats>(stats.getInputStats());
+            assertTrue(inputStats.size() == 2);
+            Collections.sort(inputStats, new Comparator<InputStats>() {
+                @Override
+                public int compare(InputStats o1, InputStats o2) {
+                    return o1.getLocation().compareTo(o2.getLocation());
+                }
+            });
+            assertEquals(5, inputStats.get(0).getNumberRecords());
+            assertEquals(3, inputStats.get(1).getNumberRecords());
+            // For mapreduce, since hdfs bytes read includes replicated tables bytes read is wrong
+            // Since Tez does has only one load per job its values are correct
+            if (!Util.isMapredExecType(cluster.getExecType())) {
+                assertEquals(30, inputStats.get(0).getBytes());
+                assertEquals(18, inputStats.get(1).getBytes());
+            }
+        } finally {
+            new File(PIG_FILE).delete();
+            Util.deleteFile(cluster, INPUT_FILE_2);
             Util.deleteFile(cluster, OUTPUT_FILE);
             Util.deleteFile(cluster, OUTPUT_FILE_2);
         }
