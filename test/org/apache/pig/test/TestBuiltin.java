@@ -143,6 +143,8 @@ public class TestBuiltin {
     private TupleFactory tupleFactory = TupleFactory.getInstance();
     private BagFactory bagFactory = DefaultBagFactory.getInstance();
 
+    private static Tuple NULL_INPUT_TUPLE;
+
     // some inputs
     private static Integer[] intInput = { 3, 1, 2, 4, 5, 7, null, 6, 8, 9, 10 };
     private static Long[] intAsLong = { 3L, 1L, 2L, 4L, 5L, 7L, null, 6L, 8L, 9L, 10L };
@@ -221,6 +223,9 @@ public class TestBuiltin {
 
         // first set up EvalFuncMap and expectedMap
         setupEvalFuncMap();
+
+        NULL_INPUT_TUPLE = TupleFactory.getInstance().newTuple(1);
+        NULL_INPUT_TUPLE.set(0, null);
 
         expectedMap.put("SUM", new Double(55));
         expectedMap.put("DoubleSum", new Double(170.567391834593));
@@ -955,6 +960,9 @@ public class TestBuiltin {
             } else {
                 assertEquals(msg, (Double)output, (Double)getExpected(avgTypes[k]), 0.00001);
             }
+
+            // Check null input
+            assertNull(avg.exec(NULL_INPUT_TUPLE));
         }
     }
 
@@ -1423,6 +1431,9 @@ public class TestBuiltin {
             else {
                 assertEquals(msg, (Double)output, (Double)getExpected(sumTypes[k]), 0.00001);
             }
+
+            // Check null input
+            assertNull(sum.exec(NULL_INPUT_TUPLE));
         }
     }
 
@@ -1488,6 +1499,9 @@ public class TestBuiltin {
             String msg = "[Testing " + minTypes[k] + " on input type: " + getInputType(minTypes[k]) + " ( (output) " +
                            output + " == " + getExpected(minTypes[k]) + " (expected) )]";
             assertForInputType(inputType, msg, getExpected(minTypes[k]), output);
+
+            // Check null input
+            assertNull(min.exec(NULL_INPUT_TUPLE));
         }
     }
 
@@ -1554,6 +1568,9 @@ public class TestBuiltin {
             String msg = "[Testing " + maxTypes[k] + " on input type: " + getInputType(maxTypes[k]) + " ( (output) " +
                            output + " == " + getExpected(maxTypes[k]) + " (expected) )]";
             assertForInputType(inputType, msg, getExpected(maxTypes[k]), output);
+
+            // Check null input
+            assertNull(max.exec(NULL_INPUT_TUPLE));
         }
     }
 
@@ -3223,6 +3240,6 @@ public class TestBuiltin {
         pigServer.registerQuery("B = foreach A generate TOMAP(a);");
         s = pigServer.dumpSchema("B");
         Assert.assertEquals(s.toString(), "{map[]}");
-        
+
     }
 }
