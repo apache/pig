@@ -27,6 +27,7 @@ import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
@@ -34,7 +35,6 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.backend.executionengine.ExecException;
 
 
 /**
@@ -79,14 +79,17 @@ public class AVG extends EvalFunc<Double> implements Algebraic, Accumulator<Doub
         }
     }
 
+    @Override
     public String getInitial() {
         return Initial.class.getName();
     }
 
+    @Override
     public String getIntermed() {
         return Intermediate.class.getName();
     }
 
+    @Override
     public String getFinal() {
         return Final.class.getName();
     }
@@ -230,7 +233,7 @@ public class AVG extends EvalFunc<Double> implements Algebraic, Accumulator<Doub
         DataBag values = (DataBag)input.get(0);
 
         // if we were handed an empty bag, return NULL
-        if(values.size() == 0) {
+        if(values == null || values.size() == 0) {
             return null;
         }
 

@@ -64,7 +64,7 @@ public abstract class AlgebraicFloatMathBase extends AlgebraicMathBase<Float> im
         DataBag values = (DataBag)input.get(0);
         // if we were handed an empty bag, return NULL
         // this is in compliance with SQL standard
-        if(values.size() == 0) {
+        if(values == null || values.size() == 0) {
             return null;
         }
         Float sofar = AlgebraicFloatMathBase.getSeed(opProvider.getOp());

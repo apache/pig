@@ -46,14 +46,17 @@ public class StringMin extends EvalFunc<String> implements Algebraic, Accumulato
         }
     }
 
+    @Override
     public String getInitial() {
         return Initial.class.getName();
     }
 
+    @Override
     public String getIntermed() {
         return Intermediate.class.getName();
     }
 
+    @Override
     public String getFinal() {
         return Final.class.getName();
     }
@@ -78,7 +81,7 @@ public class StringMin extends EvalFunc<String> implements Algebraic, Accumulato
             } catch (Exception e) {
                 int errCode = 2106;
                 String msg = "Error while computing min in " + this.getClass().getSimpleName();
-                throw new ExecException(msg, errCode, PigException.BUG, e);           
+                throw new ExecException(msg, errCode, PigException.BUG, e);
             }
         }
     }
@@ -95,7 +98,7 @@ public class StringMin extends EvalFunc<String> implements Algebraic, Accumulato
             } catch (Exception e) {
                 int errCode = 2106;
                 String msg = "Error while computing min in " + this.getClass().getSimpleName();
-                throw new ExecException(msg, errCode, PigException.BUG, e);           
+                throw new ExecException(msg, errCode, PigException.BUG, e);
             }
         }
     }
@@ -109,17 +112,17 @@ public class StringMin extends EvalFunc<String> implements Algebraic, Accumulato
             } catch (Exception e) {
                 int errCode = 2106;
                 String msg = "Error while computing min in " + this.getClass().getSimpleName();
-                throw new ExecException(msg, errCode, PigException.BUG, e);           
+                throw new ExecException(msg, errCode, PigException.BUG, e);
             }
         }
     }
 
     static protected String min(Tuple input) throws ExecException {
         DataBag values = (DataBag)input.get(0);
-        
+
         // if we were handed an empty bag, return NULL
         // this is in compliance with SQL standard
-        if(values.size() == 0) {
+        if(values == null || values.size() == 0) {
             return null;
         }
 
@@ -130,7 +133,7 @@ public class StringMin extends EvalFunc<String> implements Algebraic, Accumulato
             Tuple t = it.next();
             curMin = (String)(t.get(0));
         }
-        
+
         for (; it.hasNext();) {
             Tuple t = it.next();
             try {
@@ -139,25 +142,25 @@ public class StringMin extends EvalFunc<String> implements Algebraic, Accumulato
                 if( s.compareTo(curMin) < 0) {
                     curMin = s;
                 }
-                
+
             } catch (RuntimeException exp) {
                 int errCode = 2103;
                 String msg = "Problem while computing min of strings.";
                 throw new ExecException(msg, errCode, PigException.BUG, exp);
             }
         }
-    
+
         return curMin;
     }
 
     @Override
     public Schema outputSchema(Schema input) {
-        return new Schema(new Schema.FieldSchema(null, DataType.CHARARRAY)); 
+        return new Schema(new Schema.FieldSchema(null, DataType.CHARARRAY));
     }
-    
+
     /* accumulator interface */
     private String intermediateMin = null;
-    
+
     @Override
     public void accumulate(Tuple b) throws IOException {
         try {
@@ -168,14 +171,14 @@ public class StringMin extends EvalFunc<String> implements Algebraic, Accumulato
             // check if it lexicographically follows curMax
             if (intermediateMin == null || intermediateMin.compareTo(curMin) > 0) {
                 intermediateMin = curMin;
-            }            
+            }
 
         } catch (ExecException ee) {
             throw ee;
         } catch (Exception e) {
             int errCode = 2106;
             String msg = "Error while computing max in " + this.getClass().getSimpleName();
-            throw new ExecException(msg, errCode, PigException.BUG, e);           
+            throw new ExecException(msg, errCode, PigException.BUG, e);
         }
     }
 

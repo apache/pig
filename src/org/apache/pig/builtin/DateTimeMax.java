@@ -20,8 +20,6 @@ package org.apache.pig.builtin;
 import java.io.IOException;
 import java.util.Iterator;
 
-import org.joda.time.DateTime;
-
 import org.apache.pig.Accumulator;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
@@ -32,6 +30,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.joda.time.DateTime;
 
 /**
  * This method should never be used directly, use {@link MAX}.
@@ -47,14 +46,17 @@ public class DateTimeMax extends EvalFunc<DateTime> implements Algebraic, Accumu
         }
     }
 
+    @Override
     public String getInitial() {
         return Initial.class.getName();
     }
 
+    @Override
     public String getIntermed() {
         return Intermediate.class.getName();
     }
 
+    @Override
     public String getFinal() {
         return Final.class.getName();
     }
@@ -120,7 +122,7 @@ public class DateTimeMax extends EvalFunc<DateTime> implements Algebraic, Accumu
 
         // if we were handed an empty bag, return NULL
         // this is in compliance with SQL standard
-        if(values.size() == 0) {
+        if(values == null || values.size() == 0) {
             return null;
         }
 
@@ -153,7 +155,7 @@ public class DateTimeMax extends EvalFunc<DateTime> implements Algebraic, Accumu
 
     @Override
     public Schema outputSchema(Schema input) {
-        return new Schema(new Schema.FieldSchema(null, DataType.DATETIME)); 
+        return new Schema(new Schema.FieldSchema(null, DataType.DATETIME));
     }
 
 
