@@ -172,6 +172,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
     private Map<String, LocalResource> localResources;
     private PigContext pc;
     private Configuration globalConf;
+    private Configuration pigContextConf;
     private FileSystem fs;
     private long intermediateTaskInputSize;
     private Set<String> inputSplitInDiskVertices;
@@ -181,21 +182,98 @@ public class TezDagBuilder extends TezOpPlanVisitor {
     private String serializedPigContext;
     private String serializedUDFImportList;
 
+    // Map corresponds to root vertices, reduce to intermediate and leaf vertices
+    private Resource mapTaskResource;
+    private Resource reduceTaskResource;
+    private Map<String, String> mapTaskEnv = new HashMap<String, String>();
+    private Map<String, String> reduceTaskEnv = new HashMap<String, String>();
+    private String mapTaskLaunchCmdOpts;
+    private String reduceTaskLaunchCmdOpts;
+
     public TezDagBuilder(PigContext pc, TezOperPlan plan, DAG dag,
             Map<String, LocalResource> localResources) {
         super(plan, new DependencyOrderWalker<TezOperator, TezOperPlan>(plan));
         this.pc = pc;
-        this.globalConf = ConfigurationUtil.toConfiguration(pc.getProperties(), true);
         this.localResources = localResources;
         this.dag = dag;
         this.inputSplitInDiskVertices = new HashSet<String>();
 
         try {
-            // Add credentials from binary token file and get tokens for namenodes
-            // specified in mapreduce.job.hdfs-servers
-            SecurityHelper.populateTokenCache(globalConf, dag.getCredentials());
+            initialize(pc);
+
+            udfContextSeparator = new TezUDFContextSeparator(plan,
+                    new DependencyOrderWalker<TezOperator, TezOperPlan>(plan));
+            udfContextSeparator.visit();
         } catch (IOException e) {
-            throw new RuntimeException("Error while fetching delegation tokens", e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void initialize(PigContext pc) throws IOException {
+
+        this.globalConf = ConfigurationUtil.toConfiguration(pc.getProperties(), true);
+
+        this.pigContextConf = ConfigurationUtil.toConfiguration(pc.getProperties(), false);
+        MRToTezHelper.processMRSettings(pigContextConf, globalConf);
+
+        // Add credentials from binary token file and get tokens for namenodes
+        // specified in mapreduce.job.hdfs-servers
+        SecurityHelper.populateTokenCache(globalConf, dag.getCredentials());
+
+        // All these classes are @InterfaceAudience.Private in Hadoop. Switch to Tez methods in TEZ-1012
+        // set the timestamps, public/private visibility of the archives and files
+        ClientDistributedCacheManager
+                .determineTimestampsAndCacheVisibilities(globalConf);
+        // get DelegationToken for each cached file
+        ClientDistributedCacheManager.getDelegationTokens(globalConf,
+                dag.getCredentials());
+        MRApps.setupDistributedCache(globalConf, this.localResources);
+        dag.addTaskLocalFiles(this.localResources);
+
+        int mapMemoryMB;
+        int reduceMemoryMB;
+        int mapVCores;
+        int reduceVCores;
+        if (globalConf.get(TezConfiguration.TEZ_TASK_RESOURCE_MEMORY_MB) != null) {
+            mapMemoryMB = globalConf.getInt(
+                    TezConfiguration.TEZ_TASK_RESOURCE_MEMORY_MB,
+                    TezConfiguration.TEZ_TASK_RESOURCE_MEMORY_MB_DEFAULT);
+            reduceMemoryMB = mapMemoryMB;
+        } else {
+            // If tez setting is not defined, try MR setting
+            mapMemoryMB = globalConf.getInt(MRJobConfig.MAP_MEMORY_MB,
+                    MRJobConfig.DEFAULT_MAP_MEMORY_MB);
+            reduceMemoryMB = globalConf.getInt(MRJobConfig.REDUCE_MEMORY_MB,
+                    MRJobConfig.DEFAULT_REDUCE_MEMORY_MB);
+        }
+
+        if (globalConf.get(TezConfiguration.TEZ_TASK_RESOURCE_CPU_VCORES) != null) {
+            mapVCores = globalConf.getInt(
+                    TezConfiguration.TEZ_TASK_RESOURCE_CPU_VCORES,
+                    TezConfiguration.TEZ_TASK_RESOURCE_CPU_VCORES_DEFAULT);
+            reduceVCores = mapVCores;
+        } else {
+            mapVCores = globalConf.getInt(MRJobConfig.MAP_CPU_VCORES,
+                    MRJobConfig.DEFAULT_MAP_CPU_VCORES);
+            reduceVCores = globalConf.getInt(MRJobConfig.REDUCE_CPU_VCORES,
+                    MRJobConfig.DEFAULT_REDUCE_CPU_VCORES);
+        }
+        mapTaskResource = Resource.newInstance(mapMemoryMB, mapVCores);
+        reduceTaskResource = Resource.newInstance(reduceMemoryMB, reduceVCores);
+
+        if (globalConf.get(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS) == null) {
+            // If tez setting is not defined
+            MRHelpers.updateEnvBasedOnMRTaskEnv(globalConf, mapTaskEnv, true);
+            MRHelpers.updateEnvBasedOnMRTaskEnv(globalConf, reduceTaskEnv, true);
+        }
+
+        if (globalConf.get(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS) != null) {
+            mapTaskLaunchCmdOpts = globalConf.get(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS);
+            reduceTaskLaunchCmdOpts = mapTaskLaunchCmdOpts;
+        } else {
+            // If tez setting is not defined, try MR setting
+            mapTaskLaunchCmdOpts = MRHelpers.getJavaOptsForMRMapper(globalConf);
+            reduceTaskLaunchCmdOpts = MRHelpers.getJavaOptsForMRReducer(globalConf);
         }
 
         try {
@@ -212,21 +290,13 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                         InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM,
                         InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER));
 
-        try {
-            serializedPigContext = ObjectSerializer.serialize(pc);
-            serializedUDFImportList = ObjectSerializer.serialize(PigContext.getPackageImportList());
-
-            udfContextSeparator = new TezUDFContextSeparator(plan,
-                    new DependencyOrderWalker<TezOperator, TezOperPlan>(plan));
-            udfContextSeparator.visit();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        serializedPigContext = ObjectSerializer.serialize(pc);
+        serializedUDFImportList = ObjectSerializer.serialize(PigContext.getPackageImportList());
     }
 
-    public String getSerializedTezPlan() throws IOException {
+    private String getSerializedTezPlan() throws IOException {
         if (serializedTezPlan == null) {
-            // Initialize lazy as auto parallelism might not be in play
+            // Initialize lazy instead of constructor as this might not be needed
             serializedTezPlan = ObjectSerializer.serialize(getPlan());
         }
         return serializedTezPlan;
@@ -368,7 +438,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         InputDescriptor in = InputDescriptor.create(edge.inputClassName);
         OutputDescriptor out = OutputDescriptor.create(edge.outputClassName);
 
-        Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties(), false);
+        Configuration conf = new Configuration(pigContextConf);
 
         if (!combinePlan.isEmpty()) {
             udfContextSeparator.serializeUDFContextForEdge(conf, from, to, UDFType.USERFUNC);
@@ -437,8 +507,6 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                     edge.partitionerClass.getName());
         }
 
-        MRToTezHelper.processMRSettings(conf, globalConf);
-
         in.setUserPayload(TezUtils.createUserPayloadFromConf(conf));
         out.setUserPayload(TezUtils.createUserPayloadFromConf(conf));
 
@@ -485,7 +553,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 tezOp.getProcessorName());
 
         // Pass physical plans to vertex as user payload.
-        JobConf payloadConf = new JobConf(ConfigurationUtil.toConfiguration(pc.getProperties(), false));
+        JobConf payloadConf = new JobConf(pigContextConf);
 
         // We do this so that dag.getCredentials(), job.getCredentials(),
         // job.getConfiguration().getCredentials() all reference the same Credentials object
@@ -502,7 +570,6 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         setOutputFormat(job);
         payloadConf.set("udf.import.list", serializedUDFImportList);
         payloadConf.set("exectype", "TEZ");
-        MRToTezHelper.processMRSettings(payloadConf, globalConf);
 
         // Process stores
         LinkedList<POStore> stores = processStores(tezOp, payloadConf, job);
@@ -707,7 +774,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                     }
                 }
                 if (containScatterGather && !containCustomPartitioner) {
-                    vmPluginConf = (vmPluginConf == null) ? ConfigurationUtil.toConfiguration(pc.getProperties(), false) : vmPluginConf;
+                    vmPluginConf = (vmPluginConf == null) ? new Configuration(pigContextConf) : vmPluginConf;
                     // Use auto-parallelism feature of ShuffleVertexManager to dynamically
                     // reduce the parallelism of the vertex
                     if (payloadConf.getBoolean(PigConfiguration.PIG_TEZ_GRACE_PARALLELISM, true)
@@ -750,7 +817,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 // limit job starts when 1 source task finishes.
                 // If limit is part of a group by or join because their parallelism is 1,
                 // we should leave the configuration with the defaults.
-                vmPluginConf = (vmPluginConf == null) ? ConfigurationUtil.toConfiguration(pc.getProperties(), false) : vmPluginConf;
+                vmPluginConf = (vmPluginConf == null) ? new Configuration(pigContextConf) : vmPluginConf;
                 vmPluginConf.set(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION, "0.00001");
                 vmPluginConf.set(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION, "0.00001");
                 log.info("Set " + ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION + " to 0.00001 for limit vertex " + tezOp.getOperatorKey().toString());
@@ -761,41 +828,19 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         if (tezOp.isUseGraceParallelism()) {
             parallel = -1;
         }
-        Resource resource;
-        if (globalConf.get(TezConfiguration.TEZ_TASK_RESOURCE_MEMORY_MB)!=null &&
-                globalConf.get(TezConfiguration.TEZ_TASK_RESOURCE_CPU_VCORES)!=null) {
-            resource = Resource.newInstance(globalConf.getInt(TezConfiguration.TEZ_TASK_RESOURCE_MEMORY_MB,
-                    TezConfiguration.TEZ_TASK_RESOURCE_MEMORY_MB_DEFAULT),
-                    globalConf.getInt(TezConfiguration.TEZ_TASK_RESOURCE_CPU_VCORES,
-                    TezConfiguration.TEZ_TASK_RESOURCE_CPU_VCORES_DEFAULT));
-        } else {
-            // If tez setting is not defined, try MR setting
-            resource = tezOp.isUseMRMapSettings() ? MRHelpers.getResourceForMRMapper(globalConf) : MRHelpers.getResourceForMRReducer(globalConf);
-        }
+        Resource resource = tezOp.isUseMRMapSettings() ? mapTaskResource : reduceTaskResource;
+
         Vertex vertex = Vertex.create(tezOp.getOperatorKey().toString(), procDesc, parallel, resource);
-        Map<String, String> taskEnv = new HashMap<String, String>();
-        MRHelpers.updateEnvBasedOnMRTaskEnv(globalConf, taskEnv, tezOp.isUseMRMapSettings());
-        vertex.setTaskEnvironment(taskEnv);
 
-        // All these classes are @InterfaceAudience.Private in Hadoop. Switch to Tez methods in TEZ-1012
-        // set the timestamps, public/private visibility of the archives and files
-        ClientDistributedCacheManager
-                .determineTimestampsAndCacheVisibilities(globalConf);
-        // get DelegationToken for each cached file
-        ClientDistributedCacheManager.getDelegationTokens(globalConf,
-                job.getCredentials());
-        MRApps.setupDistributedCache(globalConf, localResources);
-        vertex.addTaskLocalFiles(localResources);
-
-        String javaOpts;
-        if (globalConf.get(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS)!=null) {
-            javaOpts = globalConf.get(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS);
+        if (tezOp.isUseMRMapSettings()) {
+            vertex.setTaskLaunchCmdOpts(mapTaskLaunchCmdOpts);
+            vertex.setTaskEnvironment(mapTaskEnv);
         } else {
-            // If tez setting is not defined, try MR setting
-            javaOpts = tezOp.isUseMRMapSettings() ? MRHelpers.getJavaOptsForMRMapper(globalConf)
-                    : MRHelpers.getJavaOptsForMRReducer(globalConf);
+            vertex.setTaskLaunchCmdOpts(reduceTaskLaunchCmdOpts);
+            vertex.setTaskEnvironment(reduceTaskEnv);
         }
-        vertex.setTaskLaunchCmdOpts(javaOpts);
+
+        MRToTezHelper.setVertexConfig(vertex, tezOp.isUseMRMapSettings(), globalConf);
 
         log.info("For vertex - " + tezOp.getOperatorKey().toString()
                 + ": parallelism=" + tezOp.getVertexParallelism()
