@@ -584,6 +584,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             // the inputs that are attached to the POShuffleTezLoad in the
             // backend.
             Map<Integer, String> localRearrangeMap = new TreeMap<Integer, String>();
+            TezOperator from = null;
             for (TezOperator pred : mPlan.getPredecessors(tezOp)) {
                 if (tezOp.getSampleOperator() != null && tezOp.getSampleOperator() == pred) {
                     // skip sample vertex input
@@ -603,6 +604,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                             if (isVertexGroup) {
                                 isMergedInput = true;
                             }
+                            from = pred;
                         }
                     }
                 }
@@ -619,6 +621,16 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
             //POShuffleTezLoad accesses the comparator setting
             selectKeyComparator(keyType, payloadConf, tezOp, isMergedInput);
+
+            if (tezOp.isUseSecondaryKey()) {
+                TezEdgeDescriptor edge = tezOp.inEdges.get(from.getOperatorKey());
+                // Currently only PigSecondaryKeyGroupingComparator is used in POShuffleTezLoad.
+                // When PIG-4685: SecondaryKeyOptimizerTez does not optimize cogroup is fixed
+                // in future, PigSecondaryKeyComparator will have to be used and that will require this.
+                payloadConf.set("pig.secondarySortOrder", ObjectSerializer
+                        .serialize(edge.getSecondarySortOrder()));
+            }
+
         }
 
         // set parent plan in all operators. currently the parent plan is really
