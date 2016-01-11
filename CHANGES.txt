@@ -79,6 +79,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-4773: [Pig on Tez] Secondary key descending sort in nested foreach after union does ascending instead (rohini)
+
 PIG-4774: Fix NPE in SUM,AVG,MIN,MAX UDFs for null bag input (rohini)
 
 PIG-4757: Job stats on successfully read/output records wrong with multiple inputs/outputs (rohini)

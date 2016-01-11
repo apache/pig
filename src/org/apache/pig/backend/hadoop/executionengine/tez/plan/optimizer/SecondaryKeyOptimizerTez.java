@@ -56,12 +56,13 @@ public class SecondaryKeyOptimizerTez extends TezOpPlanVisitor implements Second
             return;
         }
 
+        // TODO: PIG-4685: SecondaryKeyOptimizerTez does not optimize cogroup
         // Current code does not handle more than one predecessors
         // even though it is possible. The problem is when we
         // process the first predecessor, we remove the foreach inner
         // operators from the reduce side, and the second predecessor
         // cannot see them
-        if (predecessors.size()>1) {
+        if (predecessors.size() > 1) {
             return;
         }
         TezOperator from = predecessors.get(0);
