@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4775: Better default values for shuffle bytes per reducer (rohini)
+
 PIG-4753: Pigmix should have option to delete outputs after completing the tests (mitdesai via rohini)
 
 PIG-4744: Honor tez.staging-dir setting in tez-site.xml (rohini via daijy)
