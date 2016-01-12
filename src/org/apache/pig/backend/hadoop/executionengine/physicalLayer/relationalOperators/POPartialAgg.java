@@ -41,7 +41,6 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.InternalCachedBag;
 import org.apache.pig.data.SelfSpillBag.MemoryLimits;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.GroupingSpillable;
@@ -91,8 +90,6 @@ public class POPartialAgg extends PhysicalOperator implements Spillable, Groupin
     private static final int SECOND_TIER_THRESHOLD = FIRST_TIER_THRESHOLD / DEFAULT_MIN_REDUCTION;
 
     private static final WeakHashMap<POPartialAgg, Byte> ALL_POPARTS = new WeakHashMap<POPartialAgg, Byte>();
-
-    private static final TupleFactory TF = TupleFactory.getInstance();
 
     private PhysicalPlan keyPlan;
     private ExpressionOperator keyLeaf;
@@ -496,7 +493,7 @@ public class POPartialAgg extends PhysicalOperator implements Spillable, Groupin
     }
 
     private Tuple createValueTuple(Object key, List<Tuple> inpTuples) throws ExecException {
-        Tuple valueTuple = TF.newTuple(valuePlans.size() + 1);
+        Tuple valueTuple = mTupleFactory.newTuple(valuePlans.size() + 1);
         valueTuple.set(0, key);
 
         for (int i = 0; i < valuePlans.size(); i++) {
@@ -576,7 +573,7 @@ public class POPartialAgg extends PhysicalOperator implements Spillable, Groupin
      * @throws ExecException
      */
     private Result getOutput(Object key, Tuple value) throws ExecException {
-        Tuple output = TF.newTuple(valuePlans.size() + 1);
+        Tuple output = mTupleFactory.newTuple(valuePlans.size() + 1);
         output.set(0, key);
 
         for (int i = 0; i < valuePlans.size(); i++) {
@@ -656,5 +653,15 @@ public class POPartialAgg extends PhysicalOperator implements Spillable, Groupin
     public long getMemorySize() {
         return avgTupleSize * (numRecsInProcessedMap + numRecsInRawMap);
     }
+
+    @Override
+    public PhysicalOperator clone() throws CloneNotSupportedException {
+        POPartialAgg clone = (POPartialAgg) super.clone();
+        clone.setKeyPlan(keyPlan.clone());
+        clone.setValuePlans(clonePlans(valuePlans));
+        return clone;
+    }
+
+
 
 }

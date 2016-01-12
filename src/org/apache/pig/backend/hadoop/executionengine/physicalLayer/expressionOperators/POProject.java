@@ -27,12 +27,10 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
-import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.SingleTupleBag;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
@@ -50,10 +48,6 @@ public class POProject extends ExpressionOperator {
      *
      */
     private static final long serialVersionUID = 1L;
-
-    private static TupleFactory tupleFactory = TupleFactory.getInstance();
-
-    protected static final BagFactory bagFactory = BagFactory.getInstance();
 
     private boolean resultSingleTupleBag = false;
 
@@ -191,7 +185,7 @@ public class POProject extends ExpressionOperator {
             for(int col : columns) {
                 addColumn(objList, inpValue, col);
             }
-            ret = tupleFactory.newTupleNoCopy(objList);
+            ret = mTupleFactory.newTupleNoCopy(objList);
         }
         res.result = ret;
         illustratorMarkup(inpValue, res.result, -1);
@@ -277,20 +271,20 @@ public class POProject extends ExpressionOperator {
                     for (int col : columns) {
                         addColumn(objList, tuple, col);
                     }
-                    outBag = new SingleTupleBag( tupleFactory.newTupleNoCopy(objList) );
+                    outBag = new SingleTupleBag( mTupleFactory.newTupleNoCopy(objList) );
                 }else {
                     Tuple tmpTuple = getRangeTuple(tuple);
                     outBag = new SingleTupleBag(tmpTuple);
                 }
             } else {
-                outBag = bagFactory.newDefaultBag();
+                outBag = mBagFactory.newDefaultBag();
                 for (Tuple tuple : inpBag) {
                     if(!isProjectToEnd){
                         ArrayList<Object> objList = new ArrayList<Object>(columns.size());
                         for (int col : columns) {
                             addColumn(objList, tuple, col);
                         }
-                        outBag.add( tupleFactory.newTupleNoCopy(objList) );
+                        outBag.add( mTupleFactory.newTupleNoCopy(objList) );
                     }else{
                         Tuple outTuple = getRangeTuple(tuple);
                         outBag.add(outTuple);
@@ -321,14 +315,14 @@ public class POProject extends ExpressionOperator {
         Tuple outTuple;
         if(isRangeInvalid(lastColIdx)){
             //invalid range - return empty tuple
-            outTuple = tupleFactory.newTuple();
+            outTuple = mTupleFactory.newTuple();
         }
         else {
             ArrayList<Object> objList = new ArrayList<Object>(lastColIdx - startCol + 1);
             for(int i = startCol; i <= lastColIdx ; i++){
                 addColumn(objList, tuple, i);
             }
-            outTuple = tupleFactory.newTupleNoCopy(objList);
+            outTuple = mTupleFactory.newTupleNoCopy(objList);
         }
         return outTuple;
     }
@@ -451,7 +445,7 @@ public class POProject extends ExpressionOperator {
                         objList.add(null);
                     }
                 }
-                ret = tupleFactory.newTuple(objList);
+                ret = mTupleFactory.newTuple(objList);
                 res.result = (Tuple)ret;
                 return res;
             }

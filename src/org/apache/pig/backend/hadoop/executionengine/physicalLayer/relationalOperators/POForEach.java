@@ -57,26 +57,13 @@ public class POForEach extends PhysicalOperator {
     private static final long serialVersionUID = 1L;
 
     protected List<PhysicalPlan> inputPlans;
+
     protected List<PhysicalOperator> opsToBeReset;
-    //Since the plan has a generate, this needs to be maintained
-    //as the generate can potentially return multiple tuples for
-    //same call.
-    protected boolean processingPlan = false;
 
-    //its holds the iterators of the databags given by the input expressions which need flattening.
-    transient protected Iterator<Tuple> [] its = null;
-
-    //This holds the outputs given out by the input expressions of any datatype
-    protected Object [] bags = null;
-
-    //This is the template whcih contains tuples and is flattened out in createTuple() to generate the final output
-    protected Object[] data = null;
+    protected PhysicalOperator[] planLeafOps;
 
     // store result types of the plan leaves
-    protected byte[] resultTypes = null;
-
-    // store whether or not an accumulative UDF has terminated early
-    protected BitSet earlyTermination = null;
+    protected byte[] resultTypes;
 
     // array version of isToBeFlattened - this is purely
     // for optimization - instead of calling isToBeFlattened.get(i)
@@ -85,16 +72,33 @@ public class POForEach extends PhysicalOperator {
     // so we can also save on the Boolean.booleanValue() calls
     protected boolean[] isToBeFlattenedArray;
 
-    ExampleTuple tIn = null;
     protected int noItems;
 
-    protected PhysicalOperator[] planLeafOps = null;
+    //Since the plan has a generate, this needs to be maintained
+    //as the generate can potentially return multiple tuples for
+    //same call.
+    protected transient boolean processingPlan;
+
+    //its holds the iterators of the databags given by the input expressions which need flattening.
+    protected transient Iterator<Tuple> [] its = null;
+
+    //This holds the outputs given out by the input expressions of any datatype
+    protected transient Object[] bags ;
+
+    //This is the template whcih contains tuples and is flattened out in createTuple() to generate the final output
+    protected transient Object[] data;
+
+    // store whether or not an accumulative UDF has terminated early
+    protected transient BitSet earlyTermination;
+
+    protected transient ExampleTuple tIn;
+
 
     protected transient AccumulativeTupleBuffer buffer;
 
-    protected Tuple inpTuple;
+    protected transient Tuple inpTuple;
 
-    protected boolean endOfAllInputProcessed = false;
+    protected transient boolean endOfAllInputProcessed;
 
     // Indicate the foreach statement can only in map side
     // Currently only used in MR cross (See PIG-4175)
@@ -372,7 +376,7 @@ public class POForEach extends PhysicalOperator {
 
         if(its == null) {
             if (endOfAllInputProcessed) {
-                return new Result(POStatus.STATUS_EOP, null);
+                return RESULT_EOP;
             }
             //getNext being called for the first time OR starting with a set of new data from inputs
             its = new Iterator[noItems];
@@ -688,6 +692,8 @@ public class POForEach extends PhysicalOperator {
         clone.setOpsToBeReset(ops);
         clone.setResultType(getResultType());
         clone.addOriginalLocation(alias, getOriginalLocations());
+        clone.endOfAllInputProcessing = endOfAllInputProcessing;
+        clone.mapSideOnly = mapSideOnly;
         return clone;
     }
 

@@ -81,6 +81,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-4737: Check and fix clone implementation for all classes extending PhysicalOperator (rohini)
+
 PIG-4770: OOM with POPartialAgg in some cases (rohini)
 
 PIG-4773: [Pig on Tez] Secondary key descending sort in nested foreach after union does ascending instead (rohini)

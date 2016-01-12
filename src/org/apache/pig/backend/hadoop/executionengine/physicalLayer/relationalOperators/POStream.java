@@ -43,22 +43,21 @@ import org.apache.pig.pen.util.ExampleTuple;
 public class POStream extends PhysicalOperator {
     private static final long serialVersionUID = 2L;
 
-    private static final Result EOP_RESULT = new Result(POStatus.STATUS_EOP, null);
-
     private String executableManagerStr;            // String representing ExecutableManager to use
-    transient private ExecutableManager executableManager;    // ExecutableManager to use
     private StreamingCommand command;               // Actual command to be run
     private Properties properties;
-
-    private boolean initialized = false;
 
     protected BlockingQueue<Result> binaryOutputQueue = new ArrayBlockingQueue<Result>(1);
 
     protected BlockingQueue<Result> binaryInputQueue = new ArrayBlockingQueue<Result>(1);
 
-    protected boolean allInputFromPredecessorConsumed = false;
+    private transient ExecutableManager executableManager;    // ExecutableManager to use
 
-    protected boolean allOutputFromBinaryProcessed = false;
+    private transient boolean initialized = false;
+
+    protected transient boolean allInputFromPredecessorConsumed = false;
+
+    protected transient boolean allOutputFromBinaryProcessed = false;
 
     /**
      * This flag indicates whether streaming is done through fetching. If set,
@@ -143,7 +142,7 @@ public class POStream extends PhysicalOperator {
             // The "allOutputFromBinaryProcessed" flag is set when we see
             // an EOS (End of Stream output) from streaming binary
             if(allOutputFromBinaryProcessed) {
-                return EOP_RESULT;
+                return RESULT_EOP;
             }
 
             // if we are here AFTER all map() calls have been completed
@@ -158,7 +157,7 @@ public class POStream extends PhysicalOperator {
                     // So we can send an EOP to the successor in
                     // the pipeline and also note this condition
                     // for future calls
-                    r = EOP_RESULT;
+                    r = RESULT_EOP;
                     allOutputFromBinaryProcessed = true;
                 } else if (r.returnStatus == POStatus.STATUS_OK) {
                     illustratorMarkup(r.result, r.result, 0);
@@ -191,7 +190,7 @@ public class POStream extends PhysicalOperator {
                             // So we can send an EOP to the successor in
                             // the pipeline and also note this condition
                             // for future calls
-                            r = EOP_RESULT;
+                            r = RESULT_EOP;
                             allOutputFromBinaryProcessed = true;
                         }
                     }
@@ -202,7 +201,7 @@ public class POStream extends PhysicalOperator {
                     // So we can send an EOP to the successor in
                     // the pipeline and also note this condition
                     // for future calls
-                    r = EOP_RESULT;
+                    r = RESULT_EOP;
                     allOutputFromBinaryProcessed = true;
                 } else if (r.returnStatus == POStatus.STATUS_OK) {
                   illustratorMarkup(r.result, r.result, 0);
@@ -218,7 +217,7 @@ public class POStream extends PhysicalOperator {
                     // So we can send an EOP to the successor in
                     // the pipeline and also note this condition
                     // for future calls
-                    r = EOP_RESULT;
+                    r = RESULT_EOP;
                     allOutputFromBinaryProcessed  = true;
                 } else if (r.returnStatus == POStatus.STATUS_OK) {
                     illustratorMarkup(r.result, r.result, 0);
@@ -297,8 +296,9 @@ public class POStream extends PhysicalOperator {
 
                         // wait for either input to be available
                         // or output to be consumed
-                        while(binaryOutputQueue.isEmpty() && !binaryInputQueue.isEmpty())
+                        while(binaryOutputQueue.isEmpty() && !binaryInputQueue.isEmpty()) {
                             wait();
+                        }
 
                     }
                 }
@@ -380,6 +380,15 @@ public class POStream extends PhysicalOperator {
      */
     public void setFetchable(boolean isFetchable) {
         this.isFetchable = isFetchable;
+    }
+
+    @Override
+    public PhysicalOperator clone() throws CloneNotSupportedException {
+        POStream clone = (POStream)super.clone();
+        clone.binaryOutputQueue = new ArrayBlockingQueue<Result>(1);
+        clone.binaryInputQueue = new ArrayBlockingQueue<Result>(1);
+        //Not cloning StreamingCommand as it is read only
+        return clone;
     }
 
 }

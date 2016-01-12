@@ -35,7 +35,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlan
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.TezInput;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.TezOutput;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.tez.runtime.api.LogicalInput;
@@ -152,7 +151,7 @@ public class POCounterStatsTez extends PhysicalOperator implements TezInput, Tez
                 prevTasksCount += counterRecords.get(i);
             }
 
-            Tuple tuple = TupleFactory.getInstance().newTuple(1);
+            Tuple tuple = mTupleFactory.newTuple(1);
             tuple.set(0, counterOffsets);
             writer.write(POValueOutputTez.EMPTY_KEY, tuple);
             finished = true;

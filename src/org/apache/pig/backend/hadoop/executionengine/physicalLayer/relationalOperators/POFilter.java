@@ -49,17 +49,16 @@ public class POFilter extends PhysicalOperator {
     private static final long serialVersionUID = 1L;
 
     // The expression plan
-    PhysicalPlan plan;
+    private PhysicalPlan plan;
 
     // The root comparison operator of the expression plan
-//    ComparisonOperator comOp;
-    PhysicalOperator comOp;
-
+    // ComparisonOperator comOp;
+    private PhysicalOperator comOp;
 
     // The operand type for the comparison operator needed
     // to call the comparison operators getNext with the
     // appropriate type
-    byte compOperandType;
+    // private byte compOperandType;
 
     public POFilter(OperatorKey k) {
         this(k, -1, null);
@@ -205,8 +204,7 @@ public class POFilter extends PhysicalOperator {
 
     @Override
     public PhysicalOperator clone() throws CloneNotSupportedException {
-        Object o = super.clone();
-        POFilter opClone = (POFilter)o;
+        POFilter opClone = (POFilter) super.clone();
         opClone.setPlan(plan.clone());
         return opClone;
     }

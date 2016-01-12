@@ -110,6 +110,12 @@ public class UnionOptimizer extends TezOpPlanVisitor {
         if((tezOp.isLimit() || tezOp.isLimitAfterSort()) && tezOp.getRequestedParallelism() == 1) {
             return false;
         }
+        // Two vertices separately ranking with 1 to n and writing to output directly
+        // will make each rank repeate twice which is wrong. Rank always needs to be
+        // done from single vertex to have the counting correct.
+        if (tezOp.isRankCounter()) {
+            return false;
+        }
         if (supportedStoreFuncs != null || unsupportedStoreFuncs != null) {
             List<POStoreTez> stores = PlanHelper.getPhysicalOperators(tezOp.plan, POStoreTez.class);
             for (POStoreTez store : stores) {

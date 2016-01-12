@@ -39,7 +39,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlan
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.TezOutput;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.TezTaskConfigurable;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.tez.runtime.api.LogicalOutput;
@@ -50,8 +49,6 @@ public class POValueOutputTez extends PhysicalOperator implements TezOutput, Tez
 
     private static final long serialVersionUID = 1L;
     private static final Log LOG = LogFactory.getLog(POValueOutputTez.class);
-
-    private static final TupleFactory tupleFactory = TupleFactory.getInstance();
 
     private boolean scalarOutput;
     private transient Object scalarValue;
@@ -171,7 +168,7 @@ public class POValueOutputTez extends PhysicalOperator implements TezOutput, Tez
                 }
             }
             if (taskIndexWithRecordIndexAsKey) {
-                Tuple tuple = tupleFactory.newTuple(2);
+                Tuple tuple = mTupleFactory.newTuple(2);
                 tuple.set(0, taskIndex);
                 tuple.set(1, count++);
                 key = tuple;

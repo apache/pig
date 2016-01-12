@@ -33,16 +33,13 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.ObjectCache;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.PigProcessor;
-import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.builtin.PartitionSkewedKeys;
 import org.apache.pig.impl.io.NullablePartitionWritable;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
-import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.Pair;
 
@@ -58,13 +55,11 @@ public class POPartitionRearrangeTez extends POLocalRearrangeTez {
     private static final long serialVersionUID = 1L;
 
     private static final Log LOG = LogFactory.getLog(POPartitionRearrangeTez.class);
-    private static final TupleFactory tf = TupleFactory.getInstance();
-    private static final BagFactory mBagFactory = BagFactory.getInstance();
 
     // ReducerMap will store the tuple, max reducer index & min reducer index
-    private Map<Object, Pair<Integer, Integer>> reducerMap = Maps.newHashMap();
-    private Integer totalReducers = -1;
-    private boolean inited = false;
+    private transient Map<Object, Pair<Integer, Integer>> reducerMap;
+    private transient Integer totalReducers;
+    private transient boolean inited;
 
     public POPartitionRearrangeTez(OperatorKey k) {
         this(k, -1);
@@ -202,6 +197,8 @@ public class POPartitionRearrangeTez extends POLocalRearrangeTez {
         }
 
         Map<String, Object> distMap = null;
+        totalReducers = -1;
+        reducerMap = Maps.newHashMap();
         if (PigProcessor.sampleMap != null) {
             // We've already collected sampleMap in PigProcessor
             distMap = PigProcessor.sampleMap;
@@ -233,7 +230,7 @@ public class POPartitionRearrangeTez extends POLocalRearrangeTez {
                 if (idxTuple.size() > 3) {
                 // remove the last 2 fields of the tuple, i.e: minIndex
                 // and maxIndex and store it in the reducer map
-                Tuple keyTuple = tf.newTuple();
+                Tuple keyTuple = mTupleFactory.newTuple();
                 for (int i=0; i < idxTuple.size() - 2; i++) {
                     keyTuple.append(idxTuple.get(i));
                 }
@@ -259,13 +256,6 @@ public class POPartitionRearrangeTez extends POLocalRearrangeTez {
 
     @Override
     public POPartitionRearrangeTez clone() throws CloneNotSupportedException {
-        POPartitionRearrangeTez clone = new POPartitionRearrangeTez(new OperatorKey(
-                mKey.scope, NodeIdGenerator.getGenerator().getNextNodeId(
-                        mKey.scope)), requestedParallelism);
-        deepCopyTo(clone);
-        clone.isSkewedJoin = isSkewedJoin;
-        clone.connectedToPackage = connectedToPackage;
-        clone.setOutputKey(outputKey);
-        return clone;
+        return (POPartitionRearrangeTez) super.clone();
     }
 }

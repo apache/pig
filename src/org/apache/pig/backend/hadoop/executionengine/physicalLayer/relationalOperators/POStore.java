@@ -50,7 +50,6 @@ import org.apache.pig.tools.pigstats.PigStatsUtil;
 public class POStore extends PhysicalOperator {
 
     private static final long serialVersionUID = 1L;
-    protected static Result empty = new Result(POStatus.STATUS_NULL, null);
     transient private StoreFuncInterface storer;
     transient private StoreFuncDecorator sDecorator;
     transient private POStoreImpl impl;
@@ -117,7 +116,7 @@ public class POStore extends PhysicalOperator {
     public void setUp() throws IOException{
         if (impl != null) {
             try{
-                storer = impl.createStoreFunc(this); 
+                storer = impl.createStoreFunc(this);
                 if (!isTmpStore && !disableCounter && impl instanceof MapReducePOStoreImpl) {
                     counterName = PigStatsUtil.getMultiStoreCounterName(this);
                     if (counterName != null) {
@@ -165,7 +164,7 @@ public class POStore extends PhysicalOperator {
                     sDecorator.putNext((Tuple) res.result);
                 } else
                     illustratorMarkup(res.result, res.result, 0);
-                res = empty;
+                res = RESULT_EMPTY;
 
                 if (counterName != null) {
                     ((MapReducePOStoreImpl) impl).incrRecordCounter(counterName, 1);
@@ -256,19 +255,19 @@ public class POStore extends PhysicalOperator {
         }
         return storer;
     }
-    
+
     void setStoreFuncDecorator(StoreFuncDecorator sDecorator) {
         this.sDecorator = sDecorator;
     }
 
     /**
-     * 
+     *
      * @return The {@link StoreFuncDecorator} used to write Tuples
      */
     public StoreFuncDecorator getStoreFuncDecorator() {
         return sDecorator;
     }
-    
+
     /**
      * @param sortInfo the sortInfo to set
      */

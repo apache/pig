@@ -28,7 +28,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlan
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.pen.util.ExampleTuple;
@@ -68,8 +67,6 @@ public class POCounter extends PhysicalOperator {
      * which is a consecutive number assigned to each tuple.
      **/
     private boolean isRowNumber = false;
-
-    protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     /**
      * Local counter for tuples on the same task.
@@ -321,4 +318,14 @@ public class POCounter extends PhysicalOperator {
     public String getOperationID() {
         return operationID;
     }
+
+    @Override
+    public POCounter clone() throws CloneNotSupportedException {
+        POCounter clone = (POCounter)super.clone();
+        clone.localCount = new Long(localCount);
+        clone.taskID = new Integer(taskID);
+        // counterPlans and mAscCols unused. Not cloning them
+        return clone;
+    }
+
 }

@@ -179,7 +179,9 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         // Indicate if this job is a distinct job
         DISTINCT,
         // Indicate if this job is a native job
-        NATIVE;
+        NATIVE,
+        // Indicate if this job does rank counter
+        RANK_COUNTER;
     };
 
     // Features in the job/vertex. Mostly will be only one feature.
@@ -440,6 +442,14 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     public void markNative() {
         feature.set(OPER_FEATURE.NATIVE.ordinal());
+    }
+
+    public boolean isRankCounter() {
+        return feature.get(OPER_FEATURE.RANK_COUNTER.ordinal());
+    }
+
+    public void markRankCounter() {
+        feature.set(OPER_FEATURE.RANK_COUNTER.ordinal());
     }
 
     public void copyFeatures(TezOperator copyFrom, List<OPER_FEATURE> excludeFeatures) {

@@ -28,21 +28,21 @@ Tez vertex scope-35
 # Plan on vertex
 a: Split - scope-46
 |   |
-|   e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-48	->	 scope-34
+|   e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-55	->	 scope-34
 |   |
 |   |---e: FRJoin[tuple] - scope-47	<-	 scope-45
 |       |   |
-|       |   Project[int][0] - scope-26
+|       |   Project[int][0] - scope-48
 |       |   |
-|       |   Project[int][0] - scope-27
+|       |   Project[int][0] - scope-49
 |   |
-|   e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-50	->	 scope-34
+|   e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-64	->	 scope-34
 |   |
-|   |---e: FRJoin[tuple] - scope-49	<-	 scope-45
+|   |---e: FRJoin[tuple] - scope-56	<-	 scope-45
 |       |   |
-|       |   Project[int][0] - scope-26
+|       |   Project[int][0] - scope-57
 |       |   |
-|       |   Project[int][0] - scope-27
+|       |   Project[int][0] - scope-58
 |       |
 |       |---b: Filter[bag] - scope-13
 |           |   |

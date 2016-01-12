@@ -23,7 +23,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.builtin.PoissonSampleLoader;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
@@ -31,28 +30,6 @@ import org.apache.pig.impl.plan.VisitorException;
 public class POPoissonSample extends PhysicalOperator {
 
     private static final long serialVersionUID = 1L;
-
-    private static final TupleFactory tf = TupleFactory.getInstance();
-    private static Result eop = new Result(POStatus.STATUS_EOP, null);
-
-    // num of rows sampled so far
-    private int numRowsSampled = 0;
-
-    // average size of tuple in memory, for tuples sampled
-    private long avgTupleMemSz = 0;
-
-    // current row number
-    private long rowNum = 0;
-
-    // number of tuples to skip after each sample
-    private long skipInterval = -1;
-
-    // bytes in input to skip after every sample.
-    // divide this by avgTupleMemSize to get skipInterval
-    private long memToSkipPerSample = 0;
-
-    // has the special row with row number information been returned
-    private boolean numRowSplTupleReturned = false;
 
     // 17 is not a magic number. It can be obtained by using a poisson
     // cumulative distribution function with the mean set to 10 (empirically,
@@ -63,20 +40,34 @@ public class POPoissonSample extends PhysicalOperator {
 
     private float heapPerc = 0f;
 
-    private long totalMemory = Runtime.getRuntime().maxMemory();
+    private Long totalMemory;
+
+    private transient boolean initialized;
+
+    // num of rows sampled so far
+    private transient int numRowsSampled;
+
+    // average size of tuple in memory, for tuples sampled
+    private transient long avgTupleMemSz;
+
+    // current row number
+    private transient long rowNum;
+
+    // number of tuples to skip after each sample
+    private transient long skipInterval;
+
+    // bytes in input to skip after every sample.
+    // divide this by avgTupleMemSize to get skipInterval
+    private transient long memToSkipPerSample;
+
+    // has the special row with row number information been returned
+    private transient boolean numRowSplTupleReturned;
 
     // new Sample result
-    private Result newSample = null;
+    private transient Result newSample;
 
     public POPoissonSample(OperatorKey k, int rp, int sr, float hp, long tm) {
         super(k, rp, null);
-        numRowsSampled = 0;
-        avgTupleMemSz = 0;
-        rowNum = 0;
-        skipInterval = -1;
-        memToSkipPerSample = 0;
-        numRowSplTupleReturned = false;
-        newSample = null;
         sampleRate = sr;
         heapPerc = hp;
         if (tm != -1) {
@@ -97,10 +88,22 @@ public class POPoissonSample extends PhysicalOperator {
 
     @Override
     public Result getNextTuple() throws ExecException {
+        if (!initialized) {
+            numRowsSampled = 0;
+            avgTupleMemSz = 0;
+            rowNum = 0;
+            skipInterval = -1;
+            memToSkipPerSample = 0;
+            if (totalMemory == null) {
+                // Initialize in backend to get memory of task
+                totalMemory = Runtime.getRuntime().maxMemory();
+            }
+            initialized = true;
+        }
         if (numRowSplTupleReturned) {
             // row num special row has been returned after all inputs
             // were read, nothing more to read
-            return eop;
+            return RESULT_EOP;
         }
 
         Result res = null;
@@ -216,7 +219,7 @@ public class POPoissonSample extends PhysicalOperator {
      */
     private Result createNumRowTuple(Tuple sample) throws ExecException {
         int sz = (sample == null) ? 0 : sample.size();
-        Tuple t = tf.newTuple(sz + 2);
+        Tuple t = mTupleFactory.newTuple(sz + 2);
 
         if (sample != null) {
             for (int i=0; i<sample.size(); i++){
