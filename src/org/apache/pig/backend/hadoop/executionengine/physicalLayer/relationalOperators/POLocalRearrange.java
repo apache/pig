@@ -35,9 +35,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlan
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.PigNullableWritable;
-import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
@@ -56,8 +54,6 @@ public class POLocalRearrange extends PhysicalOperator {
      *
      */
     protected static final long serialVersionUID = 1L;
-
-    protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     private static final Result ERR_RESULT = new Result();
 
@@ -81,8 +77,6 @@ public class POLocalRearrange extends PhysicalOperator {
     protected boolean mIsDistinct = false;
 
     protected boolean isCross = false;
-
-    protected Result inp;
 
     // map to store mapping of projected columns to
     // the position in the "Key" where these will be projected to.
@@ -132,6 +126,8 @@ public class POLocalRearrange extends PhysicalOperator {
 
     // By default, we strip keys from the value.
     private boolean stripKeyFromValue = true;
+
+    protected transient Result inp;
 
     public POLocalRearrange(OperatorKey k) {
         this(k, -1, null);
@@ -709,32 +705,18 @@ public class POLocalRearrange extends PhysicalOperator {
      */
     @Override
     public POLocalRearrange clone() throws CloneNotSupportedException {
-        POLocalRearrange clone = new POLocalRearrange(new OperatorKey(
-            mKey.scope,
-            NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
-            requestedParallelism);
-        deepCopyTo(clone);
-        return clone;
-    }
-
-    protected void deepCopyTo(POLocalRearrange clone)
-            throws CloneNotSupportedException {
-
-        clone.setParentPlan(parentPlan);
-        clone.index = index;
-        if (useSecondaryKey) {
-            clone.keyType = mainKeyType;
-        } else {
-            clone.keyType = keyType;
-        }
-        clone.setUseSecondaryKey(useSecondaryKey);
+        POLocalRearrange clone = (POLocalRearrange) super.clone();
+        // Constructor
+        clone.leafOps = new ArrayList<ExpressionOperator>();
+        clone.secondaryLeafOps = new ArrayList<ExpressionOperator>();
         // Needs to be called as setDistinct so that the fake index tuple gets
         // created.
         clone.setDistinct(mIsDistinct);
-        clone.setCross(isCross);
-        clone.addOriginalLocation(alias, getOriginalLocations());
-        clone.setStripKeyFromValue(stripKeyFromValue);
-
+        // Set the keyType to mainKeyType. setSecondaryPlans will calculate
+        // based on that and set keyType to the final value
+        if (useSecondaryKey) {
+            clone.keyType = mainKeyType;
+        }
         try {
             clone.setPlans(clonePlans(plans));
             if (secondaryPlans != null) {
@@ -745,14 +727,7 @@ public class POLocalRearrange extends PhysicalOperator {
             cnse.initCause(pe);
             throw cnse;
         }
-    }
-
-    private List<PhysicalPlan> clonePlans(List<PhysicalPlan> origPlans) throws CloneNotSupportedException {
-        List<PhysicalPlan> clonePlans = new ArrayList<PhysicalPlan>(origPlans.size());
-        for (PhysicalPlan plan : origPlans) {
-            clonePlans.add(plan.clone());
-        }
-        return clonePlans;
+        return clone;
     }
 
     public boolean isCross() {

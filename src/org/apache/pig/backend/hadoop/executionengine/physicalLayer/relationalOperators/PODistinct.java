@@ -30,7 +30,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
-import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.InternalDistinctBag;
@@ -49,9 +48,8 @@ import org.apache.pig.impl.plan.VisitorException;
 public class PODistinct extends PhysicalOperator implements Cloneable {
     private static final Log log = LogFactory.getLog(PODistinct.class);
     private static final long serialVersionUID = 1L;
-    private boolean inputsAccumulated = false;
-    private DataBag distinctBag = null;
-
+    private transient boolean inputsAccumulated;
+    private transient DataBag distinctBag;
     private transient boolean initialized;
     private transient boolean useDefaultBag;
     private transient Iterator<Tuple> it;
@@ -102,7 +100,7 @@ public class PODistinct extends PhysicalOperator implements Cloneable {
                      }
                  }
              }
-             distinctBag = useDefaultBag ? BagFactory.getInstance().newDistinctBag()
+             distinctBag = useDefaultBag ? mBagFactory.newDistinctBag()
                      : new InternalDistinctBag(3);
 
             Result in = processInput();

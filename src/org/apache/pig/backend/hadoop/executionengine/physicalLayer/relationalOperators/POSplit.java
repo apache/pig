@@ -89,9 +89,7 @@ public class POSplit extends PhysicalOperator {
 
     private BitSet processedSet = new BitSet();
 
-    private static Result empty = new Result(POStatus.STATUS_NULL, null);
-
-    private boolean inpEOP = false;
+    private transient boolean inpEOP = false;
 
     /**
      * Constructs an operator with the specified key
@@ -243,7 +241,7 @@ public class POSplit extends PhysicalOperator {
             }
         }
 
-        return (res.returnStatus == POStatus.STATUS_OK) ? res : empty;
+        return (res.returnStatus == POStatus.STATUS_OK) ? res : RESULT_EMPTY;
     }
 
     private Result runPipeline(PhysicalOperator leaf) throws ExecException {
@@ -321,13 +319,9 @@ public class POSplit extends PhysicalOperator {
 
     @Override
     public POSplit clone() throws CloneNotSupportedException {
-        Object o = super.clone();
-        POSplit opClone = (POSplit)o;
+        POSplit opClone = (POSplit) super.clone();
         opClone.processedSet = new BitSet();
-        opClone.myPlans = new ArrayList<PhysicalPlan>(myPlans.size());
-        for (PhysicalPlan plan : myPlans) {
-            opClone.myPlans.add(plan.clone());
-        }
+        opClone.myPlans = clonePlans(myPlans);
         return opClone;
     }
 

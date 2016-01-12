@@ -26,31 +26,28 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.builtin.PoissonSampleLoader;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 
 public class POReservoirSample extends PhysicalOperator {
 
-    private static final TupleFactory tf = TupleFactory.getInstance();
-
     private static final long serialVersionUID = 1L;
 
     // number of samples to be sampled
     protected int numSamples;
 
-    private transient int nextSampleIdx= 0;
+    private transient int nextSampleIdx = 0;
 
-    private int rowProcessed = 0;
+    private transient int rowProcessed = 0;
 
-    private boolean sampleCollectionDone = false;
+    private transient boolean sampleCollectionDone = false;
 
     //array to store the result
     private transient Result[] samples = null;
 
     // last sample result
-    private Result lastSample = null;
+    private transient Result lastSample = null;
 
     public POReservoirSample(OperatorKey k) {
         this(k, -1, null);
@@ -170,14 +167,12 @@ public class POReservoirSample extends PhysicalOperator {
             }
             Result res = samples[nextSampleIdx++];
             if (res == null) { // Input data has lesser rows than numSamples
-                return new Result(POStatus.STATUS_NULL, null);
+                return RESULT_EMPTY;
             }
             return res;
         }
         else{
-            Result res;
-            res = new Result(POStatus.STATUS_EOP, null);
-            return res;
+            return RESULT_EOP;
         }
     }
 
@@ -203,7 +198,7 @@ public class POReservoirSample extends PhysicalOperator {
      */
     private Result createNumRowTuple(Tuple sample) throws ExecException {
         int sz = (sample == null) ? 0 : sample.size();
-        Tuple t = tf.newTuple(sz + 2);
+        Tuple t = mTupleFactory.newTuple(sz + 2);
 
         if (sample != null) {
             for (int i=0; i<sample.size(); i++){

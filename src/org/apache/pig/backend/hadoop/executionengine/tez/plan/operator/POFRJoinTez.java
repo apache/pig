@@ -215,4 +215,10 @@ public class POFRJoinTez extends POFRJoin implements TezInput {
     public List<String> getInputKeys() {
         return inputKeys;
     }
+
+    @Override
+    public POFRJoinTez clone() throws CloneNotSupportedException {
+        return (POFRJoinTez) super.clone();
+    }
+
 }

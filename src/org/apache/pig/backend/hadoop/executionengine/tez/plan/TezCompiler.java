@@ -653,6 +653,7 @@ public class TezCompiler extends PhyPlanVisitor {
     public void visitCounter(POCounter op) throws VisitorException {
         // Refer visitRank(PORank) for more details
         try{
+            curTezOp.markRankCounter();
             POCounterTez counterTez = new POCounterTez(op);
             nonBlocking(counterTez);
             phyToTezOpMap.put(op, curTezOp);

@@ -32,7 +32,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlan
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.pen.util.ExampleTuple;
@@ -54,8 +53,6 @@ public class PORank extends PhysicalOperator {
     private List<PhysicalPlan> rankPlans;
     private List<Boolean> mAscCols;
     private List<Byte> ExprOutputTypes;
-
-    protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     /**
      * Unique identifier that links POCounter and PORank,
@@ -229,5 +226,12 @@ public class PORank extends PhysicalOperator {
 
     public String getOperationID() {
         return operationID;
+    }
+
+    @Override
+    public PORank clone() throws CloneNotSupportedException {
+        PORank clone = (PORank)super.clone();
+        // rankPlans, mAscCols, ExprOutputTypes are unused. Not cloning them
+        return clone;
     }
 }

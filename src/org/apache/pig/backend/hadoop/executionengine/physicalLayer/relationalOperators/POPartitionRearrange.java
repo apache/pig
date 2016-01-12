@@ -30,7 +30,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ExpressionOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
-import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -38,8 +37,6 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.Utils;
-
-import com.google.common.collect.Maps;
 
 /**
  * The partition rearrange operator is a part of the skewed join
@@ -50,12 +47,11 @@ import com.google.common.collect.Maps;
 public class POPartitionRearrange extends POLocalRearrange {
 
     private static final long serialVersionUID = 1L;
-    private static final BagFactory mBagFactory = BagFactory.getInstance();
 
-    private Integer totalReducers = -1;
+    private transient Integer totalReducers;
     // ReducerMap will store the tuple, max reducer index & min reducer index
-    private Map<Object, Pair<Integer, Integer> > reducerMap = Maps.newHashMap();
-    private boolean inited;
+    private transient Map<Object, Pair<Integer, Integer> > reducerMap;
+    private transient boolean inited;
 
     private PigContext pigContext;
 

@@ -30,13 +30,11 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.util.AccumulatorOptimizerUtil;
 import org.apache.pig.data.AccumulativeBag;
-import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.InternalCachedBag;
 import org.apache.pig.data.ReadOnceBag;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -73,9 +71,6 @@ public class POPackage extends PhysicalOperator {
     //co-group.  0 indicates a distinct, which means there will only be a
     //key, no value.
     protected int numInputs;
-
-    protected static final BagFactory mBagFactory = BagFactory.getInstance();
-    protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     private boolean lastBagReadOnly = true;
 
@@ -240,8 +235,7 @@ public class POPackage extends PhysicalOperator {
 
                 // create bag to pull all tuples out of iterator
                 for (int i = 0; i < numInputs; i++) {
-                    dbs[i] = useDefaultBag ? BagFactory.getInstance()
-                            .newDefaultBag()
+                    dbs[i] = useDefaultBag ? mBagFactory.newDefaultBag()
                             // In a very rare case if there is a POStream after this
                             // POPackage in the pipeline and is also blocking the
                             // pipeline;
@@ -259,7 +253,7 @@ public class POPackage extends PhysicalOperator {
                     if (index == numInputs - 1) {
                         if (pkgr.getUseSecondaryKey()) {
                             if (dbs[index] == null) {
-                                dbs[index] = useDefaultBag ? BagFactory.getInstance()
+                                dbs[index] = useDefaultBag ? mBagFactory
                                         .newDefaultBag() : new InternalCachedBag(numInputs);
                             }
                         } else {
