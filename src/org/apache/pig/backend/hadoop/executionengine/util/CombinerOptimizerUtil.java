@@ -253,7 +253,7 @@ public class CombinerOptimizerUtil {
                 POLocalRearrange mlr = getNewRearrange(rearrange);
                 POPartialAgg mapAgg = null;
                 if (doMapAgg) {
-                    mapAgg = createPartialAgg(cfe);
+                    mapAgg = createPartialAgg(cfe, isGroupAll(rearrange));
                 }
 
                 // A specialized local rearrange operator will replace
@@ -287,16 +287,31 @@ public class CombinerOptimizerUtil {
         }
     }
 
+    private static boolean isGroupAll(POLocalRearrange lr) {
+        // B: Local Rearrange[tuple]{chararray}(false) - scope-3    ->   scope-14
+        // |   |
+        // |   Constant(all) - scope-4
+        boolean isGroupAll = false;
+        if (lr.getPlans().size() == 1) {
+            PhysicalPlan plan = lr.getPlans().get(0);
+            if (plan.getKeys().size() == 1 && (plan.getRoots().get(0) instanceof ConstantExpression)) {
+                ConstantExpression constExpr = (ConstantExpression) plan.getRoots().get(0);
+                isGroupAll = ("all").equals(constExpr.getValue());
+            }
+        }
+        return isGroupAll;
+    }
+
     /**
      * Translate POForEach in combiner into a POPartialAgg
      * @param combineFE
      * @return partial aggregate operator
      * @throws CloneNotSupportedException
      */
-    private static POPartialAgg createPartialAgg(POForEach combineFE) throws CloneNotSupportedException {
+    private static POPartialAgg createPartialAgg(POForEach combineFE, boolean isGroupAll) throws CloneNotSupportedException {
         String scope = combineFE.getOperatorKey().scope;
         POPartialAgg poAgg = new POPartialAgg(new OperatorKey(scope,
-                NodeIdGenerator.getGenerator().getNextNodeId(scope)));
+                NodeIdGenerator.getGenerator().getNextNodeId(scope)), isGroupAll);
         poAgg.addOriginalLocation(combineFE.getAlias(), combineFE.getOriginalLocations());
         poAgg.setResultType(combineFE.getResultType());
 

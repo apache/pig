@@ -219,10 +219,8 @@ public class SpillableMemoryManager implements NotificationListener {
                 Collections.sort(spillablesSR, new Comparator<SpillablePtr>() {
                     @Override
                     public int compare(SpillablePtr o1Ref, SpillablePtr o2Ref) {
-                        Spillable o1 = o1Ref.get();
-                        Spillable o2 = o2Ref.get();
-                        long o1Size = o1.getMemorySize();
-                        long o2Size = o2.getMemorySize();
+                        long o1Size = o1Ref.getMemorySize();
+                        long o2Size = o2Ref.getMemorySize();
 
                         if (o1Size == o2Size) {
                             return 0;
