@@ -254,10 +254,10 @@ public class POSort extends PhysicalOperator {
 
 	@Override
 	public Result getNextTuple() throws ExecException {
-		Result res = new Result();
+		Result inp;
 
 		if (!inputsAccumulated) {
-			res = processInput();
+			inp = processInput();
             if (!initialized) {
                 initialized = true;
                 if (PigMapReduce.sJobConfInternal.get() != null) {
@@ -272,23 +272,25 @@ public class POSort extends PhysicalOperator {
             sortedBag = useDefaultBag ? mBagFactory.newSortedBag(mComparator)
                     : new InternalSortedBag(3, mComparator);
 
-            while (res.returnStatus != POStatus.STATUS_EOP) {
-				if (res.returnStatus == POStatus.STATUS_ERR) {
+            while (inp.returnStatus != POStatus.STATUS_EOP) {
+				if (inp.returnStatus == POStatus.STATUS_ERR) {
 					log.error("Error in reading from the inputs");
-					return res;
-                } else if (res.returnStatus == POStatus.STATUS_NULL) {
+					return inp;
+                } else if (inp.returnStatus == POStatus.STATUS_NULL) {
                     // Ignore and read the next tuple.
-                    res = processInput();
+                    inp = processInput();
                     continue;
                 }
-				sortedBag.add((Tuple) res.result);
-				res = processInput();
+				sortedBag.add((Tuple) inp.result);
+				inp = processInput();
             }
 
 			inputsAccumulated = true;
 
 		}
-		if (it == null) {
+
+        Result res = new Result();
+        if (it == null) {
             it = sortedBag.iterator();
         }
         if (it.hasNext()) {
@@ -299,7 +301,7 @@ public class POSort extends PhysicalOperator {
             res.returnStatus = POStatus.STATUS_EOP;
             reset();
         }
-		return res;
+        return res;
 	}
 
 	@Override

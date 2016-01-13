@@ -137,10 +137,7 @@ public class POSimpleTezLoad extends POLoad implements TezInput, TezTaskConfigur
             if (finished) {
                 return RESULT_EOP;
             }
-            Result res = new Result();
             if (!reader.next()) {
-                res.result = null;
-                res.returnStatus = POStatus.STATUS_EOP;
                 // For certain operators (such as STREAM), we could still have some work
                 // to do even after seeing the last input. These operators set a flag that
                 // says all input has been sent and to run the pipeline one more time.
@@ -148,15 +145,17 @@ public class POSimpleTezLoad extends POLoad implements TezInput, TezTaskConfigur
                     this.parentPlan.endOfAllInput = true;
                 }
                 finished = true;
+                return RESULT_EOP;
             } else {
+                Result res = new Result();
                 Tuple next = (Tuple) reader.getCurrentValue();
                 res.result = next;
                 res.returnStatus = POStatus.STATUS_OK;
                 if (inputRecordCounter != null) {
                     inputRecordCounter.increment(1);
                 }
+                return res;
             }
-            return res;
         } catch (IOException e) {
             throw new ExecException(e);
         }

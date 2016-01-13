@@ -238,19 +238,17 @@ public class POPartialAgg extends PhysicalOperator implements Spillable, Groupin
                     doSpill = false;
                     doContingentSpill = false;
                 }
-                if (result.returnStatus != POStatus.STATUS_EOP
-                        || inputsExhausted) {
+                if (result.returnStatus != POStatus.STATUS_EOP) {
+                    return result;
+                } else if (inputsExhausted) {
+                    freeMemory();
                     return result;
                 }
             }
             if (mapAggDisabled()) {
                 // disableMapAgg() sets doSpill, so we can't get here while there is still contents in the buffered maps.
                 // if we get to this point, everything is flushed, so we can simply return the raw tuples from now on.
-                if (rawInputMap != null) {
-                    // Free up the maps for garbage collection
-                    rawInputMap = null;
-                    processedInputMap = null;
-                }
+                freeMemory();
                 return processInput();
             } else {
                 Result inp = processInput();
@@ -290,6 +288,15 @@ public class POPartialAgg extends PhysicalOperator implements Spillable, Groupin
                 }
             }
         }
+    }
+
+    private void freeMemory() throws ExecException {
+        if (rawInputMap != null && !rawInputMap.isEmpty()) {
+            throw new ExecException("Illegal state. Trying to free up partial aggregation maps when they are not empty");
+        }
+        // Free up the maps for garbage collection
+        rawInputMap = null;
+        processedInputMap = null;
     }
 
     private void estimateMemThresholds() {
