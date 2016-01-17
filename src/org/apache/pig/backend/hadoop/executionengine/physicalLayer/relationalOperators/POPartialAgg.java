@@ -119,6 +119,7 @@ public class POPartialAgg extends PhysicalOperator implements Spillable, Groupin
     // rather than just spilling records to disk.
     private transient volatile boolean doSpill;
     private transient volatile boolean doContingentSpill;
+    private transient volatile boolean startedContingentSpill;
     private transient volatile Object spillLock;
 
     private transient int minOutputReduction;
@@ -218,6 +219,7 @@ public class POPartialAgg extends PhysicalOperator implements Spillable, Groupin
                 estimateMemThresholds();
             }
             if (doContingentSpill) {
+                startedContingentSpill = true;
                 // Don't aggregate if spilling. Avoid concurrent update of spilling iterator.
                 if (doSpill == false) {
                     // SpillableMemoryManager requested a spill to reduce memory
@@ -413,7 +415,7 @@ public class POPartialAgg extends PhysicalOperator implements Spillable, Groupin
 
         LOG.info("Starting spill.");
         if (aggregate) {
-            aggregateBothLevels(false, true);
+            aggregateBothLevels(false, false);
         }
         doSpill = true;
         spillingIterator = processedInputMap.entrySet().iterator();
@@ -638,20 +640,44 @@ public class POPartialAgg extends PhysicalOperator implements Spillable, Groupin
             return 0;
         } else {
             LOG.info("Spill triggered by SpillableMemoryManager");
-            doContingentSpill = true;
             synchronized(spillLock) {
-                if (!sizeReductionChecked) {
+                if (rawInputMap != null) {
+                    LOG.info("Memory usage: " + getMemorySize()
+                            + ". Raw map: num keys = " + rawInputMap.size()
+                            + ", num tuples = "+ numRecsInRawMap
+                            + ", Processed map: num keys = " + processedInputMap.size()
+                            + ", num tuples = "+ numRecsInProcessedMap );
+                }
+                startedContingentSpill = false;
+                doContingentSpill = true;
+                if (!sizeReductionChecked || !estimatedMemThresholds) {
                     numRecordsToSample = numRecsInRawMap;
                 }
                 try {
+                    // Block till spilling is finished. If main thread execution has not come to POPartialAgg
+                    // and is still processing lower pipeline for more than 5 seconds it means
+                    // jvm is stuck doing GC and will soon fail with java.lang.OutOfMemoryError: GC overhead limit exceeded
+                    // So exit out of here so that SpillableMemoryManger can at least spill
+                    // other Spillable bags and free up some memory for user code to be able to run
+                    // and reach POPartialAgg for the aggregation/spilling of the hashmaps to happen.
+                    long startTime = System.currentTimeMillis();
                     while (doContingentSpill == true) {
-                        Thread.sleep(50); //Keeping it on the lower side for now. Tune later
+                        Thread.sleep(25);
+                        if (!startedContingentSpill && (System.currentTimeMillis() - startTime) >= 5000) {
+                            break;
+                        }
+                    }
+                    if (doContingentSpill) {
+                        LOG.info("Not blocking for spill and letting SpillableMemoryManager"
+                                + " process other spillable objects as main thread has not reached here for 5 secs");
+                    } else {
+                        LOG.info("Finished spill for SpillableMemoryManager call");
+                        return 1;
                     }
                 } catch (InterruptedException e) {
                     LOG.warn("Interrupted exception while waiting for spill to finish", e);
                 }
-                LOG.info("Finished spill for SpillableMemoryManager call");
-                return 1;
+                return 0;
             }
         }
     }

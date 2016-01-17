@@ -285,15 +285,18 @@ public class SpillableMemoryManager implements NotificationListener {
                     // Unblock registering of new bags temporarily as aggregation
                     // of POPartialAgg requires new record to be loaded.
                     blockRegisterOnSpill = !isGroupingSpillable;
+                    long numSpilled;
                     try {
-                        s.spill();
+                        numSpilled = s.spill();
                     } finally {
                         blockRegisterOnSpill = true;
                     }
 
-                    numObjSpilled++;
-                    estimatedFreed += toBeFreed;
-                    accumulatedFreeSize += toBeFreed;
+                    if (numSpilled > 0) {
+                        numObjSpilled++;
+                        estimatedFreed += toBeFreed;
+                        accumulatedFreeSize += toBeFreed;
+                    }
                     // This should significantly reduce the number of small files
                     // in case that we have a lot of nested bags
                     if (accumulatedFreeSize > gcActivationSize) {
