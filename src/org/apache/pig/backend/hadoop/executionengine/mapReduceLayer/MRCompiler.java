@@ -1945,8 +1945,13 @@ public class MRCompiler extends PhyPlanVisitor {
                 ep.add(prj);
                 eps.add(ep);
                 if (!inner[i]) {
-                    // Add an empty bag for outer join
-                    CompilerUtils.addEmptyBagOuterJoin(ep, op.getSchema(i), true, IsFirstReduceOfKey.class.getName());
+                    // Add an empty bag for outer join.
+                    if (i == 0) {
+                        // For right outer, add IsFirstReduceOfKey UDF as well
+                        CompilerUtils.addEmptyBagOuterJoin(ep, op.getSchema(i), true, IsFirstReduceOfKey.class.getName());
+                    } else {
+                        CompilerUtils.addEmptyBagOuterJoin(ep, op.getSchema(i), false, IsFirstReduceOfKey.class.getName());
+                    }
                 }
                 flat.add(true);
             }
