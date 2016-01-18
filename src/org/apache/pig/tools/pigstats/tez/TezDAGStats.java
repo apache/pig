@@ -71,14 +71,14 @@ public class TezDAGStats extends JobStats {
     public static final String PIG_COUNTER_GROUP = org.apache.pig.PigCounters.class.getName();
 
     public static final String SUCCESS_HEADER = String.format("VertexId Parallelism TotalTasks"
-            + " %1$14s %2$14s %3$14s %4$16s %5$14s %6$16s"
+            + " %1$14s %2$20s %3$14s %4$14s %5$16s %6$14s %7$16s"
             + " Alias\tFeature\tOutputs",
-            "InputRecords", "OutputRecords", "FileBytesRead", "FileBytesWritten", "HdfsBytesRead", "HdfsBytesWritten");
+            "InputRecords", "ReduceInputRecords", "OutputRecords", "FileBytesRead", "FileBytesWritten", "HdfsBytesRead", "HdfsBytesWritten");
 
     public static final String FAILURE_HEADER = String.format("VertexId  State Parallelism TotalTasks"
-            + " %1$14s %2$14s %3$14s %4$16s %5$14s %6$16s"
+            + " %1$14s %2$20s %3$14s %4$14s %5$16s %6$14s %7$16s"
             + " Alias\tFeature\tOutputs",
-            "InputRecords", "OutputRecords", "FileBytesRead", "FileBytesWritten", "HdfsBytesRead", "HdfsBytesWritten");
+            "InputRecords", "ReduceInputRecords", "OutputRecords", "FileBytesRead", "FileBytesWritten", "HdfsBytesRead", "HdfsBytesWritten");
 
     private Map<String, TezVertexStats> tezVertexStatsMap;
 

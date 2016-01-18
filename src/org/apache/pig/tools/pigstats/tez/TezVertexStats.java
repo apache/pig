@@ -73,6 +73,7 @@ public class TezVertexStats extends JobStats {
 
     private int numTasks = 0;
     private long numInputRecords = 0;
+    private long numReduceInputRecords = 0;
     private long numOutputRecords = 0;
     private long fileBytesRead = 0;
     private long fileBytesWritten = 0;
@@ -111,6 +112,7 @@ public class TezVertexStats extends JobStats {
         sb.append(String.format("%9s ", parallelism));
         sb.append(String.format("%10s ", numTasks));
         sb.append(String.format("%14s ", numInputRecords));
+        sb.append(String.format("%20s ", numReduceInputRecords));
         sb.append(String.format("%14s ", numOutputRecords));
         sb.append(String.format("%14s ", fileBytesRead));
         sb.append(String.format("%16s ", fileBytesWritten));
@@ -213,6 +215,19 @@ public class TezVertexStats extends JobStats {
     }
 
     public void addInputStatistics() {
+
+        long inputRecords = -1;
+        Map<String, Long> taskCounters = counters.get(TASK_COUNTER_GROUP);
+        if (taskCounters != null) {
+            if (taskCounters.get(TaskCounter.INPUT_RECORDS_PROCESSED.name()) != null) {
+                inputRecords = taskCounters.get(TaskCounter.INPUT_RECORDS_PROCESSED.name());
+                numInputRecords = inputRecords;
+            }
+            if (taskCounters.get(TaskCounter.REDUCE_INPUT_RECORDS.name()) != null) {
+                numReduceInputRecords = taskCounters.get(TaskCounter.REDUCE_INPUT_RECORDS.name());
+            }
+        }
+
         if (loads == null) {
             return;
         }
@@ -233,17 +248,12 @@ public class TezVertexStats extends JobStats {
                     if (n != null) records = n;
                 }
                 if (records == -1) {
-                    Map<String, Long> taskCounters = counters.get(TASK_COUNTER_GROUP);
-                    if (taskCounters != null
-                            && taskCounters.get(TaskCounter.INPUT_RECORDS_PROCESSED.name()) != null) {
-                        records = taskCounters.get(TaskCounter.INPUT_RECORDS_PROCESSED.name());
-                    }
+                    records = inputRecords;
                 }
                 if (isSuccessful() && records == -1) {
                     // Tez removes 0 value counters for efficiency.
                     records = 0;
                 }
-                numInputRecords = records;
                 if (counters.get(FS_COUNTER_GROUP) != null &&
                         counters.get(FS_COUNTER_GROUP).get(PigStatsUtil.HDFS_BYTES_READ) != null) {
                     hdfsBytesRead = counters.get(FS_COUNTER_GROUP).get(PigStatsUtil.HDFS_BYTES_READ);
@@ -257,6 +267,16 @@ public class TezVertexStats extends JobStats {
     }
 
     public void addOutputStatistics() {
+
+        long outputRecords = -1;
+
+        Map<String, Long> taskCounters = counters.get(TASK_COUNTER_GROUP);
+        if (taskCounters != null
+                && taskCounters.get(TaskCounter.OUTPUT_RECORDS.name()) != null) {
+            outputRecords = taskCounters.get(TaskCounter.OUTPUT_RECORDS.name());
+            numOutputRecords = outputRecords;
+        }
+
         if (stores == null) {
             return;
         }
@@ -279,18 +299,11 @@ public class TezVertexStats extends JobStats {
                     if (n != null) records = n;
                 }
                 if (records == -1) {
-                    Map<String, Long> taskCounters = counters.get(TASK_COUNTER_GROUP);
-                    if (taskCounters != null
-                            && taskCounters.get(TaskCounter.OUTPUT_RECORDS.name()) != null) {
-                        records = taskCounters.get(TaskCounter.OUTPUT_RECORDS.name());
-                    }
+                    records = outputRecords;
                 }
                 if (isSuccessful() && records == -1) {
                     // Tez removes 0 value counters for efficiency.
                     records = 0;
-                }
-                if (records != -1) {
-                    numOutputRecords += records;
                 }
             }
             /* TODO: Need to check FILE_BYTES_WRITTEN for local mode */
