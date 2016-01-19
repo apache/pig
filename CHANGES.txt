@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4763: Insufficient check for the number of arguments in runpigmix.pl (sekikn via rohini)
+
 PIG-4411: Support for vertex level configuration like speculative execution (rohini)
 
 PIG-4775: Better default values for shuffle bytes per reducer (rohini)
