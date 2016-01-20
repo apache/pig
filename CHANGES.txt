@@ -83,6 +83,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-4779: testBZ2Concatenation[pig.bzip.use.hadoop.inputformat = true] failing due to successful read (knoguchi)
+
 PIG-4587: Applying isFirstReduceOfKey for Skewed left outer join skips records (rohini)
 
 PIG-4782: OutOfMemoryError: GC overhead limit exceeded with POPartialAgg (rohini)
