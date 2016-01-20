@@ -579,11 +579,12 @@ public class TestBZip {
     }
 
     /**
-     * Tests that Pig throws an Exception when the input files to be loaded are actually
-     * a result of concatenating 2 or more bz2 files. Pig should not silently ignore part
-     * of the input data.
+     * Tests that Pig's Bzip2TextInputFormat throws an IOException when the input files to be loaded are actually
+     * a result of concatenating 2 or more bz2 files. It should not silently ignore part
+     * of the input data.  When, hadoop's TextInpuFormat is used(PIG-3251), it should
+     * successfully read this concatenated bzip file to the end.
      */
-    @Test (expected=IOException.class)
+    @Test
     public void testBZ2Concatenation() throws Exception {
         String[] inputData1 = new String[] {
                 "1\ta",
@@ -646,15 +647,27 @@ public class TestBZip {
             // pig script to read compressed concatenated input
             script = "a = load '" + Util.encodeEscape(compressedInputFileName1) +"';";
             pig.registerQuery(script);
-            Iterator<Tuple> it2 = pig.openIterator("a");
 
-            while(it1.hasNext()) {
-                Tuple t1 = it1.next();
-                Tuple t2 = it2.next();
-                assertEquals(t1, t2);
+            try {
+              Iterator<Tuple> it2 = pig.openIterator("a");
+              while(it1.hasNext()) {
+                  Tuple t1 = it1.next();
+                  Tuple t2 = it2.next();
+                  assertEquals(t1, t2);
+              }
+
+              assertFalse(it2.hasNext());
+
+              // When pig.bzip.use.hadoop.inputformat=true, it should successfully read the concatenated bzip file
+              assertEquals("IOException should be thrown when pig's own Bzip2TextInputFormat is used",
+                           properties.getProperty("pig.bzip.use.hadoop.inputformat"),
+                           "true");
+
+            } catch (IOException e) {
+                assertEquals("IOException should only be thrown when pig's own Bzip2TextInputFormat is used",
+                             properties.getProperty("pig.bzip.use.hadoop.inputformat"),
+                             "false");
             }
-
-            assertFalse(it2.hasNext());
 
         } finally {
             Util.deleteFile(cluster, unCompressedInputFileName);
@@ -666,11 +679,12 @@ public class TestBZip {
      * Concatenate the contents of src file to the contents of dest file
      */
     private void catInto(String src, String dest) throws IOException {
-        BufferedWriter out = new BufferedWriter(new FileWriter(dest, true));
-        BufferedReader in = new BufferedReader(new FileReader(src));
-        String str;
-        while ((str = in.readLine()) != null) {
-            out.write(str);
+        FileOutputStream out = new FileOutputStream(new File(dest) , true);
+        FileInputStream in = new FileInputStream(new File(src));
+        byte[] buffer = new byte[4096];
+        int bytesread;
+        while ((bytesread = in.read(buffer)) != -1) {
+            out.write(buffer,0, bytesread);
         }
         in.close();
         out.close();
