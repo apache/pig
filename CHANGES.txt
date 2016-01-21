@@ -28,6 +28,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-4587: Applying isFirstReduceOfKey for Skewed left outer join skips records (rohini)
+
 PIG-4760: TezDAGStats.convertToHadoopCounters is not used, but impose MR counter limit (daijy)
 
 PIG-4696: Empty map returned by a streaming_python udf wrongly contains a null key (cheolsoo)

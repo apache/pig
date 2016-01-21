@@ -42,43 +42,43 @@ import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 
-/* 
+/*
  * A class to add util functions that gets used by LogToPhyTranslator and MRCompiler
- * 
+ *
  */
 public class CompilerUtils {
 
     public static void addEmptyBagOuterJoin(PhysicalPlan fePlan, Schema inputSchema,
-            boolean skewedJoin, String isFirstReduceOfKeyClassName) throws PlanException {
+            boolean skewedRightOuterJoin, String isFirstReduceOfKeyClassName) throws PlanException {
         // we currently have POProject[bag] as the only operator in the plan
         // If the bag is an empty bag, we should replace
         // it with a bag with one tuple with null fields so that when we flatten
         // we do not drop records (flatten will drop records if the bag is left
-        // as an empty bag) and actually project nulls for the fields in 
+        // as an empty bag) and actually project nulls for the fields in
         // the empty bag
-        
+
         // So we need to get to the following state:
         // POProject[Bag]
-        //         \     
-        //    POUserFunc["IsEmpty()"] Const[Bag](bag with null fields)   
-        //                        \      |    POProject[Bag]             
+        //         \
+        //    POUserFunc["IsEmpty()"] Const[Bag](bag with null fields)
+        //                        \      |    POProject[Bag]
         //                         \     |    /
         //                          POBinCond
-        // Further, if it is skewed join, only the first reduce of the key
+        // Further, if it is skewed right outer join, only the first reduce of the key
         // will generate tuple with null fields (See PIG-4377)
-        // 
+        //
         // POProject[key]              POProject[Bag]
         //         \                      /
         //      IsFirstReduceOfKey  POUserFunc["IsEmpty()"]
         //                   \        /
         //                    \      /
-        //                       AND  Const[Bag](bag with null fields)   
-        //                        \      |    POProject[Bag]             
+        //                       AND  Const[Bag](bag with null fields)
+        //                        \      |    POProject[Bag]
         //                         \     |    /
         //                          POBinCond
         POProject relationProject = (POProject) fePlan.getRoots().get(0);
         try {
-            
+
             // condition of the bincond
             POProject relationProjectForIsEmpty = relationProject.clone();
             fePlan.add(relationProjectForIsEmpty);
@@ -92,7 +92,7 @@ public class CompilerUtils {
             fePlan.connect(relationProjectForIsEmpty, isEmpty);
 
             ExpressionOperator cond;
-            if (skewedJoin) {
+            if (skewedRightOuterJoin) {
                 POProject projectForKey = new POProject(new OperatorKey(scope,NodeIdGenerator.getGenerator().getNextNodeId(scope)));
                 projectForKey.setColumn(0);
                 projectForKey.setOverloaded(false);
@@ -119,7 +119,7 @@ public class CompilerUtils {
             } else {
                 cond = isEmpty;
             }
-            
+
             // lhs of bincond (const bag with null fields)
             ConstantExpression ce = new ConstantExpression(new OperatorKey(scope,
                     NodeIdGenerator.getGenerator().getNextNodeId(scope)));
@@ -136,7 +136,7 @@ public class CompilerUtils {
             ce.setResultType(DataType.BAG);
             //this operator doesn't have any predecessors
             fePlan.add(ce);
-            
+
             //rhs of bincond is the original project
             // let's set up the bincond now
             POBinCond bincond = new POBinCond(new OperatorKey(scope,
@@ -154,7 +154,7 @@ public class CompilerUtils {
         } catch (Exception e) {
             throw new PlanException("Error setting up outerjoin", e);
         }
-    	
+
     }
 
 }

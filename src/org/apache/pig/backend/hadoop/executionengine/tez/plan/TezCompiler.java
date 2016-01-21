@@ -1639,7 +1639,7 @@ public class TezCompiler extends PhyPlanVisitor {
             List<PhysicalPlan> eps = new ArrayList<PhysicalPlan>();
             List<Boolean> flat = new ArrayList<Boolean>();
 
-            boolean containsOuter = false;
+            boolean containsRightOuter = false;
             // Add corresponding POProjects
             for (int i=0; i < 2; i++) {
                 ep = new PhysicalPlan();
@@ -1650,9 +1650,13 @@ public class TezCompiler extends PhyPlanVisitor {
                 ep.add(prj);
                 eps.add(ep);
                 if (!inner[i]) {
-                    // Add an empty bag for outer join
-                    CompilerUtils.addEmptyBagOuterJoin(ep, op.getSchema(i), true, IsFirstReduceOfKeyTez.class.getName());
-                    containsOuter = true;
+                    // Add an empty bag for outer join. For right outer, add IsFirstReduceOfKeyTez UDF as well
+                    if (i == 0) {
+                        containsRightOuter = true;
+                        CompilerUtils.addEmptyBagOuterJoin(ep, op.getSchema(i), true, IsFirstReduceOfKeyTez.class.getName());
+                    } else {
+                        CompilerUtils.addEmptyBagOuterJoin(ep, op.getSchema(i), false, IsFirstReduceOfKeyTez.class.getName());
+                    }
                 }
                 flat.add(true);
             }
@@ -1683,7 +1687,7 @@ public class TezCompiler extends PhyPlanVisitor {
 
             POValueOutputTez sampleOut = (POValueOutputTez) sampleJobPair.first.plan.getLeaves().get(0);
             for (int i = 0; i <= 2; i++) {
-                if (i != 2 || containsOuter) {
+                if (i != 2 || containsRightOuter) {
                     // We need to send sample to left relation partitioner vertex, right relation load vertex,
                     // and join vertex (IsFirstReduceOfKey in join vertex need sample file as well)
                     joinJobs[i].setSampleOperator(sampleJobPair.first);
