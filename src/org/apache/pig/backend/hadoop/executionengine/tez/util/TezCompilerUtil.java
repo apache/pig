@@ -19,7 +19,6 @@ package org.apache.pig.backend.hadoop.executionengine.tez.util;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.commons.lang.ArrayUtils;
@@ -190,6 +189,29 @@ public class TezCompilerUtil {
                     tezOut.replaceOutput(oldOutputKey, newOutputKey);
                 }
             }
+        } catch (VisitorException e) {
+            throw new PlanException(e);
+        }
+    }
+
+    public static boolean isNonPackageInput(String inputKey, TezOperator tezOp) throws PlanException {
+        try {
+            List<TezInput> inputs = PlanHelper.getPhysicalOperators(tezOp.plan, TezInput.class);
+            for (TezInput input : inputs) {
+                if (ArrayUtils.contains(input.getTezInputs(), inputKey)) {
+                    return true;
+                }
+            }
+            List<POUserFunc> userFuncs = PlanHelper.getPhysicalOperators(tezOp.plan, POUserFunc.class);
+            for (POUserFunc userFunc : userFuncs) {
+                if (userFunc.getFunc() instanceof ReadScalarsTez) {
+                    TezInput input = (TezInput)userFunc.getFunc();
+                    if (ArrayUtils.contains(input.getTezInputs(), inputKey)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         } catch (VisitorException e) {
             throw new PlanException(e);
         }

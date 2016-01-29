@@ -18,8 +18,11 @@
 package org.apache.pig.impl.builtin;
 
 import java.io.IOException;
+import java.text.MessageFormat;
 import java.util.Random;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -32,6 +35,9 @@ import org.apache.pig.impl.util.UDFContext;
 
 
 public class GFCross extends EvalFunc<DataBag> {
+
+    private static final Log LOG = LogFactory.getLog(GFCross.class);
+
     private int numInputs, myNumber, numGroupsPerInput, numGroupsGoingTo;
     private BagFactory mBagFactory = BagFactory.getInstance();
     private TupleFactory mTupleFactory = TupleFactory.getInstance();
@@ -70,6 +76,12 @@ public class GFCross extends EvalFunc<DataBag> {
 
             numGroupsPerInput = (int) Math.ceil(Math.pow(parallelism, 1.0/numInputs));
             numGroupsGoingTo = (int) Math.pow(numGroupsPerInput,numInputs - 1);
+
+            LOG.info(MessageFormat.format("Parallelism = {0}, numInputs = {1}, myNumber = {2},"
+                            + " numGroupsPerInput = {3}, numGroupsGoingTo = {4}",
+                            parallelism, numInputs, myNumber,
+                            numGroupsPerInput, numGroupsGoingTo));
+
         }
 
         DataBag output = mBagFactory.newDefaultBag();

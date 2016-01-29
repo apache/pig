@@ -161,6 +161,18 @@ public class TestTezCompiler {
     }
 
     @Test
+    public void testSelfJoinUnionReplicated() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
+                "b = load 'file:///tmp/input2' as (x:int, z:int);" +
+                "c = union a, b;" +
+                "d = join b by x, c by x using 'replicated';" +
+                "store d into 'file:///tmp/output';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-SelfJoin-4.gld");
+    }
+
+    @Test
     public void testCross() throws Exception {
         String query =
                 "a = load 'file:///tmp/input1' as (x:int, y:int);" +
@@ -182,6 +194,18 @@ public class TestTezCompiler {
                 "store d into 'file:///tmp/output';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Cross-2.gld");
+    }
+
+    @Test
+    public void testCrossScalarSplit() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
+                "b = load 'file:///tmp/input2' as (x:int, z:int);" +
+                "c = cross b, a;" +
+                "d = foreach c generate a.x, b.z;" + //Scalar
+                "store d into 'file:///tmp/output';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Cross-3.gld");
     }
 
     @Test
@@ -502,6 +526,25 @@ public class TestTezCompiler {
         resetScope();
         setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-7-OPTOFF.gld");
+    }
+
+    @Test
+    public void testMultiQueryMultipleScalar() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
+                "b = filter a by x == 5;" +
+                "b = foreach b generate $0 as b1;" +
+                "c = filter a by x == 10;" +
+                "c = foreach c generate $0 as c1;" +
+                "d = group a by x;" +
+                "e = foreach d generate group, b.b1, c.c1;" +
+                "store e into 'file:///tmp/output';";
+
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + true);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-8.gld");
+        resetScope();
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + false);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-8-OPTOFF.gld");
     }
 
     @Test
