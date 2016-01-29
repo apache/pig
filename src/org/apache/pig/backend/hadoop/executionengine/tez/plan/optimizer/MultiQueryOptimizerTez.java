@@ -69,6 +69,7 @@ public class MultiQueryOptimizerTez extends TezOpPlanVisitor {
             }
 
             List<TezOperator> splittees = new ArrayList<TezOperator>();
+            Set<TezOperator> mergedNonPackageInputSuccessors = new HashSet<TezOperator>();
 
             List<TezOperator> successors = getPlan().getSuccessors(tezOp);
             for (TezOperator successor : successors) {
@@ -117,12 +118,18 @@ public class MultiQueryOptimizerTez extends TezOpPlanVisitor {
                 // since Tez does not handle double edge between vertexes
                 // Successor could be
                 //    - union operator (if no union optimizer changing it to vertex group which supports multiple edges)
-                //    - self replicate join
-                //    - self skewed join
-                // Self hash joins can write to same output edge and is handled by POShuffleTezLoad
-                // TODO: PIG-3876 to handle this by writing to same edge
+                //    - self replicate join, self skewed join or scalar
+                //    - POPackage (Self hash joins can write to same output edge and is handled by POShuffleTezLoad)
                 Set<TezOperator> mergedSuccessors = new HashSet<TezOperator>();
+                // These successors should not be merged due to diamond shape
+                Set<TezOperator> toNotMergeSuccessors = new HashSet<TezOperator>();
+                // These successors can be merged
                 Set<TezOperator> toMergeSuccessors = new HashSet<TezOperator>();
+                // These successors (Scalar, POFRJoinTez) can be merged if they are the only input.
+                // Only in case of POPackage(POShuffleTezLoad) multiple inputs can be handled from a Split
+                Set<TezOperator> nonPackageInputSuccessors = new HashSet<TezOperator>();
+                boolean canMerge = true;
+
                 mergedSuccessors.addAll(successors);
                 for (TezOperator splittee : splittees) {
                     if (getPlan().getSuccessors(splittee) != null) {
@@ -136,18 +143,52 @@ public class MultiQueryOptimizerTez extends TezOpPlanVisitor {
                                     UnionOptimizer.isOptimizable(succSuccessor,
                                             unionSupportedStoreFuncs,
                                             unionUnsupportedStoreFuncs))) {
+                                toNotMergeSuccessors.add(succSuccessor);
+                            } else {
                                 toMergeSuccessors.add(succSuccessor);
+                                List<TezOperator> unionSuccessors = getPlan().getSuccessors(succSuccessor);
+                                if (unionSuccessors != null) {
+                                    for (TezOperator unionSuccessor : unionSuccessors) {
+                                        if (TezCompilerUtil.isNonPackageInput(succSuccessor.getOperatorKey().toString(), unionSuccessor)) {
+                                            canMerge = canMerge ? nonPackageInputSuccessors.add(unionSuccessor) : false;
+                                        } else {
+                                            toMergeSuccessors.add(unionSuccessor);
+                                        }
+                                    }
+                                }
                             }
-                        } else if (successors.contains(succSuccessor)) {
-                                // Self replicate/skewed join
-                                toMergeSuccessors.add(succSuccessor);
+                        } else if (TezCompilerUtil.isNonPackageInput(successor.getOperatorKey().toString(), succSuccessor)) {
+                            // Output goes to scalar or POFRJoinTez instead of POPackage
+                            // POPackage/POShuffleTezLoad can handle multiple inputs from a Split.
+                            // But if input is sent to any other operator like
+                            // scalar, POFRJoinTez then we need to ensure it is the only one.
+                            canMerge = canMerge ? nonPackageInputSuccessors.add(succSuccessor) : false;
+                        } else {
+                            toMergeSuccessors.add(succSuccessor);
                         }
                     }
                 }
 
-                mergedSuccessors.retainAll(toMergeSuccessors);
+                if (canMerge) {
+                    if (!nonPackageInputSuccessors.isEmpty() || !mergedNonPackageInputSuccessors.isEmpty()) {
+                        // If a non-POPackage input successor is already merged or
+                        // if there is a POPackage and non-POPackage to be merged,
+                        // then skip as it will become diamond shape
+                        // For eg: POFRJoinTez+Scalar, POFRJoinTez/Scalar+POPackage
+                        if (nonPackageInputSuccessors.removeAll(mergedSuccessors)
+                                || toMergeSuccessors.removeAll(mergedNonPackageInputSuccessors)
+                                || toMergeSuccessors.removeAll(nonPackageInputSuccessors)) {
+                            continue;
+                        }
+                    }
+                } else {
+                    continue;
+                }
+
+                mergedSuccessors.retainAll(toNotMergeSuccessors);
                 if (mergedSuccessors.isEmpty()) { // no shared edge after merge
                     splittees.add(successor);
+                    mergedNonPackageInputSuccessors.addAll(nonPackageInputSuccessors);
                 }
             }
 
