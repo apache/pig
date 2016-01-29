@@ -45,6 +45,7 @@ import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigConstants;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.BackendException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.Launcher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PhyPlanSetter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -60,6 +61,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPreCombinerLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORank;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSkewedJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
@@ -82,6 +84,7 @@ import org.apache.pig.backend.hadoop.executionengine.spark.converter.MergeJoinCo
 import org.apache.pig.backend.hadoop.executionengine.spark.converter.PackageConverter;
 import org.apache.pig.backend.hadoop.executionengine.spark.converter.RDDConverter;
 import org.apache.pig.backend.hadoop.executionengine.spark.converter.RankConverter;
+import org.apache.pig.backend.hadoop.executionengine.spark.converter.ReduceByConverter;
 import org.apache.pig.backend.hadoop.executionengine.spark.converter.SkewedJoinConverter;
 import org.apache.pig.backend.hadoop.executionengine.spark.converter.SortConverter;
 import org.apache.pig.backend.hadoop.executionengine.spark.converter.SplitConverter;
@@ -90,7 +93,9 @@ import org.apache.pig.backend.hadoop.executionengine.spark.converter.StreamConve
 import org.apache.pig.backend.hadoop.executionengine.spark.converter.UnionConverter;
 import org.apache.pig.backend.hadoop.executionengine.spark.operator.NativeSparkOperator;
 import org.apache.pig.backend.hadoop.executionengine.spark.operator.POGlobalRearrangeSpark;
+import org.apache.pig.backend.hadoop.executionengine.spark.operator.POReduceBySpark;
 import org.apache.pig.backend.hadoop.executionengine.spark.optimizer.AccumulatorOptimizer;
+import org.apache.pig.backend.hadoop.executionengine.spark.optimizer.CombinerOptimizer;
 import org.apache.pig.backend.hadoop.executionengine.spark.optimizer.MultiQueryOptimizerSpark;
 import org.apache.pig.backend.hadoop.executionengine.spark.optimizer.NoopFilterRemover;
 import org.apache.pig.backend.hadoop.executionengine.spark.optimizer.ParallelismSetter;
@@ -206,6 +211,8 @@ public class SparkLauncher extends Launcher {
         convertMap.put(PORank.class, new RankConverter());
         convertMap.put(POStream.class, new StreamConverter(confBytes));
         convertMap.put(POFRJoin.class, new FRJoinConverter());
+        convertMap.put(POReduceBySpark.class, new ReduceByConverter());
+        convertMap.put(POPreCombinerLocalRearrange.class, new LocalRearrangeConverter());
 
         sparkPlanToRDD(sparkplan, convertMap, sparkStats, jobConf);
         cleanUpSparkJob();
@@ -215,14 +222,27 @@ public class SparkLauncher extends Launcher {
     }
 
     private void optimize(PigContext pc, SparkOperPlan plan) throws IOException {
-        String prop = pc.getProperties().getProperty(PigConfiguration.PIG_EXEC_NO_SECONDARY_KEY);
-        if (!pc.inIllustrator && !("true".equals(prop))) {
+
+        Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
+
+        // Should be the first optimizer as it introduces new operators to the plan.
+        boolean noCombiner = conf.getBoolean(PigConfiguration.PIG_EXEC_NO_COMBINER, false);
+        if (!pc.inIllustrator && !noCombiner)  {
+            CombinerOptimizer combinerOptimizer = new CombinerOptimizer(plan);
+            combinerOptimizer.visit();
+            if (LOG.isDebugEnabled()) {
+                System.out.println("after combiner optimization:");
+                explain(plan, System.out, "text", true);
+            }
+        }
+
+        boolean noSecondaryKey = conf.getBoolean(PigConfiguration.PIG_EXEC_NO_SECONDARY_KEY, false);
+        if (!pc.inIllustrator && !noSecondaryKey) {
             SecondaryKeyOptimizerSpark skOptimizer = new SecondaryKeyOptimizerSpark(plan);
             skOptimizer.visit();
         }
 
-        boolean isAccum =
-                Boolean.valueOf(pc.getProperties().getProperty("opt.accumulator", "true"));
+        boolean isAccum = conf.getBoolean("opt.accumulator", true);
         if (isAccum) {
             AccumulatorOptimizer accum = new AccumulatorOptimizer(plan);
             accum.visit();
@@ -233,8 +253,7 @@ public class SparkLauncher extends Launcher {
         NoopFilterRemover fRem = new NoopFilterRemover(plan);
         fRem.visit();
 
-        boolean isMultiQuery =
-                Boolean.valueOf(pc.getProperties().getProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "true"));
+        boolean isMultiQuery = conf.getBoolean(PigConfiguration.PIG_OPT_MULTIQUERY, true);
 
         if (LOG.isDebugEnabled()) {
             System.out.println("before multiquery optimization:");

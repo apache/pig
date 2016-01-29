@@ -43,6 +43,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSortedDistinct;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
 import org.apache.pig.backend.hadoop.executionengine.spark.operator.POGlobalRearrangeSpark;
+import org.apache.pig.backend.hadoop.executionengine.spark.operator.POReduceBySpark;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.io.PigNullableWritable;
@@ -432,6 +433,10 @@ public class SecondaryKeyOptimizerUtil {
             } else if (root instanceof POPackage) {
                 POPackage pack = (POPackage) root;
                 pack.getPkgr().setUseSecondaryKey(true);
+            } else if (root instanceof POReduceBySpark) {
+                POReduceBySpark reduceBySpark = (POReduceBySpark) root;
+                reduceBySpark.setUseSecondaryKey(true);
+                reduceBySpark.setSecondarySortOrder(secondarySortKeyInfo.getAscs());
             }
         }
         return secKeyOptimizerInfo;

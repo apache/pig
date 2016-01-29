@@ -27,21 +27,21 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.data.Tuple;
 import org.apache.spark.rdd.RDD;
 
 @SuppressWarnings({ "serial" })
 public class LocalRearrangeConverter implements
-        RDDConverter<Tuple, Tuple, POLocalRearrange> {
+        RDDConverter<Tuple, Tuple, PhysicalOperator> {
     private static final Log LOG = LogFactory
-            .getLog(GlobalRearrangeConverter.class);
+            .getLog(LocalRearrangeConverter.class);
 
     @Override
     public RDD<Tuple> convert(List<RDD<Tuple>> predecessors,
-            POLocalRearrange physicalOperator) throws IOException {
+            PhysicalOperator physicalOperator) throws IOException {
         SparkUtil.assertPredecessorSize(predecessors, physicalOperator, 1);
         RDD<Tuple> rdd = predecessors.get(0);
         // call local rearrange to get key and value
@@ -53,14 +53,17 @@ public class LocalRearrangeConverter implements
     private static class LocalRearrangeFunction extends
             AbstractFunction1<Tuple, Tuple> implements Serializable {
 
-        private final POLocalRearrange physicalOperator;
+        private final PhysicalOperator physicalOperator;
 
-        public LocalRearrangeFunction(POLocalRearrange physicalOperator) {
+        public LocalRearrangeFunction(PhysicalOperator physicalOperator) {
             this.physicalOperator = physicalOperator;
         }
 
         @Override
         public Tuple apply(Tuple t) {
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("LocalRearrangeFunction in " + t);
+            }
             Result result;
             try {
                 physicalOperator.setInputs(null);
