@@ -682,14 +682,9 @@ public class POForEach extends PhysicalOperator {
             }
         }
 
-        List<PhysicalOperator> ops = new ArrayList<PhysicalOperator>(opsToBeReset.size());
-        for (PhysicalOperator op : opsToBeReset) {
-            ops.add(op);
-        }
         POForEach clone = new POForEach(new OperatorKey(mKey.scope,
                 NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
                 requestedParallelism, plans, flattens);
-        clone.setOpsToBeReset(ops);
         clone.setResultType(getResultType());
         clone.addOriginalLocation(alias, getOriginalLocations());
         clone.endOfAllInputProcessing = endOfAllInputProcessing;
