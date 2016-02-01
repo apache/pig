@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4792: Do not add java and sun system properties to jobconf (rohini)
+
 PIG-4787: Log JSONLoader exception while parsing records (rohini)
 
 PIG-4763: Insufficient check for the number of arguments in runpigmix.pl (sekikn via rohini)
