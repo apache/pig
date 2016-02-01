@@ -639,6 +639,10 @@ public class POPartialAgg extends PhysicalOperator implements Spillable, Groupin
         if (mapAggDisabled()) {
             return 0;
         } else {
+            if (doContingentSpill && !startedContingentSpill) {
+                LOG.info("Spill triggered by SpillableMemoryManager, but previous spill call is still not processed. Skipping");
+                return 0;
+            }
             LOG.info("Spill triggered by SpillableMemoryManager");
             synchronized(spillLock) {
                 if (rawInputMap != null) {
