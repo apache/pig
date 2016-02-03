@@ -263,7 +263,7 @@ public class SchemaUtil {
                 throw new FrontendException(
                         "Currently pig do not support this kind of type using Schema:"
                                 + DataType.findTypeName(type)
-                                + ". You can write shema by yourself.");
+                                + ". You can write schema by yourself.");
             }
         }
 
@@ -271,11 +271,10 @@ public class SchemaUtil {
 
     private static void checkParameters(List<String> names, List<Byte> dataTypes)
             throws FrontendException {
-        // TODO Auto-generated method stub
         checkDataTypes(dataTypes);
         if (names.size() != dataTypes.size()) {
             throw new FrontendException(
-                    "The number of names is not equal to the number of dataTypes");
+                    "The number of names (" + names.size() + ") is not equal to the number of dataTypes (" + dataTypes.size() + ")");
         }
     }
 

@@ -162,7 +162,7 @@ public class LoadFuncHelper {
             path = getFirstFile(fileSystem, path);
 
             if (path == null) {
-                throw new FrontendException(path + " has no files");
+                throw new FrontendException(location + " has no files");
             }
         }
 

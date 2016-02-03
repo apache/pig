@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4761: Add more information to front end error messages (eyal via daijy)
+
 PIG-4792: Do not add java and sun system properties to jobconf (rohini)
 
 PIG-4787: Log JSONLoader exception while parsing records (rohini)
