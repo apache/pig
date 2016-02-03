@@ -1189,7 +1189,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         this.requiredFieldList = requiredFieldList;
 
         if (requiredFieldList != null && requiredFields.size() > (columnInfo_.size() + colOffset)) {
-            throw new FrontendException("The list of columns to project from HBase is larger than HBaseStorage is configured to load.");
+            throw new FrontendException("The list of columns to project from HBase (" + requiredFields.size() + ") is larger than HBaseStorage is configured to load (" + (columnInfo_.size() + colOffset) + ").");
         }
 
         // remember the projection

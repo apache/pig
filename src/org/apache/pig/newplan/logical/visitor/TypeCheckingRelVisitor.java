@@ -767,12 +767,14 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
                 throw new FrontendException(msg, errCode, PigException.INPUT, false, null) ;
             }
             byte innerType = ((LogicalExpression)innerPlans.get(0).getSources().get(0)).getType() ;
-            groupType = DataType.mergeType(groupType, innerType) ;
-            if (groupType == -1)
+            byte newGroupType = DataType.mergeType(groupType, innerType) ;
+            if (newGroupType == -1)
             {
                 int errCode = 1107;
-                String msg = "Cannot merge join keys, incompatible types";
+                String msg = "Cannot merge join keys, incompatible types. Outer: " + DataType.findTypeName(groupType) + "; inner: " + DataType.findTypeName(innerType);
                 throw new FrontendException(msg, errCode, PigException.INPUT) ;
+            } else {
+                groupType = newGroupType;
             }
         }
 
@@ -806,12 +808,14 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
                 throw new FrontendException(msg, errCode, PigException.INPUT, false, null) ;
             }
             byte innerType = ((LogicalExpression)innerPlans.get(0).getSources().get(0)).getType() ;
-            groupType = DataType.mergeType(groupType, innerType) ;
-            if (groupType == -1)
+            byte newGroupType = DataType.mergeType(groupType, innerType) ;
+            if (newGroupType == -1)
             {
                 int errCode = 1107;
-                String msg = "Cannot merge join keys, incompatible types";
+                String msg = "Cannot merge join keys, incompatible types. Outer: " + DataType.findTypeName(groupType) + "; inner: " + DataType.findTypeName(innerType);
                 throw new FrontendException(msg, errCode, PigException.INPUT) ;
+            } else {
+                groupType = newGroupType;
             }
         }
 
