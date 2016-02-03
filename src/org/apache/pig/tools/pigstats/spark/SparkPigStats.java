@@ -53,26 +53,28 @@ public class SparkPigStats extends PigStats {
 
     private SparkScriptState sparkScriptState;
 
+    private Configuration conf;
+
     public SparkPigStats() {
         jobPlan = new JobGraph();
         this.sparkScriptState = (SparkScriptState) ScriptState.get();
     }
 
-    public void initialize(PigContext pigContext, SparkOperPlan sparkPlan){
+    public void initialize(PigContext pigContext, SparkOperPlan sparkPlan, Configuration conf) {
         super.start();
         this.pigContext = pigContext;
+        this.conf = conf;
         sparkScriptState.setScriptInfo(sparkPlan);
     }
 
     public void addJobStats(POStore poStore, SparkOperator sparkOperator, int jobId,
                             JobMetricsListener jobMetricsListener,
-                            JavaSparkContext sparkContext,
-                            Configuration conf) {
+                            JavaSparkContext sparkContext) {
         boolean isSuccess = SparkStatsUtil.isJobSuccess(jobId, sparkContext);
-        SparkJobStats jobStats = new SparkJobStats(jobId, jobPlan);
+        SparkJobStats jobStats = new SparkJobStats(jobId, jobPlan, conf);
         jobStats.setSuccessful(isSuccess);
         jobStats.collectStats(jobMetricsListener);
-        jobStats.addOutputInfo(poStore, isSuccess, jobMetricsListener, conf);
+        jobStats.addOutputInfo(poStore, isSuccess, jobMetricsListener);
         addInputInfoForSparkOper(sparkOperator, jobStats, isSuccess, jobMetricsListener, conf);
         jobSparkOperatorMap.put(jobStats, sparkOperator);
         jobPlan.add(jobStats);
@@ -82,13 +84,12 @@ public class SparkPigStats extends PigStats {
     public void addFailJobStats(POStore poStore, SparkOperator sparkOperator, String jobId,
                                 JobMetricsListener jobMetricsListener,
                                 JavaSparkContext sparkContext,
-                                Configuration conf,
                                 Exception e) {
         boolean isSuccess = false;
-        SparkJobStats jobStats = new SparkJobStats(jobId, jobPlan);
+        SparkJobStats jobStats = new SparkJobStats(jobId, jobPlan, conf);
         jobStats.setSuccessful(isSuccess);
         jobStats.collectStats(jobMetricsListener);
-        jobStats.addOutputInfo(poStore, isSuccess, jobMetricsListener, conf);
+        jobStats.addOutputInfo(poStore, isSuccess, jobMetricsListener);
         addInputInfoForSparkOper(sparkOperator, jobStats, isSuccess, jobMetricsListener, conf);
         jobSparkOperatorMap.put(jobStats, sparkOperator);
         jobPlan.add(jobStats);
@@ -97,12 +98,12 @@ public class SparkPigStats extends PigStats {
         }
     }
 
-    public void addNativeJobStats(NativeSparkOperator sparkOperator, String jobId, boolean isSuccess, Exception e){
-        SparkJobStats jobStats = new SparkJobStats(jobId, jobPlan);
+    public void addNativeJobStats(NativeSparkOperator sparkOperator, String jobId, boolean isSuccess, Exception e) {
+        SparkJobStats jobStats = new SparkJobStats(jobId, jobPlan, conf);
         jobStats.setSuccessful(isSuccess);
-        jobSparkOperatorMap.put(jobStats,sparkOperator);
+        jobSparkOperatorMap.put(jobStats, sparkOperator);
         jobPlan.add(jobStats);
-        if( e != null ){
+        if (e != null) {
             jobStats.setBackendException(e);
         }
     }
@@ -202,7 +203,7 @@ public class SparkPigStats extends PigStats {
             List<POLoad> poLoads = PlanHelper.getPhysicalOperators(sparkOperator.physicalPlan, POLoad.class);
             for (POLoad load : poLoads) {
                 if (!load.isTmpLoad()) {
-                    jobStats.addInputStats(load, isSuccess, (poLoads.size() == 1), conf);
+                    jobStats.addInputStats(load, isSuccess, (poLoads.size() == 1));
                 }
             }
         } catch (VisitorException ve) {

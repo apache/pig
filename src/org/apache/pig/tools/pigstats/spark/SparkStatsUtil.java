@@ -41,8 +41,7 @@ public class SparkStatsUtil {
                                           POStore poStore, SparkOperator sparkOperator,
                                           JobMetricsListener jobMetricsListener,
                                           JavaSparkContext sparkContext,
-                                          SparkPigStats sparkPigStats,
-                                          JobConf jobConf)
+                                          SparkPigStats sparkPigStats)
             throws InterruptedException {
         // Even though we are not making any async calls to spark,
         // the SparkStatusTracker can still return RUNNING status
@@ -53,18 +52,18 @@ public class SparkStatsUtil {
         // To workaround this, we will wait for this job to "finish".
         jobMetricsListener.waitForJobToEnd(jobID);
         sparkPigStats.addJobStats(poStore, sparkOperator, jobID, jobMetricsListener,
-                sparkContext, jobConf);
+                sparkContext);
         jobMetricsListener.cleanup(jobID);
     }
 
     public static void addFailJobStats(String jobID,
                                        POStore poStore, SparkOperator sparkOperator,
                                        SparkPigStats sparkPigStats,
-                                       JobConf jobConf, Exception e) {
+                                       Exception e) {
         JobMetricsListener jobMetricsListener = null;
         JavaSparkContext sparkContext = null;
         sparkPigStats.addFailJobStats(poStore, sparkOperator, jobID, jobMetricsListener,
-                sparkContext, jobConf, e);
+                sparkContext, e);
     }
 
     public static String getStoreSparkCounterName(POStore store) {

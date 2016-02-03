@@ -47,18 +47,18 @@ public class SparkJobStats extends JobStats {
     private int jobId;
     private Map<String, Long> stats = Maps.newLinkedHashMap();
 
-    protected SparkJobStats(int jobId, PigStats.JobGraph plan) {
-        this(String.valueOf(jobId), plan);
+    protected SparkJobStats(int jobId, PigStats.JobGraph plan, Configuration conf) {
+        this(String.valueOf(jobId), plan, conf);
         this.jobId = jobId;
     }
 
-    protected SparkJobStats(String jobId, PigStats.JobGraph plan) {
+    protected SparkJobStats(String jobId, PigStats.JobGraph plan, Configuration conf) {
         super(jobId, plan);
+        setConf(conf);
     }
 
     public void addOutputInfo(POStore poStore, boolean success,
-                              JobMetricsListener jobMetricsListener,
-                              Configuration conf) {
+                              JobMetricsListener jobMetricsListener) {
         if (!poStore.isTmpStore()) {
             long bytes = getOutputSize(poStore, conf);
             long recordsCount = SparkStatsUtil.getStoreSparkCounterValue(poStore);
@@ -72,8 +72,7 @@ public class SparkJobStats extends JobStats {
     }
 
     public void addInputStats(POLoad po, boolean success,
-                              boolean singleInput,
-                              Configuration conf){
+                              boolean singleInput) {
 
         long recordsCount = SparkStatsUtil.getLoadSparkCounterValue(po);
         long bytesRead = -1;

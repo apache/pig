@@ -59,7 +59,8 @@ public class NativeSparkOperator extends SparkOperator {
         } catch (SecurityException se) {   //java.lang.reflect.InvocationTargetException
             if (secMan.getExitInvoked()) {
                 if (secMan.getExitCode() != 0) {
-                    throw new JobCreationException("Native job returned with non-zero return code");
+                    JobCreationException e = new JobCreationException("Native job returned with non-zero return code");
+                    SparkStatsUtil.addFailedNativeJobStats(PigStats.get(), this, e);
                 } else {
                     SparkStatsUtil.addNativeJobStats(PigStats.get(), this);
                 }
