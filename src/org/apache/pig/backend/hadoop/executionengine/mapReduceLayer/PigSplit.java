@@ -354,6 +354,7 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
         oos.writeObject(obj);
+        oos.flush();
         byte[] bytes = baos.toByteArray();
         os.writeInt(bytes.length);
         os.write(bytes);
