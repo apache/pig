@@ -316,7 +316,7 @@ public class CombinerOptimizerUtil {
      * @return null if plan is not combinable, otherwise list of combinable operators
      * @throws VisitorException
      */
-    private static List<Pair<PhysicalOperator, PhysicalPlan>> findAlgebraicOps(List<PhysicalPlan> feInners)
+    public static List<Pair<PhysicalOperator, PhysicalPlan>> findAlgebraicOps(List<PhysicalPlan> feInners)
             throws VisitorException {
         List<Pair<PhysicalOperator, PhysicalPlan>> algebraicOps = Lists.newArrayList();
 
@@ -570,7 +570,7 @@ public class CombinerOptimizerUtil {
         return pclr;
     }
 
-    private static OperatorKey createOperatorKey(String scope) {
+    public static OperatorKey createOperatorKey(String scope) {
         return new OperatorKey(scope, NodeIdGenerator.getGenerator().getNextNodeId(scope));
     }
 
@@ -663,13 +663,13 @@ public class CombinerOptimizerUtil {
      * Checks if there is something that prevents the use of algebraic interface,
      * and looks for the PODistinct that can be used as algebraic
      */
-    public static class AlgebraicPlanChecker extends PhyPlanVisitor {
-        public boolean sawNonAlgebraic = false;
-        public boolean sawDistinctAgg = false;
+    private static class AlgebraicPlanChecker extends PhyPlanVisitor {
+        boolean sawNonAlgebraic = false;
+        boolean sawDistinctAgg = false;
         private boolean sawForeach = false;
         private PODistinct distinct = null;
 
-        public AlgebraicPlanChecker(PhysicalPlan plan) {
+        AlgebraicPlanChecker(PhysicalPlan plan) {
             super(plan, new DependencyOrderWalker<PhysicalOperator, PhysicalPlan>(plan));
         }
 

@@ -172,12 +172,17 @@ public class ReduceByConverter implements RDDConverter<Tuple, Tuple, POReduceByS
         @Override
         public Tuple apply(Tuple v1, Tuple v2) {
             LOG.debug("MergeValuesFunction in : " + v1 + " , " + v2);
-            Tuple result = tf.newTuple();
+            Tuple result = tf.newTuple(2);
             DataBag bag = DefaultBagFactory.getInstance().newDefaultBag();
             Tuple t = new DefaultTuple();
             try {
                 // Package the input tuples so they can be processed by Algebraic functions.
                 Object key = v1.get(0);
+                if (key == null) {
+                    key = "";
+                } else {
+                    result.set(0, key);
+                }
                 bag.add((Tuple) v1.get(1));
                 bag.add((Tuple) v2.get(1));
                 t.append(key);
@@ -197,14 +202,14 @@ public class ReduceByConverter implements RDDConverter<Tuple, Tuple, POReduceByS
                 // But, we want the result to look like this:
                 // (ABC,((2),(3))) - A tuple with key and a value tuple (containing values).
                 // Hence, the construction of a new value tuple
-                result.append(t.get(0));
+
                 Tuple valueTuple = tf.newTuple();
                 for (Object o : ((Tuple) r.result).getAll()) {
                     if (!o.equals(key)) {
                         valueTuple.append(o);
                     }
                 }
-                result.append(valueTuple);
+                result.set(1,valueTuple);
                 LOG.debug("MergeValuesFunction out : " + result);
                 return result;
             } catch (ExecException e) {

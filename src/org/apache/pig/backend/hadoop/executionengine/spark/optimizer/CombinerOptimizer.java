@@ -17,7 +17,6 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.spark.optimizer;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -26,8 +25,8 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigException;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -54,7 +53,6 @@ import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.optimizer.OptimizerException;
 import org.apache.pig.impl.util.Pair;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 /**
@@ -73,7 +71,7 @@ public class CombinerOptimizer extends SparkOpPlanVisitor {
     public void visitSparkOp(SparkOperator sparkOp) throws VisitorException {
         try {
             addCombiner(sparkOp.physicalPlan);
-        } catch (PlanException e) {
+        } catch (Exception e) {
             throw new VisitorException(e);
         }
     }
@@ -91,7 +89,7 @@ public class CombinerOptimizer extends SparkOpPlanVisitor {
     //      -> localRearrange
     //         -> foreach (using algebraicOp.Initial)
     //             -> CombinerRearrange
-    private void addCombiner(PhysicalPlan phyPlan) throws VisitorException, PlanException {
+    private void addCombiner(PhysicalPlan phyPlan) throws VisitorException, PlanException, CloneNotSupportedException {
 
         List<PhysicalOperator> leaves = phyPlan.getLeaves();
         if (leaves == null || leaves.size() != 1) {
@@ -120,6 +118,9 @@ public class CombinerOptimizer extends SparkOpPlanVisitor {
             }
             PhysicalOperator successor = poPackageSuccessors.get(0);
 
+            // Retaining the original successor to be used later in modifying the plan.
+            PhysicalOperator packageSuccessor = successor;
+
             if (successor instanceof POLimit) {
                 // POLimit is acceptable, as long as it has a single foreach as
                 // successor
@@ -137,11 +138,14 @@ public class CombinerOptimizer extends SparkOpPlanVisitor {
                 if (foreachSuccessors == null || foreachSuccessors.size() != 1) {
                     continue;
                 }
-                List<PhysicalPlan> feInners = foreach.getInputPlans();
+                // Clone foreach so it can be modified to a post-reduce foreach.
+                POForEach postReduceFE = foreach.clone();
+                List<PhysicalPlan> feInners = postReduceFE.getInputPlans();
 
                 // find algebraic operators and also check if the foreach statement
                 // is suitable for combiner use
-                List<Pair<PhysicalOperator, PhysicalPlan>> algebraicOps = findAlgebraicOps(feInners);
+                List<Pair<PhysicalOperator, PhysicalPlan>> algebraicOps = CombinerOptimizerUtil.findAlgebraicOps
+                        (feInners);
                 if (algebraicOps == null || algebraicOps.size() == 0) {
                     // the plan is not combinable or there is nothing to combine
                     // we're done
@@ -149,19 +153,18 @@ public class CombinerOptimizer extends SparkOpPlanVisitor {
                 }
                 try {
                     List<PhysicalOperator> glrPredecessors = phyPlan.getPredecessors(glr);
-                    if (glrPredecessors == null || glrPredecessors.isEmpty()) {
+                    // Exclude co-group from optimization
+                    if (glrPredecessors == null || glrPredecessors.size() != 1) {
                         continue;
                     }
 
                     if (!(glrPredecessors.get(0) instanceof POLocalRearrange)) {
                         continue;
                     }
-                    LOG.info("Algebraic operations found. Optimizing plan to use combiner.");
 
                     POLocalRearrange rearrange = (POLocalRearrange) glrPredecessors.get(0);
-                    PhysicalOperator foreachSuccessor = foreachSuccessors.get(0);
-                    // Clone foreach so it can be modified to an operation post-reduce.
-                    POForEach postReduceFE = foreach.clone();
+
+                    LOG.info("Algebraic operations found. Optimizing plan to use combiner.");
 
                     // Trim the global rearrange and the preceeding package.
                     convertToMapSideForEach(phyPlan, poPackage);
@@ -183,7 +186,7 @@ public class CombinerOptimizer extends SparkOpPlanVisitor {
                     }
 
                     // create new map foreach -
-                    POForEach mfe = CombinerOptimizerUtil.createForEachWithGrpProj(foreach, poPackage.getPkgr()
+                    POForEach mfe = CombinerOptimizerUtil.createForEachWithGrpProj(postReduceFE, poPackage.getPkgr()
                             .getKeyType());
                     Map<PhysicalOperator, Integer> op2newpos = Maps.newHashMap();
                     Integer pos = 1;
@@ -210,7 +213,7 @@ public class CombinerOptimizer extends SparkOpPlanVisitor {
                     }
 
                     // create new combine foreach
-                    POForEach cfe = CombinerOptimizerUtil.createForEachWithGrpProj(foreach, poPackage.getPkgr()
+                    POForEach cfe = CombinerOptimizerUtil.createForEachWithGrpProj(postReduceFE, poPackage.getPkgr()
                             .getKeyType());
                     // add algebraic functions with appropriate projection
                     CombinerOptimizerUtil.addAlgebraicFuncToCombineFE(cfe, op2newpos);
@@ -250,25 +253,29 @@ public class CombinerOptimizer extends SparkOpPlanVisitor {
                             .getRequestedParallelism(),
                             cfe.getInputPlans(), cfe.getToBeFlattened(), combinePack.getPkgr());
                     reduceOperator.setCustomPartitioner(glr.getCustomPartitioner());
-                    fixReduceSideFE(postReduceFE, cfe);
+                    fixReduceSideFE(postReduceFE, algebraicOps);
                     CombinerOptimizerUtil.changeFunc(reduceOperator, POUserFunc.INTERMEDIATE);
                     updatePackager(reduceOperator, newRearrange);
 
                     // Add the new operators
                     phyPlan.add(reduceOperator);
                     phyPlan.add(newRearrange);
-                    phyPlan.add(postReduceFE);
-                    // Reconnect as follows :
-                    // foreach (using algebraicOp.Final)
-                    //   -> reduceBy (uses algebraicOp.Intermediate)
+                    phyPlan.add(mfe);
+                    // Connect the new operators as follows:
+                    // reduceBy (using algebraicOp.Intermediate)
+                    //   -> rearrange
                     //      -> foreach (using algebraicOp.Initial)
-                    phyPlan.disconnect(foreach, foreachSuccessor);
-                    phyPlan.connect(foreach, newRearrange);
+                    phyPlan.connect(mfe, newRearrange);
                     phyPlan.connect(newRearrange, reduceOperator);
-                    phyPlan.connect(reduceOperator, postReduceFE);
-                    phyPlan.replace(foreach, mfe);
-                    phyPlan.connect(postReduceFE, foreachSuccessor);
 
+                    // Insert the reduce stage between combiner rearrange and its successor.
+                    phyPlan.disconnect(combinerLocalRearrange, packageSuccessor);
+                    phyPlan.connect(reduceOperator, packageSuccessor);
+                    phyPlan.connect(combinerLocalRearrange, mfe);
+
+                    // Replace foreach with post reduce foreach
+                    phyPlan.add(postReduceFE);
+                    phyPlan.replace(foreach, postReduceFE);
                 } catch (Exception e) {
                     int errCode = 2018;
                     String msg = "Internal error. Unable to introduce the combiner for optimization.";
@@ -276,6 +283,30 @@ public class CombinerOptimizer extends SparkOpPlanVisitor {
                 }
             }
         }
+    }
+
+    // Modifies the input plans of the post reduce foreach to match the output of reduce stage.
+    private void fixReduceSideFE(POForEach postReduceFE, List<Pair<PhysicalOperator, PhysicalPlan>> algebraicOps)
+            throws ExecException, PlanException {
+        int i=1;
+        for (Pair<PhysicalOperator, PhysicalPlan> algebraicOp : algebraicOps) {
+            POUserFunc combineUdf = (POUserFunc) algebraicOp.first;
+            PhysicalPlan pplan = algebraicOp.second;
+            combineUdf.setAlgebraicFunction(POUserFunc.FINAL);
+
+            POProject newProj = new POProject(
+                    CombinerOptimizerUtil.createOperatorKey(postReduceFE.getOperatorKey().getScope()),
+                    1, i
+            );
+            newProj.setResultType(DataType.BAG);
+
+            PhysicalOperator udfInput = pplan.getPredecessors(combineUdf).get(0);
+            pplan.disconnect(udfInput, combineUdf);
+            pplan.add(newProj);
+            pplan.connect(newProj, combineUdf);
+            i++;
+        }
+        postReduceFE.setResultType(DataType.TUPLE);
     }
 
     // Modifies the map side of foreach (before reduce).
@@ -296,21 +327,6 @@ public class CombinerOptimizer extends SparkOpPlanVisitor {
         physicalPlan.removeAndReconnect(poPackage);
     }
 
-
-    // TODO: Modify the post reduce plan in case of nested algebraic(ExpressionOperator) or logical operations.
-    private void fixReduceSideFE(POForEach postReduceFE, POForEach cfe) throws PlanException,
-            CloneNotSupportedException {
-        List<PhysicalPlan> plans = cfe.getInputPlans();
-        List<PhysicalPlan> newPlans = new ArrayList<>();
-        for (int i = 0; i < plans.size(); i++) {
-            PhysicalPlan inputPlan = plans.get(i).clone();
-            newPlans.add(inputPlan);
-        }
-        postReduceFE.setInputPlans(newPlans);
-        CombinerOptimizerUtil.changeFunc(postReduceFE, POUserFunc.FINAL);
-        postReduceFE.setResultType(DataType.TUPLE);
-    }
-
     // Update the ReduceBy Operator with the packaging used by Local rearrange.
     private void updatePackager(POReduceBySpark reduceOperator, POLocalRearrange lrearrange) throws OptimizerException {
         Packager pkgr = reduceOperator.getPkgr();
@@ -318,7 +334,7 @@ public class CombinerOptimizer extends SparkOpPlanVisitor {
         // update the keyInfo information if already present in the POPackage
         Map<Integer, Pair<Boolean, Map<Integer, Integer>>> keyInfo = pkgr.getKeyInfo();
         if (keyInfo == null)
-            keyInfo = new HashMap<Integer, Pair<Boolean, Map<Integer, Integer>>>();
+            keyInfo = new HashMap<>();
 
         if (keyInfo.get(Integer.valueOf(lrearrange.getIndex())) != null) {
             // something is wrong - we should not be getting key info
@@ -336,82 +352,6 @@ public class CombinerOptimizer extends SparkOpPlanVisitor {
         pkgr.setKeyInfo(keyInfo);
         pkgr.setKeyTuple(lrearrange.isKeyTuple());
         pkgr.setKeyCompound(lrearrange.isKeyCompound());
-    }
-
-    /**
-     * find algebraic operators and also check if the foreach statement is
-     * suitable for combiner use
-     *
-     * @param feInners inner plans of foreach
-     * @return null if plan is not combinable, otherwise list of combinable operators
-     * @throws VisitorException
-     */
-    // TODO : Since all combinable cases are not handled, not using the utility method in CombinerOptimizerUtil
-    private static List<Pair<PhysicalOperator, PhysicalPlan>> findAlgebraicOps(List<PhysicalPlan> feInners)
-            throws VisitorException {
-        List<Pair<PhysicalOperator, PhysicalPlan>> algebraicOps = Lists.newArrayList();
-
-        // check each foreach inner plan
-        for (PhysicalPlan pplan : feInners) {
-            // check for presence of non combinable operators
-            CombinerOptimizerUtil.AlgebraicPlanChecker algChecker = new CombinerOptimizerUtil.AlgebraicPlanChecker
-                    (pplan);
-            algChecker.visit();
-            if (algChecker.sawNonAlgebraic) {
-                return null;
-            }
-
-            // TODO : Distinct is combinable. Handle it.
-            if (algChecker.sawDistinctAgg) {
-                return null;
-            }
-
-            List<PhysicalOperator> roots = pplan.getRoots();
-            // combinable operators have to be attached to POProject root(s)
-            for (PhysicalOperator root : roots) {
-                if (root instanceof ConstantExpression) {
-                    continue;
-                }
-                if (!(root instanceof POProject)) {
-                    // how can this happen? - expect root of inner plan to be
-                    // constant or project. not combining it
-                    return null;
-                }
-                POProject proj = (POProject) root;
-                POUserFunc combineUdf = getAlgebraicSuccessor(pplan);
-                if (combineUdf == null) {
-                    if (proj.isProjectToEnd()) {
-                        // project-star or project to end
-                        // not combinable
-                        return null;
-                    }
-                    // Check to see if this is a projection of the grouping column.
-                    // If so, it will be a projection of col 0
-                    List<Integer> cols = proj.getColumns();
-                    if (cols != null && cols.size() == 1 && cols.get(0) == 0) {
-                        // it is project of grouping column, so the plan is
-                        // still combinable
-                        continue;
-                    } else {
-                        //not combinable
-                        return null;
-                    }
-                }
-
-                // The algebraic udf can have more than one input. Add the udf only once
-                boolean exist = false;
-                for (Pair<PhysicalOperator, PhysicalPlan> pair : algebraicOps) {
-                    if (pair.first.equals(combineUdf)) {
-                        exist = true;
-                        break;
-                    }
-                }
-                if (!exist)
-                    algebraicOps.add(new Pair<PhysicalOperator, PhysicalPlan>(combineUdf, pplan));
-            }
-        }
-
-        return algebraicOps;
     }
 
     /**

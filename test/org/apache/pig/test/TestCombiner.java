@@ -412,7 +412,13 @@ public class TestCombiner {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(baos);
         pigServer.explain(variable, ps);
-        boolean combinerFound = baos.toString().matches("(?si).*combine plan.*");
+        boolean combinerFound;
+        if (pigServer.getPigContext().getExecType().name().equalsIgnoreCase("spark")) {
+            combinerFound = baos.toString().contains("Reduce By");
+        } else {
+            combinerFound = baos.toString().matches("(?si).*combine plan.*");
+        }
+
         System.out.println(baos.toString());
         assertEquals("is combiner present as expected", combineExpected, combinerFound);
     }
