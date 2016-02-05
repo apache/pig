@@ -89,6 +89,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-4795: Flushing ObjectOutputStream before calling toByteArray on the underlying ByteArrayOutputStream (emopers via daijy)
+
 PIG-4690: Union with self replicate join will fail in Tez (rohini)
 
 PIG-4791: PORelationToExprProject filters records instead of returning emptybag in nested foreach after union (rohini)
