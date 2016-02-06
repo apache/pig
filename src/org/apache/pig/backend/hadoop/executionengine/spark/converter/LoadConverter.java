@@ -96,7 +96,8 @@ public class LoadConverter implements RDDConverter<Tuple, Tuple, POLoad> {
         ToTupleFunction ttf = new ToTupleFunction();
 
         //create SparkCounter and set it for ToTupleFunction
-        if (!op.isTmpLoad()) {
+        boolean disableCounter = jobConf.getBoolean("pig.disable.counter", false);
+        if (!op.isTmpLoad() && !disableCounter) {
             String counterName = SparkStatsUtil.getLoadSparkCounterName(op);
             SparkPigStatusReporter counterReporter = SparkPigStatusReporter.getInstance();
             if (counterReporter.getCounters() != null) {
@@ -105,6 +106,7 @@ public class LoadConverter implements RDDConverter<Tuple, Tuple, POLoad> {
                         counterName);
             }
 
+            ttf.setDisableCounter(disableCounter);
             ttf.setCounterGroupName(SparkStatsUtil.SPARK_INPUT_COUNTER_GROUP);
             ttf.setCounterName(counterName);
             ttf.setSparkCounters(SparkPigStatusReporter.getInstance().getCounters());
@@ -137,10 +139,11 @@ public class LoadConverter implements RDDConverter<Tuple, Tuple, POLoad> {
         private String counterGroupName;
         private String counterName;
         private SparkCounters sparkCounters;
+        private boolean disableCounter;
 
         @Override
         public Tuple apply(Tuple2<Text, Tuple> v1) {
-            if (sparkCounters != null) {
+            if (sparkCounters != null && disableCounter == false) {
                 sparkCounters.increment(counterGroupName, counterName, 1L);
             }
             return v1._2();
@@ -156,6 +159,10 @@ public class LoadConverter implements RDDConverter<Tuple, Tuple, POLoad> {
 
         public void setSparkCounters(SparkCounters sparkCounters) {
             this.sparkCounters = sparkCounters;
+        }
+
+        public void setDisableCounter(boolean disableCounter) {
+            this.disableCounter = disableCounter;
         }
     }
 

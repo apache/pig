@@ -137,10 +137,11 @@ public class StoreConverter implements
         private String counterGroupName;
         private String counterName;
         private SparkCounters sparkCounters;
+        private boolean disableCounter;
 
 
         public Tuple2<Text, Tuple> call(Tuple v1) {
-            if (sparkCounters != null) {
+            if (sparkCounters != null && disableCounter == false) {
                 sparkCounters.increment(counterGroupName, counterName, 1L);
             }
             return new Tuple2<Text, Tuple>(EMPTY_TEXT, v1);
@@ -157,11 +158,17 @@ public class StoreConverter implements
         public void setSparkCounters(SparkCounters sparkCounter) {
             this.sparkCounters = sparkCounter;
         }
+
+        public void setDisableCounter(boolean disableCounter) {
+            this.disableCounter = disableCounter;
+        }
     }
 
     private FromTupleFunction buildFromTupleFunction(POStore op) {
         FromTupleFunction ftf = new FromTupleFunction();
-        if (!op.isTmpStore()) {
+        boolean disableCounter = op.disableCounter();
+        if (!op.isTmpStore() && !disableCounter) {
+            ftf.setDisableCounter(disableCounter);
             ftf.setCounterGroupName(SparkStatsUtil.SPARK_STORE_COUNTER_GROUP);
             ftf.setCounterName(SparkStatsUtil.getStoreSparkCounterName(op));
             SparkPigStatusReporter counterReporter = SparkPigStatusReporter.getInstance();

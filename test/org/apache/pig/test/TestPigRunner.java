@@ -876,7 +876,13 @@ public class TestPigRunner {
             List<OutputStats> outputs = stats.getOutputStats();
             assertEquals(1, outputs.size());
             OutputStats outstats = outputs.get(0);
-            assertEquals(9, outstats.getNumberRecords());
+            //In spark mode, if pig.disable.counter = true, the number of records of the
+            //output are not calculated.
+            if (execType.equals("spark")) {
+                assertEquals(-1, outstats.getNumberRecords());
+            } else {
+                assertEquals(9, outstats.getNumberRecords());
+            }
         } finally {
             new File(PIG_FILE).delete();
             Util.deleteFile(cluster, OUTPUT_FILE);
@@ -958,8 +964,12 @@ public class TestPigRunner {
             PigStats stats = PigRunner.run(args, new TestNotificationListener(execType));
 
             assertTrue(stats.isSuccessful());
-
-            assertEquals(1, stats.getNumberJobs());
+            if (execType.equals("spark")) {
+                //2 POStore generates 2 spark jobs
+                assertEquals(2, stats.getNumberJobs());
+            } else {
+                assertEquals(1, stats.getNumberJobs());
+            }
             List<OutputStats> outputs = stats.getOutputStats();
             assertEquals(2, outputs.size());
             if (execType.equals("tez")) {
@@ -975,7 +985,11 @@ public class TestPigRunner {
             List<InputStats> inputs = stats.getInputStats();
             assertEquals(1, inputs.size());
             InputStats instats = inputs.get(0);
-            assertEquals(5, instats.getNumberRecords());
+            if (execType.equals("spark")) {
+                assertEquals(-1, instats.getNumberRecords());
+            } else {
+                assertEquals(5, instats.getNumberRecords());
+            }
         } finally {
             new File(PIG_FILE).delete();
             Util.deleteFile(cluster, OUTPUT_FILE);

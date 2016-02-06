@@ -46,6 +46,7 @@ public class SparkJobStats extends JobStats {
 
     private int jobId;
     private Map<String, Long> stats = Maps.newLinkedHashMap();
+    private boolean disableCounter;
 
     protected SparkJobStats(int jobId, PigStats.JobGraph plan, Configuration conf) {
         this(String.valueOf(jobId), plan, conf);
@@ -57,11 +58,19 @@ public class SparkJobStats extends JobStats {
         setConf(conf);
     }
 
+    public void setConf(Configuration conf) {
+        super.setConf(conf);
+        disableCounter = conf.getBoolean("pig.disable.counter", false);
+    }
+
     public void addOutputInfo(POStore poStore, boolean success,
                               JobMetricsListener jobMetricsListener) {
         if (!poStore.isTmpStore()) {
             long bytes = getOutputSize(poStore, conf);
-            long recordsCount = SparkStatsUtil.getStoreSparkCounterValue(poStore);
+            long recordsCount = -1;
+            if (disableCounter == false) {
+                recordsCount = SparkStatsUtil.getStoreSparkCounterValue(poStore);
+            }
             OutputStats outputStats = new OutputStats(poStore.getSFile().getFileName(),
                     bytes, recordsCount, success);
             outputStats.setPOStore(poStore);
@@ -74,7 +83,10 @@ public class SparkJobStats extends JobStats {
     public void addInputStats(POLoad po, boolean success,
                               boolean singleInput) {
 
-        long recordsCount = SparkStatsUtil.getLoadSparkCounterValue(po);
+        long recordsCount = -1;
+        if (disableCounter == false) {
+            recordsCount = SparkStatsUtil.getLoadSparkCounterValue(po);
+        }
         long bytesRead = -1;
         if (singleInput && stats.get("BytesRead") != null) {
             bytesRead = stats.get("BytesRead");
