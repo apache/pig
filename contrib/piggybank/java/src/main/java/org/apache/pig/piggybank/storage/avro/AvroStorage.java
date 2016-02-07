@@ -186,18 +186,20 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
             }
         }
 
-        Configuration conf = job.getConfiguration();
-        Set<Path> paths = AvroStorageUtils.getPaths(location, conf, true);
-        if (!paths.isEmpty()) {
-            // Set top level directories in input format. Adding all files will
-            // bloat configuration size
-            FileInputFormat.setInputPaths(job, paths.toArray(new Path[paths.size()]));
-            // Scan all directories including sub directories for schema
-            if (inputAvroSchema == null) {
-                setInputAvroSchema(paths, conf);
+        if (inputAvroSchema == null || UDFContext.getUDFContext().isFrontend()) {
+            Configuration conf = job.getConfiguration();
+            Set<Path> paths = AvroStorageUtils.getPaths(location, conf, true);
+            if (!paths.isEmpty()) {
+                // Set top level directories in input format. Adding all files will
+                // bloat configuration size
+                FileInputFormat.setInputPaths(job, paths.toArray(new Path[paths.size()]));
+                // Scan all directories including sub directories for schema
+                if (inputAvroSchema == null) {
+                    setInputAvroSchema(paths, conf);
+                }
+            } else {
+                throw new IOException("Input path \'" + location + "\' is not found");
             }
-        } else {
-            throw new IOException("Input path \'" + location + "\' is not found");
         }
 
     }
