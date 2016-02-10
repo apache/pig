@@ -154,7 +154,7 @@ public class TezOperPlan extends OperatorPlan<TezOperator> {
                 URI resourceURI = new URI(fileName);
                 String fragment = resourceURI.getFragment();
 
-                Path remoteFsPath = new Path(resourceURI.getPath());
+                Path remoteFsPath = new Path(resourceURI);
                 String resourceName = (fragment != null && fragment.length() > 0) ? fragment : remoteFsPath.getName();
 
                 addExtraResource(resourceName, remoteFsPath);

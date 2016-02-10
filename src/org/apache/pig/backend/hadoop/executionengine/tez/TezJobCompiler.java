@@ -100,10 +100,7 @@ public class TezJobCompiler {
             }
             String cacheFiles = pigContext.getProperties().getProperty("pig.streaming.cache.files");
             if (cacheFiles != null) {
-                for (String file : cacheFiles.split(",")) {
-                    // Do new URI() before passing to Path constructor else it encodes # when there is symlink
-                    TezResourceManager.getInstance().addTezResource(new Path(new URI(file.trim())).toUri());
-                }
+                addCacheResources(cacheFiles.split(","));
             }
             for (Map.Entry<String, LocalResource> entry : localResources.entrySet()) {
                 log.info("Local resource: " + entry.getKey());
@@ -116,6 +113,20 @@ public class TezJobCompiler {
             int errCode = 2017;
             String msg = "Internal error creating job configuration.";
             throw new JobCreationException(msg, errCode, PigException.BUG, e);
+        }
+    }
+
+    private void addCacheResources(String[] fileNames) throws Exception {
+        for (String fileName : fileNames) {
+            fileName = fileName.trim();
+            if (fileName.length() > 0) {
+                URI resourceURI = new URI(fileName);
+                String fragment = resourceURI.getFragment();
+
+                Path remoteFsPath = new Path(resourceURI);
+                String resourceName = (fragment != null && fragment.length() > 0) ? fragment : remoteFsPath.getName();
+                TezResourceManager.getInstance().addTezResource(resourceName, remoteFsPath);
+            }
         }
     }
 

@@ -130,7 +130,8 @@ public class TezResourceManager {
             // The resource name will be symlinked to the resource path in the
             // container's working directory.
             Path resourcePath = resources.get(resourceName);
-            FileStatus fstat = remoteFs.getFileStatus(resourcePath);
+            FileSystem fileSystem = resourcePath.getFileSystem(conf);
+            FileStatus fstat = fileSystem.getFileStatus(resourcePath);
 
             LocalResource tezResource = LocalResource.newInstance(
                     ConverterUtils.getYarnUrlFromPath(fstat.getPath()),
