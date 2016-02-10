@@ -1,0 +1,99 @@
+#--------------------------------------------------
+# There are 1 DAGs in the session
+#--------------------------------------------------
+#--------------------------------------------------
+# TEZ DAG plan: pig-0_scope-0
+#--------------------------------------------------
+Tez vertex scope-58	->	Tez vertex scope-66,Tez vertex scope-67,Tez vertex scope-73,
+Tez vertex scope-66	->	Tez vertex scope-67,
+Tez vertex scope-67	->	Tez vertex scope-73,
+Tez vertex scope-73
+
+Tez vertex scope-58
+# Plan on vertex
+a: Split - scope-74
+|   |
+|   POValueOutputTez - scope-69	->	 [scope-67]
+|   |
+|   |---a1: Filter[bag] - scope-11
+|       |   |
+|       |   Greater Than[boolean] - scope-14
+|       |   |
+|       |   |---Project[int][0] - scope-12
+|       |   |
+|       |   |---Constant(5) - scope-13
+|   |
+|   a4: Local Rearrange[tuple]{int}(false) - scope-31	->	 scope-66
+|   |   |
+|   |   Project[int][0] - scope-32
+|   |
+|   |---a2: Filter[bag] - scope-17
+|       |   |
+|       |   Less Than[boolean] - scope-20
+|       |   |
+|       |   |---Project[int][0] - scope-18
+|       |   |
+|       |   |---Constant(2) - scope-19
+|   |
+|   a4: Local Rearrange[tuple]{int}(false) - scope-33	->	 scope-66
+|   |   |
+|   |   Project[int][0] - scope-34
+|   |
+|   |---a3: Filter[bag] - scope-23
+|       |   |
+|       |   Equal To[boolean] - scope-26
+|       |   |
+|       |   |---Project[int][1] - scope-24
+|       |   |
+|       |   |---Constant(10) - scope-25
+|   |
+|   c: Local Rearrange[tuple]{int}(false) - scope-52	->	 scope-73
+|   |   |
+|   |   Project[int][0] - scope-53
+|
+|---a: New For Each(false,false)[bag] - scope-7
+    |   |
+    |   Cast[int] - scope-2
+    |   |
+    |   |---Project[bytearray][0] - scope-1
+    |   |
+    |   Cast[int] - scope-5
+    |   |
+    |   |---Project[bytearray][1] - scope-4
+    |
+    |---a: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-0
+Tez vertex scope-66
+# Plan on vertex
+POValueOutputTez - scope-70	->	 [scope-67]
+|
+|---a5: New For Each(false,false)[bag] - scope-42
+    |   |
+    |   Project[int][0] - scope-38
+    |   |
+    |   Project[int][3] - scope-40
+    |
+    |---a4: New For Each(true,true)[tuple] - scope-37
+        |   |
+        |   Project[bag][1] - scope-35
+        |   |
+        |   Project[bag][2] - scope-36
+        |
+        |---a4: Package(Packager)[tuple]{int} - scope-30
+Tez vertex scope-67
+# Plan on vertex
+c: Local Rearrange[tuple]{int}(false) - scope-50	->	 scope-73
+|   |
+|   Project[int][0] - scope-51
+|
+|---POShuffledValueInputTez - scope-68	<-	 [scope-58, scope-66]
+Tez vertex scope-73
+# Plan on vertex
+c: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-57
+|
+|---c: New For Each(true,true)[tuple] - scope-56
+    |   |
+    |   Project[bag][1] - scope-54
+    |   |
+    |   Project[bag][2] - scope-55
+    |
+    |---c: Package(Packager)[tuple]{int} - scope-49
