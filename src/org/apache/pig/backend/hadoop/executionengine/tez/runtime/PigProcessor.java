@@ -30,6 +30,8 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapred.TaskAttemptID;
+import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.pig.JVMReuseImpl;
 import org.apache.pig.PigConstants;
 import org.apache.pig.PigException;
@@ -59,6 +61,7 @@ import org.apache.pig.impl.util.Utils;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.UserPayload;
+import org.apache.tez.mapreduce.hadoop.MRConfig;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.Event;
@@ -131,6 +134,22 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
 
         // To determine front-end in UDFContext
         conf.set(MRConfiguration.JOB_APPLICATION_ATTEMPT_ID, getContext().getUniqueIdentifier());
+
+        // For compatibility with mapreduce. Some users use these configs in their UDF
+        // Copied logic from the tez class - org.apache.tez.mapreduce.output.MROutput
+        // Currently isMapperOutput is always false. Setting it to true produces empty output with MROutput
+        boolean isMapperOutput = conf.getBoolean(MRConfig.IS_MAP_PROCESSOR, false);
+        TaskAttemptID taskAttemptId = org.apache.tez.mapreduce.hadoop.mapreduce.TaskAttemptContextImpl
+                .createMockTaskAttemptID(getContext().getApplicationId().getClusterTimestamp(),
+                    getContext().getTaskVertexIndex(), getContext().getApplicationId().getId(),
+                    getContext().getTaskIndex(), getContext().getTaskAttemptNumber(), isMapperOutput);
+        conf.set(JobContext.TASK_ATTEMPT_ID, taskAttemptId.toString());
+        conf.set(JobContext.TASK_ID, taskAttemptId.getTaskID().toString());
+        conf.setBoolean(JobContext.TASK_ISMAP, isMapperOutput);
+        conf.setInt(JobContext.TASK_PARTITION,
+              taskAttemptId.getTaskID().getId());
+        conf.set(JobContext.ID, taskAttemptId.getJobID().toString());
+
         conf.set(PigConstants.TASK_INDEX, Integer.toString(getContext().getTaskIndex()));
         UDFContext.getUDFContext().addJobConf(conf);
         UDFContext.getUDFContext().deserialize();

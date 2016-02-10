@@ -563,6 +563,8 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         @SuppressWarnings("deprecation")
         Job job = new Job(payloadConf);
         payloadConf = (JobConf) job.getConfiguration();
+        //TODO: Investigate. Setting as map writes empty output.
+        //payloadConf.setBoolean(MRConfig.IS_MAP_PROCESSOR, tezOp.isUseMRMapSettings());
         payloadConf.setBoolean(MRConfiguration.MAPPER_NEW_API, true);
         payloadConf.setBoolean(MRConfiguration.REDUCER_NEW_API, true);
         payloadConf.setClass(MRConfiguration.INPUTFORMAT_CLASS,
