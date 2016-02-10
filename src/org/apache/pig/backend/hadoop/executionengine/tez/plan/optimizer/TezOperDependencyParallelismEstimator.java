@@ -26,8 +26,10 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigReducerEstimator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.CombinerPackager;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.JoinPackager;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFilter;
@@ -42,6 +44,7 @@ import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperator;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POLocalRearrangeTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POValueOutputTez;
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -55,7 +58,7 @@ import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
  *
  * Since currently it is only possible to reduce the parallelism
  * estimation is exaggerated and will rely on Tez runtime to
- * descrease the parallelism
+ * decrease the parallelism
  */
 public class TezOperDependencyParallelismEstimator implements TezParallelismEstimator {
 
@@ -63,6 +66,14 @@ public class TezOperDependencyParallelismEstimator implements TezParallelismEsti
     static final double DEFAULT_FLATTEN_FACTOR = 10;
     static final double DEFAULT_FILTER_FACTOR = 0.7;
     static final double DEFAULT_LIMIT_FACTOR = 0.1;
+
+    // Most of the cases distinct does not reduce much.
+    // So keeping it high at 0.9
+    static final double DEFAULT_DISTINCT_FACTOR = 0.9;
+
+    // Most of the cases aggregation can reduce by a lot.
+    // But keeping at 0.7 to take worst case scenarios into account
+    static final double DEFAULT_AGGREGATION_FACTOR = 0.7;
 
     private PigContext pc;
 
@@ -118,7 +129,7 @@ public class TezOperDependencyParallelismEstimator implements TezParallelismEsti
                 //For cases like Union we can just limit to sum of pred vertices parallelism
                 boolean applyFactor = !tezOper.isUnion();
                 if (!pred.isVertexGroup() && applyFactor) {
-                    predParallelism = predParallelism * pred.getParallelismFactor();
+                    predParallelism = predParallelism * pred.getParallelismFactor(tezOper);
                 }
                 estimatedParallelism += predParallelism;
             }
@@ -175,9 +186,24 @@ public class TezOperDependencyParallelismEstimator implements TezParallelismEsti
     public static class TezParallelismFactorVisitor extends PhyPlanVisitor {
         private double factor = 1;
         private String outputKey;
-        public TezParallelismFactorVisitor(PhysicalPlan plan, String outputKey) {
-            super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(plan));
-            this.outputKey = outputKey;
+        private TezOperator tezOp;
+
+        public TezParallelismFactorVisitor(TezOperator tezOp, TezOperator successor) {
+            super(tezOp.plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(tezOp.plan));
+            this.tezOp = tezOp;
+            this.outputKey = tezOp.getOperatorKey().toString();
+
+            if (successor != null) {
+                // Map side combiner
+                TezEdgeDescriptor edge = tezOp.outEdges.get(successor.getOperatorKey());
+                if (!edge.combinePlan.isEmpty()) {
+                    if (successor.isDistinct()) {
+                        factor = DEFAULT_DISTINCT_FACTOR;
+                    } else {
+                        factor = DEFAULT_AGGREGATION_FACTOR;
+                    }
+                }
+            }
         }
 
         @Override
@@ -195,11 +221,17 @@ public class TezOperDependencyParallelismEstimator implements TezParallelismEsti
         @Override
         public void visitPOForEach(POForEach nfe) throws VisitorException {
             List<Boolean> flattens = nfe.getToBeFlattened();
+            List<PhysicalPlan> inputPlans = nfe.getInputPlans();
             boolean containFlatten = false;
-            for (boolean flatten : flattens) {
-                if (flatten) {
-                    containFlatten = true;
-                    break;
+            for (int i = 0; i < flattens.size(); i++) {
+                if (flattens.get(i)) {
+                    PhysicalPlan inputPlan = inputPlans.get(i);
+                    PhysicalOperator root = inputPlan.getRoots().get(0);
+                    if (root instanceof POProject
+                            && root.getResultType() == DataType.BAG) {
+                        containFlatten = true;
+                        break;
+                    }
                 }
             }
             if (containFlatten) {
@@ -227,6 +259,12 @@ public class TezOperDependencyParallelismEstimator implements TezParallelismEsti
             // JoinPackager is equivalent to a foreach flatten after shuffle
             if (pkg.getPkgr() instanceof JoinPackager) {
                 factor *= DEFAULT_FLATTEN_FACTOR;
+            } else if (pkg.getPkgr() instanceof CombinerPackager) {
+                if (tezOp.isDistinct()) {
+                    factor *= DEFAULT_DISTINCT_FACTOR;
+                } else {
+                    factor *= DEFAULT_AGGREGATION_FACTOR;
+                }
             }
         }
 
