@@ -363,52 +363,18 @@ public class TezCompiler extends PhyPlanVisitor {
                     String msg = "Predecessor of load should be a store or native oper. Got " + p.getClass();
                     throw new PlanException(msg, errCode, PigException.BUG);
                 }
-                if (p instanceof POStore) {
-                    PhysicalOperator store = oper.plan.getOperator(p.getOperatorKey());
-                    // replace POStore to POValueOutputTez, convert the tezOperator to splitter
-                    oper.plan.disconnect(oper.plan.getPredecessors(store).get(0), store);
-                    oper.plan.remove(store);
-                    POValueOutputTez valueOutput = new POValueOutputTez(new OperatorKey(scope,nig.getNextNodeId(scope)));
-                    oper.plan.addAsLeaf(valueOutput);
-                    oper.setSplitter(true);
-
-                    // Create a splittee of store only
-                    TezOperator storeOnlyTezOperator = getTezOp();
-                    PhysicalPlan storeOnlyPhyPlan = new PhysicalPlan();
-                    POValueInputTez valueInput = new POValueInputTez(new OperatorKey(scope,nig.getNextNodeId(scope)));
-                    valueInput.setInputKey(oper.getOperatorKey().toString());
-                    storeOnlyPhyPlan.addAsLeaf(valueInput);
-                    storeOnlyPhyPlan.addAsLeaf(store);
-                    storeOnlyTezOperator.plan = storeOnlyPhyPlan;
-                    tezPlan.add(storeOnlyTezOperator);
-                    phyToTezOpMap.put(p, storeOnlyTezOperator);
-
-                    // Create new operator as second splittee
-                    curTezOp = getTezOp();
-                    POValueInputTez valueInput2 = new POValueInputTez(new OperatorKey(scope,nig.getNextNodeId(scope)));
-                    valueInput2.setInputKey(oper.getOperatorKey().toString());
-                    curTezOp.plan.add(valueInput2);
-                    tezPlan.add(curTezOp);
-
-                    // Connect splitter to splittee
-                    TezEdgeDescriptor edge = TezCompilerUtil.connect(tezPlan, oper, storeOnlyTezOperator);
-                    TezCompilerUtil.configureValueOnlyTupleOutput(edge,  DataMovementType.ONE_TO_ONE);
-                    storeOnlyTezOperator.setRequestedParallelismByReference(oper);
-
-                    edge = TezCompilerUtil.connect(tezPlan, oper, curTezOp);
-                    TezCompilerUtil.configureValueOnlyTupleOutput(edge,  DataMovementType.ONE_TO_ONE);
-                    curTezOp.setRequestedParallelismByReference(oper);
-                } else if (p instanceof PONative) {
-                    // Need new operator
-                    curTezOp = getTezOp();
-                    curTezOp.plan.add(op);
-                    tezPlan.add(curTezOp);
-
-                    plan.disconnect(op, p);
-                    TezCompilerUtil.connect(tezPlan, oper, curTezOp);
-                    phyToTezOpMap.put(op, curTezOp);
-                    return;
+                curTezOp = getTezOp();
+                curTezOp.plan.add(op);
+                curTezOp.setUseMRMapSettings(true);
+                if (((POLoad) op).getLFile() != null
+                        && ((POLoad) op).getLFile().getFuncSpec() != null) {
+                        curTezOp.UDFs.add(((POLoad)op).getLFile().getFuncSpec().toString());
                 }
+                tezPlan.add(curTezOp);
+                phyToTezOpMap.put(op, curTezOp);
+                plan.disconnect(op, p);
+                TezCompilerUtil.connect(tezPlan, oper, curTezOp);
+                oper.segmentBelow = true;
                 return;
             }
 

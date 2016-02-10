@@ -89,6 +89,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-4759: Fix Classresolution_1 e2e failure (rohini)
+
 PIG-4800: EvalFunc.getCacheFiles() fails for different namenode (rohini)
 
 PIG-4790: Join after union fail due to UnionOptimizer (rohini)
