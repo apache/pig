@@ -40,6 +40,7 @@ import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.InputSizeReducerEstimator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
+import org.apache.pig.backend.hadoop.executionengine.tez.TezDagBuilder;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezJobCompiler;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer.ParallelismSetter;
 import org.apache.pig.data.Tuple;
@@ -299,6 +300,23 @@ public class TestTezAutoParallelism {
     }
 
     @Test
+    public void testFlattenParallelism() throws IOException{
+        String outputDir = "/tmp/testFlattenParallelism";
+        String script = "A = load '" + INPUT_FILE1 + "' as (name:chararray, age:int);"
+                + "B = load '" + INPUT_FILE2 + "' as (name:chararray, gender:chararray);"
+                + "C = join A by name, B by name using 'skewed' parallel 1;"
+                + "C1 = group C by A::name;"
+                + "C2 = FOREACH C1 generate group, FLATTEN(C);"
+                + "D = group C2 by group;"
+                + "E = foreach D generate group, COUNT(C2.A::name);"
+                + "STORE E into '" + outputDir + "/finalout';";
+        String log = testAutoParallelism(script, outputDir, true, TezJobCompiler.class, TezDagBuilder.class);
+        assertTrue(log.contains("For vertex - scope-74: parallelism=10"));
+        assertTrue(log.contains("For vertex - scope-75: parallelism=70"));
+        assertTrue(log.contains("Total estimated parallelism is 89"));
+    }
+
+    @Test
     public void testIncreaseIntermediateParallelism1() throws IOException{
         // User specified parallelism is overriden for intermediate step
         String outputDir = "/tmp/testIncreaseIntermediateParallelism";
@@ -312,7 +330,7 @@ public class TestTezAutoParallelism {
         // Parallelism of C should be increased
         assertTrue(log.contains("Increased requested parallelism of scope-59 to 4"));
         assertEquals(1, StringUtils.countMatches(log, "Increased requested parallelism"));
-        assertTrue(log.contains("Total estimated parallelism is 52"));
+        assertTrue(log.contains("Total estimated parallelism is 40"));
     }
 
     @Test
@@ -358,11 +376,15 @@ public class TestTezAutoParallelism {
     }
 
     private String testIncreaseIntermediateParallelism(String script, String outputDir, boolean sortAndCheck) throws IOException {
+        return testAutoParallelism(script, outputDir, sortAndCheck, ParallelismSetter.class, TezJobCompiler.class);
+    }
+
+    private String testAutoParallelism(String script, String outputDir, boolean sortAndCheck, Class... classesToLog) throws IOException {
         NodeIdGenerator.reset();
         PigServer.resetScope();
         StringWriter writer = new StringWriter();
         // When there is a combiner operation involved user specified parallelism is overriden
-        Util.createLogAppender("testIncreaseIntermediateParallelism", writer, ParallelismSetter.class, TezJobCompiler.class);
+        Util.createLogAppender("testAutoParallelism", writer, classesToLog);
         try {
             pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
             pigServer.getPigContext().getProperties().setProperty(MRConfiguration.MAX_SPLIT_SIZE, "4000");
@@ -390,7 +412,7 @@ public class TestTezAutoParallelism {
             }
             return writer.toString();
         } finally {
-            Util.removeLogAppender("testIncreaseIntermediateParallelism", ParallelismSetter.class, TezJobCompiler.class);
+            Util.removeLogAppender("testAutoParallelism", classesToLog);
             Util.deleteFile(cluster, outputDir);
         }
     }

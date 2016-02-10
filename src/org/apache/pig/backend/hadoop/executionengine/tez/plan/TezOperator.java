@@ -146,7 +146,7 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     private boolean useGraceParallelism = false;
 
-    private double parallelismFactor = -1;
+    private Map<OperatorKey, Double> parallelismFactorPerSuccessor;
 
     private Boolean intermediateReducer = null;
 
@@ -658,13 +658,25 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         return useGraceParallelism;
     }
 
-    public double getParallelismFactor() throws VisitorException {
-        if (parallelismFactor == -1) {
-            TezParallelismFactorVisitor parallelismFactorVisitor = new TezParallelismFactorVisitor(plan, getOperatorKey().toString());
-            parallelismFactorVisitor.visit();
-            parallelismFactor = parallelismFactorVisitor.getFactor();
+    public double getParallelismFactor(TezOperator successor) throws VisitorException {
+        if (parallelismFactorPerSuccessor == null) {
+            parallelismFactorPerSuccessor = new HashMap<OperatorKey, Double>();
         }
-        return parallelismFactor;
+        Double factor = parallelismFactorPerSuccessor.get(successor.getOperatorKey());
+        if (factor == null) {
+            // We determine different parallelism factors for different successors (edges).
+            // For eg: If we have two successors, one with combine plan and other without
+            // we want to compute lesser parallelism factor for the one with the combine plan
+            // as that edge will get less data.
+            // TODO: To be more perfect, we need only look at the split sub-plan that
+            // writes to that successor edge. If there is a FILTER in one sub-plan it is accounted
+            // for all the successors now which is not right.
+            TezParallelismFactorVisitor parallelismFactorVisitor = new TezParallelismFactorVisitor(this, successor);
+            parallelismFactorVisitor.visit();
+            factor = parallelismFactorVisitor.getFactor();
+            parallelismFactorPerSuccessor.put(successor.getOperatorKey(), factor);
+        }
+        return factor;
     }
 
     public Boolean isIntermediateReducer() throws IOException {

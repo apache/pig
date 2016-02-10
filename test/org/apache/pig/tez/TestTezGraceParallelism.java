@@ -139,11 +139,11 @@ public class TestTezGraceParallelism {
                     .getTuplesFromConstantTupleStrings(new String[] {
                             "('F',1349L)", "('M',1373L)"});
             Util.checkQueryOutputsAfterSort(iter, expectedResults);
-            assertTrue(writer.toString().contains("Initialize parallelism for scope-52 to 20"));
-            assertTrue(writer.toString().contains("Initialize parallelism for scope-61 to 100"));
+            assertTrue(writer.toString().contains("Initialize parallelism for scope-52 to 18"));
+            assertTrue(writer.toString().contains("Initialize parallelism for scope-61 to 7"));
             assertTrue(writer.toString().contains("Reduce auto parallelism for vertex: scope-49 to 1 from 2"));
-            assertTrue(writer.toString().contains("Reduce auto parallelism for vertex: scope-52 to 1 from 20"));
-            assertTrue(writer.toString().contains("Reduce auto parallelism for vertex: scope-61 to 1 from 100"));
+            assertTrue(writer.toString().contains("Reduce auto parallelism for vertex: scope-52 to 1 from 18"));
+            assertTrue(writer.toString().contains("Reduce auto parallelism for vertex: scope-61 to 1 from 7"));
         } finally {
             Util.removeLogAppender("testDecreaseParallelism", PigGraceShuffleVertexManager.class, ShuffleVertexManager.class);
         }
@@ -181,9 +181,9 @@ public class TestTezGraceParallelism {
             }
             assertEquals(count, 644);
             System.out.println(writer.toString());
-            assertTrue(writer.toString().contains("Initialize parallelism for scope-64 to 50"));
+            assertTrue(writer.toString().contains("Initialize parallelism for scope-64 to 45"));
             // There are randomness in which task finishes first, so the auto parallelism could result different result
-            assertTrue(Pattern.compile("Reduce auto parallelism for vertex: scope-64 to (\\d+)* from 50").matcher(writer.toString()).find());
+            assertTrue(Pattern.compile("Reduce auto parallelism for vertex: scope-64 to (\\d+)* from 45").matcher(writer.toString()).find());
         } finally {
             Util.removeLogAppender("testIncreaseParallelism", PigGraceShuffleVertexManager.class, ShuffleVertexManager.class);
         }
@@ -208,7 +208,7 @@ public class TestTezGraceParallelism {
             pigServer.registerQuery("C = distinct B;");
             pigServer.registerQuery("D = load '" + INPUT_DIR + "/" + INPUT_FILE1 + "' as (name:chararray, age:int);");
             pigServer.registerQuery("E = group D by name;");
-            pigServer.registerQuery("F = foreach E generate group as name, AVG(D.age) as avg_age;");
+            pigServer.registerQuery("F = foreach E generate FLATTEN(group) as name, AVG(D.age) as avg_age;");
             pigServer.registerQuery("G = join C by name, F by name;");
             Iterator<Tuple> iter = pigServer.openIterator("G");
             int count = 0;
@@ -218,7 +218,7 @@ public class TestTezGraceParallelism {
             }
             assertEquals(count, 20);
             assertTrue(writer.toString().contains("All predecessors for scope-84 are finished, time to set parallelism for scope-85"));
-            assertTrue(writer.toString().contains("Initialize parallelism for scope-85 to 101"));
+            assertTrue(writer.toString().contains("Initialize parallelism for scope-85 to 10"));
         } finally {
             Util.removeLogAppender("testJoinWithDifferentDepth", PigGraceShuffleVertexManager.class);
         }
