@@ -167,6 +167,19 @@ public class UnionOptimizer extends TezOpPlanVisitor {
         List<TezOperator> successors = tezPlan.getSuccessors(unionOp) == null ? null
                 : new ArrayList<TezOperator>(tezPlan.getSuccessors(unionOp));
 
+
+        if (successors != null && uniqueUnionMembers.size() > 1) {
+            for (TezOperator succ : successors) {
+                for (TezOperator pred : predecessors) {
+                    if (succ.inEdges.containsKey(pred.getOperatorKey())) {
+                        // Stop here, we cannot convert the node into vertex group
+                        // Otherwise, we will end up with a parallel edge between pred
+                        // and succ
+                        return;
+                    }
+                }
+            }
+        }
         if (predecessors.size() > unionOp.getUnionMembers().size()
                 && uniqueUnionMembers.size() != 1) {
             return; // TODO: PIG-3856
@@ -356,6 +369,7 @@ public class UnionOptimizer extends TezOpPlanVisitor {
             throws PlanException, VisitorException {
         String unionOpKey = unionOp.getOperatorKey().toString();
         String splitPredOpKey = splitPredOp.getOperatorKey().toString();
+        List<TezOperator> splitSuccessors = tezPlan.getSuccessors(splitPredOp);
         if (successors != null) {
             for (TezOperator succ : successors) {
                 TezOperator successorVertexGroup = null;
@@ -389,7 +403,10 @@ public class UnionOptimizer extends TezOpPlanVisitor {
                         //Only splitPredOp is member of the vertex group. Get rid of the vertex group
                         removeSuccessorVertexGroup = true;
                     } else {
-                        tezPlan.connect(splitPredOp, successorVertexGroup);
+                        // Avoid connecting multiple times in case of union + self join
+                        if (splitSuccessors == null || !splitSuccessors.contains(successorVertexGroup)) {
+                            tezPlan.connect(splitPredOp, successorVertexGroup);
+                        }
                     }
                 } else {
                     actualSuccs.add(succ);
@@ -423,7 +440,10 @@ public class UnionOptimizer extends TezOpPlanVisitor {
                             // to SplitOp -> Successor
                             tezPlan.disconnect(unionOp, actualSucc);
                         }
-                        tezPlan.connect(splitPredOp, actualSucc);
+                        // Avoid connecting multiple times in case of union + self join
+                        if (splitSuccessors == null || !splitSuccessors.contains(actualSucc)) {
+                            tezPlan.connect(splitPredOp, actualSucc);
+                        }
                     }
                 }
             }
