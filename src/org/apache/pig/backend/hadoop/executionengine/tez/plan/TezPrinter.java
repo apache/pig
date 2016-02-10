@@ -90,6 +90,9 @@ public class TezPrinter extends TezOpPlanVisitor {
             printer.setVerbose(isVerbose);
             printer.visit();
             mStream.println();
+        } else if (!tezOper.isVertexGroup()) {
+            // For things like NativeTezOper
+            mStream.println("" + tezOper);
         }
     }
 

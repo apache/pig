@@ -1,0 +1,42 @@
+#--------------------------------------------------
+# There are 3 DAGs in the session
+#--------------------------------------------------
+#--------------------------------------------------
+# TEZ DAG plan: pig-0_scope-0
+#--------------------------------------------------
+Tez vertex scope-12
+
+Tez vertex scope-12
+# Plan on vertex
+a: Store(/tmp/table_testNativeMRJobSimple_input:org.apache.pig.builtin.PigStorage) - scope-8
+|
+|---a: New For Each(false,false)[bag] - scope-7
+    |   |
+    |   Cast[int] - scope-2
+    |   |
+    |   |---Project[bytearray][0] - scope-1
+    |   |
+    |   Cast[int] - scope-5
+    |   |
+    |   |---Project[bytearray][1] - scope-4
+    |
+    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
+#--------------------------------------------------
+# TEZ DAG plan: pig-1_scope-1
+#--------------------------------------------------
+Tez vertex scope-13
+
+Tez vertex scope-13
+Tez - scope-13
+ Native Tez - jar : hadoop-examples.jar, params: [wordcount, /tmp/table_testNativeMRJobSimple_input, /tmp/table_testNativeMRJobSimple_output]:
+Plan Empty
+#--------------------------------------------------
+# TEZ DAG plan: pig-2_scope-2
+#--------------------------------------------------
+Tez vertex scope-14
+
+Tez vertex scope-14
+# Plan on vertex
+b: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-11
+|
+|---b: Load(/tmp/table_testNativeMRJobSimple_output:org.apache.pig.builtin.PigStorage) - scope-10

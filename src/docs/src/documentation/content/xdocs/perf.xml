@@ -493,7 +493,7 @@ Gtab = .... aggregation function
 STORE Gtab INTO '/user/vxj/finalresult2';
 </source>
 
-<p>To make the script works, add the exec statement.  </p>
+<p>To make the script work, add the exec statement. </p>
 
 <source>
 A = LOAD '/user/xxx/firstinput' USING PigStorage();
@@ -518,6 +518,11 @@ Ftab = group ....
 Gtab = .... aggregation function
 STORE Gtab INTO '/user/vxj/finalresult2';
 </source>
+
+<p>If the STORE and LOAD both had exact matching file paths, Pig will recognize the implicit dependency
+and launch two different mapreduce jobs/Tez DAGs with the second job depending on the output of the first one. 
+exec is not required to be specified in that case.</p>
+
 </section>
 </section>
 </section>

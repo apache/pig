@@ -89,6 +89,27 @@ public class TestTezCompiler {
     }
 
     @Test
+    public void testStoreLoad() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' as (x:int, y:int);" +
+                "store a into 'file:///tmp/output';" +
+                "b = load 'file:///tmp/output' as (x:int, y:int);" +
+                "store b into 'file:///tmp/output1';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-LoadStore-1.gld");
+    }
+
+    @Test
+    public void testNative() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' as (x:int, y:int);" +
+                "b = native 'hadoop-examples.jar' Store a into '/tmp/table_testNativeMRJobSimple_input' Load '/tmp/table_testNativeMRJobSimple_output' `wordcount /tmp/table_testNativeMRJobSimple_input /tmp/table_testNativeMRJobSimple_output`;" +
+                "store b into 'file:///tmp/output';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Native-1.gld");
+    }
+
+    @Test
     public void testFilter() throws Exception {
         String query =
                 "a = load 'file:///tmp/input' as (x:int, y:int);" +
