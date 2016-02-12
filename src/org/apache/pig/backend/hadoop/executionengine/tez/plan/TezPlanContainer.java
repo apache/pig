@@ -31,6 +31,7 @@ import java.util.Set;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezResourceManager;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.PlanException;
@@ -152,36 +153,107 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
     }
 
     public void split(TezPlanContainerNode planNode) throws PlanException {
+
         TezOperPlan tezOperPlan = planNode.getTezOperPlan();
+        if (tezOperPlan.size() == 1) {
+            // Nothing to split. Only one operator in the plan
+            return;
+        }
+
         TezOperator operToSegment = null;
         List<TezOperator> succs = new ArrayList<TezOperator>();
-        for (TezOperator tezOper : tezOperPlan) {
-            if (tezOper.needSegmentBelow() && tezOperPlan.getSuccessors(tezOper)!=null) {
-                operToSegment = tezOper;
-                succs.addAll(tezOperPlan.getSuccessors(tezOper));
-                break;
-            }
+        try {
+            // Split top down from root to leaves
+            SegmentOperatorFinder finder = new SegmentOperatorFinder(tezOperPlan);
+            finder.visit();
+            operToSegment = finder.getOperatorToSegment();
+        } catch (VisitorException e) {
+            throw new PlanException(e);
         }
-        if (operToSegment != null) {
+
+        if (operToSegment != null && tezOperPlan.getSuccessors(operToSegment) != null) {
+            succs.addAll(tezOperPlan.getSuccessors(operToSegment));
             for (TezOperator succ : succs) {
                 tezOperPlan.disconnect(operToSegment, succ);
-                TezOperPlan newOperPlan = new TezOperPlan();
-                List<TezPlanContainerNode> containerSuccs = new ArrayList<TezPlanContainerNode>();
-                if (getSuccessors(planNode)!=null) {
-                    containerSuccs.addAll(getSuccessors(planNode));
+            }
+            for (TezOperator succ : succs) {
+                try {
+                    if (tezOperPlan.getOperator(succ.getOperatorKey()) == null) {
+                        // Has already been moved to a new plan by previous successor
+                        // as part of dependency. It could have been further split.
+                        // So walk the full plan to find the new plan and connect
+                        TezOperatorFinder finder = new TezOperatorFinder(this, succ);
+                        finder.visit();
+                        connect(planNode, finder.getPlanContainerNode());
+                        continue;
+                    }
+                    TezOperPlan newOperPlan = new TezOperPlan();
+                    tezOperPlan.moveTree(succ, newOperPlan);
+                    TezPlanContainerNode newPlanNode = new TezPlanContainerNode(
+                            generateNodeOperatorKey(), newOperPlan);
+                    add(newPlanNode);
+                    connect(planNode, newPlanNode);
+                    split(newPlanNode);
+                    if (newPlanNode.getTezOperPlan().getOperator(succ.getOperatorKey()) == null) {
+                        // On further split, the successor moved to a new plan container.
+                        // Connect to that
+                        TezOperatorFinder finder = new TezOperatorFinder(this, succ);
+                        finder.visit();
+                        disconnect(planNode, newPlanNode);
+                        connect(planNode, finder.getPlanContainerNode());
+                    }
+                } catch (VisitorException e) {
+                    throw new PlanException(e);
                 }
-                tezOperPlan.moveTree(succ, newOperPlan);
-                TezPlanContainerNode newPlanNode = new TezPlanContainerNode(generateNodeOperatorKey(), newOperPlan);
-                add(newPlanNode);
-                for (TezPlanContainerNode containerNodeSucc : containerSuccs) {
-                    disconnect(planNode, containerNodeSucc);
-                    connect(newPlanNode, containerNodeSucc);
-                }
-                connect(planNode, newPlanNode);
-                split(newPlanNode);
             }
             split(planNode);
         }
+    }
+
+    private static class SegmentOperatorFinder extends TezOpPlanVisitor {
+
+        private TezOperator operToSegment;
+
+        public SegmentOperatorFinder(TezOperPlan plan) {
+            super(plan, new DependencyOrderWalker<TezOperator, TezOperPlan>(plan));
+        }
+
+        public TezOperator getOperatorToSegment() {
+            return operToSegment;
+        }
+
+        @Override
+        public void visitTezOp(TezOperator tezOperator) throws VisitorException {
+            if (tezOperator.needSegmentBelow() && operToSegment == null) {
+                operToSegment = tezOperator;
+            }
+        }
+
+    }
+
+    private static class TezOperatorFinder extends TezPlanContainerVisitor {
+
+        private TezPlanContainerNode planContainerNode;
+        private TezOperator operatorToFind;
+
+        public TezOperatorFinder(TezPlanContainer plan, TezOperator operatorToFind) {
+            super(plan, new DependencyOrderWalker<TezPlanContainerNode, TezPlanContainer>(plan));
+            this.operatorToFind = operatorToFind;
+        }
+
+        public TezPlanContainerNode getPlanContainerNode() {
+            return planContainerNode;
+        }
+
+        @Override
+        public void visitTezPlanContainerNode(
+                TezPlanContainerNode tezPlanContainerNode)
+                throws VisitorException {
+            if (tezPlanContainerNode.getTezOperPlan().getOperatorKey(operatorToFind) != null) {
+                planContainerNode = tezPlanContainerNode;
+            }
+        }
+
     }
 
     private synchronized OperatorKey generateNodeOperatorKey() {
