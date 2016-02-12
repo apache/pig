@@ -139,7 +139,7 @@ public class TezDAGStats extends JobStats {
 
         @Override
         public void visitTezOp(TezOperator tezOp) throws VisitorException {
-            TezPrinter.TezGraphPrinter.writePlan(mPlan, tezOp, tezDAGPlan);
+            TezPrinter.TezVertexGraphPrinter.writePlan(mPlan, tezOp, tezDAGPlan);
             TezVertexStats currStats =
                     new TezVertexStats(tezOp.getOperatorKey().toString(), jobPlan, tezOp.isUseMRMapSettings());
             jobPlan.add(currStats);

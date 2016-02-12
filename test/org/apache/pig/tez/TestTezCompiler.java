@@ -100,6 +100,31 @@ public class TestTezCompiler {
     }
 
     @Test
+    public void testStoreLoadMultiple() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input';" +
+                "store a into 'file:///tmp/output/Dir1';" +
+                "a = load 'file:///tmp/output/Dir1';" +
+                "store a into 'file:///tmp/output/Dir2' using BinStorage();" +
+                "a = load 'file:///tmp/output/Dir1';" +
+                "store a into 'file:///tmp/output/Dir3';" +
+                "a = load 'file:///tmp/output/Dir2' using BinStorage();" +
+                "store a into 'file:///tmp/output/Dir4';" +
+                "a = load 'file:///tmp/output/Dir3';" +
+                "b = load 'file:///tmp/output/Dir2' using BinStorage();" +
+                "c = load 'file:///tmp/output/Dir1';" +
+                "d = cogroup a by $0, b by $0, c by $0;" +
+                "store d into 'file:///tmp/output/Dir5';";
+
+        // To get around difference in ordering of operators in plan due to JDK7 and JDK8
+        if (System.getProperties().getProperty("java.version").startsWith("1.8")) {
+            run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-LoadStore-2.gld");
+        } else {
+            run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-LoadStore-2-JDK7.gld");
+        }
+    }
+
+    @Test
     public void testNative() throws Exception {
         String query =
                 "a = load 'file:///tmp/input' as (x:int, y:int);" +

@@ -19,7 +19,8 @@ package org.apache.pig.backend.hadoop.executionengine.tez.plan;
 
 import java.io.PrintStream;
 
-import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPrinter.TezGraphPrinter;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPrinter.TezDAGGraphPrinter;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPrinter.TezVertexGraphPrinter;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
 
@@ -37,6 +38,19 @@ public class TezPlanContainerPrinter extends TezPlanContainerVisitor {
         mStream.println("#--------------------------------------------------");
         mStream.println("# There are " + planContainer.size() + " DAGs in the session");
         mStream.println("#--------------------------------------------------");
+        printContainerPlan(planContainer);
+    }
+
+    private void printContainerPlan(TezPlanContainer planContainer) {
+        try {
+            if (planContainer.size() > 1) {
+                TezDAGGraphPrinter graphPrinter = new TezDAGGraphPrinter(planContainer);
+                graphPrinter.visit();
+                mStream.print(graphPrinter.toString());
+            }
+        } catch (VisitorException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void setVerbose(boolean verbose) {
@@ -48,7 +62,7 @@ public class TezPlanContainerPrinter extends TezPlanContainerVisitor {
         mStream.println("#--------------------------------------------------");
         mStream.println("# TEZ DAG plan: " + tezPlanContainerNode.getOperatorKey());
         mStream.println("#--------------------------------------------------");
-        TezGraphPrinter graphPrinter = new TezGraphPrinter(tezPlanContainerNode.getTezOperPlan());
+        TezVertexGraphPrinter graphPrinter = new TezVertexGraphPrinter(tezPlanContainerNode.getTezOperPlan());
         graphPrinter.visit();
         mStream.print(graphPrinter.toString());
         TezPrinter printer = new TezPrinter(mStream, tezPlanContainerNode.getTezOperPlan());

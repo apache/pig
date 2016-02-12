@@ -99,11 +99,11 @@ public class TezPrinter extends TezOpPlanVisitor {
     /**
      * This class prints the Tez Vertex Graph
      */
-    public static class TezGraphPrinter extends TezOpPlanVisitor {
+    public static class TezVertexGraphPrinter extends TezOpPlanVisitor {
 
         StringBuilder buf;
 
-        public TezGraphPrinter(TezOperPlan plan) {
+        public TezVertexGraphPrinter(TezOperPlan plan) {
             super(plan, new DependencyOrderWalker<TezOperator, TezOperPlan>(plan, true));
             buf = new StringBuilder();
         }
@@ -129,6 +129,43 @@ public class TezPrinter extends TezOpPlanVisitor {
                     } else {
                         buf.append("Tez vertex " + op.getOperatorKey().toString()).append(",");
                     }
+                }
+            }
+            buf.append("\n");
+        }
+
+        @Override
+        public String toString() {
+            buf.append("\n");
+            return buf.toString();
+        }
+    }
+
+    /**
+     * This class prints the Tez DAG Graph
+     */
+    public static class TezDAGGraphPrinter extends TezPlanContainerVisitor {
+
+        StringBuilder buf;
+
+        public TezDAGGraphPrinter(TezPlanContainer plan) {
+            super(plan, new DependencyOrderWalker<TezPlanContainerNode, TezPlanContainer>(plan, true));
+            buf = new StringBuilder();
+        }
+
+        @Override
+        public void visitTezPlanContainerNode(TezPlanContainerNode tezPlanContainerNode) throws VisitorException {
+            writePlan(mPlan, tezPlanContainerNode, buf);
+        }
+
+        public static void writePlan(TezPlanContainer mPlan, TezPlanContainerNode tezPlanContainerNode, StringBuilder buf) {
+            buf.append("Tez DAG " + tezPlanContainerNode.getOperatorKey().toString());
+            List<TezPlanContainerNode> succs = mPlan.getSuccessors(tezPlanContainerNode);
+            if (succs != null) {
+                Collections.sort(succs);
+                buf.append("\t->\t");
+                for (TezPlanContainerNode op : succs) {
+                    buf.append("Tez DAG " + op.getOperatorKey().toString()).append(",");
                 }
             }
             buf.append("\n");
