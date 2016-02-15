@@ -61,7 +61,7 @@ import com.google.common.collect.Lists;
  */
 public class PluckTuple extends EvalFunc<Tuple> {
     private static final TupleFactory mTupleFactory = TupleFactory.getInstance();
-    private static Pattern pattern;
+    private Pattern pattern;
 
     private boolean isInitialized = false;
     private int[] indicesToInclude;
@@ -85,10 +85,10 @@ public class PluckTuple extends EvalFunc<Tuple> {
             Schema inputSchema = getInputSchema();
             for (int i = 0; i < inputSchema.size(); i++) {
                 String alias = inputSchema.getField(i).alias;
-                if ((alias.startsWith(prefix) || pattern.matcher(alias).matches()) && this.match) {
+                if (this.match && (alias.startsWith(prefix) || pattern.matcher(alias).matches()) ) {
                     indicesToInclude.add(i);
                 }
-                else if (!alias.startsWith(prefix) && !pattern.matcher(alias).matches() && !this.match){
+                else if (!this.match && !alias.startsWith(prefix) && !pattern.matcher(alias).matches() ){
                     indicesToInclude.add(i);
                 }
             }
@@ -117,10 +117,10 @@ public class PluckTuple extends EvalFunc<Tuple> {
                 } catch (FrontendException e) {
                     throw new RuntimeException(e); // Should never happen
                 }
-                if ((alias.startsWith(prefix) || pattern.matcher(alias).matches()) && this.match) {
+                if (this.match && (alias.startsWith(prefix) || pattern.matcher(alias).matches())) {
                     indicesToInclude.add(i);
                 }
-                else if (!alias.startsWith(prefix) && !pattern.matcher(alias).matches() && !this.match){
+                else if (!this.match && !alias.startsWith(prefix) && !pattern.matcher(alias).matches()){
                     indicesToInclude.add(i);
                 }
             }
