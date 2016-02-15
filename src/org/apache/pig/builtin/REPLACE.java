@@ -21,14 +21,15 @@ package org.apache.pig.builtin;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigWarning;
-import org.apache.pig.data.Tuple;
 import org.apache.pig.data.DataType;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 /**
  * REPLACE implements eval function to replace part of a string.
@@ -42,6 +43,8 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
  */
 public class REPLACE extends EvalFunc<String>
 {
+    private Pattern mPattern = null;
+
     /**
      * Method invoked on every tuple during foreach evaluation
      * @param input tuple; first column is assumed to have the column to convert
@@ -52,13 +55,29 @@ public class REPLACE extends EvalFunc<String>
         if (input == null || input.size() < 3)
             return null;
 
-        try{
-            String source = (String)input.get(0);
-            String target = (String)input.get(1);
-            String replacewith = (String)input.get(2);
-            return source.replaceAll(target, replacewith);
+        String source = (String)input.get(0);
+        String target = (String)input.get(1);
+
+        if (target == null) {
+            warn("Replace : Regular expression is null", PigWarning.UDF_WARNING_1);
+            return null;
+        }
+        
+        if (mPattern == null || ! target.equals(mPattern.pattern())) {
+            try {
+                mPattern = Pattern.compile(target);
+            } catch (Exception e) {
+                warn("Replace : Mal-Formed Regular expression : " + target, PigWarning.UDF_WARNING_1);
+                return null;
+            }
+        }            
+        
+        String replacewith = (String)input.get(2);
+        
+        try {    
+           return mPattern.matcher(source).replaceAll(replacewith);
         }catch(Exception e){
-            warn("Failed to process input; error - " + e.getMessage(), PigWarning.UDF_WARNING_1);
+            warn("Replace : Failed to process input; error - " + e.getMessage(), PigWarning.UDF_WARNING_1);
             return null;
         }
     }
