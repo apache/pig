@@ -122,6 +122,29 @@ public class TestPluckTuple {
     }
 
     @Test
+    public void testTwoPluckTuples() throws Exception {
+        Data data = resetData(pigServer);
+
+        data.set("a",
+            Utils.getSchemaFromString("xa:int,yb:chararray,zc:long"),
+            tuple(1, "hey", 3L),
+            tuple(2, "woah", 4L)
+            );
+
+        String query = "a = load 'a' using mock.Storage();" +
+            "define pluck1 PluckTuple('.a');" +
+            "define pluck2 PluckTuple('.b');" +
+            "b = foreach a generate flatten(pluck1(*)), flatten(pluck2(*));";
+        pigServer.registerQuery(query);
+        Iterator<Tuple> it = pigServer.openIterator("b");
+        assertTrue(it.hasNext());
+        assertEquals(tuple(1,"hey"), it.next());
+        assertTrue(it.hasNext());
+        assertEquals(tuple(2,"woah"), it.next());
+        assertFalse(it.hasNext());
+    }
+
+    @Test
     public void testNegativeOutput() throws Exception {
         Data data = resetData(pigServer);
 
