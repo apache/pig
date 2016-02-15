@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4803: Improve performance of regex-based builtin functions (eyal via daijy)
+
 PIG-4802: Autoparallelism should estimate less when there is combiner (rohini)
 
 PIG-4761: Add more information to front end error messages (eyal via daijy)

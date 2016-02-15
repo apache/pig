@@ -128,7 +128,10 @@ public class TestStringUDFs {
         REPLACE replace = new REPLACE();
         Tuple testTuple = Util.buildTuple("foobar", "z", "x");
         assertEquals("foobar".replace("z", "x"), replace.exec(testTuple));
-        
+
+        // Use cached version of pattern in REPLACE
+        assertEquals("foobar".replace("z", "x"), replace.exec(testTuple));
+
         testTuple = Util.buildTuple("foobar", "oo", "aa");
         assertEquals("foobar".replace("oo", "aa"), replace.exec(testTuple));
     }
