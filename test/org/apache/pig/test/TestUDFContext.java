@@ -42,6 +42,8 @@ import org.apache.pig.impl.util.UDFContext;
 import org.junit.AfterClass;
 import org.junit.Test;
 
+import com.google.common.io.Files;
+
 public class TestUDFContext {
 
     @AfterClass
@@ -124,7 +126,10 @@ public class TestUDFContext {
         Storage.Data data = resetData(pigServer);
 
         String inputPath = Util.encodeEscape(inputFile.getAbsolutePath());
-        String query = "A = LOAD '" + inputPath + "' USING PigStorage();"
+        File file = Files.createTempDir();
+        file.deleteOnExit();
+        String outputFile = Util.generateURI(file.getPath() + File.pathSeparator + "out", pigServer.getPigContext());
+        String query = "A = LOAD '" + inputPath + "' USING PigStorage() as (f1, f2, f3, f4, f5);"
                 + "B = LOAD '" + inputPath + "' USING PigStorage();"
                 + "B = FOREACH B GENERATE $0, $1;"
                 + "C = LOAD '" + inputPath + "' USING " + FieldsByIndexLoader.class.getName() + "('1,2');"
@@ -132,7 +137,8 @@ public class TestUDFContext {
                 + "C = FOREACH C GENERATE *, B.$0;"
                 + "STORE A INTO 'A' USING mock.Storage();"
                 + "STORE B INTO 'B' USING mock.Storage();"
-                + "STORE C INTO 'C' USING mock.Storage();";
+                + "STORE C INTO 'C' USING mock.Storage();"
+                + "STORE A INTO '" + outputFile + "' USING " + FieldsByIndexLoader.class.getName() + "();";
 
         pigServer.registerQuery(query);
 
@@ -161,6 +167,10 @@ public class TestUDFContext {
         private boolean frontend = false;
         private Properties props = UDFContext.getUDFContext().getUDFProperties(this.getClass());
         private boolean[] selectedFields = new boolean[5]; //Assuming data always has 5 columns
+        private String storeSignature;
+
+        public FieldsByIndexLoader() {
+        }
 
         public FieldsByIndexLoader(String fieldIndices) {
             String[] requiredFields = fieldIndices.split(",");
@@ -185,6 +195,32 @@ public class TestUDFContext {
             frontend = true;
             return super.getSchema(location, job);
         }
+
+        @Override
+        public void checkSchema(ResourceSchema s) throws IOException {
+            super.checkSchema(s);
+            UDFContext udfContext = UDFContext.getUDFContext();
+            Properties props = udfContext.getUDFProperties(this.getClass(), new String[]{storeSignature});
+            props.setProperty("testkey", "testvalue");
+        }
+
+        @Override
+        public void setStoreFuncUDFContextSignature(String signature) {
+            this.storeSignature = signature;
+        }
+
+        @Override
+        public void setStoreLocation(String location, Job job)
+                throws IOException {
+            if (!UDFContext.getUDFContext().isFrontend()) {
+                Properties udfProps = UDFContext.getUDFContext().getUDFProperties(this.getClass(), new String[]{storeSignature});
+                if (!("testvalue").equals(udfProps.getProperty("testkey"))) {
+                    throw new IOException("UDFContext does not have expected values");
+                }
+            }
+            super.setStoreLocation(location, job);
+        }
+
 
     }
 

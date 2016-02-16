@@ -198,6 +198,8 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
         // The Reporter and Context objects hold TezProcessorContextImpl
         // which holds input and its sort buffers which are huge.
         new JVMReuseImpl().cleanupStaticData();
+        // Do only in close() and not initialize().
+        UDFContext.staticDataCleanup();
     }
 
     @Override
