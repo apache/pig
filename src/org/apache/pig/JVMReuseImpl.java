@@ -29,7 +29,6 @@ import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.SpillableMemoryManager;
-import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
 
 @InterfaceAudience.Private
@@ -45,7 +44,6 @@ public class JVMReuseImpl {
         SpillableMemoryManager.staticDataCleanup();
         PhysicalOperator.staticDataCleanup();
         PigContext.staticDataCleanup();
-        UDFContext.staticDataCleanup();
         PigGenericMapReduce.staticDataCleanup();
         PigStatusReporter.staticDataCleanup();
         PigCombiner.Combine.staticDataCleanup();
