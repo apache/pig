@@ -18,21 +18,9 @@
 package org.apache.pig.backend.hadoop.executionengine.spark;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.UUID;
-
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.util.ObjectSerializer;
-import org.apache.pig.impl.util.UDFContext;
-import org.apache.spark.HashPartitioner;
-import org.apache.spark.Partitioner;
-import org.apache.spark.rdd.RDD;
 
 import scala.Product2;
 import scala.Tuple2;
@@ -40,6 +28,27 @@ import scala.collection.JavaConversions;
 import scala.collection.Seq;
 import scala.reflect.ClassTag;
 import scala.reflect.ClassTag$;
+
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
+import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperator;
+import org.apache.pig.data.DataType;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.plan.NodeIdGenerator;
+import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.PlanException;
+import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.impl.util.UDFContext;
+import org.apache.spark.HashPartitioner;
+import org.apache.spark.Partitioner;
+import org.apache.spark.rdd.RDD;
 
 public class SparkUtil {
 
@@ -118,5 +127,26 @@ public class SparkUtil {
         } else {
             return new MapReducePartitionerWrapper(customPartitioner, parallelism);
         }
+    }
+
+    // createIndexerSparkNode is a utility to create an indexer spark node with baseSparkOp
+    static public void createIndexerSparkNode(SparkOperator baseSparkOp, String scope, NodeIdGenerator nig) throws PlanException, ExecException {
+        List<PhysicalPlan> eps = new ArrayList<PhysicalPlan>();
+        PhysicalPlan ep = new PhysicalPlan();
+        POProject prj = new POProject(new OperatorKey(scope,
+                nig.getNextNodeId(scope)));
+        prj.setStar(true);
+        prj.setOverloaded(false);
+        prj.setResultType(DataType.TUPLE);
+        ep.add(prj);
+        eps.add(ep);
+
+        List<Boolean> ascCol = new ArrayList<Boolean>();
+        ascCol.add(true);
+
+        int requestedParallelism = baseSparkOp.requestedParallelism;
+        POSort sort = new POSort(new OperatorKey(scope, nig.getNextNodeId(scope)), requestedParallelism, null, eps, ascCol, null);
+        //POSort is added to sort the index tuples genereated by MergeJoinIndexer.More detail, see PIG-4601
+        baseSparkOp.physicalPlan.addAsLeaf(sort);
     }
 }
