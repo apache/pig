@@ -18,6 +18,7 @@
 package org.apache.pig.backend.hadoop.executionengine.spark.plan;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -30,10 +31,16 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.CollectableLoadFunc;
+import org.apache.pig.FuncSpec;
+import org.apache.pig.IndexableLoadFunc;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.OrderedLoadFunc;
 import org.apache.pig.PigException;
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MergeJoinIndexer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.ScalarPhyFinder;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.UDFFinder;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -47,6 +54,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLimit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeCogroup;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PONative;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
@@ -60,11 +68,11 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCounter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORank;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
-import org.apache.pig.backend.hadoop.executionengine.spark.SparkLauncher;
+import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.backend.hadoop.executionengine.spark.operator.NativeSparkOperator;
 import org.apache.pig.backend.hadoop.executionengine.spark.operator.POGlobalRearrangeSpark;
-import org.apache.pig.builtin.LOG;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -73,6 +81,8 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.impl.util.Utils;
 
 /**
  * The compiler that compiles a given physical physicalPlan into a DAG of Spark
@@ -801,4 +811,173 @@ public class SparkCompiler extends PhyPlanVisitor {
 			finPlan.merge(e);
 		}
 	}
+
+    @Override
+    public void visitMergeCoGroup(POMergeCogroup poCoGrp) throws VisitorException {
+        if (compiledInputs.length < 2) {
+            int errCode = 2251;
+            String errMsg = "Merge Cogroup work on two or more relations." +
+                    "To use map-side group-by on single relation, use 'collected' qualifier.";
+            throw new SparkCompilerException(errMsg, errCode);
+        }
+
+        List<FuncSpec> funcSpecs = new ArrayList<FuncSpec>(compiledInputs.length - 1);
+        List<String> fileSpecs = new ArrayList<String>(compiledInputs.length - 1);
+        List<String> loaderSigns = new ArrayList<String>(compiledInputs.length - 1);
+
+        try {
+            poCoGrp.setEndOfRecordMark(POStatus.STATUS_NULL);
+
+            // Iterate through all the SparkOpererators, disconnect side SparkOperators from
+            // SparkOperator and collect all the information needed in different lists.
+
+            for (int i = 0; i < compiledInputs.length; i++) {
+                SparkOperator sparkOper = compiledInputs[i];
+                PhysicalPlan plan = sparkOper.physicalPlan;
+                if (plan.getRoots().size() != 1) {
+                    int errCode = 2171;
+                    String errMsg = "Expected one but found more then one root physical operator in physical plan.";
+                    throw new SparkCompilerException(errMsg, errCode, PigException.BUG);
+                }
+
+                PhysicalOperator rootPOOp = plan.getRoots().get(0);
+                if (!(rootPOOp instanceof POLoad)) {
+                    int errCode = 2172;
+                    String errMsg = "Expected physical operator at root to be POLoad. Found : " + rootPOOp.getClass().getCanonicalName();
+                    throw new SparkCompilerException(errMsg, errCode);
+                }
+
+                POLoad sideLoader = (POLoad) rootPOOp;
+                FileSpec loadFileSpec = sideLoader.getLFile();
+                FuncSpec funcSpec = loadFileSpec.getFuncSpec();
+                LoadFunc loadfunc = sideLoader.getLoadFunc();
+                if (i == 0) {
+
+                    if (!(CollectableLoadFunc.class.isAssignableFrom(loadfunc.getClass()))) {
+                        int errCode = 2252;
+                        throw new SparkCompilerException("Base loader in Cogroup must implement CollectableLoadFunc.", errCode);
+                    }
+
+                    ((CollectableLoadFunc) loadfunc).ensureAllKeyInstancesInSameSplit();
+                    continue;
+                }
+                if (!(IndexableLoadFunc.class.isAssignableFrom(loadfunc.getClass()))) {
+                    int errCode = 2253;
+                    throw new SparkCompilerException("Side loaders in cogroup must implement IndexableLoadFunc.", errCode);
+                }
+
+                funcSpecs.add(funcSpec);
+                fileSpecs.add(loadFileSpec.getFileName());
+                loaderSigns.add(sideLoader.getSignature());
+                sparkPlan.remove(sparkOper);
+            }
+
+            poCoGrp.setSideLoadFuncs(funcSpecs);
+            poCoGrp.setSideFileSpecs(fileSpecs);
+            poCoGrp.setLoaderSignatures(loaderSigns);
+
+            // Use spark operator of base relation for the cogroup operation.
+            SparkOperator baseSparkOp = phyToSparkOpMap.get(poCoGrp.getInputs().get(0));
+
+            // Create a spark operator to generate index file for tuples from leftmost relation
+            SparkOperator indexerSparkOp = getSparkOp();
+            FileSpec idxFileSpec = getIndexingJob(indexerSparkOp, baseSparkOp, poCoGrp.getLRInnerPlansOf(0));
+            poCoGrp.setIdxFuncSpec(idxFileSpec.getFuncSpec());
+            poCoGrp.setIndexFileName(idxFileSpec.getFileName());
+
+            baseSparkOp.physicalPlan.addAsLeaf(poCoGrp);
+            for (FuncSpec funcSpec : funcSpecs)
+                baseSparkOp.UDFs.add(funcSpec.toString());
+
+            sparkPlan.add(indexerSparkOp);
+            sparkPlan.connect(indexerSparkOp, baseSparkOp);
+            phyToSparkOpMap.put(poCoGrp, baseSparkOp);
+            curSparkOp = baseSparkOp;
+        } catch (ExecException e) {
+            throw new SparkCompilerException(e.getDetailedMessage(), e.getErrorCode(), e.getErrorSource(), e);
+        } catch (SparkCompilerException mrce) {
+            throw (mrce);
+        } catch (CloneNotSupportedException e) {
+            throw new SparkCompilerException(e);
+        } catch (PlanException e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator " + poCoGrp.getClass().getCanonicalName();
+            throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
+        } catch (IOException e) {
+            int errCode = 3000;
+            String errMsg = "IOException caught while compiling POMergeCoGroup";
+            throw new SparkCompilerException(errMsg, errCode, e);
+        }
+    }
+
+    // Sets up the indexing job for single-stage cogroups.
+    private FileSpec getIndexingJob(SparkOperator indexerSparkOp,
+                                    final SparkOperator baseSparkOp, final List<PhysicalPlan> mapperLRInnerPlans)
+            throws SparkCompilerException, PlanException, ExecException, IOException, CloneNotSupportedException {
+
+        // First replace loader with  MergeJoinIndexer.
+        PhysicalPlan baseMapPlan = baseSparkOp.physicalPlan;
+        POLoad baseLoader = (POLoad) baseMapPlan.getRoots().get(0);
+        FileSpec origLoaderFileSpec = baseLoader.getLFile();
+        FuncSpec funcSpec = origLoaderFileSpec.getFuncSpec();
+        LoadFunc loadFunc = baseLoader.getLoadFunc();
+
+        if (!(OrderedLoadFunc.class.isAssignableFrom(loadFunc.getClass()))) {
+            int errCode = 1104;
+            String errMsg = "Base relation of merge-coGroup must implement " +
+                    "OrderedLoadFunc interface. The specified loader "
+                    + funcSpec + " doesn't implement it";
+            throw new SparkCompilerException(errMsg, errCode);
+        }
+
+        String[] indexerArgs = new String[6];
+        indexerArgs[0] = funcSpec.toString();
+        indexerArgs[1] = ObjectSerializer.serialize((Serializable) mapperLRInnerPlans);
+        indexerArgs[3] = baseLoader.getSignature();
+        indexerArgs[4] = baseLoader.getOperatorKey().scope;
+        indexerArgs[5] = Boolean.toString(false); // we care for nulls.
+
+        PhysicalPlan phyPlan;
+        if (baseMapPlan.getSuccessors(baseLoader) == null
+                || baseMapPlan.getSuccessors(baseLoader).isEmpty()) {
+            // Load-Load-Cogroup case.
+            phyPlan = null;
+        } else { // We got something. Yank it and set it as inner plan.
+            phyPlan = baseMapPlan.clone();
+            PhysicalOperator root = phyPlan.getRoots().get(0);
+            phyPlan.disconnect(root, phyPlan.getSuccessors(root).get(0));
+            phyPlan.remove(root);
+
+        }
+        indexerArgs[2] = ObjectSerializer.serialize(phyPlan);
+
+        POLoad idxJobLoader = getLoad();
+        idxJobLoader.setLFile(new FileSpec(origLoaderFileSpec.getFileName(),
+                new FuncSpec(MergeJoinIndexer.class.getName(), indexerArgs)));
+        indexerSparkOp.physicalPlan.add(idxJobLoader);
+        indexerSparkOp.UDFs.add(baseLoader.getLFile().getFuncSpec().toString());
+
+        // Loader of sparkOp will return a tuple of form -
+        // (key1, key2, .. , WritableComparable, splitIndex). See MergeJoinIndexer for details.
+        // Create a spark node to retrieve index file by MergeJoinIndexer
+        SparkUtil.createIndexerSparkNode(indexerSparkOp, scope, nig);
+
+        POStore st = getStore();
+        FileSpec strFile = getTempFileSpec();
+        st.setSFile(strFile);
+        indexerSparkOp.physicalPlan.addAsLeaf(st);
+
+        return strFile;
+    }
+
+    /**
+     * Returns a temporary DFS Path
+     *
+     * @return
+     * @throws IOException
+     */
+    private FileSpec getTempFileSpec() throws IOException {
+        return new FileSpec(FileLocalizer.getTemporaryPath(pigContext).toString(),
+                new FuncSpec(Utils.getTmpFileCompressorName(pigContext)));
+    }
 }
