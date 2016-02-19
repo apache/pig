@@ -30,8 +30,10 @@ import java.util.Set;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PhyPlanSetter;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.UDFFinishVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
@@ -82,10 +84,25 @@ public class JobGraphBuilder extends SparkOpPlanVisitor {
         new PhyPlanSetter(sparkOp.physicalPlan).visit();
         try {
             sparkOperToRDD(sparkOp);
+            finishUDFs(sparkOp.physicalPlan);
         } catch (InterruptedException e) {
             throw new RuntimeException("fail to get the rdds of this spark operator: ", e);
         } catch (JobCreationException e){
             throw new RuntimeException("fail to get the rdds of this spark operator: ", e);
+        }
+    }
+
+    // Calling EvalFunc.finish()
+    private void finishUDFs(PhysicalPlan physicalPlan) throws VisitorException {
+        UDFFinishVisitor finisher = new UDFFinishVisitor(physicalPlan,
+                new DependencyOrderWalker<PhysicalOperator, PhysicalPlan>(
+                        physicalPlan));
+        try {
+            finisher.visit();
+        } catch (VisitorException e) {
+            int errCode = 2121;
+            String msg = "Error while calling finish method on UDFs.";
+            throw new VisitorException(msg, errCode, PigException.BUG, e);
         }
     }
 
