@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4811: Upgrade groovy library to address MethodClosure vulnerability	(daijy)
+
 PIG-4803: Improve performance of regex-based builtin functions (eyal via daijy)
 
 PIG-4802: Autoparallelism should estimate less when there is combiner (rohini)
