@@ -28,6 +28,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.net.URL;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -65,8 +66,21 @@ public class GroovyEvalFunc<T> extends EvalFunc<T> {
     Class c = scriptClasses.get(path);
 
     if (null == c) {
+      File file = new File(path);
+      URL resource = null;
+      if (!file.exists()) {
+          resource = ScriptEngine.class.getResource(path);
+          if (resource == null) {
+              resource = ScriptEngine.class.getResource(File.separator + path);
+          }
+          if (resource == null) {
+              throw new IOException("Cannot find " + path);
+          }
+      } else {
+          resource = file.toURL();
+      }
       try {
-        c = GroovyScriptEngine.getEngine().loadScriptByName(new File(path).toURI().toString());
+        c = GroovyScriptEngine.getEngine().loadScriptByName(resource.toString());
       } catch (ScriptException se) {
         throw new IOException(se);
       } catch (ResourceException re) {
