@@ -175,8 +175,14 @@ public class AvroStorage extends LoadFunc
         if (configuredOptions.hasOption('f')) {
           try {
             Path p = new Path(configuredOptions.getOptionValue('f'));
+            Configuration conf;
+            if (UDFContext.getUDFContext().getJobConf()==null) {
+                conf = new Configuration();
+            } else {
+                conf = UDFContext.getUDFContext().getJobConf();
+            }
             Schema s = new Schema.Parser()
-              .parse((FileSystem.get(p.toUri(), new Configuration()).open(p)));  
+              .parse((FileSystem.get(p.toUri(), conf).open(p)));
             setInputAvroSchema(s);
             setOutputAvroSchema(s);
           } catch (FileNotFoundException fnfe) {
