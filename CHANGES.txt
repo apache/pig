@@ -28,6 +28,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-4812: Register Groovy UDF with relative path does not work (daijy)
+
 PIG-4808: PluckTuple overwrites regex if used more than once in the same script (eval via daijy)
 
 PIG-4587: Applying isFirstReduceOfKey for Skewed left outer join skips records (rohini)
