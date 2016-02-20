@@ -93,6 +93,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-4812: Register Groovy UDF with relative path does not work (daijy)
+
 PIG-4806: UDFContext can be reset in the middle during Tez input and output initialization (rohini)
 
 PIG-4808: PluckTuple overwrites regex if used more than once in the same script (eyal via daijy)
