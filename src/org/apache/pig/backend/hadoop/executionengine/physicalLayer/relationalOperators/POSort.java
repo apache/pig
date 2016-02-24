@@ -342,6 +342,10 @@ public class POSort extends PhysicalOperator {
         mSortFunc = sortFunc;
     }
 
+    public Comparator<Tuple> getMComparator() {
+        return mComparator;
+    }
+
     public List<Boolean> getMAscCols() {
         return mAscCols;
     }

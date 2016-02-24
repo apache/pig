@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.tools.pigstats.spark.SparkCounters;
 import org.apache.pig.tools.pigstats.spark.SparkPigStatusReporter;
 import org.apache.pig.tools.pigstats.spark.SparkStatsUtil;
@@ -82,6 +83,9 @@ public class LoadConverter implements RDDConverter<Tuple, Tuple, POLoad> {
         // to create a new conf for a new RDD.
         JobConf jobConf = SparkUtil.newJobConf(pigContext);
         configureLoader(physicalPlan, op, jobConf);
+        // need to serialize the configuration loaded in jobConf
+        // to make sure we can access the right config later
+        UDFContext.getUDFContext().serialize(jobConf);
 
         // Set the input directory for input formats that are backed by a
         // filesystem. (Does not apply to HBase, for example).

@@ -102,6 +102,7 @@ import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperator;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkPOPackageAnnotator;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkPrinter;
+import org.apache.pig.backend.hadoop.executionengine.spark.plan.DotSparkPrinter;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.SchemaTupleBackend;
 import org.apache.pig.impl.PigContext;
@@ -545,9 +546,18 @@ public class SparkLauncher extends Launcher {
             SparkPrinter printer = new SparkPrinter(ps, sparkPlan);
             printer.setVerbose(verbose);
             printer.visit();
+        } else if (format.equals("dot")) {
+            ps.println("#--------------------------------------------------");
+            ps.println("# Spark Plan                                  ");
+            ps.println("#--------------------------------------------------");
+
+            DotSparkPrinter printer = new DotSparkPrinter(sparkPlan, ps);
+            printer.setVerbose(verbose);
+            printer.dump();
+            ps.println("");
         } else { // TODO: add support for other file format
             throw new IOException(
-                    "Non-text output of explain is not supported.");
+                    "Non-text and non-dot output of explain is not supported.");
         }
     }
 
