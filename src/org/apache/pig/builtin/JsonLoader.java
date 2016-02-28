@@ -237,7 +237,7 @@ public class JsonLoader extends LoadFunc implements LoadMetadata {
         JsonToken tok = p.nextToken();
         if (tok == null) {
             warn("Early termination of record, expected " + schema.getFields().length
-                + " fields bug found " + fieldnum, PigWarning.UDF_WARNING_1);
+                + " fields but found " + fieldnum, PigWarning.UDF_WARNING_1);
             return null;
         }
 
