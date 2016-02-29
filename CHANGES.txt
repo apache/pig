@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4817: Bump HTTP Logparser to version 2.4 (nielsbasjes via daijy)
+
 PIG-4811: Upgrade groovy library to address MethodClosure vulnerability	(daijy)
 
 PIG-4803: Improve performance of regex-based builtin functions (eyal via daijy)
