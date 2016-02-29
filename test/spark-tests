@@ -76,7 +76,6 @@
 **/TestImplicitSplitOnTuple.java
 **/TestMockStorage.java
 **/TestLogicalPlanGenerator.java
-**/TestOrcStoragePushdown.java
 **/TestSchemaResetter.java
 **/TestLocationInPhysicalPlan.java
 **/TestAlgebraicEvalLocal.java
