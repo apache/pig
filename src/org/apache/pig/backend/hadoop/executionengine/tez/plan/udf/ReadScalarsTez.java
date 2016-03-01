@@ -67,9 +67,10 @@ public class ReadScalarsTez extends EvalFunc<Object> implements TezInput {
     public void attachInputs(Map<String, LogicalInput> inputs,
             Configuration conf) throws ExecException {
         String cacheKey = "scalar-" + inputKey;
-        Object cacheValue = ObjectCache.getInstance().retrieve(cacheKey);
-        if (cacheValue != null) {
-            t = (Tuple) cacheValue;
+        String cacheKeyPresent = "scalar-present" + inputKey;
+        
+        if (ObjectCache.getInstance().retrieve(cacheKeyPresent) != null) {
+            t = (Tuple)ObjectCache.getInstance().retrieve(cacheKey);
             return;
         }
         input = inputs.get(inputKey);
@@ -95,6 +96,7 @@ public class ReadScalarsTez extends EvalFunc<Object> implements TezInput {
         } catch (Exception e) {
             throw new ExecException(e);
         }
+        ObjectCache.getInstance().cache(cacheKeyPresent, Boolean.TRUE);
         ObjectCache.getInstance().cache(cacheKey, t);
         log.info("Cached scalar in Tez ObjectRegistry with vertex scope. cachekey=" + cacheKey);
     }
