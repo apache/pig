@@ -97,6 +97,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-4818: Single quote inside comment in GENERATE is not being ignored (knoguchi)
+
 PIG-4814: AvroStorage does not take namenode HA as part of schema file url (daijy)
 
 PIG-4812: Register Groovy UDF with relative path does not work (daijy)
