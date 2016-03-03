@@ -3265,10 +3265,12 @@ public class TestBuiltin {
 
     @Test
     public void testRANDOM() throws Exception {
-        PigMapReduce.sJobConfInternal.set(new Configuration());
+        Configuration conf = new Configuration();
+        PigMapReduce.sJobConfInternal.set(conf);
         PigMapReduce.sJobConfInternal.get().set(MRConfiguration.JOB_ID,"job_1111_111");
-        PigMapReduce.sJobConfInternal.get().set(PigConstants.TASK_INDEX, "999");
+        PigMapReduce.sJobConfInternal.get().set(PigConstants.TASK_INDEX, "0");
 
+        org.apache.pig.builtin.RANDOM.resetSeedUniquifier();
         org.apache.pig.builtin.RANDOM r = new org.apache.pig.builtin.RANDOM();
         double [] tmpresult = new double [5];
 
@@ -3282,16 +3284,18 @@ public class TestBuiltin {
         }
 
         // with different task id, random should return different number
+        org.apache.pig.builtin.RANDOM.resetSeedUniquifier();
         PigMapReduce.sJobConfInternal.get().set(MRConfiguration.JOB_ID,"job_1111_111");
-        PigMapReduce.sJobConfInternal.get().set(PigConstants.TASK_INDEX, "888");
+        PigMapReduce.sJobConfInternal.get().set(PigConstants.TASK_INDEX, "1");
         r = new org.apache.pig.builtin.RANDOM();
         for( int i = 0; i < 5 ; i++ ) {
             assertNotEquals(tmpresult[i], r.exec(null).doubleValue(), 0.0001);
         }
 
         // with different jobid, random should return completely different number
-        PigMapReduce.sJobConfInternal.get().set(MRConfiguration.JOB_ID,"job_1111_222");
-        PigMapReduce.sJobConfInternal.get().set(PigConstants.TASK_INDEX, "999");
+        org.apache.pig.builtin.RANDOM.resetSeedUniquifier();
+        PigMapReduce.sJobConfInternal.get().set(MRConfiguration.JOB_ID,"job_1111_112");
+        PigMapReduce.sJobConfInternal.get().set(PigConstants.TASK_INDEX, "0");
         r = new org.apache.pig.builtin.RANDOM();
         for( int i = 0; i < 5 ; i++ ) {
             assertNotEquals(tmpresult[i], r.exec(null).doubleValue(), 0.0001);
@@ -3299,11 +3303,22 @@ public class TestBuiltin {
 
         // with same jobid and taskid, random should return exact same sequence
         // of pseudo-random number
+        org.apache.pig.builtin.RANDOM.resetSeedUniquifier();
         PigMapReduce.sJobConfInternal.get().set(MRConfiguration.JOB_ID,"job_1111_111");
-        PigMapReduce.sJobConfInternal.get().set(PigConstants.TASK_INDEX, "999");
+        PigMapReduce.sJobConfInternal.get().set(PigConstants.TASK_INDEX, "0");
         r = new org.apache.pig.builtin.RANDOM();
         for( int i = 0; i < 5 ; i++ ) {
             assertEquals(tmpresult[i], r.exec(null).doubleValue(), 0.0001 );
+        }
+
+        // When initialized again, they should return a different random values
+        // even when jobid and taskid match.
+        // To cover the case when RANDOM is called more than once in the user's
+        // script.
+        // B = FOREACH A generate RANDOM(), RANDOM();
+        r = new org.apache.pig.builtin.RANDOM();
+        for( int i = 0; i < 5 ; i++ ) {
+            assertNotEquals(tmpresult[i], r.exec(null).doubleValue(), 0.0001 );
         }
     }
 
