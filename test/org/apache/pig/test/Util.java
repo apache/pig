@@ -524,10 +524,11 @@ public class Util {
      static public void checkQueryOutputs(Iterator<Tuple> actualResults,
                                      List<Tuple> expectedResults) {
          int count = 0;
-         for (Tuple expected : expectedResults) {
+         // Order of expected and actual can be different.
+         while (actualResults.hasNext()) {
              Tuple actual = actualResults.next();
              count++;
-             Assert.assertEquals(expected.toString(), actual.toString());
+             Assert.assertTrue(expectedResults.contains(actual));
          }
          Assert.assertEquals(expectedResults.size(), count);
      }
