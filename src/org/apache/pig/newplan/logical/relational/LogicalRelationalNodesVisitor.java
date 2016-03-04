@@ -57,9 +57,6 @@ public abstract class LogicalRelationalNodesVisitor extends PlanVisitor {
     public void visit(LOForEach foreach) throws FrontendException {
     }
 
-    public void visit(LORollupHIIForEach horeach) throws FrontendException {
-    }
-
     public void visit(LOGenerate gen) throws FrontendException {
     }
 

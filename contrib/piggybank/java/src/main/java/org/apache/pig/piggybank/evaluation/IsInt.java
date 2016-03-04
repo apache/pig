@@ -28,7 +28,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 /**
  * This UDF is used to check whether the String input is an Integer.
- * Note this function checks for Integer range −2,147,483,648 to 2,147,483,647.
+ * Note this function checks for Integer range -2,147,483,648 to 2,147,483,647.
  * If range is not important, use IsNumeric instead if you would like to check if a String is numeric. 
  * Also IsNumeric performs slightly better compared to this function.
  */

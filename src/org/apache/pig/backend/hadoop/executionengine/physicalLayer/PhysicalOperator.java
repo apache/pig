@@ -24,8 +24,6 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.pig.JVMReuseManager;
-import org.apache.pig.StaticDataCleanup;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -33,6 +31,7 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
@@ -69,6 +68,8 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     protected static final long serialVersionUID = 1L;
     protected static final Result RESULT_EMPTY = new Result(POStatus.STATUS_NULL, null);
     protected static final Result RESULT_EOP = new Result(POStatus.STATUS_EOP, null);
+    protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
+    protected static final BagFactory mBagFactory = BagFactory.getInstance();
 
     // The degree of parallelism requested
     protected int requestedParallelism;
@@ -121,10 +122,6 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     private transient boolean accumStart;
 
     private List<OriginalLocation> originalLocations =  new ArrayList<OriginalLocation>();
-
-    static {
-        JVMReuseManager.getInstance().registerForStaticDataCleanup(PhysicalOperator.class);
-    }
 
     public PhysicalOperator(OperatorKey k) {
         this(k, -1, null);
@@ -295,12 +292,13 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
         try {
             if (input == null && (inputs == null || inputs.size() == 0)) {
                 // log.warn("No inputs found. Signaling End of Processing.");
-                return new Result(POStatus.STATUS_EOP, null);
+                return RESULT_EOP;
             }
 
             // Should be removed once the model is clear
-            if (getReporter() != null) {
-                getReporter().progress();
+            PigProgressable progRep = getReporter();
+            if (progRep != null) {
+                progRep.progress();
             }
 
             if (!isInputAttached()) {
@@ -409,7 +407,7 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
 
     public Result getNextDataBag() throws ExecException {
         Result val = new Result();
-        DataBag tmpBag = BagFactory.getInstance().newDefaultBag();
+        DataBag tmpBag = mBagFactory.newDefaultBag();
         for (Result ret = getNextTuple(); ret.returnStatus != POStatus.STATUS_EOP; ret = getNextTuple()) {
             if (ret.returnStatus == POStatus.STATUS_ERR) {
                 return ret;
@@ -457,14 +455,17 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
         PhysicalOperator.reporter.set(reporter);
     }
 
-    @StaticDataCleanup
+    //@StaticDataCleanup
     public static void staticDataCleanup() {
         reporter = new ThreadLocal<PigProgressable>();
     }
 
     /**
-     * Make a deep copy of this operator. This function is blank, however,
+     * Make a copy of this operator. This function is blank, however,
      * we should leave a place holder so that the subclasses can clone
+     * to make deep copy as this one creates a shallow copy of
+     * non-primitive types (objects, arrays and lists)
+     *
      * @throws CloneNotSupportedException
      */
     @Override
@@ -475,6 +476,14 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     protected void cloneHelper(PhysicalOperator op) {
         resultType = op.resultType;
         originalLocations.addAll(op.originalLocations);
+    }
+
+    protected static List<PhysicalPlan> clonePlans(List<PhysicalPlan> origPlans) throws CloneNotSupportedException {
+        List<PhysicalPlan> clonePlans = new ArrayList<PhysicalPlan>(origPlans.size());
+        for (PhysicalPlan plan : origPlans) {
+            clonePlans.add(plan.clone());
+        }
+        return clonePlans;
     }
 
     /**

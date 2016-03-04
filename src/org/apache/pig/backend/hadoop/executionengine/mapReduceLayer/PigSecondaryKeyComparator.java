@@ -17,19 +17,18 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
-import org.apache.hadoop.mapred.JobConf;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.data.TupleRawComparator;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 
 public class PigSecondaryKeyComparator extends WritableComparator implements Configurable {
-    private final Log mLog = LogFactory.getLog(getClass());
+
     private TupleRawComparator mComparator=null;
 
     @Override
@@ -54,6 +53,7 @@ public class PigSecondaryKeyComparator extends WritableComparator implements Con
         return null;
     }
 
+    @Override
     public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2) {
 
         // the last byte of a NullableTuple is its Index
@@ -81,6 +81,47 @@ public class PigSecondaryKeyComparator extends WritableComparator implements Con
                 rc = (mIndex1 & PigNullableWritable.idxSpace) - (mIndex2 & PigNullableWritable.idxSpace);
             // null sorts first
             else if (b1[s1] != 0)
+                rc = -1;
+            else
+                rc = 1;
+        }
+        return rc;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public int compare(WritableComparable a, WritableComparable b)
+    {
+        PigNullableWritable wa = (PigNullableWritable)a;
+        PigNullableWritable wb = (PigNullableWritable)b;
+
+        if ((wa.getIndex() & PigNullableWritable.mqFlag) != 0) { // this is a multi-query index
+            if ((wa.getIndex() & PigNullableWritable.idxSpace) < (wb.getIndex() & PigNullableWritable.idxSpace))
+                return -1;
+            else if ((wa.getIndex() & PigNullableWritable.idxSpace) > (wb.getIndex() & PigNullableWritable.idxSpace))
+                return 1;
+            // If equal, we fall through
+        }
+
+        int rc = 0;
+        // If either are null, handle differently.
+        if (!wa.isNull() && !wb.isNull()) {
+            rc = mComparator.compare((Tuple) wa.getValueAsPigType(), (Tuple) wb.getValueAsPigType());
+            // handle PIG-927
+            // if tuples are equal but any field inside tuple is null, then we do not merge keys
+            if (rc == 0 && mComparator.hasComparedTupleNull())
+                rc = (wa.getIndex() & PigNullableWritable.idxSpace) - (wb.getIndex() & PigNullableWritable.idxSpace);
+        } else {
+            // Two nulls are equal if indices are same
+            if (wa.isNull() && wb.isNull()) {
+                if ((wa.getIndex() & PigNullableWritable.idxSpace) < (wb.getIndex() & PigNullableWritable.idxSpace))
+                    rc = -1;
+                else if ((wa.getIndex() & PigNullableWritable.idxSpace) > (wb.getIndex() & PigNullableWritable.idxSpace))
+                    rc = 1;
+                else
+                    rc = 0;
+            }
+            else if (wa.isNull())
                 rc = -1;
             else
                 rc = 1;

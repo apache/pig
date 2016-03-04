@@ -118,6 +118,8 @@ public class Util {
     public static final boolean WINDOWS /* borrowed from Path.WINDOWS, Shell.WINDOWS */
                   = System.getProperty("os.name").startsWith("Windows");
 
+    public static final String TEST_DIR =  System.getProperty("test.build.dir", "build/test");
+
     // Helper Functions
     // =================
 
@@ -174,6 +176,28 @@ public class Util {
         }
         t.set(0, bag);
         return t;
+    }
+
+    /**
+     * Create an array of tuple bags with specified size created by splitting
+     * the input array of primitive types
+     *
+     * @param input Array of primitive types
+     * @param bagSize The number of tuples to be split and copied into each bag
+     *
+     * @return an array of tuple bags with each bag containing bagSize tuples split from the input
+     */
+    static public <T> Tuple[] splitCreateBagOfTuples(T[] input, int bagSize)
+            throws ExecException {
+        List<Tuple> result = new ArrayList<Tuple>();
+        for (int from = 0; from < input.length; from += bagSize) {
+            Tuple t = TupleFactory.getInstance().newTuple(1);
+            int to = from + bagSize < input.length ? from + bagSize
+                    : input.length;
+            T[] array = Arrays.copyOfRange(input, from, to);
+            result.add(loadNestTuple(t, array));
+        }
+        return result.toArray(new Tuple[0]);
     }
 
     static public <T>void addToTuple(Tuple t, T[] b)
@@ -934,6 +958,7 @@ public class Util {
             thread = new Thread (this);
             thread.start ();
         }
+        @Override
         public void run () {
             try {
                 InputStreamReader isr = new InputStreamReader (is);
@@ -1392,37 +1417,47 @@ public class Util {
         return ExecTypeProvider.fromString("local");
     }
 
-    public static void createLogAppender(Class clazz, String appenderName, Writer writer) {
-        Logger logger = Logger.getLogger(clazz);
+    public static void createLogAppender(String appenderName, Writer writer, Class...clazzes) {
         WriterAppender writerAppender = new WriterAppender(new PatternLayout("%d [%t] %-5p %c %x - %m%n"), writer);
         writerAppender.setName(appenderName);
-        logger.addAppender(writerAppender);
+        for (Class clazz : clazzes) {
+            Logger logger = Logger.getLogger(clazz);
+            logger.addAppender(writerAppender);
+        }
     }
 
-    public static void removeLogAppender(Class clazz, String appenderName) {
-        Logger logger = Logger.getLogger(clazz);
-        Appender appender = logger.getAppender(appenderName);
-        appender.close();
-        logger.removeAppender(appenderName);
+    public static void removeLogAppender(String appenderName, Class...clazzes) {
+        for (Class clazz : clazzes) {
+            Logger logger = Logger.getLogger(clazz);
+            Appender appender = logger.getAppender(appenderName);
+            appender.close();
+            logger.removeAppender(appenderName);
+        }
     }
 
     public static Path getFirstPartFile(Path path) throws Exception {
-        FileStatus[] parts = FileSystem.get(path.toUri(), new Configuration()).listStatus(path, 
+        FileStatus[] parts = FileSystem.get(path.toUri(), new Configuration()).listStatus(path,
                 new PathFilter() {
             @Override
             public boolean accept(Path path) {
                 return path.getName().startsWith("part-");
               }
         });
-        return parts[0].getPath(); 
+        return parts[0].getPath();
     }
 
     public static File getFirstPartFile(File dir) throws Exception {
         File[] parts = dir.listFiles(new FilenameFilter() {
+            @Override
             public boolean accept(File dir, String name) {
                 return name.startsWith("part-");
             };
         });
-        return parts[0]; 
+        return parts[0];
+    }
+
+    @SuppressWarnings("rawtypes")
+    public static String getTestDirectory(Class testClass) {
+        return TEST_DIR + Path.SEPARATOR + "testdata" + Path.SEPARATOR +testClass.getSimpleName();
     }
 }

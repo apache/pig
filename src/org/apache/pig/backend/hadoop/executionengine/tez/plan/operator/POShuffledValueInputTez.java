@@ -38,7 +38,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.TezInput;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.tez.runtime.api.LogicalInput;
@@ -57,7 +56,6 @@ public class POShuffledValueInputTez extends PhysicalOperator implements TezInpu
     private transient boolean finished = false;
     private transient Iterator<KeyValueReader> readers;
     private transient KeyValueReader currentReader;
-    protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
     private transient Configuration conf;
 
     public POShuffledValueInputTez(OperatorKey k) {
@@ -71,7 +69,7 @@ public class POShuffledValueInputTez extends PhysicalOperator implements TezInpu
 
     @Override
     public void replaceInput(String oldInputKey, String newInputKey) {
-        if (inputKeys.remove(oldInputKey)) {
+        while (inputKeys.remove(oldInputKey)) {
             inputKeys.add(newInputKey);
         }
     }

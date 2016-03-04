@@ -196,12 +196,14 @@ public class ReadToEndLoader extends LoadFunc implements LoadMetadata {
 
     private boolean initializeReader() throws IOException, 
     InterruptedException {
+        // Close the previous reader first
+        if(reader != null) {
+            reader.close();
+            reader = null;
+        }
         if(curSplitIndex > inpSplits.size() - 1) {
             // past the last split, we are done
             return false;
-        }
-        if(reader != null){
-            reader.close();
         }
         InputSplit curSplit = inpSplits.get(curSplitIndex);
         TaskAttemptContext tAContext = HadoopShims.createTaskAttemptContext(conf, 

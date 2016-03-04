@@ -50,8 +50,8 @@ import org.apache.pig.tools.pigstats.PigStatsUtil;
 public class POStore extends PhysicalOperator {
 
     private static final long serialVersionUID = 1L;
-    protected static Result empty = new Result(POStatus.STATUS_NULL, null);
     transient private StoreFuncInterface storer;
+    transient private StoreFuncDecorator sDecorator;
     transient private POStoreImpl impl;
     transient private String counterName = null;
     private FileSpec sFile;
@@ -161,10 +161,10 @@ public class POStore extends PhysicalOperator {
             switch (res.returnStatus) {
             case POStatus.STATUS_OK:
                 if (illustrator == null) {
-                    storer.putNext((Tuple)res.result);
+                    sDecorator.putNext((Tuple) res.result);
                 } else
                     illustratorMarkup(res.result, res.result, 0);
-                res = empty;
+                res = RESULT_EMPTY;
 
                 if (counterName != null) {
                     ((MapReducePOStoreImpl) impl).incrRecordCounter(counterName, 1);
@@ -250,8 +250,22 @@ public class POStore extends PhysicalOperator {
         if(storer == null){
             storer = (StoreFuncInterface)PigContext.instantiateFuncFromSpec(sFile.getFuncSpec());
             storer.setStoreFuncUDFContextSignature(signature);
+            // Init the Decorator we use for writing Tuples
+            setStoreFuncDecorator(new StoreFuncDecorator(storer, signature));
         }
         return storer;
+    }
+
+    void setStoreFuncDecorator(StoreFuncDecorator sDecorator) {
+        this.sDecorator = sDecorator;
+    }
+
+    /**
+     *
+     * @return The {@link StoreFuncDecorator} used to write Tuples
+     */
+    public StoreFuncDecorator getStoreFuncDecorator() {
+        return sDecorator;
     }
 
     /**

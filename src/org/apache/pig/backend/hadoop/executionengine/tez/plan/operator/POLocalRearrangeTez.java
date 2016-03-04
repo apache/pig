@@ -31,9 +31,9 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.TezOutput;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.io.NullablePartitionWritable;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
-import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
@@ -48,10 +48,10 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
     private static final Log LOG = LogFactory.getLog(POLocalRearrangeTez.class);
 
     protected String outputKey;
-    protected transient KeyValueWriter writer;
-
     protected boolean connectedToPackage = true;
     protected boolean isSkewedJoin = false;
+
+    protected transient KeyValueWriter writer;
 
     public POLocalRearrangeTez(OperatorKey k) {
         super(k);
@@ -144,6 +144,13 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
                     // assign the tuple to its slot in the projection.
                     key.setIndex(index);
                     val.setIndex(index);
+                    if (isSkewedJoin) {
+                        // Wrap into a NullablePartitionWritable to match the key
+                        // of the right table from POPartitionRearrangeTez for the skewed join
+                        NullablePartitionWritable wrappedKey = new NullablePartitionWritable(key);
+                        wrappedKey.setPartition(-1);
+                        key = wrappedKey;
+                    }
                     writer.write(key, val);
                 } else {
                     illustratorMarkup(res.result, res.result, 0);
@@ -164,20 +171,9 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
         return inp;
     }
 
-    /**
-     * Make a deep copy of this operator.
-     * @throws CloneNotSupportedException
-     */
     @Override
     public POLocalRearrangeTez clone() throws CloneNotSupportedException {
-        POLocalRearrangeTez clone = new POLocalRearrangeTez(new OperatorKey(
-                mKey.scope, NodeIdGenerator.getGenerator().getNextNodeId(
-                        mKey.scope)), requestedParallelism);
-        deepCopyTo(clone);
-        clone.isSkewedJoin = isSkewedJoin;
-        clone.connectedToPackage = connectedToPackage;
-        clone.setOutputKey(outputKey);
-        return clone;
+        return (POLocalRearrangeTez) super.clone();
     }
 
     @Override

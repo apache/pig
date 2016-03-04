@@ -202,7 +202,7 @@ public class PigStreamingUDF extends PigStreamingBase {
 
             if (StreamingDelimiters.isDelimiter(DELIMS.getFieldDelim(), buf, index, depth, endIndex)) {
                 val = extractString(buf, fieldStart, index - 1, true);
-                map.put(key, val);
+                if (key != null) map.put(key, val);
                 fieldStart = index + 3;
             }
         }

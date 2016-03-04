@@ -66,6 +66,7 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileLocalizer.FetchFileRet;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.TupleFormat;
+import org.apache.pig.parser.RegisterResolver;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.apache.pig.tools.pigscript.parser.PigScriptParser;
 import org.apache.pig.tools.pigscript.parser.PigScriptParserTokenManager;
@@ -461,15 +462,7 @@ public class GruntParser extends PigScriptParser {
         path = parameterSubstitutionInGrunt(path);
         scriptingLang = parameterSubstitutionInGrunt(scriptingLang);
         namespace = parameterSubstitutionInGrunt(namespace);
-        if(path.endsWith(".jar")) {
-            if(scriptingLang != null || namespace != null) {
-                throw new ParseException("Cannot register a jar with a scripting language or namespace");
-            }
-            mPigServer.registerJar(path);
-        }
-        else {
-            mPigServer.registerCode(path, scriptingLang, namespace);
-        }
+        new RegisterResolver(mPigServer).parseRegister(path, scriptingLang, namespace);
     }
 
     private String runPreprocessor(String scriptPath, List<String> params, List<String> paramFiles)
@@ -1227,8 +1220,14 @@ public class GruntParser extends PigScriptParser {
 		} else {
 			tokensList.add(hcatBin);
 		}
+		cmd = cmd.trim();
+		if (!cmd.substring(0, 3).toLowerCase().equals("sql")) {
+		    // Should never happen
+		    throw new IOException("sql command not start with sql keyword");
+		}
+		cmd = cmd.substring(3).trim();
 		tokensList.add("-e");
-		tokensList.add(cmd.substring(cmd.indexOf("sql")).substring(4).replaceAll("\n", " "));
+		tokensList.add(cmd.replaceAll("\n", " "));
 		String[] tokens = tokensList.toArray(new String[]{});
 
         // create new environment = environment - HADOOP_CLASSPATH

@@ -44,6 +44,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.compress.BZip2Codec;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
@@ -61,6 +62,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileLocalizer.FetchFileRet;
+import org.apache.pig.impl.io.compress.BZip2CodecWithExtensionBZ;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.streaming.StreamingCommand;
@@ -228,6 +230,7 @@ public class PigServer {
 
         this.filter = new BlackAndWhitelistFilter(this);
 
+        addHadoopProperties();
         addJarsFromProperties();
         markPredeployedJarsFromProperties();
 
@@ -238,6 +241,25 @@ public class PigServer {
         }
         PigStats.start(pigContext.getExecutionEngine().instantiatePigStats());
 
+    }
+
+    private void addHadoopProperties() throws ExecException {
+        // For BZip input on hadoop 0.23/2.X
+        // with PIG_BZIP_USE_HADOOP_INPUTFORMAT turned on,
+        // PigTextInputFormat depends on hadoop's TextInputFormat
+        // for handling bzip2 input. One problem is it only recognize 'bz2'
+        // as extension and not 'bz'.
+        // Adding custom BZip2 codec that returns 'bz' as extension
+        // for backward compatibility.
+        String codecs =
+            pigContext.getProperties().getProperty("io.compression.codecs");
+
+        if( codecs != null
+            && codecs.contains(BZip2Codec.class.getCanonicalName() ) ) {
+            pigContext.getProperties().setProperty("io.compression.codecs",
+                codecs + ","
+                + BZip2CodecWithExtensionBZ.class.getCanonicalName() );
+        }
     }
 
     private void addJarsFromProperties() throws ExecException {

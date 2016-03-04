@@ -1,8 +1,8 @@
 #!/usr/local/bin/perl -w
 
-if(scalar(@ARGV) < 6 )
+if(scalar(@ARGV) < 6)
 {
-    print STDERR "Usage: $0 <pig_home> <pig_bin> <pigmix_jar> <hadoop_home> <hadoop_bin> <pig mix scripts dir> <hdfs_root> <pigmix_output> [parallel] [numruns] [runmapreduce] \n";
+    print STDERR "Usage: $0 <pig_home> <pig_bin> <pigmix_jar> <hadoop_home> <hadoop_bin> <pig mix scripts dir> [hdfs_root] [pigmix_output] [parallel] [numruns] [runmapreduce] [cleanup_after_test]\n";
     exit(-1);
 }
 my $pighome = shift;
@@ -16,7 +16,14 @@ my $pigmixoutput = shift;
 my $parallel = shift;
 my $runs = shift;
 my $runmapreduce = shift;
+my $cleanup_after_test = shift;
 my $pigjar = "$pighome/pig-withouthadoop.jar";
+if(!defined($hdfsroot)) {
+    $hdfsroot = '/user/pig/tests/data/pigmix';
+}
+if(!defined($pigmixoutput)) {
+    $pigmixoutput = 'output';
+}
 if(!defined($parallel)) {
     $parallel = 40;
 }
@@ -25,6 +32,9 @@ if(!defined($runs)) {
 }
 if(!defined($runmapreduce)) {
     $runmapreduce = 1;
+}
+if(!defined($cleanup_after_test)) {
+    $cleanup_after_test = 0;
 }
 
 $ENV{'HADOOP_HOME'} = $hadoophome;
@@ -110,5 +120,9 @@ sub cleanup {
     print STDERR `$cmd 2>&1`;
     $cmd = "$pigbin -e rmf tmp";
     print STDERR `$cmd 2>&1`;
+    if ($cleanup_after_test) {
+        $cmd = "$hadoopbin fs -rmr $pigmixoutput";
+        print STDERR `$cmd 2>&1`;
+    }
 }
 

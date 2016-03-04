@@ -86,6 +86,48 @@ public class HDataType {
         }
     }
 
+    public static PigNullableWritable getNewWritableComparable(byte keyType) throws ExecException {
+        switch (keyType) {
+            case DataType.BAG:
+                return new NullableBag();
+            case DataType.BOOLEAN:
+                return new NullableBooleanWritable();
+            case DataType.BYTEARRAY:
+                return new NullableBytesWritable();
+            case DataType.CHARARRAY:
+                return new NullableText();
+            case DataType.DOUBLE:
+                return new NullableDoubleWritable();
+            case DataType.FLOAT:
+                return new NullableFloatWritable();
+            case DataType.INTEGER:
+                return new NullableIntWritable();
+            case DataType.BIGINTEGER:
+                return new NullableBigIntegerWritable();
+            case DataType.BIGDECIMAL:
+                return new NullableBigDecimalWritable();
+            case DataType.LONG:
+                return new NullableLongWritable();
+            case DataType.DATETIME:
+                return new NullableDateTimeWritable();
+            case DataType.TUPLE:
+                return new NullableTuple();
+            case DataType.MAP: {
+                int errCode = 1068;
+                String msg = "Using Map as key not supported.";
+                throw new ExecException(msg, errCode, PigException.INPUT);
+            }
+            default: {
+                if (typeToName == null) typeToName = DataType.genTypeToNameMap();
+                int errCode = 2044;
+                String msg = "The type "
+                    + typeToName.get(keyType) == null ? "" + keyType : typeToName.get(keyType)
+                    + " cannot be collected as a Key type";
+                throw new ExecException(msg, errCode, PigException.BUG);
+            }
+        }
+    }
+
     public static PigNullableWritable getWritableComparableTypes(Object o, byte keyType) throws ExecException{
 
         byte newKeyType = keyType;
@@ -259,6 +301,14 @@ public class HDataType {
             throw new ExecException(msg, errCode, PigException.BUG);
         }
         return wcKey;
+    }
+
+    public static byte findTypeFromClassName(String className) throws ExecException {
+        if (classToTypeMap.containsKey(className)) {
+            return classToTypeMap.get(className);
+        } else {
+            throw new ExecException("Unable to map " + className + " to known types." + Arrays.toString(classToTypeMap.keySet().toArray()));
+        }
     }
 
     public static byte findTypeFromNullableWritable(PigNullableWritable o) throws ExecException {

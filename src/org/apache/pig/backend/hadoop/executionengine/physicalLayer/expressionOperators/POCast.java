@@ -1984,7 +1984,22 @@ public class POCast extends ExpressionOperator {
 
     @Override
     public Result getNextDataByteArray() throws ExecException {
+      PhysicalOperator in = inputs.get(0);
+      Byte resultType = in.getResultType();
+      if  (resultType != DataType.BYTEARRAY) 
         return error();
+      
+      DataByteArray dba = null;
+      Result res = in.getNextDataByteArray();
+      if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+          try {
+              dba = (DataByteArray) res.result;
+          } catch (ClassCastException e) {
+              return error();
+          }
+          if (dba != null) return res;
+      }
+      return res;
     }
 
     private void readObject(ObjectInputStream is) throws IOException,

@@ -24,12 +24,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 import java.util.zip.ZipEntry;
 
@@ -38,17 +35,9 @@ import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.log4j.FileAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.SimpleLayout;
-import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
-import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.util.JarManager;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -73,16 +62,15 @@ public class TestRegisteredJarVisibility {
 
     private static MiniGenericCluster cluster;
     private static File jarFile;
+    private static File testDataDir;
 
     @BeforeClass()
     public static void setUp() throws IOException {
 
         String testResourcesDir =  "test/resources/" + PACKAGE_NAME.replace(".", "/");
 
-        String testBuildDataDir = "build/test/data";
         // Create the test data directory if needed
-        File testDataDir = new File(testBuildDataDir,
-                TestRegisteredJarVisibility.class.getCanonicalName());
+        testDataDir = new File(Util.getTestDirectory(TestRegisteredJarVisibility.class));
         testDataDir.mkdirs();
 
         jarFile = new File(testDataDir, JAR_FILE_NAME);
@@ -111,6 +99,7 @@ public class TestRegisteredJarVisibility {
     @AfterClass()
     public static void tearDown() {
         cluster.shutDown();
+        Util.deleteDirectory(testDataDir);
     }
 
     @Before
@@ -163,7 +152,7 @@ public class TestRegisteredJarVisibility {
         // When jackson jar is not registered, jackson-core from the first jar in
         // classpath (pig.jar) should be picked up (version 1.8.8 in this case).
         String jacksonJar = JarManager.findContainingJar(org.codehaus.jackson.JsonParser.class);
-        Assert.assertTrue(new File(jacksonJar).getName().contains("1.8.8"));
+        Assert.assertTrue(new File(jacksonJar).getName().contains("1.9.13"));
 
         PigServer pigServer = new PigServer(Util.getLocalTestMode(), new Properties());
         pigServer.registerJar("test/resources/jackson-core-asl-1.9.9.jar");

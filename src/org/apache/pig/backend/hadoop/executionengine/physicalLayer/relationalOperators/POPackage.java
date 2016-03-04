@@ -30,13 +30,11 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.util.AccumulatorOptimizerUtil;
 import org.apache.pig.data.AccumulativeBag;
-import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.InternalCachedBag;
 import org.apache.pig.data.ReadOnceBag;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -74,9 +72,6 @@ public class POPackage extends PhysicalOperator {
     //key, no value.
     protected int numInputs;
 
-    protected static final BagFactory mBagFactory = BagFactory.getInstance();
-    protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
-
     private boolean lastBagReadOnly = true;
 
     protected Packager pkgr;
@@ -86,58 +81,6 @@ public class POPackage extends PhysicalOperator {
     private transient boolean initialized;
     private transient boolean useDefaultBag;
     private transient int accumulativeBatchSize;
-
-    //the pivot value
-    private int pivot = -1;
-    //the index of the first field involves in ROLLUP
-    protected int rollupFieldIndex = 0;
-    //the original index of the first field involves in ROLLUP in case it was moved to the end
-    //(if we have the combination of cube and rollup)
-    private int rollupOldFieldIndex = 0;
-    //the size of total fields that involve in CUBE clause
-    private int dimensionSize = 0;
-    //number of algebraic function that used after rollup
-    private int nAlgebraic = 0;
-
-    public void setPivot(int pvt) {
-        this.pivot = pvt;
-    }
-
-    public int getPivot() {
-        return this.pivot;
-    }
-
-    public void setDimensionSize(int ds) {
-        this.dimensionSize = ds;
-    }
-
-    public int getDimensionSize() {
-        return this.dimensionSize;
-    }
-
-    public void setNumberAlgebraic(int na) {
-        this.nAlgebraic = na;
-    }
-
-    public int getNumberAlgebraic() {
-        return this.nAlgebraic;
-    }
-
-    public void setRollupOldFieldIndex(int rofi) {
-        this.rollupOldFieldIndex = rofi;
-    }
-
-    public int getRollupOldFieldIndex() {
-        return this.rollupOldFieldIndex;
-    }
-
-    public void setRollupFieldIndex(int rfi) {
-        this.rollupFieldIndex = rfi;
-    }
-
-    public int getRollupFieldIndex() {
-        return this.rollupFieldIndex;
-    }
 
     public POPackage(OperatorKey k) {
         this(k, -1, null);
@@ -292,8 +235,7 @@ public class POPackage extends PhysicalOperator {
 
                 // create bag to pull all tuples out of iterator
                 for (int i = 0; i < numInputs; i++) {
-                    dbs[i] = useDefaultBag ? BagFactory.getInstance()
-                            .newDefaultBag()
+                    dbs[i] = useDefaultBag ? mBagFactory.newDefaultBag()
                             // In a very rare case if there is a POStream after this
                             // POPackage in the pipeline and is also blocking the
                             // pipeline;
@@ -309,8 +251,15 @@ public class POPackage extends PhysicalOperator {
                     NullableTuple ntup = tupIter.next();
                     int index = ntup.getIndex();
                     if (index == numInputs - 1) {
-                        dbs[index] = new PeekedBag(pkgr, ntup, tupIter, keyWritable);
-                        break;
+                        if (pkgr.getUseSecondaryKey()) {
+                            if (dbs[index] == null) {
+                                dbs[index] = useDefaultBag ? mBagFactory
+                                        .newDefaultBag() : new InternalCachedBag(numInputs);
+                            }
+                        } else {
+                            dbs[index] = new PeekedBag(pkgr, ntup, tupIter, keyWritable);
+                            break;
+                        }
                     }
                     Tuple copy = pkgr.getValueTuple(keyWritable, ntup, index);
 

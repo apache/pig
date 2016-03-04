@@ -17,22 +17,16 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.LinkedList;
 
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.DataType;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.pen.util.ExampleTuple;
-import org.apache.pig.pen.util.LineageTracer;
-import org.apache.pig.impl.util.IdentityHashSet;
 
 /**
  * A specialized version of POForeach with the difference
@@ -45,10 +39,10 @@ import org.apache.pig.impl.util.IdentityHashSet;
 public class POOptimizedForEach extends POForEach {
 
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = 1L;
-    
+
     public POOptimizedForEach(OperatorKey k) {
         this(k,-1,null,null);
     }
@@ -64,7 +58,7 @@ public class POOptimizedForEach extends POForEach {
     public POOptimizedForEach(OperatorKey k, List inp) {
         this(k,-1,inp,null);
     }
-    
+
     public POOptimizedForEach(OperatorKey k, int rp, List<PhysicalPlan> inp, List<Boolean>  isToBeFlattened){
         super(k, rp);
         setUpFlattens(isToBeFlattened);
@@ -82,7 +76,7 @@ public class POOptimizedForEach extends POForEach {
         String fString = getFlatStr();
         return "Optimized For Each" + "(" + fString + ")" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
     }
-    
+
     /**
      * Calls getNext on the generate operator inside the nested
      * physical plan and returns it maintaining an additional state
@@ -120,40 +114,25 @@ public class POOptimizedForEach extends POForEach {
         //nested plan processing on the input tuple
         //read
         while (true) {
-            
-            // we know that input has been attached 
+
+            // we know that input has been attached
             attachInputToPlans(input);
             detachInput();
             res = processPlan();
-            
+
             processingPlan = true;
-            
+
             return res;
         }
     }
 
-    
+
     /**
-     * Make a deep copy of this operator.  
+     * Make a deep copy of this operator.
      * @throws CloneNotSupportedException
      */
     @Override
     public POOptimizedForEach clone() throws CloneNotSupportedException {
-        List<PhysicalPlan> plans = new
-            ArrayList<PhysicalPlan>(inputPlans.size());
-        for (PhysicalPlan plan : inputPlans) {
-            plans.add(plan.clone());
-        }
-        List<Boolean> flattens = null;
-        if(isToBeFlattenedArray != null ) {
-            flattens = new 
-            ArrayList<Boolean>(isToBeFlattenedArray.length);
-            for (boolean b : isToBeFlattenedArray) {
-                flattens.add(b);
-            }
-        }
-        return new POOptimizedForEach(new OperatorKey(mKey.scope, 
-            NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
-            requestedParallelism, plans, flattens);
+        return (POOptimizedForEach) super.clone();
     }
 }

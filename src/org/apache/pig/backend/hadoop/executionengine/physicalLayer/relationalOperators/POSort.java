@@ -36,12 +36,10 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserComparisonFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.InternalSortedBag;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 
@@ -74,11 +72,11 @@ public class POSort extends PhysicalOperator {
 	private POUserComparisonFunc mSortFunc;
 	private Comparator<Tuple> mComparator;
 
-	private boolean inputsAccumulated = false;
 	private long limit;
 	public boolean isUDFComparatorUsed = false;
-	private DataBag sortedBag;
 
+	private transient boolean inputsAccumulated = false;
+	private transient DataBag sortedBag;
     private transient Iterator<Tuple> it;
     private transient boolean initialized;
     private transient boolean useDefaultBag;
@@ -95,22 +93,22 @@ public class POSort extends PhysicalOperator {
 		this.sortPlans = sortPlans;
 		this.mAscCols = mAscCols;
         this.limit = -1;
-		this.mSortFunc = mSortFunc;
-		if (mSortFunc == null) {
-            mComparator = new SortComparator();
-			/*sortedBag = BagFactory.getInstance().newSortedBag(
-					new SortComparator());*/
-			ExprOutputTypes = new ArrayList<Byte>(sortPlans.size());
+        setSortFunc(mSortFunc);
+	}
 
-			for(PhysicalPlan plan : sortPlans) {
-				ExprOutputTypes.add(plan.getLeaves().get(0).getResultType());
-			}
-		} else {
-			/*sortedBag = BagFactory.getInstance().newSortedBag(
-					new UDFSortComparator());*/
+	private void setSortFunc(POUserComparisonFunc mSortFunc) {
+	    this.mSortFunc = mSortFunc;
+        if (mSortFunc == null) {
+            mComparator = new SortComparator();
+            ExprOutputTypes = new ArrayList<Byte>(sortPlans.size());
+
+            for(PhysicalPlan plan : sortPlans) {
+                ExprOutputTypes.add(plan.getLeaves().get(0).getResultType());
+            }
+        } else {
             mComparator = new UDFSortComparator();
-			isUDFComparatorUsed = true;
-		}
+            isUDFComparatorUsed = true;
+        }
 	}
 
 	public POSort(OperatorKey k, int rp, List inp) {
@@ -256,10 +254,10 @@ public class POSort extends PhysicalOperator {
 
 	@Override
 	public Result getNextTuple() throws ExecException {
-		Result res = new Result();
+		Result inp;
 
 		if (!inputsAccumulated) {
-			res = processInput();
+			inp = processInput();
             if (!initialized) {
                 initialized = true;
                 if (PigMapReduce.sJobConfInternal.get() != null) {
@@ -271,26 +269,28 @@ public class POSort extends PhysicalOperator {
             }
 			// by default, we create InternalSortedBag, unless user configures
             // explicitly to use old bag
-            sortedBag = useDefaultBag ? BagFactory.getInstance().newSortedBag(mComparator)
+            sortedBag = useDefaultBag ? mBagFactory.newSortedBag(mComparator)
                     : new InternalSortedBag(3, mComparator);
 
-            while (res.returnStatus != POStatus.STATUS_EOP) {
-				if (res.returnStatus == POStatus.STATUS_ERR) {
+            while (inp.returnStatus != POStatus.STATUS_EOP) {
+				if (inp.returnStatus == POStatus.STATUS_ERR) {
 					log.error("Error in reading from the inputs");
-					return res;
-                } else if (res.returnStatus == POStatus.STATUS_NULL) {
+					return inp;
+                } else if (inp.returnStatus == POStatus.STATUS_NULL) {
                     // Ignore and read the next tuple.
-                    res = processInput();
+                    inp = processInput();
                     continue;
                 }
-				sortedBag.add((Tuple) res.result);
-				res = processInput();
+				sortedBag.add((Tuple) inp.result);
+				inp = processInput();
             }
 
 			inputsAccumulated = true;
 
 		}
-		if (it == null) {
+
+        Result res = new Result();
+        if (it == null) {
             it = sortedBag.iterator();
         }
         if (it.hasNext()) {
@@ -301,7 +301,7 @@ public class POSort extends PhysicalOperator {
             res.returnStatus = POStatus.STATUS_EOP;
             reset();
         }
-		return res;
+        return res;
 	}
 
 	@Override
@@ -367,23 +367,19 @@ public class POSort extends PhysicalOperator {
 
     @Override
     public POSort clone() throws CloneNotSupportedException {
-        List<PhysicalPlan> clonePlans = new
-            ArrayList<PhysicalPlan>(sortPlans.size());
-        for (PhysicalPlan plan : sortPlans) {
-            clonePlans.add(plan.clone());
+        POSort clone = (POSort) super.clone();
+        clone.sortPlans = clonePlans(sortPlans);
+        if (mSortFunc == null) {
+            setSortFunc(null);
+        } else {
+            setSortFunc(mSortFunc.clone());
         }
         List<Boolean> cloneAsc = new ArrayList<Boolean>(mAscCols.size());
         for (Boolean b : mAscCols) {
             cloneAsc.add(b);
         }
-        POUserComparisonFunc cloneFunc = null;
-        if (mSortFunc != null) {
-            cloneFunc = mSortFunc.clone();
-        }
-        // Don't set inputs as PhysicalPlan.clone will take care of that
-        return new POSort(new OperatorKey(mKey.scope,
-            NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
-            requestedParallelism, null, clonePlans, cloneAsc, cloneFunc);
+        clone.mAscCols = cloneAsc;
+        return clone;
     }
 
 

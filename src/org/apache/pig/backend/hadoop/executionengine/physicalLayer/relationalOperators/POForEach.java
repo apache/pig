@@ -25,6 +25,7 @@ import java.util.List;
 
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.UDFEndOfAllInputNeededVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -41,6 +42,7 @@ import org.apache.pig.data.SchemaTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.data.TupleMaker;
+import org.apache.pig.data.UnlimitedNullTuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -55,26 +57,13 @@ public class POForEach extends PhysicalOperator {
     private static final long serialVersionUID = 1L;
 
     protected List<PhysicalPlan> inputPlans;
+
     protected List<PhysicalOperator> opsToBeReset;
-    //Since the plan has a generate, this needs to be maintained
-    //as the generate can potentially return multiple tuples for
-    //same call.
-    protected boolean processingPlan = false;
 
-    //its holds the iterators of the databags given by the input expressions which need flattening.
-    transient protected Iterator<Tuple> [] its = null;
-
-    //This holds the outputs given out by the input expressions of any datatype
-    protected Object [] bags = null;
-
-    //This is the template whcih contains tuples and is flattened out in createTuple() to generate the final output
-    protected Object[] data = null;
+    protected PhysicalOperator[] planLeafOps;
 
     // store result types of the plan leaves
-    protected byte[] resultTypes = null;
-
-    // store whether or not an accumulative UDF has terminated early
-    protected BitSet earlyTermination = null;
+    protected byte[] resultTypes;
 
     // array version of isToBeFlattened - this is purely
     // for optimization - instead of calling isToBeFlattened.get(i)
@@ -83,18 +72,39 @@ public class POForEach extends PhysicalOperator {
     // so we can also save on the Boolean.booleanValue() calls
     protected boolean[] isToBeFlattenedArray;
 
-    ExampleTuple tIn = null;
     protected int noItems;
 
-    protected PhysicalOperator[] planLeafOps = null;
+    //Since the plan has a generate, this needs to be maintained
+    //as the generate can potentially return multiple tuples for
+    //same call.
+    protected transient boolean processingPlan;
+
+    //its holds the iterators of the databags given by the input expressions which need flattening.
+    protected transient Iterator<Tuple> [] its = null;
+
+    //This holds the outputs given out by the input expressions of any datatype
+    protected transient Object[] bags ;
+
+    //This is the template whcih contains tuples and is flattened out in createTuple() to generate the final output
+    protected transient Object[] data;
+
+    // store whether or not an accumulative UDF has terminated early
+    protected transient BitSet earlyTermination;
+
+    protected transient ExampleTuple tIn;
+
 
     protected transient AccumulativeTupleBuffer buffer;
 
-    protected Tuple inpTuple;
+    protected transient Tuple inpTuple;
+
+    protected transient boolean endOfAllInputProcessed;
 
     // Indicate the foreach statement can only in map side
     // Currently only used in MR cross (See PIG-4175)
     protected boolean mapSideOnly = false;
+
+    protected Boolean endOfAllInputProcessing = false;
 
     private Schema schema;
 
@@ -244,12 +254,20 @@ public class POForEach extends PhysicalOperator {
             //read
             while (true) {
                 inp = processInput();
-                if (inp.returnStatus == POStatus.STATUS_EOP ||
-                        inp.returnStatus == POStatus.STATUS_ERR) {
+
+                if (inp.returnStatus == POStatus.STATUS_ERR) {
                     return inp;
                 }
                 if (inp.returnStatus == POStatus.STATUS_NULL) {
                     continue;
+                }
+                if (inp.returnStatus == POStatus.STATUS_EOP) {
+                    if (parentPlan!=null && parentPlan.endOfAllInput && !endOfAllInputProcessed && endOfAllInputProcessing) {
+                        // continue pull one more output
+                        inp = new Result(POStatus.STATUS_OK, new UnlimitedNullTuple());
+                    } else {
+                        return inp;
+                    }
                 }
 
                 attachInputToPlans((Tuple) inp.result);
@@ -357,6 +375,9 @@ public class POForEach extends PhysicalOperator {
 
 
         if(its == null) {
+            if (endOfAllInputProcessed) {
+                return RESULT_EOP;
+            }
             //getNext being called for the first time OR starting with a set of new data from inputs
             its = new Iterator[noItems];
             bags = new Object[noItems];
@@ -423,6 +444,9 @@ public class POForEach extends PhysicalOperator {
                 } else {
                     its[i] = null;
                 }
+            }
+            if (parentPlan!=null && parentPlan.endOfAllInput && endOfAllInputProcessing) {
+                endOfAllInputProcessed = true;
             }
         }
 
@@ -658,16 +682,13 @@ public class POForEach extends PhysicalOperator {
             }
         }
 
-        List<PhysicalOperator> ops = new ArrayList<PhysicalOperator>(opsToBeReset.size());
-        for (PhysicalOperator op : opsToBeReset) {
-            ops.add(op);
-        }
         POForEach clone = new POForEach(new OperatorKey(mKey.scope,
                 NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
                 requestedParallelism, plans, flattens);
-        clone.setOpsToBeReset(ops);
         clone.setResultType(getResultType());
         clone.addOriginalLocation(alias, getOriginalLocations());
+        clone.endOfAllInputProcessing = endOfAllInputProcessing;
+        clone.mapSideOnly = mapSideOnly;
         return clone;
     }
 
@@ -797,5 +818,22 @@ public class POForEach extends PhysicalOperator {
 
     public boolean isMapSideOnly() {
         return mapSideOnly;
+    }
+
+    public boolean needEndOfAllInputProcessing() throws ExecException {
+        try {
+            for (PhysicalPlan innerPlan : inputPlans) {
+                UDFEndOfAllInputNeededVisitor endOfAllInputNeededVisitor
+                     = new UDFEndOfAllInputNeededVisitor(innerPlan);
+                endOfAllInputNeededVisitor.visit();
+                if (endOfAllInputNeededVisitor.needEndOfAllInputProcessing()) {
+                    endOfAllInputProcessing = true;
+                    return true;
+                }
+            }
+            return false;
+        } catch (Exception e) {
+            throw new ExecException(e);
+        }
     }
 }

@@ -47,10 +47,11 @@
   <section id="auto-parallelism">
     <title>Automatic parallelism</title>
     <p>Just like MapReduce, if user specify "parallel" in their Pig statement, or user define default_parallel in Tez mode, Pig will honor it (the only exception is if user specify a parallel which is apparently too low, Pig will override it) </p>
-    <p>If user specify neither "parallel" or "default_parallel", Pig will use automatic parallelism. In MapReduce, Pig submit one MapReduce job a time and before submiting a job, Pig has chance to automatically set reduce parallelism based on the size of input file. On the contrary, Tez submit a DAG as a unit and automatic parallelism is managed in two parts</p>
+    <p>If user specify neither "parallel" or "default_parallel", Pig will use automatic parallelism. In MapReduce, Pig submit one MapReduce job a time and before submiting a job, Pig has chance to automatically set reduce parallelism based on the size of input file. On the contrary, Tez submit a DAG as a unit and automatic parallelism is managed in three parts</p>
     <ul>
     <li>Before submiting a DAG, Pig estimate parallelism of each vertex statically based on the input file size of the DAG and the complexity of the pipeline of each vertex</li>
-    <li>At runtime, Tez adjust vertex parallelism dynamically based on the input data volume of the vertex. Note currently Tez can only decrease the parallelism dynamically not increase. So in step 1, Pig overestimate the parallelism</li>
+    <li>When DAG progress, Pig adjust the parallelism of vertexes with the best knowledge available at that moment (Pig grace paralellism)</li>
+    <li>At runtime, Tez adjust vertex parallelism dynamically based on the input data volume of the vertex. Note currently Tez can only decrease the parallelism dynamically not increase. So in step 1 and 2, Pig overestimate the parallelism</li>
     </ul>
     <p>The following parameter control the behavior of automatic parallelism in Tez (share with MapReduce):</p>
 <source>
@@ -492,7 +493,7 @@ Gtab = .... aggregation function
 STORE Gtab INTO '/user/vxj/finalresult2';
 </source>
 
-<p>To make the script works, add the exec statement.  </p>
+<p>To make the script work, add the exec statement. </p>
 
 <source>
 A = LOAD '/user/xxx/firstinput' USING PigStorage();
@@ -517,6 +518,11 @@ Ftab = group ....
 Gtab = .... aggregation function
 STORE Gtab INTO '/user/vxj/finalresult2';
 </source>
+
+<p>If the STORE and LOAD both had exact matching file paths, Pig will recognize the implicit dependency
+and launch two different mapreduce jobs/Tez DAGs with the second job depending on the output of the first one. 
+exec is not required to be specified in that case.</p>
+
 </section>
 </section>
 </section>
@@ -978,11 +984,11 @@ B = GROUP A BY t PARALLEL 18;
 <p>In this example all the MapReduce jobs that get launched use 20 reducers.</p>
 <source>
 SET default_parallel 20;
-A = LOAD ‘myfile.txt’ USING PigStorage() AS (t, u, v);
+A = LOAD 'myfile.txt' USING PigStorage() AS (t, u, v);
 B = GROUP A BY t;
 C = FOREACH B GENERATE group, COUNT(A.t) as mycount;
 D = ORDER C BY mycount;
-STORE D INTO ‘mysortedcount’ USING PigStorage();
+STORE D INTO 'mysortedcount' USING PigStorage();
 </source>
 </section>
 
@@ -1286,9 +1292,9 @@ C = JOIN A BY a1, B BY b1, C BY c1 USING 'merge';
 <li>Data must come directly from either a Load or an Order statement.</li>
 <li>There may be filter statements and foreach statements between the sorted data source and the join statement. The foreach statement should meet the following conditions: 
   <ul>
-    <li>There should be no UDFs in the foreach statement. </li>
     <li>The foreach statement should not change the position of the join keys. </li>
-    <li>There should be no transformation on the join keys which will change the sort order. </li>
+    <li>There should be no transformation on the join keys which will change the sort order.</li>
+    <li>UDFs also have to adhere to the previous condition and should not transform the JOIN keys in a way that would change the sort order.</li>
   </ul>
 </li>
 <li>Data must be sorted on join keys in ascending (ASC) order on both sides.</li>

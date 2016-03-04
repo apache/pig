@@ -1434,6 +1434,24 @@ public class TestGrunt {
     }
 
     @Test
+    public void testScriptWithSingleQuoteInsideCommentInGenerate() throws Throwable {
+        //the query has not store or dump, but in when -check is used
+        // all statements should be validated
+        String query = "a = load 'foo.pig' as (s1:chararray, s2:chararray);\n" +
+        "b = foreach a generate s1,\n" +
+        "--comment should be ignored even it has single quote ' in the line \n"  +
+        " s2;\n";
+        ArrayList<String> msgs = new ArrayList<String>();                //
+        validate(query, true, msgs.toArray(new String[0]));
+        query = "a = load 'foo.pig' as (s1:chararray, s2:chararray);\n" +
+        "b = foreach a generate s1,\n" +
+        "/* comment should be ignored even it has single quote ' in the line \n"  +
+        "*/ \n" +
+        " s2;\n";
+        validate(query, true, msgs.toArray(new String[0]));
+    }
+
+    @Test
     public void testDebugOn() throws Throwable {
 
         String strCmd = "set debug on\n";

@@ -30,13 +30,17 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapred.TaskAttemptID;
+import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.pig.JVMReuseImpl;
 import org.apache.pig.PigConstants;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigHadoopLogger;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.ProgressableReporter;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.UDFFinishVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -57,6 +61,7 @@ import org.apache.pig.impl.util.Utils;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.UserPayload;
+import org.apache.tez.mapreduce.hadoop.MRConfig;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.Event;
@@ -116,6 +121,11 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
         // Reset static variables cleared for avoiding OOM.
         new JVMReuseImpl().cleanupStaticData();
 
+        // Set an empty reporter for now. Once we go to Tez 0.8
+        // which adds support for mapreduce like progress (TEZ-808),
+        // we need to call progress on Tez API
+        PhysicalOperator.setReporter(new ProgressableReporter());
+
         UserPayload payload = getContext().getUserPayload();
         conf = TezUtils.createConfFromUserPayload(payload);
         PigContext.setPackageImportList((ArrayList<String>) ObjectSerializer
@@ -124,6 +134,22 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
 
         // To determine front-end in UDFContext
         conf.set(MRConfiguration.JOB_APPLICATION_ATTEMPT_ID, getContext().getUniqueIdentifier());
+
+        // For compatibility with mapreduce. Some users use these configs in their UDF
+        // Copied logic from the tez class - org.apache.tez.mapreduce.output.MROutput
+        // Currently isMapperOutput is always false. Setting it to true produces empty output with MROutput
+        boolean isMapperOutput = conf.getBoolean(MRConfig.IS_MAP_PROCESSOR, false);
+        TaskAttemptID taskAttemptId = org.apache.tez.mapreduce.hadoop.mapreduce.TaskAttemptContextImpl
+                .createMockTaskAttemptID(getContext().getApplicationId().getClusterTimestamp(),
+                    getContext().getTaskVertexIndex(), getContext().getApplicationId().getId(),
+                    getContext().getTaskIndex(), getContext().getTaskAttemptNumber(), isMapperOutput);
+        conf.set(JobContext.TASK_ATTEMPT_ID, taskAttemptId.toString());
+        conf.set(JobContext.TASK_ID, taskAttemptId.getTaskID().toString());
+        conf.setBoolean(JobContext.TASK_ISMAP, isMapperOutput);
+        conf.setInt(JobContext.TASK_PARTITION,
+              taskAttemptId.getTaskID().getId());
+        conf.set(JobContext.ID, taskAttemptId.getJobID().toString());
+
         conf.set(PigConstants.TASK_INDEX, Integer.toString(getContext().getTaskIndex()));
         UDFContext.getUDFContext().addJobConf(conf);
         UDFContext.getUDFContext().deserialize();
@@ -161,7 +187,6 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
 
     @Override
     public void close() throws Exception {
-
         execPlan = null;
         fileOutputs = null;
         leaf = null;
@@ -173,6 +198,8 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
         // The Reporter and Context objects hold TezProcessorContextImpl
         // which holds input and its sort buffers which are huge.
         new JVMReuseImpl().cleanupStaticData();
+        // Do only in close() and not initialize().
+        UDFContext.staticDataCleanup();
     }
 
     @Override
@@ -193,7 +220,21 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
                 leaf = leaves.get(0);
             }
 
+            LOG.info("Aliases being processed per job phase (AliasName[line,offset]): " + conf.get("pig.alias.location"));
+
             runPipeline(leaf);
+
+            if (Boolean.valueOf(conf.get(JobControlCompiler.END_OF_INP_IN_MAP, "false"))
+                    && !execPlan.endOfAllInput) {
+                // If there is a stream in the pipeline or if this map job belongs to merge-join we could
+                // potentially have more to process - so lets
+                // set the flag stating that all map input has been sent
+                // already and then lets run the pipeline one more time
+                // This will result in nothing happening in the case
+                // where there is no stream or it is not a merge-join in the pipeline
+                execPlan.endOfAllInput = true;
+                runPipeline(leaf);
+            }
 
             // Calling EvalFunc.finish()
             UDFFinishVisitor finisher = new UDFFinishVisitor(execPlan,
@@ -207,13 +248,15 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
                 throw new VisitorException(msg, errCode, PigException.BUG, e);
             }
 
-            while (!getContext().canCommit()) {
-                Thread.sleep(100);
-            }
-            for (MROutput fileOutput : fileOutputs){
-                fileOutput.flush();
-                if (fileOutput.isCommitRequired()) {
-                    fileOutput.commit();
+            if (!fileOutputs.isEmpty()) {
+                while (!getContext().canCommit()) {
+                    Thread.sleep(100);
+                }
+                for (MROutput fileOutput : fileOutputs){
+                    fileOutput.flush();
+                    if (fileOutput.isCommitRequired()) {
+                        fileOutput.commit();
+                    }
                 }
             }
 
@@ -233,8 +276,8 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
                 getContext().sendEvents(events);
             }
         } catch (Exception e) {
-            abortOutput();
             LOG.error("Encountered exception while processing: ", e);
+            abortOutput();
             throw e;
         }
     }
@@ -243,7 +286,7 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
         for (MROutput fileOutput : fileOutputs){
             try {
                 fileOutput.abort();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 LOG.error("Encountered exception while aborting output", e);
             }
         }

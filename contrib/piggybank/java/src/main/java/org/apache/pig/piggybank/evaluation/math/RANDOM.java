@@ -18,21 +18,5 @@
 
 package org.apache.pig.piggybank.evaluation.math;
 
-import java.io.IOException;
-
-import org.apache.pig.EvalFunc;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.data.DataType;
-
-public class RANDOM extends EvalFunc<Double>{
-
-	public Double exec(Tuple input) throws IOException {
-		return Math.random();
-	}
-
-    @Override
-    public Schema outputSchema(Schema input) {
-        return new Schema(new Schema.FieldSchema(getSchemaName(this.getClass().getName().toLowerCase(), input), DataType.DOUBLE));
-    }
+public class RANDOM extends org.apache.pig.builtin.RANDOM {
 }

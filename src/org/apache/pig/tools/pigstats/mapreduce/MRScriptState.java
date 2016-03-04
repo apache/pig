@@ -72,7 +72,7 @@ public class MRScriptState extends ScriptState {
         conf.set(PIG_PROPERTY.HADOOP_VERSION.toString(), getHadoopVersion());
         conf.set(PIG_PROPERTY.VERSION.toString(), getPigVersion());
         conf.set(PIG_PROPERTY.SCRIPT_ID.toString(), id);
-        conf.set(PIG_PROPERTY.SCRIPT.toString(), getScript());
+        conf.set(PIG_PROPERTY.SCRIPT.toString(), getSerializedScript());
         conf.set(PIG_PROPERTY.COMMAND_LINE.toString(), getCommandLine());
 
         try {

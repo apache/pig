@@ -18,11 +18,16 @@
 package org.apache.pig.backend.hadoop.executionengine.tez.plan;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -30,6 +35,8 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer.TezOperDependencyParallelismEstimator.TezParallelismFactorVisitor;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.PigProcessor;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.Operator;
@@ -50,7 +57,11 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     private static final long serialVersionUID = 1L;
 
     // Processor pipeline
-    public PhysicalPlan plan;
+    // Note TezOperator needs to be serialized and de-serialized to
+    // be used in PigGraceShuffleVertexManager, some fields are either
+    // big, or not serializable, and not in use in PigGraceShuffleVertexManager,
+    // mark them as transient: plan, vertexGroupInfo, inputSplitInfo
+    public transient PhysicalPlan plan;
 
     // Descriptors for out-bound edges.
     public Map<OperatorKey, TezEdgeDescriptor> outEdges;
@@ -133,6 +144,12 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     private boolean useMRMapSettings = false;
 
+    private boolean useGraceParallelism = false;
+
+    private Map<OperatorKey, Double> parallelismFactorPerSuccessor;
+
+    private Boolean intermediateReducer = null;
+
     // Types of blocking operators. For now, we only support the following ones.
     public static enum OPER_FEATURE {
         // Indicate if this job is a merge indexer
@@ -159,8 +176,12 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         LIMIT_AFTER_SORT,
         // Indicate if this job is a union job
         UNION,
+        // Indicate if this job is a distinct job
+        DISTINCT,
         // Indicate if this job is a native job
-        NATIVE;
+        NATIVE,
+        // Indicate if this job does rank counter
+        RANK_COUNTER;
     };
 
     // Features in the job/vertex. Mostly will be only one feature.
@@ -170,16 +191,17 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     private List<OperatorKey> vertexGroupMembers;
     // For union
-    private VertexGroupInfo vertexGroupInfo;
+    private transient VertexGroupInfo vertexGroupInfo;
     // Mapping of OperatorKey of POStore OperatorKey to vertexGroup TezOperator
     private Map<OperatorKey, OperatorKey> vertexGroupStores = null;
+    private boolean isVertexGroup = false;
 
-    public static class LoaderInfo {
+    public static class LoaderInfo implements Serializable {
         private List<POLoad> loads = null;
         private ArrayList<FileSpec> inp = new ArrayList<FileSpec>();
         private ArrayList<String> inpSignatureLists = new ArrayList<String>();
         private ArrayList<Long> inpLimits = new ArrayList<Long>();
-        private InputSplitInfo inputSplitInfo = null;
+        private transient InputSplitInfo inputSplitInfo = null;
         public List<POLoad> getLoads() {
             return loads;
         }
@@ -262,9 +284,10 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         this.estimatedParallelism = estimatedParallelism;
     }
 
-    public int getEffectiveParallelism() {
+    public int getEffectiveParallelism(int defaultParallelism) {
         // PIG-4162: For intermediate reducers, use estimated parallelism over user set parallelism.
-        return getEstimatedParallelism() == -1 ? getRequestedParallelism()
+        return getEstimatedParallelism() == -1
+                ? (getRequestedParallelism() == -1 ? defaultParallelism : getRequestedParallelism())
                 : getEstimatedParallelism();
     }
 
@@ -405,12 +428,28 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         feature.set(OPER_FEATURE.UNION.ordinal());
     }
 
+    public boolean isDistinct() {
+        return feature.get(OPER_FEATURE.DISTINCT.ordinal());
+    }
+
+    public void markDistinct() {
+        feature.set(OPER_FEATURE.DISTINCT.ordinal());
+    }
+
     public boolean isNative() {
         return feature.get(OPER_FEATURE.NATIVE.ordinal());
     }
 
     public void markNative() {
         feature.set(OPER_FEATURE.NATIVE.ordinal());
+    }
+
+    public boolean isRankCounter() {
+        return feature.get(OPER_FEATURE.RANK_COUNTER.ordinal());
+    }
+
+    public void markRankCounter() {
+        feature.set(OPER_FEATURE.RANK_COUNTER.ordinal());
     }
 
     public void copyFeatures(TezOperator copyFrom, List<OPER_FEATURE> excludeFeatures) {
@@ -440,7 +479,7 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         this.useSecondaryKey = useSecondaryKey;
     }
 
-    public List<OperatorKey> getUnionPredecessors() {
+    public List<OperatorKey> getUnionMembers() {
         return vertexGroupMembers;
     }
 
@@ -462,7 +501,7 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     // Union is the only operator that uses alias vertex (VertexGroup) now. But
     // more operators could be added to the list in the future.
     public boolean isVertexGroup() {
-        return vertexGroupInfo != null;
+        return isVertexGroup;
     }
 
     public VertexGroupInfo getVertexGroupInfo() {
@@ -471,6 +510,7 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     public void setVertexGroupInfo(VertexGroupInfo vertexGroup) {
         this.vertexGroupInfo = vertexGroup;
+        this.isVertexGroup = true;
     }
 
     public void addVertexGroupStore(OperatorKey storeKey, OperatorKey vertexGroupKey) {
@@ -478,6 +518,16 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
             this.vertexGroupStores = new HashMap<OperatorKey, OperatorKey>();
         }
         this.vertexGroupStores.put(storeKey, vertexGroupKey);
+    }
+
+    public void removeVertexGroupStore(OperatorKey vertexGroupKey) {
+        Iterator<Entry<OperatorKey, OperatorKey>> iter = vertexGroupStores.entrySet().iterator();
+        while (iter.hasNext()) {
+            Entry<OperatorKey, OperatorKey> entry = iter.next();
+            if (entry.getValue().equals(vertexGroupKey)) {
+                iter.remove();
+            }
+        }
     }
 
     public Map<OperatorKey, OperatorKey> getVertexGroupStores() {
@@ -496,7 +546,7 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     public String toString() {
         StringBuilder sb = new StringBuilder(name() + ":\n");
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        if (!plan.isEmpty()) {
+        if (plan!=null && !plan.isEmpty()) {
             plan.explain(baos);
             String mp = new String(baos.toByteArray());
             sb.append(shiftStringByTabs(mp, "|   "));
@@ -599,6 +649,52 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     public LoaderInfo getLoaderInfo() {
         return loaderInfo;
+    }
+
+    public void setUseGraceParallelism(boolean useGraceParallelism) {
+        this.useGraceParallelism = useGraceParallelism;
+    }
+    public boolean isUseGraceParallelism() {
+        return useGraceParallelism;
+    }
+
+    public double getParallelismFactor(TezOperator successor) throws VisitorException {
+        if (parallelismFactorPerSuccessor == null) {
+            parallelismFactorPerSuccessor = new HashMap<OperatorKey, Double>();
+        }
+        Double factor = parallelismFactorPerSuccessor.get(successor.getOperatorKey());
+        if (factor == null) {
+            // We determine different parallelism factors for different successors (edges).
+            // For eg: If we have two successors, one with combine plan and other without
+            // we want to compute lesser parallelism factor for the one with the combine plan
+            // as that edge will get less data.
+            // TODO: To be more perfect, we need only look at the split sub-plan that
+            // writes to that successor edge. If there is a FILTER in one sub-plan it is accounted
+            // for all the successors now which is not right.
+            TezParallelismFactorVisitor parallelismFactorVisitor = new TezParallelismFactorVisitor(this, successor);
+            parallelismFactorVisitor.visit();
+            factor = parallelismFactorVisitor.getFactor();
+            parallelismFactorPerSuccessor.put(successor.getOperatorKey(), factor);
+        }
+        return factor;
+    }
+
+    public Boolean isIntermediateReducer() throws IOException {
+        if (intermediateReducer == null) {
+            intermediateReducer = false;
+            // set intermediateReducer to true if are no loads or stores in a TezOperator
+            LinkedList<POStore> stores = PlanHelper.getPhysicalOperators(plan, POStore.class);
+            // Not map and not final reducer
+            if (stores.size() <= 0 &&
+                    (getLoaderInfo().getLoads() == null || getLoaderInfo().getLoads().size() <= 0)) {
+                intermediateReducer = true;
+            }
+        }
+        return intermediateReducer;
+    }
+
+    public void setIntermediateReducer(Boolean intermediateReducer) {
+        this.intermediateReducer = intermediateReducer;
     }
 
     public static class VertexGroupInfo {

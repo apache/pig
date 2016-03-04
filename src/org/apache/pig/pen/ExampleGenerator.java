@@ -18,44 +18,42 @@
 
 package org.apache.pig.pen;
 
+import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Collection;
-import java.util.Iterator;
-import java.io.IOException;
-import org.apache.pig.impl.util.IdentityHashSet;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
-
-
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.PigException;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.util.IdentityHashSet;
+import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.logical.relational.LOForEach;
+import org.apache.pig.newplan.logical.relational.LOLimit;
 import org.apache.pig.newplan.logical.relational.LOLoad;
+import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
-import org.apache.pig.newplan.logical.relational.LOSort;
-import org.apache.pig.newplan.logical.relational.LOLimit;
-import org.apache.pig.newplan.Operator;
 import org.apache.pig.pen.util.DisplayExamples;
 import org.apache.pig.pen.util.LineageTracer;
 
 /**
- *   This class is used to generate example tuples for the ILLUSTRATE purpose 
- * 
+ *   This class is used to generate example tuples for the ILLUSTRATE purpose
+ *
  *
  */
 public class ExampleGenerator {
@@ -73,7 +71,7 @@ public class ExampleGenerator {
     Log log = LogFactory.getLog(getClass());
 
     private int MAX_RECORDS = 10000;
-    
+
     private Map<Operator, PhysicalOperator> logToPhyMap;
     private Map<PhysicalOperator, Operator> poLoadToLogMap;
     private Map<PhysicalOperator, Operator> poToLogMap;
@@ -107,11 +105,11 @@ public class ExampleGenerator {
     public LineageTracer getLineage() {
       return lineage;
     }
-    
+
     public Map<Operator, PhysicalOperator> getLogToPhyMap() {
         return logToPhyMap;
     }
-    
+
     public void setMaxRecords(int max) {
         MAX_RECORDS = max;
     }
@@ -131,7 +129,7 @@ public class ExampleGenerator {
         poLoadToLogMap = new HashMap<PhysicalOperator, Operator>();
         logToDataMap = new HashMap<Operator, DataBag>();
         poToLogMap = new HashMap<PhysicalOperator, Operator>();
-        
+
         // set up foreach inner data map
         forEachInnerLogToDataMap = new HashMap<LOForEach, Map<LogicalRelationalOperator, DataBag>>();
         for (Map.Entry<LOForEach, Map<LogicalRelationalOperator, PhysicalOperator>> entry : forEachInnerLogToPhyMap.entrySet()) {
@@ -150,7 +148,7 @@ public class ExampleGenerator {
             if (!hasLimit && lo instanceof LOLimit)
                 hasLimit = true;
         }
-        
+
         try {
             readBaseData(loads);
         } catch (ExecException e) {
@@ -158,7 +156,7 @@ public class ExampleGenerator {
             throw e;
         } catch (FrontendException e) {
             log.error("Error reading data. " + e.getMessage());
-            throw new RuntimeException(e.getMessage());
+            throw new RuntimeException(e);
         }
 
         Map<Operator, DataBag> derivedData = null;
@@ -191,7 +189,7 @@ public class ExampleGenerator {
         // create the final version of derivedData to give to the output
         derivedData = getData(physPlan);
         // System.out.println("Obtaining final derived data for output");
-        
+
         if (hasLimit)
         {
             augment.setLimit();
@@ -235,14 +233,14 @@ public class ExampleGenerator {
         PhysicalPlan result = execEngine.compile(plan, null);
         return result;
     }
-    
+
     public Map<Operator, DataBag> getData() throws IOException, InterruptedException {
       return getData(physPlan);
     }
-    
+
     private Map<Operator, DataBag> getData(PhysicalPlan plan) throws PigException, IOException, InterruptedException
     {
-        // get data on a physical plan possibly trimmed of one branch 
+        // get data on a physical plan possibly trimmed of one branch
         lineage = new LineageTracer();
         IllustratorAttacher attacher = new IllustratorAttacher(plan, lineage, MAX_RECORDS, poLoadToSchemaMap, pigContext);
         attacher.visit();
@@ -270,13 +268,13 @@ public class ExampleGenerator {
             phyToMRTransform(plan, attacher.getDataMap());
         return logToDataMap;
     }
-    
-    public Map<Operator, DataBag> getData(Map<LOLoad, DataBag> newBaseData) throws Exception 
+
+    public Map<Operator, DataBag> getData(Map<LOLoad, DataBag> newBaseData) throws Exception
     {
         baseData = newBaseData;
         return getData(physPlan);
     }
-    
+
     private void phyToMRTransform(PhysicalPlan plan, Map<PhysicalOperator, DataBag> phyToDataMap) {
         // remap the LO to PO as result of the MR compilation may have changed PO in the MR plans
         Map<PhysicalOperator, PhysicalOperator> phyToMRMap = localMRRunner.getPhyToMRMap();
@@ -288,14 +286,14 @@ public class ExampleGenerator {
             }
         }
     }
-    
+
     private void getLogToDataMap(Map<PhysicalOperator, DataBag> phyToDataMap) {
         logToDataMap.clear();
         for (Operator lo : logToPhyMap.keySet()) {
             if (logToPhyMap.get(lo) != null)
                 logToDataMap.put(lo, phyToDataMap.get(logToPhyMap.get(lo)));
         }
-        
+
         // set the LO-to-Data mapping for the ForEach inner plans
         for (Map.Entry<LOForEach, Map<LogicalRelationalOperator, DataBag>> entry : forEachInnerLogToDataMap.entrySet()) {
             entry.getValue().clear();
@@ -304,7 +302,7 @@ public class ExampleGenerator {
             }
         }
     }
-    
+
     private void setLoadDataMap() {
         // This function sets up the LO-TO-Data map, eq. class, and lineage for the base data used in the coming runner
         // this must be called after logToDataMap has been properly (re)set and before the runner is started
@@ -326,7 +324,7 @@ public class ExampleGenerator {
             }
         }
     }
-    
+
     public Collection<IdentityHashSet<Tuple>> getEqClasses() {
         Map<LogicalRelationalOperator, Collection<IdentityHashSet<Tuple>>> logToEqclassesMap = getLoToEqClassMap();
         LinkedList<IdentityHashSet<Tuple>> ret = new LinkedList<IdentityHashSet<Tuple>>();
@@ -342,7 +340,7 @@ public class ExampleGenerator {
         Map<LogicalRelationalOperator, Collection<IdentityHashSet<Tuple>>> ret =
           EquivalenceClasses.getLoToEqClassMap(physPlan, newPlan, logToPhyMap, logToDataMap, forEachInnerLogToPhyMap, poToEqclassesMap);
         // eq classes adjustments based upon logical operators
-        
+
         for (Map.Entry<LogicalRelationalOperator, Collection<IdentityHashSet<Tuple>>> entry :ret.entrySet())
         {
             if (entry.getKey() instanceof LOSort) {
@@ -372,7 +370,7 @@ public class ExampleGenerator {
                 }
             }
         }
-        
+
         return ret;
     }
 }

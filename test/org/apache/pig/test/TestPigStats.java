@@ -26,9 +26,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 
-import junit.framework.Assert;
-
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -38,6 +35,7 @@ import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.junit.Ignore;
@@ -46,10 +44,10 @@ import org.junit.Test;
 @Ignore
 abstract public class TestPigStats  {
 
-    private static final Log LOG = LogFactory.getLog(TestPigStats.class);
+    protected static final Log LOG = LogFactory.getLog(TestPigStats.class);
 
-    abstract public void addSettingsToConf(Configuration conf, String scriptFileName);
-    
+    abstract public void addSettingsToConf(Configuration conf, String scriptFileName) throws IOException;
+
     @Test
     public void testPigScriptInConf() throws Exception {
         PrintWriter w = new PrintWriter(new FileWriter("test.pig"));
@@ -58,22 +56,22 @@ abstract public class TestPigStats  {
         w.println("register /mydir/lib/jackson-core-asl-1.4.2.jar");
         w.println("register /mydir/lib/jackson-mapper-asl-1.4.2.jar");
         w.close();
-        
+
         Configuration conf = new Configuration();
         addSettingsToConf(conf, "test.pig");
-        
+
         String s = conf.get("pig.script");
-        String script = new String(Base64.decodeBase64(s.getBytes()));
-        
-        String expected = 
+        String script = (String) ObjectSerializer.deserialize(s);
+
+        String expected =
             "register /mydir/sath.jar\n" +
             "register /mydir/lib/hadoop-tools-0.20.201.0-SNAPSHOT.jar\n" +
             "register /mydir/lib/jackson-core-asl-1.4.2.jar\n"  +
             "register /mydir/lib/jackson-mapper-asl-1.4.2.jar\n";
-        
-        Assert.assertEquals(expected, script);
+
+        assertEquals(expected, script);
     }
-    
+
     @Test
     public void testJythonScriptInConf() throws Exception {
         String[] script = {
@@ -90,16 +88,16 @@ abstract public class TestPigStats  {
                 "else:",
                 "\traise 'failed'"
         };
-        
+
         Util.createLocalInputFile( "testScript.py", script);
-        
+
         Configuration conf = new Configuration();
         addSettingsToConf(conf, "testScript.py");
-        
+
         String s = conf.get("pig.script");
-        String actual = new String(Base64.decodeBase64(s.getBytes()));
-        
-        String expected = 
+        String actual = (String) ObjectSerializer.deserialize(s);
+
+        String expected =
             "#!/usr/bin/python\n" +
             "from org.apache.pig.scripting import *\n" +
             "Pig.fs(\"rmr simple_out\")\n" +
@@ -112,10 +110,10 @@ abstract public class TestPigStats  {
             "\tprint 'success!'\n" +
             "else:\n" +
             "\traise 'failed'\n";
-        
-        Assert.assertEquals(expected, actual);
+
+        assertEquals(expected, actual);
     }
-    
+
     @Test
     public void testBytesWritten_JIRA_1027() throws Exception {
 
@@ -157,7 +155,7 @@ abstract public class TestPigStats  {
             pig.registerQuery("D = order C by $1;");
             pig.registerQuery("E = limit D 10;");
             pig.registerQuery("store E into 'alias_output';");
-            
+
             LogicalPlan lp = getLogicalPlan(pig);
             lp.optimize(pig.getPigContext());
             PhysicalPlan pp = ((HExecutionEngine)pig.getPigContext().getExecutionEngine()).compile(lp,
@@ -201,7 +199,7 @@ abstract public class TestPigStats  {
             }
         }
     }
-    
+
     private void deleteDirectory(File dir) {
         try {
             FileUtils.deleteDirectory(dir);
@@ -215,5 +213,5 @@ abstract public class TestPigStats  {
         buildLp.setAccessible(true);
         return (LogicalPlan ) buildLp.invoke( pig );
     }
-     
+
 }

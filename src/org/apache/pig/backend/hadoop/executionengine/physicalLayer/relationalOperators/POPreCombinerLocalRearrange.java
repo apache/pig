@@ -29,12 +29,10 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ExpressionOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.SingleTupleBag;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 
@@ -52,9 +50,6 @@ public class POPreCombinerLocalRearrange extends PhysicalOperator {
     private static final Log log = LogFactory.getLog(POPreCombinerLocalRearrange.class);
 
     protected static final long serialVersionUID = 1L;
-
-    protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
-    protected static BagFactory mBagFactory = BagFactory.getInstance();
 
     private static final Result ERR_RESULT = new Result();
 
@@ -222,5 +217,13 @@ public class POPreCombinerLocalRearrange extends PhysicalOperator {
     @Override
     public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
         return null;
+    }
+
+    @Override
+    public POPreCombinerLocalRearrange clone() throws CloneNotSupportedException {
+        POPreCombinerLocalRearrange clone = (POPreCombinerLocalRearrange) super.clone();
+        clone.leafOps = new ArrayList<ExpressionOperator>();
+        clone.setPlans(clonePlans(plans));
+        return clone;
     }
 }

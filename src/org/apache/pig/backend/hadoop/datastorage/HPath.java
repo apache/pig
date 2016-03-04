@@ -124,10 +124,11 @@ public abstract class HPath implements ElementDescriptor {
 
     public Properties getConfiguration() throws IOException {
         HConfiguration props = new HConfiguration();
+        FileStatus fileStatus = fs.getHFS().getFileStatus(path);
 
-        long blockSize = fs.getHFS().getFileStatus(path).getBlockSize();
+        long blockSize = fileStatus.getBlockSize();
 
-        short replication = fs.getHFS().getFileStatus(path).getReplication();
+        short replication = fileStatus.getReplication();
 
         props.setProperty(BLOCK_SIZE_KEY, (Long.valueOf(blockSize)).toString());
         props.setProperty(BLOCK_REPLICATION_KEY, (Short.valueOf(replication)).toString());

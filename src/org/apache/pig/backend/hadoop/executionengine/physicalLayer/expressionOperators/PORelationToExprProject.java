@@ -139,23 +139,24 @@ public class PORelationToExprProject extends POProject {
         sendEmptyBagOnEOP = false;
         return(r);
     }
-
+       
     // See PIG-4644
     @Override
     public PORelationToExprProject clone() throws CloneNotSupportedException {
-        ArrayList<Integer> cols = new ArrayList<>(columns.size());
+        ArrayList<Integer> cols = new ArrayList<Integer>(columns.size());
         // Can reuse the same Integer objects, as they are immutable
         for (Integer i : columns) {
             cols.add(i);
         }
         PORelationToExprProject clone = new PORelationToExprProject(new OperatorKey(mKey.scope,
-                NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
-                requestedParallelism, cols);
+            NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
+            requestedParallelism, cols);
         clone.cloneHelper(this);
         clone.overloaded = overloaded;
+        clone.startCol = startCol;
+        clone.isProjectToEnd = isProjectToEnd;
         clone.resultType = resultType;
         clone.sendEmptyBagOnEOP = sendEmptyBagOnEOP;
         return clone;
     }
-    
 }

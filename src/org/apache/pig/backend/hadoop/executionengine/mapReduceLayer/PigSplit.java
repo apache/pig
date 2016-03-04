@@ -20,7 +20,9 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
+import java.io.DataInputStream;
 import java.io.DataOutput;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
@@ -30,13 +32,15 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.List;
-import java.util.HashSet;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
-import java.lang.StringBuilder;
+import java.util.Set;
+import java.util.zip.Deflater;
+import java.util.zip.DeflaterOutputStream;
+import java.util.zip.InflaterInputStream;
 
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
@@ -46,7 +50,10 @@ import org.apache.hadoop.io.serializer.SerializationFactory;
 import org.apache.hadoop.io.serializer.Serializer;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.util.ReflectionUtils;
+import org.apache.pig.PigConfiguration;
+import org.apache.pig.data.WritableByteArray;
 import org.apache.pig.impl.plan.OperatorKey;
 
 /**
@@ -59,19 +66,22 @@ import org.apache.pig.impl.plan.OperatorKey;
  * wrapped InputSplit.
  */
 public class PigSplit extends InputSplit implements Writable, Configurable {
+
+
+    private static String FILESPLIT_CLASSNAME = FileSplit.class.getName();
     //The operators to which the tuples from this
     //input file are attached. These are the successors
     //of the load operator representing this input
     private ArrayList<OperatorKey> targetOps;
 
     // index starting from 0 representing the input number
-    // So if we have 3 inputs (say for a 3 way join), then the 
+    // So if we have 3 inputs (say for a 3 way join), then the
     // splits corresponding to the first input will have an index of 0, those
     // corresponding to the second will have an index of 1 and so on
     // This will be used to get the LoadFunc corresponding to the input
     // in PigInputFormat and related code.
     private int inputIndex;
-    
+
     // The real InputSplit this split is wrapping
     private InputSplit[] wrappedSplits;
 
@@ -80,36 +90,36 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
     // This will be used by MergeJoinIndexer to record the split # in the
     // index
     private int splitIndex;
-    
+
     // index of current splits being process
     private int currentIdx;
-    
+
     // the flag indicates this is a multi-input join (i.e. join)
-    // so that custom Hadoop counters will be created in the 
+    // so that custom Hadoop counters will be created in the
     // back-end to track the number of records for each input.
     private boolean isMultiInputs = false;
-    
+
     // the flag indicates the custom Hadoop counter should be disabled.
     // This is to prevent the number of counters exceeding the limit.
     // This flag is controlled by Pig property "pig.disable.counter" (
     // the default value is 'false').
     private boolean disableCounter = false;
-    
+
     /**
      * the job Configuration
      */
     private Configuration conf;
-    
+
     /**
      * total number of splits - required by skew join
      */
     private int totalSplits;
-    
+
     /**
      * total length
      */
     private long length = -1;
-    
+
     /**
      * overall locations
      */
@@ -118,8 +128,8 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
     // this seems necessary for Hadoop to instatiate this split on the
     // backend
     public PigSplit() {}
-    
-    public PigSplit(InputSplit[] wrappedSplits, int inputIndex, 
+
+    public PigSplit(InputSplit[] wrappedSplits, int inputIndex,
             List<OperatorKey> targetOps, int splitIndex) {
         this.wrappedSplits = wrappedSplits;
         this.inputIndex = inputIndex;
@@ -127,30 +137,30 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
         this.splitIndex = splitIndex;
         this.currentIdx = 0;
     }
-    
+
     public List<OperatorKey> getTargetOps() {
         return new ArrayList<OperatorKey>(targetOps);
     }
-    
+
 
     /**
-     * This methods returns the actual InputSplit (as returned by the 
+     * This methods returns the actual InputSplit (as returned by the
      * {@link InputFormat}) which this class is wrapping.
      * @return the wrappedSplit
      */
     public InputSplit getWrappedSplit() {
         return wrappedSplits[currentIdx];
     }
-    
+
     /**
-     * 
+     *
      * @param idx the index into the wrapped splits
      * @return the specified wrapped split
      */
     public InputSplit getWrappedSplit(int idx) {
         return wrappedSplits[idx];
     }
-    
+
     @Override
     @SuppressWarnings("unchecked")
     public String[] getLocations() throws IOException, InterruptedException {
@@ -200,7 +210,7 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
         }
         return length;
     }
-    
+
     /**
      * Return the length of a wrapped split
      * @param idx the index into the wrapped splits
@@ -210,6 +220,7 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
         return wrappedSplits[idx].getLength();
     }
 
+    @Override
     @SuppressWarnings("unchecked")
     public void readFields(DataInput is) throws IOException {
         disableCounter = is.readBoolean();
@@ -220,32 +231,59 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
         targetOps = (ArrayList<OperatorKey>) readObject(is);
         int splitLen = is.readInt();
         int distinctSplitClassCount = is.readInt();
+        boolean nonFileSplit = false;
         //construct the input split class name list
+
         String[] distinctSplitClassName = new String[distinctSplitClassCount];
         for (int i = 0; i < distinctSplitClassCount; i++) {
             distinctSplitClassName[i] = is.readUTF();
+            if (!distinctSplitClassName[i].equals(FILESPLIT_CLASSNAME)) {
+                nonFileSplit = true;
+            }
         }
         try {
             SerializationFactory sf = new SerializationFactory(conf);
             // The correct call sequence for Deserializer is, we shall open, then deserialize, but we shall not close
             wrappedSplits = new InputSplit[splitLen];
+
+            if (splitLen <= 0) {
+                return;
+            }
+
+            // Do not compress if everything is FileSplit as it does not compress much
+            // but adds few seconds for 30K+ tasks
+            boolean compress = nonFileSplit && conf.getBoolean(
+                    PigConfiguration.PIG_COMPRESS_INPUT_SPLITS,
+                    PigConfiguration.PIG_COMPRESS_INPUT_SPLITS_DEFAULT);
+            DataInputStream dis = null;
+            if (compress) {
+                int numBytes = is.readInt();
+                byte[] buf = new byte[numBytes];
+                is.readFully(buf, 0, numBytes);
+                dis = new DataInputStream(new InflaterInputStream(new ByteArrayInputStream(buf)));
+            }
+            DataInput dataIn = compress ? dis : is;
             for (int i = 0; i < splitLen; i++)
             {
                 //read the className index
-                int index = is.readInt();
+                int index = dataIn.readInt();
                 //get the split class name
                 String splitClassName = distinctSplitClassName[index];
                 Class splitClass = conf.getClassByName(splitClassName);
                 Deserializer d = sf.getDeserializer(splitClass);
-                d.open((InputStream) is);
+                d.open((InputStream) dataIn);
                 wrappedSplits[i] = (InputSplit)ReflectionUtils.newInstance(splitClass, conf);
                 d.deserialize(wrappedSplits[i]);
+            }
+            if (compress && splitLen > 0) {
+                dis.close();
             }
         } catch (ClassNotFoundException e) {
             throw new IOException(e);
         }
     }
 
+    @Override
     @SuppressWarnings("unchecked")
     public void write(DataOutput os) throws IOException {
         os.writeBoolean(disableCounter);
@@ -262,6 +300,7 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
         }
         List<String> distinctSplitClassList = new ArrayList<String>();
         distinctSplitClassList.addAll(splitClassNameSet);
+        boolean nonFileSplit = distinctSplitClassList.size() > 1 || (!distinctSplitClassList.contains(FILESPLIT_CLASSNAME));
         //write the distinct number of split class name
         os.writeInt(distinctSplitClassList.size());
         //write each classname once
@@ -270,19 +309,42 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
         }
         SerializationFactory sf = new SerializationFactory(conf);
 
+        if (wrappedSplits.length <= 0) {
+            return;
+        }
+
+        boolean compress = nonFileSplit && conf.getBoolean(
+                PigConfiguration.PIG_COMPRESS_INPUT_SPLITS,
+                PigConfiguration.PIG_COMPRESS_INPUT_SPLITS_DEFAULT);
+        WritableByteArray byteStream = null;
+        Deflater deflater = null;
+        DataOutputStream dos = null;
+        if (compress) {
+            byteStream = new WritableByteArray(16384);
+            deflater = new Deflater(Deflater.BEST_COMPRESSION);
+            dos = new DataOutputStream(new DeflaterOutputStream(byteStream, deflater));
+        }
+        DataOutput dataOut = compress ? dos : os;
         for (int i = 0; i < wrappedSplits.length; i++)
         {
             //find out the index of the split class name
             int index = distinctSplitClassList.indexOf(wrappedSplits[i].getClass().getName());
-            os.writeInt(index);
+            dataOut.writeInt(index);
             Serializer s = sf.getSerializer(wrappedSplits[i].getClass());
             //Checks if Serializer is NULL or not before calling open() method on it.
             if (s == null) {
                 throw new IllegalArgumentException("Could not find Serializer for class "+wrappedSplits[i].getClass()+". InputSplits must implement Writable.");
             }
-            s.open((OutputStream) os);
+            s.open((OutputStream) dataOut);
             // The correct call sequence for Serializer is, we shall open, then serialize, but we shall not close
             s.serialize(wrappedSplits[i]);
+        }
+        if (compress) {
+            //Get the compressed serialized bytes and write them
+            dos.close();
+            os.writeInt(byteStream.getLength());
+            os.write(byteStream.getData(), 0, byteStream.getLength());
+            deflater.end();
         }
 
     }
@@ -292,6 +354,7 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
         oos.writeObject(obj);
+        oos.flush();
         byte[] bytes = baos.toByteArray();
         os.writeInt(bytes.length);
         os.write(bytes);
@@ -323,7 +386,7 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
     public void setMultiInputs(boolean b) {
         isMultiInputs = b;
     }
-    
+
     /**
      * Returns true if the map has multiple inputs, else false
      * @return true if the map has multiple inputs, else false
@@ -331,7 +394,7 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
     public boolean isMultiInputs() {
         return isMultiInputs;
     }
-    
+
     @Override
     public Configuration getConf() {
         return conf;
@@ -340,20 +403,20 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
 
     /** (non-Javadoc)
      * @see org.apache.hadoop.conf.Configurable#setConf(org.apache.hadoop.conf.Configuration)
-     * 
-     * This will be called by 
+     *
+     * This will be called by
      * {@link PigInputFormat#getSplits(org.apache.hadoop.mapreduce.JobContext)}
-     * to be used in {@link #write(DataOutput)} for serializing the 
+     * to be used in {@link #write(DataOutput)} for serializing the
      * wrappedSplit
-     * 
-     * This will be called by Hadoop in the backend to set the right Job 
+     *
+     * This will be called by Hadoop in the backend to set the right Job
      * Configuration (hadoop will invoke this method because PigSplit implements
      * {@link Configurable} - we need this Configuration in readFields() to
-     * deserialize the wrappedSplit 
+     * deserialize the wrappedSplit
      */
     @Override
     public void setConf(Configuration conf) {
-        this.conf = conf;        
+        this.conf = conf;
     }
 
     // package level access because we don't want LoadFunc implementations
@@ -362,9 +425,9 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
     int getInputIndex() {
         return inputIndex;
     }
-    
+
     /**
-     * 
+     *
      * @return the number of wrapped splits
      */
     public int getNumPaths() {
@@ -402,7 +465,7 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
                     wrappedSplits[i].getClass().getName() + "\n   Locations:\n");
                 for (String location :  wrappedSplits[i].getLocations())
                     st.append("    "+location+"\n");
-                st.append("\n-----------------------\n"); 
+                st.append("\n-----------------------\n");
           }
         } catch (IOException e) {
           return null;
@@ -419,7 +482,7 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
     public boolean disableCounter() {
         return disableCounter;
     }
-    
+
     public void setCurrentIdx(int idx) {
         this.currentIdx = idx;
     }

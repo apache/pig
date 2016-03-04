@@ -74,7 +74,8 @@ public class ReadScalars extends EvalFunc<Object> {
                     valueLoaded = true;
                     return null;
                 } else if (inputBag.size() > 1) {
-                    String msg = "Scalar has more than one row in the output.";
+                    String msg = "Scalar has more than one row in the output."
+                            +" (common cause: \"JOIN\" then \"FOREACH ... GENERATE foo.bar\" should be \"foo::bar\" )";
                     throw new ExecException(msg);
                 }
                 Tuple t1 = inputBag.iterator().next();
@@ -111,7 +112,8 @@ public class ReadScalars extends EvalFunc<Object> {
                 Tuple t2 = loader.getNext();
                 if(t2 != null){
                     String msg = "Scalar has more than one row in the output. "
-                        + "1st : " + t1 + ", 2nd :" + t2;
+                        + "1st : " + t1 + ", 2nd :" + t2
+                        +" (common cause: \"JOIN\" then \"FOREACH ... GENERATE foo.bar\" should be \"foo::bar\" )";
                     throw new ExecException(msg);
                 }
                 valueLoaded = true;

@@ -28,6 +28,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Properties;
@@ -42,18 +43,49 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.test.utils.CloseAwareFSDataInputStream;
+import org.apache.pig.test.utils.CloseAwareOutputStream;
 import org.apache.tools.bzip2r.CBZip2InputStream;
 import org.apache.tools.bzip2r.CBZip2OutputStream;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class TestBZip {
     private static Properties properties;
     private static MiniGenericCluster cluster;
+
+    @Parameters(name = "pig.bzip.use.hadoop.inputformat = {0}.")
+    public static Iterable<Object[]> data() {
+        if ( HadoopShims.isHadoopYARN() ) {
+            return Arrays.asList(new Object[][] {
+                { false  },
+                { true   }
+            });
+        } else {
+            return Arrays.asList(new Object[][] {
+                { false }
+            });
+        }
+    }
+
+    public TestBZip (Boolean useBzipFromHadoop) {
+        properties = cluster.getProperties();
+        properties.setProperty("pig.bzip.use.hadoop.inputformat", useBzipFromHadoop.toString());
+    }
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
 
     @BeforeClass
     public static void oneTimeSetUp() throws Exception {
@@ -73,10 +105,9 @@ public class TestBZip {
     public void testBzipInPig() throws Exception {
         PigServer pig = new PigServer(cluster.getExecType(), properties);
 
-        File in = File.createTempFile("junit", ".bz2");
-        in.deleteOnExit();
+        File in = folder.newFile("junit-in.bz2");
 
-        File out = File.createTempFile("junit", ".bz2");
+        File out = folder.newFile("junit-out.bz2");
         out.delete();
         String clusterOutput = Util.removeColon(out.getAbsolutePath());
 
@@ -121,9 +152,6 @@ public class TestBZip {
         for (int j = 1; j < 100; j++) {
             assertEquals(new Integer(j), map.get(j));
         }
-
-        in.delete();
-        Util.deleteFile(cluster, clusterOutput);
     }
 
    /**
@@ -133,10 +161,9 @@ public class TestBZip {
     public void testBzipInPig2() throws Exception {
         PigServer pig = new PigServer(cluster.getExecType(), properties);
 
-        File in = File.createTempFile("junit", ".bz2");
-        in.deleteOnExit();
+        File in = folder.newFile("junit-in.bz2");
 
-        File out = File.createTempFile("junit", ".bz2");
+        File out = folder.newFile("junit-out.bz2");
         out.delete();
         String clusterOutput = Util.removeColon(out.getAbsolutePath());
 
@@ -181,9 +208,6 @@ public class TestBZip {
         for (int j = 1; j < 100; j++) {
             assertEquals(new Integer(j), map.get(j));
         }
-
-        in.delete();
-        out.delete();
     }
 
     //see PIG-2391
@@ -197,10 +221,9 @@ public class TestBZip {
         };
 
         // bzip compressed input
-        File in = File.createTempFile("junit", ".bz2");
+        File in = folder.newFile("junit-in.bz2");
         String compressedInputFileName = in.getAbsolutePath();
         String clusterCompressedFilePath = Util.removeColon(compressedInputFileName);
-        in.deleteOnExit();
 
         try {
             CBZip2OutputStream cos =
@@ -230,7 +253,6 @@ public class TestBZip {
                 it2.next();
             }
         } finally {
-            in.delete();
             Util.deleteFile(cluster, "intermediate.bz");
             Util.deleteFile(cluster, "final.bz");
         }
@@ -249,9 +271,8 @@ public class TestBZip {
         };
 
         // bzip compressed input
-        File in = File.createTempFile("junit", ".bz2");
+        File in = folder.newFile("junit-in.bz2");
         String compressedInputFileName = in.getAbsolutePath();
-        in.deleteOnExit();
         String clusterCompressedFilePath = Util.removeColon(compressedInputFileName);
 
         String unCompressedInputFileName = "testRecordDelims-uncomp.txt";
@@ -291,7 +312,6 @@ public class TestBZip {
             assertFalse(it2.hasNext());
 
         } finally {
-            in.delete();
             Util.deleteFile(cluster, unCompressedInputFileName);
             Util.deleteFile(cluster, clusterCompressedFilePath);
         }
@@ -305,10 +325,9 @@ public class TestBZip {
      public void testEmptyBzipInPig() throws Exception {
         PigServer pig = new PigServer(cluster.getExecType(), properties);
 
-        File in = File.createTempFile("junit", ".tmp");
-        in.deleteOnExit();
+        File in = folder.newFile("junit-in.tmp");
 
-        File out = File.createTempFile("junit", ".bz2");
+        File out = folder.newFile("junit-out.bz2");
         out.delete();
         String clusterOutputFilePath = Util.removeColon(out.getAbsolutePath());
 
@@ -336,10 +355,6 @@ public class TestBZip {
 
         pig.registerQuery("B = load '" + Util.encodeEscape(clusterOutputFilePath) + "';");
         pig.openIterator("B");
-
-        in.delete();
-        Util.deleteFile(cluster, clusterOutputFilePath);
-
     }
 
     /**
@@ -347,8 +362,7 @@ public class TestBZip {
      */
     @Test
     public void testEmptyBzip() throws Exception {
-        File tmp = File.createTempFile("junit", ".tmp");
-        tmp.deleteOnExit();
+        File tmp = folder.newFile("junit.tmp");
         CBZip2OutputStream cos = new CBZip2OutputStream(new FileOutputStream(
                 tmp));
         cos.close();
@@ -358,7 +372,25 @@ public class TestBZip {
                 fs.open(new Path(tmp.getAbsolutePath())), -1, tmp.length());
         assertEquals(-1, cis.read(new byte[100]));
         cis.close();
-        tmp.delete();
+    }
+
+    @Test
+    public void testInnerStreamGetsClosed() throws Exception {
+        File tmp = folder.newFile("junit.tmp");
+
+        CloseAwareOutputStream out = new CloseAwareOutputStream(new FileOutputStream(tmp));
+        CBZip2OutputStream cos = new CBZip2OutputStream(out);
+        assertFalse(out.isClosed());
+        cos.close();
+        assertTrue(out.isClosed());
+
+        FileSystem fs = FileSystem.getLocal(new Configuration(false));
+        Path path = new Path(tmp.getAbsolutePath());
+        CloseAwareFSDataInputStream in = new CloseAwareFSDataInputStream(fs.open(path));
+        CBZip2InputStream cis = new CBZip2InputStream(in, -1, tmp.length());
+        assertFalse(in.isClosed());
+        cis.close();
+        assertTrue(in.isClosed());
     }
 
     /**
@@ -451,6 +483,7 @@ public class TestBZip {
             props.put(entry.getKey(), entry.getValue());
         }
         props.setProperty(MRConfiguration.MAX_SPLIT_SIZE, Integer.toString(splitSize));
+        props.setProperty("pig.noSplitCombination", "true");
         PigServer pig = new PigServer(cluster.getExecType(), props);
         FileSystem fs = FileSystem.get(ConfigurationUtil.toConfiguration(props));
         fs.delete(new Path(outputFile), true);
@@ -464,7 +497,7 @@ public class TestBZip {
                 numPartFiles++;
             }
         }
-        assertEquals(true, numPartFiles > 0);
+        assertEquals(true, numPartFiles > 1);
 
         // verify record count to verify we read bzip data correctly
         Util.registerMultiLineQuery(pig, script);
@@ -480,26 +513,32 @@ public class TestBZip {
                 "1\t2\r3\t4"
         };
 
-        String inputFileName = "input.txt";
-        Util.createInputFile(cluster, inputFileName, inputData);
+        try {
+            String inputFileName = "input.txt";
+            Util.createInputFile(cluster, inputFileName, inputData);
 
-        PigServer pig = new PigServer(cluster.getExecType(), properties);
+            PigServer pig = new PigServer(cluster.getExecType(), properties);
 
-        pig.setBatchOn();
-        pig.registerQuery("a = load '" +  inputFileName + "';");
-        pig.registerQuery("store a into 'output.bz2';");
-        pig.registerQuery("store a into 'output';");
-        pig.executeBatch();
+            pig.setBatchOn();
+            pig.registerQuery("a = load '" +  inputFileName + "';");
+            pig.registerQuery("store a into 'output.bz2';");
+            pig.registerQuery("store a into 'output';");
+            pig.executeBatch();
 
-        FileSystem fs = FileSystem.get(ConfigurationUtil.toConfiguration(
-                pig.getPigContext().getProperties()));
-        FileStatus[] outputFiles = fs.listStatus(new Path("output"),
-                Util.getSuccessMarkerPathFilter());
-        assertTrue(outputFiles[0].getLen() > 0);
+            FileSystem fs = FileSystem.get(ConfigurationUtil.toConfiguration(
+                    pig.getPigContext().getProperties()));
+            FileStatus[] outputFiles = fs.listStatus(new Path("output"),
+                    Util.getSuccessMarkerPathFilter());
+            assertTrue(outputFiles[0].getLen() > 0);
 
-        outputFiles = fs.listStatus(new Path("output.bz2"),
-                Util.getSuccessMarkerPathFilter());
-        assertTrue(outputFiles[0].getLen() > 0);
+            outputFiles = fs.listStatus(new Path("output.bz2"),
+                    Util.getSuccessMarkerPathFilter());
+            assertTrue(outputFiles[0].getLen() > 0);
+        } finally {
+            Util.deleteFile(cluster, "input.txt");
+            Util.deleteFile(cluster, "output.bz2");
+            Util.deleteFile(cluster, "output");
+        }
     }
 
     @Test
@@ -511,34 +550,41 @@ public class TestBZip {
         String inputFileName = "input2.txt";
         Util.createInputFile(cluster, inputFileName, inputData);
 
-        PigServer pig = new PigServer(cluster.getExecType(), properties);
-        PigContext pigContext = pig.getPigContext();
-        pigContext.getProperties().setProperty( "output.compression.enabled", "true" );
-        pigContext.getProperties().setProperty( "output.compression.codec", "org.apache.hadoop.io.compress.BZip2Codec" );
+        try {
+            PigServer pig = new PigServer(cluster.getExecType(), properties);
+            PigContext pigContext = pig.getPigContext();
+            pigContext.getProperties().setProperty( "output.compression.enabled", "true" );
+            pigContext.getProperties().setProperty( "output.compression.codec", "org.apache.hadoop.io.compress.BZip2Codec" );
 
-        pig.setBatchOn();
-        pig.registerQuery("a = load '" +  inputFileName + "';");
-        pig.registerQuery("store a into 'output2.bz2';");
-        pig.registerQuery("store a into 'output2';");
-        pig.executeBatch();
+            pig.setBatchOn();
+            pig.registerQuery("a = load '" +  inputFileName + "';");
+            pig.registerQuery("store a into 'output2.bz2';");
+            pig.registerQuery("store a into 'output2';");
+            pig.executeBatch();
 
-        FileSystem fs = FileSystem.get(ConfigurationUtil.toConfiguration(
-                pig.getPigContext().getProperties()));
-        FileStatus[] outputFiles = fs.listStatus(new Path("output2"),
-                Util.getSuccessMarkerPathFilter());
-        assertTrue(outputFiles[0].getLen() > 0);
+            FileSystem fs = FileSystem.get(ConfigurationUtil.toConfiguration(
+                    pig.getPigContext().getProperties()));
+            FileStatus[] outputFiles = fs.listStatus(new Path("output2"),
+                    Util.getSuccessMarkerPathFilter());
+            assertTrue(outputFiles[0].getLen() > 0);
 
-        outputFiles = fs.listStatus(new Path("output2.bz2"),
-                Util.getSuccessMarkerPathFilter());
-        assertTrue(outputFiles[0].getLen() > 0);
+            outputFiles = fs.listStatus(new Path("output2.bz2"),
+                    Util.getSuccessMarkerPathFilter());
+            assertTrue(outputFiles[0].getLen() > 0);
+        } finally {
+            Util.deleteFile(cluster,"input2.txt");
+            Util.deleteFile(cluster,"output2.bz2");
+            Util.deleteFile(cluster,"output2");
+        }
     }
 
     /**
-     * Tests that Pig throws an Exception when the input files to be loaded are actually
-     * a result of concatenating 2 or more bz2 files. Pig should not silently ignore part
-     * of the input data.
+     * Tests that Pig's Bzip2TextInputFormat throws an IOException when the input files to be loaded are actually
+     * a result of concatenating 2 or more bz2 files. It should not silently ignore part
+     * of the input data.  When, hadoop's TextInpuFormat is used(PIG-3251), it should
+     * successfully read this concatenated bzip file to the end.
      */
-    @Test (expected=IOException.class)
+    @Test
     public void testBZ2Concatenation() throws Exception {
         String[] inputData1 = new String[] {
                 "1\ta",
@@ -556,14 +602,12 @@ public class TestBZip {
         };
 
         // bzip compressed input file1
-        File in1 = File.createTempFile("junit", ".bz2");
+        File in1 = folder.newFile("junit-in1.bz2");
         String compressedInputFileName1 = in1.getAbsolutePath();
-        in1.deleteOnExit();
 
         // file2
-        File in2 = File.createTempFile("junit", ".bz2");
+        File in2 = folder.newFile("junit-in2.bz2");
         String compressedInputFileName2 = in2.getAbsolutePath();
-        in1.deleteOnExit();
 
         String unCompressedInputFileName = "testRecordDelims-uncomp.txt";
         Util.createInputFile(cluster, unCompressedInputFileName, inputDataMerged);
@@ -603,19 +647,29 @@ public class TestBZip {
             // pig script to read compressed concatenated input
             script = "a = load '" + Util.encodeEscape(compressedInputFileName1) +"';";
             pig.registerQuery(script);
-            Iterator<Tuple> it2 = pig.openIterator("a");
 
-            while(it1.hasNext()) {
-                Tuple t1 = it1.next();
-                Tuple t2 = it2.next();
-                assertEquals(t1, t2);
+            try {
+              Iterator<Tuple> it2 = pig.openIterator("a");
+              while(it1.hasNext()) {
+                  Tuple t1 = it1.next();
+                  Tuple t2 = it2.next();
+                  assertEquals(t1, t2);
+              }
+
+              assertFalse(it2.hasNext());
+
+              // When pig.bzip.use.hadoop.inputformat=true, it should successfully read the concatenated bzip file
+              assertEquals("IOException should be thrown when pig's own Bzip2TextInputFormat is used",
+                           properties.getProperty("pig.bzip.use.hadoop.inputformat"),
+                           "true");
+
+            } catch (IOException e) {
+                assertEquals("IOException should only be thrown when pig's own Bzip2TextInputFormat is used",
+                             properties.getProperty("pig.bzip.use.hadoop.inputformat"),
+                             "false");
             }
 
-            assertFalse(it2.hasNext());
-
         } finally {
-            in1.delete();
-            in2.delete();
             Util.deleteFile(cluster, unCompressedInputFileName);
         }
 
@@ -625,11 +679,12 @@ public class TestBZip {
      * Concatenate the contents of src file to the contents of dest file
      */
     private void catInto(String src, String dest) throws IOException {
-        BufferedWriter out = new BufferedWriter(new FileWriter(dest, true));
-        BufferedReader in = new BufferedReader(new FileReader(src));
-        String str;
-        while ((str = in.readLine()) != null) {
-            out.write(str);
+        FileOutputStream out = new FileOutputStream(new File(dest) , true);
+        FileInputStream in = new FileInputStream(new File(src));
+        byte[] buffer = new byte[4096];
+        int bytesread;
+        while ((bytesread = in.read(buffer)) != -1) {
+            out.write(buffer,0, bytesread);
         }
         in.close();
         out.close();
@@ -658,20 +713,26 @@ public class TestBZip {
         pw.println(inputScript);
         pw.close();
 
-        PigServer pig = new PigServer(cluster.getExecType(), properties);
+        try {
+            PigServer pig = new PigServer(cluster.getExecType(), properties);
 
-        FileInputStream fis = new FileInputStream(inputScriptName);
-        pig.registerScript(fis);
+            FileInputStream fis = new FileInputStream(inputScriptName);
+            pig.registerScript(fis);
 
-        FileSystem fs = FileSystem.get(ConfigurationUtil.toConfiguration(
-                pig.getPigContext().getProperties()));
-        FileStatus[] outputFiles = fs.listStatus(new Path("output3"),
-                Util.getSuccessMarkerPathFilter());
-        assertTrue(outputFiles[0].getLen() > 0);
+            FileSystem fs = FileSystem.get(ConfigurationUtil.toConfiguration(
+                    pig.getPigContext().getProperties()));
+            FileStatus[] outputFiles = fs.listStatus(new Path("output3"),
+                    Util.getSuccessMarkerPathFilter());
+            assertTrue(outputFiles[0].getLen() > 0);
 
-        outputFiles = fs.listStatus(new Path("output3.bz2"),
-                Util.getSuccessMarkerPathFilter());
-        assertTrue(outputFiles[0].getLen() > 0);
+            outputFiles = fs.listStatus(new Path("output3.bz2"),
+                    Util.getSuccessMarkerPathFilter());
+            assertTrue(outputFiles[0].getLen() > 0);
+        } finally {
+            Util.deleteFile(cluster, "input3.txt");
+            Util.deleteFile(cluster, "output3.bz2");
+            Util.deleteFile(cluster, "output3");
+        }
     }
 
 }

@@ -50,8 +50,10 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.PropertiesUtil;
+import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.tools.grunt.GruntParser;
+import org.apache.pig.tools.pigstats.PigStats;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -249,13 +251,10 @@ public class TestPigServerLocal {
 
     @Test
     public void testSkipParseInRegisterForBatch() throws Throwable {
-        // numTimesInitiated = 10. 4 (once per registerQuery) + 6 (launchPlan->RandomSampleLoader,
-        // InputSizeReducerEstimator, getSplits->RandomSampleLoader,
-        // createRecordReader->RandomSampleLoader, getSplits, createRecordReader)
-        // numTimesSchemaCalled = 4 (once per registerQuery)
         if (Util.getLocalTestMode().toString().startsWith("TEZ")) {
-            _testSkipParseInRegisterForBatch(false, 6, 4);
-            _testSkipParseInRegisterForBatch(true, 3, 1);
+            _testSkipParseInRegisterForBatch(false, 8, 4);
+            _testSkipParseInRegisterForBatch(true, 5, 1);
+            _testParseBatchWithScripting(5, 1);
         } else if (Util.getLocalTestMode().toString().startsWith("SPARK")) {
             // 6 = 4 (Once per registerQuery) + 2 (SortConverter , PigRecordReader)
             // 4 (Once per registerQuery)
@@ -265,13 +264,18 @@ public class TestPigServerLocal {
             // 1 (registerQuery)
             _testSkipParseInRegisterForBatch(true, 3, 1);
         } else {
+            // numTimesInitiated = 10. 4 (once per registerQuery) + 6 (launchPlan->RandomSampleLoader,
+            // InputSizeReducerEstimator, getSplits->RandomSampleLoader,
+            // createRecordReader->RandomSampleLoader, getSplits, createRecordReader)
+            // numTimesSchemaCalled = 4 (once per registerQuery)
             _testSkipParseInRegisterForBatch(false, 10, 4);
+            // numTimesInitiated = 7 (parseAndBuild, launchPlan->RandomSampleLoader,
+            // InputSizeReducerEstimator, getSplits->RandomSampleLoader,
+            // createRecordReader->RandomSampleLoader, getSplits, createRecordReader)
+            // numTimesSchemaCalled = 1 (parseAndBuild)
             _testSkipParseInRegisterForBatch(true, 7, 1);
+            _testParseBatchWithScripting(7, 1);
         }
-        // numTimesInitiated = 7 (parseAndBuild, launchPlan->RandomSampleLoader,
-        // InputSizeReducerEstimator, getSplits->RandomSampleLoader,
-        // createRecordReader->RandomSampleLoader, getSplits, createRecordReader)
-        // numTimesSchemaCalled = 1 (parseAndBuild)
     }
 
     @Test
@@ -327,6 +331,53 @@ public class TestPigServerLocal {
             GruntParser grunt = new GruntParser(in, pigServer);
             grunt.setInteractive(false);
             grunt.parseStopOnError(true); //not batch
+        }
+
+        assertEquals(numTimesInitiated, MockTrackingStorage.numTimesInitiated);
+        assertEquals(numTimesSchemaCalled, MockTrackingStorage.numTimesSchemaCalled);
+        List<Tuple> out = data.get("bar");
+        assertEquals(2, out.size());
+        assertEquals(tuple("a", 1, "b"), out.get(0));
+        assertEquals(tuple("b", 2, "c"), out.get(1));
+    }
+
+    private void _testParseBatchWithScripting(int numTimesInitiated, int numTimesSchemaCalled) throws Throwable {
+        MockTrackingStorage.numTimesInitiated = 0;
+        MockTrackingStorage.numTimesSchemaCalled = 0;
+
+        String[] script = {
+                "#!/usr/bin/python",
+                "from org.apache.pig.scripting import *",
+                "P = Pig.compile(\"\"\"" +
+                        "A = load 'foo' USING org.apache.pig.test.TestPigServerLocal\\$MockTrackingStorage();" +
+                        "B = order A by $0,$1,$2;" +
+                        "C = LIMIT B 2;" +
+                        "store C into 'bar' USING mock.Storage();" +
+                        "\"\"\")",
+                "Q = P.bind()",
+                "stats = Q.runSingle()",
+                "if stats.isSuccessful():",
+                "\tprint 'success!'",
+                "else:",
+                "\traise 'failed'"
+        };
+
+        Properties properties = new Properties();
+        properties.setProperty("io.sort.mb", "2");
+        PigContext pigContext = new PigContext(Util.getLocalTestMode(), properties);
+        PigServer pigServer = new PigServer(pigContext);
+        Data data = resetData(pigContext);
+        data.set("foo", tuple("a", 1, "b"), tuple("b", 2, "c"), tuple("c", 3, "d"));
+
+        String scriptFile = tempDir + File.separator + "_testParseBatchWithScripting.py";
+        Util.createLocalInputFile(scriptFile , script);
+        ScriptEngine scriptEngine = ScriptEngine.getInstance("jython");
+        Map<String, List<PigStats>> statsMap = scriptEngine.run(pigServer.getPigContext(), scriptFile);
+
+        for (List<PigStats> stats : statsMap.values()) {
+            for (PigStats s : stats) {
+                assertTrue(s.isSuccessful());
+            }
         }
 
         assertEquals(numTimesInitiated, MockTrackingStorage.numTimesInitiated);

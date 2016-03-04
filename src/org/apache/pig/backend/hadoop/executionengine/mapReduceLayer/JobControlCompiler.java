@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -66,14 +67,12 @@ import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.OverwritableStoreFunc;
 import org.apache.pig.PigConfiguration;
-import org.apache.pig.PigConstants;
 import org.apache.pig.PigException;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.RollupHIIPartitioner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.SecondaryKeyPartitioner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.SkewedPartitioner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.WeightedRangePartitioner;
@@ -185,13 +184,10 @@ public class JobControlCompiler{
     public static final String PIG_MAP_STORES = "pig.map.stores";
     public static final String PIG_REDUCE_STORES = "pig.reduce.stores";
 
-    private static final String ROLLUP_PARTITIONER = RollupHIIPartitioner.class.getName();
-
     // A mapping of job to pair of store locations and tmp locations for that job
     private Map<Job, Pair<List<POStore>, Path>> jobStoreMap;
 
     private Map<Job, MapReduceOper> jobMroMap;
-    private int counterSize;
 
     public JobControlCompiler(PigContext pigContext, Configuration conf) {
         this(pigContext, conf, null);
@@ -360,7 +356,7 @@ public class JobControlCompiler{
             {
                 MapReduceOper mro = jobMroMap.get(job);
                 if (!pigContext.inIllustrator && mro.isCounterOperation())
-                    saveCounters(job,mro.getOperationID());
+                    saveCounters(job,mro.getOperationID(), mro.isRowNumber());
                 plan.remove(mro);
             }
         }
@@ -378,10 +374,11 @@ public class JobControlCompiler{
      * these values are passed via configuration file to PORank, by using the unique
      * operation identifier
      */
-    private void saveCounters(Job job, String operationID) {
+    private void saveCounters(Job job, String operationID, boolean isRowNumber ) {
         Counters counters;
         Group groupCounters;
 
+        int counterSize = -1;
         Long previousValue = 0L;
         Long previousSum = 0L;
         ArrayList<Pair<String,Long>> counterPairs;
@@ -407,24 +404,28 @@ public class JobControlCompiler{
             }
             groupCounters = counters.getGroup(groupName);
 
-            Iterator<Counter> it = groupCounters.iterator();
-            HashMap<Integer,Long> counterList = new HashMap<Integer, Long>();
+            TreeMap<Integer,Long> counterList = new TreeMap<Integer, Long>();
 
-            while(it.hasNext()) {
-                try{
+            Iterator<Counter> it = groupCounters.iterator();
+            while (it.hasNext()) {
+                try {
                     Counter c = it.next();
                     counterList.put(Integer.valueOf(c.getDisplayName()), c.getValue());
                 } catch (Exception ex) {
                     ex.printStackTrace();
                 }
             }
+
             counterSize = counterList.size();
             counterPairs = new ArrayList<Pair<String,Long>>();
 
-            for(int i = 0; i < counterSize; i++){
+            // There could be empty tasks with no counters. That is not an issue
+            // and we only need to calculate offsets for non-empty task ids
+            // which will be accessed in PORank.
+            for (Entry<Integer, Long> entry : counterList.entrySet()) {
                 previousSum += previousValue;
-                previousValue = counterList.get(Integer.valueOf(i));
-                counterPairs.add(new Pair<String, Long>(JobControlCompiler.PIG_MAP_COUNTER + operationID + JobControlCompiler.PIG_MAP_SEPARATOR + i, previousSum));
+                previousValue = entry.getValue();
+                counterPairs.add(new Pair<String, Long>(JobControlCompiler.PIG_MAP_COUNTER + operationID + JobControlCompiler.PIG_MAP_SEPARATOR + entry.getKey(), previousSum));
             }
 
             globalCounters.put(operationID, counterPairs);
@@ -528,9 +529,6 @@ public class JobControlCompiler{
         configureCompression(conf);
 
         try{
-            //Set default value for PIG_HII_ROLLUP_OPTIMIZABLE to false
-            conf.setBoolean(PigConstants.PIG_HII_ROLLUP_OPTIMIZABLE, false);
-
             //Process the POLoads
             List<POLoad> lds = PlanHelper.getPhysicalOperators(mro.mapPlan, POLoad.class);
 
@@ -646,7 +644,11 @@ public class JobControlCompiler{
                             }
                         }
                         if (!predeployed) {
-                            putJarOnClassPathThroughDistributedCache(pigContext, conf, jar);
+                            if (jar.getFile().toLowerCase().endsWith(".jar")) {
+                                putJarOnClassPathThroughDistributedCache(pigContext, conf, jar);
+                            } else {
+                                setupDistributedCache(pigContext, conf, new String[] {jar.getPath()}, true);
+                            }
                         }
                     }
 
@@ -691,10 +693,15 @@ public class JobControlCompiler{
             if(Utils.isLocal(pigContext, conf)) {
                 ConfigurationUtil.replaceConfigForLocalMode(conf);
             }
-            conf.set("pig.inputs", ObjectSerializer.serialize(inp));
-            conf.set("pig.inpTargets", ObjectSerializer.serialize(inpTargets));
-            conf.set("pig.inpSignatures", ObjectSerializer.serialize(inpSignatureLists));
-            conf.set("pig.inpLimits", ObjectSerializer.serialize(inpLimits));
+            conf.set(PigInputFormat.PIG_INPUTS, ObjectSerializer.serialize(inp));
+            conf.set(PigInputFormat.PIG_INPUT_TARGETS, ObjectSerializer.serialize(inpTargets));
+            conf.set(PigInputFormat.PIG_INPUT_SIGNATURES, ObjectSerializer.serialize(inpSignatureLists));
+            conf.set(PigInputFormat.PIG_INPUT_LIMITS, ObjectSerializer.serialize(inpLimits));
+
+            // Removing job credential entry before serializing pigcontext into jobconf
+            // since this path would be invalid for the new job being created
+            pigContext.getProperties().remove("mapreduce.job.credentials.binary");
+
             conf.set("pig.pigContext", ObjectSerializer.serialize(pigContext));
             conf.set("udf.import.list", ObjectSerializer.serialize(PigContext.getPackageImportList()));
             // this is for unit tests since some don't create PigServer
@@ -807,6 +814,7 @@ public class JobControlCompiler{
             // set parent plan in all operators in map and reduce plans
             // currently the parent plan is really used only when POStream is present in the plan
             new PhyPlanSetter(mro.mapPlan).visit();
+            new PhyPlanSetter(mro.combinePlan).visit();
             new PhyPlanSetter(mro.reducePlan).visit();
 
             // this call modifies the ReplFiles names of POFRJoin operators
@@ -844,51 +852,14 @@ public class JobControlCompiler{
                 }
                 pack = (POPackage)mro.reducePlan.getRoots().get(0);
 
-                if(pack!=null) {
-                    if(pack.getPivot()!=-1) {
-                        //Set value for PIG_HII_ROLLUP_OPTIMIZABLE to true
-                        conf.setBoolean(PigConstants.PIG_HII_ROLLUP_OPTIMIZABLE, true);
-                        //Set the pivot value
-                        conf.setInt(PigConstants.PIG_HII_ROLLUP_PIVOT, pack.getPivot());
-                        //Set the index of the first field involves in ROLLUP
-                        conf.setInt(PigConstants.PIG_HII_ROLLUP_FIELD_INDEX, pack.getRollupFieldIndex());
-                        //Set the original index of the first field involves in ROLLUP in case it was moved to the end
-                        //(if we have the combination of cube and rollup)
-                        conf.setInt(PigConstants.PIG_HII_ROLLUP_OLD_FIELD_INDEX, pack.getRollupOldFieldIndex());
-                        //Set the size of total fields that involve in CUBE clause
-                        conf.setInt(PigConstants.PIG_HII_NUMBER_TOTAL_FIELD, pack.getDimensionSize());
-                        //Set number of algebraic functions that used after rollup
-                        conf.setInt(PigConstants.PIG_HII_NUMBER_ALGEBRAIC, pack.getNumberAlgebraic());
-                        //Set number of reducer to 1 due to using IRG algorithm
-                        if(pack.getPivot() == 0 && !mro.reducePlan.isEmpty()) {
-                            updateNumReducers(plan, mro, nwJob);
-                        }
-                    }
-                }
-
                 if (!pigContext.inIllustrator) {
                     mro.reducePlan.remove(pack);
                 }
-
-                if (pack!=null && pack.getPivot()!=-1) {
-                    nwJob.setMapperClass(PigMapReduce.MapRollupHII.class);
-                } else {
-                    nwJob.setMapperClass(PigMapReduce.Map.class);
-                }
-
+                nwJob.setMapperClass(PigMapReduce.Map.class);
                 nwJob.setReducerClass(PigMapReduce.Reduce.class);
 
-                // Set Rollup Partitioner in case the pivot is not equal to -1
-                // and the custormPartitioner name is our rollup partitioner.
-                if (mro.customPartitioner != null) {
-                    if (mro.customPartitioner.equals(ROLLUP_PARTITIONER)) {
-                        if (pack.getPivot()!=-1) {
-                            nwJob.setPartitionerClass(PigContext.resolveClassName(mro.customPartitioner));
-                        }
-                    } else {
-                        nwJob.setPartitionerClass(PigContext.resolveClassName(mro.customPartitioner));
-                    }
-                }
+                if (mro.customPartitioner != null)
+                    nwJob.setPartitionerClass(PigContext.resolveClassName(mro.customPartitioner));
 
                 if(!pigContext.inIllustrator)
                     conf.set("pig.mapPlan", ObjectSerializer.serialize(mro.mapPlan));
@@ -1101,26 +1072,6 @@ public class JobControlCompiler{
 
         // finally set the number of reducers
         conf.setInt(MRConfiguration.REDUCE_TASKS, jobParallelism);
-    }
-
-    /**
-     * If pivot position is zero, we use only one reducer
-     * @param plan the MR plan
-     * @param mro the MR operator
-     * @param nwJob the current job
-     * @throws IOException
-     */
-    public void updateNumReducers(MROperPlan plan, MapReduceOper mro,
-    org.apache.hadoop.mapreduce.Job nwJob) throws IOException {
-        // Change number of reducer to 1 if only IRG is used
-        if (mro.customPartitioner != null && mro.customPartitioner.equals(ROLLUP_PARTITIONER)) {
-            log.info("Changing Parallelism to 1 due to using IRG");
-        }
-        conf.setInt("pig.info.reducers.default.parallel", 1);
-        conf.setInt("pig.info.reducers.requested.parallel", 1);
-        conf.setInt("pig.info.reducers.estimated.parallel", 1);
-        conf.setInt(MRConfiguration.REDUCE_TASKS, 1);
-        nwJob.setNumReduceTasks(1);
     }
 
     /**
@@ -1762,7 +1713,7 @@ public class JobControlCompiler{
         return null;
     }
 
-    private static Path getCacheStagingDir(Configuration conf) throws IOException {
+    public static Path getCacheStagingDir(Configuration conf) throws IOException {
         String pigTempDir = conf.get(PigConfiguration.PIG_USER_CACHE_LOCATION,
                 conf.get(PigConfiguration.PIG_TEMP_DIR, "/tmp"));
         String currentUser = System.getProperty("user.name");
@@ -1773,7 +1724,7 @@ public class JobControlCompiler{
         return stagingDir;
     }
 
-    private static Path getFromCache(PigContext pigContext,
+    public static Path getFromCache(PigContext pigContext,
             Configuration conf,
             URL url) throws IOException {
         InputStream is1 = null;
@@ -1799,7 +1750,10 @@ public class JobControlCompiler{
             // attempt to copy to cache else return null
             fs.mkdirs(cacheDir, FileLocalizer.OWNER_ONLY_PERMS);
             is2 = url.openStream();
-            os = FileSystem.create(fs, cacheFile, FileLocalizer.OWNER_ONLY_PERMS);
+            short replication = (short)conf.getInt(PigConfiguration.PIG_USER_CACHE_REPLICATION,
+                    conf.getInt("mapred.submit.replication", 10));
+            os = fs.create(cacheFile, replication);
+            fs.setPermission(cacheFile, FileLocalizer.OWNER_ONLY_PERMS);
             IOUtils.copyBytes(is2, os, 4096, true);
 
             return cacheFile;

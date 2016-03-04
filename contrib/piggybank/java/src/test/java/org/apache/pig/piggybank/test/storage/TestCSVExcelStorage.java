@@ -25,8 +25,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Properties;
 
-import junit.framework.Assert;
-
 import org.apache.commons.lang.StringUtils;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
@@ -35,12 +33,15 @@ import org.apache.pig.builtin.mock.Storage;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.tools.parameters.ParseException;
 import org.apache.pig.test.Util;
-
+import org.apache.pig.tools.parameters.ParseException;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.apache.pig.builtin.mock.Storage.resetData;
+import static org.apache.pig.builtin.mock.Storage.tuple;
 
 public class TestCSVExcelStorage  {
 
@@ -71,7 +72,7 @@ public class TestCSVExcelStorage  {
             "\"Mac \"\"the knife\"\"\",Cohen,30",
             "\"Conrad\nEmil\",Dinger,40",
                 "Emil,\"\nDinger\",40",
-                "Quote problem,\"My \"\"famous\"\"\nsong\",60",
+                "Quote problem,\"My \"\"famous\"\"\nsong\",",
             "1st Field,\"A poem that continues\nfor several lines\ndo we\n(even with \r)handle that?\",Good,Fairy",
     };
 
@@ -85,7 +86,7 @@ public class TestCSVExcelStorage  {
             add(Util.createTuple(new String[] {"Mac \"the knife\"", "Cohen", "30"}));
             add(Util.createTuple(new String[] {"Conrad\nEmil", "Dinger", "40"}));
             add(Util.createTuple(new String[] {"Emil", "\nDinger", "40"}));
-            add(Util.createTuple(new String[] {"Quote problem", "My \"famous\"\nsong", "60"}));
+            add(Util.createTuple(new String[] {"Quote problem", "My \"famous\"\nsong", ""}));
             add(Util.createTuple(new String[] {"1st Field", "A poem that continues\nfor several lines\ndo we\n(even with \n)handle that?", "Good", "Fairy"}));
         }
     };
@@ -103,7 +104,7 @@ public class TestCSVExcelStorage  {
             add(Util.createTuple(new String[] {"Emil"}));
             add(Util.createTuple(new String[] {"Dinger,40"}));  // Trailing double quote after Emil eats rest of line
             add(Util.createTuple(new String[] {"Quote problem", "My \"famous\""}));
-            add(Util.createTuple(new String[] {"song,60"}));
+            add(Util.createTuple(new String[] {"song,"}));
             add(Util.createTuple(new String[] {"1st Field", "A poem that continues"}));
             add(Util.createTuple(new String[] {"for several lines"}));
             add(Util.createTuple(new String[] {"do we"}));
@@ -322,7 +323,7 @@ public class TestCSVExcelStorage  {
         return f.getAbsolutePath().replaceAll("\\\\", "/");
     }
 
-    // Comprehensive loader test: uses several datatypes; skips the header; 
+    // Comprehensive loader test: uses several datatypes; skips the header;
     //                            handles missing/extra fields; handles quotes, commas, newlines
     @Test
     public void load() throws IOException, ParseException {
@@ -330,7 +331,7 @@ public class TestCSVExcelStorage  {
 
         pig.registerQuery(
             "data = load '" + dataDir + testFile + "' " +
-            "using org.apache.pig.piggybank.storage.CSVExcelStorage(',', 'YES_MULTILINE', 'UNIX', 'SKIP_INPUT_HEADER') " + 
+            "using org.apache.pig.piggybank.storage.CSVExcelStorage(',', 'YES_MULTILINE', 'UNIX', 'SKIP_INPUT_HEADER') " +
             "AS (" + schema + ");"
         );
 
@@ -365,10 +366,10 @@ public class TestCSVExcelStorage  {
 
         pig.registerQuery(
             "data = load '" + dataDir + input + "' " +
-            "using org.apache.pig.piggybank.storage.CSVExcelStorage(',', 'YES_MULTILINE', 'UNIX', 'SKIP_INPUT_HEADER') " + 
+            "using org.apache.pig.piggybank.storage.CSVExcelStorage(',', 'YES_MULTILINE', 'UNIX', 'SKIP_INPUT_HEADER') " +
             "AS (" + schema + ");"
         );
-        pig.store("data", dataDir + output, 
+        pig.store("data", dataDir + output,
                   "org.apache.pig.piggybank.storage.CSVExcelStorage(',', 'YES_MULTILINE', 'UNIX', 'WRITE_OUTPUT_HEADER')");
 
         // Read it back
@@ -415,10 +416,10 @@ public class TestCSVExcelStorage  {
 
          pig.registerQuery(
             "data = load '" + dataDir + input + "' " +
-            "using PigStorage('|')" + 
+            "using PigStorage('|')" +
             "AS (" + schema + ");"
         );
-        pig.store("data", dataDir + output, 
+        pig.store("data", dataDir + output,
                   "org.apache.pig.piggybank.storage.CSVExcelStorage(',', 'YES_MULTILINE', 'UNIX', 'SKIP_OUTPUT_HEADER')");
 
         pig.registerQuery(
@@ -432,9 +433,17 @@ public class TestCSVExcelStorage  {
             "(\"(1,)\",\"(1,(2,))\",\"{(1,),(3,)}\",\"{(1,{(,3),(,5)}),(6,{(7,),(9,)})}\",\"{b=2, a=null}\",\"{d=null, a={b=null, c=2}}\")"
         };
 
-        Assert.assertEquals(StringUtils.join(expected, "\n"), StringUtils.join(data, "\n"));
+        String[] expectedJDK8 = {
+                "(\"(1,2)\",\"(1,(2,3))\",\"{(1,2),(3,4)}\",\"{(1,{(2,3),(4,5)}),(6,{(7,8),(9,0)})}\",\"{a=1, b=2}\",\"{a={b=1, c=2}, d={e=3, f=4}}\")",
+                "(\"(1,)\",\"(1,(2,))\",\"{(1,),(3,)}\",\"{(1,{(,3),(,5)}),(6,{(7,),(9,)})}\",\"{a=null, b=2}\",\"{a={b=null, c=2}, d=null}\")"
+            };
+
+        String actual = StringUtils.join(data, "\n");
+        Assert.assertTrue("Failed to match. Output was " + actual,
+                StringUtils.join(expected, "\n").equals(actual)
+                        || StringUtils.join(expectedJDK8, "\n").equals(actual));
     }
-    
+
     // Test that STORE stores CR (\r) quoted/unquoted in yes_multiline/no_multiline
     @Test
     public void storeCR() throws IOException {
@@ -476,6 +485,73 @@ public class TestCSVExcelStorage  {
         resultFile.close();
         actual = new String(actualBytes);
         Assert.assertEquals(expectedNoMultiline, actual);
+    }
+
+    // Test to validate that each CSV file gets the correct header if they are run at the same time (PIG-4689)
+    @Test
+    public void storeTwoFilesWithDifferentHeaders() throws IOException, ParseException {
+        pig.setBatchOn(); // Very important to reproduce this bug
+
+        Storage.Data data = resetData(pig);
+
+        String fooOutFileName = createOutputFileName();
+        data.set(
+                "foo",
+                "foo_1:chararray",
+                tuple("A")
+        );
+        pig.registerQuery(
+                "foo = LOAD 'foo' USING mock.Storage();"
+        );
+        pig.registerQuery(
+                "STORE foo INTO '" + fooOutFileName + "' " +
+                "USING org.apache.pig.piggybank.storage.CSVExcelStorage(',', 'YES_MULTILINE', 'UNIX', 'WRITE_OUTPUT_HEADER');"
+        );
+
+        String barOutFileName = createOutputFileName();
+        data.set(
+                "bar",
+                "bar_1:chararray, bar_2:chararray",
+                tuple("B","C")
+        );
+        pig.registerQuery(
+                "bar = LOAD 'bar' USING mock.Storage();"
+        );
+        pig.registerQuery(
+                "STORE bar INTO '" + barOutFileName + "' " +
+                "USING org.apache.pig.piggybank.storage.CSVExcelStorage(',', 'YES_MULTILINE', 'UNIX', 'WRITE_OUTPUT_HEADER');"
+        );
+
+        pig.executeBatch();
+
+        // -----
+
+        pig.registerQuery(
+                "fooCsv = load '" + fooOutFileName + "' ;"
+        );
+
+        Iterator<Tuple> fooCsv = pig.openIterator("fooCsv");
+        String[] expectedFooCsv = {
+                // header should be written because we used the 'WRITE_OUTPUT_HEADER' argument
+                "(foo_1)",
+                "(A)"
+        };
+
+        Assert.assertEquals(StringUtils.join(expectedFooCsv, "\n"), StringUtils.join(fooCsv, "\n"));
+
+        // -----
+
+        pig.registerQuery(
+                "barCsv = load '" + barOutFileName + "' ;"
+        );
+        Iterator<Tuple> barCsv = pig.openIterator("barCsv");
+        String[] expectedbarCsv = {
+                // header should be written because we used the 'WRITE_OUTPUT_HEADER' argument
+                "(bar_1,bar_2)",
+                "(B,C)"
+        };
+
+        Assert.assertEquals(StringUtils.join(expectedbarCsv, "\n"), StringUtils.join(barCsv, "\n"));
     }
 
 }

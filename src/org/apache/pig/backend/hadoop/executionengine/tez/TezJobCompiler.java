@@ -27,7 +27,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.pig.PigException;
@@ -36,8 +35,11 @@ import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPlanContainer;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPlanContainerNode;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.tools.pigstats.tez.TezScriptState;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
 
 /**
  * This is compiler class that takes a TezOperPlan and converts it into a
@@ -58,9 +60,10 @@ public class TezJobCompiler {
     public DAG buildDAG(TezPlanContainerNode tezPlanNode, Map<String, LocalResource> localResources)
             throws IOException, YarnException {
         DAG tezDag = DAG.create(tezPlanNode.getOperatorKey().toString());
-        tezDag.setCredentials(new Credentials());
+        tezDag.setCredentials(tezPlanNode.getTezOperPlan().getCredentials());
         TezDagBuilder dagBuilder = new TezDagBuilder(pigContext, tezPlanNode.getTezOperPlan(), tezDag, localResources);
         dagBuilder.visit();
+        dagBuilder.avoidContainerReuseIfInputSplitInDisk();
         return tezDag;
     }
 
@@ -92,26 +95,53 @@ public class TezJobCompiler {
             String shipFiles = pigContext.getProperties().getProperty("pig.streaming.ship.files");
             if (shipFiles != null) {
                 for (String file : shipFiles.split(",")) {
-                    TezResourceManager.getInstance().addTezResource(new File(file).toURI());
+                    TezResourceManager.getInstance().addTezResource(new File(file.trim()).toURI());
                 }
             }
             String cacheFiles = pigContext.getProperties().getProperty("pig.streaming.cache.files");
             if (cacheFiles != null) {
-                for (String file : cacheFiles.split(",")) {
-                    // Do new URI() before passing to Path constructor else it encodes # when there is symlink
-                    TezResourceManager.getInstance().addTezResource(new Path(new URI(file.trim())).toUri());
-                }
+                addCacheResources(cacheFiles.split(","));
             }
             for (Map.Entry<String, LocalResource> entry : localResources.entrySet()) {
                 log.info("Local resource: " + entry.getKey());
             }
             DAG tezDag = buildDAG(tezPlanNode, localResources);
+            tezDag.setDAGInfo(createDagInfo(TezScriptState.get().getScript()));
+            log.info("Total estimated parallelism is " + tezPlan.getEstimatedTotalParallelism());
             return new TezJob(tezConf, tezDag, localResources, tezPlan.getEstimatedTotalParallelism());
         } catch (Exception e) {
             int errCode = 2017;
             String msg = "Internal error creating job configuration.";
             throw new JobCreationException(msg, errCode, PigException.BUG, e);
         }
+    }
+
+    private void addCacheResources(String[] fileNames) throws Exception {
+        for (String fileName : fileNames) {
+            fileName = fileName.trim();
+            if (fileName.length() > 0) {
+                URI resourceURI = new URI(fileName);
+                String fragment = resourceURI.getFragment();
+
+                Path remoteFsPath = new Path(resourceURI);
+                String resourceName = (fragment != null && fragment.length() > 0) ? fragment : remoteFsPath.getName();
+                TezResourceManager.getInstance().addTezResource(resourceName, remoteFsPath);
+            }
+        }
+    }
+
+    private String createDagInfo(String script) throws IOException {
+        String dagInfo;
+        try {
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("context", "Pig");
+            jsonObject.put("description", script);
+            dagInfo = jsonObject.toString();
+        } catch (JSONException e) {
+            throw new IOException("Error when trying to convert Pig script to JSON", e);
+        }
+        log.debug("DagInfo: " + dagInfo);
+        return dagInfo;
     }
 }
 

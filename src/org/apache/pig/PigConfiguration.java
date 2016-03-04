@@ -60,6 +60,22 @@ public class PigConfiguration {
      * This key is used to enable or disable union optimization in tez. True by default
      */
     public static final String PIG_TEZ_OPT_UNION = "pig.tez.opt.union";
+    /**
+     * These keys are used to enable or disable tez union optimization for
+     * specific StoreFuncs so that optimization is only applied to StoreFuncs
+     * that do not hard part file names and honor mapreduce.output.basename and
+     * is turned of for those that do not. Refer PIG-4649
+     */
+    public static final String PIG_TEZ_OPT_UNION_SUPPORTED_STOREFUNCS = "pig.tez.opt.union.supported.storefuncs";
+    public static final String PIG_TEZ_OPT_UNION_UNSUPPORTED_STOREFUNCS = "pig.tez.opt.union.unsupported.storefuncs";
+
+    /**
+     * Pig only reads once from datasource for LoadFuncs specified here during sort instead of
+     * loading once for sampling and loading again for partitioning.
+     * Used to avoid hitting external non-filesystem datasources like HBase and Accumulo twice.
+     * Honored only by Pig on Tez now.
+     */
+    public static final String PIG_SORT_READONCE_LOADFUNCS = "pig.sort.readonce.loadfuncs";
 
     /**
      * Boolean value to enable or disable partial aggregation in map. Disabled by default
@@ -97,6 +113,13 @@ public class PigConfiguration {
     public static final String PIG_SKEWEDJOIN_REDUCE_MEMUSAGE = "pig.skewedjoin.reduce.memusage";
 
     /**
+     * Memory available (in bytes) in reduce when calculating memory available for skewed join.
+     * By default, it is set to Runtime.getRuntime().maxMemory(). Override it only
+     * for debug purpose
+     */
+    public static final String PIG_SKEWEDJOIN_REDUCE_MEM = "pig.skewedjoin.reduce.mem";
+
+    /**
      * This key used to control the maximum size loaded into
      * the distributed cache when doing fragment-replicated join
      */
@@ -117,6 +140,25 @@ public class PigConfiguration {
      * This key is used to configure auto parallelism in tez. Default is true.
      */
     public static final String PIG_TEZ_AUTO_PARALLELISM = "pig.tez.auto.parallelism";
+    /**
+     * This key is used to configure grace parallelism in tez. Default is true.
+     */
+    public static final String PIG_TEZ_GRACE_PARALLELISM = "pig.tez.grace.parallelism";
+
+    /**
+     * This key is used to configure compression for the pig input splits which
+     * are not FileSplit. Default is false
+     */
+    public static final String PIG_COMPRESS_INPUT_SPLITS = "pig.compress.input.splits";
+    public static final boolean PIG_COMPRESS_INPUT_SPLITS_DEFAULT = false;
+
+    /**
+     * Serialize input splits to disk if the input splits size exceeds a
+     * threshold to avoid hitting default RPC transfer size limit of 64MB.
+     * Default is 33554432 (32MB)
+     */
+    public static final String PIG_TEZ_INPUT_SPLITS_MEM_THRESHOLD = "pig.tez.input.splits.mem.threshold";
+    public static final int PIG_TEZ_INPUT_SPLITS_MEM_THRESHOLD_DEFAULT = 33554432;
 
     // Pig UDF profiling settings
     /**
@@ -268,6 +310,26 @@ public class PigConfiguration {
     public static final String PIG_USER_CACHE_LOCATION = "pig.user.cache.location";
 
     /**
+     * Replication factor for files in pig jar cache
+     */
+    public static final String PIG_USER_CACHE_REPLICATION = "pig.user.cache.replication";
+
+    /**
+     * Boolean value used to enable or disable error handling for storers
+     */
+    public static final String PIG_ALLOW_STORE_ERRORS = "pig.allow.store.errors";
+
+    /**
+     * Controls the minimum number of errors
+     */
+    public static final String PIG_ERRORS_MIN_RECORDS = "pig.errors.min.records";
+
+    /**
+     * Set the threshold for percentage of errors
+     */
+    public static final String PIG_ERROR_THRESHOLD_PERCENT = "pig.error.threshold.percent";
+    
+    /**
      * Comma-delimited entries of commands/operators that must be disallowed.
      * This is a security feature to be used by administrators to block use of
      * commands by users. For eg, an admin might like to block all filesystem
@@ -295,6 +357,16 @@ public class PigConfiguration {
      */
     public static final String PIG_DATETIME_DEFAULT_TIMEZONE = "pig.datetime.default.tz";
 
+    /**
+     * Using hadoop's TextInputFormat for reading bzip input instead of using Pig's Bzip2TextInputFormat. True by default
+     * (only valid for 0.23/2.X)
+     */
+    public static final String PIG_BZIP_USE_HADOOP_INPUTFORMAT = "pig.bzip.use.hadoop.inputformat";
+
+    /**
+     * This key is used to set the download location when registering an artifact using ivy coordinate
+     */
+    public static final String PIG_ARTIFACTS_DOWNLOAD_LOCATION = "pig.artifacts.download.location";
 
     // Pig on Tez runtime settings
     /**

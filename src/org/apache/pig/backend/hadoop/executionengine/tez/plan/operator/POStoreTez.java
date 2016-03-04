@@ -43,10 +43,13 @@ import org.apache.tez.runtime.library.api.KeyValueWriter;
 public class POStoreTez extends POStore implements TezOutput, TezTaskConfigurable {
 
     private static final long serialVersionUID = 1L;
+
+    private String outputKey;
+
+    private transient ProcessorContext processorContext;
     private transient MROutput output;
     private transient KeyValueWriter writer;
-    private String outputKey;
-    private TezCounter outputRecordCounter;
+    private transient TezCounter outputRecordCounter;
 
     public POStoreTez(OperatorKey k) {
         super(k);
@@ -76,19 +79,7 @@ public class POStoreTez extends POStore implements TezOutput, TezTaskConfigurabl
     @Override
     public void initialize(ProcessorContext processorContext)
             throws ExecException {
-        if (isMultiStore()) {
-            CounterGroup multiStoreGroup = processorContext.getCounters()
-                    .getGroup(MRPigStatsUtil.MULTI_STORE_COUNTER_GROUP);
-            if (multiStoreGroup == null) {
-                processorContext.getCounters().addGroup(
-                        MRPigStatsUtil.MULTI_STORE_COUNTER_GROUP,
-                        MRPigStatsUtil.MULTI_STORE_COUNTER_GROUP);
-            }
-            String name = MRPigStatsUtil.getMultiStoreCounterName(this);
-            if (name != null) {
-                outputRecordCounter = multiStoreGroup.addCounter(name, name, 0);
-            }
-        }
+        this.processorContext = processorContext;
     }
 
     @Override
@@ -110,6 +101,21 @@ public class POStoreTez extends POStore implements TezOutput, TezTaskConfigurabl
         } catch (IOException e) {
             throw new ExecException(e);
         }
+
+        // Multiple outputs - can be another store or other outputs (shuffle, broadcast)
+        if (outputs.size() > 1) {
+            CounterGroup multiStoreGroup = processorContext.getCounters()
+                    .getGroup(MRPigStatsUtil.MULTI_STORE_COUNTER_GROUP);
+            if (multiStoreGroup == null) {
+                processorContext.getCounters().addGroup(
+                        MRPigStatsUtil.MULTI_STORE_COUNTER_GROUP,
+                        MRPigStatsUtil.MULTI_STORE_COUNTER_GROUP);
+            }
+            String name = MRPigStatsUtil.getMultiStoreCounterName(this);
+            if (name != null) {
+                outputRecordCounter = multiStoreGroup.addCounter(name, name, 0);
+            }
+        }
     }
 
     @Override
@@ -121,9 +127,10 @@ public class POStoreTez extends POStore implements TezOutput, TezTaskConfigurabl
                 if (illustrator == null) {
                     // PigOutputFormat.PigRecordWriter will call storeFunc.putNext
                     writer.write(null, res.result);
-                } else
+                } else {
                     illustratorMarkup(res.result, res.result, 0);
-                res = empty;
+                }
+                res = RESULT_EMPTY;
 
                 if (outputRecordCounter != null) {
                     outputRecordCounter.increment(1);
@@ -141,6 +148,11 @@ public class POStoreTez extends POStore implements TezOutput, TezTaskConfigurabl
             throw new ExecException(msg, errCode, ioe);
         }
         return res;
+    }
+
+    @Override
+    public String name() {
+        return super.name() + (getOperatorKey().toString().equals(outputKey) ? "" : "\t->\t " +outputKey);
     }
 
 }

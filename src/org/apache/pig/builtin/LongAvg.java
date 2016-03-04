@@ -24,19 +24,19 @@ import org.apache.pig.Accumulator;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.PigException;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.backend.executionengine.ExecException;
 
 
 /**
  * This method should never be used directly, use {@link AVG}.
  */
 public class LongAvg extends EvalFunc<Double> implements Algebraic, Accumulator<Double> {
-    
+
     private static TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     @Override
@@ -53,21 +53,24 @@ public class LongAvg extends EvalFunc<Double> implements Algebraic, Accumulator<
             Double avg = null;
             if (count > 0)
                 avg = new Double(sum / count);
-    
+
             return avg;
         } catch (ExecException ee) {
             throw ee;
         }
     }
 
+    @Override
     public String getInitial() {
         return Initial.class.getName();
     }
 
+    @Override
     public String getIntermed() {
         return Intermediate.class.getName();
     }
 
+    @Override
     public String getFinal() {
         return Final.class.getName();
     }
@@ -96,9 +99,9 @@ public class LongAvg extends EvalFunc<Double> implements Algebraic, Accumulator<
             } catch (Exception e) {
                 int errCode = 2106;
                 String msg = "Error while computing average in " + this.getClass().getSimpleName();
-                throw new ExecException(msg, errCode, PigException.BUG, e);           
+                throw new ExecException(msg, errCode, PigException.BUG, e);
             }
-                
+
         }
     }
 
@@ -113,7 +116,7 @@ public class LongAvg extends EvalFunc<Double> implements Algebraic, Accumulator<
             } catch (Exception e) {
                 int errCode = 2106;
                 String msg = "Error while computing average in " + this.getClass().getSimpleName();
-                throw new ExecException(msg, errCode, PigException.BUG, e);           
+                throw new ExecException(msg, errCode, PigException.BUG, e);
             }
         }
     }
@@ -141,7 +144,7 @@ public class LongAvg extends EvalFunc<Double> implements Algebraic, Accumulator<
             } catch (Exception e) {
                 int errCode = 2106;
                 String msg = "Error while computing average in " + this.getClass().getSimpleName();
-                throw new ExecException(msg, errCode, PigException.BUG, e);           
+                throw new ExecException(msg, errCode, PigException.BUG, e);
             }
         }
     }
@@ -162,7 +165,7 @@ public class LongAvg extends EvalFunc<Double> implements Algebraic, Accumulator<
             Tuple t = it.next();
             Long l = (Long)t.get(0);
             // we count nulls in avg as contributing 0
-            // a departure from SQL for performance of 
+            // a departure from SQL for performance of
             // COUNT() which implemented by just inspecting
             // size of the bag
             if(l == null) {
@@ -199,7 +202,7 @@ public class LongAvg extends EvalFunc<Double> implements Algebraic, Accumulator<
         DataBag values = (DataBag)input.get(0);
 
         // if we were handed an empty bag, return NULL
-        if(values.size() == 0) {
+        if(values == null || values.size() == 0) {
             return null;
         }
 
@@ -225,17 +228,17 @@ public class LongAvg extends EvalFunc<Double> implements Algebraic, Accumulator<
             return null;
         }
     }
-    
+
     @Override
     public Schema outputSchema(Schema input) {
-        return new Schema(new Schema.FieldSchema(null, DataType.DOUBLE)); 
+        return new Schema(new Schema.FieldSchema(null, DataType.DOUBLE));
     }
-    
+
     /* Accumulator interface */
-   
+
     private Long intermediateSum = null;
     private Double intermediateCount = null;
-    
+
     @Override
     public void accumulate(Tuple b) throws IOException {
         try {
@@ -248,7 +251,7 @@ public class LongAvg extends EvalFunc<Double> implements Algebraic, Accumulator<
                 intermediateSum = 0L;
                 intermediateCount = 0.0;
             }
-            
+
             double count = (Long)count(b);
 
             if (count > 0) {
@@ -260,9 +263,9 @@ public class LongAvg extends EvalFunc<Double> implements Algebraic, Accumulator<
         } catch (Exception e) {
             int errCode = 2106;
             String msg = "Error while computing average in " + this.getClass().getSimpleName();
-            throw new ExecException(msg, errCode, PigException.BUG, e);           
+            throw new ExecException(msg, errCode, PigException.BUG, e);
         }
-    }        
+    }
 
     @Override
     public void cleanup() {

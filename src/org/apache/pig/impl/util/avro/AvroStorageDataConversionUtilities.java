@@ -21,11 +21,14 @@ package org.apache.pig.impl.util.avro;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
 import org.apache.avro.Schema.Type;
 import org.apache.avro.generic.GenericData;
+import org.apache.avro.util.Utf8;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
@@ -54,35 +57,7 @@ public class AvroStorageDataConversionUtilities {
       for (Field f : s.getFields()) {
         Object o = t.get(f.pos());
         Schema innerSchema = f.schema();
-        if (AvroStorageSchemaConversionUtilities.isNullableUnion(innerSchema)) {
-          if (o == null) {
-            record.put(f.pos(), null);
-            continue;
-          }
-          innerSchema = AvroStorageSchemaConversionUtilities
-              .removeSimpleUnion(innerSchema);
-        }
-        switch(innerSchema.getType()) {
-        case RECORD:
-          record.put(f.pos(), packIntoAvro((Tuple) o, innerSchema));
-          break;
-        case ARRAY:
-          record.put(f.pos(), packIntoAvro((DataBag) o, innerSchema));
-          break;
-        case BYTES:
-          record.put(f.pos(), ByteBuffer.wrap(((DataByteArray) o).get()));
-          break;
-        case FIXED:
-          record.put(f.pos(), new GenericData.Fixed(
-              innerSchema, ((DataByteArray) o).get()));
-          break;
-        default:
-          if (t.getType(f.pos()) == DataType.DATETIME) {
-            record.put(f.pos(), ((DateTime) o).getMillis() );
-          } else {
-            record.put(f.pos(), o);
-          }
-        }
+        record.put(f.pos(), packIntoAvro(o, innerSchema));
       }
       return record;
     } catch (Exception e) {
@@ -123,5 +98,52 @@ public class AvroStorageDataConversionUtilities {
     }
   }
 
+  private static Object packIntoAvro(final Object o, Schema s)
+      throws IOException {
+    if (AvroStorageSchemaConversionUtilities.isNullableUnion(s)) {
+      if (o == null) {
+        return null;
+      }
+      s = AvroStorageSchemaConversionUtilities.removeSimpleUnion(s);
+    }
+    // what if o == null and schema doesn't allow it ?
+    switch (s.getType()) {
+      case RECORD:
+        return packIntoAvro((Tuple) o, s);
+      case ARRAY:
+        return packIntoAvro((DataBag) o, s);
+      case MAP:
+        return packIntoAvro((Map<CharSequence, Object>) o, s);
+      case BYTES:
+        return ByteBuffer.wrap(((DataByteArray) o).get());
+      case FIXED:
+        return new GenericData.Fixed(s, ((DataByteArray) o).get());
+      default:
+        if (DataType.findType(o) == DataType.DATETIME) {
+          return ((DateTime) o).getMillis();
+        } else {
+          return o;
+        }
+    }
+  }
 
+  private static Map<Utf8, Object> packIntoAvro(Map<CharSequence, Object> input, Schema schema)
+      throws IOException {
+    final Map<Utf8, Object> output = new HashMap<Utf8, Object>();
+    for (Map.Entry<CharSequence, Object> e : input.entrySet()) {
+      final Utf8 k = utf8(e.getKey());
+      output.put(k, packIntoAvro(e.getValue(), schema.getValueType()));
+    }
+    return output;
+  }
+
+  private static Utf8 utf8(CharSequence v) {
+    if (v instanceof Utf8) {
+      return (Utf8) v;
+    } else {
+      final StringBuilder sb = new StringBuilder(v.length());
+      sb.append(v);
+      return new Utf8(sb.toString());
+    }
+  }
 }

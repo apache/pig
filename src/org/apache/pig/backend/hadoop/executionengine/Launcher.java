@@ -288,7 +288,7 @@ public abstract class Launcher {
         try {
             jobControlException = getExceptionFromString(jobControlExceptionStackTrace);
         } catch (Exception e) {
-            String errMsg = "Could not resolve error that occured when launching job: "
+            String errMsg = "Could not resolve error that occurred when launching job: "
                     + jobControlExceptionStackTrace;
             jobControlException = new RuntimeException(errMsg, throwable);
         }

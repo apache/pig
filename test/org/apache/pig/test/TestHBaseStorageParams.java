@@ -19,6 +19,7 @@ package org.apache.pig.test;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.pig.backend.hadoop.hbase.HBaseStorage;
 import org.apache.pig.impl.util.UDFContext;
 import org.junit.Assert;
@@ -26,6 +27,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.Properties;
 
 public class TestHBaseStorageParams {
@@ -75,6 +77,23 @@ public class TestHBaseStorageParams {
       HBaseStorage storage =
         new HBaseStorage("foo:a%foo:b % foo:c,d", "-delim % -ignoreWhitespace false");
       doColumnParseTest(storage, "foo:a", "foo:b ", " foo:c,d");
+    }
+
+    /**
+     * Assert that -maxResultsPerColumnFamily actually gets set on Scan
+     */
+    @Test
+    public void testSetsMaxResultsPerColumnFamily() throws Exception {
+        Field scanField = HBaseStorage.class.getDeclaredField("scan");
+        scanField.setAccessible(true);
+
+        HBaseStorage storageNoMax = new HBaseStorage("", "");
+        Scan scan = (Scan)scanField.get(storageNoMax);
+        Assert.assertEquals(-1, scan.getMaxResultsPerColumnFamily());
+
+        HBaseStorage storageWithMax = new HBaseStorage("", "-maxResultsPerColumnFamily 123");
+        scan = (Scan)scanField.get(storageWithMax);
+        Assert.assertEquals(123, scan.getMaxResultsPerColumnFamily());
     }
 
     private void doColumnParseTest(HBaseStorage storage, String... names) {

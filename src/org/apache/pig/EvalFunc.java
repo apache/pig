@@ -362,4 +362,11 @@ public abstract class EvalFunc<T>  {
     public boolean allowCompileTimeCalculation() {
         return false;
     }
+
+    public boolean needEndOfAllInputProcessing() {
+        return false;
+    }
+
+    public void setEndOfAllInput(boolean endOfAllInput) {
+    }
 }

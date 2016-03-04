@@ -35,7 +35,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlan
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.TezInput;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.TezOutput;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.tez.runtime.api.LogicalInput;
@@ -56,6 +55,7 @@ public class POCounterStatsTez extends PhysicalOperator implements TezInput, Tez
     // KeyValuesReader. After TEZ-661, switch to unsorted shuffle
     private transient KeyValuesReader reader;
     private transient KeyValueWriter writer;
+    private transient boolean finished = false;
 
     public POCounterStatsTez(OperatorKey k) {
         super(k);
@@ -123,6 +123,9 @@ public class POCounterStatsTez extends PhysicalOperator implements TezInput, Tez
     @Override
     public Result getNextTuple() throws ExecException {
         try {
+            if (finished) {
+                return RESULT_EOP;
+            }
             Map<Integer, Long> counterRecords = new HashMap<Integer, Long>();
             Integer key = null;
             Long value = null;
@@ -148,9 +151,10 @@ public class POCounterStatsTez extends PhysicalOperator implements TezInput, Tez
                 prevTasksCount += counterRecords.get(i);
             }
 
-            Tuple tuple = TupleFactory.getInstance().newTuple(1);
+            Tuple tuple = mTupleFactory.newTuple(1);
             tuple.set(0, counterOffsets);
             writer.write(POValueOutputTez.EMPTY_KEY, tuple);
+            finished = true;
             return RESULT_EOP;
         } catch (IOException e) {
             throw new ExecException(e);

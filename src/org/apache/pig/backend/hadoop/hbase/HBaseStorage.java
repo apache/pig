@@ -16,8 +16,6 @@
  */
 package org.apache.pig.backend.hadoop.hbase;
 
-import java.io.DataInput;
-import java.io.DataOutput;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -48,8 +46,8 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.BinaryComparator;
@@ -88,6 +86,7 @@ import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.StoreResources;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.backend.hadoop.hbase.HBaseTableInputFormat.HBaseTableIFBuilder;
 import org.apache.pig.builtin.FuncUtils;
 import org.apache.pig.builtin.Utf8StorageConverter;
@@ -205,6 +204,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         validOptions_.addOption("cacheBlocks", true, "Set whether blocks should be cached for the scan");
         validOptions_.addOption("caching", true, "Number of rows scanners should cache");
         validOptions_.addOption("limit", true, "Per-region limit");
+        validOptions_.addOption("maxResultsPerColumnFamily", true, "Limit the maximum number of values returned per row per column family");
         validOptions_.addOption("delim", true, "Column delimiter");
         validOptions_.addOption("ignoreWhitespace", true, "Ignore spaces when parsing columns");
         validOptions_.addOption("caster", true, "Caster to use for converting values. A class name, " +
@@ -251,6 +251,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
      * <li>-lte=maxKeyVal
      * <li>-regex=match regex on KeyVal
      * <li>-limit=numRowsPerRegion max number of rows to retrieve per region
+     * <li>-maxResultsPerColumnFamily= Limit the maximum number of values returned per row per column family
      * <li>-delim=char delimiter to use when parsing column names (default is space or comma)
      * <li>-ignoreWhitespace=(true|false) ignore spaces when parsing column names (default true)
      * <li>-cacheBlocks=(true|false) Set whether blocks should be cached for the scan (default false).
@@ -275,7 +276,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
             configuredOptions_ = parser_.parse(validOptions_, optsArr);
         } catch (ParseException e) {
             HelpFormatter formatter = new HelpFormatter();
-            formatter.printHelp( "[-loadKey] [-gt] [-gte] [-lt] [-lte] [-regex] [-cacheBlocks] [-caching] [-caster] [-noWAL] [-limit] [-delim] [-ignoreWhitespace] [-minTimestamp] [-maxTimestamp] [-timestamp] [-includeTimestamp] [-includeTombstone]", validOptions_ );
+            formatter.printHelp( "[-loadKey] [-gt] [-gte] [-lt] [-lte] [-regex] [-cacheBlocks] [-caching] [-caster] [-noWAL] [-limit] [-maxResultsPerColumnFamily] [-delim] [-ignoreWhitespace] [-minTimestamp] [-maxTimestamp] [-timestamp] [-includeTimestamp] [-includeTombstone]", validOptions_ );
             throw e;
         }
 
@@ -475,6 +476,10 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         }
         if (configuredOptions_.hasOption("timestamp")){
             scan.setTimeStamp(timestamp_);
+        }
+        if (configuredOptions_.hasOption("maxResultsPerColumnFamily")){
+            int maxResultsPerColumnFamily_ = Integer.valueOf(configuredOptions_.getOptionValue("maxResultsPerColumnFamily"));
+            scan.setMaxResultsPerColumnFamily(maxResultsPerColumnFamily_);
         }
 
         // if the group of columnInfos for this family doesn't contain a prefix, we don't need
@@ -818,7 +823,9 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         List<Class> classList = new ArrayList<Class>();
         classList.add(org.apache.hadoop.hbase.client.HTable.class); // main hbase jar or hbase-client
         classList.add(org.apache.hadoop.hbase.mapreduce.TableSplit.class); // main hbase jar or hbase-server
-        classList.add(com.google.common.collect.Lists.class); // guava
+        if (!HadoopShims.isHadoopYARN()) { //Avoid shipping duplicate. Hadoop 0.23/2 itself has guava
+            classList.add(com.google.common.collect.Lists.class); // guava
+        }
         classList.add(org.apache.zookeeper.ZooKeeper.class); // zookeeper
         // Additional jars that are specific to v0.95.0+
         addClassToList("org.cloudera.htrace.Trace", classList); // htrace
@@ -1052,7 +1059,8 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
      * @throws IOException
      */
     public Delete createDelete(Object key, byte type, long timestamp) throws IOException {
-        Delete delete = new Delete(objToBytes(key, type), timestamp);
+        Delete delete = new Delete(objToBytes(key, type));
+        delete.setTimestamp(timestamp);
 
         if(noWAL_) {
             delete.setWriteToWAL(false);
@@ -1188,7 +1196,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         this.requiredFieldList = requiredFieldList;
 
         if (requiredFieldList != null && requiredFields.size() > (columnInfo_.size() + colOffset)) {
-            throw new FrontendException("The list of columns to project from HBase is larger than HBaseStorage is configured to load.");
+            throw new FrontendException("The list of columns to project from HBase (" + requiredFields.size() + ") is larger than HBaseStorage is configured to load (" + (columnInfo_.size() + colOffset) + ").");
         }
 
         // remember the projection
@@ -1215,9 +1223,10 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         return new RequiredFieldResponse(true);
     }
 
+    @Override
     public void ensureAllKeyInstancesInSameSplit() throws IOException {
-        /** 
-         * no-op because hbase keys are unique 
+        /**
+         * no-op because hbase keys are unique
          * This will also work with things like DelimitedKeyPrefixRegionSplitPolicy
          * if you need a partial key match to be included in the split
          */
@@ -1232,7 +1241,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
             throw new RuntimeException("LoadFunc expected split of type TableSplit but was " + split.getClass().getName());
         }
     }
- 
+
 
     /**
      * Class to encapsulate logic around which column names were specified in each

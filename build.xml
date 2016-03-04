@@ -31,7 +31,7 @@
     <property name="pigsmoke.pom" value="${basedir}/ivy/pigsmoke.pom" />
     <property name="pigunit.pom" value="${basedir}/ivy/pigunit.pom" />
     <property name="piggybank.pom" value="${basedir}/ivy/piggybank.pom" />
-    <property name="pig.version" value="0.15.0" />
+    <property name="pig.version" value="0.16.0" />
     <property name="pig.version.suffix" value="-SNAPSHOT" />
     <property name="version" value="${pig.version}${pig.version.suffix}" />
     <property name="final.name" value="${name}-${version}" />
@@ -104,13 +104,13 @@
     <property name="test.unit.file" value="${test.src.dir}/unit-tests"/>
     <property name="test.smoke.file" value="${test.src.dir}/smoke-tests"/>
     <property name="test.all.file" value="${test.src.dir}/all-tests"/>
-    <property name="test.tez.file" value="${test.src.dir}/tez-tests"/>
-    <property name="test.tez_local.file" value="${test.src.dir}/tez-local-tests"/>
     <property name="test.spark.file" value="${test.src.dir}/spark-tests"/>
     <property name="test.spark_local.file" value="${test.src.dir}/spark-local-tests"/>
     <property name="test.exclude.file" value="${test.src.dir}/excluded-tests"/>
     <property name="test.exclude.file.20" value="${test.src.dir}/excluded-tests-20"/>
     <property name="test.exclude.file.23" value="${test.src.dir}/excluded-tests-23"/>
+    <property name="test.exclude.file.mr" value="${test.src.dir}/excluded-tests-mr"/>
+    <property name="test.exclude.file.tez" value="${test.src.dir}/excluded-tests-tez"/>
     <property name="pigunit.jarfile" value="pigunit.jar" />
     <property name="piggybank.jarfile" value="${basedir}/contrib/piggybank/java/piggybank.jar" />
     <property name="smoke.tests.jarfile" value="${build.dir}/${final.name}-smoketests.jar" />
@@ -283,7 +283,7 @@
     <property name="xerces.jar" value="${ivy.lib.dir}/xercesImpl-${xerces.version}.jar"/>
     <property name="jdiff.build.dir" value="${build.docs}/jdiff"/>
     <property name="jdiff.xml.dir" value="${docs.dir}/jdiff"/>
-    <property name="jdiff.stable" value="0.14.0"/>
+    <property name="jdiff.stable" value="0.15.0"/>
     <property name="jdiff.stable.javadoc" value="http://hadoop.apache.org/${name}/docs/r${jdiff.stable}/api/"/>
 
     <!-- Packaging properties -->
@@ -758,6 +758,9 @@
             <fileset dir="${ivy.lib.dir}" includes="accumulo-*.jar" excludes="accumulo-minicluster*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="json-simple-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="kryo-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="httpdlog-*-${basjes-httpdlog-pigloader.version}.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="parser-core-${basjes-httpdlog-pigloader.version}.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="ivy-*.jar"/>
         </copy>
     </target>
 
@@ -816,22 +819,13 @@
            project.setProperty(attributes.get("name"), attributes.get("value"));
     </scriptdef>
 
-    <target name="mvn-jar" description="Create pig.jar for maven deploy for Hadoop2/23 and Hadoop1/20">
-        <propertyreset name="hadoopversion" value="23" />
-        <propertyreset name="isHadoop" value="true" />
-        <propertyreset name="src.shims.dir" value="${basedir}/shims/src/hadoop${hadoopversion}" />
-        <antcall target="clean" inheritRefs="true" inheritall="true"/>
-        <antcall target="jar" inheritRefs="true" inheritall="true"/>
-        <!-- Move and rename pig jar for Hadoop2/23 to a different location before compiling for Hadoop1/20 -->
-        <move file="${output.jarfile.core}" tofile="${basedir}/${artifact.pig-h2.jar}"/>
-        <delete dir="${build.dir}" />
-        <propertyreset name="hadoopversion" value="20" />
-        <propertyreset name="isHadoop" value="" />
-        <propertyreset name="src.shims.dir" value="${basedir}/shims/src/hadoop${hadoopversion}" />
-        <antcall target="jar" inheritRefs="true" inheritall="true"/>
-        <move file="${output.jarfile.core}" tofile="${output.jarfile.core-h1}"/>
-        <move file="${basedir}/${artifact.pig-h2.jar}" tofile="${output.jarfile.core-h2}"/>
-    </target>
+    <macrodef name="propertycopy">
+        <attribute name="name"/>
+        <attribute name="from"/>
+        <sequential>
+            <propertyreset name="@{name}" value="${@{from}}"/>
+        </sequential>
+    </macrodef>
 
     <!-- ================================================================== -->
     <!-- macrodef: buildJar                                                 -->
@@ -856,6 +850,7 @@
                 <zipgroupfileset refid="@{includedJars}" />
                 <fileset file="${basedir}/src/pig-default.properties" />
                 <fileset file="${basedir}/src/main/jruby/pigudf.rb" />
+                <fileset file="${basedir}/conf/ivysettings.xml" />
                 <exclude name="hadoop-site.xml" />
             </jar>
         </sequential>
@@ -920,15 +915,10 @@
     </target>
 
     <target name="test-tez" depends="setTezEnv,setWindowsPath,setLinuxPath,compile-test,jar,debugger.check,jackson-pig-3039-test-download" description="Run tez unit tests">
-        <macro-test-runner test.file="${test.tez.file}" tests.failed="test-tez.failed"/>
+        <macro-test-runner test.file="${test.all.file}" tests.failed="test-tez.failed"/>
         <fail if="test-tez.failed">Tests failed!</fail>
     </target>
 	
-    <target name="test-tez-local" depends="setTezEnv,setWindowsPath,setLinuxPath,compile-test,jar,debugger.check,jackson-pig-3039-test-download" description="Run tez local mode unit tests">
-        <macro-test-runner test.file="${test.tez_local.file}" tests.failed="test-tez.failed"/>
-        <fail if="test-tez.failed">Tests failed!</fail>
-    </target>
-
     <target name="test-spark" depends="setSparkEnv,setWindowsPath,setLinuxPath,compile-test,jar,debugger.check,jackson-pig-3039-test-download" description="Run Spark unit tests in Spark cluster-local mode">
         <macro-test-runner test.file="${test.spark.file}" tests.failed="test-spark.failed"/>
         <fail if="test-spark.failed">Tests failed!</fail>
@@ -957,6 +947,8 @@
         <mkdir dir="${test.log.dir}"/>
         <tempfile property="junit.tmp.dir" prefix="pig_junit_tmp" destDir="${java.io.tmpdir}" />
         <mkdir dir="${junit.tmp.dir}/"/>
+      	<propertycopy name="test.exclude.file.for.exectype" from="test.exclude.file.${test.exec.type}"/>
+      	<echo>Tests in ${test.exclude.file.for.exectype} will be excluded</echo>
         <junit showoutput="${test.output}" printsummary="yes" haltonfailure="no" fork="yes" maxmemory="2048m" dir="${basedir}" timeout="${test.timeout}" errorProperty="@{tests.failed}" failureProperty="@{tests.failed}">
             <sysproperty key="hadoopversion" value="${hadoopversion}" />
             <sysproperty key="test.exec.type" value="${test.exec.type}" />
@@ -989,6 +981,7 @@
                        <excludesfile name="${test.exclude.file}" if="test.exclude.file"/>
                        <excludesfile name="${test.exclude.file.20}" unless="isHadoop23"/>
                        <excludesfile name="${test.exclude.file.23}" if="isHadoop23"/>
+                       <excludesfile name="${test.exclude.file.for.exectype}"/>
                     </patternset>
                     <exclude name="**/${exclude.testcase}.java" if="exclude.testcase" />
                     <exclude name="**/TestRegisteredJarVisibility.java" if="offline"/>
@@ -1033,7 +1026,7 @@
         <echo message="=======================" />
         <propertyreset name="test.exec.type" value="tez" />
         <propertyreset name="test.log.dir" value="${test.build.dir}/logs/${test.exec.type}" />
-        <macro-test-runner test.file="${test.tez.file}" tests.failed="test.tez.failed"/>
+        <macro-test-runner test.file="${test.all.file}" tests.failed="test.tez.failed"/>
         <condition property="any.tests.failed">
           <or>
             <isset property="test.mr.failed"/>
@@ -1295,7 +1288,7 @@
           uri="urn:maven-artifact-ant"
           classpathref="mvn-ant-task.classpath"/>
     </target>
-    <target name="mvn-install" depends="mvn-taskdef,mvn-jar, set-version, source-jar,
+    <target name="mvn-install" depends="mvn-taskdef,jar-h12, set-version, source-jar,
       javadoc-jar, pigunit-jar, smoketests-jar, piggybank"
          description="To install pig to local filesystem's m2 cache">
          <artifact:pom file="${pig.pom}" id="pig"/>
@@ -1319,9 +1312,11 @@
          </artifact:install>
     </target>
 
-    <target name="mvn-build" depends="mvn-jar, source-jar,
+    <target name="mvn-build" depends="jar-h12, source-jar,
                                       javadoc-jar, smoketests-jar, pigunit-jar, piggybank"
          description="To build the pig jar artifacts to be deployed to apache maven repository">
+        <move file="${output.jarfile.backcompat-core-h1}" tofile="${output.jarfile.core}"/>
+        <move file="${output.jarfile.backcompat-core-h2}" tofile="${output.jarfile.core-h2}"/>
     </target>
 
     <!-- Expects that mvn-build has already been run but does not run it. In some cases building
@@ -1375,7 +1370,7 @@
     <target name="simpledeploy" unless="staging">
       <artifact:pom file="${pig.pom}" id="pig"/>
       <artifact:install-provider artifactId="wagon-http" version="${wagon-http.version}"/>
-      <artifact:deploy file="${output.jarfile.core-h1}">
+      <artifact:deploy file="${output.jarfile.core}">
               <remoteRepository id="${snapshots_repo_id}" url="${asfsnapshotrepo}"/>
               <pom refid="pig"/>
               <attach file="${output.jarfile.core-h2}" classifier="h2" />

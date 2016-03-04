@@ -43,6 +43,8 @@ import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.ScriptState;
 import org.apache.pig.tools.pigstats.tez.TezScriptState.TezDAGScriptInfo;
+import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.client.DAGStatus;
 
 import com.google.common.collect.Maps;
@@ -73,10 +75,8 @@ public class TezPigScriptStats extends PigStats {
         public void visitTezPlanContainerNode(TezPlanContainerNode tezPlanNode) throws VisitorException {
             TezScriptState ss = TezScriptState.get();
             TezDAGScriptInfo dagScriptInfo = ss.setDAGScriptInfo(tezPlanNode);
-            TezDAGStats.JobGraphBuilder jobGraphBuilder = new TezDAGStats.JobGraphBuilder(tezPlanNode.getTezOperPlan(), dagScriptInfo);
-            jobGraphBuilder.visit();
-            TezDAGStats currStats = new TezDAGStats(tezPlanNode.getOperatorKey().toString(), jobGraphBuilder.getJobPlan(), jobGraphBuilder.getTezVertexStatsMap());
-            currStats.setAlias(dagScriptInfo);
+            TezDAGStats.TezDAGStatsBuilder builder = new TezDAGStats.TezDAGStatsBuilder(tezPlanNode, dagScriptInfo);
+            TezDAGStats currStats = builder.build();
             jobPlan.add(currStats);
             List<TezPlanContainerNode> preds = getPlan().getPredecessors(tezPlanNode);
             if (preds != null) {
@@ -109,7 +109,11 @@ public class TezPigScriptStats extends PigStats {
 
     public void finish() {
         super.stop();
-        display();
+        try {
+            display();
+        } catch (Throwable e) {
+            LOG.warn("Exception while displaying stats:", e);
+        }
     }
 
     private void display() {
@@ -149,7 +153,10 @@ public class TezPigScriptStats extends PigStats {
             }
         }
 
+        int count = 0;
         for (TezDAGStats dagStats : tezDAGStatsMap.values()) {
+            sb.append("\n");
+            sb.append("DAG " + count++ + ":\n");
             sb.append(dagStats.getDisplayString());
             sb.append("\n");
         }
@@ -186,10 +193,23 @@ public class TezPigScriptStats extends PigStats {
                 tezScriptState.emitjobFinishedNotification(tezDAGStats);
             } else if (dagStatus.getState() == DAGStatus.State.FAILED) {
                 tezDAGStats.setSuccessful(false);
-                tezDAGStats.setErrorMsg(tezJob.getDiagnostics());
+                String diagnostics = tezJob.getDiagnostics();
+                tezDAGStats.setErrorMsg(diagnostics);
+                tezDAGStats.setBackendException(new TezException(diagnostics));
                 tezScriptState.emitJobFailedNotification(tezDAGStats);
             }
             tezScriptState.dagCompletedNotification(tezJob.getName(), tezDAGStats);
+        }
+
+        if (!tezDAGStats.isSuccessful()) {
+            String outputCommitOnDAGSuccess = pigContext.getProperties().getProperty(
+                    TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS);
+            if ((outputCommitOnDAGSuccess == null && TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS_DEFAULT)
+                    || "true".equals(outputCommitOnDAGSuccess)) {
+                for (OutputStats stats : tezDAGStats.getOutputs()) {
+                    stats.setSuccessful(false);
+                }
+            }
         }
     }
 

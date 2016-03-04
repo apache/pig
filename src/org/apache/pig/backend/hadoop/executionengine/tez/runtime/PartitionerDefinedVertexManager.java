@@ -24,6 +24,8 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
+import org.apache.tez.dag.api.EdgeProperty;
+import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
@@ -68,7 +70,7 @@ public class PartitionerDefinedVertexManager extends VertexManagerPlugin {
     }
 
     @Override
-    public void onVertexManagerEventReceived(VertexManagerEvent vmEvent) {
+    public void onVertexManagerEventReceived(VertexManagerEvent vmEvent) throws Exception {
         // There could be multiple partition vertex sending VertexManagerEvent
         // Only need to setVertexParallelism once
         if (isParallelismSet) {
@@ -86,14 +88,14 @@ public class PartitionerDefinedVertexManager extends VertexManagerPlugin {
             if (dynamicParallelism!=currentParallelism) {
                 LOG.info("Pig Partitioner Defined Vertex Manager: reset parallelism to " + dynamicParallelism
                         + " from " + currentParallelism);
-                Map<String, EdgeManagerPluginDescriptor> edgeManagers =
-                    new HashMap<String, EdgeManagerPluginDescriptor>();
-                for(String vertex : getContext().getInputVertexEdgeProperties().keySet()) {
-                    EdgeManagerPluginDescriptor edgeManagerDescriptor =
-                            EdgeManagerPluginDescriptor.create(ScatterGatherEdgeManager.class.getName());
-                    edgeManagers.put(vertex, edgeManagerDescriptor);
+                Map<String, EdgeProperty> edgeManagers = new HashMap<String, EdgeProperty>();
+                for(Map.Entry<String,EdgeProperty> entry : getContext().getInputVertexEdgeProperties().entrySet()) {
+                    EdgeProperty edge = entry.getValue();
+                    edge = EdgeProperty.create(DataMovementType.SCATTER_GATHER, edge.getDataSourceType(), edge.getSchedulingType(),
+                            edge.getEdgeSource(), edge.getEdgeDestination());
+                    edgeManagers.put(entry.getKey(), edge);
                 }
-                getContext().setVertexParallelism(dynamicParallelism, null, edgeManagers, null);
+                getContext().reconfigureVertex(dynamicParallelism, null, edgeManagers);
             }
         }
     }

@@ -19,13 +19,12 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOp
 
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.util.IdentityHashSet;
 
 /**
  * This is a base class for all unary comparison operators. Supports the
  * use of operand type instead of result type as the result type is
  * always boolean.
- * 
+ *
  */
 public abstract class UnaryComparisonOperator extends UnaryExpressionOperator
         implements ComparisonOperator {
@@ -35,7 +34,7 @@ public abstract class UnaryComparisonOperator extends UnaryExpressionOperator
     //The result will be comunicated using the Status object.
     //This is a slight abuse of the status object.
     protected byte operandType;
-    
+
     public UnaryComparisonOperator(OperatorKey k) {
         this(k,-1);
     }
@@ -44,19 +43,26 @@ public abstract class UnaryComparisonOperator extends UnaryExpressionOperator
         super(k, rp);
     }
 
+    @Override
     public byte getOperandType() {
         return operandType;
     }
 
+    @Override
     public void setOperandType(byte operandType) {
         this.operandType = operandType;
     }
-    
+
     @Override
     public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
         if(illustrator != null) {
             illustrator.setSubExpResult(eqClassIndex == 0);
         }
         return null;
+    }
+
+    protected void cloneHelper(UnaryComparisonOperator op) {
+        super.cloneHelper(op);
+        this.operandType = op.operandType;
     }
 }

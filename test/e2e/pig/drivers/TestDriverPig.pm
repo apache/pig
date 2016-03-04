@@ -595,8 +595,8 @@ sub postProcessSingleOutputFile
     # Build command to:
     # 1. Combine part files
     my $fppCmd;
-    if(Util::isWindows()) {
-        my $delCmd = "del \"$localdir\\*.crc\"";
+    if(Util::isWindows()||Util::isCygwin()) {
+        my $delCmd = "del \"$localdir\\*.crc\" 2>NUL";
         print $log "$delCmd\n";
         system($delCmd);
         $fppCmd = "cat $localdir\\map* $localdir\\part* 2>NUL";
@@ -614,6 +614,11 @@ sub postProcessSingleOutputFile
     
     $fppCmd .= " > $localdir/out_original";
     
+    #Need slashes to be consistent for windows
+    if (Util::isWindows() || Util::isCygwin()) {
+        $fppCmd =~ s/\\/\//g;
+    }
+    
     # run command
     print $log "$fppCmd\n";
     system($fppCmd);
@@ -623,6 +628,25 @@ sub postProcessSingleOutputFile
     print $log join(" ", @sortCmd) . "\n";
     IPC::Run::run(\@sortCmd, '>', "$localdir/out_sorted") or die "Sort for benchmark comparison failed on $localdir/out_original";
 
+    # Remove extra \r from $localdir/out_sorted for Windows benchmark
+    if(Util::isWindows()||Util::isCygwin()) {
+        my $tmpfile = "$localdir/out_sorted.tmp";
+        link("$localdir/out_sorted", $tmpfile) or
+            die "Unable to create temporary file $tmpfile, $!\n";
+        unlink("$localdir/out_sorted") or
+            die "Unable to unlink file $localdir/out_sorted, $!\n";
+        open(IFH, "< $tmpfile") or
+            die "Unable to open file $tmpfile, $!\n";
+        open(OFH, "> $localdir/out_sorted") or
+            die "Unable to open file $localdir/out_sorted, $!\n";
+        while(<IFH>) {
+            $_ =~ s/\r$//g;
+            print OFH $_;
+        }
+        close(OFH);
+        close(IFH);
+        unlink($tmpfile);
+    }
     return "$localdir/out_sorted";
 }
 
@@ -935,6 +959,17 @@ sub comparePig
 sub compareSingleOutput
 {
     my ($self, $testResult, $testOutput, $benchmarkOutput, $log) = @_;
+
+    if ($ENV{'SORT_BENCHMARKS'} eq 'true'){
+        # Sort the benchmark Output.
+        my $benchmarkOutput_new = $benchmarkOutput.'_new';
+        my @sortCmd = ('sort', "$benchmarkOutput");
+        print $log join(" ", @sortCmd) . "\n";
+        IPC::Run::run(\@sortCmd, '>', "$benchmarkOutput_new") or die "Sort for benchmark ouput failed on $benchmarkOutput_new";
+        my @renameCmd = ('mv', "$benchmarkOutput_new" , "$benchmarkOutput");
+        print $log join(" ", @renameCmd) . "\n";
+        IPC::Run::run(\@renameCmd, \undef, $log, $log) or die "Rename command failed";
+    }
 
     # cksum the the two files to see if they are the same
     my ($testChksm, $benchmarkChksm);

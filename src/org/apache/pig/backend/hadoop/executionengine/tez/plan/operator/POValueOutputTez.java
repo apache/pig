@@ -39,7 +39,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlan
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.TezOutput;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.TezTaskConfigurable;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.tez.runtime.api.LogicalOutput;
@@ -51,8 +50,8 @@ public class POValueOutputTez extends PhysicalOperator implements TezOutput, Tez
     private static final long serialVersionUID = 1L;
     private static final Log LOG = LogFactory.getLog(POValueOutputTez.class);
 
-    private static final TupleFactory tupleFactory = TupleFactory.getInstance();
-
+    private boolean scalarOutput;
+    private transient Object scalarValue;
     private boolean taskIndexWithRecordIndexAsKey;
     // TODO Change this to outputKey and write only once
     // when a shared edge support is available in Tez
@@ -69,6 +68,14 @@ public class POValueOutputTez extends PhysicalOperator implements TezOutput, Tez
 
     public POValueOutputTez(OperatorKey k) {
         super(k);
+    }
+
+    public boolean isScalarOutput() {
+        return scalarOutput;
+    }
+
+    public void setScalarOutput(boolean scalarOutput) {
+        this.scalarOutput = scalarOutput;
     }
 
     public boolean isTaskIndexWithRecordIndexAsKey() {
@@ -96,8 +103,8 @@ public class POValueOutputTez extends PhysicalOperator implements TezOutput, Tez
 
     @Override
     public void replaceOutput(String oldOutputKey, String newOutputKey) {
-        if (outputKeys.remove(oldOutputKey)) {
-            outputKeys.add(oldOutputKey);
+        while (outputKeys.remove(oldOutputKey)) {
+            outputKeys.add(newOutputKey);
         }
     }
 
@@ -149,14 +156,25 @@ public class POValueOutputTez extends PhysicalOperator implements TezOutput, Tez
             if (inp.returnStatus == POStatus.STATUS_NULL) {
                 continue;
             }
+            if (scalarOutput) {
+                if (scalarValue == null) {
+                    scalarValue = inp.result;
+                } else {
+                    String msg = "Scalar has more than one row in the output. "
+                            + "1st : " + scalarValue + ", 2nd :"
+                            + inp.result
+                            + " (common cause: \"JOIN\" then \"FOREACH ... GENERATE foo.bar\" should be \"foo::bar\" )";
+                    throw new ExecException(msg);
+                }
+            }
+            if (taskIndexWithRecordIndexAsKey) {
+                Tuple tuple = mTupleFactory.newTuple(2);
+                tuple.set(0, taskIndex);
+                tuple.set(1, count++);
+                key = tuple;
+            }
             for (KeyValueWriter writer : writers) {
                 try {
-                    if (taskIndexWithRecordIndexAsKey) {
-                        Tuple tuple = tupleFactory.newTuple(2);
-                        tuple.set(0, taskIndex);
-                        tuple.set(1, count++);
-                        key = tuple;
-                    }
                     writer.write(key, inp.result);
                 } catch (IOException e) {
                     throw new ExecException(e);

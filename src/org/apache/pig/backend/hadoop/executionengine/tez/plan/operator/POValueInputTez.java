@@ -33,7 +33,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.TezInput;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.tez.runtime.api.LogicalInput;
@@ -58,7 +57,6 @@ public class POValueInputTez extends PhysicalOperator implements TezInput {
     private transient KeyValuesReader shuffleReader;
     private transient boolean shuffleInput;
     private transient boolean hasNext;
-    protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     public POValueInputTez(OperatorKey k) {
         super(k);
@@ -120,12 +118,10 @@ public class POValueInputTez extends PhysicalOperator implements TezInput {
                     }
                     hasNext = shuffleReader.next();
                 }
-            } else {
-                if (reader.next()) {
-                    Tuple origTuple = (Tuple)reader.getCurrentValue();
-                    Tuple copy = mTupleFactory.newTuple(origTuple.getAll());
-                    return new Result(POStatus.STATUS_OK, copy);
-                }
+            } else if (reader.next()) {
+                Tuple origTuple = (Tuple) reader.getCurrentValue();
+                Tuple copy = mTupleFactory.newTuple(origTuple.getAll());
+                return new Result(POStatus.STATUS_OK, copy);
             }
             finished = true;
             // For certain operators (such as STREAM), we could still have some work

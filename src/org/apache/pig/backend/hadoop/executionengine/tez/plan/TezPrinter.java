@@ -55,9 +55,13 @@ public class TezPrinter extends TezOpPlanVisitor {
     public void visitTezOp(TezOperator tezOper) throws VisitorException {
         if (tezOper.isVertexGroup()) {
             VertexGroupInfo info = tezOper.getVertexGroupInfo();
-            mStream.println("Tez vertex group "
-                    + tezOper.getOperatorKey().toString() + "\t<-\t "
-                    + info.getInputs() + "\t->\t " + info.getOutput());
+            mStream.print("Tez vertex group "
+                    + tezOper.getOperatorKey().toString());
+            if (info!=null) {
+                mStream.println("\t<-\t " + info.getInputs() + "\t->\t " + info.getOutput());
+            } else {
+                mStream.println();
+            }
             mStream.println("# No plan on vertex group");
         } else {
             mStream.println("Tez vertex " + tezOper.getOperatorKey().toString());
@@ -86,29 +90,36 @@ public class TezPrinter extends TezOpPlanVisitor {
             printer.setVerbose(isVerbose);
             printer.visit();
             mStream.println();
+        } else if (!tezOper.isVertexGroup()) {
+            // For things like NativeTezOper
+            mStream.println("" + tezOper);
         }
     }
 
     /**
      * This class prints the Tez Vertex Graph
      */
-    public static class TezGraphPrinter extends TezOpPlanVisitor {
+    public static class TezVertexGraphPrinter extends TezOpPlanVisitor {
 
-        StringBuffer buf;
+        StringBuilder buf;
 
-        public TezGraphPrinter(TezOperPlan plan) {
+        public TezVertexGraphPrinter(TezOperPlan plan) {
             super(plan, new DependencyOrderWalker<TezOperator, TezOperPlan>(plan, true));
-            buf = new StringBuffer();
+            buf = new StringBuilder();
         }
 
         @Override
         public void visitTezOp(TezOperator tezOper) throws VisitorException {
+            writePlan(mPlan, tezOper, buf);
+        }
+
+        public static void writePlan(TezOperPlan plan, TezOperator tezOper, StringBuilder buf) {
             if (tezOper.isVertexGroup()) {
                 buf.append("Tez vertex group " + tezOper.getOperatorKey().toString());
             } else {
                 buf.append("Tez vertex " + tezOper.getOperatorKey().toString());
             }
-            List<TezOperator> succs = mPlan.getSuccessors(tezOper);
+            List<TezOperator> succs = plan.getSuccessors(tezOper);
             if (succs != null) {
                 Collections.sort(succs);
                 buf.append("\t->\t");
@@ -118,6 +129,43 @@ public class TezPrinter extends TezOpPlanVisitor {
                     } else {
                         buf.append("Tez vertex " + op.getOperatorKey().toString()).append(",");
                     }
+                }
+            }
+            buf.append("\n");
+        }
+
+        @Override
+        public String toString() {
+            buf.append("\n");
+            return buf.toString();
+        }
+    }
+
+    /**
+     * This class prints the Tez DAG Graph
+     */
+    public static class TezDAGGraphPrinter extends TezPlanContainerVisitor {
+
+        StringBuilder buf;
+
+        public TezDAGGraphPrinter(TezPlanContainer plan) {
+            super(plan, new DependencyOrderWalker<TezPlanContainerNode, TezPlanContainer>(plan, true));
+            buf = new StringBuilder();
+        }
+
+        @Override
+        public void visitTezPlanContainerNode(TezPlanContainerNode tezPlanContainerNode) throws VisitorException {
+            writePlan(mPlan, tezPlanContainerNode, buf);
+        }
+
+        public static void writePlan(TezPlanContainer mPlan, TezPlanContainerNode tezPlanContainerNode, StringBuilder buf) {
+            buf.append("Tez DAG " + tezPlanContainerNode.getOperatorKey().toString());
+            List<TezPlanContainerNode> succs = mPlan.getSuccessors(tezPlanContainerNode);
+            if (succs != null) {
+                Collections.sort(succs);
+                buf.append("\t->\t");
+                for (TezPlanContainerNode op : succs) {
+                    buf.append("Tez DAG " + op.getOperatorKey().toString()).append(",");
                 }
             }
             buf.append("\n");

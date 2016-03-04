@@ -92,40 +92,55 @@ public class TezSessionManager {
         adjustAMConfig(amConf, tezJobConf);
         String jobName = conf.get(PigContext.JOB_NAME, "pig");
         TezClient tezClient = TezClient.create(jobName, amConf, true, requestedAMResources, creds);
-        tezClient.start();
-        TezAppMasterStatus appMasterStatus = tezClient.getAppMasterStatus();
-        if (appMasterStatus.equals(TezAppMasterStatus.SHUTDOWN)) {
-            throw new RuntimeException("TezSession has already shutdown");
+        try {
+            tezClient.start();
+            TezAppMasterStatus appMasterStatus = tezClient.getAppMasterStatus();
+            if (appMasterStatus.equals(TezAppMasterStatus.SHUTDOWN)) {
+                throw new RuntimeException("TezSession has already shutdown");
+            }
+            tezClient.waitTillReady();
+        } catch (Throwable e) {
+            log.error("Exception while waiting for Tez client to be ready", e);
+            tezClient.stop();
+            throw new RuntimeException(e);
         }
-        tezClient.waitTillReady();
         return new SessionInfo(tezClient, requestedAMResources);
     }
 
     private static void adjustAMConfig(TezConfiguration amConf, TezJobConfig tezJobConf) {
         int requiredAMMaxHeap = -1;
         int requiredAMResourceMB = -1;
-        int configuredAMMaxHeap = Utils.extractHeapSizeInMB(amConf.get(
+        String amLaunchOpts = amConf.get(
                 TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS,
-                TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS_DEFAULT));
+                TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS_DEFAULT);
+        int configuredAMMaxHeap = Utils.extractHeapSizeInMB(amLaunchOpts);
         int configuredAMResourceMB = amConf.getInt(
                 TezConfiguration.TEZ_AM_RESOURCE_MEMORY_MB,
                 TezConfiguration.TEZ_AM_RESOURCE_MEMORY_MB_DEFAULT);
 
         if (tezJobConf.getEstimatedTotalParallelism() > 0) {
 
-            int minAMMaxHeap = 3584;
+            // Need more room for native memory/virtual address space
+            // when close to 4G due to 32-bit jvm 4G limit
+            int minAMMaxHeap = 3200;
             int minAMResourceMB = 4096;
 
             // Rough estimation. For 5K tasks 1G Xmx and 1.5G resource.mb
-            // Increment by 512 mb for every additional 5K tasks.
+            // Increment container size by 512 mb for every additional 5K tasks.
+            //     30000 and above - 3200Xmx, 4096 (896 native memory)
+            //     25000 and above - 3072Xmx, 3584
+            //     20000 and above - 2560Xmx, 3072
+            //     15000 and above - 2048Xmx, 2560
+            //     10000 and above - 1536Xmx, 2048
+            //     5000 and above  - 1024Xmx, 1536 (512 native memory)
             for (int taskCount = 30000; taskCount >= 5000; taskCount-=5000) {
-                if (tezJobConf.getEstimatedTotalParallelism() > taskCount) {
+                if (tezJobConf.getEstimatedTotalParallelism() >= taskCount) {
                     requiredAMMaxHeap = minAMMaxHeap;
                     requiredAMResourceMB = minAMResourceMB;
                     break;
                 }
-                minAMMaxHeap = minAMMaxHeap - 512;
                 minAMResourceMB = minAMResourceMB - 512;
+                minAMMaxHeap = minAMResourceMB - 512;
             }
 
             if (requiredAMResourceMB > -1 && configuredAMResourceMB < requiredAMResourceMB) {
@@ -139,13 +154,14 @@ public class TezSessionManager {
 
                 if (requiredAMMaxHeap > -1 && configuredAMMaxHeap < requiredAMMaxHeap) {
                     amConf.set(TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS,
-                            amConf.get(TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS)
-                                    + " -Xmx" + requiredAMMaxHeap + "M");
+                            amLaunchOpts + " -Xmx" + requiredAMMaxHeap + "M");
                     log.info("Increasing Tez AM Heap Size from "
                             + configuredAMMaxHeap + "M to "
                             + requiredAMMaxHeap
                             + "M as the number of total estimated tasks is "
                             + tezJobConf.getEstimatedTotalParallelism());
+                    log.info("Value of " + TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS + " is now "
+                            + amConf.get(TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS));
                 }
             }
         }

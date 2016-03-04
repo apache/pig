@@ -25,7 +25,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.mapred.MiniMRCluster;
 import org.apache.pig.ExecType;
+import org.apache.pig.backend.hadoop.executionengine.Launcher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 
 public class MiniCluster extends MiniGenericCluster {
     private static final File CONF_DIR = new File("build/classes");
@@ -94,5 +96,9 @@ public class MiniCluster extends MiniGenericCluster {
         }
         if (m_mr != null) { m_mr.shutdown(); }
             m_mr = null;
+    }
+
+    static public Launcher getLauncher() {
+        return new MapReduceLauncher();
     }
 }

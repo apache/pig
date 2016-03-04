@@ -19,7 +19,9 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,8 +34,9 @@ import java.util.concurrent.ThreadFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.counters.Limits;
+import org.apache.hadoop.util.StringUtils;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
@@ -112,10 +115,32 @@ public class TezLauncher extends Launcher {
         if (pc.getExecType().isLocal()) {
             pc.getProperties().setProperty(TezConfiguration.TEZ_LOCAL_MODE, "true");
             pc.getProperties().setProperty(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, "true");
-            pc.getProperties().setProperty("tez.ignore.lib.uris", "true");
-            pc.getProperties().setProperty("tez.am.dag.scheduler.class", DAGSchedulerNaturalOrderControlled.class.getName());
+            pc.getProperties().setProperty(TezConfiguration.TEZ_IGNORE_LIB_URIS, "true");
+            pc.getProperties().setProperty(TezConfiguration.TEZ_AM_DAG_SCHEDULER_CLASS, DAGSchedulerNaturalOrderControlled.class.getName());
         }
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties(), true);
+        // Make sure MR counter does not exceed limit
+        if (conf.get(TezConfiguration.TEZ_COUNTERS_MAX) != null) {
+            conf.setInt(org.apache.hadoop.mapreduce.MRJobConfig.COUNTERS_MAX_KEY, Math.max(
+                    conf.getInt(org.apache.hadoop.mapreduce.MRJobConfig.COUNTERS_MAX_KEY, 0),
+                    conf.getInt(TezConfiguration.TEZ_COUNTERS_MAX, 0)));
+        }
+        if (conf.get(TezConfiguration.TEZ_COUNTERS_MAX_GROUPS) != null) {
+            conf.setInt(org.apache.hadoop.mapreduce.MRJobConfig.COUNTER_GROUPS_MAX_KEY, Math.max(
+                    conf.getInt(org.apache.hadoop.mapreduce.MRJobConfig.COUNTER_GROUPS_MAX_KEY, 0),
+                    conf.getInt(TezConfiguration.TEZ_COUNTERS_MAX_GROUPS, 0)));
+        }
+
+        // This is hacky, but Limits cannot be initialized twice
+        try {
+            Field f = Limits.class.getDeclaredField("isInited");
+            f.setAccessible(true);
+            f.setBoolean(null, false);
+            Limits.init(conf);
+        } catch (Throwable e) {
+            log.warn("Error when setting counter limit: " + e.getMessage());
+        }
+
         if (pc.defaultParallel == -1 && !conf.getBoolean(PigConfiguration.PIG_TEZ_AUTO_PARALLELISM, true)) {
             pc.defaultParallel = 1;
         }
@@ -124,9 +149,16 @@ public class TezLauncher extends Launcher {
         TezResourceManager tezResourceManager = TezResourceManager.getInstance();
         tezResourceManager.init(pc, conf);
 
-        Path stagingDir = tezResourceManager.getStagingDir();
-        log.info("Tez staging directory is " + stagingDir.toString());
-        conf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDir.toString());
+        String stagingDir = conf.get(TezConfiguration.TEZ_AM_STAGING_DIR);
+        String resourcesDir = tezResourceManager.getResourcesDir().toString();
+        if (stagingDir == null) {
+            // If not set in tez-site.xml, use Pig's tez resources directory as staging directory
+            // instead of TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT
+            stagingDir = resourcesDir;
+            conf.set(TezConfiguration.TEZ_AM_STAGING_DIR, resourcesDir);
+        }
+        log.info("Tez staging directory is " + stagingDir + " and resources directory is " + resourcesDir);
+
 
         List<TezOperPlan> processedPlans = new ArrayList<TezOperPlan>();
 
@@ -403,11 +435,27 @@ public class TezLauncher extends Launcher {
             skOptimizer.visit();
         }
 
+        boolean isUnionOpt = conf.getBoolean(PigConfiguration.PIG_TEZ_OPT_UNION, true);
+        List<String> supportedStoreFuncs = null;
+        String unionSupported = conf.get(PigConfiguration.PIG_TEZ_OPT_UNION_SUPPORTED_STOREFUNCS);
+        if (unionSupported != null && unionSupported.trim().length() > 0) {
+            supportedStoreFuncs = Arrays
+                    .asList(StringUtils.split(unionSupported.trim()));
+        }
+        List<String> unionUnsupportedStoreFuncs = null;
+        String unionUnSupported = conf.get(PigConfiguration.PIG_TEZ_OPT_UNION_UNSUPPORTED_STOREFUNCS);
+        if (unionUnSupported != null && unionUnSupported.trim().length() > 0) {
+            unionUnsupportedStoreFuncs = Arrays
+                    .asList(StringUtils.split(unionUnSupported.trim()));
+        }
+
         boolean isMultiQuery = conf.getBoolean(PigConfiguration.PIG_OPT_MULTIQUERY, true);
         if (isMultiQuery) {
             // reduces the number of TezOpers in the Tez plan generated
             // by multi-query (multi-store) script.
-            MultiQueryOptimizerTez mqOptimizer = new MultiQueryOptimizerTez(tezPlan);
+            MultiQueryOptimizerTez mqOptimizer = new MultiQueryOptimizerTez(
+                    tezPlan, isUnionOpt, supportedStoreFuncs,
+                    unionUnsupportedStoreFuncs);
             mqOptimizer.visit();
         }
 
@@ -419,9 +467,8 @@ public class TezLauncher extends Launcher {
         }
 
         // Use VertexGroup in Tez
-        boolean isUnionOpt = conf.getBoolean(PigConfiguration.PIG_TEZ_OPT_UNION, true);
         if (isUnionOpt) {
-            UnionOptimizer uo = new UnionOptimizer(tezPlan);
+            UnionOptimizer uo = new UnionOptimizer(tezPlan, supportedStoreFuncs, unionUnsupportedStoreFuncs);
             uo.visit();
         }
 

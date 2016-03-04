@@ -39,6 +39,7 @@ import org.apache.pig.FuncSpec;
 import org.apache.pig.IndexableLoadFunc;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.fetch.FetchOptimizer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.LimitAdjuster;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompilerException;
@@ -130,7 +131,8 @@ import org.junit.runner.RunWith;
     "testUDFInMergedCoGroup",
     "testUDFInMergedJoin",
     "testSchemaInStoreForDistinctLimit",
-    "testStorerLimit"})
+    "testStorerLimit",
+    "testFetchOptimizerSideEffect"})
 public class TestMRCompiler {
     static MiniCluster cluster;
 
@@ -1279,6 +1281,28 @@ public class TestMRCompiler {
         MapReduceOper firstMrOper = mrPlan.getRoots().get(0);
         POStore store = (POStore)firstMrOper.reducePlan.getLeaves().get(0);
         assertEquals(store.getStoreFunc().getClass().getName(), "org.apache.pig.impl.io.InterStorage");
+    }
+
+    // See PIG-4538
+    @Test
+    public void testFetchOptimizerSideEffect() throws Exception{
+        String query = "in1 = LOAD 'data.txt' AS (ident:chararray);" +
+            "in2 = LOAD 'data.txt' AS (ident:chararray);" +
+            "in3 = LOAD 'data.txt';" +
+            "joined = JOIN in1 BY ident LEFT OUTER, in2 BY ident;" +
+            "store joined into 'output';";
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
+        MROperPlan mp = Util.buildMRPlan(pp, pc);
+        // isPlanFetchable should not bring side effect:
+        //   set parentPlan for operators
+        FetchOptimizer.isPlanFetchable(pc, pp);
+        MapReduceOper op = mp.getLeaves().get(0);
+        PhysicalOperator store = op.reducePlan.getLeaves().get(0);
+        POForEach foreach = (POForEach)op.reducePlan.getPredecessors(store).get(0);
+        PhysicalOperator project = foreach.getInputPlans().get(0).getRoots().get(0);
+        Field parentPlan = PhysicalOperator.class.getDeclaredField("parentPlan");
+        parentPlan.setAccessible(true);
+        assertTrue(parentPlan.get(project)==null);
     }
 }
 

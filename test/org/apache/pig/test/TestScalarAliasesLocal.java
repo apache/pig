@@ -25,8 +25,10 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.pig.PigServer;
+import org.apache.pig.builtin.mock.Storage;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
@@ -556,4 +558,39 @@ public class TestScalarAliasesLocal {
         );
     }
 
+    @Test
+    public void testScalarNullValue() throws Exception{
+        Storage.Data data = Storage.resetData(pigServer);
+        data.set("input", Storage.tuple("a", 1), Storage.tuple("b", 2));
+
+        pigServer.setBatchOn();
+        pigServer.registerQuery("A = load 'input' using mock.Storage() as (a:chararray, b:int);");
+        pigServer.registerQuery("B = FILTER A by a == 'c';");
+        pigServer.registerQuery("C = FOREACH A generate a, b + B.b;");
+        pigServer.registerQuery("store C into 'output' using mock.Storage();");
+
+        pigServer.executeBatch();
+
+        List<Tuple> actualResults = data.get("output");
+        List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
+                new String[] {"('a', null)", "('b', null)"});
+        Util.checkQueryOutputsAfterSort(actualResults.iterator(), expectedResults);
+
+    }
+
+    @Test
+    public void testScalarNullValue2() throws Exception{
+        Storage.Data data = Storage.resetData(pigServer);
+        data.set("input", Storage.tuple("a", 1), Storage.tuple("b", 2));
+
+        pigServer.registerQuery("A = load 'input' using mock.Storage() as (a:chararray, b:int);");
+        pigServer.registerQuery("B = FILTER A by a == 'c';");
+        pigServer.registerQuery("C = GROUP B ALL;");
+        pigServer.registerQuery("D = FOREACH C GENERATE COUNT(B.b) as count;");
+        pigServer.registerQuery("E = FOREACH A GENERATE (D.count IS NOT NULL? D.count : 0l);;");
+
+        Iterator<Tuple> iter = pigServer.openIterator("E");
+        Tuple t = iter.next();
+        assertTrue(t.toString().equals("(0)"));
+    }
 }

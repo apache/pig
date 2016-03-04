@@ -33,8 +33,11 @@ import org.apache.pig.backend.hadoop.executionengine.tez.TezLauncher;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezLocalExecType;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPlanContainer;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPlanContainerPrinter;
+import org.apache.pig.builtin.OrcStorage;
+import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.NodeIdGenerator;
+import org.apache.pig.test.TestMultiQueryBasic.DummyStoreWithOutputFormat;
 import org.apache.pig.test.Util;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.AfterClass;
@@ -86,6 +89,52 @@ public class TestTezCompiler {
     }
 
     @Test
+    public void testStoreLoad() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' as (x:int, y:int);" +
+                "store a into 'file:///tmp/output';" +
+                "b = load 'file:///tmp/output' as (x:int, y:int);" +
+                "store b into 'file:///tmp/output1';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-LoadStore-1.gld");
+    }
+
+    @Test
+    public void testStoreLoadMultiple() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input';" +
+                "store a into 'file:///tmp/output/Dir1';" +
+                "a = load 'file:///tmp/output/Dir1';" +
+                "store a into 'file:///tmp/output/Dir2' using BinStorage();" +
+                "a = load 'file:///tmp/output/Dir1';" +
+                "store a into 'file:///tmp/output/Dir3';" +
+                "a = load 'file:///tmp/output/Dir2' using BinStorage();" +
+                "store a into 'file:///tmp/output/Dir4';" +
+                "a = load 'file:///tmp/output/Dir3';" +
+                "b = load 'file:///tmp/output/Dir2' using BinStorage();" +
+                "c = load 'file:///tmp/output/Dir1';" +
+                "d = cogroup a by $0, b by $0, c by $0;" +
+                "store d into 'file:///tmp/output/Dir5';";
+
+        // To get around difference in ordering of operators in plan due to JDK7 and JDK8
+        if (System.getProperties().getProperty("java.version").startsWith("1.8")) {
+            run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-LoadStore-2.gld");
+        } else {
+            run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-LoadStore-2-JDK7.gld");
+        }
+    }
+
+    @Test
+    public void testNative() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' as (x:int, y:int);" +
+                "b = native 'hadoop-examples.jar' Store a into '/tmp/table_testNativeMRJobSimple_input' Load '/tmp/table_testNativeMRJobSimple_output' `wordcount /tmp/table_testNativeMRJobSimple_input /tmp/table_testNativeMRJobSimple_output`;" +
+                "store b into 'file:///tmp/output';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Native-1.gld");
+    }
+
+    @Test
     public void testFilter() throws Exception {
         String query =
                 "a = load 'file:///tmp/input' as (x:int, y:int);" +
@@ -120,6 +169,121 @@ public class TestTezCompiler {
     }
 
     @Test
+    public void testSelfJoin() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
+                "b = filter a by x < 5;" +
+                "c = filter a by x == 10;" +
+                "d = filter a by x > 10;" +
+                "e = join b by x, c by x, d by x;" +
+                "store e into 'file:///tmp/output';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-SelfJoin-1.gld");
+    }
+
+    @Test
+    public void testSelfJoinSkewed() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
+                "b = filter a by x < 5;" +
+                "c = filter a by x == 10;" +
+                "d = join b by x, c by x using 'skewed';" +
+                "store d into 'file:///tmp/output';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-SelfJoin-2.gld");
+    }
+
+    @Test
+    public void testSelfJoinReplicated() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
+                "b = filter a by x < 5;" +
+                "c = filter a by x == 10;" +
+                "d = filter a by x > 10;" +
+                "e = join b by x, c by x, d by x using 'replicated';" +
+                "store e into 'file:///tmp/output';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-SelfJoin-3.gld");
+    }
+
+    @Test
+    public void testSelfJoinUnionReplicated() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
+                "b = load 'file:///tmp/input2' as (x:int, z:int);" +
+                "c = union a, b;" +
+                "d = join b by x, c by x using 'replicated';" +
+                "store d into 'file:///tmp/output';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-SelfJoin-4.gld");
+    }
+
+    @Test
+    public void testSelfJoinUnion() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
+                "a1 = filter a by x > 5;" +
+                "a2 = filter a by x < 2;" +
+                "b = union a1, a2;" +
+                "c = join b by x, a by x;" +
+                "store c into 'file:///tmp/output';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-SelfJoin-5.gld");
+    }
+
+    @Test
+    public void testSelfJoinUnionDifferentMembers() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
+                "a1 = filter a by x > 5;" +
+                "a2 = filter a by x < 2;" +
+                "a3 = filter a by y == 10;" +
+                "a4 = join a2 by x, a3 by x;" +
+                "a5 = foreach a4 generate a2::x as x, a3::y as y;" +
+                "b = union a1, a5;" +
+                "c = join b by x, a by x;" +
+                "store c into 'file:///tmp/output';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-SelfJoin-6.gld");
+    }
+
+    @Test
+    public void testCross() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
+                "b = load 'file:///tmp/input2' as (x:int, z:int);" +
+                "c = cross a, b;" +
+                "d = foreach c generate a::x as x, y, z;" +
+                "store d into 'file:///tmp/output';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Cross-1.gld");
+    }
+
+    @Test
+    public void testSelfCross() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
+                "b = filter a by x < 5;" +
+                "c = filter a by x == 10;" +
+                "d = cross b, c;" +
+                "store d into 'file:///tmp/output';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Cross-2.gld");
+    }
+
+    @Test
+    public void testCrossScalarSplit() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
+                "b = load 'file:///tmp/input2' as (x:int, z:int);" +
+                "c = cross b, a;" +
+                "d = foreach c generate a.x, a.y, z;" + //Scalar
+                "store d into 'file:///tmp/output';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Cross-3.gld");
+    }
+
+    @Test
     public void testSkewedJoin() throws Exception {
         String query =
                 "a = load 'file:///tmp/input1' as (x:int, y:int);" +
@@ -129,6 +293,19 @@ public class TestTezCompiler {
                 "store d into 'file:///tmp/output';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-SkewJoin-1.gld");
+    }
+
+    @Test
+    public void testSkewedJoinFilter() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
+                "a = filter a by x == 1;" +
+                "b = load 'file:///tmp/input2' as (x:int, z:int);" +
+                "c = join a by x, b by x using 'skewed';" +
+                "d = foreach c generate a::x as x, y, z;" +
+                "store d into 'file:///tmp/output';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-SkewJoin-2.gld");
     }
 
     @Test
@@ -248,6 +425,29 @@ public class TestTezCompiler {
                 "STORE b INTO 'file:///tmp/output';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Order-1.gld");
+    }
+
+    @Test
+    public void testOrderByWithFilter() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' using PigStorage(',') as (x:int, y:int);" +
+                "b = filter a by x == 1;" +
+                "c = order b by x;" +
+                "STORE c INTO 'file:///tmp/output';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Order-2.gld");
+    }
+
+    @Test
+    public void testOrderByReadOnceLoadFunc() throws Exception {
+        setProperty("pig.sort.readonce.loadfuncs","org.apache.pig.backend.hadoop.hbase.HBaseStorage,org.apache.pig.backend.hadoop.accumulo.AccumuloStorage");
+        String query =
+                "a = load 'file:///tmp/input' using org.apache.pig.backend.hadoop.hbase.HBaseStorage(',') as (x:int, y:int);" +
+                "b = order a by x;" +
+                "STORE b INTO 'file:///tmp/output';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Order-3.gld");
+        setProperty("pig.sort.readonce.loadfuncs", null);
     }
 
     // PIG-3759, PIG-3781
@@ -370,6 +570,59 @@ public class TestTezCompiler {
     }
 
     @Test
+    public void testMultiQueryScalar() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' as (x:int, y:int);" +
+                "b = group a by x;" +
+                "c = foreach b generate group, COUNT(a) as cnt;" +
+                "SPLIT a into d if (2 * c.cnt) < y, e OTHERWISE;" +
+                "store d into 'file:///tmp/output1';" +
+                "store e into 'file:///tmp/output2';";
+
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + true);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-6.gld");
+        resetScope();
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + false);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-6-OPTOFF.gld");
+    }
+
+    @Test
+    public void testMultiQueryMultipleReplicateJoin() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' as (x:int, y:int);" +
+                "b = load 'file:///tmp/input' as (x:int, y:int);" +
+                "c = join a by $0, b by $0 using 'replicated';" +
+                "d = join a by $1, b by $1 using 'replicated';" +
+                "e = union c,d;" +
+                "store e into 'file:///tmp/output';";
+
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + true);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-7.gld");
+        resetScope();
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + false);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-7-OPTOFF.gld");
+    }
+
+    @Test
+    public void testMultiQueryMultipleScalar() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
+                "b = filter a by x == 5;" +
+                "b = foreach b generate $0 as b1;" +
+                "c = filter a by x == 10;" +
+                "c = foreach c generate $0 as c1;" +
+                "d = group a by x;" +
+                "e = foreach d generate group, b.b1, c.c1;" +
+                "store e into 'file:///tmp/output';";
+
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + true);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-8.gld");
+        resetScope();
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + false);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-8-OPTOFF.gld");
+    }
+
+    @Test
     public void testUnionStore() throws Exception {
         String query =
                 "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
@@ -379,8 +632,38 @@ public class TestTezCompiler {
 
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-1.gld");
+        resetScope();
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-1-OPTOFF.gld");
+    }
+
+    @Test
+    public void testUnionUnSupportedStore() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
+                "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
+                "c = union onschema a, b;" +
+                "store c into 'file:///tmp/output';";
+
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
+        String oldSupported = getProperty(PigConfiguration.PIG_TEZ_OPT_UNION_SUPPORTED_STOREFUNCS);
+        String oldUnSupported = getProperty(PigConfiguration.PIG_TEZ_OPT_UNION_UNSUPPORTED_STOREFUNCS);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION_UNSUPPORTED_STOREFUNCS, PigStorage.class.getName());
+        // Plan should not have union optimization applied
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-1-OPTOFF.gld");
+        resetScope();
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION_UNSUPPORTED_STOREFUNCS, null);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION_SUPPORTED_STOREFUNCS, OrcStorage.class.getName());
+        query =
+                "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
+                "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
+                "c = union onschema a, b;" +
+                "store c into 'file:///tmp/output' using " + DummyStoreWithOutputFormat.class.getName() + "();";
+        // Plan should not have union optimization applied
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-1-DummyStore-OPTOFF.gld");
+        // Restore the value
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION_SUPPORTED_STOREFUNCS, oldSupported);
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION_UNSUPPORTED_STOREFUNCS, oldUnSupported);
     }
 
     @Test
@@ -449,6 +732,8 @@ public class TestTezCompiler {
 
     @Test
     public void testUnionSkewedJoin() throws Exception {
+        // TODO: PIG-4574 optimization needs to be done for this as well.
+        // Requires changes in UnionOptimizer
         String query =
                 "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
                 "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
@@ -465,6 +750,8 @@ public class TestTezCompiler {
 
     @Test
     public void testUnionOrderby() throws Exception {
+        // TODO: PIG-4574 optimization needs to be done for this as well.
+        // Requires changes in UnionOptimizer
         String query =
                 "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
                 "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
@@ -500,7 +787,7 @@ public class TestTezCompiler {
                 "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
                 "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
                 "split a into a1 if x > 100, a2 otherwise;" +
-                "c = union onschema a1, b;" +
+                "c = union onschema a1, a2, b;" +
                 "split c into d if x > 500, e otherwise;" +
                 "store a2 into 'file:///tmp/output/a2';" +
                 "store d into 'file:///tmp/output/d';" +
@@ -508,6 +795,7 @@ public class TestTezCompiler {
 
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-9.gld");
+        resetScope();
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-9-OPTOFF.gld");
     }
@@ -521,17 +809,18 @@ public class TestTezCompiler {
                 "d = load 'file:///tmp/input1' as (x:int, y:chararray);" +
                 "e = union onschema c, d;" +
                 "f = group e by x;" +
-                "store f into 'file:///tmp/output';";
+                "store e into 'file:///tmp/output1';" +
+                "store f into 'file:///tmp/output2';";
 
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-10.gld");
         resetScope();
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-10-OPTOFF.gld");
+
     }
 
-    //TODO: union followed by union followed by store does not work.
-    //@Test
+    @Test
     public void testUnionUnionStore() throws Exception {
         String query =
                 "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
@@ -546,6 +835,127 @@ public class TestTezCompiler {
         resetScope();
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-11-OPTOFF.gld");
+    }
+
+    @Test
+    public void testMultipleUnionSplitJoin() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
+                "b = filter a by x == 2;" +
+                "b1 = foreach b generate *;" +
+                "b2 = foreach b generate *;" +
+                "b3 = union onschema b1, b2;" +
+                "c = filter a by x == 3;" +
+                "c1 = foreach c generate y, x;" +
+                "c2 = foreach c generate y, x;" +
+                "c3 = union c1, c2;" +
+                "a1 = union onschema b3, c3;" +
+                "store a1 into 'file:///tmp/output1';" +
+                "d = load 'file:///tmp/input1' as (x:int, z:chararray);" +
+                "e = join a1 by x, d by x using 'skewed';" +
+                "store e into 'file:///tmp/output2';";
+
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-12.gld");
+        resetScope();
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-12-OPTOFF.gld");
+    }
+
+    @Test
+    public void testUnionSplitReplicateJoin() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
+                "b = filter a by x == 2;" +
+                "c = union onschema a, b;" +
+                "d = load 'file:///tmp/input1' as (x:int, z:chararray);" +
+                "e = join c by x, d by x using 'replicated';" +
+                "store e into 'file:///tmp/output';";
+
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-13.gld");
+        resetScope();
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-13-OPTOFF.gld");
+
+        query =
+                "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
+                "b = filter a by x == 2;" +
+                "c = union onschema a, b;" +
+                "d = load 'file:///tmp/input1' as (x:int, z:chararray);" +
+                "e = join d by x, c by x using 'replicated';" +
+                "store e into 'file:///tmp/output';";
+
+        resetScope();
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-14.gld");
+        resetScope();
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-14-OPTOFF.gld");
+    }
+
+    @Test
+    public void testUnionSplitSkewedJoin() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
+                "b = filter a by x == 2;" +
+                "c = union onschema a, b;" +
+                "d = load 'file:///tmp/input1' as (x:int, z:chararray);" +
+                "e = join c by x, d by x using 'skewed';" +
+                "store e into 'file:///tmp/output';";
+
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-15.gld");
+        resetScope();
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-15-OPTOFF.gld");
+
+        query =
+                "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
+                "b = filter a by x == 2;" +
+                "c = union onschema a, b;" +
+                "d = load 'file:///tmp/input1' as (x:int, z:chararray);" +
+                "e = join d by x, c by x using 'skewed';" +
+                "store e into 'file:///tmp/output';";
+
+        resetScope();
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-16.gld");
+        resetScope();
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-16-OPTOFF.gld");
+    }
+
+    @Test
+    public void testUnionScalar() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
+                "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
+                "c = union onschema a, b;" +
+                "d = load 'file:///tmp/input1' as (x:int, z:chararray);" +
+                "e = filter c by x == d.x;" +
+                "store e into 'file:///tmp/output';";
+
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-17.gld");
+        resetScope();
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-17-OPTOFF.gld");
+
+        query =
+                "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
+                "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
+                "c = union onschema a, b;" +
+                "d = load 'file:///tmp/input1' as (x:int, z:chararray);" +
+                "e = filter d by x == c.x;" +
+                "store e into 'file:///tmp/output';";
+
+        resetScope();
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-18.gld");
+        resetScope();
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-18-OPTOFF.gld");
     }
 
     @Test
@@ -569,8 +979,16 @@ public class TestTezCompiler {
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Rank-2.gld");
     }
 
+    private String getProperty(String property) {
+        return pigServer.getPigContext().getProperties().getProperty(property);
+    }
+
     private void setProperty(String property, String value) {
-        pigServer.getPigContext().getProperties().setProperty(property, value);
+        if (value == null) {
+            pigServer.getPigContext().getProperties().remove(property);
+        } else {
+            pigServer.getPigContext().getProperties().setProperty(property, value);
+        }
     }
 
     private void run(String query, String expectedFile) throws Exception {

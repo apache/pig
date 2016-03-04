@@ -227,7 +227,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
     private String generateIncompatibleTypesMessage(BinaryExpression binOp)
     throws FrontendException {
         String msg = binOp.toString();
-        if (currentRelOp.getAlias()!=null){
+        if (currentRelOp != null && currentRelOp.getAlias() != null) {
             msg = "In alias " + currentRelOp.getAlias() + ", ";
         }
         LogicalFieldSchema lhsFs = binOp.getLhs().getFieldSchema();
@@ -488,7 +488,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
     public void visit(CastExpression cast) throws FrontendException {
         byte inType = cast.getExpression().getType();
         byte outType = cast.getType();
-        if(outType == DataType.BYTEARRAY){
+        if(outType == DataType.BYTEARRAY && inType != outType) {
             int errCode = 1051;
             String msg = "Cannot cast to bytearray";
             msgCollector.collect(msg, MessageType.Error) ;
@@ -710,7 +710,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             String msg = "Unable to get list of overloaded methods.";
             throw new TypeCheckerException(func, msg, errCode, PigException.INPUT, e);
         }
-        
+
         // EvalFunc's schema type
         SchemaType udfSchemaType = ef.getSchemaType();
 
@@ -820,7 +820,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
      *            input schema
      * @param func -
      *             udf expression
-     * @param udfSchemaType - 
+     * @param udfSchemaType -
      *            schema type of the udf
      * @return the funcSpec that supports the schema that is best suited to s.
      *         The best suited schema is one that has the lowest score as
@@ -912,6 +912,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         /* (non-Javadoc)
          * @see java.util.Comparator#compare(java.lang.Object, java.lang.Object)
          */
+        @Override
         public int compare(Pair<Long, FuncSpec> o1, Pair<Long, FuncSpec> o2) {
             if(o1.first < o2.first)
                 return -1;
@@ -1135,11 +1136,11 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
 
             //if there's no more UDF field: take the last one which is the vararg field
             udfFieldSchema = j.hasNext() ? j.next() : udfFieldSchema;
-            
+
             if(ignoreByteArrays && inputFieldSchema.type == DataType.BYTEARRAY) {
                 continue;
             }
-            
+
             if (inputFieldSchema.type != udfFieldSchema.type) {
                 return false;
             }
@@ -1313,7 +1314,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         if(s1==null || s2==null) return INF;
         List<FieldSchema> sFields = s1.getFields();
         List<FieldSchema> fsFields = s2.getFields();
-        
+
         if((s2Type == SchemaType.NORMAL) && (sFields.size()!=fsFields.size()))
             return INF;
         if((s2Type == SchemaType.VARARG) && (sFields.size() < fsFields.size()))
@@ -1332,9 +1333,9 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             // of this function
             if (sFS.type == DataType.BYTEARRAY)
                 continue;
-            
+
             //if we get to the vararg field (if defined) : take it repeatedly
-            FieldSchema fsFS = ((s2Type == SchemaType.VARARG) && i >= s2.size()) ? 
+            FieldSchema fsFS = ((s2Type == SchemaType.VARARG) && i >= s2.size()) ?
                     fsFields.get(s2.size() - 1) : fsFields.get(i);
 
             if(DataType.isSchemaType(sFS.type)){
@@ -1361,7 +1362,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         for (FieldSchema fFSch : fsLst) {
             ++i;
             //if we get to the vararg field (if defined) : take it repeatedly
-            FieldSchema tFSch = ((toSchType == SchemaType.VARARG) && i >= tsLst.size()) ? 
+            FieldSchema tFSch = ((toSchType == SchemaType.VARARG) && i >= tsLst.size()) ?
                     tsLst.get(tsLst.size() - 1) : tsLst.get(i);
             if (fFSch.type == tFSch.type) {
                 continue;

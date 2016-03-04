@@ -26,6 +26,7 @@ import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.builtin.InvokerGenerator;
@@ -57,26 +58,6 @@ public class UserFuncExpression extends LogicalExpression {
     private static int sigSeq=0;
     private boolean viaDefine=false; //this represents whether the function was instantiate via a DEFINE statement or not
 
-    private boolean rollupHIIoptimizable = false;
-    //the pivot value
-    private int pivot = -1;
-
-    public void setPivot(int pvt) {
-        this.pivot = pvt;
-    }
-
-    public int getPivot() {
-        return this.pivot;
-    }
-
-    public void setRollupHIIOptimizable(boolean check) {
-        this.rollupHIIoptimizable = check;
-    }
-
-    public boolean getRollupHIIOptimizable() {
-        return this.rollupHIIoptimizable;
-    }
-
     public UserFuncExpression(OperatorPlan plan, FuncSpec funcSpec) {
         super("UserFunc", plan);
         mFuncSpec = funcSpec;
@@ -85,6 +66,7 @@ public class UserFuncExpression extends LogicalExpression {
             signature = Integer.toString(sigSeq++);
         }
     }
+
 
     public UserFuncExpression(OperatorPlan plan, FuncSpec funcSpec, List<LogicalExpression> args) {
         this( plan, funcSpec );
@@ -241,10 +223,20 @@ public class UserFuncExpression extends LogicalExpression {
         }
 
         ef.setUDFContextSignature(signature);
-        Properties props = UDFContext.getUDFContext().getUDFProperties(ef.getClass());
         Schema translatedInputSchema = Util.translateSchema(inputSchema);
         if(translatedInputSchema != null) {
+            Properties props = UDFContext.getUDFContext().getUDFProperties(ef.getClass());
             props.put("pig.evalfunc.inputschema."+signature, translatedInputSchema);
+            if (ef instanceof Algebraic) {
+                // In case of Algebraic func, set original inputSchema to Initial,
+                // Intermed, Final
+                for (String func : new String[]{((Algebraic)ef).getInitial(), 
+                        ((Algebraic)ef).getIntermed(), ((Algebraic)ef).getFinal()}) {
+                    Class c = PigContext.instantiateFuncFromSpec(new FuncSpec(func)).getClass();
+                    props = UDFContext.getUDFContext().getUDFProperties(c);
+                    props.put("pig.evalfunc.inputschema."+signature, translatedInputSchema);
+                }
+            }
         }
         // Store inputSchema into the UDF context
         ef.setInputSchema(translatedInputSchema);

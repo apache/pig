@@ -363,7 +363,7 @@ public class LogicalSchema {
             if (mode==MergeMode.UnionInner) {
                 if (fs1.type!=fs2.type)
                     // We don't merge inner schema of different type for union, throw exception
-                    throw new FrontendException("Incompatable field schema: left is \"" + fs1.toString(false) + "\", right is \"" + fs2.toString(false) + "\"", 1031);
+                    throw new FrontendException("Incompatible field schema: left is \"" + fs1.toString(false) + "\", right is \"" + fs2.toString(false) + "\"", 1031);
                 else
                     mergedType = fs1.type;
             }
@@ -371,7 +371,7 @@ public class LogicalSchema {
                 if (fs1.type==DataType.NULL||fs1.type==DataType.BYTEARRAY)  // If declared schema does not have type part
                     mergedType = fs2.type;
                 else if (!DataType.castable(fs1.type, fs2.type))
-                    throw new FrontendException("Incompatable field schema: declared is \"" + fs1.toString(false) + "\", infered is \"" + fs2.toString(false) + "\"", 1031);
+                    throw new FrontendException("Incompatible field schema: declared is \"" + fs1.toString(false) + "\", infered is \"" + fs2.toString(false) + "\"", 1031);
                 else mergedType = fs1.type; // If compatible type, we take the declared type
             }
             else {
@@ -438,7 +438,7 @@ public class LogicalSchema {
                                 // Only check compatibility
                                 mergedSubSchema = LogicalSchema.merge(fs1.schema, fs2.schema, MergeMode.LoadForEachInner);
                             } catch (FrontendException e) {
-                                throw new FrontendException("Incompatable field schema: left is \"" + fs1.toString(false) + "\", right is \"" + fs2.toString(false) + "\"", 1031);
+                                throw new FrontendException("Incompatible field schema: left is \"" + fs1.toString(false) + "\", right is \"" + fs2.toString(false) + "\"", 1031);
                             }
                         }
                     }
@@ -757,7 +757,7 @@ public class LogicalSchema {
             if (mode==MergeMode.Union) // In union, incompatible type result a null schema
                 return null;
             else
-                throw new FrontendException("Incompatable schema: left is \"" + s1.toString(false) + "\", right is \"" + s2.toString(false) + "\"", 1031);    
+                throw new FrontendException("Incompatible schema: left is \"" + s1.toString(false) + "\", right is \"" + s2.toString(false) + "\"", 1031);    
         }
             
         LogicalSchema mergedSchema = new LogicalSchema();

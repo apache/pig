@@ -27,7 +27,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlan
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.pen.util.ExampleTuple;
@@ -38,14 +37,14 @@ public class POLimit extends PhysicalOperator {
      */
     private static final long serialVersionUID = 1L;
 
-    // Counts for outputs processed
-    private long soFar = 0;
-
     // Number of limited outputs
-    long mLimit;
+    private long mLimit;
 
     // The expression plan
-    PhysicalPlan expressionPlan;
+    private PhysicalPlan expressionPlan;
+
+    // Counts for outputs processed
+    private transient long soFar = 0;
 
     public POLimit(OperatorKey k) {
         this(k, -1, null);
@@ -159,15 +158,11 @@ public class POLimit extends PhysicalOperator {
 
     @Override
     public POLimit clone() throws CloneNotSupportedException {
-        POLimit newLimit = new POLimit(new OperatorKey(this.mKey.scope,
-            NodeIdGenerator.getGenerator().getNextNodeId(this.mKey.scope)),
-            this.requestedParallelism, this.inputs);
-        newLimit.mLimit = this.mLimit;
+        POLimit clone = (POLimit) super.clone();
         if (this.expressionPlan != null) {
-            newLimit.expressionPlan = this.expressionPlan.clone();
+            clone.expressionPlan = this.expressionPlan.clone();
         }
-        newLimit.addOriginalLocation(alias, getOriginalLocations());
-        return newLimit;
+        return clone;
     }
 
     @Override

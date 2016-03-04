@@ -223,10 +223,16 @@ public class TezJob implements Runnable {
 
     private class DAGStatusReporter extends TimerTask {
 
+        private String prevDAGStatus;
+
         @Override
         public void run() {
             if (dagStatus == null) return;
-            log.info("DAG Status: " + dagStatus.toString());
+            String currDAGStatus = dagStatus.toString();
+            if (!currDAGStatus.equals(prevDAGStatus)) {
+                log.info("DAG Status: " + currDAGStatus);
+                prevDAGStatus = currDAGStatus;
+            }
         }
     }
 

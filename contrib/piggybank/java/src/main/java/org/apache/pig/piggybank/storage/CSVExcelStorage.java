@@ -305,6 +305,7 @@ public class CSVExcelStorage extends PigStorage implements StoreFuncInterface, L
 
             // Substitute a null value with an empty string. See PIG-2470.
             if (field == null) {
+                fieldStr = null;
                 mProtoTuple.add("");
                 continue;
             }
@@ -666,6 +667,11 @@ public class CSVExcelStorage extends PigStorage implements StoreFuncInterface, L
 
     @Override
     public void setUDFContextSignature(String signature) {
+        this.udfContextSignature = signature; 
+    }
+
+    @Override
+    public void setStoreFuncUDFContextSignature(String signature) {
         this.udfContextSignature = signature; 
     }
 

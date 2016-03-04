@@ -22,7 +22,7 @@ import static org.apache.pig.tools.pigstats.tez.TezDAGStats.PIG_COUNTER_GROUP;
 import static org.apache.pig.tools.pigstats.tez.TezDAGStats.TASK_COUNTER_GROUP;
 
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +33,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.Counters;
 import org.apache.pig.PigCounters;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigInputFormat;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -49,6 +50,7 @@ import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.client.VertexStatus;
+import org.apache.tez.dag.api.client.VertexStatus.State;
 
 import com.google.common.collect.Maps;
 
@@ -62,25 +64,25 @@ public class TezVertexStats extends JobStats {
 
     private boolean isMapOpts;
     private int parallelism;
+    private State vertexState;
     // CounterGroup, Counter, Value
     private Map<String, Map<String, Long>> counters = null;
 
     private List<POStore> stores = null;
     private List<FileSpec> loads = null;
 
-    private int numberMaps = 0;
-    private int numberReduces = 0;
-
-    private long mapInputRecords = 0;
-    private long mapOutputRecords = 0;
-    private long reduceInputRecords = 0;
-    private long reduceOutputRecords = 0;
+    private int numTasks = 0;
+    private long numInputRecords = 0;
+    private long numReduceInputRecords = 0;
+    private long numOutputRecords = 0;
+    private long fileBytesRead = 0;
+    private long fileBytesWritten = 0;
     private long spillCount = 0;
     private long activeSpillCountObj = 0;
     private long activeSpillCountRecs = 0;
 
-    private HashMap<String, Long> multiStoreCounters
-            = new HashMap<String, Long>();
+    private Map<String, Long> multiInputCounters = Maps.newHashMap();
+    private Map<String, Long> multiStoreCounters = Maps.newHashMap();
 
     public TezVertexStats(String name, JobGraph plan, boolean isMapOpts) {
         super(name, plan);
@@ -103,13 +105,25 @@ public class TezVertexStats extends JobStats {
     @Override
     public String getDisplayString() {
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format("%1$20s: %2$-100s%n", "VertexName", name));
-        if (getAlias() != null && !getAlias().isEmpty()) {
-            sb.append(String.format("%1$20s: %2$-100s%n", "Alias", getAlias()));
+        sb.append(String.format("%-10s ", name));
+        if (state == JobState.FAILED) {
+            sb.append(vertexState.name());
         }
-        if (getFeature() != null && !getFeature().isEmpty()) {
-            sb.append(String.format("%1$20s: %2$-100s%n", "Features", getFeature()));
+        sb.append(String.format("%9s ", parallelism));
+        sb.append(String.format("%10s ", numTasks));
+        sb.append(String.format("%14s ", numInputRecords));
+        sb.append(String.format("%20s ", numReduceInputRecords));
+        sb.append(String.format("%14s ", numOutputRecords));
+        sb.append(String.format("%14s ", fileBytesRead));
+        sb.append(String.format("%16s ", fileBytesWritten));
+        sb.append(String.format("%14s ", hdfsBytesRead));
+        sb.append(String.format("%16s ", hdfsBytesWritten));
+        sb.append(getAlias()).append("\t");
+        sb.append(getFeature()).append("\t");
+        for (OutputStats os : outputs) {
+            sb.append(os.getLocation()).append(",");
         }
+        sb.append("\n");
         return sb.toString();
     }
 
@@ -123,7 +137,7 @@ public class TezVertexStats extends JobStats {
             this.stores = (List<POStore>) ObjectSerializer.deserialize(
                     conf.get(JobControlCompiler.PIG_REDUCE_STORES));
             this.loads = (List<FileSpec>) ObjectSerializer.deserialize(
-                    conf.get("pig.inputs"));
+                    conf.get(PigInputFormat.PIG_INPUTS));
         } catch (IOException e) {
             LOG.warn("Failed to deserialize the store list", e);
         }
@@ -138,17 +152,12 @@ public class TezVertexStats extends JobStats {
     }
 
     public void accumulateStats(VertexStatus status, int parallelism) {
-        hdfsBytesRead = -1;
-        hdfsBytesWritten = -1;
 
         if (status != null) {
             setSuccessful(status.getState().equals(VertexStatus.State.SUCCEEDED));
-            this.parallelism = parallelism;
-            if (this.isMapOpts) {
-                numberMaps += parallelism;
-            } else {
-                numberReduces += parallelism;
-            }
+            this.vertexState = status.getState();
+            this.parallelism = parallelism; //compile time parallelism
+            this.numTasks = status.getProgress().getTotalTaskCount(); //run time parallelism
             TezCounters tezCounters = status.getVertexCounters();
             counters = Maps.newHashMap();
             Iterator<CounterGroup> grpIt = tezCounters.iterator();
@@ -163,14 +172,22 @@ public class TezVertexStats extends JobStats {
                 counters.put(grp.getName(), cntMap);
             }
 
-            if (counters.get(FS_COUNTER_GROUP) != null &&
-                    counters.get(FS_COUNTER_GROUP).get(PigStatsUtil.HDFS_BYTES_READ) != null) {
-                hdfsBytesRead = counters.get(FS_COUNTER_GROUP).get(PigStatsUtil.HDFS_BYTES_READ);
+            Map<String, Long> fsCounters = counters.get(FS_COUNTER_GROUP);
+            if (fsCounters != null) {
+                if (fsCounters.containsKey(PigStatsUtil.HDFS_BYTES_READ)) {
+                    this.hdfsBytesRead = fsCounters.get(PigStatsUtil.HDFS_BYTES_READ);
+                }
+                if (fsCounters.containsKey(PigStatsUtil.HDFS_BYTES_WRITTEN)) {
+                    this.hdfsBytesWritten = fsCounters.get(PigStatsUtil.HDFS_BYTES_WRITTEN);
+                }
+                if (fsCounters.containsKey(PigStatsUtil.FILE_BYTES_READ)) {
+                    this.fileBytesRead = fsCounters.get(PigStatsUtil.FILE_BYTES_READ);
+                }
+                if (fsCounters.containsKey(PigStatsUtil.FILE_BYTES_WRITTEN)) {
+                    this.fileBytesWritten = fsCounters.get(PigStatsUtil.FILE_BYTES_WRITTEN);
+                }
             }
-            if (counters.get(FS_COUNTER_GROUP) != null &&
-                    counters.get(FS_COUNTER_GROUP).get(PigStatsUtil.HDFS_BYTES_WRITTEN) != null) {
-                hdfsBytesWritten = counters.get(FS_COUNTER_GROUP).get(PigStatsUtil.HDFS_BYTES_WRITTEN);
-            }
+
             Map<String, Long> pigCounters = counters.get(PIG_COUNTER_GROUP);
             if (pigCounters != null) {
                 if (pigCounters.containsKey(PigCounters.SPILLABLE_MEMORY_MANAGER_SPILL_COUNT)) {
@@ -198,24 +215,44 @@ public class TezVertexStats extends JobStats {
     }
 
     public void addInputStatistics() {
+
+        long inputRecords = -1;
+        Map<String, Long> taskCounters = counters.get(TASK_COUNTER_GROUP);
+        if (taskCounters != null) {
+            if (taskCounters.get(TaskCounter.INPUT_RECORDS_PROCESSED.name()) != null) {
+                inputRecords = taskCounters.get(TaskCounter.INPUT_RECORDS_PROCESSED.name());
+                numInputRecords = inputRecords;
+            }
+            if (taskCounters.get(TaskCounter.REDUCE_INPUT_RECORDS.name()) != null) {
+                numReduceInputRecords = taskCounters.get(TaskCounter.REDUCE_INPUT_RECORDS.name());
+            }
+        }
+
         if (loads == null) {
             return;
         }
 
+        Map<String, Long> mIGroup = counters.get(PigStatsUtil.MULTI_INPUTS_COUNTER_GROUP);
+        if (mIGroup != null) {
+            multiInputCounters.putAll(mIGroup);
+        }
+
+        // There is always only one load in a Tez vertex
         for (FileSpec fs : loads) {
             long records = -1;
             long hdfsBytesRead = -1;
             String filename = fs.getFileName();
             if (counters != null) {
-                Map<String, Long> taskCounter = counters.get(TASK_COUNTER_GROUP);
-                if (taskCounter != null
-                        && taskCounter.get(TaskCounter.INPUT_RECORDS_PROCESSED.name()) != null) {
-                    records = taskCounter.get(TaskCounter.INPUT_RECORDS_PROCESSED.name());
-                    if (this.isMapOpts) {
-                        mapInputRecords += records;
-                    } else {
-                        reduceInputRecords += records;
-                    }
+                if (mIGroup != null) {
+                    Long n = mIGroup.get(PigStatsUtil.getMultiInputsCounterName(fs.getFileName(), 0));
+                    if (n != null) records = n;
+                }
+                if (records == -1) {
+                    records = inputRecords;
+                }
+                if (isSuccessful() && records == -1) {
+                    // Tez removes 0 value counters for efficiency.
+                    records = 0;
                 }
                 if (counters.get(FS_COUNTER_GROUP) != null &&
                         counters.get(FS_COUNTER_GROUP).get(PigStatsUtil.HDFS_BYTES_READ) != null) {
@@ -230,8 +267,23 @@ public class TezVertexStats extends JobStats {
     }
 
     public void addOutputStatistics() {
+
+        long outputRecords = -1;
+
+        Map<String, Long> taskCounters = counters.get(TASK_COUNTER_GROUP);
+        if (taskCounters != null
+                && taskCounters.get(TaskCounter.OUTPUT_RECORDS.name()) != null) {
+            outputRecords = taskCounters.get(TaskCounter.OUTPUT_RECORDS.name());
+            numOutputRecords = outputRecords;
+        }
+
         if (stores == null) {
             return;
+        }
+
+        Map<String, Long> msGroup = counters.get(PigStatsUtil.MULTI_STORE_COUNTER_GROUP);
+        if (msGroup != null) {
+            multiStoreCounters.putAll(msGroup);
         }
 
         for (POStore sto : stores) {
@@ -242,23 +294,16 @@ public class TezVertexStats extends JobStats {
             long hdfsBytesWritten = -1;
             String filename = sto.getSFile().getFileName();
             if (counters != null) {
-                if (sto.isMultiStore()) {
-                    Map<String, Long> msGroup = counters.get(PigStatsUtil.MULTI_STORE_COUNTER_GROUP);
-                    if (msGroup != null) {
-                        multiStoreCounters.putAll(msGroup);
-                        Long n = msGroup.get(PigStatsUtil.getMultiStoreCounterName(sto));
-                        if (n != null) records = n;
-                    }
-                } else if (counters.get(TASK_COUNTER_GROUP) != null
-                        && counters.get(TASK_COUNTER_GROUP).get(TaskCounter.OUTPUT_RECORDS.name()) != null) {
-                    records = counters.get(TASK_COUNTER_GROUP).get(TaskCounter.OUTPUT_RECORDS.name());
+                if (msGroup != null) {
+                    Long n = msGroup.get(PigStatsUtil.getMultiStoreCounterName(sto));
+                    if (n != null) records = n;
                 }
-                if (records != -1) {
-                    if (this.isMapOpts) {
-                        mapOutputRecords += records;
-                    } else {
-                        reduceOutputRecords += records;
-                    }
+                if (records == -1) {
+                    records = outputRecords;
+                }
+                if (isSuccessful() && records == -1) {
+                    // Tez removes 0 value counters for efficiency.
+                    records = 0;
                 }
             }
             /* TODO: Need to check FILE_BYTES_WRITTEN for local mode */
@@ -284,13 +329,13 @@ public class TezVertexStats extends JobStats {
     @Override
     @Deprecated
     public int getNumberMaps() {
-        return numberMaps;
+        return this.isMapOpts ? numTasks : -1;
     }
 
     @Override
     @Deprecated
     public int getNumberReduces() {
-        return numberReduces;
+        return this.isMapOpts ? -1 : numTasks;
     }
 
     @Override
@@ -332,25 +377,25 @@ public class TezVertexStats extends JobStats {
     @Override
     @Deprecated
     public long getMapInputRecords() {
-        return mapInputRecords;
+        return this.isMapOpts ? numInputRecords : -1;
     }
 
     @Override
     @Deprecated
     public long getMapOutputRecords() {
-        return mapOutputRecords;
+        return this.isMapOpts ? numOutputRecords : -1;
     }
 
     @Override
     @Deprecated
     public long getReduceInputRecords() {
-        return reduceInputRecords;
+        return this.isMapOpts ? -1 : numInputRecords;
     }
 
     @Override
     @Deprecated
     public long getReduceOutputRecords() {
-        return reduceOutputRecords;
+        return this.isMapOpts ? -1 : numOutputRecords;
     }
 
     @Override
@@ -377,7 +422,7 @@ public class TezVertexStats extends JobStats {
     @Override
     @Deprecated
     public Map<String, Long> getMultiStoreCounters() {
-        return multiStoreCounters;
+        return Collections.unmodifiableMap(multiStoreCounters);
     }
 
     @Override

@@ -20,6 +20,9 @@ package org.apache.pig.tez;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.HashMap;
+
+import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezDagBuilder;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezCompiler;
@@ -68,7 +71,7 @@ public class TestGroupConstParallelTez extends TestGroupConstParallel {
         parallelismSetter.visit();
 
         DAG tezDag = getTezDAG(tezPlan, pc);
-        TezDagBuilder dagBuilder = new TezDagBuilder(pc, tezPlan, tezDag, null);
+        TezDagBuilder dagBuilder = new TezDagBuilder(pc, tezPlan, tezDag, new HashMap<String, LocalResource>());
         dagBuilder.visit();
         for (Vertex v : tezDag.getVertices()) {
             if (!v.getInputVertices().isEmpty()) {
@@ -88,7 +91,7 @@ public class TestGroupConstParallelTez extends TestGroupConstParallel {
         parallelismSetter.visit();
 
         DAG tezDag = getTezDAG(tezPlan, pc);
-        TezDagBuilder dagBuilder = new TezDagBuilder(pc, tezPlan, tezDag, null);
+        TezDagBuilder dagBuilder = new TezDagBuilder(pc, tezPlan, tezDag, new HashMap<String, LocalResource>());
         dagBuilder.visit();
         for (Vertex v : tezDag.getVertices()) {
             if (!v.getInputVertices().isEmpty()) {

@@ -153,9 +153,15 @@ public abstract class OutputHandler {
             recordDelimLength = recordDelimBa.length - 1; //Ignore trailing \n
             recordDelimStr = new String(recordDelimBa, 0, recordDelimLength,  Charsets.UTF_8);
         }
-        if (recordDelimLength == 0 || currValue.getLength() < recordDelimLength) {
+
+        if (recordDelimLength == 0) {
             return true;
         }
+        //If our current section is less than the delim length, then its not the end of the row.
+        if (currValue.getLength() < recordDelimLength) {
+            return false;
+        }
+
         return currValue.find(recordDelimStr, currValue.getLength() - recordDelimLength) >= 0;
     }
     

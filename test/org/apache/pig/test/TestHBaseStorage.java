@@ -38,7 +38,6 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
@@ -51,7 +50,6 @@ import org.apache.pig.data.TupleFactory;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -837,7 +835,6 @@ public class TestHBaseStorage {
      */
     @Test
     public void testMergeJoin() throws IOException {
-        Assume.assumeTrue("Skip this test for TEZ. See PIG-4315", pig.getPigContext().getExecType().equals(ExecType.LOCAL));
         prepareTable(TESTTABLE_1, true, DataFormat.HBaseBinary);
         prepareTable(TESTTABLE_2, true, DataFormat.HBaseBinary);
         pig.registerQuery("a = load 'hbase://" + TESTTABLE_1 + "' using "
@@ -1080,7 +1077,7 @@ public class TestHBaseStorage {
             long col_a_ts = getColTimestamp(result, TESTCOLUMN_A);
             long col_b_ts = getColTimestamp(result, TESTCOLUMN_B);
             long col_c_ts = getColTimestamp(result, TESTCOLUMN_C);
-            
+
             Assert.assertEquals(timestamp, col_a_ts);
             Assert.assertEquals(timestamp, col_b_ts);
             Assert.assertEquals(timestamp, col_c_ts);
@@ -1127,7 +1124,7 @@ public class TestHBaseStorage {
             long col_a_ts = getColTimestamp(result, TESTCOLUMN_A);
             long col_b_ts = getColTimestamp(result, TESTCOLUMN_B);
             long col_c_ts = getColTimestamp(result, TESTCOLUMN_C);
-            
+
             Assert.assertEquals(timestamp, col_a_ts);
             Assert.assertEquals(timestamp, col_b_ts);
             Assert.assertEquals(timestamp, col_c_ts);
@@ -1174,7 +1171,7 @@ public class TestHBaseStorage {
             long col_a_ts = getColTimestamp(result, TESTCOLUMN_A);
             long col_b_ts = getColTimestamp(result, TESTCOLUMN_B);
             long col_c_ts = getColTimestamp(result, TESTCOLUMN_C);
-            
+
             Assert.assertEquals(timestamp, col_a_ts);
             Assert.assertEquals(timestamp, col_b_ts);
             Assert.assertEquals(timestamp, col_c_ts);
@@ -1219,7 +1216,7 @@ public class TestHBaseStorage {
             long col_a_ts = getColTimestamp(result, TESTCOLUMN_A);
             long col_b_ts = getColTimestamp(result, TESTCOLUMN_B);
             long col_c_ts = getColTimestamp(result, TESTCOLUMN_C);
-            
+
             Assert.assertEquals("00".substring(v.length()) + v, rowKey);
             Assert.assertEquals(i, col_a);
             Assert.assertEquals(i + 0.0, col_b, 1e-6);
@@ -1274,13 +1271,27 @@ public class TestHBaseStorage {
      * @throws ParseException
      */
     @Test
-    public void testNoWAL() throws IOException, ParseException {
+    public void testNoWAL() throws Exception {
         HBaseStorage hbaseStorage = new HBaseStorage(TESTCOLUMN_A, "-noWAL");
 
         Object key = "somekey";
         byte type = DataType.CHARARRAY;
-        Assert.assertFalse(hbaseStorage.createPut(key, type).getWriteToWAL());
-        Assert.assertFalse(hbaseStorage.createDelete(key, type, System.currentTimeMillis()).getWriteToWAL());
+        Put put = hbaseStorage.createPut(key, type);
+        Delete delete = hbaseStorage.createDelete(key, type, System.currentTimeMillis());
+        boolean hasDurabilityMethod = false;
+        try {
+            put.getClass().getMethod("getDurability");
+            hasDurabilityMethod = true;
+        } catch (NoSuchMethodException e) {
+        }
+        if (hasDurabilityMethod) { // Hbase version 0.95+
+            Object skipWal = Class.forName("org.apache.hadoop.hbase.client.Durability").getField("SKIP_WAL").get(put);
+            Assert.assertEquals(put.getClass().getMethod("getDurability").invoke(put), skipWal);
+            Assert.assertEquals(delete.getClass().getMethod("getDurability").invoke(delete), skipWal);
+        } else {
+            Assert.assertFalse(put.getWriteToWAL());
+            Assert.assertFalse(delete.getWriteToWAL());
+        }
     }
 
     /**
@@ -1289,13 +1300,27 @@ public class TestHBaseStorage {
      * @throws ParseException
      */
     @Test
-    public void testWIthWAL() throws IOException, ParseException {
+    public void testWIthWAL() throws Exception {
         HBaseStorage hbaseStorage = new HBaseStorage(TESTCOLUMN_A);
 
         Object key = "somekey";
         byte type = DataType.CHARARRAY;
-        Assert.assertTrue(hbaseStorage.createPut(key, type).getWriteToWAL());
-        Assert.assertTrue(hbaseStorage.createDelete(key, type, System.currentTimeMillis()).getWriteToWAL());
+        Put put = hbaseStorage.createPut(key, type);
+        Delete delete = hbaseStorage.createDelete(key, type, System.currentTimeMillis());
+        boolean hasDurabilityMethod = false;
+        try {
+            put.getClass().getMethod("getDurability");
+            hasDurabilityMethod = true;
+        } catch (NoSuchMethodException e) {
+        }
+        if (hasDurabilityMethod) { // Hbase version 0.95+
+            Object skipWal = Class.forName("org.apache.hadoop.hbase.client.Durability").getField("SKIP_WAL").get(put);
+            Assert.assertNotEquals(put.getClass().getMethod("getDurability").invoke(put), skipWal);
+            Assert.assertNotEquals(delete.getClass().getMethod("getDurability").invoke(delete), skipWal);
+        } else {
+            Assert.assertTrue(put.getWriteToWAL());
+            Assert.assertTrue(delete.getWriteToWAL());
+        }
     }
 
     /**
@@ -1551,7 +1576,7 @@ public class TestHBaseStorage {
      */
     private static long getColTimestamp(Result result, String colName) {
         byte[][] colArray = Bytes.toByteArrays(colName.split(":"));
-        return result.getColumnLatestCell(colArray[0], colArray[1]).getTimestamp();
+        return result.getColumnLatest(colArray[0], colArray[1]).getTimestamp();
     }
 
 }

@@ -19,6 +19,7 @@ package org.apache.pig.test;
 
 import static org.apache.pig.builtin.mock.Storage.resetData;
 import static org.apache.pig.builtin.mock.Storage.tuple;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.List;
@@ -30,6 +31,11 @@ import org.apache.pig.data.TupleFactory;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.TreeMultiset;
+import com.google.common.collect.Multiset;
 
 public class TestRank2 {
     private static PigServer pigServer;
@@ -71,20 +77,21 @@ public class TestRank2 {
             + "store C into 'result' using mock.Storage();";
 
         Util.registerMultiLineQuery(pigServer, query);
-        List<Tuple> expected = Util.getTuplesFromConstantTupleStrings(new String[]{
-                "(1L,'C',3,'M')",
-                "(2L,'A',1,'N')",
-                "(2L,'B',2,'N')",
-                "(3L,'D',4,'P')",
-                "(4L,'E',4,'Q')",
-                "(4L,'E',4,'Q')",
-                "(4L,'F',8,'Q')",
-                "(4L,'F',7,'Q')",
-                "(4L,'F',8,'Q')",
-                "(5L,'F',8,'T')",
-                "(6L,'G',10,'V')"
-        });
-        Util.checkQueryOutputsAfterSort(data.get("result"), expected);
+
+        Multiset<Tuple> expected = ImmutableMultiset.of(
+                tf.newTuple(ImmutableList.of((long) 1, "C", 3, "M")),
+                tf.newTuple(ImmutableList.of((long) 2, "A", 1, "N")),
+                tf.newTuple(ImmutableList.of((long) 2, "B", 2, "N")),
+                tf.newTuple(ImmutableList.of((long) 3, "D", 4, "P")),
+                tf.newTuple(ImmutableList.of((long) 4, "E", 4, "Q")),
+                tf.newTuple(ImmutableList.of((long) 4, "E", 4, "Q")),
+                tf.newTuple(ImmutableList.of((long) 4, "F", 8, "Q")),
+                tf.newTuple(ImmutableList.of((long) 4, "F", 7, "Q")),
+                tf.newTuple(ImmutableList.of((long) 4, "F", 8, "Q")),
+                tf.newTuple(ImmutableList.of((long) 5, "F", 8, "T")),
+                tf.newTuple(ImmutableList.of((long) 6, "G", 10, "V")));
+
+        verifyExpected(data.get("result"), expected);
     }
 
     @Test
@@ -94,20 +101,21 @@ public class TestRank2 {
             + "store C into 'result' using mock.Storage();";
 
         Util.registerMultiLineQuery(pigServer, query);
-        List<Tuple> expected = Util.getTuplesFromConstantTupleStrings(new String[]{
-                "(1L,'A',1,'N')",
-                "(2L,'B',2,'N')",
-                "(3L,'C',3,'M')",
-                "(4L,'D',4,'P')",
-                "(4L,'E',4,'Q')",
-                "(4L,'E',4,'Q')",
-                "(5L,'F',7,'Q')",
-                "(6L,'F',8,'Q')",
-                "(6L,'F',8,'Q')",
-                "(6L,'F',8,'T')",
-                "(7L,'G',10,'V')"
-        });
-        Util.checkQueryOutputsAfterSort(data.get("result"), expected);
+
+        Multiset<Tuple> expected = ImmutableMultiset.of(
+                tf.newTuple(ImmutableList.of((long) 1, "A", 1, "N")),
+                tf.newTuple(ImmutableList.of((long) 2, "B", 2, "N")),
+                tf.newTuple(ImmutableList.of((long) 3, "C", 3, "M")),
+                tf.newTuple(ImmutableList.of((long) 4, "D", 4, "P")),
+                tf.newTuple(ImmutableList.of((long) 4, "E", 4, "Q")),
+                tf.newTuple(ImmutableList.of((long) 4, "E", 4, "Q")),
+                tf.newTuple(ImmutableList.of((long) 5, "F", 7, "Q")),
+                tf.newTuple(ImmutableList.of((long) 6, "F", 8, "Q")),
+                tf.newTuple(ImmutableList.of((long) 6, "F", 8, "Q")),
+                tf.newTuple(ImmutableList.of((long) 6, "F", 8, "T")),
+                tf.newTuple(ImmutableList.of((long) 7, "G", 10, "V")));
+
+        verifyExpected(data.get("result"), expected);
     }
 
     @Test
@@ -117,20 +125,21 @@ public class TestRank2 {
             + "store C into 'result' using mock.Storage();";
 
         Util.registerMultiLineQuery(pigServer, query);
-        List<Tuple> expected = Util.getTuplesFromConstantTupleStrings(new String[]{
-                "(1L,'G',10,'V')",
-                "(2L,'F',8,'T')",
-                "(2L,'F',8,'Q')",
-                "(2L,'F',8,'Q')",
-                "(2L,'F',7,'Q')",
-                "(3L,'E',4,'Q')",
-                "(3L,'E',4,'Q')",
-                "(4L,'D',4,'P')",
-                "(5L,'C',3,'M')",
-                "(6L,'B',2,'N')",
-                "(7L,'A',1,'N')"
-        });
-        Util.checkQueryOutputsAfterSort(data.get("result"), expected);
+
+        Multiset<Tuple> expected = ImmutableMultiset.of(
+                tf.newTuple(ImmutableList.of((long) 1, "G", 10, "V")),
+                tf.newTuple(ImmutableList.of((long) 2, "F", 8, "T")),
+                tf.newTuple(ImmutableList.of((long) 2, "F", 8, "Q")),
+                tf.newTuple(ImmutableList.of((long) 2, "F", 8, "Q")),
+                tf.newTuple(ImmutableList.of((long) 2, "F", 7, "Q")),
+                tf.newTuple(ImmutableList.of((long) 3, "E", 4, "Q")),
+                tf.newTuple(ImmutableList.of((long) 3, "E", 4, "Q")),
+                tf.newTuple(ImmutableList.of((long) 4, "D", 4, "P")),
+                tf.newTuple(ImmutableList.of((long) 5, "C", 3, "M")),
+                tf.newTuple(ImmutableList.of((long) 6, "B", 2, "N")),
+                tf.newTuple(ImmutableList.of((long) 7, "A", 1, "N")));
+
+        verifyExpected(data.get("result"), expected);
     }
 
     @Test
@@ -140,20 +149,40 @@ public class TestRank2 {
             + "store C into 'result' using mock.Storage();";
 
         Util.registerMultiLineQuery(pigServer, query);
-        List<Tuple> expected = Util.getTuplesFromConstantTupleStrings(new String[]{
-                "(1L,'A',1,'N')",
-                "(2L,'B',2,'N')",
-                "(3L,'C',3,'M')",
-                "(4L,'D',4,'P')",
-                "(5L,'E',4,'Q')",
-                "(5L,'E',4,'Q')",
-                "(6L,'F',8,'Q')",
-                "(6L,'F',8,'Q')",
-                "(6L,'F',8,'T')",
-                "(7L,'F',7,'Q')",
-                "(8L,'G',10,'V')"
-        });
-        Util.checkQueryOutputsAfterSort(data.get("result"), expected);
+
+        Multiset<Tuple> expected = ImmutableMultiset.of(
+                tf.newTuple(ImmutableList.of((long) 1, "A", 1, "N")),
+                tf.newTuple(ImmutableList.of((long) 2, "B", 2, "N")),
+                tf.newTuple(ImmutableList.of((long) 3, "C", 3, "M")),
+                tf.newTuple(ImmutableList.of((long) 4, "D", 4, "P")),
+                tf.newTuple(ImmutableList.of((long) 5, "E", 4, "Q")),
+                tf.newTuple(ImmutableList.of((long) 5, "E", 4, "Q")),
+                tf.newTuple(ImmutableList.of((long) 6, "F", 8, "Q")),
+                tf.newTuple(ImmutableList.of((long) 6, "F", 8, "Q")),
+                tf.newTuple(ImmutableList.of((long) 6, "F", 8, "T")),
+                tf.newTuple(ImmutableList.of((long) 7, "F", 7, "Q")),
+                tf.newTuple(ImmutableList.of((long) 8, "G", 10, "V")));
+
+        verifyExpected(data.get("result"), expected);
     }
-    
+
+    public void verifyExpected(List<Tuple> out, Multiset<Tuple> expected) {
+        Multiset<Tuple> resultMultiset = TreeMultiset.create();
+        for (Tuple tup : out) {
+          resultMultiset.add(tup);
+        }
+
+        StringBuilder error = new StringBuilder("Result does not match.\nActual result:\n");
+        for (Tuple tup : resultMultiset.elementSet() ) {
+            error.append(tup).append(" x ").append(resultMultiset.count(tup)).append("\n");
+        }
+        error.append("Expceted result:\n");
+        for (Tuple tup : ImmutableSortedSet.copyOf(expected) ) {
+            error.append(tup).append(" x ").append(expected.count(tup)).append("\n");
+        }
+
+        //This one line test should be sufficient but adding the above
+        //for-loop for better error messages
+        assertTrue(error.toString(), resultMultiset.equals(expected));
+    }
 }

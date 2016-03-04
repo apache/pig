@@ -34,6 +34,7 @@ import org.apache.pig.OverwritableStoreFunc;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.StoreFuncDecorator;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.Tuple;
@@ -74,13 +75,14 @@ public class PigOutputFormat extends OutputFormat<WritableComparable, Tuple> {
                 store = reduceStores.get(0);
             }
             StoreFuncInterface sFunc = store.getStoreFunc();
+            StoreFuncDecorator decorator = store.getStoreFuncDecorator();
             // set output location
             PigOutputFormat.setLocation(taskattemptcontext, store);
             // The above call should have update the conf in the JobContext
             // to have the output location - now call checkOutputSpecs()
             RecordWriter writer = sFunc.getOutputFormat().getRecordWriter(
                     taskattemptcontext);
-            return new PigRecordWriter(writer, sFunc, Mode.SINGLE_STORE);
+            return new PigRecordWriter(writer, decorator, Mode.SINGLE_STORE);
         } else {
            // multi store case - in this case, all writing is done through
            // MapReducePOStoreImpl - set up a dummy RecordWriter
@@ -107,18 +109,24 @@ public class PigOutputFormat extends OutputFormat<WritableComparable, Tuple> {
         private StoreFuncInterface sFunc;
 
         /**
+         * The StoreFuncDecorator we use to write Tuples
+         */
+        private StoreFuncDecorator storeDecorator;
+
+        /**
          * Single Query or multi query
          */
         private Mode mode;
 
-        public PigRecordWriter(RecordWriter wrappedWriter, StoreFuncInterface sFunc,
+        public PigRecordWriter(RecordWriter wrappedWriter, StoreFuncDecorator storeDecorator,
                 Mode mode)
                 throws IOException {
             this.mode = mode;
 
             if(mode == Mode.SINGLE_STORE) {
                 this.wrappedWriter = wrappedWriter;
-                this.sFunc = sFunc;
+                this.sFunc = storeDecorator.getStorer();
+                this.storeDecorator = storeDecorator;
                 this.sFunc.prepareToWrite(this.wrappedWriter);
             }
         }
@@ -133,7 +141,7 @@ public class PigOutputFormat extends OutputFormat<WritableComparable, Tuple> {
         public void write(WritableComparable key, Tuple value)
                 throws IOException, InterruptedException {
             if(mode == Mode.SINGLE_STORE) {
-                sFunc.putNext(value);
+                storeDecorator.putNext(value);
             } else {
                 throw new IOException("Internal Error: Unexpected code path");
             }

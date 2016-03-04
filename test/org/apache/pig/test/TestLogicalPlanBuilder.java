@@ -1204,13 +1204,13 @@ public class TestLogicalPlanBuilder {
         try {
             buildPlan( query + "c = foreach b generate group as mygroup:{t: (myname, myage)}, COUNT(a) as mycount;");
         } catch (AssertionFailedError e) {
-            Assert.assertTrue(e.getMessage().contains("Incompatable field schema"));
+            Assert.assertTrue(e.getMessage().contains("Incompatible field schema"));
         }
 
         try {
             buildPlan( query + "c = foreach b generate flatten(group) as (myname, myage, mygpa), COUNT(a) as mycount;");
         } catch (AssertionFailedError e) {
-            Assert.assertTrue(e.getMessage().contains("Incompatable schema"));
+            Assert.assertTrue(e.getMessage().contains("Incompatible schema"));
         }
     }
 

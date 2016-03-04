@@ -167,10 +167,10 @@ DUMP C;
                <p>AVG </p>
             </td>
             <td>
-               <p>long </p>
+               <p>double </p>
             </td>
             <td>
-               <p>long </p>
+               <p>double </p>
             </td>
             <td>
                <p>double </p>
@@ -294,6 +294,87 @@ team_parkyearslist = FOREACH (GROUP team_park_yearslist BY team_id) {
   </section>
 </section>
 
+<section id="bloom">
+  <title>Bloom</title>
+  <p>Bloom filters are a common way to select a limited set of records before
+    moving data for a join or other heavy weight operation.</p>
+
+  <section>
+    <title>Syntax</title>
+    <table>
+      <tr>
+        <td>
+          <p>BuildBloom(String hashType, String mode, String vectorSize, String nbHash)</p>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <p>Bloom(String filename)</p>
+        </td>
+      </tr>
+  </table></section>
+
+  <section>
+    <title>Terms</title>
+    <table>
+      <tr>
+	<td><p>hashtype</p></td>
+        <td><p>The type of hash function to use. Valid values for the hash functions are 'jenkins' and 'murmur'.</p></td>
+      </tr>
+      <tr>
+	<td><p>mode</p></td>
+        <td><p>Will be ignored, though by convention it should be "fixed" or "fixedsize"</p></td>
+      </tr>
+      <tr>
+	<td><p>vectorSize</p></td>
+        <td><p>The number of bits in the bloom filter.</p></td>
+      </tr>
+      <tr>
+	<td><p>nbHash</p></td>
+        <td><p>The number of hash functions used in constructing the bloom filter.</p></td>
+      </tr>
+      <tr>
+	<td><p>filename</p></td>
+        <td><p>File containing the serialized Bloom filter.</p></td>
+      </tr>
+    </table>
+    <p>See <a href="http://en.wikipedia.org/wiki/Bloom_filter">Bloom Filter</a> for
+      a discussion of how to select the number of bits and the number of hash
+      functions.
+    </p>
+  </section>
+
+  <section>
+    <title>Usage</title>
+    <p>Bloom filters are a common way to select a limited set of records before
+      moving data for a join or other heavy weight operation. For example, if
+      one wanted to join a very large data set L with a smaller set S, and it
+      was known that the number of keys in L that will match with S is small,
+      building a bloom filter on S and then applying it to L before the join
+      can greatly reduce the number of records from L that have to be moved
+      from the map to the reduce, thus speeding the join.
+    </p>
+    <p>The implementation uses Hadoop's bloom filters
+      (org.apache.hadoop.util.bloom.BloomFilter) internally.
+    </p>
+  </section>
+  <section>
+    <title>Examples</title>
+<source>
+  define bb BuildBloom('128', '3', 'jenkins');
+  small = load 'S' as (x, y, z);
+  grpd = group small all;
+  fltrd = foreach grpd generate bb(small.x);
+  store fltrd in 'mybloom';
+  exec;
+  define bloom Bloom('mybloom');
+  large = load 'L' as (a, b, c);
+  flarge = filter large by bloom(L.a);
+  joined = join small by x, flarge by a;
+  store joined into 'results';
+</source>
+  </section>
+</section>
    
    <!-- ++++++++++++++++++++++++++++++++++++++++++++++ --> 
    <section id="concat">
@@ -634,8 +715,8 @@ SSN = load 'ssn.txt' using PigStorage() as (ssn:long);
 
 SSN_NAME = load 'students.txt' using PigStorage() as (ssn:long, name:chararray);
 
-/* do a left outer join of SSN with SSN_Name */
-X = JOIN SSN by ssn LEFT OUTER, SSN_NAME by ssn;
+/* do a cogroup of SSN with SSN_Name */
+X = COGROUP SSN by ssn, SSN_NAME by ssn;
 
 /* only keep those ssn's for which there is no name */
 Y = filter X by IsEmpty(SSN_NAME);
@@ -915,7 +996,8 @@ DUMP X;
    
    <section id="plucktuple">
      <title>PluckTuple</title>
-     <p>Allows the user to specify a string prefix, and then filter for the columns in a relation that begin with that prefix.</p>
+     <p>Allows the user to specify a string prefix, and then filter for the columns in a relation that begin with that prefix or match that regex pattern. Optionally, include flag 'false' to filter
+      for columns that do not match that prefix or match that regex pattern</p>
      
      <section>
        <title>Syntax</title>
@@ -923,6 +1005,7 @@ DUMP X;
          <tr>
            <td>
              <p>DEFINE pluck PluckTuple(expression1)</p>
+             <p>DEFINE pluck PluckTuple(expression1,expression3)</p>
              <p>pluck(expression2)</p>
            </td>
          </tr>
@@ -937,7 +1020,7 @@ DUMP X;
              <p>expression1</p>
            </td>
            <td>
-             <p>A prefix to pluck by</p>
+             <p>A prefix to pluck by or an regex pattern to pluck by</p>
            </td>
 	 </tr>
 	 <tr>
@@ -948,6 +1031,14 @@ DUMP X;
              <p>The fields to apply the pluck to, usually '*'</p>
            </td>
 	 </tr>
+    <tr>
+           <td>
+             <p>expression3</p>
+           </td>
+           <td>
+             <p>A boolean flag to indicate whether to include or exclude matching columns</p>
+           </td>
+   </tr>
        </table>
      </section>
      
@@ -964,6 +1055,10 @@ describe c;
 c: {a::x: bytearray,a::y: bytearray,b::x: bytearray,b::y: bytearray}
 describe d;
 d: {plucked::a::x: bytearray,plucked::a::y: bytearray}
+DEFINE pluckNegative PluckTuple('a::','false');
+d = foreach c generate FLATTEN(pluckNegative(*));
+describe d;
+d: {plucked::b::x: bytearray,plucked::b::y: bytearray}
 </source>
      </section>
    </section>
@@ -1369,22 +1464,19 @@ DUMP B;
 <p>To work with gzip compressed files, input/output files need to have a .gz extension. Gzipped files cannot be split across multiple maps; this means that the number of maps created is equal to the number of part files in the input location.</p>
 
 <source>
-A = load ‘myinput.gz’;
-store A into ‘myoutput.gz’; 
+A = load 'myinput.gz';
+store A into 'myoutput.gz';
 </source>
 
 <p>To work with bzip compressed files, the input/output files need to have a .bz or .bz2 extension. Because the compression is block-oriented, bzipped files can be split across multiple maps.</p>
 
 <source>
-A = load ‘myinput.bz’;
-store A into ‘myoutput.bz’; 
+A = load 'myinput.bz';
+store A into 'myoutput.bz';
 </source>
 
-<p>Note: PigStorage and TextLoader correctly read compressed files as long as they are NOT CONCATENATED FILES generated in this manner: </p>
+<p>Note: PigStorage and TextLoader correctly read compressed files as long as they are NOT CONCATENATED bz/bz2 FILES generated in this manner: </p>
   <ul>
-      <li>
-         <p>cat *.gz > text/concat.gz</p>
-      </li>
       <li>
          <p>cat *.bz > text/concat.bz </p>
       </li>
@@ -1393,7 +1485,7 @@ store A into ‘myoutput.bz’;
       </li>
    </ul>
 <p></p>
-<p>If you use concatenated gzip or bzip files with your Pig jobs, you will NOT see a failure but the results will be INCORRECT.</p>
+<p>If you use concatenated bzip files with your Pig jobs, you will NOT see a failure but the results will be INCORRECT.</p>
 <p></p>
 
 </section>
@@ -1525,7 +1617,7 @@ dump X;
    <table>
        <tr>
             <td>
-               <p>JsonLoader( [‘schema’] ) </p>
+               <p>JsonLoader( ['schema'] ) </p>
             </td>
         </tr> 
         <tr>
@@ -1648,11 +1740,11 @@ STORE X INTO 'output' USING PigDump();
                <p id="pigstorage-options">'options'</p>
             </td>
             <td>
-               <p>A string that contains space-separated options (‘optionA  optionB  optionC’)</p>
+               <p>A string that contains space-separated options ('optionA  optionB  optionC')</p>
                <p>Currently supported options are:</p>
                <ul>
-                    <li>(‘schema’) - Stores the schema of the relation using a hidden JSON file.</li>
-                    <li>(‘noschema’) - Ignores a stored schema during the load.</li>
+                    <li>('schema') - Stores the schema of the relation using a hidden JSON file.</li>
+                    <li>('noschema') - Ignores a stored schema during the load.</li>
                     <li>('tagsource') - (deprecated, Use tagPath instead) Add a first column indicates the input file of the record.</li>
                     <li>('tagPath') - Add a first column indicates the input path of the record.</li>
                     <li>('tagFile') - Add a first column indicates the input file name of the record.</li>
@@ -1863,6 +1955,8 @@ A = LOAD 'data' USING TextLoader();
                     less than this value</li>
                 <li>-timestamp=timestamp Return cell values that have a creation timestamp equal to
                     this value</li>
+                <li>-includeTimestamp=Record will include the timestamp after the rowkey on store (rowkey, timestamp, ...)</li>
+                <li>-includeTombstone=Record will include a tombstone marker on store after the rowKey and timestamp (if included) (rowkey, [timestamp,] tombstone, ...)</li>
                </ul>
             </td>
          </tr>
@@ -1928,7 +2022,7 @@ STORE A INTO 'hbase://users_table' USING org.apache.pig.backend.hadoop.hbase.HBa
    <table>
        <tr>
             <td>
-               <p>Avrostorage(['schema|record name'], ['options'])</p>
+               <p>AvroStorage(['schema|record name'], ['options'])</p>
             </td>
          </tr>
    </table>
@@ -5934,7 +6028,7 @@ In this example, student names (type chararray) and student GPAs (type float) ar
  <source>
 A = load 'students' as (name:chararray, age:int, gpa:float);
 B = foreach A generate TOMAP(name, gpa);
-store B into ‘results’;
+store B into 'results';
 
 Input (students)
 joe smith 20 3.5
@@ -6042,6 +6136,74 @@ bottomResults = FOREACH D {
 </section>
 </section>
 <!-- End Other Functions -->
-
+<!-- ======================================================== -->
+<!-- ======================================================== -->
+<!-- Other Functions -->
+<section id="hive-udf">
+<title>Hive UDF</title>
+<p>Pig invokes all types of Hive UDF, including UDF, GenericUDF, UDAF, GenericUDAF and GenericUDTF. Depending on the Hive UDF you want to use, you need to declare it in Pig with HiveUDF(handles UDF and GenericUDF), HiveUDAF(handles UDAF and GenericUDAF), HiveUDTF(handles GenericUDTF).</p>
+  <section>
+    <title>Syntax</title>
+    <p>HiveUDF, HiveUDAF, HiveUDTF share the same syntax.</p>
+    <table>
+      <tr>
+        <td>
+          <p>HiveUDF(name[, constant parameters])</p>
+        </td>
+      </tr>
+    </table>
+  </section>
+  <section>
+    <title>Terms</title>
+    <table>
+      <tr>
+        <td>
+          <p>name</p>
+        </td>
+        <td>
+          <p>Hive UDF name. This can be a fully qualified class name of the Hive UDF/UDTF/UDAF class, or a registered short name in Hive FunctionRegistry (most Hive builtin UDF does that)</p>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <p>constant parameters</p>
+        </td>
+        <td>
+          <p>Optional tuple representing constant parameters of a Hive UDF/UDTF/UDAF. If Hive UDF requires a constant parameter, there is no other way Pig can pass that information to Hive, since Pig schema does not carry the information whether a parameter is constant or not. Null item in the tuple means this field is not a constant. Non-null item represents a constant field. Data type for the item is determined by Pig contant parser.</p>
+        </td>
+      </tr>
+    </table>
+  </section>
+  <section>
+  <title>Example</title>
+  <p>HiveUDF</p>
+  <source>
+define sin HiveUDF('sin');
+A = LOAD 'student' as (name:chararray, age:int, gpa:double);
+B = foreach A generate sin(gpa);
+  </source>
+  <p>HiveUDTF</p>
+  <source>
+define explode HiveUDTF('explode');
+A = load 'mydata' as (a0:{(b0:chararray)});
+B = foreach A generate flatten(explode(a0));
+  </source>
+  <p>HiveUDAF</p>
+  <source>
+define avg HiveUDAF('avg');
+A = LOAD 'student' as (name:chararray, age:int, gpa:double);
+B = group A by name;
+C = foreach B generate group, avg(A.age);
+  </source>
+  </section>
+  <p>HiveUDAF with constant parameter</p>
+<source>
+define in_file HiveUDF('in_file', '(null, "names.txt")');
+A = load 'student' as (name:chararray, age:long, gpa:double);
+B = foreach A generate in_file(name, 'names.txt');
+</source>
+<p>In this example, we pass (null, "names.txt") to the construct of UDF in_file, meaning the first parameter is regular, the second parameter is a constant. names.txt can be double quoted (unlike other Pig syntax), or quoted in \'. Note we need to pass 'names.txt' again in line 3. This looks stupid but we need to do this to fill the semantic gap between Pig and Hive. We need to pass the constant in the data pipeline in line 3, which is similar Pig UDF. Initialization code in Hive UDF takes ObjectInspector, which capture the data type and whether or not the parameter is a constant. However, initialization code in Pig takes schema, which only capture the former. We need to use additional mechanism (construct parameter) to convey the later.</p>
+<p>Note: A few Hive 0.14 UDF contains bug which affects Pig and are fixed in Hive 1.0. Here is a list: compute_stats, context_ngrams, count, ewah_bitmap, histogram_numeric, collect_list, collect_set, ngrams, case, in, named_struct, stack, percentile_approx.</p>
+</section>
   </body>
 </document>

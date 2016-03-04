@@ -27,9 +27,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.log4j.PropertyConfigurator;
-import org.apache.pig.JVMReuseManager;
 import org.apache.pig.PigException;
-import org.apache.pig.StaticDataCleanup;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -38,11 +36,13 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.JoinPackager;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
+import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
 
 public class PigCombiner {
@@ -75,11 +75,7 @@ public class PigCombiner {
         PigContext pigContext = null;
         private volatile boolean initialized = false;
 
-        static {
-            JVMReuseManager.getInstance().registerForStaticDataCleanup(Combine.class);
-        }
-
-        @StaticDataCleanup
+        //@StaticDataCleanup
         public static void staticDataCleanup() {
             firstTime = true;
         }
@@ -98,6 +94,8 @@ public class PigCombiner {
                 pigContext = (PigContext)ObjectSerializer.deserialize(jConf.get("pig.pigContext"));
                 if (pigContext.getLog4jProperties()!=null)
                     PropertyConfigurator.configure(pigContext.getLog4jProperties());
+                UDFContext.getUDFContext().reset();
+                MapRedUtil.setupUDFContext(context.getConfiguration());
 
                 cp = (PhysicalPlan) ObjectSerializer.deserialize(jConf
                         .get("pig.combinePlan"));

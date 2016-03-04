@@ -45,14 +45,17 @@ public class StringMax extends EvalFunc<String> implements Algebraic, Accumulato
         }
     }
 
+    @Override
     public String getInitial() {
         return Initial.class.getName();
     }
 
+    @Override
     public String getIntermed() {
         return Intermediate.class.getName();
     }
 
+    @Override
     public String getFinal() {
         return Final.class.getName();
     }
@@ -77,7 +80,7 @@ public class StringMax extends EvalFunc<String> implements Algebraic, Accumulato
             } catch (Exception e) {
                 int errCode = 2106;
                 String msg = "Error while computing max in " + this.getClass().getSimpleName();
-                throw new ExecException(msg, errCode, PigException.BUG, e);           
+                throw new ExecException(msg, errCode, PigException.BUG, e);
             }
         }
     }
@@ -94,7 +97,7 @@ public class StringMax extends EvalFunc<String> implements Algebraic, Accumulato
             } catch (Exception e) {
                 int errCode = 2106;
                 String msg = "Error while computing max in " + this.getClass().getSimpleName();
-                throw new ExecException(msg, errCode, PigException.BUG, e);           
+                throw new ExecException(msg, errCode, PigException.BUG, e);
             }
         }
     }
@@ -108,17 +111,17 @@ public class StringMax extends EvalFunc<String> implements Algebraic, Accumulato
             } catch (Exception e) {
                 int errCode = 2106;
                 String msg = "Error while computing max in " + this.getClass().getSimpleName();
-                throw new ExecException(msg, errCode, PigException.BUG, e);           
+                throw new ExecException(msg, errCode, PigException.BUG, e);
             }
         }
     }
 
     static protected String max(Tuple input) throws ExecException {
         DataBag values = (DataBag)input.get(0);
-        
+
         // if we were handed an empty bag, return NULL
         // this is in compliance with SQL standard
-        if(values.size() == 0) {
+        if(values == null || values.size() == 0) {
             return null;
         }
 
@@ -129,7 +132,7 @@ public class StringMax extends EvalFunc<String> implements Algebraic, Accumulato
             Tuple t = it.next();
             curMax = (String)(t.get(0));
         }
-        
+
         for (; it.hasNext();) {
             Tuple t = it.next();
             try {
@@ -138,26 +141,26 @@ public class StringMax extends EvalFunc<String> implements Algebraic, Accumulato
                 if( s.compareTo(curMax) > 0) {
                     curMax = s;
                 }
-                
+
             } catch (RuntimeException exp) {
                 int errCode = 2103;
                 String msg = "Problem while computing max of strings.";
                 throw new ExecException(msg, errCode, PigException.BUG, exp);
             }
         }
-    
+
         return curMax;
     }
 
     @Override
     public Schema outputSchema(Schema input) {
-        return new Schema(new Schema.FieldSchema(null, DataType.CHARARRAY)); 
+        return new Schema(new Schema.FieldSchema(null, DataType.CHARARRAY));
     }
 
 
     /* accumulator interface */
     private String intermediateMax = null;
-    
+
     @Override
     public void accumulate(Tuple b) throws IOException {
         try {
@@ -166,16 +169,16 @@ public class StringMax extends EvalFunc<String> implements Algebraic, Accumulato
                 return;
             }
             // check if it lexicographically follows curMax
-            if (intermediateMax == null || intermediateMax.compareTo(curMax) > 0) {
+            if (intermediateMax == null || intermediateMax.compareTo(curMax) < 0) {
                 intermediateMax = curMax;
-            }            
+            }
 
         } catch (ExecException ee) {
             throw ee;
         } catch (Exception e) {
             int errCode = 2106;
             String msg = "Error while computing max in " + this.getClass().getSimpleName();
-            throw new ExecException(msg, errCode, PigException.BUG, e);           
+            throw new ExecException(msg, errCode, PigException.BUG, e);
         }
     }
 

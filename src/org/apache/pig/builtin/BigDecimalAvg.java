@@ -18,20 +18,20 @@
 package org.apache.pig.builtin;
 
 import java.io.IOException;
-import java.util.Iterator;
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.util.Iterator;
 
 import org.apache.pig.Accumulator;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.PigException;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.backend.executionengine.ExecException;
 
 
 /**
@@ -61,14 +61,17 @@ public class BigDecimalAvg extends EvalFunc<BigDecimal> implements Algebraic, Ac
         }
     }
 
+    @Override
     public String getInitial() {
         return Initial.class.getName();
     }
 
+    @Override
     public String getIntermed() {
         return Intermediate.class.getName();
     }
 
+    @Override
     public String getFinal() {
         return Final.class.getName();
     }
@@ -199,7 +202,7 @@ public class BigDecimalAvg extends EvalFunc<BigDecimal> implements Algebraic, Ac
         DataBag values = (DataBag)input.get(0);
 
         // if we were handed an empty bag, return NULL
-        if(values.size() == 0) {
+        if(values == null || values.size() == 0) {
             return null;
         }
 

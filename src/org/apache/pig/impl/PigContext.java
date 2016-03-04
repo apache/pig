@@ -57,9 +57,7 @@ import org.apache.log4j.Level;
 import org.apache.pig.ExecType;
 import org.apache.pig.ExecTypeProvider;
 import org.apache.pig.FuncSpec;
-import org.apache.pig.JVMReuseManager;
 import org.apache.pig.PigException;
-import org.apache.pig.StaticDataCleanup;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.DataStorageException;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
@@ -177,11 +175,7 @@ public class PigContext implements Serializable {
     // List of paths skipped for automatic shipping
     List<String> skippedShipPaths = new ArrayList<String>();
 
-    static {
-        JVMReuseManager.getInstance().registerForStaticDataCleanup(PigContext.class);
-    }
-
-    @StaticDataCleanup
+    //@StaticDataCleanup
     public static void staticDataCleanup() {
         packageImportList.set(null);
     }

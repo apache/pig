@@ -47,7 +47,7 @@ import com.google.common.collect.Maps;
 public class SkewedPartitioner extends Partitioner<PigNullableWritable, Writable> implements Configurable {
     protected static final TupleFactory tf = TupleFactory.getInstance();
 
-    protected Map<Tuple, Pair<Integer, Integer>> reducerMap = Maps.newHashMap();
+    protected Map<Object, Pair<Integer, Integer>> reducerMap;
     protected Integer totalReducers = -1;
     protected boolean inited = false;
 

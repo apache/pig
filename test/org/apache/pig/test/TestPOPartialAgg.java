@@ -77,8 +77,12 @@ public class TestPOPartialAgg {
     }
 
     private void createPOPartialPlan(int valueCount) throws PlanException {
+        createPOPartialPlan(valueCount, false);
+    }
+
+    private void createPOPartialPlan(int valueCount, boolean isGroupAll) throws PlanException {
         parentPlan = new PhysicalPlan();
-        partAggOp = GenPhyOp.topPOPartialAgg();
+        partAggOp = new POPartialAgg(GenPhyOp.getOK(), isGroupAll);
         partAggOp.setParentPlan(parentPlan);
 
         // setup key plan
@@ -355,6 +359,25 @@ public class TestPOPartialAgg {
         Thread.sleep(100);
         assertTrue(spilled.isDone());
         assertEquals(new Long(1), spilled.get());
+    }
+
+    @Test
+    public void testGroupAll() throws Exception {
+        createPOPartialPlan(1, true);
+        Result res;
+        for (long i=1; i <= 10010; i ++) {
+            Tuple t = tuple("all", tuple(i));
+            partAggOp.attachInput(t);
+            res = partAggOp.getNextTuple();
+            assertEquals(POStatus.STATUS_EOP, res.returnStatus);
+        }
+        // end of all input, now expecting all tuples
+        parentPlan.endOfAllInput = true;
+        res = partAggOp.getNextTuple();
+        assertEquals(tuple("all", tuple(50105055L)), res.result);
+        assertEquals(POStatus.STATUS_OK, res.returnStatus);
+        res = partAggOp.getNextTuple();
+        assertEquals(POStatus.STATUS_EOP, res.returnStatus);
     }
 
     private static class Spill implements Callable<Long> {

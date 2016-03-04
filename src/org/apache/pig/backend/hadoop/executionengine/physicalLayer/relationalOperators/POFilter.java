@@ -36,30 +36,29 @@ import org.apache.pig.impl.plan.VisitorException;
  * avoid many function calls, the filter operator, stores the Comparison
  * Operator that is the root of the Expression Plan and uses its getNext
  * directly.
- * 
+ *
  * Since the filter is supposed to return tuples only, getNext is not supported
  * on any other data type.
- * 
+ *
  */
 public class POFilter extends PhysicalOperator {
 
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = 1L;
 
     // The expression plan
-    PhysicalPlan plan;
+    private PhysicalPlan plan;
 
     // The root comparison operator of the expression plan
-//    ComparisonOperator comOp;
-    PhysicalOperator comOp;
-    
+    // ComparisonOperator comOp;
+    private PhysicalOperator comOp;
 
     // The operand type for the comparison operator needed
     // to call the comparison operators getNext with the
     // appropriate type
-    byte compOperandType;
+    // private byte compOperandType;
 
     public POFilter(OperatorKey k) {
         this(k, -1, null);
@@ -186,7 +185,7 @@ public class POFilter extends PhysicalOperator {
     public PhysicalPlan getPlan() {
         return plan;
     }
-    
+
     @Override
     public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
       if (illustrator != null) {
@@ -202,4 +201,12 @@ public class POFilter extends PhysicalOperator {
       }
       return (Tuple) out;
     }
+
+    @Override
+    public PhysicalOperator clone() throws CloneNotSupportedException {
+        POFilter opClone = (POFilter) super.clone();
+        opClone.setPlan(plan.clone());
+        return opClone;
+    }
+
 }

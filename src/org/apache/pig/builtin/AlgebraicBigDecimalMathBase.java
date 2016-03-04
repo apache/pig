@@ -18,8 +18,8 @@
 package org.apache.pig.builtin;
 
 import java.io.IOException;
-import java.util.Iterator;
 import java.math.BigDecimal;
+import java.util.Iterator;
 
 import org.apache.pig.Accumulator;
 import org.apache.pig.PigException;
@@ -88,7 +88,7 @@ public abstract class AlgebraicBigDecimalMathBase extends AlgebraicMathBase<BigD
         DataBag values = (DataBag)input.get(0);
         // if we were handed an empty bag, return NULL
         // this is in compliance with SQL standard
-        if(values.size() == 0) {
+        if(values == null || values.size() == 0) {
             return null;
         }
         BigDecimal sofar = AlgebraicBigDecimalMathBase.getSeed(opProvider.getOp());

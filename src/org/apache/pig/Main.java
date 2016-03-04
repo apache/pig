@@ -28,8 +28,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.Reader;
 import java.io.StringReader;
-import java.io.Writer;
+import java.net.URL;
+import java.nio.charset.Charset;
 import java.text.ParseException;
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -85,6 +87,10 @@ import org.joda.time.Duration;
 import org.joda.time.Period;
 import org.joda.time.PeriodType;
 import org.joda.time.format.PeriodFormat;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Strings;
+import com.google.common.io.Closeables;
 
 /**
  * Main class for Pig engine.
@@ -742,22 +748,7 @@ public class Main {
             logLevel = Level.toLevel(logLevelString, Level.INFO);
         }
 
-        Properties props = new Properties();
-        FileReader propertyReader = null;
-        if (log4jconf != null) {
-            try {
-                propertyReader = new FileReader(log4jconf);
-                props.load(propertyReader);
-            }
-            catch (IOException e)
-            {
-                System.err.println("Warn: Cannot open log4j properties file, use default");
-            }
-            finally
-            {
-                if (propertyReader != null) try {propertyReader.close();} catch(Exception e) {}
-            }
-        }
+        final Properties props = log4jConfAsProperties(log4jconf);
         if (props.size() == 0) {
             props.setProperty("log4j.logger.org.apache.pig", logLevel.toString());
             if((logLevelString = System.getProperty("pig.logfile.level")) == null){
@@ -790,8 +781,37 @@ public class Main {
         pigContext.setDefaultLogLevel(logLevel);
     }
 
+   @VisibleForTesting
+   static Properties log4jConfAsProperties(String log4jconf) {
+       final Properties properties = new Properties();
+       if (!Strings.isNullOrEmpty(log4jconf)) {
+           Reader propertyReader = null;
+           try {
+               final File file = new File(log4jconf);
+               if (file.exists()) {
+                   propertyReader = new FileReader(file);
+                   properties.load(propertyReader);
+                   log.info("Loaded log4j properties from file: " + file);
+               } else {
+                   final URL resource = Main.class.getClassLoader().getResource(log4jconf);
+                   if (resource != null) {
+                       propertyReader = new InputStreamReader(resource.openStream(), Charset.forName("UTF-8"));
+                       properties.load(propertyReader);
+                       log.info("Loaded log4j properties from resource: " +  resource);
+                   } else {
+                       log.warn("No file or resource found by the name: " + log4jconf);
+                   }
+               }
+           } catch (IOException e)  {
+               log.warn("Cannot open log4j properties file " + log4jconf + ", using default");
+           } finally {
+               Closeables.closeQuietly(propertyReader);
+           }
+       }
+       return properties;
+  }
 
-    private static List<String> fetchRemoteParamFiles(List<String> paramFiles, Properties properties)
+  private static List<String> fetchRemoteParamFiles(List<String> paramFiles, Properties properties)
             throws IOException {
         List<String> paramFiles2 = new ArrayList<String>();
         for (String param: paramFiles) {
@@ -895,7 +915,6 @@ public class Main {
             System.out.println("            GroupByConstParallelSetter - Force parallel 1 for \"group all\" statement");
             System.out.println("            PartitionFilterOptimizer - Pushdown partition filter conditions to loader implementing LoadMetaData");
             System.out.println("            PredicatePushdownOptimizer - Pushdown filter predicates to loader implementing LoadPredicatePushDown");
-            System.out.println("            RollupHIIOptimizer - Apply Rollup HII optimization");
             System.out.println("            All - Disable all optimizations");
             System.out.println("        All optimizations listed here are enabled by default. Optimization values are case insensitive.");
             System.out.println("    -v, -verbose - Print all error messages to screen");
@@ -943,10 +962,12 @@ public class Main {
             System.out.println("    Miscellaneous:");
             System.out.println("        exectype=mapreduce|tez|local; default is mapreduce. This property is the same as -x switch");
             System.out.println("        pig.additional.jars.uris=<comma seperated list of jars>. Used in place of register command.");
-            System.out.println("        udf.import.list=<comma seperated list of imports>. Used to avoid package names in UDF.");
+            System.out.println("        udf.import.list=<Colon seperated list of imports>. Used to avoid package names in UDF.");
             System.out.println("        stop.on.failure=true|false; default is false. Set to true to terminate on the first error.");
             System.out.println("        pig.datetime.default.tz=<UTC time offset>. e.g. +08:00. Default is the default timezone of the host.");
             System.out.println("            Determines the timezone used to handle datetime datatype and UDFs. ");
+            System.out.println("        pig.artifacts.download.location=<path to download artifacts>; default is ~/.groovy/grapes");
+            System.out.println("            Determines the location to download the artifacts when registering jars using ivy coordinates.");
             System.out.println("Additionally, any Hadoop property can be specified.");
     }
 
