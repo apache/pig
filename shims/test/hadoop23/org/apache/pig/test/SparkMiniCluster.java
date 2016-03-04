@@ -61,6 +61,7 @@ public class SparkMiniCluster extends MiniGenericCluster {
     @Override
     protected void setupMiniDfsAndMrClusters() {
         try {
+            deleteConfFiles();
             CONF_DIR.mkdirs();
 
             // Build mini DFS cluster
