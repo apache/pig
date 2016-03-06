@@ -111,6 +111,7 @@
     <property name="test.exclude.file.23" value="${test.src.dir}/excluded-tests-23"/>
     <property name="test.exclude.file.mr" value="${test.src.dir}/excluded-tests-mr"/>
     <property name="test.exclude.file.tez" value="${test.src.dir}/excluded-tests-tez"/>
+    <property name="test.exclude.file.spark" value="${test.src.dir}/excluded-tests-spark"/>
     <property name="pigunit.jarfile" value="pigunit.jar" />
     <property name="piggybank.jarfile" value="${basedir}/contrib/piggybank/java/piggybank.jar" />
     <property name="smoke.tests.jarfile" value="${build.dir}/${final.name}-smoketests.jar" />
