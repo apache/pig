@@ -834,12 +834,12 @@ public class TestMultiQuery {
         List<Tuple> actualResults = data.get("output1");
         List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
                 new String[] {"(1)", "(2)"});
-        Util.checkQueryOutputs(actualResults.iterator(), expectedResults);
+        Util.checkQueryOutputsAfterSort(actualResults.iterator(), expectedResults);
 
         actualResults = data.get("output2");
         expectedResults = Util.getTuplesFromConstantTupleStrings(
                 new String[] {"(1, 'world')", "(2, 'world')"});
-        Util.checkQueryOutputs(actualResults.iterator(), expectedResults);
+        Util.checkQueryOutputsAfterSort(actualResults.iterator(), expectedResults);
     }
 
     @Test
