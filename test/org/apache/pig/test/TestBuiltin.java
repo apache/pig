@@ -3209,7 +3209,9 @@ public class TestBuiltin {
         String inputFileName = "testUniqueID.txt";
         Util.createInputFile(cluster, inputFileName, new String[]
             {"1\n2\n3\n4\n5\n1\n2\n3\n4\n5\n"});
-        PigServer pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
+        Properties copyproperties = new Properties();
+        copyproperties.putAll(cluster.getProperties());
+        PigServer pigServer = new PigServer(cluster.getExecType(), copyproperties);
         pigServer.getPigContext().getProperties().setProperty("mapred.max.split.size", "10");
         pigServer.getPigContext().getProperties().setProperty("pig.noSplitCombination", "true");
         pigServer.registerQuery("A = load '" + inputFileName + "' as (name);");
@@ -3225,6 +3227,7 @@ public class TestBuiltin {
         assertEquals(iter.next().get(1),"1-2");
         assertEquals(iter.next().get(1),"1-3");
         assertEquals(iter.next().get(1),"1-4");
+        Util.deleteFile(cluster, inputFileName);
     }
 
     @Test
@@ -3233,7 +3236,10 @@ public class TestBuiltin {
         String inputFileName = "testRANDOM.txt";
         Util.createInputFile(cluster, inputFileName, new String[]
             {"1\n2\n3\n4\n5\n1\n2\n3\n4\n5\n"});
-        PigServer pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
+
+        Properties copyproperties = new Properties();
+        copyproperties.putAll(cluster.getProperties());
+        PigServer pigServer = new PigServer(cluster.getExecType(), copyproperties);
         // running with two mappers
         pigServer.getPigContext().getProperties().setProperty("mapred.max.split.size", "10");
         pigServer.getPigContext().getProperties().setProperty("pig.noSplitCombination", "true");
@@ -3260,6 +3266,7 @@ public class TestBuiltin {
         for( int i = 0; i < 5; i++ ){
             assertNotEquals(mapper1[i], mapper2[i], 0.0001);
         }
+        Util.deleteFile(cluster, inputFileName);
     }
 
 

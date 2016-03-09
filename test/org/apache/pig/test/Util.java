@@ -75,6 +75,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfigurat
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.tez.TezResourceManager;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.builtin.Utf8StorageConverter;
 import org.apache.pig.data.BagFactory;
@@ -1340,6 +1341,11 @@ public class Util {
      */
     public static void resetStateForExecModeSwitch() {
         FileLocalizer.setInitialized(false);
+
+        // For tez testing, we want to avoid TezResourceManager/LocalResource reuse
+        // (when switching between local and mapreduce/tez)
+        TezResourceManager.dropInstance();
+
         // TODO: once we have Tez local mode, we can get rid of this. For now,
         // if we run this test suite in Tez mode and there are some tests
         // in LOCAL mode, we need to set ScriptState to
