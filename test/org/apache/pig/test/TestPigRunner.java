@@ -454,6 +454,9 @@ public class TestPigRunner {
             assertTrue(stats.isSuccessful());
             if (Util.isMapredExecType(cluster.getExecType())) {
                 assertEquals(3, stats.getJobGraph().size());
+            } if (Util.isSparkExecType(cluster.getExecType())) {
+                // One for each store and 2 for join.
+                assertEquals(4, stats.getJobGraph().size());
             } else {
                 assertEquals(1, stats.getJobGraph().size());
             }
@@ -496,7 +499,8 @@ public class TestPigRunner {
             assertEquals(3, inputStats.get(1).getNumberRecords());
             // For mapreduce, since hdfs bytes read includes replicated tables bytes read is wrong
             // Since Tez does has only one load per job its values are correct
-            if (!Util.isMapredExecType(cluster.getExecType())) {
+            // By pass the check for spark due to PIG-4788
+            if (!Util.isMapredExecType(cluster.getExecType()) && !Util.isSparkExecType(cluster.getExecType())) {
                 assertEquals(30, inputStats.get(0).getBytes());
                 assertEquals(18, inputStats.get(1).getBytes());
             }
