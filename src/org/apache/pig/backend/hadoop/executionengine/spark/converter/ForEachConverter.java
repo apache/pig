@@ -25,6 +25,7 @@ import java.util.List;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.ProgressableReporter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
@@ -90,6 +91,8 @@ public class ForEachConverter implements RDDConverter<Tuple, Tuple, POForEach> {
 
         public Iterable<Tuple> call(final Iterator<Tuple> input) {
             initializeJobConf();
+            // Initialize a reporter as the UDF might want to report progress.
+            PhysicalOperator.setReporter(new ProgressableReporter());
             PhysicalOperator[] planLeafOps= poForEach.getPlanLeafOps();
             if (planLeafOps != null) {
                 for (PhysicalOperator op : planLeafOps) {
