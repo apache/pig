@@ -3215,16 +3215,46 @@ public class TestBuiltin {
         pigServer.registerQuery("A = load '" + inputFileName + "' as (name);");
         pigServer.registerQuery("B = foreach A generate name, UniqueID();");
         Iterator<Tuple> iter = pigServer.openIterator("B");
-        assertEquals(iter.next().get(1),"0-0");
-        assertEquals(iter.next().get(1),"0-1");
-        assertEquals(iter.next().get(1),"0-2");
-        assertEquals(iter.next().get(1),"0-3");
-        assertEquals(iter.next().get(1),"0-4");
-        assertEquals(iter.next().get(1),"1-0");
-        assertEquals(iter.next().get(1),"1-1");
-        assertEquals(iter.next().get(1),"1-2");
-        assertEquals(iter.next().get(1),"1-3");
-        assertEquals(iter.next().get(1),"1-4");
+        if (!Util.isSparkExecType(cluster.getExecType())) {
+            assertEquals(iter.next().get(1), "0-0");
+            assertEquals(iter.next().get(1), "0-1");
+            assertEquals(iter.next().get(1), "0-2");
+            assertEquals(iter.next().get(1), "0-3");
+            assertEquals(iter.next().get(1), "0-4");
+            assertEquals(iter.next().get(1), "1-0");
+            assertEquals(iter.next().get(1), "1-1");
+            assertEquals(iter.next().get(1), "1-2");
+            assertEquals(iter.next().get(1), "1-3");
+            assertEquals(iter.next().get(1), "1-4");
+        } else{
+            //because we set PigConstants.TASK_INDEX as 0 in ForEachConverter#ForEachFunction#initializeJobConf
+            //UniqueID.exec() will output like 0-*
+            //there will be 2 InputSplits when mapred.max.split.size is 10(byte) for the testUniqueID.txt(20 bytes)
+            //Split0:
+            //            1\n
+            //            2\n
+            //            3\n
+            //            4\n
+            //            5\n
+            //            1\n
+            //Split1:
+            //            2\n
+            //            3\n
+            //            4\n
+            //            5\n
+            //The size of Split0 is 12 not 10 because LineRecordReader#nextKeyValue will read one more line
+            //More detail see PIG-4383
+            assertEquals(iter.next().get(1), "0-0");
+            assertEquals(iter.next().get(1), "0-1");
+            assertEquals(iter.next().get(1), "0-2");
+            assertEquals(iter.next().get(1), "0-3");
+            assertEquals(iter.next().get(1), "0-4");
+            assertEquals(iter.next().get(1), "0-5");
+            assertEquals(iter.next().get(1), "0-0");
+            assertEquals(iter.next().get(1), "0-1");
+            assertEquals(iter.next().get(1), "0-2");
+            assertEquals(iter.next().get(1), "0-3");
+        }
     }
 
     @Test

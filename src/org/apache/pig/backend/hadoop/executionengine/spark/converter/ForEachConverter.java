@@ -21,9 +21,12 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
 
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.pig.PigConstants;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.ProgressableReporter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -74,18 +77,20 @@ public class ForEachConverter implements RDDConverter<Tuple, Tuple, POForEach> {
         }
 
         void initializeJobConf() {
-            if (this.jobConf == null) {
-                this.jobConf = KryoSerializer.deserializeJobConf(this.confBytes);
-                PigMapReduce.sJobConfInternal.set(jobConf);
-                try {
-                    MapRedUtil.setupUDFContext(jobConf);
-                    PigContext pc = (PigContext) ObjectSerializer.deserialize(jobConf.get("pig.pigContext"));
-                    SchemaTupleBackend.initialize(jobConf, pc);
-
-                } catch (IOException ioe) {
-                    String msg = "Problem while configuring UDFContext from ForEachConverter.";
-                    throw new RuntimeException(msg, ioe);
-                }
+            if (this.jobConf != null) {
+                return;
+            }
+            this.jobConf = KryoSerializer.deserializeJobConf(this.confBytes);
+            PigMapReduce.sJobConfInternal.set(jobConf);
+            try {
+                MapRedUtil.setupUDFContext(jobConf);
+                PigContext pc = (PigContext) ObjectSerializer.deserialize(jobConf.get("pig.pigContext"));
+                SchemaTupleBackend.initialize(jobConf, pc);
+                jobConf.set(MRConfiguration.JOB_ID, UUID.randomUUID().toString());
+                jobConf.set(PigConstants.TASK_INDEX, "0");
+            } catch (IOException ioe) {
+                String msg = "Problem while configuring UDFContext from ForEachConverter.";
+                throw new RuntimeException(msg, ioe);
             }
         }
 
