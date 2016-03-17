@@ -37,6 +37,7 @@ import org.apache.pig.backend.BackendException;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecutionEngine;
+import org.apache.pig.backend.hadoop.HKerberos;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.fetch.FetchLauncher;
@@ -214,6 +215,9 @@ public abstract class HExecutionEngine implements ExecutionEngine {
         // hadoop properties with the values from properties and recomputing
         // the properties
         Utils.recomputeProperties(jc, properties);
+
+        // Ensure we have been logged in using the kerberos keytab (if provided) before continuing.
+        HKerberos.tryKerberosKeytabLogin(jc);
 
         cluster = jc.get(MRConfiguration.JOB_TRACKER);
         nameNode = jc.get(FILE_SYSTEM_LOCATION);
