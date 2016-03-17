@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4796: Authenticate with Kerberos using a keytab file (nielsbasjes via daijy)
+
 PIG-4817: Bump HTTP Logparser to version 2.4 (nielsbasjes via daijy)
 
 PIG-4811: Upgrade groovy library to address MethodClosure vulnerability	(daijy)
