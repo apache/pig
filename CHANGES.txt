@@ -99,6 +99,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-4832: Fix TestPrumeColumn NPE failure (kellyzly via daijy)
+
 PIG-4833 TestBuiltin.testURIWithCurlyBrace in TEZ failing after PIG-4819 (knoguchi)
 
 PIG-4819: RANDOM() udf can lead to missing or redundant records (knoguchi)
