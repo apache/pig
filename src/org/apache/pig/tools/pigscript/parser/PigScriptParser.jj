@@ -355,7 +355,20 @@ TOKEN_MGR_DECLS : {
 <SCHEMA_DEFINITION> MORE :
 {
     <"("> {tupleSchemaLevel++;}
-|   <")"> {tupleSchemaLevel--; if ((tupleSchemaLevel == 0) && (bagSchemaLevel == 0)) SwitchTo(prevState); }
+|   <")">
+    {
+        if ((tupleSchemaLevel == 0) && (bagSchemaLevel == 0)) {
+        // This means parenthesis is not from this schema_def.
+        // Putting back ")" although others do not check parenthesis at this time.
+        // This is a bandaid workaround for the issue with inline-op which
+        // also uses parenthesis.
+        // Real fix would be to move out of using this javacc parser. (PIG-2597)
+            input_stream.backup(1);
+            image.deleteCharAt(image.length()-1);
+            SwitchTo(prevState);
+        }
+        tupleSchemaLevel--; if ((tupleSchemaLevel == 0) && (bagSchemaLevel == 0)) SwitchTo(prevState);
+    }
 |   <"{"> {bagSchemaLevel++;}
 |   <"}"> {bagSchemaLevel--; if ((tupleSchemaLevel == 0) && (bagSchemaLevel == 0)) SwitchTo(prevState); }
 |	<("," | ";" )>
