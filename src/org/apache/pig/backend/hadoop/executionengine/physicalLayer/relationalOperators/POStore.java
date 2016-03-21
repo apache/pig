@@ -247,9 +247,11 @@ public class POStore extends PhysicalOperator {
 
 
     public StoreFuncInterface getStoreFunc() {
-        if(storer == null){
-            storer = (StoreFuncInterface)PigContext.instantiateFuncFromSpec(sFile.getFuncSpec());
+        if (storer == null) {
+            storer = (StoreFuncInterface) PigContext.instantiateFuncFromSpec(sFile.getFuncSpec());
             storer.setStoreFuncUDFContextSignature(signature);
+        }
+        if (sDecorator == null) {
             // Init the Decorator we use for writing Tuples
             setStoreFuncDecorator(new StoreFuncDecorator(storer, signature));
         }
