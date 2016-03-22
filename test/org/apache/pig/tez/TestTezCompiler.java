@@ -661,6 +661,28 @@ public class TestTezCompiler {
                 "store c into 'file:///tmp/output' using " + DummyStoreWithOutputFormat.class.getName() + "();";
         // Plan should not have union optimization applied
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-1-DummyStore-OPTOFF.gld");
+
+        resetScope();
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION_UNSUPPORTED_STOREFUNCS, PigStorage.class.getName());
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION_SUPPORTED_STOREFUNCS, null);
+        query =
+                "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
+                "split a into b if x > 5, c if x == 7, d if x == 8, e otherwise;" +
+                "u1 = union onschema b, c;" +
+                "store u1 into 'file:///tmp/output/u1';" +
+                //TODO: multiple levels of split not merged
+                "u2 = union onschema a, b, c;" +
+                "store u2 into 'file:///tmp/output/u2';" +
+                "u3 = union onschema d, e;" +
+                "store u3 into 'file:///tmp/output/u3';" +
+                "j1 = join d by x, a by x using 'replicated';" +
+                "j1 = foreach j1 generate d::x as x, d::y as y;" +
+                "u4 = union onschema j1, a;" +
+                "store u4 into 'file:///tmp/output/u4';";
+
+        // Plan should have union optimization applied even for unsupported storefunc
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-1-SplitStore.gld");
+
         // Restore the value
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION_SUPPORTED_STOREFUNCS, oldSupported);
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION_UNSUPPORTED_STOREFUNCS, oldUnSupported);

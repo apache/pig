@@ -1,0 +1,143 @@
+#--------------------------------------------------
+# There are 1 DAGs in the session
+#--------------------------------------------------
+#--------------------------------------------------
+# TEZ DAG plan: pig-0_scope-0
+#--------------------------------------------------
+Tez vertex scope-79	->	Tez vertex scope-81,Tez vertex scope-98,Tez vertex scope-122,Tez vertex scope-124,
+Tez vertex scope-98	->	Tez vertex scope-104,
+Tez vertex scope-122	->	Tez vertex scope-81,
+Tez vertex scope-81	->	Tez vertex scope-104,Tez vertex scope-126,
+Tez vertex scope-104
+Tez vertex scope-124	->	Tez vertex scope-126,
+Tez vertex scope-126
+
+Tez vertex scope-79
+# Plan on vertex
+POValueOutputTez - scope-80	->	 [scope-122, scope-124, scope-81, scope-98]
+|
+|---a: New For Each(false,false)[bag] - scope-7
+    |   |
+    |   Cast[int] - scope-2
+    |   |
+    |   |---Project[bytearray][0] - scope-1
+    |   |
+    |   Cast[chararray] - scope-5
+    |   |
+    |   |---Project[bytearray][1] - scope-4
+    |
+    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
+Tez vertex scope-98
+# Plan on vertex
+POValueOutputTez - scope-106	->	 [scope-104]
+|
+|---POValueInputTez - scope-99	<-	 scope-79
+Tez vertex scope-122
+# Plan on vertex
+Local Rearrange[tuple]{int}(false) - scope-67	->	 scope-81
+|   |
+|   Project[int][0] - scope-63
+|
+|---POValueInputTez - scope-123	<-	 scope-79
+Tez vertex scope-81
+# Plan on vertex
+1-1: Split - scope-133
+|   |
+|   u3: Store(file:///tmp/output/u3:org.apache.pig.builtin.PigStorage) - scope-135	->	 scope-57
+|   |
+|   |---e: Filter[bag] - scope-43
+|       |   |
+|       |   Not[boolean] - scope-55
+|       |   |
+|       |   |---Or[boolean] - scope-54
+|       |       |
+|       |       |---Or[boolean] - scope-50
+|       |       |   |
+|       |       |   |---Greater Than[boolean] - scope-46
+|       |       |   |   |
+|       |       |   |   |---Project[int][0] - scope-44
+|       |       |   |   |
+|       |       |   |   |---Constant(5) - scope-45
+|       |       |   |
+|       |       |   |---Equal To[boolean] - scope-49
+|       |       |       |
+|       |       |       |---Project[int][0] - scope-47
+|       |       |       |
+|       |       |       |---Constant(7) - scope-48
+|       |       |
+|       |       |---Equal To[boolean] - scope-53
+|       |           |
+|       |           |---Project[int][0] - scope-51
+|       |           |
+|       |           |---Constant(8) - scope-52
+|   |
+|   d: Split - scope-132
+|   |   |
+|   |   u3: Store(file:///tmp/output/u3:org.apache.pig.builtin.PigStorage) - scope-134	->	 scope-57
+|   |   |
+|   |   POValueOutputTez - scope-128	->	 [scope-126]
+|   |   |
+|   |   |---j1: New For Each(false,false)[bag] - scope-74
+|   |       |   |
+|   |       |   Project[int][0] - scope-70
+|   |       |   |
+|   |       |   Project[chararray][1] - scope-72
+|   |       |
+|   |       |---j1: FRJoin[tuple] - scope-64	<-	 scope-122
+|   |           |   |
+|   |           |   Project[int][0] - scope-62
+|   |           |   |
+|   |           |   Project[int][0] - scope-63
+|   |
+|   |---d: Filter[bag] - scope-36
+|       |   |
+|       |   Equal To[boolean] - scope-39
+|       |   |
+|       |   |---Project[int][0] - scope-37
+|       |   |
+|       |   |---Constant(8) - scope-38
+|   |
+|   b: Split - scope-130
+|   |   |
+|   |   u1: Store(file:///tmp/output/u1:org.apache.pig.builtin.PigStorage) - scope-136	->	 scope-27
+|   |   |
+|   |   POValueOutputTez - scope-107	->	 [scope-104]
+|   |
+|   |---b: Filter[bag] - scope-12
+|       |   |
+|       |   Greater Than[boolean] - scope-15
+|       |   |
+|       |   |---Project[int][0] - scope-13
+|       |   |
+|       |   |---Constant(5) - scope-14
+|   |
+|   c: Split - scope-131
+|   |   |
+|   |   u1: Store(file:///tmp/output/u1:org.apache.pig.builtin.PigStorage) - scope-137	->	 scope-27
+|   |   |
+|   |   POValueOutputTez - scope-108	->	 [scope-104]
+|   |
+|   |---c: Filter[bag] - scope-19
+|       |   |
+|       |   Equal To[boolean] - scope-22
+|       |   |
+|       |   |---Project[int][0] - scope-20
+|       |   |
+|       |   |---Constant(7) - scope-21
+|
+|---POValueInputTez - scope-82	<-	 scope-79
+Tez vertex scope-104
+# Plan on vertex
+u2: Store(file:///tmp/output/u2:org.apache.pig.builtin.PigStorage) - scope-35
+|
+|---POShuffledValueInputTez - scope-105	<-	 [scope-81, scope-98]
+Tez vertex scope-124
+# Plan on vertex
+POValueOutputTez - scope-129	->	 [scope-126]
+|
+|---POValueInputTez - scope-125	<-	 scope-79
+Tez vertex scope-126
+# Plan on vertex
+u4: Store(file:///tmp/output/u4:org.apache.pig.builtin.PigStorage) - scope-78
+|
+|---POShuffledValueInputTez - scope-127	<-	 [scope-124, scope-81]

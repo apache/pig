@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4840: Do not turn off UnionOptimizer for unsupported storefuncs in case of no vertex groups (rohini)
+
 PIG-4843: Turn off combiner in reducer vertex for Tez if bags are in combine plan (rohini)
 
 PIG-4796: Authenticate with Kerberos using a keytab file (nielsbasjes via daijy)
