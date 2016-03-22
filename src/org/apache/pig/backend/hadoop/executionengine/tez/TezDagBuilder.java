@@ -103,6 +103,7 @@ import org.apache.pig.backend.hadoop.executionengine.tez.runtime.PigOutputFormat
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.PigProcessor;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.MRToTezHelper;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.SecurityHelper;
+import org.apache.pig.backend.hadoop.executionengine.tez.util.TezCompilerUtil;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.TezUDFContextSeparator;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
@@ -507,8 +508,28 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                     edge.partitionerClass.getName());
         }
 
-        in.setUserPayload(TezUtils.createUserPayloadFromConf(conf));
-        out.setUserPayload(TezUtils.createUserPayloadFromConf(conf));
+        UserPayload payLoad = TezUtils.createUserPayloadFromConf(conf);
+        out.setUserPayload(payLoad);
+
+        if (!combinePlan.isEmpty()) {
+            boolean noCombineInReducer = false;
+            String reducerNoCombiner = globalConf.get(PigConfiguration.PIG_EXEC_NO_COMBINER_REDUCER);
+            if (reducerNoCombiner == null || reducerNoCombiner.equals("auto")) {
+                noCombineInReducer = TezCompilerUtil.bagDataTypeInCombinePlan(combinePlan);
+            } else {
+                noCombineInReducer = Boolean.parseBoolean(reducerNoCombiner);
+            }
+            if (noCombineInReducer) {
+                log.info("Turning off combiner in reducer vertex " + to.getOperatorKey() + " for edge from " + from.getOperatorKey());
+                conf.unset(TezRuntimeConfiguration.TEZ_RUNTIME_COMBINER_CLASS);
+                conf.unset(MRJobConfig.COMBINE_CLASS_ATTR);
+                conf.unset("pig.combinePlan");
+                conf.unset("pig.combine.package");
+                conf.unset("pig.map.keytype");
+                payLoad = TezUtils.createUserPayloadFromConf(conf);
+            }
+        }
+        in.setUserPayload(payLoad);
 
         if (edge.dataMovementType!=DataMovementType.BROADCAST && to.getEstimatedParallelism()!=-1 && to.getVertexParallelism()==-1 && (to.isGlobalSort()||to.isSkewedJoin())) {
             // Use custom edge

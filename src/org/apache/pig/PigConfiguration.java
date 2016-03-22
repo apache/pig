@@ -94,6 +94,13 @@ public class PigConfiguration {
     public static final String PIG_EXEC_NO_COMBINER = "pig.exec.nocombiner";
 
     /**
+     * Enable or disable use of combiners in reducer shuffle-merge phase in Tez.
+     * Valid values are auto, true or false.
+     * Default is auto which turns off combiner if bags are present in the combine plan
+     */
+    public static final String PIG_EXEC_NO_COMBINER_REDUCER = "pig.exec.nocombiner.reducer";
+
+    /**
      * This key controls whether secondary sort key is used for optimization in case
      * of nested distinct or sort
      */
@@ -328,7 +335,7 @@ public class PigConfiguration {
      * Set the threshold for percentage of errors
      */
     public static final String PIG_ERROR_THRESHOLD_PERCENT = "pig.error.threshold.percent";
-    
+
     /**
      * Comma-delimited entries of commands/operators that must be disallowed.
      * This is a security feature to be used by administrators to block use of

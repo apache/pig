@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4843: Turn off combiner in reducer vertex for Tez if bags are in combine plan (rohini)
+
 PIG-4796: Authenticate with Kerberos using a keytab file (nielsbasjes via daijy)
 
 PIG-4817: Bump HTTP Logparser to version 2.4 (nielsbasjes via daijy)
