@@ -18,8 +18,10 @@
 package org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -68,10 +70,23 @@ public class MultiQueryOptimizerTez extends TezOpPlanVisitor {
                 return;
             }
 
+            // Using a list instead of set to have consistently ordered plans
             List<TezOperator> splittees = new ArrayList<TezOperator>();
             Set<TezOperator> mergedNonPackageInputSuccessors = new HashSet<TezOperator>();
 
+            // When there is a union successor with unsupported storefunc, those splittees
+            // can only be merged into the split if all the union members will be from the split
+            // This is to ensure that there are no vertex groups created with unsupported storefunc.
+            Map<TezOperator, Set<OperatorKey>> tentativeMergeUnionMembers = new HashMap<TezOperator, Set<OperatorKey>>();
+
             List<TezOperator> successors = getPlan().getSuccessors(tezOp);
+
+            Set<OperatorKey> splitterAndSuccessorKeys = new HashSet<OperatorKey>();
+            splitterAndSuccessorKeys.add(tezOp.getOperatorKey());
+            for (TezOperator successor : successors) {
+                splitterAndSuccessorKeys.add(successor.getOperatorKey());
+            }
+
             for (TezOperator successor : successors) {
                 List<TezOperator> predecessors = new ArrayList<TezOperator>(getPlan().getPredecessors(successor));
                 predecessors.remove(tezOp);
@@ -129,6 +144,7 @@ public class MultiQueryOptimizerTez extends TezOpPlanVisitor {
                 // Only in case of POPackage(POShuffleTezLoad) multiple inputs can be handled from a Split
                 Set<TezOperator> nonPackageInputSuccessors = new HashSet<TezOperator>();
                 boolean canMerge = true;
+                Set<TezOperator> successorUnsupportedStoreUnions = new HashSet<TezOperator>();
 
                 mergedSuccessors.addAll(successors);
                 for (TezOperator splittee : splittees) {
@@ -140,11 +156,21 @@ public class MultiQueryOptimizerTez extends TezOpPlanVisitor {
                     for (TezOperator succSuccessor : getPlan().getSuccessors(successor)) {
                         if (succSuccessor.isUnion()) {
                             if (!(unionOptimizerOn &&
-                                    UnionOptimizer.isOptimizable(succSuccessor,
-                                            unionSupportedStoreFuncs,
-                                            unionUnsupportedStoreFuncs))) {
+                                    UnionOptimizer.isOptimizable(succSuccessor))) {
                                 toNotMergeSuccessors.add(succSuccessor);
                             } else {
+                                if (unionOptimizerOn && !UnionOptimizer.isOptimizableStoreFunc(succSuccessor,unionSupportedStoreFuncs,unionUnsupportedStoreFuncs)) {
+                                    // This optimization of using UnionOptimizer for unsupported storefunc
+                                    // is only good for one level of split and does not handle multiple level of split.
+                                    Set<OperatorKey> unionMembers = new HashSet<OperatorKey>(succSuccessor.getUnionMembers());
+                                    unionMembers.removeAll(splitterAndSuccessorKeys);
+                                    if(unionMembers.isEmpty()) {
+                                        successorUnsupportedStoreUnions.add(succSuccessor);
+                                    } else {
+                                        toNotMergeSuccessors.add(succSuccessor);
+                                        continue;
+                                    }
+                                }
                                 toMergeSuccessors.add(succSuccessor);
                                 List<TezOperator> unionSuccessors = getPlan().getSuccessors(succSuccessor);
                                 if (unionSuccessors != null) {
@@ -187,9 +213,45 @@ public class MultiQueryOptimizerTez extends TezOpPlanVisitor {
 
                 mergedSuccessors.retainAll(toNotMergeSuccessors);
                 if (mergedSuccessors.isEmpty()) { // no shared edge after merge
-                    splittees.add(successor);
                     mergedNonPackageInputSuccessors.addAll(nonPackageInputSuccessors);
+                    if (successorUnsupportedStoreUnions.isEmpty()) {
+                        splittees.add(successor);
+                    } else {
+                        // If all other conditions were satisfied, but it had a successor union
+                        // with unsupported storefunc keep it in the tentative list
+                        for (TezOperator unionOp : successorUnsupportedStoreUnions) {
+                            Set<OperatorKey> tentativeSuccessors = tentativeMergeUnionMembers.get(unionOp);
+                            if (tentativeSuccessors == null) {
+                                tentativeSuccessors = new HashSet<OperatorKey>();
+                                tentativeMergeUnionMembers.put(unionOp, tentativeSuccessors);
+                            }
+                            tentativeSuccessors.add(successor.getOperatorKey());
+                        }
+                    }
                 }
+            }
+
+            Set<TezOperator> spliteesToRemove = new HashSet<TezOperator>();
+
+            for (Entry<TezOperator, Set<OperatorKey>> entry : tentativeMergeUnionMembers.entrySet()) {
+                Set<OperatorKey> unionMembers = new HashSet<OperatorKey>(entry.getKey().getUnionMembers());
+                if (entry.getValue().containsAll(unionMembers)) {
+                    // If all the union members were tentative splittees then add them
+                    for (OperatorKey key : entry.getValue()) {
+                        TezOperator splittee = getPlan().getOperator(key);
+                        if (!splittees.contains(splittee)) {
+                            splittees.add(splittee);
+                        }
+                    }
+                } else {
+                    for (OperatorKey key : entry.getValue()) {
+                        spliteesToRemove.add(getPlan().getOperator(key));
+                    }
+                }
+            }
+
+            for (TezOperator op : spliteesToRemove) {
+                splittees.remove(op);
             }
 
             if (splittees.size() == 0) {

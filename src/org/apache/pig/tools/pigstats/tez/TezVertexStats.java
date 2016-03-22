@@ -23,6 +23,7 @@ import static org.apache.pig.tools.pigstats.tez.TezDAGStats.TASK_COUNTER_GROUP;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +36,7 @@ import org.apache.pig.PigCounters;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigInputFormat;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POStoreTez;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.ObjectSerializer;
@@ -286,7 +288,14 @@ public class TezVertexStats extends JobStats {
             multiStoreCounters.putAll(msGroup);
         }
 
+        // Split followed by union will have multiple stores writing to same location
+        Map<String, POStore> uniqueOutputs = new HashMap<String, POStore>();
         for (POStore sto : stores) {
+            POStoreTez store = (POStoreTez) sto;
+            uniqueOutputs.put(store.getOutputKey(), store);
+        }
+
+        for (POStore sto : uniqueOutputs.values()) {
             if (sto.isTmpStore()) {
                 continue;
             }
