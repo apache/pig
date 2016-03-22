@@ -71,12 +71,12 @@ public class PigContext implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private static final Log log = LogFactory.getLog(PigContext.class);
+    private static Object instantiationLock = new Object();
 
     public static final String JOB_NAME = "jobName";
     public static final String JOB_NAME_PREFIX= "PigLatin";
     public static final String JOB_PRIORITY = "jobPriority";
     public static final String PIG_CMD_ARGS_REMAINDERS = "pig.cmd.args.remainders";
-
 
     /* NOTE: we only serialize some of the stuff
      *
@@ -723,26 +723,41 @@ public class PigContext implements Serializable {
             throw new RuntimeException("Cannot instantiate: " + className, ioe) ;
         }
 
-        try {
-            // Do normal instantiation
-            if (args != null && args.length > 0) {
-                Class paramTypes[] = new Class[args.length];
-                for (int i = 0; i < paramTypes.length; i++) {
-                    paramTypes[i] = String.class;
-                }
-                Constructor c = objClass.getConstructor(paramTypes);
-                ret =  c.newInstance((Object[])args);
-            } else {
-                ret = objClass.newInstance();
-            }
-        }
-        catch(NoSuchMethodException nme) {
-            // Second chance. Try with var arg constructor
+        // OptionBuilder is not thread-safe and HBaseStorage, elephantbird SequenceFileConfig, etc
+        // use them in constructor. This leads to NoSuchMethodException, UnrecognizedOptionException etc
+        // when processor, inputs and outputs are initialized in parallel in Tez
+        synchronized (instantiationLock) {
             try {
-                Constructor c = objClass.getConstructor(String[].class);
-                Object[] wrappedArgs = new Object[1] ;
-                wrappedArgs[0] = args ;
-                ret =  c.newInstance(wrappedArgs);
+                // Do normal instantiation
+                if (args != null && args.length > 0) {
+                    Class paramTypes[] = new Class[args.length];
+                    for (int i = 0; i < paramTypes.length; i++) {
+                        paramTypes[i] = String.class;
+                    }
+                    Constructor c = objClass.getConstructor(paramTypes);
+                    ret =  c.newInstance((Object[])args);
+                } else {
+                    ret = objClass.newInstance();
+                }
+            }
+            catch(NoSuchMethodException nme) {
+                // Second chance. Try with var arg constructor
+                try {
+                    Constructor c = objClass.getConstructor(String[].class);
+                    Object[] wrappedArgs = new Object[1] ;
+                    wrappedArgs[0] = args ;
+                    ret =  c.newInstance(wrappedArgs);
+                }
+                catch(Throwable e){
+                    // bad luck
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("could not instantiate '");
+                    sb.append(className);
+                    sb.append("' with arguments '");
+                    sb.append(Arrays.toString(args));
+                    sb.append("'");
+                    throw new RuntimeException(sb.toString(), e);
+                }
             }
             catch(Throwable e){
                 // bad luck
@@ -754,18 +769,8 @@ public class PigContext implements Serializable {
                 sb.append("'");
                 throw new RuntimeException(sb.toString(), e);
             }
+            return ret;
         }
-        catch(Throwable e){
-            // bad luck
-            StringBuilder sb = new StringBuilder();
-            sb.append("could not instantiate '");
-            sb.append(className);
-            sb.append("' with arguments '");
-            sb.append(Arrays.toString(args));
-            sb.append("'");
-            throw new RuntimeException(sb.toString(), e);
-        }
-        return ret;
     }
 
     public static Object instantiateFuncFromSpec(String funcSpec)  {
