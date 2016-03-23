@@ -33,7 +33,6 @@ import org.apache.log4j.PropertyConfigurator;
 import org.apache.pig.PigConstants;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -161,7 +160,7 @@ public abstract class PigGenericMapBase extends Mapper<Text, Tuple, PigNullableW
         super.setup(context);
 
         Configuration job = context.getConfiguration();
-        SpillableMemoryManager.configure(ConfigurationUtil.toProperties(job));
+        SpillableMemoryManager.getInstance().configure(job);
         context.getConfiguration().set(PigConstants.TASK_INDEX, Integer.toString(context.getTaskAttemptID().getTaskID().getId()));
         PigMapReduce.sJobContext = context;
         PigMapReduce.sJobConfInternal.set(context.getConfiguration());

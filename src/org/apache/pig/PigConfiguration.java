@@ -387,6 +387,24 @@ public class PigConfiguration {
     public static final String PIG_TEZ_DAG_STATUS_REPORT_INTERVAL = "pig.tez.dag.status.report.interval";
 
 
+    // SpillableMemoryManager settings
+
+    /**
+     * SpillableMemoryManager spill will be triggered if the fraction of biggest heap exceeds the usage threshold
+     * Default is 0.7
+     */
+    public static final String PIG_SPILL_MEMORY_USAGE_THRESHOLD_FRACTION = "pig.spill.memory.usage.threshold.fraction";
+
+    /**
+     * SpillableMemoryManager spill will be triggered if the fraction of biggest heap exceeds the collection threshold
+     * Default is 0.7
+     */
+    public static final String PIG_SPILL_COLLECTION_THRESHOLD_FRACTION = "pig.spill.collection.threshold.fraction";
+
+    /**
+     * SpillableMemoryManager spill will be triggered when unused memory falls below the threshold.
+     */
+    public static final String PIG_SPILL_UNUSED_MEMORY_THRESHOLD_SIZE = "pig.spill.unused.memory.threshold.size";
 
     // Deprecated settings of Pig 0.13
 
