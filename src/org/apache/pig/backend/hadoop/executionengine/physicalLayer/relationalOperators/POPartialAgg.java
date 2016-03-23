@@ -141,7 +141,7 @@ public class POPartialAgg extends PhysicalOperator implements Spillable, Groupin
     }
 
     private void init() throws ExecException {
-        ALL_POPARTS.put(this, null);
+
         numRecsInRawMap = 0;
         numRecsInProcessedMap = 0;
         minOutputReduction = DEFAULT_MIN_REDUCTION;
@@ -172,6 +172,9 @@ public class POPartialAgg extends PhysicalOperator implements Spillable, Groupin
             // Set them to true instead of adding another check for !disableMapAgg
             sizeReductionChecked = true;
             estimatedMemThresholds = true;
+        } else {
+            ALL_POPARTS.put(this, null);
+            SpillableMemoryManager.getInstance().registerSpillable(this);
         }
         // Avoid hashmap resizing. TODO: Investigate loadfactor of 0.90 or 1.0
         // newHashMapWithExpectedSize does new HashMap(expectedSize + expectedSize/3)
@@ -187,7 +190,6 @@ public class POPartialAgg extends PhysicalOperator implements Spillable, Groupin
             listSizeThreshold = Math.min(numRecordsToSample, MAX_LIST_SIZE);
         }
         initialized = true;
-        SpillableMemoryManager.getInstance().registerSpillable(this);
     }
 
     @Override
@@ -203,7 +205,7 @@ public class POPartialAgg extends PhysicalOperator implements Spillable, Groupin
         // The fact that we are in the latter stage is communicated via the doSpill
         // flag.
 
-        if (!initialized && !ALL_POPARTS.containsKey(this)) {
+        if (!initialized) {
             init();
         }
 
@@ -224,8 +226,12 @@ public class POPartialAgg extends PhysicalOperator implements Spillable, Groupin
                 if (doSpill == false) {
                     // SpillableMemoryManager requested a spill to reduce memory
                     // consumption. See if we can avoid it.
+                    // If we see that there are way more records in processed map than
+                    // raw map, it is better to spill after the aggregation
+                    boolean spillProcessedMap = (3 * numRecsInRawMap) < numRecsInProcessedMap;
                     aggregateBothLevels(false, false);
-                    if (shouldSpill()) {
+                    // Spill if the numRecsInProcessedMap
+                    if (spillProcessedMap || shouldSpill()) {
                         startSpill(false);
                     } else {
                         LOG.info("Avoided emitting records during spill memory call.");
@@ -360,6 +366,7 @@ public class POPartialAgg extends PhysicalOperator implements Spillable, Groupin
         // called and size reduction checked
         startSpill(false);
         disableMapAgg = true;
+        ALL_POPARTS.remove(this);
     }
 
     private boolean mapAggDisabled() {
@@ -379,19 +386,21 @@ public class POPartialAgg extends PhysicalOperator implements Spillable, Groupin
         return shouldAggregateSecondLevel();
     }
 
+    private void addKeySingleValToMap(Map<Object, List<Tuple>> map,
+            Object key, List<Tuple> inpTuple) throws ExecException {
+        List<Tuple> value = map.get(key);
+        if (value == null) {
+            map.put(key, inpTuple);
+        } else {
+            value.add(inpTuple.get(0));
+        }
+    }
+
     private void addKeyValToMap(Map<Object, List<Tuple>> map,
             Object key, Tuple inpTuple) throws ExecException {
         List<Tuple> value = map.get(key);
         if (value == null) {
-            if (isGroupAll) {
-                // Set exact array initial size to avoid array copies
-                // listSizeThreshold = numRecordsToSample before estimating memory
-                // thresholds and firstTierThreshold after memory estimation
-                int listSize = (map == rawInputMap) ? listSizeThreshold : Math.min(secondTierThreshold, MAX_LIST_SIZE);
-                value = new ArrayList<Tuple>(listSize);
-            } else {
-                value = new ArrayList<Tuple>();
-            }
+            value = createNewValueList(map);
             map.put(key, value);
         }
         value.add(inpTuple);
@@ -407,6 +416,20 @@ public class POPartialAgg extends PhysicalOperator implements Spillable, Groupin
                 aggregateSecondLevel();
             }
         }
+    }
+
+    private List<Tuple> createNewValueList(Map<Object, List<Tuple>> map) {
+        List<Tuple> value;
+        if (isGroupAll) {
+            // Set exact array initial size to avoid array copies
+            // listSizeThreshold = numRecordsToSample before estimating memory
+            // thresholds and firstTierThreshold after memory estimation
+            int listSize = (map == rawInputMap) ? listSizeThreshold : Math.min(secondTierThreshold + 1, MAX_LIST_SIZE);
+            value = new ArrayList<Tuple>(listSize);
+        } else {
+            value = new ArrayList<Tuple>();
+        }
+        return value;
     }
 
     private void startSpill(boolean aggregate) throws ExecException {
@@ -452,13 +475,38 @@ public class POPartialAgg extends PhysicalOperator implements Spillable, Groupin
      * @throws ExecException
      */
     private int aggregate(Map<Object, List<Tuple>> fromMap, Map<Object, List<Tuple>> toMap, int numEntriesInTarget) throws ExecException {
+        boolean srcDestDifferent = (fromMap == toMap) ? false : true;
         Iterator<Map.Entry<Object, List<Tuple>>> iter = fromMap.entrySet().iterator();
         while (iter.hasNext()) {
             Map.Entry<Object, List<Tuple>> entry = iter.next();
-            Tuple valueTuple = createValueTuple(entry.getKey(), entry.getValue());
-            Result res = getOutput(entry.getKey(), valueTuple);
-            iter.remove();
-            addKeyValToMap(toMap, entry.getKey(), getAggResultTuple(res.result));
+            if (entry.getValue().size() == 1) {
+                // If fromMap and toMap are same (processedInputMap), then continue without any change
+                // If different (rawInputMap->processedInputMap), add directly to target and skip running through the valuePlans
+                if (srcDestDifferent) {
+                    iter.remove();
+                    addKeySingleValToMap(toMap, entry.getKey(), entry.getValue());
+                }
+            } else {
+                Tuple valueTuple = createValueTuple(entry.getKey(), entry.getValue());
+                Result res = getOutput(entry.getKey(), valueTuple);
+                if (srcDestDifferent) {
+                    // Remove from src and add to destination (rawInputMap->processedInputMap)
+                    iter.remove();
+                    addKeyValToMap(toMap, entry.getKey(), getAggResultTuple(res.result));
+                } else {
+                    // Update processedInputMap in place
+                    List<Tuple> value = entry.getValue();
+                    if (isGroupAll) {
+                        value.clear();
+                    } else {
+                        // Creating a new list to free more space instead of
+                        // calling clear as the same key might not repeat again
+                        value = createNewValueList(toMap);
+                        toMap.put(entry.getKey(), value);
+                    }
+                    value.add(getAggResultTuple(res.result));
+                }
+            }
             numEntriesInTarget++;
         }
         return numEntriesInTarget;
@@ -495,9 +543,7 @@ public class POPartialAgg extends PhysicalOperator implements Spillable, Groupin
             return;
         }
         int processedTuples = numRecsInProcessedMap;
-        Map<Object, List<Tuple>> newMap = Maps.newHashMapWithExpectedSize(processedInputMap.size());
-        numRecsInProcessedMap = aggregate(processedInputMap, newMap, 0);
-        processedInputMap = newMap;
+        numRecsInProcessedMap = aggregate(processedInputMap, processedInputMap, 0);
         LOG.info("Aggregated " + processedTuples + " processed tuples to " + numRecsInProcessedMap + " tuples");
     }
 
@@ -643,14 +689,13 @@ public class POPartialAgg extends PhysicalOperator implements Spillable, Groupin
                 LOG.info("Spill triggered by SpillableMemoryManager, but previous spill call is still not processed. Skipping");
                 return 0;
             }
-            LOG.info("Spill triggered by SpillableMemoryManager");
             synchronized(spillLock) {
                 if (rawInputMap != null) {
-                    LOG.info("Memory usage: " + getMemorySize()
-                            + ". Raw map: num keys = " + rawInputMap.size()
-                            + ", num tuples = "+ numRecsInRawMap
-                            + ", Processed map: num keys = " + processedInputMap.size()
-                            + ", num tuples = "+ numRecsInProcessedMap );
+                    LOG.info("Spill triggered. Memory usage: " + getMemorySize()
+                            + ". Raw map: keys = " + rawInputMap.size()
+                            + ", tuples = "+ numRecsInRawMap
+                            + ", Processed map: keys = " + processedInputMap.size()
+                            + ", tuples = "+ numRecsInProcessedMap );
                 }
                 startedContingentSpill = false;
                 doContingentSpill = true;

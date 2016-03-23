@@ -34,7 +34,6 @@ import org.apache.pig.PigConstants;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
-import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -313,7 +312,7 @@ public class PigGenericMapReduce {
             if (inIllustrator)
                 pack = getPack(context);
             Configuration jConf = context.getConfiguration();
-            SpillableMemoryManager.configure(ConfigurationUtil.toProperties(jConf));
+            SpillableMemoryManager.getInstance().configure(jConf);
             context.getConfiguration().set(PigConstants.TASK_INDEX, Integer.toString(context.getTaskAttemptID().getTaskID().getId()));
             sJobContext = context;
             sJobConfInternal.set(context.getConfiguration());
