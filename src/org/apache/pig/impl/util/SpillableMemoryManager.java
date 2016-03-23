@@ -146,12 +146,13 @@ public class SpillableMemoryManager implements NotificationListener {
         long tenuredHeapSize = tenuredHeap.getUsage().getMax();
         memoryThresholdSize = (long)(tenuredHeapSize * memoryThresholdFraction);
         collectionThresholdSize = (long)(tenuredHeapSize * collectionMemoryThresholdFraction);
-        if (tenuredHeapSize > ONE_GB) {
-            // If heap is 1G which is most default we will be spilling around ~700MB with 300MB still unused with default 0.7 threshold
+        if (unusedMemoryThreshold > 0) {
+            // For a 1G heap we will be spilling around ~700MB with 300MB still unused with default 0.7 threshold
             // For bigger heaps, we still want to spill when there is 300MB unused (plus another 50MB for buffer) and not at 70%.
             // For eg: For 4G we want to start spilling at 3.65GB and not at 2.8GB(70%) for better use of memory
-            memoryThresholdSize = tenuredHeapSize - unusedMemoryThreshold;
-            collectionThresholdSize = tenuredHeapSize - unusedMemoryThreshold;
+            long unusedThreshold = tenuredHeapSize - unusedMemoryThreshold;
+            memoryThresholdSize = Math.max(memoryThresholdSize, unusedThreshold);
+            collectionThresholdSize = Math.max(collectionThresholdSize, unusedThreshold);
         }
 
         // we want to set both collection and usage threshold alerts to be

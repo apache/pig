@@ -390,19 +390,24 @@ public class PigConfiguration {
     // SpillableMemoryManager settings
 
     /**
-     * SpillableMemoryManager spill will be triggered if the fraction of biggest heap exceeds the usage threshold
+     * Spill will be triggered if the fraction of biggest heap exceeds the usage threshold.
+     * If {@link PigConfiguration.PIG_SPILL_UNUSED_MEMORY_THRESHOLD_SIZE} is non-zero, then usage threshold is calculated as
+     * Max(HeapSize * PIG_SPILL_MEMORY_USAGE_THRESHOLD_FRACTION, HeapSize - PIG_SPILL_UNUSED_MEMORY_THRESHOLD_SIZE)
      * Default is 0.7
      */
     public static final String PIG_SPILL_MEMORY_USAGE_THRESHOLD_FRACTION = "pig.spill.memory.usage.threshold.fraction";
 
     /**
-     * SpillableMemoryManager spill will be triggered if the fraction of biggest heap exceeds the collection threshold
+     * Spill will be triggered if the fraction of biggest heap exceeds the collection threshold.
+     * If {@link PigConfiguration.PIG_SPILL_UNUSED_MEMORY_THRESHOLD_SIZE} is non-zero, then collection threshold is calculated as
+     * Max(HeapSize * PIG_SPILL_COLLECTION_THRESHOLD_FRACTION, HeapSize - PIG_SPILL_UNUSED_MEMORY_THRESHOLD_SIZE)
      * Default is 0.7
      */
     public static final String PIG_SPILL_COLLECTION_THRESHOLD_FRACTION = "pig.spill.collection.threshold.fraction";
 
     /**
-     * SpillableMemoryManager spill will be triggered when unused memory falls below the threshold.
+     * Spill will be triggered when unused memory falls below the threshold.
+     * Default is 350MB
      */
     public static final String PIG_SPILL_UNUSED_MEMORY_THRESHOLD_SIZE = "pig.spill.unused.memory.threshold.size";
 
