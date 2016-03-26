@@ -1783,6 +1783,7 @@ public class JobControlCompiler{
             PigContext pigContext,
             Configuration conf,
             URL url) throws IOException {
+        short replication = (short) conf.getInt(MRConfiguration.SUMIT_REPLICATION, 3);
 
         boolean cacheEnabled =
                 conf.getBoolean(PigConfiguration.PIG_USER_CACHE_ENABLED, false);
@@ -1809,6 +1810,7 @@ public class JobControlCompiler{
                 os.close();
             }
         }
+        fs.setReplication(dst, replication);
         return dst;
     }
 
