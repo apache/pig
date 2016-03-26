@@ -105,6 +105,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-4850: Registered jars do not use submit replication (rdblue via cheolsoo)
+
 PIG-4845: Parallel instantiation of classes in Tez cause tasks to fail (rohini)
 
 PIG-4841: Inline-op with schema declaration fails with syntax error (knoguchi)
