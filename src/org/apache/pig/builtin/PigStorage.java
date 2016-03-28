@@ -71,7 +71,6 @@ import org.apache.pig.bzip2r.Bzip2TextInputFormat;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.CastUtils;
 import org.apache.pig.impl.util.ObjectSerializer;
@@ -172,7 +171,7 @@ LoadPushDown, LoadMetadata, StoreMetadata, OverwritableStoreFunc {
         overwrite.setArgs(1);
         overwrite.setArgName("overwrite");
         validOptions.addOption(overwrite);
-        
+
         return validOptions;
     }
 
@@ -219,7 +218,7 @@ LoadPushDown, LoadMetadata, StoreMetadata, OverwritableStoreFunc {
                 if ("true".equalsIgnoreCase(value)) {
                     overwriteOutput = true;
                 }
-            }       
+            }
             dontLoadSchema = configuredOptions.hasOption("noschema");
             tagFile = configuredOptions.hasOption(TAG_SOURCE_FILE);
             tagPath = configuredOptions.hasOption(TAG_SOURCE_PATH);
@@ -296,31 +295,18 @@ LoadPushDown, LoadMetadata, StoreMetadata, OverwritableStoreFunc {
             Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass(),
                     new String[] {signature});
             String serializedSchema = p.getProperty(signature+".schema");
-            if (serializedSchema != null) {
-                try {
-                    schema = new ResourceSchema(Utils.getSchemaFromString(serializedSchema));
-                } catch (ParserException e) {
-                    mLog.error("Unable to parse serialized schema " + serializedSchema, e);
-                    // all bets are off - there's no guarantee that we'll return
-                    // either the fields in the data or the fields in the schema
-                    // the user specified (or required)
-                }
+            if (serializedSchema == null) return tup;
+            try {
+                schema = new ResourceSchema(Utils.getSchemaFromString(serializedSchema));
+            } catch (ParserException e) {
+                mLog.error("Unable to parse serialized schema " + serializedSchema, e);
+                // all bets are off - there's no guarantee that we'll return
+                // either the fields in the data or the fields in the schema
+                // the user specified (or required)
             }
         }
 
-        if (schema == null) {
-            // if the number of required fields are less than or equal to 
-            // the number of fields in the data then we're OK as we've already
-            // read only the required number of fields into the tuple. If 
-            // more fields are required than are in the data then we'll pad
-            // with nulls:
-            int numRequiredColumns = 0;
-            for (int i = 0; mRequiredColumns != null && i < mRequiredColumns.length; i++)
-                if(mRequiredColumns[i])
-                    ++numRequiredColumns;
-            for (int i = tup.size();i < numRequiredColumns; ++i)
-                tup.append(null);
-        } else {
+        if (schema != null) {
             ResourceFieldSchema[] fieldSchemas = schema.getFields();
             int tupleIdx = 0;
             // If some fields have been projected out, the tuple
@@ -332,7 +318,7 @@ LoadPushDown, LoadMetadata, StoreMetadata, OverwritableStoreFunc {
                     if (tupleIdx >= tup.size()) {
                         tup.append(null);
                     }
-                    
+
                     Object val = null;
                     if(tup.get(tupleIdx) != null){
                         byte[] bytes = ((DataByteArray) tup.get(tupleIdx)).get();
