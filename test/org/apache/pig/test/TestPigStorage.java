@@ -18,11 +18,11 @@
 
 package org.apache.pig.test;
 
+import static org.apache.pig.builtin.mock.Storage.resetData;
 import static org.apache.pig.builtin.mock.Storage.tuple;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Properties;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.ExecType;
@@ -45,6 +44,8 @@ import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.builtin.mock.Storage.Data;
+import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
@@ -68,7 +69,7 @@ public class TestPigStorage  {
     private static final String datadir = "build/test/tmpdata/";
 
     @Before
-    public void setup() throws IOException {
+    public void setup() throws Exception {
         // some tests are in map-reduce mode and some in local - so before
         // each test, we will re-initialize FileLocalizer so that temp files
         // are created correctly depending on the ExecType in the test.
@@ -656,36 +657,95 @@ public class TestPigStorage  {
 
     @Test
     public void testIncompleteDataWithPigSchema() throws Exception {
-        File parent = new File(datadir, "incomplete_data_with_pig_schema_1");
-        parent.deleteOnExit();
-        parent.mkdirs();
-        File tmpInput = File.createTempFile("tmp", "tmp");
-        tmpInput.deleteOnExit();
-        File outFile = new File(parent, "out");
-        pig.registerQuery("a = load '"+Util.encodeEscape(tmpInput.getAbsolutePath())+"' as (x:int, y:chararray, z:chararray);");
-        pig.store("a", outFile.getAbsolutePath(), "PigStorage('\\t', '-schema')");
-        File schemaFile = new File(outFile, ".pig_schema");
+        Data data = resetData(pig);
+        String schema = "{\"fields\":[{\"name\":\"x\",\"type\":10,\"schema\":null},"
+                + "{\"name\":\"y\",\"type\":55,\"schema\":null},"
+                + "{\"name\":\"z\",\"type\":55,\"schema\":null}],"
+                + "\"version\":0,\"sortKeys\":[],\"sortKeyOrders\":[]}";
 
-        parent = new File(datadir, "incomplete_data_with_pig_schema_2");
+        File parent = new File(datadir, "incomplete_data_with_pig_schema_2");
         parent.deleteOnExit();
         File inputDir = new File(parent, "input");
         inputDir.mkdirs();
         File inputSchemaFile = new File(inputDir, ".pig_schema");
-        FileUtils.moveFile(schemaFile, inputSchemaFile);
+        Util.writeToFile(inputSchemaFile, new String[] {schema});
         File inputFile = new File(inputDir, "data");
         Util.writeToFile(inputFile, new String[]{"1"});
         pig.registerQuery("a = load '"+Util.encodeEscape(inputDir.getAbsolutePath())+"';");
-        Iterator<Tuple> it = pig.openIterator("a");
-        assertTrue(it.hasNext());
-        assertEquals(tuple(1,null,null), it.next());
-        assertFalse(it.hasNext());
+        pig.registerQuery("store a into 'actual' using mock.Storage();");
+        data.set("expected", tuple(1, null, null));
+        Assert.assertEquals(data.get("expected"), data.get("actual"));
 
         // Now, test with prune
-        pig.registerQuery("a = load '"+Util.encodeEscape(inputDir.getAbsolutePath())+"'; b = foreach a generate y, z;");
-        it = pig.openIterator("b");
-        assertTrue(it.hasNext());
-        assertEquals(tuple(null,null), it.next());
-        assertFalse(it.hasNext());
+        data = resetData(pig);
+        data.set("expected", tuple(1, null));
+        pig.registerQuery("a = load '"+Util.encodeEscape(inputDir.getAbsolutePath())+"'; b = foreach a generate x, z;");
+        pig.registerQuery("store b into 'actual' using mock.Storage();");
+        Assert.assertEquals(data.get("expected"), data.get("actual"));
+
+//        TODO: TypeCaster should be adding a cast for this case but it always uses the file schema
+//        data = resetData(pig);
+//        data.set("expected", tuple(new DataByteArray("1"), null));
+//        pig.registerQuery("a = load '"+Util.encodeEscape(inputDir.getAbsolutePath())+"' as (x: bytearray, y:bytearray, z:bytearray);");
+//        pig.registerQuery("b = foreach a generate x, z;");
+//        pig.registerQuery("store b into 'actual' using mock.Storage();");
+//        Assert.assertEquals(data.get("expected"), data.get("actual"));
+
+        schema = "{\"fields\":[{\"name\":\"x\",\"type\":50,\"schema\":null},"
+                + "{\"name\":\"y\",\"type\":50,\"schema\":null},"
+                + "{\"name\":\"z\",\"type\":50,\"schema\":null}],"
+                + "\"version\":0,\"sortKeys\":[],\"sortKeyOrders\":[]}";
+        Util.writeToFile(inputSchemaFile, new String[] {schema});
+        data = resetData(pig);
+        data.set("expected", tuple(new DataByteArray("1"), null));
+        pig.registerQuery("a = load '"+Util.encodeEscape(inputDir.getAbsolutePath())+"' as (x: bytearray, y:bytearray, z:bytearray);");
+        pig.registerQuery("b = foreach a generate x, z;");
+        pig.registerQuery("store b into 'actual' using mock.Storage();");
+        Assert.assertEquals(data.get("expected"), data.get("actual"));
+    }
+
+    @Test
+    public void testIncompleteDataNoPigSchema() throws Exception {
+
+        File inputFile = new File(datadir, "incomplete_data_no_pigschema");
+        inputFile.deleteOnExit();
+        Util.writeToFile(inputFile, new String[]{"1\t2", "2\t3"});
+        Data data = resetData(pig);
+
+        String query = "A = LOAD '"+ Util.encodeEscape(inputFile.getAbsolutePath()) + "' as (x, y, z);"
+                + "store A into 'actual' using mock.Storage();";
+
+        Util.registerMultiLineQuery(pig, query);
+        data.set("expected",
+                tuple(new DataByteArray("1"), new DataByteArray("2"), null),
+                tuple(new DataByteArray("2"), new DataByteArray("3"), null));
+
+        Assert.assertEquals(data.get("expected"), data.get("actual"));
+
+        data = resetData(pig);
+        query = "A = LOAD '"+ Util.encodeEscape(inputFile.getAbsolutePath())
+                + "' using " +  PigExtendedStorage.class.getName() + " as (x, y, z);"
+                + "store A into 'actual' using mock.Storage();";
+
+        pig.registerQuery(query);
+        data.set("expected",
+                tuple(new DataByteArray("1"), new DataByteArray("2"), new DataByteArray("extracolumn")),
+                tuple(new DataByteArray("2"), new DataByteArray("3"), new DataByteArray("extracolumn")));
+
+        Assert.assertEquals(data.get("expected"), data.get("actual"));
+
+
+    }
+
+    public static class PigExtendedStorage extends PigStorage {
+
+        @Override
+        public Tuple getNext() throws IOException {
+            Tuple tuple = super.getNext();
+            tuple.append(new DataByteArray("extracolumn"));
+            return tuple;
+        }
+
     }
 
 

@@ -29,17 +29,19 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
+import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.test.MiniCluster;
 import org.apache.pig.test.Util;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class TestCSVStorage {
     protected static final Log LOG = LogFactory.getLog(TestCSVStorage.class);
-    
+
     private PigServer pigServer;
     private MiniCluster cluster;
-    
+
     public TestCSVStorage() throws ExecException, IOException {
         cluster = MiniCluster.buildCluster();
         pigServer = new PigServer(ExecType.LOCAL, new Properties());
@@ -59,8 +61,8 @@ public class TestCSVStorage {
         Iterator<Tuple> it = pigServer.openIterator("a");
         assertEquals(Util.createTuple(new String[] {"foo", "bar", "baz"}), it.next());
     }
-   
-    @Test 
+
+    @Test
     public void testQuotedCommas() throws IOException {
         String inputFileName = "TestCSVLoader-quotedcommas.txt";
         Util.createLocalInputFile(inputFileName, new String[] {"\"foo,bar,baz\"", "fee,foe,fum"});
@@ -71,11 +73,11 @@ public class TestCSVStorage {
         assertEquals(Util.createTuple(new String[] {"foo,bar,baz", null, null}), it.next());
         assertEquals(Util.createTuple(new String[] {"fee", "foe", "fum"}), it.next());
     }
-    
+
     @Test
     public void testQuotedQuotes() throws IOException {
         String inputFileName = "TestCSVLoader-quotedquotes.txt";
-        Util.createLocalInputFile(inputFileName, 
+        Util.createLocalInputFile(inputFileName,
                 new String[] {"\"foo,\"\"bar\"\",baz\"", "\"\"\"\"\"\"\"\""});
         String script = "a = load '" + inputFileName + "' using org.apache.pig.piggybank.storage.CSVLoader() " +
         "   as (a:chararray); ";
@@ -84,5 +86,21 @@ public class TestCSVStorage {
         assertEquals(Util.createTuple(new String[] {"foo,\"bar\",baz"}), it.next());
         assertEquals(Util.createTuple(new String[] {"\"\"\""}), it.next());
     }
-    
+
+    @Test
+    public void testNullPadding() throws IOException {
+        String inputFileName = "TestCSVLoader-nullpadding.txt";
+        Util.createLocalInputFile(inputFileName, new String[] { "a", "b,", "c,d", ",e"});
+        String script = "a = load '" + inputFileName + "' using org.apache.pig.piggybank.storage.CSVLoader() " +
+        "   as (field1, field2); dump a;";
+        Util.registerMultiLineQuery(pigServer, script);
+        Iterator<Tuple> it = pigServer.openIterator("a");
+        assertEquals(Util.createTuple(new DataByteArray[] {new DataByteArray("a"), null}), it.next());
+        assertEquals(Util.createTuple(new DataByteArray[] {new DataByteArray("b"), null}), it.next());
+        assertEquals(Util.createTuple(new DataByteArray[] {new DataByteArray("c"), new DataByteArray("d")}), it.next());
+        assertEquals(Util.createTuple(new DataByteArray[] {new DataByteArray(""), new DataByteArray("e")}), it.next());
+        Assert.assertFalse(it.hasNext());
+    }
+
+
 }
