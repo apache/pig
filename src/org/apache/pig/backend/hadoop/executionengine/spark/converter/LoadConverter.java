@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.tools.pigstats.spark.SparkCounters;
 import org.apache.pig.tools.pigstats.spark.SparkPigStatusReporter;
@@ -91,6 +92,12 @@ public class LoadConverter implements RDDConverter<Tuple, Tuple, POLoad> {
         // filesystem. (Does not apply to HBase, for example).
         jobConf.set("mapreduce.input.fileinputformat.inputdir",
                 op.getLFile().getFileName());
+
+        // internally set pig.noSplitCombination as true ONLY for
+        // the POLoad operator which has POMergeJoin successor.
+        if (hasMergeJoinSuccessor(op)) {
+            jobConf.set("pig.noSplitCombination", "true");
+        }
 
         RDD<Tuple2<Text, Tuple>> hadoopRDD = sparkContext.newAPIHadoopRDD(
                 jobConf, PigInputFormatSpark.class, Text.class, Tuple.class);
@@ -216,6 +223,22 @@ public class LoadConverter implements RDDConverter<Tuple, Tuple, POLoad> {
         jobConf.set("pig.inpLimits", ObjectSerializer.serialize(inpLimits));
 
         return jobConf;
+    }
+
+    private static boolean hasMergeJoinSuccessor(PhysicalOperator op) {
+        List<PhysicalOperator> successors = op.getParentPlan().getSuccessors(op);
+        if (successors == null ) {
+            return false;
+        }
+        for (PhysicalOperator successor : successors){
+            if (successor instanceof POMergeJoin){
+                return true;
+            }
+            if (hasMergeJoinSuccessor(successor)){
+                return true;
+            }
+        }
+        return false;
     }
 
 }
