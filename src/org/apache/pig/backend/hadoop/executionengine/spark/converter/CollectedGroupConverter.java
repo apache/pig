@@ -73,6 +73,16 @@ public class CollectedGroupConverter implements RDDConverter<Tuple, Tuple, POCol
 
                         @Override
                         protected Result getNextResult() throws ExecException {
+
+                            // if endOfAllInput was set as true by the predecessors, but input.hasNext() is true.
+                            // it means that the predecessor has consumed all of its input,
+                            // but poCollectedGroup still hasn't consumed all of its input.
+                            //
+                            // set endOfAllInput as false here, so that POCollectedGroup.getNextTuple() can work correctly
+                            if (poCollectedGroup.getParentPlan().endOfAllInput && input.hasNext()) {
+                                poCollectedGroup.getParentPlan().endOfAllInput = false;
+                            }
+
                             return poCollectedGroup.getNextTuple();
                         }
 
