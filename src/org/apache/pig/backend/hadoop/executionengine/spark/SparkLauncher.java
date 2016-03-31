@@ -17,10 +17,8 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.spark;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -456,38 +454,11 @@ public class SparkLauncher extends Launcher {
         return sparkPlan;
     }
 
-    private static String executeCommand(String command) {
-
-        StringBuffer output = new StringBuffer();
-
-        Process p;
-        try {
-            p = Runtime.getRuntime().exec(command);
-            p.waitFor();
-            BufferedReader reader =
-                    new BufferedReader(new InputStreamReader(p.getInputStream()));
-
-            String line = "";
-            while ((line = reader.readLine())!= null) {
-                output.append(line + "\n");
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return output.toString();
-
-    }
-
-
     /**
      * Only one SparkContext may be active per JVM (SPARK-2243). When multiple threads start SparkLaucher,
      * the static member sparkContext should be initialized only once
      */
     private static synchronized void startSparkIfNeeded(PigContext pc) throws PigException {
-        String ARG_MAX= executeCommand("getconf ARG_MAX");
-        LOG.info("ARG_MAX:"+ARG_MAX);
         if (sparkContext == null) {
             String master = null;
             if (pc.getExecType().isLocal()) {
