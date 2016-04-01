@@ -104,9 +104,7 @@ public class UnionOptimizer extends TezOpPlanVisitor {
         this.unsupportedStoreFuncs = unsupportedStoreFuncs;
     }
 
-    public static boolean isOptimizable(TezOperator tezOp,
-            List<String> supportedStoreFuncs, List<String> unsupportedStoreFuncs)
-            throws VisitorException {
+    public static boolean isOptimizable(TezOperator tezOp) throws VisitorException {
         if((tezOp.isLimit() || tezOp.isLimitAfterSort()) && tezOp.getRequestedParallelism() == 1) {
             return false;
         }
@@ -116,6 +114,12 @@ public class UnionOptimizer extends TezOpPlanVisitor {
         if (tezOp.isRankCounter()) {
             return false;
         }
+        return true;
+    }
+
+    public static boolean isOptimizableStoreFunc(TezOperator tezOp,
+            List<String> supportedStoreFuncs, List<String> unsupportedStoreFuncs)
+            throws VisitorException {
         if (supportedStoreFuncs != null || unsupportedStoreFuncs != null) {
             List<POStoreTez> stores = PlanHelper.getPhysicalOperators(tezOp.plan, POStoreTez.class);
             for (POStoreTez store : stores) {
@@ -148,7 +152,7 @@ public class UnionOptimizer extends TezOpPlanVisitor {
             return;
         }
 
-        if (!isOptimizable(tezOp, supportedStoreFuncs, unsupportedStoreFuncs)) {
+        if (!isOptimizable(tezOp)) {
             return;
         }
 
@@ -156,34 +160,40 @@ public class UnionOptimizer extends TezOpPlanVisitor {
         String scope = unionOp.getOperatorKey().scope;
         PhysicalPlan unionOpPlan = unionOp.plan;
 
-        // TODO: PIG-3856 Handle replicated join and skewed join sample.
-        // Replicate join small table/skewed join sample that was broadcast to union vertex
-        // now needs to be broadcast to all the union predecessors. How do we do that??
-        // Wait for shared edge and do it or write multiple times??
-        // For now don't optimize except in the case of Split where we need to write only once
-
         Set<OperatorKey> uniqueUnionMembers = new HashSet<OperatorKey>(unionOp.getUnionMembers());
         List<TezOperator> predecessors = new ArrayList<TezOperator>(tezPlan.getPredecessors(unionOp));
         List<TezOperator> successors = tezPlan.getSuccessors(unionOp) == null ? null
                 : new ArrayList<TezOperator>(tezPlan.getSuccessors(unionOp));
 
+        if (uniqueUnionMembers.size() != 1) {
 
-        if (successors != null && uniqueUnionMembers.size() > 1) {
-            for (TezOperator succ : successors) {
-                for (TezOperator pred : predecessors) {
-                    if (succ.inEdges.containsKey(pred.getOperatorKey())) {
-                        // Stop here, we cannot convert the node into vertex group
-                        // Otherwise, we will end up with a parallel edge between pred
-                        // and succ
-                        return;
+            if (!isOptimizableStoreFunc(tezOp, supportedStoreFuncs, unsupportedStoreFuncs)) {
+                return;
+            }
+
+            if (successors != null) {
+                for (TezOperator succ : successors) {
+                    for (TezOperator pred : predecessors) {
+                        if (succ.inEdges.containsKey(pred.getOperatorKey())) {
+                            // Stop here, we cannot convert the node into vertex group
+                            // Otherwise, we will end up with a parallel edge between pred
+                            // and succ
+                            return;
+                        }
                     }
                 }
             }
+
+            // TODO: PIG-3856 Handle replicated join and skewed join sample.
+            // Replicate join small table/skewed join sample that was broadcast to union vertex
+            // now needs to be broadcast to all the union predecessors. How do we do that??
+            // Wait for shared edge and do it or write multiple times??
+            // For now don't optimize except in the case of Split where we need to write only once
+            if (predecessors.size() > unionOp.getUnionMembers().size()) {
+                return;
+            }
         }
-        if (predecessors.size() > unionOp.getUnionMembers().size()
-                && uniqueUnionMembers.size() != 1) {
-            return; // TODO: PIG-3856
-        }
+
         if (uniqueUnionMembers.size() == 1) {
             // We actually don't need VertexGroup in this case. The multiple
             // sub-plans of Split can write to same MROutput or the Tez LogicalOutput

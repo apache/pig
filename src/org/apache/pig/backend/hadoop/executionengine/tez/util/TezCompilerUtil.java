@@ -18,6 +18,7 @@
 package org.apache.pig.backend.hadoop.executionengine.tez.util;
 
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,6 +43,7 @@ import org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.ReadScalarsTez
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.TezInput;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.TezOutput;
 import org.apache.pig.builtin.RoundRobinPartitioner;
+import org.apache.pig.builtin.TOBAG;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
@@ -271,6 +273,30 @@ public class TezCompilerUtil {
         }
         edge.setIntermediateOutputKeyClass(POValueOutputTez.EmptyWritable.class.getName());
         edge.setIntermediateOutputValueClass(TUPLE_CLASS);
+    }
+
+    public static boolean bagDataTypeInCombinePlan(PhysicalPlan combinePlan) throws ExecException {
+        PhysicalOperator lr = combinePlan.getLeaves().get(0);
+        POForEach fe = (POForEach) combinePlan.getPredecessors(lr).get(0);
+
+        // Hack. class.getTypeName() is only available in JDK8
+        Type dataBagType = new TOBAG().getReturnType();
+
+        List<PhysicalPlan> inputPlans = fe.getInputPlans();
+        for (PhysicalPlan inputPlan: inputPlans) {
+            PhysicalOperator leaf = inputPlan.getLeaves().get(0);
+            if (leaf.getResultType() == DataType.BAG) {
+                return true;
+            } else if (leaf instanceof POUserFunc) {
+                POUserFunc func = (POUserFunc) leaf;
+                // Return type of Intermediate func in combiner plan is always Tuple.
+                // Need to check original or Final EvalFunc return type
+                if (dataBagType.equals(func.getOriginalReturnType())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
 }

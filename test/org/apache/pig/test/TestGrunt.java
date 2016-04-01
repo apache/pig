@@ -1370,6 +1370,39 @@ public class TestGrunt {
         validate(query, false, msgs.toArray(new String[0]));
     }
 
+    @Test
+    public void testWithInlineOp() throws Throwable {
+        // specifying schema inside inline-op makes PigScriptParser.jj to read
+        // to the end of file
+        String query = "a = load 'i1' as (f1:chararray);" +
+               "b = foreach (foreach a generate f1 as b1) generate b1; " +
+               "dump b; ";
+
+        ArrayList<String> msgs = new ArrayList<String>();                //
+        validate(query, true, msgs.toArray(new String[0]));
+    }
+
+    /*
+     * Following test currently fails.  Insead of making further changes to
+     * PigScriptParser.jj, leaving it till we move out of javacc in PIG-2597
+
+    @Test
+    public void testWithInlineOpWithNestedForeach() throws Throwable {
+        // This one currently fails because "{}" is treated as
+        // IN_BLOCK in PigScriptParser.jj which jumps to PIG_END and ignore
+        // ") generate *; " part of the code.
+        // In order to support this test, we need to add parenthesis matching
+        // everywhere in PigScriptParser.jj (or stop using it)
+        //
+        String query = "a = load 'i1' as (f1:chararray);" +
+               "b = group a ALL; " +
+               "c = foreach ( foreach b {b1 = limit a 3; generate 1, b1;} ) generate *; " +
+               "dump c;";
+        ArrayList<String> msgs = new ArrayList<String>();                //
+        validate(query, true, msgs.toArray(new String[0]));
+    }
+    */
+
 
 
     private void validate(String query, boolean syntaxOk,

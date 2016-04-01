@@ -94,6 +94,13 @@ public class PigConfiguration {
     public static final String PIG_EXEC_NO_COMBINER = "pig.exec.nocombiner";
 
     /**
+     * Enable or disable use of combiners in reducer shuffle-merge phase in Tez.
+     * Valid values are auto, true or false.
+     * Default is auto which turns off combiner if bags are present in the combine plan
+     */
+    public static final String PIG_EXEC_NO_COMBINER_REDUCER = "pig.exec.nocombiner.reducer";
+
+    /**
      * This key controls whether secondary sort key is used for optimization in case
      * of nested distinct or sort
      */
@@ -328,7 +335,7 @@ public class PigConfiguration {
      * Set the threshold for percentage of errors
      */
     public static final String PIG_ERROR_THRESHOLD_PERCENT = "pig.error.threshold.percent";
-    
+
     /**
      * Comma-delimited entries of commands/operators that must be disallowed.
      * This is a security feature to be used by administrators to block use of
@@ -380,6 +387,29 @@ public class PigConfiguration {
     public static final String PIG_TEZ_DAG_STATUS_REPORT_INTERVAL = "pig.tez.dag.status.report.interval";
 
 
+    // SpillableMemoryManager settings
+
+    /**
+     * Spill will be triggered if the fraction of biggest heap exceeds the usage threshold.
+     * If {@link PigConfiguration.PIG_SPILL_UNUSED_MEMORY_THRESHOLD_SIZE} is non-zero, then usage threshold is calculated as
+     * Max(HeapSize * PIG_SPILL_MEMORY_USAGE_THRESHOLD_FRACTION, HeapSize - PIG_SPILL_UNUSED_MEMORY_THRESHOLD_SIZE)
+     * Default is 0.7
+     */
+    public static final String PIG_SPILL_MEMORY_USAGE_THRESHOLD_FRACTION = "pig.spill.memory.usage.threshold.fraction";
+
+    /**
+     * Spill will be triggered if the fraction of biggest heap exceeds the collection threshold.
+     * If {@link PigConfiguration.PIG_SPILL_UNUSED_MEMORY_THRESHOLD_SIZE} is non-zero, then collection threshold is calculated as
+     * Max(HeapSize * PIG_SPILL_COLLECTION_THRESHOLD_FRACTION, HeapSize - PIG_SPILL_UNUSED_MEMORY_THRESHOLD_SIZE)
+     * Default is 0.7
+     */
+    public static final String PIG_SPILL_COLLECTION_THRESHOLD_FRACTION = "pig.spill.collection.threshold.fraction";
+
+    /**
+     * Spill will be triggered when unused memory falls below the threshold.
+     * Default is 350MB
+     */
+    public static final String PIG_SPILL_UNUSED_MEMORY_THRESHOLD_SIZE = "pig.spill.unused.memory.threshold.size";
 
     // Deprecated settings of Pig 0.13
 

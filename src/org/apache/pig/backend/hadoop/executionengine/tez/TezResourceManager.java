@@ -55,6 +55,14 @@ public class TezResourceManager {
         return instance;
     }
 
+
+    /**
+     * This method is only used by test code to reset state.
+     */
+    public static void dropInstance() {
+        instance = null;
+    }
+
     public void init(PigContext pigContext, Configuration conf) throws IOException {
         if (!inited) {
             this.resourcesDir = FileLocalizer.getTemporaryResourcePath(pigContext);

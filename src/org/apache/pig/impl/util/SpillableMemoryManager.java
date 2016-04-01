@@ -27,7 +27,6 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Properties;
 
 import javax.management.Notification;
 import javax.management.NotificationEmitter;
@@ -36,6 +35,8 @@ import javax.management.openmbean.CompositeData;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.pig.PigConfiguration;
 
 /**
  * This class Tracks the tenured pool and a list of Spillable objects. When memory gets low, this
@@ -49,6 +50,11 @@ import org.apache.commons.logging.LogFactory;
 public class SpillableMemoryManager implements NotificationListener {
 
     private static final Log log = LogFactory.getLog(SpillableMemoryManager.class);
+
+    private static final int ONE_GB = 1024 * 1024 * 1024;
+    private static final int UNUSED_MEMORY_THRESHOLD_DEFAULT = 350 * 1024 * 1024;
+    private static final double MEMORY_THRESHOLD_FRACTION_DEFAULT = 0.7;
+    private static final double COLLECTION_THRESHOLD_FRACTION_DEFAULT = 0.7;
 
     private LinkedList<WeakReference<Spillable>> spillables = new LinkedList<WeakReference<Spillable>>();
     // References to spillables with size
@@ -68,13 +74,9 @@ public class SpillableMemoryManager implements NotificationListener {
     // and between GC invocations
     private long accumulatedFreeSize = 0L;
 
-    // fraction of biggest heap for which we want to get
-    // "memory usage threshold exceeded" notifications
-    private double memoryThresholdFraction = 0.7;
+    private long memoryThresholdSize = 0L;
 
-    // fraction of biggest heap for which we want to get
-    // "collection threshold exceeded" notifications
-    private double collectionMemoryThresholdFraction = 0.5;
+    private long collectionThresholdSize = 0L;
 
     // log notification on usage threshold exceeded only the first time
     private boolean firstUsageThreshExceededLogged = false;
@@ -89,6 +91,8 @@ public class SpillableMemoryManager implements NotificationListener {
 
     private volatile boolean blockRegisterOnSpill = false;
 
+    private MemoryPoolMXBean tenuredHeap;
+
     private static final SpillableMemoryManager manager = new SpillableMemoryManager();
 
     //@StaticDataCleanup
@@ -100,8 +104,6 @@ public class SpillableMemoryManager implements NotificationListener {
     private SpillableMemoryManager() {
         ((NotificationEmitter)ManagementFactory.getMemoryMXBean()).addNotificationListener(this, null, null);
         List<MemoryPoolMXBean> mpbeans = ManagementFactory.getMemoryPoolMXBeans();
-        MemoryPoolMXBean tenuredHeap = null;
-        long tenuredHeapSize = 0;
         long totalSize = 0;
         for (MemoryPoolMXBean pool : mpbeans) {
             log.debug("Found heap (" + pool.getName() + ") of type " + pool.getType());
@@ -111,7 +113,6 @@ public class SpillableMemoryManager implements NotificationListener {
                 // CMS Old Gen or "tenured" is the only heap that supports
                 // setting usage threshold.
                 if (pool.isUsageThresholdSupported()) {
-                    tenuredHeapSize = size;
                     tenuredHeap = pool;
                 }
             }
@@ -120,8 +121,39 @@ public class SpillableMemoryManager implements NotificationListener {
         if (tenuredHeap == null) {
             throw new RuntimeException("Couldn't find heap");
         }
-        log.debug("Selected heap to monitor (" +
-            tenuredHeap.getName() + ")");
+
+        configureMemoryThresholds(MEMORY_THRESHOLD_FRACTION_DEFAULT,
+                COLLECTION_THRESHOLD_FRACTION_DEFAULT,
+                UNUSED_MEMORY_THRESHOLD_DEFAULT);
+
+    }
+
+    /**
+     * Configure thresholds for memory usage/collection threshold exceeded notifications.
+     * Uses memoryThresholdFraction and collectionMemoryThresholdFraction to configure thresholds
+     * for heap sizes less than 1GB and unusedMemoryThreshold for bigger heaps.
+     *
+     * @param memoryThresholdFraction
+     *            fraction of biggest heap for which we want to get memory usage
+     *            threshold exceeded notifications
+     * @param collectionMemoryThresholdFraction
+     *            fraction of biggest heap for which we want to get collection
+     *            threshold exceeded notifications
+     * @param unusedMemoryThreshold
+     *            Unused memory size below which we want to get notifications
+     */
+    private void configureMemoryThresholds(double memoryThresholdFraction, double collectionMemoryThresholdFraction, long unusedMemoryThreshold) {
+        long tenuredHeapSize = tenuredHeap.getUsage().getMax();
+        memoryThresholdSize = (long)(tenuredHeapSize * memoryThresholdFraction);
+        collectionThresholdSize = (long)(tenuredHeapSize * collectionMemoryThresholdFraction);
+        if (unusedMemoryThreshold > 0) {
+            // For a 1G heap we will be spilling around ~700MB with 300MB still unused with default 0.7 threshold
+            // For bigger heaps, we still want to spill when there is 300MB unused (plus another 50MB for buffer) and not at 70%.
+            // For eg: For 4G we want to start spilling at 3.65GB and not at 2.8GB(70%) for better use of memory
+            long unusedThreshold = tenuredHeapSize - unusedMemoryThreshold;
+            memoryThresholdSize = Math.max(memoryThresholdSize, unusedThreshold);
+            collectionThresholdSize = Math.max(collectionThresholdSize, unusedThreshold);
+        }
 
         // we want to set both collection and usage threshold alerts to be
         // safe. In some local tests after a point only collection threshold
@@ -133,31 +165,29 @@ public class SpillableMemoryManager implements NotificationListener {
 
         /* We set the threshold to be 50% of tenured since that is where
          * the GC starts to dominate CPU time according to Sun doc */
-        tenuredHeap.setCollectionUsageThreshold((long)(tenuredHeapSize * collectionMemoryThresholdFraction));
+        tenuredHeap.setCollectionUsageThreshold((long)(collectionThresholdSize));
         // we set a higher threshold for usage threshold exceeded notification
         // since this is more likely to be effective sooner and we do not
         // want to be spilling too soon
-        tenuredHeap.setUsageThreshold((long)(tenuredHeapSize * memoryThresholdFraction));
+
+        tenuredHeap.setUsageThreshold((long)(memoryThresholdSize));
+        log.info("Selected heap (" + tenuredHeap.getName() + ")" + " of size " + tenuredHeapSize
+                + " to monitor. collectionUsageThreshold = " + tenuredHeap.getCollectionUsageThreshold()
+                + ", usageThreshold = " + tenuredHeap.getUsageThreshold() );
     }
 
     public static SpillableMemoryManager getInstance() {
         return manager;
     }
 
-    public static void configure(Properties properties) {
+    public void configure(Configuration conf) {
 
-        try {
-
-            spillFileSizeThreshold = Long.parseLong(
-                    properties.getProperty("pig.spill.size.threshold") ) ;
-
-            gcActivationSize = Long.parseLong(
-                    properties.getProperty("pig.spill.gc.activation.size") ) ;
-        }
-        catch (NumberFormatException  nfe) {
-            throw new RuntimeException("Error while converting system configurations" +
-            		"spill.size.threshold, spill.gc.activation.size", nfe) ;
-        }
+        spillFileSizeThreshold = conf.getLong("pig.spill.size.threshold", spillFileSizeThreshold);
+        gcActivationSize = conf.getLong("pig.spill.gc.activation.size", gcActivationSize);
+        double memoryThresholdFraction = conf.getDouble(PigConfiguration.PIG_SPILL_MEMORY_USAGE_THRESHOLD_FRACTION, MEMORY_THRESHOLD_FRACTION_DEFAULT);
+        double collectionThresholdFraction = conf.getDouble(PigConfiguration.PIG_SPILL_COLLECTION_THRESHOLD_FRACTION, COLLECTION_THRESHOLD_FRACTION_DEFAULT);
+        long unusedMemoryThreshold = conf.getLong(PigConfiguration.PIG_SPILL_UNUSED_MEMORY_THRESHOLD_SIZE, UNUSED_MEMORY_THRESHOLD_DEFAULT);
+        configureMemoryThresholds(memoryThresholdFraction, collectionThresholdFraction, unusedMemoryThreshold);
     }
 
     @Override
@@ -169,12 +199,11 @@ public class SpillableMemoryManager implements NotificationListener {
         // used - heapmax/2 + heapmax/4
         long toFree = 0L;
         if(n.getType().equals(MemoryNotificationInfo.MEMORY_THRESHOLD_EXCEEDED)) {
-            long threshold = (long)(info.getUsage().getMax() * memoryThresholdFraction);
-            toFree = info.getUsage().getUsed() - threshold + (long)(threshold * 0.5);
+            toFree = info.getUsage().getUsed() - collectionThresholdSize + (long)(collectionThresholdSize * 0.5);
 
             //log
             String msg = "memory handler call- Usage threshold "
-                + info.getUsage();
+                + info.getUsage() + ", toFree = " + toFree;
             if(!firstUsageThreshExceededLogged){
                 log.info("first " + msg);
                 firstUsageThreshExceededLogged = true;
@@ -182,12 +211,11 @@ public class SpillableMemoryManager implements NotificationListener {
                 log.debug(msg);
             }
         } else { // MEMORY_COLLECTION_THRESHOLD_EXCEEDED CASE
-            long threshold = (long)(info.getUsage().getMax() * collectionMemoryThresholdFraction);
-            toFree = info.getUsage().getUsed() - threshold + (long)(threshold * 0.5);
+            toFree = info.getUsage().getUsed() - memoryThresholdSize + (long)(memoryThresholdSize * 0.5);
 
             //log
             String msg = "memory handler call - Collection threshold "
-                + info.getUsage();
+                + info.getUsage() + ", toFree = " + toFree;
             if(!firstCollectionThreshExceededLogged){
                 log.info("first " + msg);
                 firstCollectionThreshExceededLogged = true;

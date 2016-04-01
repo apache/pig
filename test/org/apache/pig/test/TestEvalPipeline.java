@@ -22,6 +22,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -1097,6 +1098,10 @@ public class TestEvalPipeline {
         }
 
         Util.createInputFile(cluster, "table", inpString);
+        StringWriter writer = new StringWriter();
+        if (cluster.getExecType().name().equals("TEZ")) {
+            Util.createLogAppender("testNoCombinerInReducer", writer, Class.forName("org.apache.pig.backend.hadoop.executionengine.tez.TezDagBuilder"));
+        }
 
         pigServer.registerQuery("a = LOAD 'table' AS (i:int);");
         pigServer.registerQuery("b = group a ALL;");
@@ -1116,6 +1121,10 @@ public class TestEvalPipeline {
             Assert.assertTrue(DataType.compare(expectedBag.size(), resultBagSize) == 0);
         }
 
+        if (cluster.getExecType().name().equals("TEZ")) {
+            Assert.assertTrue(writer.toString().contains("Turning off combiner in reducer"));
+            Util.removeLogAppender("testNoCombinerInReducer", Class.forName("org.apache.pig.backend.hadoop.executionengine.tez.TezDagBuilder"));
+        }
         Util.deleteFile(cluster, "table");
     }
 

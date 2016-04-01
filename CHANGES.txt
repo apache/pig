@@ -24,6 +24,14 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4847: POPartialAgg processing and spill improvements (rohini)
+
+PIG-4840: Do not turn off UnionOptimizer for unsupported storefuncs in case of no vertex groups (rohini)
+
+PIG-4843: Turn off combiner in reducer vertex for Tez if bags are in combine plan (rohini)
+
+PIG-4796: Authenticate with Kerberos using a keytab file (nielsbasjes via daijy)
+
 PIG-4817: Bump HTTP Logparser to version 2.4 (nielsbasjes via daijy)
 
 PIG-4811: Upgrade groovy library to address MethodClosure vulnerability	(daijy)
@@ -96,6 +104,18 @@ PIG-4638: Allow TOMAP to accept dynamically sized input (nielsbasjes via daijy)
 PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
+
+PIG-4851: Null not padded when input has less fields than declared schema for some loader (rohini)
+
+PIG-4850: Registered jars do not use submit replication (rdblue via cheolsoo)
+
+PIG-4845: Parallel instantiation of classes in Tez cause tasks to fail (rohini)
+
+PIG-4841: Inline-op with schema declaration fails with syntax error (knoguchi)
+
+PIG-4832: Fix TestPrumeColumn NPE failure (kellyzly via daijy)
+
+PIG-4833 TestBuiltin.testURIWithCurlyBrace in TEZ failing after PIG-4819 (knoguchi)
 
 PIG-4819: RANDOM() udf can lead to missing or redundant records (knoguchi)
 

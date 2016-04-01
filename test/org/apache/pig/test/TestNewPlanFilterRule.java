@@ -488,7 +488,9 @@ public class TestNewPlanFilterRule {
 
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
-        Operator group = newLogicalPlan.getSuccessors( load ).get( 0 );
+        Operator fe = newLogicalPlan.getSuccessors( load ).get( 0 );
+        Assert.assertTrue( fe instanceof LOForEach );
+        Operator group = newLogicalPlan.getSuccessors( fe ).get( 0 );
         Assert.assertTrue( group instanceof LOCogroup );
         Operator filter = newLogicalPlan.getSuccessors( group ).get( 0 );
         Assert.assertTrue( filter instanceof LOFilter );

@@ -491,6 +491,11 @@ public class POUserFunc extends ExpressionOperator {
         }
     }
 
+    public Type getOriginalReturnType() throws ExecException {
+        instantiateFunc(origFSpec);
+        return func.getReturnType();
+    }
+
     public Type getReturnType() {
         return func.getReturnType();
     }
