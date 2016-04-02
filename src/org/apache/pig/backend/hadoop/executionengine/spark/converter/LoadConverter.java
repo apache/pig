@@ -226,6 +226,9 @@ public class LoadConverter implements RDDConverter<Tuple, Tuple, POLoad> {
     }
 
     private static boolean hasMergeJoinSuccessor(PhysicalOperator op) {
+        if (op == null || op.getParentPlan() == null) {
+            return false;
+        }
         List<PhysicalOperator> successors = op.getParentPlan().getSuccessors(op);
         if (successors == null ) {
             return false;
