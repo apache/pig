@@ -107,6 +107,12 @@ public class Utils {
         return false;
     }
 
+    public static boolean is64bitJVM() {
+        String arch = System.getProperties().getProperty("sun.arch.data.model",
+                System.getProperty("com.ibm.vm.bitmode"));
+        return arch != null && arch.equals("64");
+    }
+
     /**
      * This method is a helper for classes to implement {@link java.lang.Object#equals(java.lang.Object)}
      * checks if two objects are equals - two levels of checks are
