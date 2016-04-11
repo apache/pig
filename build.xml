@@ -643,9 +643,21 @@
        </copy>
     </target>
 
-    <target name="forrest.check" unless="forrest.home">
+    <target name="forrest.check" depends="forrest.check.plugins" unless="forrest.home">
        <fail message="'forrest.home' is not defined.
       Please pass -Dforrest.home=&lt;base of Apache Forrest installation&gt; to Ant on the command-line." />
+    </target>
+
+    <target name="forrest.check.plugins" >
+        <fail message="${forrest.home}/plugins is not writeable. Fix: chmod a+rwX -R ${forrest.home}/plugins">
+            <condition>
+                <not>
+                    <isfileselected file="${forrest.home}/plugins">
+                        <writable />
+                    </isfileselected>
+                </not>
+            </condition>
+        </fail>
     </target>
 
     <target name="source-jar" depends="cc-compile">

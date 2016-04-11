@@ -105,6 +105,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-3906: ant site errors out (nielsbasjes via daijy)
+
 PIG-4851: Null not padded when input has less fields than declared schema for some loader (rohini)
 
 PIG-4850: Registered jars do not use submit replication (rdblue via cheolsoo)
