@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -48,6 +50,7 @@ import org.apache.tez.runtime.library.common.ConfigUtils;
 public class POShuffleTezLoad extends POPackage implements TezInput {
 
     private static final long serialVersionUID = 1L;
+    private static final Log LOG = LogFactory.getLog(POShuffleTezLoad.class);
 
     protected List<String> inputKeys = new ArrayList<String>();
     private boolean isSkewedJoin = false;
@@ -101,7 +104,10 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
                 //     - Input key will be repeated, but index would be same within a TezInput
                 if (!this.inputs.contains(input)) {
                     this.inputs.add(input);
-                    this.readers.add((KeyValuesReader)input.getReader());
+                    KeyValuesReader reader = (KeyValuesReader)input.getReader();
+                    this.readers.add(reader);
+                    LOG.info("Attached input from vertex " + inputKey
+                            + " : input=" + input + ", reader=" + reader);
                 }
             }
 
