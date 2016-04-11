@@ -108,7 +108,7 @@ public class TezJobCompiler {
             DAG tezDag = buildDAG(tezPlanNode, localResources);
             tezDag.setDAGInfo(createDagInfo(TezScriptState.get().getScript()));
             log.info("Total estimated parallelism is " + tezPlan.getEstimatedTotalParallelism());
-            return new TezJob(tezConf, tezDag, localResources, tezPlan.getEstimatedTotalParallelism());
+            return new TezJob(tezConf, tezDag, localResources, tezPlan);
         } catch (Exception e) {
             int errCode = 2017;
             String msg = "Internal error creating job configuration.";

@@ -108,8 +108,6 @@ public class TezSessionManager {
     }
 
     private static void adjustAMConfig(TezConfiguration amConf, TezJobConfig tezJobConf) {
-        int requiredAMMaxHeap = -1;
-        int requiredAMResourceMB = -1;
         String amLaunchOpts = amConf.get(
                 TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS,
                 TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS_DEFAULT);
@@ -122,8 +120,10 @@ public class TezSessionManager {
 
             // Need more room for native memory/virtual address space
             // when close to 4G due to 32-bit jvm 4G limit
-            int minAMMaxHeap = 3200;
-            int minAMResourceMB = 4096;
+            int maxAMHeap = Utils.is64bitJVM() ? 3584 : 3200;
+            int maxAMResourceMB = 4096;
+            int requiredAMResourceMB = maxAMResourceMB;
+            int requiredAMMaxHeap = maxAMHeap;
 
             // Rough estimation. For 5K tasks 1G Xmx and 1.5G resource.mb
             // Increment container size by 512 mb for every additional 5K tasks.
@@ -135,13 +135,28 @@ public class TezSessionManager {
             //     5000 and above  - 1024Xmx, 1536 (512 native memory)
             for (int taskCount = 30000; taskCount >= 5000; taskCount-=5000) {
                 if (tezJobConf.getEstimatedTotalParallelism() >= taskCount) {
-                    requiredAMMaxHeap = minAMMaxHeap;
-                    requiredAMResourceMB = minAMResourceMB;
                     break;
                 }
-                minAMResourceMB = minAMResourceMB - 512;
-                minAMMaxHeap = minAMResourceMB - 512;
+                requiredAMResourceMB = requiredAMResourceMB - 512;
+                requiredAMMaxHeap = requiredAMResourceMB - 512;
             }
+
+            if (tezJobConf.getTotalVertices() > 30) {
+                //Add 512 mb per 30 vertices
+                int additionaMem = 512 * (tezJobConf.getTotalVertices() / 30);
+                requiredAMResourceMB = requiredAMResourceMB + additionaMem;
+                requiredAMMaxHeap = requiredAMResourceMB - 512;
+            }
+
+            if (tezJobConf.getMaxOutputsinSingleVertex() > 10) {
+                //Add 256 mb per 5 outputs if a vertex has more than 10 outputs
+                int additionaMem = 256 * (tezJobConf.getMaxOutputsinSingleVertex() / 5);
+                requiredAMResourceMB = requiredAMResourceMB + additionaMem;
+                requiredAMMaxHeap = requiredAMResourceMB - 512;
+            }
+
+            requiredAMResourceMB = Math.min(maxAMResourceMB, requiredAMResourceMB);
+            requiredAMMaxHeap = Math.min(maxAMHeap, requiredAMMaxHeap);
 
             if (requiredAMResourceMB > -1 && configuredAMResourceMB < requiredAMResourceMB) {
                 amConf.setInt(TezConfiguration.TEZ_AM_RESOURCE_MEMORY_MB, requiredAMResourceMB);
@@ -149,8 +164,9 @@ public class TezSessionManager {
                         + TezConfiguration.TEZ_AM_RESOURCE_MEMORY_MB + " from "
                         + configuredAMResourceMB + " to "
                         + requiredAMResourceMB
-                        + " as the number of total estimated tasks is "
-                        + tezJobConf.getEstimatedTotalParallelism());
+                        + " as total estimated tasks = " + tezJobConf.getEstimatedTotalParallelism()
+                        + ", total vertices = " + tezJobConf.getTotalVertices()
+                        + ", max outputs = " + tezJobConf.getMaxOutputsinSingleVertex());
 
                 if (requiredAMMaxHeap > -1 && configuredAMMaxHeap < requiredAMMaxHeap) {
                     amConf.set(TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS,
@@ -158,8 +174,9 @@ public class TezSessionManager {
                     log.info("Increasing Tez AM Heap Size from "
                             + configuredAMMaxHeap + "M to "
                             + requiredAMMaxHeap
-                            + "M as the number of total estimated tasks is "
-                            + tezJobConf.getEstimatedTotalParallelism());
+                            + "M as total estimated tasks = " + tezJobConf.getEstimatedTotalParallelism()
+                            + ", total vertices = " + tezJobConf.getTotalVertices()
+                            + ", max outputs = " + tezJobConf.getMaxOutputsinSingleVertex());
                     log.info("Value of " + TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS + " is now "
                             + amConf.get(TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS));
                 }
