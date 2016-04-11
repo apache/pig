@@ -43,6 +43,15 @@ public interface TezInput {
      */
     public void addInputsToSkip(Set<String> inputsToSkip);
 
+    /**
+     * Attach the inputs to the operator. Also ensure reader.next() is called to force fetch
+     * the input so that all inputs are fetched and memory released before memory is allocated
+     * for outputs
+     *
+     * @param inputs available inputs
+     * @param conf configuration
+     * @throws ExecException
+     */
     public void attachInputs(Map<String, LogicalInput> inputs,
             Configuration conf) throws ExecException;
 

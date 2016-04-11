@@ -101,9 +101,13 @@ public class POFRJoinTez extends POFRJoin implements TezInput {
                 LogicalInput input = inputs.get(key);
                 if (!this.replInputs.contains(input)) {
                     this.replInputs.add(input);
-                    this.replReaders.add((KeyValueReader) input.getReader());
+                    KeyValueReader reader = (KeyValueReader) input.getReader();
+                    this.replReaders.add(reader);
+                    log.info("Attached input from vertex " + key + " : input=" + input + ", reader=" + reader);
                 }
             }
+            // Do not force fetch input by reading first record. Cases like MultiQuery_Union_4 have
+            // multiple POFRJoinTez loading same replicate input and will skip records
         } catch (Exception e) {
             throw new ExecException(e);
         }
