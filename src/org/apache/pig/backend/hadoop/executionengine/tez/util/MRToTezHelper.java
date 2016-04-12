@@ -165,11 +165,7 @@ public class MRToTezHelper {
                     continue;
                 }
             }
-            if (key.startsWith("dfs.datanode")) {
-                tezConf.unset(key);
-            } else if (key.startsWith("dfs.namenode")) {
-                tezConf.unset(key);
-            } else if (key.startsWith("yarn.nodemanager")) {
+            if (key.startsWith("yarn.nodemanager")) {
                 tezConf.unset(key);
             } else if (key.startsWith("mapreduce.jobhistory")) {
                 tezConf.unset(key);
