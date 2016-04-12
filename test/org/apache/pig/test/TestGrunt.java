@@ -963,7 +963,6 @@ public class TestGrunt {
 
     @Test
     public void testStopOnFailure() throws Throwable {
-        Assume.assumeTrue("Skip this test for TEZ", Util.isMapredExecType(cluster.getExecType()));
         PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
         context.getProperties().setProperty("stop.on.failure", ""+true);
@@ -1524,7 +1523,7 @@ public class TestGrunt {
         JavaCompilerHelper javaCompilerHelper = new JavaCompilerHelper();
         javaCompilerHelper.compile(tmpDir.getAbsolutePath(),
                 new JavaCompilerHelper.JavaSourceFromString("com.xxx.udf.TestUDF", udfSrc));
-        
+
         String jarName = "TestUDFJar.jar";
         String jarFile = tmpDir.getAbsolutePath() + FILE_SEPARATOR + jarName;
         int status = Util.executeJavaCommand("jar -cf " + jarFile +
