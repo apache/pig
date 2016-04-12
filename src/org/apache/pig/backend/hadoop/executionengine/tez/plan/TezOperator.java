@@ -235,6 +235,7 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     }
 
     private LoaderInfo loaderInfo = new LoaderInfo();
+    private long totalInputFilesSize = -1;
 
     public TezOperator(OperatorKey k) {
         super(k);
@@ -649,6 +650,14 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     public LoaderInfo getLoaderInfo() {
         return loaderInfo;
+    }
+
+    public long getTotalInputFilesSize() {
+        return totalInputFilesSize;
+    }
+
+    public void setTotalInputFilesSize(long totalInputFilesSize) {
+        this.totalInputFilesSize = totalInputFilesSize;
     }
 
     public void setUseGraceParallelism(boolean useGraceParallelism) {

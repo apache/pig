@@ -149,6 +149,43 @@ public class TestTezAutoParallelism {
             }
         });
         assertEquals(files.length, 1);
+        fs.delete(new Path("output1"), true);
+    }
+
+    @Test
+    public void testBytesPerReducer() throws IOException{
+
+        NodeIdGenerator.reset();
+        PigServer.resetScope();
+
+        pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
+        pigServer.getPigContext().getProperties().setProperty(MRConfiguration.MAX_SPLIT_SIZE, "3000");
+        pigServer.getPigContext().getProperties().setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, "1000");
+
+        StringWriter writer = new StringWriter();
+        Util.createLogAppender("testAutoParallelism", writer, TezDagBuilder.class);
+        try {
+            pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (name:chararray, age:int);");
+            pigServer.registerQuery("B = group A by name;");
+            pigServer.store("B", "output1");
+            FileSystem fs = cluster.getFileSystem();
+            FileStatus[] files = fs.listStatus(new Path("output1"), new PathFilter(){
+                @Override
+                public boolean accept(Path path) {
+                    if (path.getName().startsWith("part")) {
+                        return true;
+                    }
+                    return false;
+                }
+            });
+            assertEquals(files.length, 10);
+            String log = writer.toString();
+            assertTrue(log.contains("For vertex - scope-13: parallelism=3"));
+            assertTrue(log.contains("For vertex - scope-14: parallelism=10"));
+        } finally {
+            Util.removeLogAppender("testAutoParallelism", TezDagBuilder.class);
+            Util.deleteFile(cluster, "output1");
+        }
     }
 
     @Test
