@@ -197,14 +197,11 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
 
         ArrayList<FileSpec> inputs;
         ArrayList<ArrayList<OperatorKey>> inpTargets;
-        PigContext pigContext;
         try {
             inputs = (ArrayList<FileSpec>) ObjectSerializer
                     .deserialize(conf.get(PIG_INPUTS));
             inpTargets = (ArrayList<ArrayList<OperatorKey>>) ObjectSerializer
                     .deserialize(conf.get(PIG_INPUT_TARGETS));
-            pigContext = (PigContext) ObjectSerializer.deserialize(conf
-                    .get("pig.pigContext"));
             PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.deserialize(conf.get("udf.import.list")));
             MapRedUtil.setupUDFContext(conf);
         } catch (Exception e) {
@@ -234,7 +231,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
 
                 // if the execution is against Mapred DFS, set
                 // working dir to /user/<userid>
-                if(!Utils.isLocal(pigContext, conf)) {
+                if(!Utils.isLocal(conf)) {
                     fs.setWorkingDirectory(jobcontext.getWorkingDirectory());
                 }
 

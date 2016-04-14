@@ -64,13 +64,13 @@ import org.apache.pig.impl.util.ObjectSerializer;
 public class DefaultIndexableLoader extends LoadFunc implements IndexableLoadFunc{
 
     private static final Log LOG = LogFactory.getLog(DefaultIndexableLoader.class);
-    
+
     // FileSpec of index file which will be read from HDFS.
     private String indexFile;
     private String indexFileLoadFuncSpec;
-    
+
     private LoadFunc loader;
-    // Index is modeled as FIFO queue and LinkedList implements java Queue interface.  
+    // Index is modeled as FIFO queue and LinkedList implements java Queue interface.
     private LinkedList<Tuple> index;
     private FuncSpec rightLoaderFuncSpec;
 
@@ -79,9 +79,9 @@ public class DefaultIndexableLoader extends LoadFunc implements IndexableLoadFun
     private transient TupleFactory mTupleFactory;
 
     private String inpLocation;
-    
+
     public DefaultIndexableLoader(
-            String loaderFuncSpec, 
+            String loaderFuncSpec,
             String indexFile,
             String indexFileLoadFuncSpec,
             String scope,
@@ -93,39 +93,39 @@ public class DefaultIndexableLoader extends LoadFunc implements IndexableLoadFun
         this.scope = scope;
         this.inpLocation = inputLocation;
     }
-    
+
     @SuppressWarnings("unchecked")
     @Override
     public void seekNear(Tuple keys) throws IOException{
         // some setup
         mTupleFactory = TupleFactory.getInstance();
 
-        /* Currently whole of index is read into memory. Typically, index is small. Usually 
+        /* Currently whole of index is read into memory. Typically, index is small. Usually
            few KBs in size. So, this should not be an issue.
            However, reading whole index at startup time is not required. So, this can be improved upon.
            Assumption: Index being read is sorted on keys followed by filename, followed by offset.
          */
 
         // Index is modeled as FIFO Queue, that frees us from keeping track of which index entry should be read next.
-        
+
         // the keys are sent in a tuple. If there is really only
         // 1 join key, it would be the first field of the tuple. If
         // there are multiple Join keys, the tuple itself represents
         // the join key
         Object firstLeftKey = (keys.size() == 1 ? keys.get(0): keys);
         POLoad ld = new POLoad(genKey(), new FileSpec(indexFile, new FuncSpec(indexFileLoadFuncSpec)));
-                
+
         Properties props = ConfigurationUtil.getLocalFSProperties();
         PigContext pc = new PigContext(ExecType.LOCAL, props);
         ld.setPc(pc);
         index = new LinkedList<Tuple>();
         for(Result res=ld.getNextTuple();res.returnStatus!=POStatus.STATUS_EOP;res=ld.getNextTuple())
-            index.offer((Tuple) res.result);   
+            index.offer((Tuple) res.result);
 
-        
+
         Tuple prevIdxEntry = null;
         Tuple matchedEntry;
-     
+
         // When the first call is made, we need to seek into right input at correct offset.
         while(true){
             // Keep looping till we find first entry in index >= left key
@@ -148,15 +148,15 @@ public class DefaultIndexableLoader extends LoadFunc implements IndexableLoadFun
                 prevIdxEntry = curIdxEntry;
                 continue;
             }
-            
+
             if(((Comparable)extractedKey).compareTo(firstLeftKey) >= 0){
                 index.addFirst(curIdxEntry);  // We need to add back the current index Entry because we are reading ahead.
                 if(null == prevIdxEntry)   // very first entry in index.
                     matchedEntry = curIdxEntry;
                 else{
-                    matchedEntry = prevIdxEntry; 
+                    matchedEntry = prevIdxEntry;
                     // start join from previous idx entry, it might have tuples
-                    // with this key                    
+                    // with this key
                     index.addFirst(prevIdxEntry);
                 }
                 break;
@@ -168,43 +168,43 @@ public class DefaultIndexableLoader extends LoadFunc implements IndexableLoadFun
         if (matchedEntry == null) {
             LOG.warn("Empty index file: input directory is empty");
         } else {
-        
+
             Object extractedKey = extractKeysFromIdxTuple(matchedEntry);
-            
+
             if (extractedKey != null) {
                 Class idxKeyClass = extractedKey.getClass();
                 if( ! firstLeftKey.getClass().equals(idxKeyClass)){
-    
+
                     // This check should indeed be done on compile time. But to be on safe side, we do it on runtime also.
                     int errCode = 2166;
                     String errMsg = "Key type mismatch. Found key of type "+firstLeftKey.getClass().getCanonicalName()+" on left side. But, found key of type "+ idxKeyClass.getCanonicalName()+" in index built for right side.";
                     throw new ExecException(errMsg,errCode,PigException.BUG);
                 }
-            } 
+            }
         }
-        
+
         //add remaining split indexes to splitsAhead array
         int [] splitsAhead = new int[index.size()];
         int splitsAheadIdx = 0;
         for(Tuple t : index){
             splitsAhead[splitsAheadIdx++] = (Integer) t.get( t.size()-1 );
         }
-        
+
         initRightLoader(splitsAhead);
     }
-    
+
     private void initRightLoader(int [] splitsToBeRead) throws IOException{
-        PigContext pc = (PigContext) ObjectSerializer
-                .deserialize(PigMapReduce.sJobConfInternal.get().get("pig.pigContext"));
-        
-        Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
-        
+        Properties properties = (Properties) ObjectSerializer
+                .deserialize(PigMapReduce.sJobConfInternal.get().get("pig.client.sys.props"));
+
+        Configuration conf = ConfigurationUtil.toConfiguration(properties);
+
         // Hadoop security need this property to be set
         if (System.getenv("HADOOP_TOKEN_FILE_LOCATION") != null) {
-            conf.set(MRConfiguration.JOB_CREDENTIALS_BINARY, 
+            conf.set(MRConfiguration.JOB_CREDENTIALS_BINARY,
                     System.getenv("HADOOP_TOKEN_FILE_LOCATION"));
         }
-        
+
         //create ReadToEndLoader that will read the given splits in order
         loader = new ReadToEndLoader((LoadFunc)PigContext.instantiateFuncFromSpec(rightLoaderFuncSpec),
                 conf, inpLocation, splitsToBeRead);
@@ -216,7 +216,7 @@ public class DefaultIndexableLoader extends LoadFunc implements IndexableLoadFun
 
         if(idxTupSize == 3)
             return idxTuple.get(0);
-        
+
         int numColsInKey = (idxTupSize - 2);
         List<Object> list = new ArrayList<Object>(numColsInKey);
         for(int i=0; i < numColsInKey; i++)
@@ -228,13 +228,13 @@ public class DefaultIndexableLoader extends LoadFunc implements IndexableLoadFun
     private OperatorKey genKey(){
         return new OperatorKey(scope,NodeIdGenerator.getGenerator().getNextNodeId(scope));
     }
-    
+
     @Override
     public Tuple getNext() throws IOException {
         Tuple t = loader.getNext();
         return t;
     }
-    
+
     @Override
     public void close() throws IOException {
     }
@@ -242,14 +242,14 @@ public class DefaultIndexableLoader extends LoadFunc implements IndexableLoadFun
     @Override
     public void initialize(Configuration conf) throws IOException {
         // nothing to do
-        
+
     }
 
     @Override
     public InputFormat getInputFormat() throws IOException {
         throw new UnsupportedOperationException();
     }
-    
+
     @Override
     public LoadCaster getLoadCaster() throws IOException {
         throw new UnsupportedOperationException();
@@ -264,7 +264,7 @@ public class DefaultIndexableLoader extends LoadFunc implements IndexableLoadFun
     public void setLocation(String location, Job job) throws IOException {
         // nothing to do
     }
-    
+
     public void setIndexFile(String indexFile) {
         this.indexFile = indexFile;
     }

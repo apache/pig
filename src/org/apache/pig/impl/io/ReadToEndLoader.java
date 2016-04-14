@@ -40,17 +40,16 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.data.SchemaTupleBackend;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
 
 /**
  * This is wrapper Loader which wraps a real LoadFunc underneath and allows
- * to read a file completely starting a given split (indicated by a split index 
+ * to read a file completely starting a given split (indicated by a split index
  * which is used to look in the List<InputSplit> returned by the underlying
  * InputFormat's getSplits() method). So if the supplied split index is 0, this
  * loader will read the entire file. If it is non zero it will read the partial
  * file beginning from that split to the last split.
- * 
+ *
  * The call sequence to use this is:
  * 1) construct an object using the constructor
  * 2) Call getNext() in a loop till it returns null
@@ -61,52 +60,50 @@ public class ReadToEndLoader extends LoadFunc implements LoadMetadata {
      * the wrapped LoadFunc which will do the actual reading
      */
     private LoadFunc wrappedLoadFunc;
-    
+
     /**
      * the Configuration object used to locate the input location - this will
      * be used to call {@link LoadFunc#setLocation(String, Job)} on
      * the wrappedLoadFunc
      */
     private Configuration conf;
-    
+
     /**
      * the input location string (typically input file/dir name )
      */
     private String inputLocation;
-      
+
     /**
      * If the splits to be read are not in increasing sequence of integers
      * this array can be used
      */
     private int[] toReadSplits = null;
-    
+
     /**
      * index into toReadSplits
      */
     private int toReadSplitsIdx = 0;
-    
+
     /**
      * the index of the split the loader is currently reading from
      */
     private int curSplitIndex;
-    
+
     /**
      * the input splits returned by underlying {@link InputFormat#getSplits(JobContext)}
      */
     private List<InputSplit> inpSplits = null;
-    
+
     /**
      * underlying RecordReader
      */
     private RecordReader reader = null;
-    
+
     /**
      * underlying InputFormat
      */
     private InputFormat inputFormat = null;
-    
-    private PigContext pigContext;
-    
+
     private String udfContextSignature = null;
 
     /**
@@ -114,8 +111,8 @@ public class ReadToEndLoader extends LoadFunc implements LoadMetadata {
      * @param conf
      * @param inputLocation
      * @param splitIndex
-     * @throws IOException 
-     * @throws InterruptedException 
+     * @throws IOException
+     * @throws InterruptedException
      */
     public ReadToEndLoader(LoadFunc wrappedLoadFunc, Configuration conf,
             String inputLocation, int splitIndex) throws IOException {
@@ -125,17 +122,7 @@ public class ReadToEndLoader extends LoadFunc implements LoadMetadata {
         this.curSplitIndex = splitIndex;
         init();
     }
-    
-    public ReadToEndLoader(LoadFunc wrappedLoadFunc, Configuration conf,
-            String inputLocation, int splitIndex, PigContext pigContext) throws IOException {
-        this.wrappedLoadFunc = wrappedLoadFunc;
-        this.inputLocation = inputLocation;
-        this.conf = conf;
-        this.curSplitIndex = splitIndex;
-        this.pigContext = pigContext;
-        init();
-    }
-    
+
     public ReadToEndLoader(LoadFunc wrappedLoadFunc, Configuration conf,
             String inputLocation, int splitIndex, String signature) throws IOException {
         this.udfContextSignature = signature;
@@ -147,14 +134,14 @@ public class ReadToEndLoader extends LoadFunc implements LoadMetadata {
     }
 
     /**
-     * This constructor takes an array of split indexes (toReadSplitIdxs) of the 
+     * This constructor takes an array of split indexes (toReadSplitIdxs) of the
      * splits to be read.
      * @param wrappedLoadFunc
      * @param conf
      * @param inputLocation
      * @param toReadSplitIdxs
-     * @throws IOException 
-     * @throws InterruptedException 
+     * @throws IOException
+     * @throws InterruptedException
      */
     public ReadToEndLoader(LoadFunc wrappedLoadFunc, Configuration conf,
             String inputLocation, int[] toReadSplitIdxs) throws IOException {
@@ -166,21 +153,21 @@ public class ReadToEndLoader extends LoadFunc implements LoadMetadata {
             toReadSplitIdxs.length > 0 ? toReadSplitIdxs[0] : Integer.MAX_VALUE;
         init();
     }
-    
+
     @SuppressWarnings("unchecked")
     private void init() throws IOException {
-        if (conf != null && pigContext != null) {
-            SchemaTupleBackend.initialize(conf, pigContext, true);
+        if (conf != null) {
+            SchemaTupleBackend.initialize(conf, true);
         }
 
         // make a copy so that if the underlying InputFormat writes to the
         // conf, we don't affect the caller's copy
         conf = new Configuration(conf);
 
-        // let's initialize the wrappedLoadFunc 
+        // let's initialize the wrappedLoadFunc
         Job job = new Job(conf);
         wrappedLoadFunc.setUDFContextSignature(this.udfContextSignature);
-        wrappedLoadFunc.setLocation(inputLocation, 
+        wrappedLoadFunc.setLocation(inputLocation,
                 job);
         // The above setLocation call could write to the conf within
         // the job - get a hold of the modified conf
@@ -191,10 +178,10 @@ public class ReadToEndLoader extends LoadFunc implements LoadMetadata {
                     new JobID()));
         } catch (InterruptedException e) {
             throw new IOException(e);
-        }        
+        }
     }
 
-    private boolean initializeReader() throws IOException, 
+    private boolean initializeReader() throws IOException,
     InterruptedException {
         // Close the previous reader first
         if(reader != null) {
@@ -206,14 +193,14 @@ public class ReadToEndLoader extends LoadFunc implements LoadMetadata {
             return false;
         }
         InputSplit curSplit = inpSplits.get(curSplitIndex);
-        TaskAttemptContext tAContext = HadoopShims.createTaskAttemptContext(conf, 
+        TaskAttemptContext tAContext = HadoopShims.createTaskAttemptContext(conf,
                 new TaskAttemptID());
         reader = inputFormat.createRecordReader(curSplit, tAContext);
         reader.initialize(curSplit, tAContext);
         // create a dummy pigsplit - other than the actual split, the other
         // params are really not needed here where we are just reading the
         // input completely
-        PigSplit pigSplit = new PigSplit(new InputSplit[] {curSplit}, -1, 
+        PigSplit pigSplit = new PigSplit(new InputSplit[] {curSplit}, -1,
                 new ArrayList<OperatorKey>(), -1);
         // Set the conf object so that if the wrappedLoadFunc uses it,
         // it won't be null
@@ -244,7 +231,7 @@ public class ReadToEndLoader extends LoadFunc implements LoadMetadata {
             throw new IOException(e);
         }
     }
-    
+
     private Tuple getNextHelper() throws IOException, InterruptedException {
         Tuple t = null;
         while(initializeReader()) {
@@ -258,8 +245,8 @@ public class ReadToEndLoader extends LoadFunc implements LoadMetadata {
         }
         return null;
     }
-    
-    
+
+
     /**
      * Updates curSplitIndex , just increment if splitIndexes is null,
      * else get next split in splitIndexes
@@ -331,7 +318,7 @@ public class ReadToEndLoader extends LoadFunc implements LoadMetadata {
              ((LoadMetadata) wrappedLoadFunc).setPartitionFilter(partitionFilter);
         }
     }
-    
+
     @Override
     public void setUDFContextSignature(String signature) {
         this.udfContextSignature = signature;
