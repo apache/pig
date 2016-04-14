@@ -20,6 +20,7 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -39,6 +40,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.util.ObjectSerializer;
@@ -72,7 +74,6 @@ public class PigCombiner {
         PhysicalOperator[] roots;
         PhysicalOperator leaf;
 
-        PigContext pigContext = null;
         private volatile boolean initialized = false;
 
         //@StaticDataCleanup
@@ -91,9 +92,11 @@ public class PigCombiner {
             Configuration jConf = context.getConfiguration();
             try {
                 PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.deserialize(jConf.get("udf.import.list")));
-                pigContext = (PigContext)ObjectSerializer.deserialize(jConf.get("pig.pigContext"));
-                if (pigContext.getLog4jProperties()!=null)
-                    PropertyConfigurator.configure(pigContext.getLog4jProperties());
+                Properties log4jProperties = (Properties) ObjectSerializer
+                        .deserialize(jConf.get(PigImplConstants.PIG_LOG4J_PROPERTIES));
+                if (log4jProperties != null) {
+                    PropertyConfigurator.configure(log4jProperties);
+                }
                 UDFContext.getUDFContext().reset();
                 MapRedUtil.setupUDFContext(context.getConfiguration());
 
@@ -143,7 +146,7 @@ public class PigCombiner {
                 pigReporter.setRep(context);
                 PhysicalOperator.setReporter(pigReporter);
 
-                boolean aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
+                boolean aggregateWarning = "true".equalsIgnoreCase(context.getConfiguration().get("aggregate.warning"));
                 PigStatusReporter pigStatusReporter = PigStatusReporter.getInstance();
                 pigStatusReporter.setContext(new MRTaskContext(context));
                 PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
@@ -268,7 +271,6 @@ public class PigCombiner {
             pigReporter = null;
             // Avoid OOM in Tez.
             PhysicalOperator.setReporter(null);
-            pigContext = null;
             roots = null;
             cp = null;
         }
