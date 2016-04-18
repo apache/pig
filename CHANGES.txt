@@ -113,6 +113,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-4860: Loading data using OrcStorage() accepts only default FileSystem path (beriaanirudh via rohini)
+
 PIG-4868: Low values for bytes.per.reducer configured by user not honored in Tez for inputs (rohini)
 
 PIG-4869: Removing unwanted configuration in Tez broke ConfiguredFailoverProxyProvider (rohini)
