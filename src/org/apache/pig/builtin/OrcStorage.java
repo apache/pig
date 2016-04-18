@@ -455,7 +455,7 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
     }
 
     private TypeInfo getTypeInfoFromLocation(String location, Job job) throws IOException {
-        FileSystem fs = FileSystem.get(job.getConfiguration());
+        FileSystem fs = FileSystem.get(new Path(location).toUri(), job.getConfiguration());
         Path path = getFirstFile(location, fs);
         if (path == null) {
             log.info("Cannot find any ORC files from " + location +

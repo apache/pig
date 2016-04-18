@@ -28,6 +28,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-4860: Loading data using OrcStorage() accepts only default FileSystem path (beriaanirudh via rohini)
+
 PIG-4867: -stop_on_failure does not work with Tez (rohini)
 
 PIG-4851: Null not padded when input has less fields than declared schema for some loader (rohini)
