@@ -20,43 +20,78 @@ package org.apache.pig.impl.plan;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.annotations.VisibleForTesting;
 
+/**
+ * Generates IDs as long values in a thread safe manner. Each thread has its own generated IDs.
+ */
 public class NodeIdGenerator {
 
-    private Map<String, Long> scopeToIdMap;
-    private static NodeIdGenerator theGenerator = new NodeIdGenerator();
+	/**
+	 * Holds a map of generated scoped-IDs per thread. Each map holds generated IDs per scope.
+	 */
+    private ThreadLocal<Map<String, AtomicLong>> scopeToIdMap
+        = new ThreadLocal<Map<String, AtomicLong>>() {
+            protected Map<String, AtomicLong> initialValue() {
+                return new HashMap<String,AtomicLong>();
+            }
+        };
 
-    private NodeIdGenerator() {
-        scopeToIdMap = new HashMap<String, Long>();
-    }
+    /**
+     * Singleton instance.
+     */
+    private static final NodeIdGenerator theGenerator = new NodeIdGenerator();
 
+    /**
+     * Private default constructor to force singleton use-case of this class.
+     */
+    private NodeIdGenerator() {}
+
+    /**
+     * Returns the NodeIdGenerator singleton.
+     * @return
+     */
     public static NodeIdGenerator getGenerator() {
         return theGenerator;
     }
 
-    public long getNextNodeId(String scope) {
-        Long val = scopeToIdMap.get(scope);
+    /**
+     * Returns the next ID to be used for the current Thread.
+     * 
+     * @param scope
+     * @return
+     */
+    public long getNextNodeId(final String scope) {
+        // ThreadLocal usage protects us from having the same HashMap instance
+        // being used by several threads, so we can use it without synchronized
+        // blocks and still be thread-safe.
+        Map<String, AtomicLong> map = scopeToIdMap.get();
 
-        long nextId = 0;
-
-        if (val != null) {
-            nextId = val.longValue();
-        }
-
-        scopeToIdMap.put(scope, nextId + 1);
-
-        return nextId;
+        // the concurrent properties of the AtomicLong are useless here but
+        // since it cost less to use such an object rather than created a
+        // Long object instance each time we increment a counter ...
+        AtomicLong l = map.get(scope);
+        if ( l == null )
+            map.put( scope, l = new AtomicLong() );
+        return l.getAndIncrement();
     }
 
+    /**
+     * Reset the given scope IDs to 0 for the current Thread.
+     * @param scope
+     */
     @VisibleForTesting
-    public static void reset(String scope) {
-        theGenerator.scopeToIdMap.put(scope, 0L) ;
+    public static void reset(final String scope) {
+        theGenerator.scopeToIdMap.get().remove(scope);
     }
 
+    /**
+     * Reset all scope IDs to 0 for the current Thread.
+     */
     @VisibleForTesting
     public static void reset() {
-        theGenerator.scopeToIdMap.clear();
+        theGenerator.scopeToIdMap.remove();
     }
 }
