@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4641: Print the instance of Object without using toString() (sandyridgeracer via rohini)
+
 PIG-4455: Should use DependencyOrderWalker instead of DepthFirstWalker in MRPrinter (zjffdu via rohini)
 
 PIG-4866: Do not serialize PigContext in configuration to the backend (rohini)
