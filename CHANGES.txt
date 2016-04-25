@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4455: Should use DependencyOrderWalker instead of DepthFirstWalker in MRPrinter (zjffdu via rohini)
+
 PIG-4866: Do not serialize PigContext in configuration to the backend (rohini)
 
 PIG-4547: Update Jython version to 2.7.0 (erwaman via daijy)
