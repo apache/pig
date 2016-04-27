@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4526: Make setting up the build environment easier (nielsbasjes via rohini)
+
 PIG-4641: Print the instance of Object without using toString() (sandyridgeracer via rohini)
 
 PIG-4455: Should use DependencyOrderWalker instead of DepthFirstWalker in MRPrinter (zjffdu via rohini)
