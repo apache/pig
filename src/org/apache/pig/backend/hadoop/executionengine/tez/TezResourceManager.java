@@ -39,6 +39,8 @@ import org.apache.pig.PigConfiguration;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 
+import com.google.common.annotations.VisibleForTesting;
+
 public class TezResourceManager {
     private static TezResourceManager instance = null;
     private boolean inited = false;
@@ -59,6 +61,7 @@ public class TezResourceManager {
     /**
      * This method is only used by test code to reset state.
      */
+    @VisibleForTesting
     public static void dropInstance() {
         instance = null;
     }
