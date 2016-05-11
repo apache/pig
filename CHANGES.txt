@@ -119,6 +119,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-4882: Remove hardcoded groovy.grape.report.downloads=true from DownloadResolver (erwaman via daijy)
+
 PIG-4581: thread safe issue in NodeIdGenerator (rcatherinot via rohini)
 
 PIG-4878: Fix issues from PIG-4847 (rohini)
