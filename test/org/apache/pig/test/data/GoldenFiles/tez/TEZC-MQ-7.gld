@@ -36,7 +36,7 @@ Tez vertex scope-44
 # Plan on vertex
 a: Split - scope-60
 |   |
-|   e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-63	->	 scope-43
+|   e: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-63	->	 scope-43
 |   |
 |   |---c: FRJoin[tuple] - scope-24	<-	 scope-48
 |       |   |
@@ -59,7 +59,7 @@ a: Split - scope-60
     |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
 Tez vertex scope-52
 # Plan on vertex
-e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-64	->	 scope-43
+e: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-64	->	 scope-43
 |
 |---d: FRJoin[tuple] - scope-36	<-	 scope-48
     |   |

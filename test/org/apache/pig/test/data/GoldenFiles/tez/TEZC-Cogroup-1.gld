@@ -44,7 +44,7 @@ c: Local Rearrange[tuple]{int}(false) - scope-20	->	 scope-36
     |---b: Load(file:///tmp/input2:org.apache.pig.builtin.PigStorage) - scope-8
 Tez vertex scope-36
 # Plan on vertex
-d: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-33
+d: Store(file:///tmp/pigoutput/d:org.apache.pig.builtin.PigStorage) - scope-33
 |
 |---d: New For Each(false,false,false)[bag] - scope-32
     |   |

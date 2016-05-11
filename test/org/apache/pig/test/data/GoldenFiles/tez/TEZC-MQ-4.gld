@@ -46,9 +46,9 @@ Tez vertex scope-55
 # Plan on vertex
 c: Split - scope-63
 |   |
-|   c: Store(file:///tmp/output/c:org.apache.pig.builtin.PigStorage) - scope-30
+|   c: Store(file:///tmp/pigoutput/c:org.apache.pig.builtin.PigStorage) - scope-30
 |   |
-|   d: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-40
+|   d: Store(file:///tmp/pigoutput/d:org.apache.pig.builtin.PigStorage) - scope-40
 |   |
 |   |---d: New For Each(false,false,false)[bag] - scope-39
 |       |   |
@@ -58,7 +58,7 @@ c: Split - scope-63
 |       |   |
 |       |   Project[int][3] - scope-37
 |   |
-|   e: Store(file:///tmp/output/e:org.apache.pig.builtin.PigStorage) - scope-52
+|   e: Store(file:///tmp/pigoutput/e:org.apache.pig.builtin.PigStorage) - scope-52
 |   |
 |   |---e: New For Each(false,false,false,false)[bag] - scope-51
 |       |   |

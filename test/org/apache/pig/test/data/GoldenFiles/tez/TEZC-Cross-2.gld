@@ -72,7 +72,7 @@ a: Split - scope-50
     |---a: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-0
 Tez vertex scope-49
 # Plan on vertex
-d: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-42
+d: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-42
 |
 |---d: New For Each(true,true)[tuple] - scope-41
     |   |

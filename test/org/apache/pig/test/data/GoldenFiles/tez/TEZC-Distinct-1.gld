@@ -36,7 +36,7 @@ Local Rearrange[tuple]{tuple}(true) - scope-21	->	 scope-16
     |
     |---Package(Packager)[tuple]{tuple} - scope-17
 # Plan on vertex
-c: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-12
+c: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-12
 |
 |---c: New For Each(false)[bag] - scope-11
     |   |

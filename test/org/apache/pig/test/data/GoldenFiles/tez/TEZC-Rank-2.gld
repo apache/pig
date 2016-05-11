@@ -94,7 +94,7 @@ Tez vertex scope-49
 PORankStatsTez - scope-50	<-	 scope-45	->	 scope-51
 Tez vertex scope-51
 # Plan on vertex
-b: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-22
+b: Store(file:///tmp/pigoutput/d:org.apache.pig.builtin.PigStorage) - scope-22
 |
 |---New For Each(false,true)[tuple] - scope-21
     |   |

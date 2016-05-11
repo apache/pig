@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.InputFormat;
@@ -89,6 +91,7 @@ public class TestTezJobControlCompiler {
     public static void setUpBeforeClass() throws Exception {
         input1 = Util.createTempFileDelOnExit("input1", "txt").toURI();
         input2 = Util.createTempFileDelOnExit("input2", "txt").toURI();
+        FileUtils.deleteDirectory(new File("/tmp/pigoutput"));
     }
 
     @AfterClass
@@ -107,7 +110,7 @@ public class TestTezJobControlCompiler {
                 "a = load '" + input1 +"' as (x:int, y:int);" +
                 "b = filter a by x > 0;" +
                 "c = foreach b generate y;" +
-                "store c into 'file:///tmp/output';";
+                "store c into 'file:///tmp/pigoutput';";
 
         Pair<TezOperPlan, DAG> compiledPlan = compile(query);
 
@@ -127,7 +130,7 @@ public class TestTezJobControlCompiler {
                 "a = load '" + input1 +"' as (x:int, y:int);" +
                 "b = group a by x;" +
                 "c = foreach b generate group, a;" +
-                "store c into 'file:///tmp/output';";
+                "store c into 'file:///tmp/pigoutput';";
 
         Pair<TezOperPlan, DAG> compiledPlan = compile(query);
 
@@ -159,7 +162,7 @@ public class TestTezJobControlCompiler {
                 "b = load '" + input2 +"' as (x:int, z:int);" +
                 "c = join a by x, b by x;" +
                 "d = foreach c generate a::x as x, y, z;" +
-                "store d into 'file:///tmp/output';";
+                "store d into 'file:///tmp/pigoutput';";
 
         Pair<TezOperPlan, DAG> compiledPlan = compile(query);
 
