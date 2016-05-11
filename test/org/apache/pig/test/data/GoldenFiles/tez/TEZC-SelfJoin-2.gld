@@ -92,7 +92,7 @@ Partition Rearrange[tuple]{int}(false) - scope-50	->	 scope-52
     |---POValueInputTez - scope-30	<-	 scope-25
 Tez vertex scope-52
 # Plan on vertex
-d: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-24
+d: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-24
 |
 |---New For Each(true,true)[tuple] - scope-56
     |   |

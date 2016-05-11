@@ -28,6 +28,6 @@ Tez vertex scope-12
 PORankStatsTez - scope-13	<-	 scope-11	->	 scope-14
 Tez vertex scope-14
 # Plan on vertex
-b: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-10
+b: Store(file:///tmp/pigoutput/d:org.apache.pig.builtin.PigStorage) - scope-10
 |
 |---PORankTez - scope-9	<-	 scope-11,scope-12

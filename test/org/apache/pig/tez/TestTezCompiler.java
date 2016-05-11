@@ -20,11 +20,13 @@ package org.apache.pig.tez;
 import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.Properties;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -67,6 +69,7 @@ public class TestTezCompiler {
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
         pc = new PigContext(new TezLocalExecType(), new Properties());
+        FileUtils.deleteDirectory(new File("/tmp/pigoutput"));
     }
 
     @AfterClass
@@ -92,9 +95,9 @@ public class TestTezCompiler {
     public void testStoreLoad() throws Exception {
         String query =
                 "a = load 'file:///tmp/input' as (x:int, y:int);" +
-                "store a into 'file:///tmp/output';" +
-                "b = load 'file:///tmp/output' as (x:int, y:int);" +
-                "store b into 'file:///tmp/output1';";
+                "store a into 'file:///tmp/pigoutput';" +
+                "b = load 'file:///tmp/pigoutput' as (x:int, y:int);" +
+                "store b into 'file:///tmp/pigoutput1';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-LoadStore-1.gld");
     }
@@ -103,18 +106,18 @@ public class TestTezCompiler {
     public void testStoreLoadMultiple() throws Exception {
         String query =
                 "a = load 'file:///tmp/input';" +
-                "store a into 'file:///tmp/output/Dir1';" +
-                "a = load 'file:///tmp/output/Dir1';" +
-                "store a into 'file:///tmp/output/Dir2' using BinStorage();" +
-                "a = load 'file:///tmp/output/Dir1';" +
-                "store a into 'file:///tmp/output/Dir3';" +
-                "a = load 'file:///tmp/output/Dir2' using BinStorage();" +
-                "store a into 'file:///tmp/output/Dir4';" +
-                "a = load 'file:///tmp/output/Dir3';" +
-                "b = load 'file:///tmp/output/Dir2' using BinStorage();" +
-                "c = load 'file:///tmp/output/Dir1';" +
+                "store a into 'file:///tmp/pigoutput/Dir1';" +
+                "a = load 'file:///tmp/pigoutput/Dir1';" +
+                "store a into 'file:///tmp/pigoutput/Dir2' using BinStorage();" +
+                "a = load 'file:///tmp/pigoutput/Dir1';" +
+                "store a into 'file:///tmp/pigoutput/Dir3';" +
+                "a = load 'file:///tmp/pigoutput/Dir2' using BinStorage();" +
+                "store a into 'file:///tmp/pigoutput/Dir4';" +
+                "a = load 'file:///tmp/pigoutput/Dir3';" +
+                "b = load 'file:///tmp/pigoutput/Dir2' using BinStorage();" +
+                "c = load 'file:///tmp/pigoutput/Dir1';" +
                 "d = cogroup a by $0, b by $0, c by $0;" +
-                "store d into 'file:///tmp/output/Dir5';";
+                "store d into 'file:///tmp/pigoutput/Dir5';";
 
         // To get around difference in ordering of operators in plan due to JDK7 and JDK8
         if (System.getProperties().getProperty("java.version").startsWith("1.8")) {
@@ -129,7 +132,7 @@ public class TestTezCompiler {
         String query =
                 "a = load 'file:///tmp/input' as (x:int, y:int);" +
                 "b = native 'hadoop-examples.jar' Store a into '/tmp/table_testNativeMRJobSimple_input' Load '/tmp/table_testNativeMRJobSimple_output' `wordcount /tmp/table_testNativeMRJobSimple_input /tmp/table_testNativeMRJobSimple_output`;" +
-                "store b into 'file:///tmp/output';";
+                "store b into 'file:///tmp/pigoutput';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Native-1.gld");
     }
@@ -140,7 +143,7 @@ public class TestTezCompiler {
                 "a = load 'file:///tmp/input' as (x:int, y:int);" +
                 "b = filter a by x > 0;" +
                 "c = foreach b generate y;" +
-                "store c into 'file:///tmp/output';";
+                "store c into 'file:///tmp/pigoutput';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Filter-1.gld");
     }
@@ -151,7 +154,7 @@ public class TestTezCompiler {
                 "a = load 'file:///tmp/input' as (x:int, y:int);" +
                 "b = group a by x;" +
                 "c = foreach b generate group, COUNT(a.x);" +
-                "store c into 'file:///tmp/output';";
+                "store c into 'file:///tmp/pigoutput';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Group-1.gld");
     }
@@ -163,7 +166,7 @@ public class TestTezCompiler {
                 "b = load 'file:///tmp/input2' as (x:int, z:int);" +
                 "c = join a by x, b by x;" +
                 "d = foreach c generate a::x as x, y, z;" +
-                "store d into 'file:///tmp/output';";
+                "store d into 'file:///tmp/pigoutput';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Join-1.gld");
     }
@@ -176,7 +179,7 @@ public class TestTezCompiler {
                 "c = filter a by x == 10;" +
                 "d = filter a by x > 10;" +
                 "e = join b by x, c by x, d by x;" +
-                "store e into 'file:///tmp/output';";
+                "store e into 'file:///tmp/pigoutput';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-SelfJoin-1.gld");
     }
@@ -188,7 +191,7 @@ public class TestTezCompiler {
                 "b = filter a by x < 5;" +
                 "c = filter a by x == 10;" +
                 "d = join b by x, c by x using 'skewed';" +
-                "store d into 'file:///tmp/output';";
+                "store d into 'file:///tmp/pigoutput';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-SelfJoin-2.gld");
     }
@@ -201,7 +204,7 @@ public class TestTezCompiler {
                 "c = filter a by x == 10;" +
                 "d = filter a by x > 10;" +
                 "e = join b by x, c by x, d by x using 'replicated';" +
-                "store e into 'file:///tmp/output';";
+                "store e into 'file:///tmp/pigoutput';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-SelfJoin-3.gld");
     }
@@ -213,7 +216,7 @@ public class TestTezCompiler {
                 "b = load 'file:///tmp/input2' as (x:int, z:int);" +
                 "c = union a, b;" +
                 "d = join b by x, c by x using 'replicated';" +
-                "store d into 'file:///tmp/output';";
+                "store d into 'file:///tmp/pigoutput';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-SelfJoin-4.gld");
     }
@@ -226,7 +229,7 @@ public class TestTezCompiler {
                 "a2 = filter a by x < 2;" +
                 "b = union a1, a2;" +
                 "c = join b by x, a by x;" +
-                "store c into 'file:///tmp/output';";
+                "store c into 'file:///tmp/pigoutput';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-SelfJoin-5.gld");
     }
@@ -242,7 +245,7 @@ public class TestTezCompiler {
                 "a5 = foreach a4 generate a2::x as x, a3::y as y;" +
                 "b = union a1, a5;" +
                 "c = join b by x, a by x;" +
-                "store c into 'file:///tmp/output';";
+                "store c into 'file:///tmp/pigoutput';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-SelfJoin-6.gld");
     }
@@ -254,7 +257,7 @@ public class TestTezCompiler {
                 "b = load 'file:///tmp/input2' as (x:int, z:int);" +
                 "c = cross a, b;" +
                 "d = foreach c generate a::x as x, y, z;" +
-                "store d into 'file:///tmp/output';";
+                "store d into 'file:///tmp/pigoutput';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Cross-1.gld");
     }
@@ -266,7 +269,7 @@ public class TestTezCompiler {
                 "b = filter a by x < 5;" +
                 "c = filter a by x == 10;" +
                 "d = cross b, c;" +
-                "store d into 'file:///tmp/output';";
+                "store d into 'file:///tmp/pigoutput';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Cross-2.gld");
     }
@@ -278,7 +281,7 @@ public class TestTezCompiler {
                 "b = load 'file:///tmp/input2' as (x:int, z:int);" +
                 "c = cross b, a;" +
                 "d = foreach c generate a.x, a.y, z;" + //Scalar
-                "store d into 'file:///tmp/output';";
+                "store d into 'file:///tmp/pigoutput';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Cross-3.gld");
     }
@@ -290,7 +293,7 @@ public class TestTezCompiler {
                 "b = load 'file:///tmp/input2' as (x:int, z:int);" +
                 "c = join a by x, b by x using 'skewed';" +
                 "d = foreach c generate a::x as x, y, z;" +
-                "store d into 'file:///tmp/output';";
+                "store d into 'file:///tmp/pigoutput';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-SkewJoin-1.gld");
     }
@@ -303,7 +306,7 @@ public class TestTezCompiler {
                 "b = load 'file:///tmp/input2' as (x:int, z:int);" +
                 "c = join a by x, b by x using 'skewed';" +
                 "d = foreach c generate a::x as x, y, z;" +
-                "store d into 'file:///tmp/output';";
+                "store d into 'file:///tmp/pigoutput';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-SkewJoin-2.gld");
     }
@@ -314,7 +317,7 @@ public class TestTezCompiler {
                 "a = load 'file:///tmp/input' as (x:int, y:int);" +
                 "b = limit a 10;" +
                 "c = foreach b generate y;" +
-                "store c into 'file:///tmp/output';";
+                "store c into 'file:///tmp/pigoutput';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Limit-1.gld");
     }
@@ -325,7 +328,7 @@ public class TestTezCompiler {
                 "a = load 'file:///tmp/input' as (x:int, y:int);" +
                 "b = order a by x, y;" +
                 "c = limit b 10;" +
-                "store c into 'file:///tmp/output';";
+                "store c into 'file:///tmp/pigoutput';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Limit-2.gld");
     }
@@ -338,7 +341,7 @@ public class TestTezCompiler {
                 "g = group a all;" +
                 "h = foreach g generate COUNT(a) as sum;" +
                 "c = limit b h.sum/2;" +
-                "store c into 'file:///tmp/output';";
+                "store c into 'file:///tmp/pigoutput';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Limit-3.gld");
     }
@@ -349,7 +352,7 @@ public class TestTezCompiler {
                 "a = load 'file:///tmp/input' as (x:int, y:int);" +
                 "b = distinct a;" +
                 "c = foreach b generate y;" +
-                "store c into 'file:///tmp/output';";
+                "store c into 'file:///tmp/pigoutput';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Distinct-1.gld");
     }
@@ -360,7 +363,7 @@ public class TestTezCompiler {
                 "a = load 'file:///tmp/input' as (x:int, y:int);" +
                 "b = group a by x;" +
                 "c = foreach b { d = distinct a; generate COUNT(d); };" +
-                "store c into 'file:///tmp/output';";
+                "store c into 'file:///tmp/pigoutput';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Distinct-2.gld");
     }
@@ -374,7 +377,7 @@ public class TestTezCompiler {
                 "b = load 'file:///tmp/input2' as (x:int, z:int);" +
                 "c = load 'file:///tmp/input3' as (x:int, z:int);" +
                 "d = join a by x, b by x, c by x using 'replicated';" +
-                "store d into 'file:///tmp/output/d';";
+                "store d into 'file:///tmp/pigoutput/d';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-FRJoin-1.gld");
     }
@@ -387,7 +390,7 @@ public class TestTezCompiler {
                 "b1 = foreach b generate group, COUNT(a.y);" +
                 "c = load 'file:///tmp/input2' as (x:int, z:int);" +
                 "d = join b1 by group, c by x using 'replicated';" +
-                "store d into 'file:///tmp/output/e';";
+                "store d into 'file:///tmp/pigoutput/e';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-FRJoin-2.gld");
     }
@@ -397,7 +400,7 @@ public class TestTezCompiler {
         String query =
                 "a = load 'file:///tmp/input' using PigStorage(',') as (x:int, y:int);" +
                 "b = stream a through `stream.pl -n 5`;" +
-                "STORE b INTO 'file:///tmp/output';";
+                "STORE b INTO 'file:///tmp/pigoutput';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Stream-1.gld");
     }
@@ -408,7 +411,7 @@ public class TestTezCompiler {
                 "a = load 'file:///tmp/input' using PigStorage(',') as (x:int, y:int, z:int);" +
                 "b = group a by $0;" +
                 "c = foreach b { d = limit a 10; e = order d by $1; f = order e by $0; generate group, f;};"+
-                "store c INTO 'file:///tmp/output';";
+                "store c INTO 'file:///tmp/pigoutput';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-SecKeySort-1.gld");
 
@@ -422,7 +425,7 @@ public class TestTezCompiler {
         String query =
                 "a = load 'file:///tmp/input' using PigStorage(',') as (x:int, y:int);" +
                 "b = order a by x;" +
-                "STORE b INTO 'file:///tmp/output';";
+                "STORE b INTO 'file:///tmp/pigoutput';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Order-1.gld");
     }
@@ -433,7 +436,7 @@ public class TestTezCompiler {
                 "a = load 'file:///tmp/input' using PigStorage(',') as (x:int, y:int);" +
                 "b = filter a by x == 1;" +
                 "c = order b by x;" +
-                "STORE c INTO 'file:///tmp/output';";
+                "STORE c INTO 'file:///tmp/pigoutput';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Order-2.gld");
     }
@@ -444,7 +447,7 @@ public class TestTezCompiler {
         String query =
                 "a = load 'file:///tmp/input' using org.apache.pig.backend.hadoop.hbase.HBaseStorage(',') as (x:int, y:int);" +
                 "b = order a by x;" +
-                "STORE b INTO 'file:///tmp/output';";
+                "STORE b INTO 'file:///tmp/pigoutput';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Order-3.gld");
         setProperty("pig.sort.readonce.loadfuncs", null);
@@ -459,7 +462,7 @@ public class TestTezCompiler {
                 "b = load 'file:///tmp/input2' as (x:int, z:int);" +
                 "c = cogroup a by x, b by x;" +
                 "d = foreach c generate group, COUNT(a.y), COUNT(b.z);" +
-                "store d into 'file:///tmp/output/d';";
+                "store d into 'file:///tmp/pigoutput/d';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Cogroup-1.gld");
     }
@@ -469,9 +472,9 @@ public class TestTezCompiler {
         String query =
                 "a = load 'file:///tmp/input' as (x:int, y:int);" +
                 "split a into b if x <= 5, c if x <= 10, d if x >10;" +
-                "store b into 'file:///tmp/output/b';" +
-                "store c into 'file:///tmp/output/c';" +
-                "store d into 'file:///tmp/output/d';";
+                "store b into 'file:///tmp/pigoutput/b';" +
+                "store c into 'file:///tmp/pigoutput/c';" +
+                "store d into 'file:///tmp/pigoutput/d';";
 
         setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-1.gld");
@@ -500,14 +503,14 @@ public class TestTezCompiler {
                 // Needs to be removed in Tez plan as well.
                 "f1 = limit f 1;" +
                 "f2 = union d1, f1;" +
-                "store b1 into 'file:///tmp/output/b1';" +
-                "store b2 into 'file:///tmp/output/b2';" +
-                "store c1 into 'file:///tmp/output/c1';" +
-                "store c3 into 'file:///tmp/output/c1';" +
-                "store d1 into 'file:///tmp/output/d1';" +
-                "store e1 into 'file:///tmp/output/e1';" +
-                "store f1 into 'file:///tmp/output/f1';" +
-                "store f2 into 'file:///tmp/output/f2';";
+                "store b1 into 'file:///tmp/pigoutput/b1';" +
+                "store b2 into 'file:///tmp/pigoutput/b2';" +
+                "store c1 into 'file:///tmp/pigoutput/c1';" +
+                "store c3 into 'file:///tmp/pigoutput/c1';" +
+                "store d1 into 'file:///tmp/pigoutput/d1';" +
+                "store e1 into 'file:///tmp/pigoutput/e1';" +
+                "store f1 into 'file:///tmp/pigoutput/f1';" +
+                "store f2 into 'file:///tmp/pigoutput/f2';";
 
         setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-2.gld");
@@ -523,8 +526,8 @@ public class TestTezCompiler {
                 "b = foreach b generate group, COUNT(a.x);" +
                 "c = group a by (x,y);" +
                 "c = foreach c generate group, COUNT(a.y);" +
-                "store b into 'file:///tmp/output/b';" +
-                "store c into 'file:///tmp/output/c';";
+                "store b into 'file:///tmp/pigoutput/b';" +
+                "store c into 'file:///tmp/pigoutput/c';";
 
         setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-3.gld");
@@ -540,9 +543,9 @@ public class TestTezCompiler {
                 "c = join a by x, b by x;" +
                 "d = foreach c generate $0, $1, $3;" +
                 "e = foreach c generate $0, $1, $2, $3;" +
-                "store c into 'file:///tmp/output/c';" +
-                "store d into 'file:///tmp/output/d';" +
-                "store e into 'file:///tmp/output/e';";
+                "store c into 'file:///tmp/pigoutput/c';" +
+                "store d into 'file:///tmp/pigoutput/d';" +
+                "store e into 'file:///tmp/pigoutput/e';";
 
         setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-4.gld");
@@ -555,13 +558,13 @@ public class TestTezCompiler {
         String query =
                 "a = load 'file:///tmp/input' as (x:int, y:int);" +
                 "b = group a by x;" + //b: {group: int,a: {(x: int,y: int)}}
-                "store b into 'file:///tmp/output/b';" +
+                "store b into 'file:///tmp/pigoutput/b';" +
                 "c = foreach b generate a.x, a.y;" + //c: {{(x: int)},{(y: int)}}
-                "store c into 'file:///tmp/output/c';" +
+                "store c into 'file:///tmp/pigoutput/c';" +
                 "d = foreach b GENERATE FLATTEN(a);" + //d: {a::x: int,a::y: int}
-                "store d into 'file:///tmp/output/d';" +
+                "store d into 'file:///tmp/pigoutput/d';" +
                 "e = foreach d GENERATE a::x, a::y;" +
-                "store e into 'file:///tmp/output/e';";
+                "store e into 'file:///tmp/pigoutput/e';";
 
         setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-5.gld");
@@ -576,8 +579,8 @@ public class TestTezCompiler {
                 "b = group a by x;" +
                 "c = foreach b generate group, COUNT(a) as cnt;" +
                 "SPLIT a into d if (2 * c.cnt) < y, e OTHERWISE;" +
-                "store d into 'file:///tmp/output1';" +
-                "store e into 'file:///tmp/output2';";
+                "store d into 'file:///tmp/pigoutput1';" +
+                "store e into 'file:///tmp/pigoutput2';";
 
         setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-6.gld");
@@ -594,7 +597,7 @@ public class TestTezCompiler {
                 "c = join a by $0, b by $0 using 'replicated';" +
                 "d = join a by $1, b by $1 using 'replicated';" +
                 "e = union c,d;" +
-                "store e into 'file:///tmp/output';";
+                "store e into 'file:///tmp/pigoutput';";
 
         setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-7.gld");
@@ -613,7 +616,7 @@ public class TestTezCompiler {
                 "c = foreach c generate $0 as c1;" +
                 "d = group a by x;" +
                 "e = foreach d generate group, b.b1, c.c1;" +
-                "store e into 'file:///tmp/output';";
+                "store e into 'file:///tmp/pigoutput';";
 
         setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-8.gld");
@@ -628,7 +631,7 @@ public class TestTezCompiler {
                 "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
                 "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
                 "c = union onschema a, b;" +
-                "store c into 'file:///tmp/output';";
+                "store c into 'file:///tmp/pigoutput';";
 
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-1.gld");
@@ -643,7 +646,7 @@ public class TestTezCompiler {
                 "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
                 "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
                 "c = union onschema a, b;" +
-                "store c into 'file:///tmp/output';";
+                "store c into 'file:///tmp/pigoutput';";
 
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         String oldSupported = getProperty(PigConfiguration.PIG_TEZ_OPT_UNION_SUPPORTED_STOREFUNCS);
@@ -658,7 +661,7 @@ public class TestTezCompiler {
                 "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
                 "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
                 "c = union onschema a, b;" +
-                "store c into 'file:///tmp/output' using " + DummyStoreWithOutputFormat.class.getName() + "();";
+                "store c into 'file:///tmp/pigoutput' using " + DummyStoreWithOutputFormat.class.getName() + "();";
         // Plan should not have union optimization applied
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-1-DummyStore-OPTOFF.gld");
 
@@ -669,16 +672,16 @@ public class TestTezCompiler {
                 "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
                 "split a into b if x > 5, c if x == 7, d if x == 8, e otherwise;" +
                 "u1 = union onschema b, c;" +
-                "store u1 into 'file:///tmp/output/u1';" +
+                "store u1 into 'file:///tmp/pigoutput/u1';" +
                 //TODO: multiple levels of split not merged
                 "u2 = union onschema a, b, c;" +
-                "store u2 into 'file:///tmp/output/u2';" +
+                "store u2 into 'file:///tmp/pigoutput/u2';" +
                 "u3 = union onschema d, e;" +
-                "store u3 into 'file:///tmp/output/u3';" +
+                "store u3 into 'file:///tmp/pigoutput/u3';" +
                 "j1 = join d by x, a by x using 'replicated';" +
                 "j1 = foreach j1 generate d::x as x, d::y as y;" +
                 "u4 = union onschema j1, a;" +
-                "store u4 into 'file:///tmp/output/u4';";
+                "store u4 into 'file:///tmp/pigoutput/u4';";
 
         // Plan should have union optimization applied even for unsupported storefunc
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-1-SplitStore.gld");
@@ -696,7 +699,7 @@ public class TestTezCompiler {
                 "c = union onschema a, b;" +
                 "d = group c by x;" +
                 "e = foreach d generate group, SUM(c.y);" +
-                "store e into 'file:///tmp/output';";
+                "store e into 'file:///tmp/pigoutput';";
 
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-2.gld");
@@ -712,7 +715,7 @@ public class TestTezCompiler {
                 "c = union onschema a, b;" +
                 "d = load 'file:///tmp/input1' as (x:int, z:chararray);" +
                 "e = join c by x, d by x;" +
-                "store e into 'file:///tmp/output';";
+                "store e into 'file:///tmp/pigoutput';";
 
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-3.gld");
@@ -729,7 +732,7 @@ public class TestTezCompiler {
                 "c = union onschema a, b;" +
                 "d = load 'file:///tmp/input1' as (x:int, z:chararray);" +
                 "e = join c by x, d by x using 'replicated';" +
-                "store e into 'file:///tmp/output';";
+                "store e into 'file:///tmp/pigoutput';";
 
         //TODO: PIG-3856 Not optimized
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
@@ -743,7 +746,7 @@ public class TestTezCompiler {
                 "c = union onschema a, b;" +
                 "d = load 'file:///tmp/input1' as (x:int, z:chararray);" +
                 "e = join d by x, c by x using 'replicated';" +
-                "store e into 'file:///tmp/output';";
+                "store e into 'file:///tmp/pigoutput';";
 
         // Optimized
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
@@ -762,7 +765,7 @@ public class TestTezCompiler {
                 "c = union onschema a, b;" +
                 "d = load 'file:///tmp/input1' as (x:int, z:chararray);" +
                 "e = join c by x, d by x using 'skewed';" +
-                "store e into 'file:///tmp/output';";
+                "store e into 'file:///tmp/pigoutput';";
 
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-6.gld");
@@ -779,7 +782,7 @@ public class TestTezCompiler {
                 "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
                 "c = union onschema a, b;" +
                 "d = order c by x;" +
-                "store d into 'file:///tmp/output';";
+                "store d into 'file:///tmp/pigoutput';";
 
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-7.gld");
@@ -795,7 +798,7 @@ public class TestTezCompiler {
                 "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
                 "c = union onschema a, b;" +
                 "d = limit c 1;" +
-                "store d into 'file:///tmp/output';";
+                "store d into 'file:///tmp/pigoutput';";
 
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-8.gld");
@@ -811,9 +814,9 @@ public class TestTezCompiler {
                 "split a into a1 if x > 100, a2 otherwise;" +
                 "c = union onschema a1, a2, b;" +
                 "split c into d if x > 500, e otherwise;" +
-                "store a2 into 'file:///tmp/output/a2';" +
-                "store d into 'file:///tmp/output/d';" +
-                "store e into 'file:///tmp/output/e';";
+                "store a2 into 'file:///tmp/pigoutput/a2';" +
+                "store d into 'file:///tmp/pigoutput/d';" +
+                "store e into 'file:///tmp/pigoutput/e';";
 
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-9.gld");
@@ -831,8 +834,8 @@ public class TestTezCompiler {
                 "d = load 'file:///tmp/input1' as (x:int, y:chararray);" +
                 "e = union onschema c, d;" +
                 "f = group e by x;" +
-                "store e into 'file:///tmp/output1';" +
-                "store f into 'file:///tmp/output2';";
+                "store e into 'file:///tmp/pigoutput1';" +
+                "store f into 'file:///tmp/pigoutput2';";
 
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-10.gld");
@@ -850,7 +853,7 @@ public class TestTezCompiler {
                 "c = union onschema a, b;" +
                 "d = load 'file:///tmp/input1' as (x:int, y:chararray);" +
                 "e = union onschema c, d;" +
-                "store e into 'file:///tmp/output';";
+                "store e into 'file:///tmp/pigoutput';";
 
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-11.gld");
@@ -872,10 +875,10 @@ public class TestTezCompiler {
                 "c2 = foreach c generate y, x;" +
                 "c3 = union c1, c2;" +
                 "a1 = union onschema b3, c3;" +
-                "store a1 into 'file:///tmp/output1';" +
+                "store a1 into 'file:///tmp/pigoutput1';" +
                 "d = load 'file:///tmp/input1' as (x:int, z:chararray);" +
                 "e = join a1 by x, d by x using 'skewed';" +
-                "store e into 'file:///tmp/output2';";
+                "store e into 'file:///tmp/pigoutput2';";
 
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-12.gld");
@@ -892,7 +895,7 @@ public class TestTezCompiler {
                 "c = union onschema a, b;" +
                 "d = load 'file:///tmp/input1' as (x:int, z:chararray);" +
                 "e = join c by x, d by x using 'replicated';" +
-                "store e into 'file:///tmp/output';";
+                "store e into 'file:///tmp/pigoutput';";
 
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-13.gld");
@@ -906,7 +909,7 @@ public class TestTezCompiler {
                 "c = union onschema a, b;" +
                 "d = load 'file:///tmp/input1' as (x:int, z:chararray);" +
                 "e = join d by x, c by x using 'replicated';" +
-                "store e into 'file:///tmp/output';";
+                "store e into 'file:///tmp/pigoutput';";
 
         resetScope();
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
@@ -924,7 +927,7 @@ public class TestTezCompiler {
                 "c = union onschema a, b;" +
                 "d = load 'file:///tmp/input1' as (x:int, z:chararray);" +
                 "e = join c by x, d by x using 'skewed';" +
-                "store e into 'file:///tmp/output';";
+                "store e into 'file:///tmp/pigoutput';";
 
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-15.gld");
@@ -938,7 +941,7 @@ public class TestTezCompiler {
                 "c = union onschema a, b;" +
                 "d = load 'file:///tmp/input1' as (x:int, z:chararray);" +
                 "e = join d by x, c by x using 'skewed';" +
-                "store e into 'file:///tmp/output';";
+                "store e into 'file:///tmp/pigoutput';";
 
         resetScope();
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
@@ -956,7 +959,7 @@ public class TestTezCompiler {
                 "c = union onschema a, b;" +
                 "d = load 'file:///tmp/input1' as (x:int, z:chararray);" +
                 "e = filter c by x == d.x;" +
-                "store e into 'file:///tmp/output';";
+                "store e into 'file:///tmp/pigoutput';";
 
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-17.gld");
@@ -970,7 +973,7 @@ public class TestTezCompiler {
                 "c = union onschema a, b;" +
                 "d = load 'file:///tmp/input1' as (x:int, z:chararray);" +
                 "e = filter d by x == c.x;" +
-                "store e into 'file:///tmp/output';";
+                "store e into 'file:///tmp/pigoutput';";
 
         resetScope();
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
@@ -985,7 +988,7 @@ public class TestTezCompiler {
         String query =
                 "a = load 'file:///tmp/input1' as (x:int, y:int);" +
                 "b = rank a;" +
-                "store b into 'file:///tmp/output/d';";
+                "store b into 'file:///tmp/pigoutput/d';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Rank-1.gld");
     }
@@ -996,7 +999,7 @@ public class TestTezCompiler {
         String query =
                 "a = load 'file:///tmp/input1' as (x:int, y:int);" +
                 "b = rank a by x;" +
-                "store b into 'file:///tmp/output/d';";
+                "store b into 'file:///tmp/pigoutput/d';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Rank-2.gld");
     }

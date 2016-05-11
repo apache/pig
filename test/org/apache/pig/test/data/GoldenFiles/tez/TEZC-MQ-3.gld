@@ -71,7 +71,7 @@ b: Local Rearrange[tuple]{int}(false) - scope-62	->	 scope-42
     |
     |---b: Package(CombinerPackager)[tuple]{int} - scope-57
 # Plan on vertex
-b: Store(file:///tmp/output/b:org.apache.pig.builtin.PigStorage) - scope-22
+b: Store(file:///tmp/pigoutput/b:org.apache.pig.builtin.PigStorage) - scope-22
 |
 |---b: New For Each(false,false)[bag] - scope-21
     |   |
@@ -98,7 +98,7 @@ c: Local Rearrange[tuple]{tuple}(false) - scope-82	->	 scope-45
     |
     |---c: Package(CombinerPackager)[tuple]{tuple} - scope-76
 # Plan on vertex
-c: Store(file:///tmp/output/c:org.apache.pig.builtin.PigStorage) - scope-37
+c: Store(file:///tmp/pigoutput/c:org.apache.pig.builtin.PigStorage) - scope-37
 |
 |---c: New For Each(false,false)[bag] - scope-36
     |   |

@@ -15,11 +15,11 @@ Tez vertex scope-45
 |   |
 |   a2: Split - scope-68
 |   |   |
-|   |   a2: Store(file:///tmp/output/a2:org.apache.pig.builtin.PigStorage) - scope-17
+|   |   a2: Store(file:///tmp/pigoutput/a2:org.apache.pig.builtin.PigStorage) - scope-17
 |   |   |
 |   |   1-3: Split - scope-72
 |   |   |   |
-|   |   |   d: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-77	->	 scope-38
+|   |   |   d: Store(file:///tmp/pigoutput/d:org.apache.pig.builtin.PigStorage) - scope-77	->	 scope-38
 |   |   |   |
 |   |   |   |---d: Filter[bag] - scope-73
 |   |   |       |   |
@@ -29,7 +29,7 @@ Tez vertex scope-45
 |   |   |       |   |
 |   |   |       |   |---Constant(500) - scope-75
 |   |   |   |
-|   |   |   e: Store(file:///tmp/output/e:org.apache.pig.builtin.PigStorage) - scope-83	->	 scope-44
+|   |   |   e: Store(file:///tmp/pigoutput/e:org.apache.pig.builtin.PigStorage) - scope-83	->	 scope-44
 |   |   |   |
 |   |   |   |---e: Filter[bag] - scope-78
 |   |   |       |   |
@@ -53,7 +53,7 @@ Tez vertex scope-45
 |   |
 |   1-3: Split - scope-84
 |   |   |
-|   |   d: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-89	->	 scope-38
+|   |   d: Store(file:///tmp/pigoutput/d:org.apache.pig.builtin.PigStorage) - scope-89	->	 scope-38
 |   |   |
 |   |   |---d: Filter[bag] - scope-85
 |   |       |   |
@@ -63,7 +63,7 @@ Tez vertex scope-45
 |   |       |   |
 |   |       |   |---Constant(500) - scope-87
 |   |   |
-|   |   e: Store(file:///tmp/output/e:org.apache.pig.builtin.PigStorage) - scope-95	->	 scope-44
+|   |   e: Store(file:///tmp/pigoutput/e:org.apache.pig.builtin.PigStorage) - scope-95	->	 scope-44
 |   |   |
 |   |   |---e: Filter[bag] - scope-90
 |   |       |   |
@@ -98,7 +98,7 @@ Tez vertex scope-56
 # Plan on vertex
 1-3: Split - scope-96
 |   |
-|   d: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-101	->	 scope-38
+|   d: Store(file:///tmp/pigoutput/d:org.apache.pig.builtin.PigStorage) - scope-101	->	 scope-38
 |   |
 |   |---d: Filter[bag] - scope-97
 |       |   |
@@ -108,7 +108,7 @@ Tez vertex scope-56
 |       |   |
 |       |   |---Constant(500) - scope-99
 |   |
-|   e: Store(file:///tmp/output/e:org.apache.pig.builtin.PigStorage) - scope-107	->	 scope-44
+|   e: Store(file:///tmp/pigoutput/e:org.apache.pig.builtin.PigStorage) - scope-107	->	 scope-44
 |   |
 |   |---e: Filter[bag] - scope-102
 |       |   |

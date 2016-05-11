@@ -18,7 +18,7 @@ a: Split - scope-141
 |   |   |
 |   |   a1: Split - scope-169
 |   |   |   |
-|   |   |   a1: Store(file:///tmp/output1:org.apache.pig.builtin.PigStorage) - scope-170	->	 scope-62
+|   |   |   a1: Store(file:///tmp/pigoutput1:org.apache.pig.builtin.PigStorage) - scope-170	->	 scope-62
 |   |   |   |
 |   |   |   Local Rearrange[tuple]{tuple}(false) - scope-173	->	 scope-118
 |   |   |   |   |
@@ -46,7 +46,7 @@ a: Split - scope-141
 |   |   |
 |   |   a1: Split - scope-181
 |   |   |   |
-|   |   |   a1: Store(file:///tmp/output1:org.apache.pig.builtin.PigStorage) - scope-182	->	 scope-62
+|   |   |   a1: Store(file:///tmp/pigoutput1:org.apache.pig.builtin.PigStorage) - scope-182	->	 scope-62
 |   |   |   |
 |   |   |   Local Rearrange[tuple]{tuple}(false) - scope-185	->	 scope-118
 |   |   |   |   |
@@ -84,7 +84,7 @@ a: Split - scope-141
 |   |   |
 |   |   a1: Split - scope-196
 |   |   |   |
-|   |   |   a1: Store(file:///tmp/output1:org.apache.pig.builtin.PigStorage) - scope-197	->	 scope-62
+|   |   |   a1: Store(file:///tmp/pigoutput1:org.apache.pig.builtin.PigStorage) - scope-197	->	 scope-62
 |   |   |   |
 |   |   |   Local Rearrange[tuple]{tuple}(false) - scope-200	->	 scope-118
 |   |   |   |   |
@@ -118,7 +118,7 @@ a: Split - scope-141
 |   |   |
 |   |   a1: Split - scope-211
 |   |   |   |
-|   |   |   a1: Store(file:///tmp/output1:org.apache.pig.builtin.PigStorage) - scope-212	->	 scope-62
+|   |   |   a1: Store(file:///tmp/pigoutput1:org.apache.pig.builtin.PigStorage) - scope-212	->	 scope-62
 |   |   |   |
 |   |   |   Local Rearrange[tuple]{tuple}(false) - scope-215	->	 scope-118
 |   |   |   |   |
@@ -210,7 +210,7 @@ Partition Rearrange[tuple]{int}(false) - scope-130	->	 scope-132
     |---d: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-65
 Tez vertex scope-132
 # Plan on vertex
-e: Store(file:///tmp/output2:org.apache.pig.builtin.PigStorage) - scope-76
+e: Store(file:///tmp/pigoutput2:org.apache.pig.builtin.PigStorage) - scope-76
 |
 |---New For Each(true,true)[tuple] - scope-136
     |   |

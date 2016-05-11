@@ -41,6 +41,6 @@ Tez vertex scope-14
 
 Tez vertex scope-14
 # Plan on vertex
-b: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-11
+b: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-11
 |
 |---b: Load(/tmp/table_testNativeMRJobSimple_output:org.apache.pig.builtin.PigStorage) - scope-10

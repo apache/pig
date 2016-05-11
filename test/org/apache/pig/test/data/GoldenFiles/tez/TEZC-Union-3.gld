@@ -65,7 +65,7 @@ Tez vertex group scope-45	<-	 [scope-37, scope-38]	->	 scope-44
 # No plan on vertex group
 Tez vertex scope-44
 # Plan on vertex
-e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-36
+e: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-36
 |
 |---e: New For Each(true,true)[tuple] - scope-35
     |   |

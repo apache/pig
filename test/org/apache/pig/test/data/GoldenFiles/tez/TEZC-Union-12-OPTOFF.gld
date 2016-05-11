@@ -112,7 +112,7 @@ Tez vertex scope-101
 # Plan on vertex
 a1: Split - scope-138
 |   |
-|   a1: Store(file:///tmp/output1:org.apache.pig.builtin.PigStorage) - scope-62
+|   a1: Store(file:///tmp/pigoutput1:org.apache.pig.builtin.PigStorage) - scope-62
 |   |
 |   Local Rearrange[tuple]{tuple}(false) - scope-113	->	 scope-118
 |   |   |
@@ -174,7 +174,7 @@ Partition Rearrange[tuple]{int}(false) - scope-130	->	 scope-132
     |---d: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-65
 Tez vertex scope-132
 # Plan on vertex
-e: Store(file:///tmp/output2:org.apache.pig.builtin.PigStorage) - scope-76
+e: Store(file:///tmp/pigoutput2:org.apache.pig.builtin.PigStorage) - scope-76
 |
 |---New For Each(true,true)[tuple] - scope-136
     |   |
