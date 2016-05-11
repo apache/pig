@@ -44,8 +44,6 @@ public class DownloadResolver {
     private static DownloadResolver downloadResolver = new DownloadResolver();
 
     private DownloadResolver() {
-        System.setProperty("groovy.grape.report.downloads", "true");
-
         if (System.getProperty("grape.config") != null) {
             LOG.info("Using ivysettings file from " + System.getProperty("grape.config"));
         } else {
