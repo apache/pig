@@ -119,6 +119,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-3772: Syntax error when casting an inner schema of a bag and line break involved (ssvinarchukhorton via knoguchi)
+
 PIG-4892: removing /tmp/output before UT (daijy)
 
 PIG-4882: Remove hardcoded groovy.grape.report.downloads=true from DownloadResolver (erwaman via daijy)
