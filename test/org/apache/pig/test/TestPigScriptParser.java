@@ -30,6 +30,9 @@ import java.util.Properties;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.builtin.mock.Storage;
+import org.apache.pig.builtin.mock.Storage.Data;
+import static org.apache.pig.builtin.mock.Storage.tuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -156,6 +159,79 @@ public class TestPigScriptParser {
         }
     }
 
+    @Test
+    public void testBackSlashOnly() throws Exception {
+        PigServer pig = new PigServer(Util.getLocalTestMode());
+        Data data = Storage.resetData(pig);
+        data.set("input", tuple("abc"), tuple("\\bcd"), tuple("'cde"), tuple("def\\\\"));
+
+        String query =
+            "A = load 'input' USING mock.Storage() as (a0:chararray);\n"
+            // java String is escaping "\" so the following line is equivalent of
+            // B = FILTER A by STARTSWITH(a0,'\\'); in the pig script
+            + "B = FILTER A by STARTSWITH(a0,'\\\\');\n"
+            + "store B into 'out' using mock.Storage;" ;
+
+        Util.registerMultiLineQuery(pig, query);
+        List<Tuple> list = data.get("out");
+
+        assertEquals("There should be only one match", 1, list.size());
+        Tuple t = list.get(0);
+        assertEquals("result should have only one field", 1, t.size() );
+        assertEquals("\\bcd",(String) t.get(0));
+    }
+
+
+    @Test
+    public void testBackSlashSingleQuote() throws Exception {
+        PigServer pig = new PigServer(Util.getLocalTestMode());
+        Data data = Storage.resetData(pig);
+        data.set("input", tuple("abc"), tuple("\\bcd"), tuple("'cde"), tuple("def\\\\"));
+
+        String query =
+            "A = load 'input' USING mock.Storage() as (a0:chararray);\n"
+            // java String is escaping "\" so the following line is equivalent of
+            // B = FILTER A by STARTSWITH(a0,'\''); in the pig script
+            + "B = FILTER A by STARTSWITH(a0,'\\'');\n"
+            + "store B into 'out' using mock.Storage;" ;
+
+        Util.registerMultiLineQuery(pig, query);
+        List<Tuple> list = data.get("out");
+
+        assertEquals("There should be only one match", 1, list.size());
+        Tuple t = list.get(0);
+        assertEquals("result should have only one field", 1, t.size() );
+        assertEquals("'cde",(String) t.get(0));
+    }
+
+    @Test
+    public void testBackSlashReplace() throws Exception {
+        PigServer pig = new PigServer(Util.getLocalTestMode());
+        Data data = Storage.resetData(pig);
+        //After java escaping, these tuples have
+        //'abc', '\bcd' and 'def\\' respectively
+        data.set("input", tuple("abc"), tuple("\\bcd"), tuple("def\\\\"));
+
+        String query =
+            "A = load 'input' USING mock.Storage() as (a0:chararray);\n"
+            // java String is escaping "\" so the following line is equivalent of
+            //"B = FOREACH A GENERATE REPLACE(a0,'\\\\','+');\n"
+            + "B = FOREACH A GENERATE REPLACE(a0,'\\\\\\\\','+');\n"
+            + "store B into 'out' using mock.Storage;" ;
+
+            // REPLACE(a0,'\\\\','+')
+            // --> Pig parser unescape and pass "\\" to REPLACE UDF.
+            // --> REPLACE UDF calls, Pattern.compile("\\"); which
+            // matches "\"
+
+        Util.registerMultiLineQuery(pig, query);
+        List<Tuple> list = data.get("out");
+
+        List<Tuple> expectedRes =
+                Util.getTuplesFromConstantTupleStrings(
+                        new String[] {"('abc')","('+bcd')", "('def++')"});
+        Util.checkQueryOutputsAfterSort(list, expectedRes);
+    }
     private void checkParsedConstContent(PigServer pigServer,
                                          PigContext pigContext,
                                          String query,

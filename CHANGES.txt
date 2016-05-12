@@ -123,6 +123,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-4889: Replacing backslash fails as lexical error (knoguchi)
+
 PIG-4880: Overlapping of parameter substitution names inside&outside a macro fails with NPE (knoguchi)
 
 PIG-4881: TestBuiltin.testUniqueID failing on hadoop-1.x (knoguchi)
