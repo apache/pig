@@ -23,6 +23,7 @@ options {
   STATIC = false;
   // Case is ignored in keywords
   IGNORE_CASE = true;
+  // DEBUG_PARSER = true;
   JAVA_UNICODE_ESCAPE = true;
 }
 
@@ -292,7 +293,8 @@ TOKEN_MGR_DECLS : {
 
 <IN_STRING> MORE :
 {
-	<"\\'">
+	<"\\\\">
+|	<"\\'">
 |	<"'"> { SwitchTo(prevState);}
 |	<("\n" | "\r" | "\r\n")> {secondary_prompt();}
 |	<(~[])>
