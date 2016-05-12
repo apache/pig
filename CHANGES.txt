@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4874: Remove schema tuple reference overhead for replicate join hashmap (rohini)
+
 PIG-4879: Pull latest version of joda-time (rohini)
 
 PIG-4526: Make setting up the build environment easier (nielsbasjes via rohini)
