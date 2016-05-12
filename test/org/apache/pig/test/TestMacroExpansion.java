@@ -2280,6 +2280,135 @@ public class TestMacroExpansion {
         verify(script, expected);
     }
 
+    // When  declare-in-macro, macro param and command-line param contain the
+    // same name, last declare wins
+    @Test
+    public void testParamOverLap1() throws Exception {
+        String macro =
+            "DEFINE mygroupby(REL, key, number) RETURNS G {\n" +
+            "    %declare number 333;\n"  +
+            "    $G = GROUP $REL by $key parallel $number;\n" +
+            "};";
+        createFile("my_macro.pig", macro);
+
+        String script =
+            "%declare number 111;\n" +
+            "IMPORT 'my_macro.pig';\n" +
+            "data = LOAD '1234.txt' USING PigStorage() AS (i: int);\n" +
+            "result = mygroupby(data, i, 222);\n" +
+            "STORE result INTO 'test.out' USING PigStorage();";
+
+        String expected =
+            "data = LOAD '1234.txt' USING PigStorage() AS i:int;\n" +
+            "result = GROUP data by (i) parallel 333;\n" +
+            "STORE result INTO 'test.out' USING PigStorage();\n";
+
+        verify(script, expected);
+    }
+
+    // When  default-in-macro, macro param and command-line param contain the
+    // same name, then default should be ignored and macro param to be taken
+    @Test
+    public void testParamOverLap2() throws Exception {
+        String macro =
+            "DEFINE mygroupby(REL, key, number) RETURNS G {\n" +
+            "    %default number 333;\n"  +
+            "    $G = GROUP $REL by $key parallel $number;\n" +
+            "};";
+        createFile("my_macro.pig", macro);
+
+        String script =
+            "%declare number 111;\n" +
+            "IMPORT 'my_macro.pig';\n" +
+            "data = LOAD '1234.txt' USING PigStorage() AS (i: int);\n" +
+            "result = mygroupby(data, i, 222);\n" +
+            "STORE result INTO 'test.out' USING PigStorage();";
+
+        String expected =
+            "data = LOAD '1234.txt' USING PigStorage() AS i:int;\n" +
+            "result = GROUP data by (i) parallel 222;\n" +
+            "STORE result INTO 'test.out' USING PigStorage();\n";
+
+        verify(script, expected);
+    }
+
+    // Overlapping of  macro param and command-line param used to be disallowed.
+    // Now, simply taking the macro param when this happens
+    @Test
+    public void testParamOverLap3() throws Exception {
+        String macro =
+            "DEFINE mygroupby(REL, key, number) RETURNS G {\n" +
+            "    $G = GROUP $REL by $key parallel $number;\n" +
+            "};";
+        createFile("my_macro.pig", macro);
+
+        String script =
+            "%default number 111;\n" +
+            "IMPORT 'my_macro.pig';\n" +
+            "data = LOAD '1234.txt' USING PigStorage() AS (i: int);\n" +
+            "result = mygroupby(data, i, 222);\n" +
+            "STORE result INTO 'test.out' USING PigStorage();";
+
+        String expected =
+            "data = LOAD '1234.txt' USING PigStorage() AS i:int;\n" +
+            "result = GROUP data by (i) parallel 222;\n" +
+            "STORE result INTO 'test.out' USING PigStorage();\n";
+
+        verify(script, expected);
+    }
+
+    // Testing inline declare and commandline param overlap.
+    // testParamOverLap1 should cover this case as well but creating a specific
+    // case since this pair used to fail with NPE
+    @Test
+    public void testParamOverLap4() throws Exception {
+        String macro =
+            "DEFINE mygroupby(REL, key) RETURNS G {\n" +
+            "    %declare number 333;\n"  +
+            "    $G = GROUP $REL by $key parallel $number;\n" +
+            "};";
+        createFile("my_macro.pig", macro);
+
+        String script =
+            "%default number 111;\n" +
+            "IMPORT 'my_macro.pig';\n" +
+            "data = LOAD '1234.txt' USING PigStorage() AS (i: int);\n" +
+            "result = mygroupby(data, i);\n" +
+            "STORE result INTO 'test.out' USING PigStorage();";
+
+        String expected =
+            "data = LOAD '1234.txt' USING PigStorage() AS i:int;\n" +
+            "result = GROUP data by (i) parallel 333;\n" +
+            "STORE result INTO 'test.out' USING PigStorage();\n";
+
+        verify(script, expected);
+    }
+
+    // default-in-macro should yield to command-line param
+    @Test
+    public void testParamOverLap5() throws Exception {
+        String macro =
+            "DEFINE mygroupby(REL, key) RETURNS G {\n" +
+            "    %default number 333;\n"  +
+            "    $G = GROUP $REL by $key parallel $number;\n" +
+            "};";
+        createFile("my_macro.pig", macro);
+
+        String script =
+            "%declare number 111;\n" +
+            "IMPORT 'my_macro.pig';\n" +
+            "data = LOAD '1234.txt' USING PigStorage() AS (i: int);\n" +
+            "result = mygroupby(data, i);\n" +
+            "STORE result INTO 'test.out' USING PigStorage();";
+
+        String expected =
+            "data = LOAD '1234.txt' USING PigStorage() AS i:int;\n" +
+            "result = GROUP data by (i) parallel 111;\n" +
+            "STORE result INTO 'test.out' USING PigStorage();\n";
+
+        verify(script, expected);
+    }
+
     //-------------------------------------------------------------------------
     
     private void testMacro(String content) throws Exception {
