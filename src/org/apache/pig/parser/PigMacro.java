@@ -219,6 +219,7 @@ class PigMacro {
         try {
             result = parser.query();
         } catch (RecognitionException e) {
+            e.line += startLine -1;
             String msg = (fileName == null) ? parser.getErrorHeader(e)
                     : QueryParserUtils.generateErrorHeader(e, fileName);
             msg += " " + parser.getErrorMessage(e, parser.getTokenNames());
@@ -236,7 +237,7 @@ class PigMacro {
         if (!macroDefNodes.isEmpty()) {
             String fname = ((PigParserNode)ast).getFileName();
             String msg = getErrorMessage(fname, ast.getLine(),
-                    "Invalide macro definition", "macro '" + name
+                    "Invalid macro definition", "macro '" + name
                             + "' contains macro definition.\nmacro content: "
                             + body);
             throw new ParserException(msg);
@@ -273,6 +274,7 @@ class PigMacro {
         try {
             result2 = walker.query();
         } catch (RecognitionException e) {
+            e.line += startLine - 1;
             String msg = walker.getErrorHeader(e) + " "
                     + walker.getErrorMessage(e, walker.getTokenNames());
             String msg2 = getErrorMessage(file, line, "Failed to mask macro '"

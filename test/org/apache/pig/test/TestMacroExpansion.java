@@ -1187,6 +1187,33 @@ public class TestMacroExpansion {
         
         validateFailure(sb.toString(), expectedErr, "at");
     }
+
+    @Test
+    public void lineNumberTest3() throws Throwable {
+        StringBuilder sb = new StringBuilder();
+        sb.append("/*\n" +
+        " * extra lines to offset the line number for the macro\n" +
+        " *\n" +
+        " *\n" +
+        " */\n" +
+        "\n" +
+        "\n" +
+        "define mymacro() returns void {\n" +
+        "A = load 'x' as ( u:int, v:long, w:bytearray);\n" +
+        "B = limit A 100;\n" +
+        "C = filter_typo B by 2 > 1;\n" +
+        "D = load 'y' as (d1, d2);\n" +
+        "E = join C by ( $0, $1 ), D by ( d1, d2 ) using 'replicated' parallel 16;\n" +
+        "F = store E into 'output';\n" +
+        "};\n"  +
+        "mymacro();\n"
+        );
+
+        String expectedErr =
+            "/myscript.pig, line 11, column 0>  Syntax error, unexpected symbol at or near 'C'";
+
+        validateFailure(sb.toString(), expectedErr, "/myscript.pig, line ");
+    }
     
     //see Pig-2184
     @Test
