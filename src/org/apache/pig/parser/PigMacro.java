@@ -168,14 +168,9 @@ class PigMacro {
 
             Map<String, String> paramVal = pc.getParamVal();
             for (Map.Entry<String, String> e : pigContext.getParamVal().entrySet()) {
-                if (paramVal.containsKey(e.getKey())) {
-                    throw new ParserException(
-                        "Macro contains argument or return value " + e.getKey() + " which conflicts " +
-                        "with a Pig parameter of the same name."
-                    );
-                } else {
-                    paramVal.put(e.getKey(), e.getValue());
-                }
+                // overwrite=false since macro parameters should have precedence
+                // over commandline parameters (if keys overlap)
+                pc.processOrdLine(e.getKey(), e.getValue(), false);
             }
             
             ParameterSubstitutionPreprocessor psp = new ParameterSubstitutionPreprocessor(pc);
