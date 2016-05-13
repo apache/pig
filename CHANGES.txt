@@ -123,6 +123,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-4883: MapKeyType of splitter was set wrongly in specific multiquery case (kellyzly via rohini)
+
 PIG-4887: Parameter substitution skipped with glob on register (knoguchi)
 
 PIG-4889: Replacing backslash fails as lexical error (knoguchi)

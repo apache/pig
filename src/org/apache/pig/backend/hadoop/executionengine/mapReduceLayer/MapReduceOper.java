@@ -65,7 +65,10 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
     // this is needed when the key is null to create
     // an appropriate NullableXXXWritable object
     public byte mapKeyType;
-    
+
+    //record the map key types of all splittees
+    public byte[] mapKeyTypeOfSplittees;
+
     //Indicates that the map plan creation
     //is complete
     boolean mapDone = false;
