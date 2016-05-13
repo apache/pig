@@ -259,8 +259,11 @@ TOKEN :
     <PIGDEFAULT: "%default" > 
 }
 
+
 TOKEN : 
 {
+    <REGISTER: "register"> : IN_REGISTER
+    |
     <IDENTIFIER: (<SPECIALCHAR>)*<LETTER>(<DIGIT> | <LETTER> | <SPECIALCHAR>)*>
     |
     <LITERAL: ("\"" ((~["\""])*("\\\"")?)* "\"")|("'" ((~["'"])*("\\\'")?)* "'") >
@@ -276,7 +279,14 @@ TOKEN :
     <OTHER: (~["\"" , "'" , "`" , "a"-"z" , "A"-"Z" , "_" , "#" , "=" , " " , "\n" , "\t" , "\r", "%", "/", "-", "$"])+ >
     |
     <NOT_OTHER_CHAR: ["\"" , "'" , "`" , "a"-"z" , "A"-"Z" , "_" , "#" , "=" , " " , "\n" , "\t" , "\r", "%", "/", "-", "$"] >
- 
+}
+
+<IN_REGISTER> MORE : { " " |  "\t" | "\r" | "\n"}
+
+<IN_REGISTER> TOKEN: {
+  <PATH: (~["(", ")", ";", "\r", " ", "\t", "\n"])+> {
+        matchedToken.image = image.toString();
+    }: DEFAULT
 }
 
 void Parse() throws IOException : {}
@@ -288,6 +298,7 @@ void input() throws IOException  :
 {
     String s;
     Token strTok = null;
+    Token strTok2 = null;
 }
 {
     strTok = <PIG>
@@ -307,6 +318,20 @@ void input() throws IOException  :
         param_value(false) // overwrite=false
         { pc.validate(strTok.toString()); }
     )
+    |
+    strTok = <REGISTER>
+    strTok2 = <PATH> {}
+    {
+        // Adding a special case for register since it handles "/*" globbing
+        // and this conflicts with general multi-line comment "/*   */".
+        // See the comment above on OTHERS on how tokenizer matches the longest
+        // match.  Here, string next to "register" is treated as PATH TOKEN
+        // and therefore not consider "/*" as part of the comment
+        // (and avoid the longest match problem).
+        out.append(strTok.image);
+        String sub_line = pc.substitute(strTok2.image);
+        out.append(sub_line);
+    }
     |
     s = paramString(){}
     {
