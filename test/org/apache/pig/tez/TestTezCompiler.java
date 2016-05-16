@@ -23,12 +23,17 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.OutputFormat;
+import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
+import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezLauncher;
@@ -37,6 +42,7 @@ import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPlanContainer;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPlanContainerPrinter;
 import org.apache.pig.builtin.OrcStorage;
 import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.test.TestMultiQueryBasic.DummyStoreWithOutputFormat;
@@ -652,8 +658,9 @@ public class TestTezCompiler {
         String oldSupported = getProperty(PigConfiguration.PIG_TEZ_OPT_UNION_SUPPORTED_STOREFUNCS);
         String oldUnSupported = getProperty(PigConfiguration.PIG_TEZ_OPT_UNION_UNSUPPORTED_STOREFUNCS);
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION_UNSUPPORTED_STOREFUNCS, PigStorage.class.getName());
-        // Plan should not have union optimization applied
+        // Plan should not have union optimization applied as PigStorage is unsupported
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-1-OPTOFF.gld");
+
         resetScope();
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION_UNSUPPORTED_STOREFUNCS, null);
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION_SUPPORTED_STOREFUNCS, OrcStorage.class.getName());
@@ -662,8 +669,18 @@ public class TestTezCompiler {
                 "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
                 "c = union onschema a, b;" +
                 "store c into 'file:///tmp/pigoutput' using " + DummyStoreWithOutputFormat.class.getName() + "();";
-        // Plan should not have union optimization applied
+        // Plan should not have union optimization applied as only ORC is supported
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-1-DummyStore-OPTOFF.gld");
+
+        resetScope();
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION_SUPPORTED_STOREFUNCS, null);
+        query =
+                "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
+                "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
+                "c = union onschema a, b;" +
+                "store c into 'file:///tmp/pigoutput' using " + TestDummyStoreFunc.class.getName() + "();";
+        // Plan should not have union optimization applied as supportsParallelWriteToStoreLocation returns false
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-1-DummyStore2-OPTOFF.gld");
 
         resetScope();
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION_UNSUPPORTED_STOREFUNCS, PigStorage.class.getName());
@@ -1054,6 +1071,33 @@ public class TestTezCompiler {
         String compiledPlanClean = Util.standardizeNewline(compiledPlan).trim();
         assertEquals(TestHelper.sortUDFs(Util.removeSignature(goldenPlanClean)),
                 TestHelper.sortUDFs(Util.removeSignature(compiledPlanClean)));
+    }
+
+    public static class TestDummyStoreFunc extends StoreFunc {
+
+        @Override
+        public OutputFormat getOutputFormat() throws IOException {
+            return null;
+        }
+
+        @Override
+        public void setStoreLocation(String location, Job job)
+                throws IOException {
+        }
+
+        @Override
+        public void prepareToWrite(RecordWriter writer) throws IOException {
+        }
+
+        @Override
+        public void putNext(Tuple t) throws IOException {
+        }
+
+        @Override
+        public Boolean supportsParallelWriteToStoreLocation() {
+            return false;
+        }
+
     }
 }
 

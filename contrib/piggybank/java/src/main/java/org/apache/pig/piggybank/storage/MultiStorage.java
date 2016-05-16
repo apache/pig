@@ -174,7 +174,12 @@ public class MultiStorage extends StoreFunc {
       FileOutputFormat.setOutputCompressorClass(job, GzipCodec.class);
     }
   }
- 
+
+  @Override
+  public Boolean supportsParallelWriteToStoreLocation() {
+    return false;
+  }
+
   //--------------------------------------------------------------------------
   // Implementation of OutputFormat
   
