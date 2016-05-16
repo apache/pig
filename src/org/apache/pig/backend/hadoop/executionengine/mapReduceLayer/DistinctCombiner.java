@@ -22,43 +22,48 @@ import java.util.Iterator;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Reducer;
-
-import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.io.NullableTuple;
+import org.apache.pig.impl.io.PigNullableWritable;
 
 /**
  * A special implementation of combiner used only for distinct.  This combiner
  * does not even parse out the records.  It just throws away duplicate values
- * in the key in order ot minimize the data being sent to the reduce.
+ * in the key in order to minimize the data being sent to the reduce.
  */
 public class DistinctCombiner {
 
-    public static class Combine 
+    public static class Combine
         extends Reducer<PigNullableWritable, NullableTuple, PigNullableWritable, Writable> {
-        
+
         private final Log log = LogFactory.getLog(getClass());
 
-        ProgressableReporter pigReporter;
-        
-        /**
-         * Configures the reporter 
-         */
+        private static boolean firstTime = true;
+
+        //@StaticDataCleanup
+        public static void staticDataCleanup() {
+            firstTime = true;
+        }
+
         @Override
         protected void setup(Context context) throws IOException, InterruptedException {
             super.setup(context);
-            pigReporter = new ProgressableReporter();
+            Configuration jConf = context.getConfiguration();
+            // Avoid log spamming
+            if (firstTime) {
+                log.info("Aliases being processed per job phase (AliasName[line,offset]): " + jConf.get("pig.alias.location"));
+                firstTime = false;
+            }
         }
-        
+
         /**
          * The reduce function which removes values.
          */
         @Override
-        protected void reduce(PigNullableWritable key, Iterable<NullableTuple> tupIter, Context context) 
+        protected void reduce(PigNullableWritable key, Iterable<NullableTuple> tupIter, Context context)
                 throws IOException, InterruptedException {
-            
-            pigReporter.setRep(context);
 
             // Take the first value and the key and collect
             // just that.
@@ -66,6 +71,7 @@ public class DistinctCombiner {
             NullableTuple val = iter.next();
             context.write(key, val);
         }
+
     }
-    
+
 }
