@@ -41,6 +41,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigHadoopLogger;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigInputFormat;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.ProgressableReporter;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.UDFFinishVisitor;
@@ -158,6 +159,12 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
         conf.setInt(JobContext.TASK_PARTITION,
               taskAttemptId.getTaskID().getId());
         conf.set(JobContext.ID, taskAttemptId.getJobID().toString());
+        if (conf.get(PigInputFormat.PIG_INPUT_LIMITS) != null) {
+            // Has Load and is a root vertex
+            conf.setInt(JobContext.NUM_MAPS, getContext().getVertexParallelism());
+        } else {
+            conf.setInt(JobContext.NUM_REDUCES, getContext().getVertexParallelism());
+        }
 
         conf.set(PigConstants.TASK_INDEX, Integer.toString(getContext().getTaskIndex()));
         UDFContext.getUDFContext().addJobConf(conf);
