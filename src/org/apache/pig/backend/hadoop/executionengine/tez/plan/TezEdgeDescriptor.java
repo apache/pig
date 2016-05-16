@@ -33,6 +33,7 @@ import org.apache.tez.runtime.library.output.OrderedPartitionedKVOutput;
 public class TezEdgeDescriptor implements Serializable {
     // Combiner runs on both input and output of Tez edge.
     transient public PhysicalPlan combinePlan;
+    private boolean needsDistinctCombiner;
 
     public String inputClassName;
     public String outputClassName;
@@ -63,6 +64,14 @@ public class TezEdgeDescriptor implements Serializable {
         schedulingType = SchedulingType.SEQUENTIAL;
         dataSourceType = DataSourceType.PERSISTED;
         dataMovementType = DataMovementType.SCATTER_GATHER;
+    }
+
+    public boolean needsDistinctCombiner() {
+        return needsDistinctCombiner;
+    }
+
+    public void setNeedsDistinctCombiner(boolean nic) {
+        needsDistinctCombiner = nic;
     }
 
     public boolean isUseSecondaryKey() {

@@ -56,6 +56,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.DistinctCombiner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.InputSizeReducerEstimator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigSecondaryKeyGroupComparator;
@@ -440,7 +441,14 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         Configuration conf = new Configuration(pigContextConf);
 
-        if (!combinePlan.isEmpty()) {
+        if (edge.needsDistinctCombiner()) {
+            conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_COMBINER_CLASS,
+                    MRCombiner.class.getName());
+            conf.set(MRJobConfig.COMBINE_CLASS_ATTR,
+                    DistinctCombiner.Combine.class.getName());
+            log.info("Setting distinct combiner class between "
+                    + from.getOperatorKey() + " and " + to.getOperatorKey());
+        } else if (!combinePlan.isEmpty()) {
             udfContextSeparator.serializeUDFContextForEdge(conf, from, to, UDFType.USERFUNC);
             addCombiner(combinePlan, to, conf, isMergedInput);
         }

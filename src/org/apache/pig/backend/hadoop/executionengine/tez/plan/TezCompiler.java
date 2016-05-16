@@ -655,15 +655,8 @@ public class TezCompiler extends PhyPlanVisitor {
             blocking();
             TezCompilerUtil.setCustomPartitioner(op.getCustomPartitioner(), curTezOp);
 
-            // Add the DISTINCT plan as the combine plan. In MR Pig, the combiner is implemented
-            // with a global variable and a specific DistinctCombiner class. This seems better.
-            PhysicalPlan combinePlan = curTezOp.inEdges.get(lastOp.getOperatorKey()).combinePlan;
-            addDistinctPlan(combinePlan, 1);
-
-            POLocalRearrangeTez clr = localRearrangeFactory.create();
-            clr.setOutputKey(curTezOp.getOperatorKey().toString());
-            clr.setDistinct(true);
-            combinePlan.addAsLeaf(clr);
+            TezEdgeDescriptor edge = curTezOp.inEdges.get(lastOp.getOperatorKey());
+            edge.setNeedsDistinctCombiner(true);
 
             curTezOp.markDistinct();
             addDistinctPlan(curTezOp.plan, op.getRequestedParallelism());
