@@ -91,6 +91,7 @@ public class DBStorage extends StoreFunc {
   /**
    * Write the tuple to Database directly here.
    */
+  @Override
   public void putNext(Tuple tuple) throws IOException {
     int sqlPos = 1;
     try {
@@ -371,6 +372,11 @@ public class DBStorage extends StoreFunc {
       Properties p =
           udfc.getUDFProperties(this.getClass(), new String[]{udfcSignature});
       p.setProperty(SCHEMA_SIGNATURE, s.toString());
+  }
+
+  @Override
+  public Boolean supportsParallelWriteToStoreLocation() {
+    return false;
   }
 
 }

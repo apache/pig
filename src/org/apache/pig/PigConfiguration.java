@@ -18,6 +18,7 @@
 
 package org.apache.pig;
 
+
 /**
  * Container for static configuration strings, defaults, etc. This is intended just for keys that can
  * be set by users, not for keys that are generally used within pig.
@@ -62,9 +63,15 @@ public class PigConfiguration {
     public static final String PIG_TEZ_OPT_UNION = "pig.tez.opt.union";
     /**
      * These keys are used to enable or disable tez union optimization for
-     * specific StoreFuncs so that optimization is only applied to StoreFuncs
-     * that do not hard part file names and honor mapreduce.output.basename and
-     * is turned of for those that do not. Refer PIG-4649
+     * specific StoreFuncs. Optimization should be turned off for those
+     * StoreFuncs that hard code part file names and do not prefix file names
+     * with mapreduce.output.basename configuration.
+     *
+     * If the StoreFuncs implement
+     * {@link StoreFunc#supportsParallelWriteToStoreLocation()} and return true
+     * or false then that is is used to turn on or off union optimization
+     * respectively. These settings can be used for StoreFuncs that have not
+     * implemented the API yet.
      */
     public static final String PIG_TEZ_OPT_UNION_SUPPORTED_STOREFUNCS = "pig.tez.opt.union.supported.storefuncs";
     public static final String PIG_TEZ_OPT_UNION_UNSUPPORTED_STOREFUNCS = "pig.tez.opt.union.unsupported.storefuncs";
