@@ -66,7 +66,7 @@ public class MergeCogroupConverter implements RDDConverter<Tuple, Tuple, POMerge
 
                         @Override
                         protected void endOfInput() {
-                            poMergeCogroup.getParentPlan().endOfAllInput = true;
+                            poMergeCogroup.setEndOfInput(true);
                         }
                     };
                 }

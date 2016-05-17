@@ -70,6 +70,15 @@ public class POCollectedGroup extends PhysicalOperator {
 
     private transient boolean useDefaultBag;
 
+    //For Spark
+    private boolean endOfInput = false;
+    public boolean isEndOfInput() {
+        return endOfInput;
+    }
+    public void setEndOfInput (boolean isEndOfInput) {
+        endOfInput = isEndOfInput;
+    }
+
     public POCollectedGroup(OperatorKey k) {
         this(k, -1, null);
     }
@@ -132,7 +141,7 @@ public class POCollectedGroup extends PhysicalOperator {
             if (inp.returnStatus == POStatus.STATUS_EOP) {
                 // Since the output is buffered, we need to flush the last
                 // set of records when the close method is called by mapper.
-                if (this.parentPlan.endOfAllInput) {
+                if (this.parentPlan.endOfAllInput || isEndOfInput()) {
                     return getStreamCloseResult();
                 } else {
                     break;
