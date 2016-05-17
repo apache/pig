@@ -127,6 +127,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-4873: InputSplit.getLocations return null and result a NPE in Pig (daijy)
+
 PIG-4895: User UDFs relying on mapreduce.job.maps broken in Tez (rohini)
 
 PIG-4883: MapKeyType of splitter was set wrongly in specific multiquery case (kellyzly via rohini)
