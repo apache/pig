@@ -684,18 +684,50 @@ public class SparkCompiler extends PhyPlanVisitor {
         }
     }
 
-	@Override
-	public void visitFRJoin(POFRJoin op) throws VisitorException {
-		try {
-			addToPlan(op);
-			phyToSparkOpMap.put(op, curSparkOp);
-		} catch (Exception e) {
-			int errCode = 2034;
-			String msg = "Error compiling operator "
-					+ op.getClass().getSimpleName();
-			throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
-		}
-	}
+    @Override
+    public void visitFRJoin(POFRJoin op) throws VisitorException {
+        try {
+            FileSpec[] replFiles = new FileSpec[op.getInputs().size()];
+            for (int i = 0; i < replFiles.length; i++) {
+                if (i == op.getFragment()) continue;
+                replFiles[i] = getTempFileSpec();
+            }
+            op.setReplFiles(replFiles);
+            curSparkOp = phyToSparkOpMap.get(op.getInputs().get(op.getFragment()));
+
+            //We create a sparkOperator to save the result of replicated file to the hdfs
+            //temporary file. We load the temporary file in POFRJoin#setUpHashMap
+            //More detail see PIG-4771
+            for (int i = 0; i < compiledInputs.length; i++) {
+                SparkOperator sparkOp = compiledInputs[i];
+                if (curSparkOp.equals(sparkOp)) {
+                    continue;
+                }
+                POStore store = getStore();
+                store.setSFile(replFiles[i]);
+                sparkOp.physicalPlan.addAsLeaf(store);
+                sparkPlan.connect(sparkOp, curSparkOp);
+            }
+
+            curSparkOp.physicalPlan.addAsLeaf(op);
+
+            List<List<PhysicalPlan>> joinPlans = op.getJoinPlans();
+            if (joinPlans != null) {
+                for (List<PhysicalPlan> joinPlan : joinPlans) {
+                    if (joinPlan != null) {
+                        for (PhysicalPlan plan : joinPlan) {
+                            processUDFs(plan);
+                        }
+                    }
+                }
+            }
+            phyToSparkOpMap.put(op, curSparkOp);
+        } catch (Exception e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator " + op.getClass().getSimpleName();
+            throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
+        }
+    }
 
 	@Override
 	public void visitMergeJoin(POMergeJoin joinOp) throws VisitorException {

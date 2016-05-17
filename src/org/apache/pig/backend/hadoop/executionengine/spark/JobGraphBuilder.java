@@ -30,12 +30,17 @@ import java.util.Set;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PhyPlanSetter;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.UDFFinishVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
@@ -45,6 +50,7 @@ import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOpPlanVisit
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperator;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
@@ -68,8 +74,9 @@ public class JobGraphBuilder extends SparkOpPlanVisitor {
     private SparkOperPlan sparkPlan = null;
     private Map<OperatorKey, RDD<Tuple>> sparkOpRdds = new HashMap<OperatorKey, RDD<Tuple>>();
     private Map<OperatorKey, RDD<Tuple>> physicalOpRdds = new HashMap<OperatorKey, RDD<Tuple>>();
+    private JobConf jobConf = null;
 
-    public JobGraphBuilder(SparkOperPlan plan, Map<Class<? extends PhysicalOperator>, RDDConverter> convertMap, SparkPigStats sparkStats, JavaSparkContext sparkContext, JobMetricsListener jobMetricsListener, String jobGroupID) {
+    public JobGraphBuilder(SparkOperPlan plan, Map<Class<? extends PhysicalOperator>, RDDConverter> convertMap, SparkPigStats sparkStats, JavaSparkContext sparkContext, JobMetricsListener jobMetricsListener, String jobGroupID, JobConf jobConf) {
         super(plan, new DependencyOrderWalker<SparkOperator, SparkOperPlan>(plan, true));
         this.sparkPlan = plan;
         this.convertMap = convertMap;
@@ -77,18 +84,40 @@ public class JobGraphBuilder extends SparkOpPlanVisitor {
         this.sparkContext = sparkContext;
         this.jobMetricsListener = jobMetricsListener;
         this.jobGroupID = jobGroupID;
+        this.jobConf = jobConf;
     }
 
     @Override
     public void visitSparkOp(SparkOperator sparkOp) throws VisitorException {
         new PhyPlanSetter(sparkOp.physicalPlan).visit();
         try {
+            setReplicationForFRJoin(sparkOp.physicalPlan);
             sparkOperToRDD(sparkOp);
             finishUDFs(sparkOp.physicalPlan);
         } catch (InterruptedException e) {
             throw new RuntimeException("fail to get the rdds of this spark operator: ", e);
         } catch (JobCreationException e){
             throw new RuntimeException("fail to get the rdds of this spark operator: ", e);
+        } catch (IOException e) {
+            throw new RuntimeException("fail to get the rdds of this spark operator: ", e);
+        }
+    }
+
+    private void setReplicationForFRJoin(PhysicalPlan plan) throws IOException {
+        List<POFRJoin> pofrJoins = PlanHelper.getPhysicalOperators(plan, POFRJoin.class);
+        if (pofrJoins.size() > 0) {
+            FileSystem fs = FileSystem.get(this.jobConf);
+            short replication = (short) jobConf.getInt(MRConfiguration.SUMIT_REPLICATION, 10);
+            for (POFRJoin pofrJoin : pofrJoins) {
+                FileSpec[] fileSpecs = pofrJoin.getReplFiles();
+                if (fileSpecs != null) {
+                    for (int i = 0; i < fileSpecs.length; i++) {
+                        if (i != pofrJoin.getFragment()) {
+                            fs.setReplication(new Path(fileSpecs[i].getFileName()), replication);
+                        }
+                    }
+                }
+            }
         }
     }
 
