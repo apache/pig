@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4885: Turn off union optimizer if there is PARALLEL clause in union in Tez (rohini)
+
 PIG-4894: Add API for StoreFunc to specify if they are write safe from two different vertices (rohini)
 
 PIG-4884: Tez needs to use DistinctCombiner.Combine (rohini)
