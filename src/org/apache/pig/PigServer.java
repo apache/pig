@@ -612,7 +612,8 @@ public class PigServer {
             pigContext.scriptingUDFs.put(path, namespace);
         }
 
-        File f = FileLocalizer.fetchFile(pigContext.getProperties(), path).file;
+        FetchFileRet ret = FileLocalizer.fetchFile(pigContext.getProperties(), path);
+        File f = ret.file;
         if (!f.canRead()) {
             int errCode = 4002;
             String msg = "Can't read file: " + path;
@@ -621,9 +622,19 @@ public class PigServer {
         }
         String cwd = new File(".").getCanonicalPath();
         String filePath = f.getCanonicalPath();
-        //Use the relative path in the jar, if the path specified is relative
-        String nameInJar = filePath.equals(cwd + File.separator + path) ?
-                filePath.substring(cwd.length() + 1) : filePath;
+        String nameInJar = filePath;
+        // Use the relative path in the jar, if the path specified is relative
+        if (!ret.didFetch) {
+            if (!new File(path).isAbsolute()) {
+                // In case of Oozie, the localized files are in a different
+                // directory symlinked to the current directory. Canonical path will not point to cwd.
+                nameInJar = path;
+            } else if (filePath.equals(cwd + File.separator + path)) {
+                // If user specified absolute path and it refers to cwd
+                nameInJar = filePath.substring(cwd.length() + 1);
+            }
+        }
+
         pigContext.addScriptFile(nameInJar, filePath);
         if(scriptingLang != null) {
             ScriptEngine se = ScriptEngine.getInstance(scriptingLang);
