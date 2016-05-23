@@ -8407,7 +8407,7 @@ X = STREAM A THROUGH `stream.pl` as (f1:int, f2:int, f3:int);
    <table>
       <tr> 
             <td>
-               <p>alias = UNION [ONSCHEMA] alias, alias [, alias …];</p>
+               <p>alias = UNION [ONSCHEMA] alias, alias [, alias …] [PARALLEL n];</p>
             </td>
          </tr> 
    </table></section>
@@ -8434,6 +8434,16 @@ X = STREAM A THROUGH `stream.pl` as (f1:int, f2:int, f3:int);
                All inputs to the union must have a non-unknown (non-null) <a href="#schemas">schema</a>.</p>
             </td>
          </tr>
+         
+     <tr>
+        <td>
+           <p>PARALLEL n</p>
+        </td>
+        <td>
+           <p>This is only applicable for Tez execution mode and will not work with Mapreduce mode. Specifying PARALLEL will introduce an extra reduce step that will slightly degrade performance. The primary purpose in this case is to control the number of output files.</p>
+           <p>For more information, see <a href="perf.html#parallel">Use the Parallel Features</a>.</p>
+        </td>
+     </tr>
    </table>
    </section>
    
