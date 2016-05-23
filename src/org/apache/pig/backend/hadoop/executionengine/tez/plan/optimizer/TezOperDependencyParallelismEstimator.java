@@ -165,6 +165,10 @@ public class TezOperDependencyParallelismEstimator implements TezParallelismEsti
             roundedEstimatedParallelism = Math.min(roundedEstimatedParallelism, maxTaskCount);
         }
 
+        if (roundedEstimatedParallelism == 0) {
+            roundedEstimatedParallelism = 1; // We need to produce empty output file
+        }
+
         return roundedEstimatedParallelism;
     }
 
