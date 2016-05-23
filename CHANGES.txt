@@ -129,6 +129,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-4905: Input of empty dir does not produce empty output file in Tez (rohini)
+
 PIG-4576: Nightly test HCat_DDL_2 fails with TDE ON (nmaheshwari via daijy)
 
 PIG-4873: InputSplit.getLocations return null and result a NPE in Pig (daijy)

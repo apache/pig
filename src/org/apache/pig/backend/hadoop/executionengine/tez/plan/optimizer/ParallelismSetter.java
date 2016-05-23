@@ -115,6 +115,11 @@ public class ParallelismSetter extends TezOpPlanVisitor {
                     } else if (pc.defaultParallel != -1) {
                         parallelism = pc.defaultParallel;
                     }
+                    if (parallelism == 0) {
+                        // We need to produce empty output file.
+                        // Even if user set PARALLEL 0, mapreduce has 1 reducer
+                        parallelism = 1;
+                    }
                     boolean overrideRequestedParallelism = false;
                     if (parallelism != -1
                             && autoParallelismEnabled
