@@ -79,4 +79,9 @@ public class PigImplConstants {
      * Pig log4j properties
      */
     public static final String PIG_LOG4J_PROPERTIES = "pig.log4j.properties";
+
+    /**
+     * A unique id for a Pig session used as callerId for underlining component
+     */
+    public static final String PIG_AUDIT_ID = "pig.script.id";
 }
