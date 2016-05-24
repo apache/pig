@@ -139,6 +139,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-4909: PigStorage incompatible with commons-cli-1.3 (knoguchi)
+
 PIG-4908: JythonFunction refers to Oozie launcher script absolute path (rohini)
 
 PIG-4905: Input of empty dir does not produce empty output file in Tez (rohini)
