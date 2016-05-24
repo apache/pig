@@ -102,7 +102,7 @@ public class TestPigScriptParser {
 
     @Test
     public void testDefineUDF() throws Exception {
-        PigServer ps = new PigServer(ExecType.LOCAL);
+        PigServer ps = new PigServer(Util.getLocalTestMode());
         String inputData[] = {
                 "dshfdskfwww.xyz.com/sportsjoadfjdslpdshfdskfwww.xyz.com/sportsjoadfjdsl" ,
                 "kas;dka;sd" ,

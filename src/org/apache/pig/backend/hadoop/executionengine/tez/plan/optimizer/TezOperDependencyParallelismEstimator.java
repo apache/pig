@@ -203,7 +203,7 @@ public class TezOperDependencyParallelismEstimator implements TezParallelismEsti
             if (successor != null) {
                 // Map side combiner
                 TezEdgeDescriptor edge = tezOp.outEdges.get(successor.getOperatorKey());
-                if (!edge.combinePlan.isEmpty()) {
+                if (!edge.combinePlan.isEmpty() || edge.needsDistinctCombiner()) {
                     if (successor.isDistinct()) {
                         factor = DEFAULT_DISTINCT_FACTOR;
                     } else {
