@@ -250,7 +250,7 @@ public class TestLoad {
     public void testNonDfsLocation() throws Exception {
         String nonDfsUrl = "har:///user/foo/f.har";
         String query = "a = load '" + nonDfsUrl + "' using PigStorage('\t','-noschema');" +
-                       "store a into 'output';";
+                       "store a into 'pigoutput';";
         LogicalPlan lp = Util.buildLp(servers[1], query);
         LOLoad load = (LOLoad) lp.getSources().get(0);
         nonDfsUrl = nonDfsUrl.replaceFirst("/$", "");
