@@ -418,6 +418,16 @@ public class PigConfiguration {
      */
     public static final String PIG_SPILL_UNUSED_MEMORY_THRESHOLD_SIZE = "pig.spill.unused.memory.threshold.size";
 
+    /**
+     * Log tracing id that can be used by upstream clients for tracking respective logs
+     */
+    public static final String CALLER_ID = "pig.log.trace.id";
+
+    /**
+     * Enable ATS for Pig
+     */
+    public static final String ENABLE_ATS = "pig.ats.enabled";
+
     // Deprecated settings of Pig 0.13
 
     /**
