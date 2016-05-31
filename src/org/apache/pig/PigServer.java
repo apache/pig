@@ -24,9 +24,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
-import java.io.PrintWriter;
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.net.URL;
@@ -267,7 +265,7 @@ public class PigServer {
                 log.warn("ATS is disabled since"
                         + " yarn.timeline-service.enabled set to false");
             }
-            
+
         }
 
         // set hdfs caller context
@@ -678,7 +676,7 @@ public class PigServer {
         String nameInJar = filePath;
         // Use the relative path in the jar, if the path specified is relative
         if (!ret.didFetch) {
-            if (!new File(path).isAbsolute()) {
+            if (!new File(path).isAbsolute() && path.indexOf("." + File.separator) == -1) {
                 // In case of Oozie, the localized files are in a different
                 // directory symlinked to the current directory. Canonical path will not point to cwd.
                 nameInJar = path;
