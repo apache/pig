@@ -38,6 +38,7 @@ import java.util.regex.Pattern;
 import org.apache.hadoop.util.Shell;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.tools.pigstats.PigStats;
 
 /**
@@ -127,7 +128,9 @@ public abstract class ScriptEngine {
     //protected static InputStream getScriptAsStream(String scriptPath) {
         InputStream is = null;
         File file = new File(scriptPath);
-        if (file.exists()) {
+        // In the frontend give preference to the local file.
+        // In the backend, try the jar first
+        if (UDFContext.getUDFContext().isFrontend() && file.exists()) {
             try {
                 is = new FileInputStream(file);
             } catch (FileNotFoundException e) {
@@ -156,7 +159,14 @@ public abstract class ScriptEngine {
                 }
             }
         }
-        
+        if (is == null && file.exists()) {
+            try {
+                is = new FileInputStream(file);
+            } catch (FileNotFoundException e) {
+                throw new IllegalStateException("could not find existing file "+scriptPath, e);
+            }
+        }
+
         // TODO: discuss if we want to add logic here to load a script from HDFS
 
         if (is == null) {
