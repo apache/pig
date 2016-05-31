@@ -322,4 +322,33 @@ public class TestTezGraceParallelism {
             super.setStoreLocation(location, job);
         }
     }
+
+    @Test
+    // See PIG-4786
+    public void testCross() throws IOException{
+        // scope-90 is the cross vertex. It should not use PigGraceShuffleVertexManager
+        NodeIdGenerator.reset();
+        PigServer.resetScope();
+        StringWriter writer = new StringWriter();
+        Util.createLogAppender("testCross", writer, PigGraceShuffleVertexManager.class);
+        File outputDir = File.createTempFile("intemediate", "txt");
+        outputDir.delete();
+        pigServer.getPigContext().getProperties().setProperty("mapreduce.input.fileinputformat.split.maxsize", "3000");
+        pigServer.getPigContext().getProperties().setProperty("pig.noSplitCombination", "true");
+        pigServer.registerQuery("A = load '" + INPUT_DIR + "/" + INPUT_FILE2 + "' as (name:chararray, gender:chararray);");
+        pigServer.registerQuery("B = order A by name;");
+        pigServer.registerQuery("C = distinct B;");
+        pigServer.registerQuery("D = load '" + INPUT_DIR + "/" + INPUT_FILE1 + "' as (name:chararray, age:int);");
+        pigServer.registerQuery("E = group D by name;");
+        pigServer.registerQuery("F = foreach E generate group as name, AVG(D.age) as avg_age;");
+        pigServer.registerQuery("G = cross C, F;");
+        Iterator<Tuple> iter = pigServer.openIterator("G");
+        int count = 0;
+        while (iter.hasNext()) {
+            iter.next();
+            count++;
+        }
+        assertEquals(count, 400);
+        assertFalse(writer.toString().contains("scope-90"));
+    }
 }

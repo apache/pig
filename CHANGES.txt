@@ -141,6 +141,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-4786: CROSS will not work correctly with Grace Parallelism (daijy)
+
 PIG-3227: SearchEngineExtractor does not work for bing (dannyant via daijy)
 
 PIG-4902: Fix UT failures on 0.16 branch: TestTezGraceParallelism, TestPigScriptParser (daijy)
