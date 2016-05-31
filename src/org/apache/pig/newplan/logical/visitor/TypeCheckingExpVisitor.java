@@ -607,7 +607,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             // Matching schemas if we're working with tuples/bags
             if (DataType.isSchemaType(lhsType)) {
                 try {
-                    if(! binCond.getLhs().getFieldSchema().isEqual(binCond.getRhs().getFieldSchema())){
+                    if(!LogicalFieldSchema.isEqualUnlessUnknown(binCond.getLhs().getFieldSchema(), binCond.getRhs().getFieldSchema())){
                         int errCode = 1048;
                         String msg = "Two inputs of BinCond must have compatible schemas."
                             + " left hand side: " + binCond.getLhs().getFieldSchema()

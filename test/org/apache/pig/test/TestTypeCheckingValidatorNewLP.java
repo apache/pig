@@ -39,8 +39,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import junit.framework.Assert;
@@ -55,6 +57,8 @@ import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.DefaultTuple;
+import org.apache.pig.data.NonSpillableDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
@@ -4117,5 +4121,57 @@ public class TestTypeCheckingValidatorNewLP {
                 " has datatype int which is incompatible with type of" +
                 " corresponding column in earlier relation(s) in the statement";
             Util.checkExceptionMessage(query, "c", msg);
+        }
+        //see PIG-4734
+        public static class GenericToMap extends EvalFunc<Map<String, Double>> {
+            @Override
+            public Map exec(Tuple input) throws IOException {
+                Map<String, Double> output = new HashMap<String, Double>();
+                output.put((String)input.get(0), (Double)input.get(1));
+                return output;
+            }
+        }
+        @Test
+        public void testBinCondCompatMap() throws Exception {
+            String query =
+                "a = load 'studenttab10k' as (name:chararray, gpa:double);"
+                + "b = foreach a generate gpa, TOMAP(name, gpa) as m1, "
+                + GenericToMap.class.getName() + "(name, gpa) as m2;"
+                + "c = foreach b generate (gpa>3? m1 : m2);";
+                createAndProcessLPlan(query);
+        }
+        public static class GenericToTuple extends EvalFunc<Tuple> {
+            @Override
+            public Tuple exec(Tuple input) throws IOException {
+                return input;
+            }
+        }
+        @Test
+        public void testBinCondCompatTuple() throws Exception {
+            String query =
+                "a = load 'studenttab10k' as (name:chararray, gpa:double);"
+                + "b = foreach a generate gpa, TOTUPLE(name, gpa) as t1, "
+                + GenericToTuple.class.getName() + "(name, gpa) as t2;"
+                + "c = foreach b generate (gpa>3? t1 : t2);";
+                createAndProcessLPlan(query);
+        }
+        public static class GenericToBag extends EvalFunc<DataBag> {
+            @Override
+            public DataBag exec(Tuple input) throws IOException {
+                DataBag bag = new NonSpillableDataBag(1);
+                Tuple t = new DefaultTuple();
+                t.append(input.get(0));
+                bag.add(t);
+                return bag;
+            }
+        }
+        @Test
+        public void testBinCondCompatBag() throws Exception {
+            String query =
+                "a = load 'studenttab10k' as (name:chararray, gpa:double);"
+                + "b = foreach a generate gpa, TOBAG(name) as b1, "
+                + GenericToBag.class.getName() + "(name) as b2;"
+                + "c = foreach b generate (gpa>3? b1 : b2);";
+                createAndProcessLPlan(query);
         }
 }
