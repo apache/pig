@@ -28,6 +28,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-4821: Pig chararray field with special UTF-8 chars as part of tuple join key produces wrong results in Tez (rohini)
+
 PIG-4860: Loading data using OrcStorage() accepts only default FileSystem path (beriaanirudh via rohini)
 
 PIG-4867: -stop_on_failure does not work with Tez (rohini)
