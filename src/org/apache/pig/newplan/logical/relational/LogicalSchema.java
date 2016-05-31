@@ -447,7 +447,23 @@ public class LogicalSchema {
             LogicalFieldSchema mergedFS = new LogicalFieldSchema(mergedAlias, mergedSubSchema, mergedType);
             return mergedFS;
         }
-        
+
+        public static boolean isEqualUnlessUnknown(LogicalFieldSchema fs1, LogicalFieldSchema fs2) throws FrontendException {
+            if (fs1.type == DataType.BYTEARRAY) {
+                return true;
+            } else if (fs2.type == DataType.BYTEARRAY) {
+                return true;
+            } else if (fs1.type == fs2.type) {
+                if (DataType.isComplex(fs1.type)) {
+                    return LogicalSchema.isEqualUnlessUnknown(fs1.schema, fs2.schema);
+                } else {
+                    return true;
+                }
+            } else {
+                return false;
+            }
+        }
+
         /***
          * Old Pig field schema does not require a tuple schema inside a bag;
          * Now it is required to have that; this method is to fill the gap
@@ -770,7 +786,24 @@ public class LogicalSchema {
         }
         return mergedSchema;
     }
-    
+
+    public static boolean isEqualUnlessUnknown(LogicalSchema s1, LogicalSchema s2) throws FrontendException {
+        if (s1 == null) {
+            return true;
+        } else if (s2 == null) {
+            return true;
+        } else if (s1.size() != s2.size()) {
+            return false;
+        } else {
+            for (int i=0;i<s1.size();i++) {
+                if (!LogicalFieldSchema.isEqualUnlessUnknown(s1.getField(i), s1.getField(i))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
     public String toString(boolean verbose) {
         StringBuilder str = new StringBuilder();
         

@@ -131,6 +131,8 @@ PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
 
+PIG-4734: TOMAP schema inferring breaks some scripts in type checking for bincond (daijy)
+
 PIG-4786: CROSS will not work correctly with Grace Parallelism (daijy)
 
 PIG-3227: SearchEngineExtractor does not work for bing (dannyant via daijy)
