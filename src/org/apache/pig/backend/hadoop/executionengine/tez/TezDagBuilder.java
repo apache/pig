@@ -807,7 +807,8 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                     // Use auto-parallelism feature of ShuffleVertexManager to dynamically
                     // reduce the parallelism of the vertex
                     if (payloadConf.getBoolean(PigConfiguration.PIG_TEZ_GRACE_PARALLELISM, true)
-                            && !TezOperPlan.getGrandParentsForGraceParallelism(getPlan(), tezOp).isEmpty()) {
+                            && !TezOperPlan.getGrandParentsForGraceParallelism(getPlan(), tezOp).isEmpty()
+                            && tezOp.getCrossKeys() == null) {
                         vmPluginName = PigGraceShuffleVertexManager.class.getName();
                         tezOp.setUseGraceParallelism(true);
                         vmPluginConf.set("pig.tez.plan", getSerializedTezPlan());
