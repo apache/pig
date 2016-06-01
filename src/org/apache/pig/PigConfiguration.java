@@ -331,17 +331,17 @@ public class PigConfiguration {
     /**
      * Boolean value used to enable or disable error handling for storers
      */
-    public static final String PIG_ALLOW_STORE_ERRORS = "pig.allow.store.errors";
+    public static final String PIG_ERROR_HANDLING_ENABLED = "pig.error-handling.enabled";
 
     /**
      * Controls the minimum number of errors
      */
-    public static final String PIG_ERRORS_MIN_RECORDS = "pig.errors.min.records";
+    public static final String PIG_ERROR_HANDLING_MIN_ERROR_RECORDS = "pig.error-handling.min.error.records";
 
     /**
      * Set the threshold for percentage of errors
      */
-    public static final String PIG_ERROR_THRESHOLD_PERCENT = "pig.error.threshold.percent";
+    public static final String PIG_ERROR_HANDLING_THRESHOLD_PERCENT = "pig.error-handling.error.threshold";
 
     /**
      * Comma-delimited entries of commands/operators that must be disallowed.

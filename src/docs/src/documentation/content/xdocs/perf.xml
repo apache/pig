@@ -42,7 +42,7 @@
   </section>
   <section id="container-reuse">
     <title>Tez session/container reuse</title>
-    <p>One downside of MapReduce is the startup cost for a job is very high. That hurts the performance especially for small job. Tez alleviate the problem by using session and container reuse, so it is not necessary to start an application master for every job, and start a JVM for every task. By default, session/container reuse is on and we usually shall not turn it off. JVM reuse might cause some side effect if static variable is used since static variable might live across different jobs. So if static variable is used in EvalFunc/LoadFunc/StoreFunc, be sure to implement a cleanup function and register with <a href="http://pig.apache.org/docs/r0.14.0/api/org/apache/pig/JVMReuseManager.html">JVMReuseManager</a>.</p>
+    <p>One downside of MapReduce is the startup cost for a job is very high. That hurts the performance especially for small job. Tez alleviate the problem by using session and container reuse, so it is not necessary to start an application master for every job, and start a JVM for every task. By default, session/container reuse is on and we usually shall not turn it off. JVM reuse might cause some side effect if static variable is used since static variable might live across different jobs. So if static variable is used in EvalFunc/LoadFunc/StoreFunc, be sure to implement a cleanup function and register with <a href="http://pig.apache.org/docs/r0.16.0/api/org/apache/pig/JVMReuseManager.html">JVMReuseManager</a>.</p>
   </section>
   <section id="auto-parallelism">
     <title>Automatic parallelism</title>

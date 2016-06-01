@@ -34,6 +34,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-4719: Documentation for PIG-4704: Customizable Error Handling for Storers in Pig (daijy)
+
 PIG-4714: Improve logging across multiple components with callerId (daijy)
 
 PIG-4885: Turn off union optimizer if there is PARALLEL clause in union in Tez (rohini)

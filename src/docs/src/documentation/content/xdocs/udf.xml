@@ -1192,6 +1192,8 @@ abstract class has the main methods for storing data and for most use cases it s
 This interface has methods to interact with metadata systems to store schema and store statistics. This interface is optional and should only be implemented if metadata needs to stored. </li>
 <li id="storeresources"><a href="http://svn.apache.org/viewvc/pig/trunk/src/org/apache/pig/StoreResources.java?view=markup">StoreResources:</a> 
 This interface has methods to put hdfs files or local files to distributed cache. </li>
+<li id="errorhandling"><a href="http://svn.apache.org/viewvc/pig/trunk/src/org/apache/pig/ErrorHandling.java?view=markup">ErrorHandling:</a> 
+This interface allow you to skip bad records in the storer so the storer will not throw exception and terminate the job. You can implement your own error handler by overriding <a href="http://svn.apache.org/viewvc/pig/trunk/src/org/apache/pig/ErrorHandler.java?view=markup">ErrorHandler</a> interface, or use predefined error handler: <a href="http://svn.apache.org/viewvc/pig/trunk/src/org/apache/pig/CounterBasedErrorHandler.java?view=markup">CounterBasedErrorHandler</a>. ErrorHandling can be turned on by setting the property pig.error-handling.enabled to true in pig.properties. Default is false.  CounterBasedErrorHandler uses two settings - pig.error-handling.min.error.records (the minimum number of errors to trigger error handling) and pig.error-handling.error.threshold (percentage of the number of records as a fraction exceeding which error is thrown).</li>
 </ul>
 
 <p id="storefunc-override">The methods which need to be overridden in StoreFunc are explained below: </p>
