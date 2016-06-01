@@ -548,7 +548,7 @@ job_201004271216_12714 1 1 3 3 3 12 12 12 D ORDER_BY,COMBINER
 
 <p>Several new public classes make it easier for external tools such as Oozie to integrate with Pig statistics. </p>
 
-<p>The Pig statistics are available here: <a href="http://pig.apache.org/docs/r0.14.0/api/">http://pig.apache.org/docs/r0.14.0/api/</a></p>
+<p>The Pig statistics are available here: <a href="http://pig.apache.org/docs/r0.16.0/api/">http://pig.apache.org/docs/r0.16.0/api/</a></p>
 
 <p id="stats-classes">The stats classes are in the package: org.apache.pig.tools.pigstats</p>
 <ul>
