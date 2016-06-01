@@ -337,6 +337,7 @@ public class SparkCompiler extends PhyPlanVisitor {
 	public void visitDistinct(PODistinct op) throws VisitorException {
 		try {
 			addToPlan(op);
+            phyToSparkOpMap.put(op, curSparkOp);
 		} catch (Exception e) {
 			int errCode = 2034;
 			String msg = "Error compiling operator "

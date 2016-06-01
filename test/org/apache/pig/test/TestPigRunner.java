@@ -38,11 +38,13 @@ import java.util.Properties;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.Counters;
+import org.apache.pig.ExecType;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigRunner;
 import org.apache.pig.PigRunner.ReturnCode;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
+import org.apache.pig.backend.hadoop.executionengine.spark.SparkExecType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.plan.OperatorPlan;
@@ -449,14 +451,20 @@ public class TestPigRunner {
         w.close();
 
         try {
-            String[] args = { "-x", execType, PIG_FILE };
-            PigStats stats = PigRunner.run(args, new TestNotificationListener(execType));
+            String[] args = null;
+            if (execType.toUpperCase().equals((new SparkExecType()).name())) {
+                args = new String[]{"-no_multiquery", "-x", execType, PIG_FILE};
+
+            } else {
+                args = new String[]{"-x", execType, PIG_FILE};
+            }
+            PigStats stats =  PigRunner.run(args, new TestNotificationListener(execType));
             assertTrue(stats.isSuccessful());
             if (Util.isMapredExecType(cluster.getExecType())) {
                 assertEquals(3, stats.getJobGraph().size());
             } if (Util.isSparkExecType(cluster.getExecType())) {
-                // One for each store and 2 for join.
-                assertEquals(4, stats.getJobGraph().size());
+                // One for each store and 3 for join.
+                assertEquals(6, stats.getJobGraph().size());
             } else {
                 assertEquals(1, stats.getJobGraph().size());
             }
