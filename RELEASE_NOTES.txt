@@ -1,26 +1,26 @@
-These notes are for Pig 0.3.0 release.
+These notes are for Pig 0.16.0 release.
 
 Highlights
 ==========
 
-The main focus of this release is multiquery support that allows to optimize
-multiple queries within the same script that share a computation.
+The highlights of this release is the stablization of Pig on Tez
 
 System Requirements
 ===================
 
-1. Java 1.6.x or newer, preferably from Sun. Set JAVA_HOME to the root of your
+1. Java 1.7.x or newer, preferably from Sun. Set JAVA_HOME to the root of your
 Java installation
 2. Ant build tool:  http://ant.apache.org - to build source only
-3. Cygwin: http://www.cygwin.com/ - to run under Windows 
-4. This release is compatible with Hadoop 0.18.x releases
+3. Run under Unix and Windows
+4. This release is compatible with Hadoop 1.X, 0.23.X and 2.X  releases. Note
+   Hadoop 1.X support is deprecate and will be removed in future releases
 
 Trying the Release
 ==================
 
-1. Download pig-0.3.0.tar.gz
-2. Unpack the file: tar -xzvf pig-0.3.0.tar.gz
-3. Move into the installation directory: cd pig-0.3.0
+1. Download pig-0.16.0.tar.gz
+2. Unpack the file: tar -xzvf pig-0.16.0.tar.gz
+3. Move into the installation directory: cd pig-0.16.0
 4. To run pig without Hadoop cluster, execute the command below. This will
 take you into an interactive shell called grunt that allows you to navigate
 the local file system and execute Pig commands against the local files
@@ -36,7 +36,6 @@ export PIG_CLASSPATH=/hadoop/conf
 7. To run unit tests run
     ant test 
 8. To build jar file with available user defined functions run commands below.
-This currently only works with Java 1.6.x.
     cd contrib/piggybank/java
     ant
 9. To build the tutorial:
@@ -47,9 +46,6 @@ This currently only works with Java 1.6.x.
 Relevant Documentation
 ======================
 
-Pig Language Manual(including Grunt commands):
-http://wiki.apache.org/pig-data/attachments/FrontPage/attachments/plrm.htm 
-UDF Manual: http://wiki.apache.org/pig/UDFManual
-Piggy Bank: http://wiki.apache.org/pig/PiggyBank
-Pig Tutorial: http://wiki.apache.org/pig/PigTutorial
-Pig Eclipse Plugin (PigPen):  http://wiki.apache.org/pig/PigPen
+Pig Documentation: http://pig.apache.org/docs/r0.16.0/
+Pig Wiki: https://cwiki.apache.org/confluence/display/PIG/Index
+Pig Tutorial: https://cwiki.apache.org/confluence/display/PIG/PigTutorial
