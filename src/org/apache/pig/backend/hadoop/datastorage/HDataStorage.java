@@ -18,20 +18,20 @@
 
 package org.apache.pig.backend.hadoop.datastorage;
 
-import java.net.URI;
 import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
 import java.util.Enumeration;
-import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
 import org.apache.pig.backend.datastorage.DataStorage;
@@ -39,8 +39,6 @@ import org.apache.pig.backend.datastorage.DataStorageException;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 
 public class HDataStorage implements DataStorage {
-
-    private static final String FILE_SYSTEM_LOCATION = "fs.default.name";
 
     private FileSystem fs;
     private Configuration configuration;
@@ -58,9 +56,10 @@ public class HDataStorage implements DataStorage {
         init();
     }
 
+    @Override
     public void init() {
         // check if name node is set, if not we set local as fail back
-        String nameNode = this.properties.getProperty(FILE_SYSTEM_LOCATION);
+        String nameNode = this.properties.getProperty(FileSystem.FS_DEFAULT_NAME_KEY);
         if (nameNode == null || nameNode.length() == 0) {
             nameNode = "local";
         }
@@ -76,14 +75,17 @@ public class HDataStorage implements DataStorage {
         }
     }
 
+    @Override
     public void close() throws IOException {
         fs.close();
     }
-    
+
+    @Override
     public Properties getConfiguration() {
         return this.properties;
     }
 
+    @Override
     public void updateConfiguration(Properties newConfiguration)
             throws DataStorageException {
         // TODO sgroschupf 25Feb2008 this method is never called and
@@ -92,38 +94,40 @@ public class HDataStorage implements DataStorage {
         if (newConfiguration == null) {
             return;
         }
-        
+
         Enumeration<Object> newKeys = newConfiguration.keys();
-        
+
         while (newKeys.hasMoreElements()) {
             String key = (String) newKeys.nextElement();
             String value = null;
-            
+
             value = newConfiguration.getProperty(key);
-            
+
             fs.getConf().set(key,value);
         }
     }
-    
+
+    @Override
     public Map<String, Object> getStatistics() throws IOException {
         Map<String, Object> stats = new HashMap<String, Object>();
 
         long usedBytes = fs.getUsed();
         stats.put(USED_BYTES_KEY , Long.valueOf(usedBytes).toString());
-        
+
         if (fs instanceof DistributedFileSystem) {
             DistributedFileSystem dfs = (DistributedFileSystem) fs;
-            
+
             long rawCapacityBytes = dfs.getRawCapacity();
             stats.put(RAW_CAPACITY_KEY, Long.valueOf(rawCapacityBytes).toString());
-            
+
             long rawUsedBytes = dfs.getRawUsed();
             stats.put(RAW_USED_KEY, Long.valueOf(rawUsedBytes).toString());
         }
-        
+
         return stats;
     }
-    
+
+    @Override
     public ElementDescriptor asElement(String name) throws DataStorageException {
         if (this.isContainer(name)) {
             return new HDirectory(this, name);
@@ -132,70 +136,82 @@ public class HDataStorage implements DataStorage {
             return new HFile(this, name);
         }
     }
-    
+
+    @Override
     public ElementDescriptor asElement(ElementDescriptor element)
             throws DataStorageException {
         return asElement(element.toString());
     }
-    
+
+    @Override
     public ElementDescriptor asElement(String parent,
-                                                  String child) 
+                                                  String child)
             throws DataStorageException {
         return asElement((new Path(parent, child)).toString());
     }
 
+    @Override
     public ElementDescriptor asElement(ContainerDescriptor parent,
-                                                  String child) 
+                                                  String child)
             throws DataStorageException {
         return asElement(parent.toString(), child);
     }
 
+    @Override
     public ElementDescriptor asElement(ContainerDescriptor parent,
-                                                  ElementDescriptor child) 
+                                                  ElementDescriptor child)
             throws DataStorageException {
         return asElement(parent.toString(), child.toString());
     }
 
-    public ContainerDescriptor asContainer(String name) 
+    @Override
+    public ContainerDescriptor asContainer(String name)
             throws DataStorageException {
         return new HDirectory(this, name);
     }
-    
+
+    @Override
     public ContainerDescriptor asContainer(ContainerDescriptor container)
             throws DataStorageException {
         return new HDirectory(this, container.toString());
     }
-    
+
+    @Override
     public ContainerDescriptor asContainer(String parent,
-                                                      String child) 
+                                                      String child)
             throws DataStorageException {
         return new HDirectory(this, parent, child);
     }
 
+    @Override
     public ContainerDescriptor asContainer(ContainerDescriptor parent,
-                                                      String child) 
+                                                      String child)
             throws DataStorageException {
         return new HDirectory(this, parent.toString(), child);
     }
-    
+
+    @Override
     public ContainerDescriptor asContainer(ContainerDescriptor parent,
                                                       ContainerDescriptor child)
             throws DataStorageException {
         return new HDirectory(this, parent.toString(), child.toString());
     }
-    
+
+    @Override
     public void setActiveContainer(ContainerDescriptor container) {
         fs.setWorkingDirectory(new Path(container.toString()));
     }
-    
+
+    @Override
     public ContainerDescriptor getActiveContainer() {
         return new HDirectory(this, fs.getWorkingDirectory());
     }
 
+    @Override
     public boolean isContainer(String name) throws DataStorageException {
         boolean isContainer = false;
         Path path = new Path(name);
-        
+
         try {
             if ((this.fs.exists(path)) && (! this.fs.isFile(path))) {
                 isContainer = true;
@@ -206,10 +222,11 @@ public class HDataStorage implements DataStorage {
             String msg = "Unable to check name " + name;
             throw new DataStorageException(msg, errCode, PigException.REMOTE_ENVIRONMENT, e);
         }
-        
+
         return isContainer;
     }
-    
+
+    @Override
     public HPath[] asCollection(String pattern) throws DataStorageException {
         try {
             FileStatus[] paths = this.fs.globStatus(new Path(pattern));
@@ -218,7 +235,7 @@ public class HDataStorage implements DataStorage {
                 return new HPath[0];
 
             List<HPath> hpaths = new ArrayList<HPath>();
-            
+
             for (int i = 0; i < paths.length; ++i) {
                 HPath hpath = (HPath)this.asElement(paths[i].getPath().toString());
                 if (!hpath.systemElement()) {
@@ -233,7 +250,7 @@ public class HDataStorage implements DataStorage {
             throw new DataStorageException(msg, errCode, PigException.REMOTE_ENVIRONMENT, e);
         }
     }
-    
+
     public FileSystem getHFS() {
         return fs;
     }
