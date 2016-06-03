@@ -22,6 +22,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.mapred.MiniMRCluster;
 import org.apache.pig.ExecType;
@@ -81,7 +82,7 @@ public class MiniCluster extends MiniGenericCluster {
 
             // Set the system properties needed by Pig
             System.setProperty("cluster", m_conf.get(MRConfiguration.JOB_TRACKER));
-            System.setProperty("namenode", m_conf.get("fs.default.name"));
+            System.setProperty("namenode", m_conf.get(FileSystem.FS_DEFAULT_NAME_KEY));
             System.setProperty("junit.hadoop.conf", CONF_DIR.getPath());
         } catch (IOException e) {
             throw new RuntimeException(e);

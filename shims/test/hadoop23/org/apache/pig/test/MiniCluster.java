@@ -22,6 +22,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.mapreduce.filecache.DistributedCache;
@@ -93,7 +94,7 @@ public class MiniCluster extends MiniGenericCluster {
             m_mr_conf = new Configuration(m_mr.getConfig());
 
             m_conf = m_mr_conf;
-            m_conf.set("fs.default.name", m_dfs_conf.get("fs.default.name"));
+            m_conf.set(FileSystem.FS_DEFAULT_NAME_KEY, m_dfs_conf.get(FileSystem.FS_DEFAULT_NAME_KEY));
             m_conf.unset(MRConfiguration.JOB_CACHE_FILES);
 
             m_conf.setInt(MRConfiguration.IO_SORT_MB, 200);
@@ -110,11 +111,10 @@ public class MiniCluster extends MiniGenericCluster {
                     new Path("/pigtest/conf/hadoop-site.xml"));
             DistributedCache.addFileToClassPath(new Path("/pigtest/conf/hadoop-site.xml"), m_conf);
 
-            System.err.println("XXX: Setting fs.default.name to: " + m_dfs_conf.get("fs.default.name"));
+            System.err.println("XXX: Setting " + FileSystem.FS_DEFAULT_NAME_KEY + " to: " + m_conf.get(FileSystem.FS_DEFAULT_NAME_KEY));
             // Set the system properties needed by Pig
             System.setProperty("cluster", m_conf.get(MRConfiguration.JOB_TRACKER));
-            //System.setProperty("namenode", m_dfs_conf.get("fs.default.name"));
-            System.setProperty("namenode", m_conf.get("fs.default.name"));
+            System.setProperty("namenode", m_conf.get(FileSystem.FS_DEFAULT_NAME_KEY));
             System.setProperty("junit.hadoop.conf", CONF_DIR.getPath());
         } catch (IOException e) {
             throw new RuntimeException(e);

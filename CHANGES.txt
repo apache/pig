@@ -23,6 +23,8 @@ Trunk (unreleased changes)
 INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
+
+PIG-2768: Fix org.apache.hadoop.conf.Configuration deprecation warnings for Hadoop 23 (rohini)
  
 OPTIMIZATIONS
  
