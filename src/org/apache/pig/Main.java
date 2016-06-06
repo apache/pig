@@ -53,8 +53,10 @@ import org.antlr.runtime.RecognitionException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.GenericOptionsParser;
+import org.apache.hadoop.util.ShutdownHookManager;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
@@ -100,13 +102,13 @@ import com.google.common.io.Closeables;
 public class Main {
 
     static {
-        Runtime.getRuntime().addShutdownHook(new Thread() {
 
+        ShutdownHookManager.get().addShutdownHook(new Runnable() {
             @Override
             public void run() {
                 FileLocalizer.deleteTempResourceFiles();
             }
-        });
+        }, FileSystem.SHUTDOWN_HOOK_PRIORITY + 1);
     }
 
     private final static Log log = LogFactory.getLog(Main.class);
