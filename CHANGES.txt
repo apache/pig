@@ -30,6 +30,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4921: Kill running jobs on InterruptedException (rohini)
+
 PIG-4916: Pig on Tez fail to remove temporary HDFS files in some cases (daijy)
 
 Release 0.16.0 - Unreleased

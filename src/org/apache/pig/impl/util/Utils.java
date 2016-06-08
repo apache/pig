@@ -48,6 +48,7 @@ import org.apache.hadoop.io.compress.BZip2Codec;
 import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.util.ShutdownHookManager;
 import org.apache.pig.FileInputLoadFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
@@ -707,5 +708,16 @@ public class Utils {
             // don't use offsets because it breaks across DST/Standard Time
             DateTimeZone.setDefault(DateTimeZone.forID(dtzStr));
         }
+    }
+
+    /**
+     * Add shutdown hook that runs before the FileSystem cache shutdown happens.
+     *
+     * @param hook code to execute during shutdown
+     * @param priority Priority over the  FileSystem.SHUTDOWN_HOOK_PRIORITY
+     */
+    public static void addShutdownHookWithPriority(Runnable hook, int priority) {
+        ShutdownHookManager.get().addShutdownHook(hook,
+                FileSystem.SHUTDOWN_HOOK_PRIORITY + priority);
     }
 }
