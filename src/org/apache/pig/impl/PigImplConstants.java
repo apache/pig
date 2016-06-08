@@ -84,4 +84,9 @@ public class PigImplConstants {
      * A unique id for a Pig session used as callerId for underlining component
      */
     public static final String PIG_AUDIT_ID = "pig.script.id";
+
+    // Kill the jobs before cleaning up tmp files
+    public static int SHUTDOWN_HOOK_JOB_KILL_PRIORITY = 3;
+    public static int SHUTDOWN_HOOK_TMP_FILES_CLEANUP_PRIORITY = 2;
+    public static int SHUTDOWN_HOOK_ATS_CLIENT_PRIORITY = 1;
 }

@@ -28,6 +28,7 @@ import org.apache.hadoop.yarn.client.api.TimelineClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.PigImplConstants;
+import org.apache.pig.impl.util.Utils;
 import org.apache.pig.tools.pigstats.ScriptState;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -67,14 +68,14 @@ public class PigATSClient {
             timelineClient.init(yarnConf);
             timelineClient.start();
         }
-        Runtime.getRuntime().addShutdownHook(new Thread() {
+        Utils.addShutdownHookWithPriority(new Runnable() {
             @Override
             public void run() {
                 timelineClient.stop();
                 executor.shutdownNow();
                 executor = null;
             }
-        });
+        }, PigImplConstants.SHUTDOWN_HOOK_ATS_CLIENT_PRIORITY);
         log.info("Created ATS Hook");
     }
 

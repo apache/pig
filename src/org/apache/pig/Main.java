@@ -53,14 +53,13 @@ import org.antlr.runtime.RecognitionException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.GenericOptionsParser;
-import org.apache.hadoop.util.ShutdownHookManager;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.pig.PigRunner.ReturnCode;
+import org.apache.pig.backend.BackendException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.classification.InterfaceAudience;
@@ -102,13 +101,12 @@ import com.google.common.io.Closeables;
 public class Main {
 
     static {
-
-        ShutdownHookManager.get().addShutdownHook(new Runnable() {
+        Utils.addShutdownHookWithPriority(new Runnable() {
             @Override
             public void run() {
                 FileLocalizer.deleteTempResourceFiles();
             }
-        }, FileSystem.SHUTDOWN_HOOK_PRIORITY + 1);
+        }, PigImplConstants.SHUTDOWN_HOOK_TMP_FILES_CLEANUP_PRIORITY);
     }
 
     private final static Log log = LogFactory.getLog(Main.class);
@@ -662,6 +660,7 @@ public class Main {
             if(!gruntCalled) {
                 LogUtils.writeLog(e, logFileName, log, verbose, "Error before Pig is launched");
             }
+            killRunningJobsIfInterrupted(e, pigContext);
         } catch (Throwable e) {
             rc = ReturnCode.THROWABLE_EXCEPTION;
             PigStatsUtil.setErrorMessage(e.getMessage());
@@ -670,6 +669,7 @@ public class Main {
             if(!gruntCalled) {
                 LogUtils.writeLog(e, logFileName, log, verbose, "Error before Pig is launched");
             }
+            killRunningJobsIfInterrupted(e, pigContext);
         } finally {
             if (printScriptRunTime) {
                 printScriptRunTime(startTime);
@@ -694,6 +694,22 @@ public class Main {
         log.info("Pig script completed in "
                 + PeriodFormat.getDefault().print(period)
                 + " (" + duration.getMillis() + " ms)");
+    }
+
+    private static void killRunningJobsIfInterrupted(Throwable e, PigContext pigContext) {
+        Throwable cause = e.getCause();
+        // Kill running job when we get InterruptedException
+        // Pig thread is interrupted by mapreduce when Oozie launcher job is killed
+        // Shutdown hook kills running jobs, but sometimes NodeManager can issue
+        // a SIGKILL after AM unregisters and before shutdown hook gets to execute
+        // causing orphaned jobs that continue to run.
+        if (e instanceof InterruptedException || (cause != null && cause instanceof InterruptedException)) {
+            try {
+                pigContext.getExecutionEngine().kill();
+            } catch (BackendException be) {
+                log.error("Error while killing running jobs", be);
+            }
+        }
     }
 
     protected static PigProgressNotificationListener makeListener(Properties properties) {
