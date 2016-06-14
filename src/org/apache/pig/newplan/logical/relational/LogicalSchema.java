@@ -150,6 +150,39 @@ public class LogicalSchema {
             }
             return true;
         }
+
+        // Check if fs1 is equal to fs2 with regard to type
+        public static boolean typeMatch(LogicalFieldSchema fs1, LogicalFieldSchema fs2) {
+            if (fs1==null && fs2==null) {
+                return true;
+            }
+            if (fs1==null || fs2==null) {
+                return false;
+            }
+            if (fs1.type!=fs2.type) {
+                return false;
+            }
+            if (DataType.isComplex(fs1.type)) {
+                LogicalSchema s1 = fs1.schema;
+                LogicalSchema s2 = fs2.schema;
+                if (s1==null && s2==null) {
+                    return true;
+                }
+                if (fs1==null || fs2==null) {
+                    return false;
+                }
+                if (s1.size()!=s2.size()) {
+                    return false;
+                }
+                for (int i=0;i<s1.size();i++) {
+                    if (!typeMatch(s1.getField(i), s2.getField(i))) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
         /**
          * Adds the uid from FieldSchema argument to this FieldSchema
          * If the argument is null, it stamps this FieldSchema with uid
