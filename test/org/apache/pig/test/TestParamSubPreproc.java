@@ -19,6 +19,7 @@
 package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -940,6 +941,79 @@ public class TestParamSubPreproc {
 
         compareResults(expected, pigResultStream);
 
+        log.info("Done");
+    }
+
+    @Test
+    public void testSubstitutionWithRedeclaration() throws Exception{
+        log.info("Starting test testSubstitutionWithRedeclaration()");
+        final String queryString =
+              "%declare output '/tmp/abc';\n" +
+              "%declare actualoutput '$output.out';\n" +
+              "A = load 'input.txt' ;\n" +
+              "store A into '$actualoutput';\n" +
+              "%declare output '/tmp/def';\n" +
+              "%declare actualoutput '$output.out';\n" +
+              "store A into '$actualoutput';";
+
+
+        ParameterSubstitutionPreprocessor ps = new ParameterSubstitutionPreprocessor(50);
+        pigIStream = new BufferedReader(
+                                        new InputStreamReader(new ByteArrayInputStream(queryString.getBytes("UTF-8"))));
+        pigOStream = new FileWriter(basedir + "/output1.pig");
+
+        String[] arg = {"output = 'output.txt'"};
+        String[] argFiles = null;
+        ps.genSubstitutedFile(pigIStream , pigOStream , arg , argFiles);
+
+        FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
+
+        String expectedString = queryString.replaceAll("%declare [0-9a-zA-Z.'/\\$; ]*\n",";\n")
+                                .replaceAll("\\$","")
+                                .replaceFirst("actualoutput","/tmp/abc.out")
+                                .replaceFirst("actualoutput","/tmp/def.out");
+        InputStream expected = new ByteArrayInputStream(expectedString.getBytes("UTF-8"));
+
+        compareResults(expected, pigResultStream);
+
+        log.info("Done");
+    }
+
+    @Test
+    public void testSubstitutionWithRedeclaredShell() throws Exception{
+        log.info("Starting test testSubstitutionWithRedeclaredShell()");
+        final String queryString =
+              "A = load 'input.txt' ;\n" +
+              "%declare now `bash -c \"date +'%Y%m%d_%H:%M:%S'; sleep 1;\"`;\n" +
+              "store A into '$now';\n" +
+              "%declare now `bash -c \"date +'%Y%m%d_%H:%M:%S'; sleep 1;\"`;\n" +
+              "store A into '$now';\n";
+
+        ParameterSubstitutionPreprocessor ps = new ParameterSubstitutionPreprocessor(50);
+        pigIStream = new BufferedReader(
+                                        new InputStreamReader(new ByteArrayInputStream(queryString.getBytes("UTF-8"))));
+        pigOStream = new FileWriter(basedir + "/output1.pig");
+
+        String[] arg = {"output = 'output.txt'"};
+        String[] argFiles = null;
+        ps.genSubstitutedFile(pigIStream , pigOStream , arg , argFiles);
+
+        BufferedReader pigresult = new BufferedReader(new InputStreamReader(new FileInputStream(basedir + "/output1.pig")));
+
+
+        String [] filenames = new String [2];
+        int index=0;
+        String line;
+        while ((line = pigresult.readLine())!=null) {
+            if( line.startsWith("store A into") ) {
+                filenames[index++] = line.split(" ")[3];
+            }
+        }
+
+        assertEquals("There should be 2 store statements", 2, index);
+        assertNotEquals("Identical shell param should be reexecuted.",
+                     filenames[0],
+                     filenames[1]);
         log.info("Done");
     }
 
