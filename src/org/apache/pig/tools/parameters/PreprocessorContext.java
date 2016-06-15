@@ -46,10 +46,6 @@ public class PreprocessorContext {
 
     private Map<String, String> param_val;
 
-    // used internally to detect when a param is set multiple times,
-    // but it set with the same value so it's ok not to log a warning
-    private Map<String, String> param_source;
-    
     private PigContext pigContext;
 
     public Map<String, String> getParamVal() {
@@ -64,22 +60,15 @@ public class PreprocessorContext {
      */
     public PreprocessorContext(int limit) {
         param_val = new Hashtable<String, String> (limit);
-        param_source = new Hashtable<String, String> (limit);
     }
 
     public PreprocessorContext(Map<String, String> paramVal) {
         param_val = paramVal;
-        param_source = new Hashtable<String, String>(paramVal);
     }
 
     public void setPigContext(PigContext context) {
         this.pigContext = context;
     }
-
-    /*
-    public  void processLiteral(String key, String val) {
-        processLiteral(key, val, true);
-    } */
 
     /**
      * This method generates parameter value by running specified command
@@ -102,21 +91,6 @@ public class PreprocessorContext {
         processOrdLine(key, val, true);
     }
 
-    /*
-    public  void processLiteral(String key, String val, Boolean overwrite) {
-
-        if (param_val.containsKey(key)) {
-            if (overwrite) {
-                log.warn("Warning : Multiple values found for " + key + ". Using value " + val);
-            } else {
-                return;
-            }
-        }
-
-        String sub_val = substitute(val);
-        param_val.put(key, sub_val);
-    } */
-
     /**
      * This method generates parameter value by running specified command
      *
@@ -129,20 +103,20 @@ public class PreprocessorContext {
             filter.validate(PigCommandFilter.Command.SH);
         }
 
-        if (param_val.containsKey(key)) {
-            if (param_source.get(key).equals(val) || !overwrite) {
-                return;
-            } else {
-                log.warn("Warning : Multiple values found for " + key
-                        + ". Using value " + val);
-            }
+        if (param_val.containsKey(key) && !overwrite) {
+            return;
         }
-
-        param_source.put(key, val);
 
         val = val.substring(1, val.length()-1); //to remove the backticks
         String sub_val = substitute(val);
         sub_val = executeShellCommand(sub_val);
+
+        if (param_val.containsKey(key) && !param_val.get(key).equals(sub_val) ) {
+            //(boolean overwrite is always true here)
+            log.warn("Warning : Multiple values found for " + key + " command `" + val + "`. "
+                     + "Previous value " + param_val.get(key) + ", now using value " + sub_val);
+        }
+
         param_val.put(key, sub_val);
     }
 
@@ -175,17 +149,17 @@ public class PreprocessorContext {
      */
     public  void processOrdLine(String key, String val, Boolean overwrite)  throws ParameterSubstitutionException {
 
+        String sub_val = substitute(val, key);
         if (param_val.containsKey(key)) {
-            if (param_source.get(key).equals(val) || !overwrite) {
+            if (param_val.get(key).equals(sub_val) || !overwrite) {
                 return;
             } else {
-                log.warn("Warning : Multiple values found for " + key + ". Using value " + val);
+                log.warn("Warning : Multiple values found for " + key
+                         + ". Previous value " + param_val.get(key)
+                         + ", now using value " + sub_val);
             }
         }
 
-        param_source.put(key, val);
-
-        String sub_val = substitute(val, key);
         param_val.put(key, sub_val);
     }
 

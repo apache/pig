@@ -30,6 +30,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4896: Param substitution ignored when redefined (knoguchi)
+
 PIG-2315: Make as clause work in generate (daijy via knoguchi)
 
 PIG-4921: Kill running jobs on InterruptedException (rohini)
