@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4906: Add Bigdecimal functions in Over function (cgalan via daijy)
+
 PIG-2768: Fix org.apache.hadoop.conf.Configuration deprecation warnings for Hadoop 23 (rohini)
  
 OPTIMIZATIONS
