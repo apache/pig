@@ -64,10 +64,16 @@ public class TezSessionManager {
     private TezSessionManager() {
     }
 
-    public static class SessionInfo {
-        SessionInfo(TezClient session, Map<String, LocalResource> resources) {
+    private static class SessionInfo {
+
+        public SessionInfo(TezClient session, TezConfiguration config, Map<String, LocalResource> resources) {
             this.session = session;
+            this.config = config;
             this.resources = resources;
+        }
+
+        public TezConfiguration getConfig() {
+            return config;
         }
         public Map<String, LocalResource> getResources() {
             return resources;
@@ -80,20 +86,21 @@ public class TezSessionManager {
         }
         private TezClient session;
         private Map<String, LocalResource> resources;
+        private TezConfiguration config;
         private boolean inUse = false;
     }
 
     private static List<SessionInfo> sessionPool = new ArrayList<SessionInfo>();
 
-    private static SessionInfo createSession(Configuration conf,
+    private static SessionInfo createSession(TezConfiguration amConf,
             Map<String, LocalResource> requestedAMResources, Credentials creds,
             TezJobConfig tezJobConf) throws TezException, IOException,
             InterruptedException {
-        TezConfiguration amConf = MRToTezHelper.getDAGAMConfFromMRConf(conf);
+        MRToTezHelper.translateMRSettingsForTezAM(amConf);
         TezScriptState ss = TezScriptState.get();
         ss.addDAGSettingsToConf(amConf);
         adjustAMConfig(amConf, tezJobConf);
-        String jobName = conf.get(PigContext.JOB_NAME, "pig");
+        String jobName = amConf.get(PigContext.JOB_NAME, "pig");
         TezClient tezClient = TezClient.create(jobName, amConf, true, requestedAMResources, creds);
         try {
             tezClient.start();
@@ -107,7 +114,7 @@ public class TezSessionManager {
             tezClient.stop();
             throw new RuntimeException(e);
         }
-        return new SessionInfo(tezClient, requestedAMResources);
+        return new SessionInfo(tezClient, amConf, requestedAMResources);
     }
 
     private static void adjustAMConfig(TezConfiguration amConf, TezJobConfig tezJobConf) {
@@ -198,7 +205,22 @@ public class TezSessionManager {
         return true;
     }
 
-    static TezClient getClient(Configuration conf, Map<String, LocalResource> requestedAMResources,
+    private static boolean validateSessionConfig(SessionInfo currentSession,
+            Configuration newSessionConfig)
+            throws TezException, IOException {
+        // If DAG recovery is disabled for one and enabled for another, do not reuse
+        if (currentSession.getConfig().getBoolean(
+                    TezConfiguration.DAG_RECOVERY_ENABLED,
+                    TezConfiguration.DAG_RECOVERY_ENABLED_DEFAULT)
+                != newSessionConfig.getBoolean(
+                        TezConfiguration.DAG_RECOVERY_ENABLED,
+                        TezConfiguration.DAG_RECOVERY_ENABLED_DEFAULT)) {
+            return false;
+        }
+        return true;
+    }
+
+    static TezClient getClient(TezConfiguration conf, Map<String, LocalResource> requestedAMResources,
             Credentials creds, TezJobConfig tezJobConf) throws TezException, IOException, InterruptedException {
         List<SessionInfo> sessionsToRemove = new ArrayList<SessionInfo>();
         SessionInfo newSession = null;
@@ -216,7 +238,8 @@ public class TezSessionManager {
                         sessionsToRemove.add(sessionInfo);
                     } else if (!sessionInfo.inUse
                             && appMasterStatus.equals(TezAppMasterStatus.READY)
-                            && validateSessionResources(sessionInfo,requestedAMResources)) {
+                            && validateSessionResources(sessionInfo,requestedAMResources)
+                            && validateSessionConfig(sessionInfo, conf)) {
                         sessionInfo.inUse = true;
                         return sessionInfo.session;
                     }

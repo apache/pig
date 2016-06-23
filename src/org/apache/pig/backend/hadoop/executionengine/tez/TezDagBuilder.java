@@ -191,6 +191,8 @@ public class TezDagBuilder extends TezOpPlanVisitor {
     private String mapTaskLaunchCmdOpts;
     private String reduceTaskLaunchCmdOpts;
 
+    private boolean disableDAGRecovery = false;
+
     public TezDagBuilder(PigContext pc, TezOperPlan plan, DAG dag,
             Map<String, LocalResource> localResources) {
         super(plan, new DependencyOrderWalker<TezOperator, TezOperPlan>(plan));
@@ -208,6 +210,10 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public boolean shouldDisableDAGRecovery() {
+        return disableDAGRecovery;
     }
 
     private void initialize(PigContext pc) throws IOException {
@@ -781,6 +787,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         // Set the right VertexManagerPlugin
         if (tezOp.getEstimatedParallelism() != -1) {
+            boolean autoParallelism = false;
             if (tezOp.isGlobalSort()||tezOp.isSkewedJoin()) {
                 if (tezOp.getVertexParallelism()==-1 && (
                         tezOp.isGlobalSort() &&getPlan().getPredecessors(tezOp).size()==1||
@@ -789,6 +796,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                     // to decrease/increase parallelism of sorting vertex dynamically
                     // based on the numQuantiles calculated by sample aggregation vertex
                     vmPluginName = PartitionerDefinedVertexManager.class.getName();
+                    autoParallelism = true;
                     log.info("Set VertexManagerPlugin to PartitionerDefinedParallelismVertexManager for vertex " + tezOp.getOperatorKey().toString());
                 }
             } else {
@@ -836,8 +844,12 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                         }
                     }
                     vmPluginConf.setLong(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE, bytesPerReducer);
+                    autoParallelism = true;
                     log.info("Set auto parallelism for vertex " + tezOp.getOperatorKey().toString());
                 }
+            }
+            if (globalConf.getBoolean(PigConfiguration.PIG_TEZ_AUTO_PARALLELISM_DISABLE_DAG_RECOVERY, false) && autoParallelism) {
+                disableDAGRecovery = true;
             }
         }
         if (tezOp.isLimit() && (vmPluginName == null || vmPluginName.equals(PigGraceShuffleVertexManager.class.getName())||

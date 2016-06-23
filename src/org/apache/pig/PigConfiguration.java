@@ -158,6 +158,12 @@ public class PigConfiguration {
      * This key is used to configure grace parallelism in tez. Default is true.
      */
     public static final String PIG_TEZ_GRACE_PARALLELISM = "pig.tez.grace.parallelism";
+    /**
+     * This key is used to turn off dag recovery if there is auto parallelism.
+     * Default is false. Useful when running with Tez versions before Tez 0.8
+     * which have issues with auto parallelism during DAG recovery.
+     */
+    public static final String PIG_TEZ_AUTO_PARALLELISM_DISABLE_DAG_RECOVERY = "pig.tez.auto.parallelism.disable.dag.recovery";
 
     /**
      * This key is used to configure compression for the pig input splits which

@@ -56,7 +56,7 @@ import com.google.common.collect.Maps;
  */
 public class TezJob implements Runnable {
     private static final Log log = LogFactory.getLog(TezJob.class);
-    private Configuration conf;
+    private TezConfiguration conf;
     private EnumSet<StatusGetOpts> statusGetOpts;
     private Map<String, LocalResource> requestAMResources;
     private ApplicationId appId;
