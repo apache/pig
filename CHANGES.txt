@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4925: Support for passing the bloom filter to the Bloom UDF (rohini)
+
 PIG-4911: Provide option to disable DAG recovery (rohini)
 
 PIG-4906: Add Bigdecimal functions in Over function (cgalan via daijy)
