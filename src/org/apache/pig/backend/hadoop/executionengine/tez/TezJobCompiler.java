@@ -52,11 +52,12 @@ public class TezJobCompiler {
     private static final Log log = LogFactory.getLog(TezJobCompiler.class);
 
     private PigContext pigContext;
-    private TezConfiguration tezConf;
+    private Configuration conf;
+    private boolean disableDAGRecovery;
 
     public TezJobCompiler(PigContext pigContext, Configuration conf) throws IOException {
         this.pigContext = pigContext;
-        this.tezConf = new TezConfiguration(conf);
+        this.conf = conf;
     }
 
     public DAG buildDAG(TezPlanContainerNode tezPlanNode, Map<String, LocalResource> localResources)
@@ -66,6 +67,7 @@ public class TezJobCompiler {
         TezDagBuilder dagBuilder = new TezDagBuilder(pigContext, tezPlanNode.getTezOperPlan(), tezDag, localResources);
         dagBuilder.visit();
         dagBuilder.avoidContainerReuseIfInputSplitInDisk();
+        disableDAGRecovery = dagBuilder.shouldDisableDAGRecovery();
         return tezDag;
     }
 
@@ -87,6 +89,7 @@ public class TezJobCompiler {
         return job;
     }
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     private TezJob getJob(TezPlanContainerNode tezPlanNode, TezPlanContainer planContainer)
             throws JobCreationException {
         try {
@@ -130,6 +133,12 @@ public class TezJobCompiler {
                 dagSetCallerContext.invoke(tezDag, context);
             }
             log.info("Total estimated parallelism is " + tezPlan.getEstimatedTotalParallelism());
+            TezConfiguration tezConf = new TezConfiguration(conf);
+            if (disableDAGRecovery
+                    && tezConf.getBoolean(TezConfiguration.DAG_RECOVERY_ENABLED,
+                            TezConfiguration.DAG_RECOVERY_ENABLED_DEFAULT)) {
+                tezConf.setBoolean(TezConfiguration.DAG_RECOVERY_ENABLED, false);
+            }
             return new TezJob(tezConf, tezDag, localResources, tezPlan);
         } catch (Exception e) {
             int errCode = 2017;

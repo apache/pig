@@ -177,20 +177,15 @@ public class MRToTezHelper {
         }
     }
 
-    public static TezConfiguration getDAGAMConfFromMRConf(
-            Configuration tezConf) {
-
-        // Set Tez parameters based on MR parameters.
-        TezConfiguration dagAMConf = new TezConfiguration(tezConf);
-
+    public static void translateMRSettingsForTezAM(TezConfiguration dagAMConf) {
 
         convertMRToTezConf(dagAMConf, dagAMConf, DeprecatedKeys.getMRToDAGParamMap());
         convertMRToTezConf(dagAMConf, dagAMConf, mrAMParamToTezAMParamMap);
 
-        String env = tezConf.get(MRJobConfig.MR_AM_ADMIN_USER_ENV);
-        if (tezConf.get(MRJobConfig.MR_AM_ENV) != null) {
-            env = (env == null) ? tezConf.get(MRJobConfig.MR_AM_ENV)
-                                : env + "," + tezConf.get(MRJobConfig.MR_AM_ENV);
+        String env = dagAMConf.get(MRJobConfig.MR_AM_ADMIN_USER_ENV);
+        if (dagAMConf.get(MRJobConfig.MR_AM_ENV) != null) {
+            env = (env == null) ? dagAMConf.get(MRJobConfig.MR_AM_ENV)
+                                : env + "," + dagAMConf.get(MRJobConfig.MR_AM_ENV);
         }
 
         if (env != null) {
@@ -199,24 +194,23 @@ public class MRToTezHelper {
 
         dagAMConf.setIfUnset(TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS,
                 org.apache.tez.mapreduce.hadoop.MRHelpers
-                        .getJavaOptsForMRAM(tezConf));
+                        .getJavaOptsForMRAM(dagAMConf));
 
-        String queueName = tezConf.get(JobContext.QUEUE_NAME,
+        String queueName = dagAMConf.get(JobContext.QUEUE_NAME,
                 YarnConfiguration.DEFAULT_QUEUE_NAME);
         dagAMConf.setIfUnset(TezConfiguration.TEZ_QUEUE_NAME, queueName);
 
         dagAMConf.setIfUnset(TezConfiguration.TEZ_AM_VIEW_ACLS,
-                tezConf.get(MRJobConfig.JOB_ACL_VIEW_JOB, MRJobConfig.DEFAULT_JOB_ACL_VIEW_JOB));
+                dagAMConf.get(MRJobConfig.JOB_ACL_VIEW_JOB, MRJobConfig.DEFAULT_JOB_ACL_VIEW_JOB));
 
         dagAMConf.setIfUnset(TezConfiguration.TEZ_AM_MODIFY_ACLS,
-                tezConf.get(MRJobConfig.JOB_ACL_MODIFY_JOB, MRJobConfig.DEFAULT_JOB_ACL_MODIFY_JOB));
+                dagAMConf.get(MRJobConfig.JOB_ACL_MODIFY_JOB, MRJobConfig.DEFAULT_JOB_ACL_MODIFY_JOB));
 
         // Hardcoding at AM level instead of setting per vertex till TEZ-2710 is available
         dagAMConf.setIfUnset(TezConfiguration.TEZ_TASK_SCALE_MEMORY_RESERVE_FRACTION, "0.5");
 
         removeUnwantedSettings(dagAMConf, true);
 
-        return dagAMConf;
     }
 
     /**
