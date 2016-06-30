@@ -233,7 +233,30 @@ public class XPathTest {
         assertTrue(withCache < withOutCache);
 
     }
-    
+
+    @Test
+    public void testExecWithXPathFunction() throws Exception {
+
+        final XPath xpath = new XPath();
+
+        final Tuple tuple = mock(Tuple.class);
+
+        when(tuple.get(0))
+                .thenReturn(
+                        "<Aa name=\"test1\">\t\n" +
+                                "<Bb Cc=\"1\"/>\n" +
+                                "<Bb Cc=\"1\"/>\n" +
+                                "<Bb Cc=\"1\"/>\n" +
+                                "<Bb Cc=\"1\"/>\n" +
+                                "<Dd>test2</Dd>\n" +
+                                "</Aa>\n");
+        when(tuple.get(1)).thenReturn("sum(Aa/Bb/@Cc)");
+        when(tuple.size()).thenReturn(2);
+
+        assertEquals("4", xpath.exec(tuple));
+
+    }
+
     private long timeTheUDF(final Tuple tuple, final XPath xpath) throws Exception{
         
         final long start = System.currentTimeMillis();
