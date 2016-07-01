@@ -36,6 +36,10 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4938: [PiggyBank] XPath returns empty values when using aggregation method
+
+PIG-4751: XPath/XPathAll - ignoreNamspace breaks searching for XML attributes
+
 PIG-4896: Param substitution ignored when redefined (knoguchi)
 
 PIG-2315: Make as clause work in generate (daijy via knoguchi)

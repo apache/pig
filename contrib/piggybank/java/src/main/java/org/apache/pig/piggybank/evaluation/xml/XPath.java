@@ -95,8 +95,13 @@ public class XPath extends EvalFunc<String> {
                 return null;
             }
             
-            if(input.size() > 2)
+            if(input.size() > 2) {
                 cache = (Boolean) input.get(2);
+            }
+
+            if (input.size() > 3) {
+                ignoreNamespace = (Boolean) input.get(XPathAll.ARGUMENTS.IGNORE_NAMESPACE.getPosition());
+            }
 
             if (!cache || xpath == null || !xml.equals(this.xml)) {
                 final InputSource source = new InputSource(new StringReader(xml));
@@ -104,6 +109,7 @@ public class XPath extends EvalFunc<String> {
                 this.xml = xml; // track the xml for subsequent calls to this udf
 
                 final DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+                dbf.setNamespaceAware(!ignoreNamespace);
                 final DocumentBuilder db = dbf.newDocumentBuilder();
 
                 this.document = db.parse(source);
@@ -115,10 +121,6 @@ public class XPath extends EvalFunc<String> {
             }
 
             String xpathString = (String) input.get(1);
-
-            if (ignoreNamespace) {
-                xpathString = createNameSpaceIgnoreXpathString(xpathString);
-            }
 
             final String value = xpath.evaluate(xpathString, document);
 
@@ -164,34 +166,6 @@ public class XPath extends EvalFunc<String> {
             return false;
         }
         return true;
-    }
-    
-    
-    /**
-     * Returns a new the xPathString by adding additional parameters 
-     * in the existing xPathString for ignoring the namespace during compilation.
-     * 
-     * @param String xpathString
-     * @return String modified xpathString
-     */
-    private String createNameSpaceIgnoreXpathString(final String xpathString) {
-        final String QUERY_PREFIX = "//*";
-        final String LOCAL_PREFIX = "[local-name()='";
-        final String LOCAL_POSTFIX = "']";
-        final String SPLITTER = "/";
-
-        try {
-            String xpathStringWithLocalName = EMPTY_STRING;
-            String[] individualNodes = xpathString.split(SPLITTER);
-
-            for (String node : individualNodes) {
-                xpathStringWithLocalName = xpathStringWithLocalName.concat(QUERY_PREFIX + LOCAL_PREFIX + node
-                        + LOCAL_POSTFIX);
-            }
-            return xpathStringWithLocalName;
-        } catch (Exception ex) {
-            return xpathString;
-        }
     }
 
     /**
