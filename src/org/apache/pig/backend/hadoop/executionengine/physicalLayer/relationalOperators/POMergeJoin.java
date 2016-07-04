@@ -131,6 +131,24 @@ public class POMergeJoin extends PhysicalOperator {
 
     private byte endOfRecordMark = POStatus.STATUS_NULL;
 
+    // Only for Spark
+    // If current operator reaches at its end, flag endOfInput is set as true.
+    // The old flag parentPlan.endOfAllInput doesn't work in spark mode, because it is shared
+    // between operators in the same plan, so it could be set by preceding operators even
+    // current operator does not reach at its end. (see PIG-4876)
+    private boolean endOfInput = false;
+    public boolean isEndOfInput() {
+        return endOfInput;
+    }
+    public void setEndOfInput (boolean isEndOfInput) {
+        endOfInput = isEndOfInput;
+    }
+
+    // Only for spark.
+    // it means that current operator reaches at its end and the last left input was
+    // added into 'leftTuples', ready for join.
+    private boolean leftInputConsumedInSpark = false;
+
     // This serves as the default TupleFactory
     private transient TupleFactory mTupleFactory;
 
@@ -353,7 +371,7 @@ public class POMergeJoin extends PhysicalOperator {
 
                     }
                     else if(cmpval > 0){    // We got ahead on right side. Store currently read right tuple.
-                        if(!this.parentPlan.endOfAllInput){
+                        if(!(this.parentPlan.endOfAllInput|| leftInputConsumedInSpark)){
                             prevRightKey = rightKey;
                             prevRightInp = rightInp;
                             // There cant be any more join on this key.
@@ -414,11 +432,14 @@ public class POMergeJoin extends PhysicalOperator {
             }
  
         case POStatus.STATUS_EOP:
-            if(this.parentPlan.endOfAllInput){
+            if(this.parentPlan.endOfAllInput || isEndOfInput()){
                 // We hit the end on left input. 
                 // Tuples in bag may still possibly join with right side.
                 curJoinKey = prevLeftKey;
                 curLeftKey = null;
+                if (isEndOfInput()) {
+                    leftInputConsumedInSpark = true;
+                }
                 break;                
             }
             else    // Fetch next left input.
@@ -428,7 +449,9 @@ public class POMergeJoin extends PhysicalOperator {
             return curLeftInp;
         }
 
-        if((null != prevRightKey) && !this.parentPlan.endOfAllInput && ((Comparable)prevRightKey).compareTo(curLeftKey) >= 0){
+        if((null != prevRightKey)
+                && !(this.parentPlan.endOfAllInput || leftInputConsumedInSpark)
+                && ((Comparable)prevRightKey).compareTo(curLeftKey) >= 0){
 
             // This will happen when we accumulated inputs on left side and moved on, but are still behind the right side
             // In that case, throw away the tuples accumulated till now and add the one we read in this function call.
@@ -510,7 +533,7 @@ public class POMergeJoin extends PhysicalOperator {
                 leftTuples.add((Tuple)curLeftInp.result);
                 prevLeftInp = curLeftInp;
                 prevLeftKey = curLeftKey;
-                if(this.parentPlan.endOfAllInput){  // This is end of all input and this is last time we will read right input.
+                if(this.parentPlan.endOfAllInput || leftInputConsumedInSpark){  // This is end of all input and this is last time we will read right input.
                     // Right loader in this case wouldn't get a chance to close input stream. So, we close it ourself.
                     try {
                         ((IndexableLoadFunc)rightLoader).close();

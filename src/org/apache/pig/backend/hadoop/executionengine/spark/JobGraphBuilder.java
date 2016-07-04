@@ -41,6 +41,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.UDFFinishVis
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
@@ -92,6 +93,7 @@ public class JobGraphBuilder extends SparkOpPlanVisitor {
         new PhyPlanSetter(sparkOp.physicalPlan).visit();
         try {
             setReplicationForFRJoin(sparkOp.physicalPlan);
+            setReplicationForMergeJoin(sparkOp.physicalPlan);
             sparkOperToRDD(sparkOp);
             finishUDFs(sparkOp.physicalPlan);
         } catch (InterruptedException e) {
@@ -104,20 +106,44 @@ public class JobGraphBuilder extends SparkOpPlanVisitor {
     }
 
     private void setReplicationForFRJoin(PhysicalPlan plan) throws IOException {
+        List<Path> filesForMoreReplication = new ArrayList<Path>();
         List<POFRJoin> pofrJoins = PlanHelper.getPhysicalOperators(plan, POFRJoin.class);
         if (pofrJoins.size() > 0) {
-            FileSystem fs = FileSystem.get(this.jobConf);
-            short replication = (short) jobConf.getInt(MRConfiguration.SUMIT_REPLICATION, 10);
             for (POFRJoin pofrJoin : pofrJoins) {
                 FileSpec[] fileSpecs = pofrJoin.getReplFiles();
                 if (fileSpecs != null) {
                     for (int i = 0; i < fileSpecs.length; i++) {
                         if (i != pofrJoin.getFragment()) {
-                            fs.setReplication(new Path(fileSpecs[i].getFileName()), replication);
+                            filesForMoreReplication.add(new Path(fileSpecs[i].getFileName()));
                         }
                     }
                 }
             }
+        }
+        setReplicationForFiles(filesForMoreReplication);
+    }
+
+    private void setReplicationForMergeJoin(PhysicalPlan plan) throws IOException {
+        List<Path> filesForMoreReplication = new ArrayList<Path>();
+        List<POMergeJoin> poMergeJoins = PlanHelper.getPhysicalOperators(plan, POMergeJoin.class);
+        if (poMergeJoins.size() > 0) {
+            for (POMergeJoin poMergeJoin : poMergeJoins) {
+                String idxFileName = poMergeJoin.getIndexFile();
+                filesForMoreReplication.add(new Path(idxFileName));
+                // in spark mode, set as null so that PoMergeJoin won't use hadoop distributed cache
+                // see POMergeJoin.seekInRightStream()
+                poMergeJoin.setIndexFile(null);
+            }
+        }
+
+        setReplicationForFiles(filesForMoreReplication);
+    }
+
+    private void setReplicationForFiles(List<Path> files) throws IOException {
+        FileSystem fs = FileSystem.get(this.jobConf);
+        short replication = (short) jobConf.getInt(MRConfiguration.SUMIT_REPLICATION, 10);
+        for (int i = 0; i < files.size(); i++) {
+            fs.setReplication(files.get(i), replication);
         }
     }
 

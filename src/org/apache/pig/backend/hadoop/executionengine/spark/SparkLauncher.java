@@ -202,7 +202,7 @@ public class SparkLauncher extends Launcher {
         convertMap.put(POSort.class, new SortConverter());
         convertMap.put(POSplit.class, new SplitConverter());
         convertMap.put(POSkewedJoin.class, new SkewedJoinConverter());
-        convertMap.put(POMergeJoin.class, new MergeJoinConverter());
+        convertMap.put(POMergeJoin.class, new MergeJoinConverter(confBytes));
         convertMap.put(POCollectedGroup.class, new CollectedGroupConverter());
         convertMap.put(POCounter.class, new CounterConverter());
         convertMap.put(PORank.class, new RankConverter());
