@@ -143,25 +143,6 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
         to.setInputs(getPredecessors(to));
     }
 
-    /**
-     * connect from and to and ignore some judgements: like ignoring judge whether from operator supports multiOutputs
-     * and whether to operator supports multiInputs
-     *
-     * @param from
-     * @param to
-     */
-    public void forceConnect(PhysicalOperator from, PhysicalOperator to) throws PlanException {
-        super.forceConnect(from, to);
-        to.setInputs(getPredecessors(to));
-    }
-
-    /*public void connect(List<PhysicalOperator> from, PhysicalOperator to) throws IOException{
-        if(!to.supportsMultipleInputs()){
-            throw new IOException("Invalid Operation on " + to.name() + ". It doesn't support multiple inputs.");
-        }
-
-    }*/
-
     @Override
     public void remove(PhysicalOperator op) {
         op.setInputs(null);
