@@ -99,8 +99,7 @@ public class GlobalRearrangeConverter implements
         CoGroupedRDD<Object> coGroupedRDD = new CoGroupedRDD<Object>(
                 (Seq<RDD<? extends Product2<Object, ?>>>) (Object) (JavaConversions
                         .asScalaBuffer(rddPairs).toSeq()),
-                SparkUtil.getPartitioner(op.getCustomPartitioner(), parallelism)
-        );
+                SparkUtil.getPartitioner(op.getCustomPartitioner(), parallelism), SparkUtil.getManifest(Object.class));
 
         RDD<Tuple2<IndexedKey, Seq<Seq<Tuple>>>> rdd =
             (RDD<Tuple2<IndexedKey, Seq<Seq<Tuple>>>>) (Object) coGroupedRDD;
