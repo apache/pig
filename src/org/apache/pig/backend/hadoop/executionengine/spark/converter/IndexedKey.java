@@ -37,6 +37,10 @@ public class IndexedKey implements Serializable {
         this.key = key;
     }
 
+    public byte getIndex() {
+        return index;
+    }
+
     public Object getKey() {
         return key;
     }

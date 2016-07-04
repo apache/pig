@@ -24,6 +24,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.util.ReflectionUtils;
+import org.apache.pig.backend.hadoop.executionengine.spark.converter.IndexedKey;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.spark.Partitioner;
@@ -75,9 +76,16 @@ public class MapReducePartitionerWrapper extends Partitioner {
 
             PigNullableWritable writeableKey = new PigNullableWritable() {
                 public Object getValueAsPigType() {
-                    return key;
+                    if (key instanceof IndexedKey) {
+                        IndexedKey indexedKey = (IndexedKey) key;
+                        this.setIndex(indexedKey.getIndex());
+                        return indexedKey.getKey();
+                    } else {
+                        return key;
+                    }
                 }
             };
+
 
             // Lazy initialization
             // Synchronized because multiple (map) tasks in the same Spark Executor
