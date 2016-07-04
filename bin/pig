@@ -57,6 +57,28 @@ remaining=()
 includeHCatalog="";
 addJarString=-Dpig.additional.jars.uris\=;
 additionalJars="";
+preArg="";
+isSparkMode=1;
+isSparkLocalMode=1;
+
+#verifyMode(preArg, execType,expectExecType): check whether $preArg is "-x" or "-exectype", if yes 
+#continue to verify whether $execType is equals to $expectExecType
+function verifyMode(){
+  preArg=$1
+  execType=$2
+  expectExecType=$3
+  if [[ "$preArg" == "-x" || "$preArg" == "-exectype" ]]; then
+    execTypeUpperCase=$(echo $execType |tr [a-z] [A-Z])
+    if [[ "$execTypeUpperCase" == "$expectExecType" ]]; then
+        echo 0
+    else 
+        echo 1
+    fi
+  else
+    echo 1
+  fi
+}
+
 # filter command line parameter
 for f in "$@"; do
      if [[ $f == "-secretDebugCmd" || $f == "-printCmdDebug" ]]; then
@@ -70,9 +92,16 @@ for f in "$@"; do
         includeHCatalog=true;
       elif [[ "$includeHCatalog" == "true" && $f == $addJarString* ]]; then
         additionalJars=`echo $f | sed s/$addJarString//`
+      elif [[ $(verifyMode $preArg $f "SPARK") -eq 0 ]]; then
+        isSparkMode=0 
+        remaining[${#remaining[@]}]="$f"
+      elif [[ $(verifyMode $preArg $f "SPARK_LOCAL") -eq 0 ]]; then
+        isSparkLocalMode=0
+        remaining[${#remaining[@]}]="$f"
       else
         remaining[${#remaining[@]}]="$f"
      fi
+     preArg=$f
 done
 
 # resolve links - $0 may be a softlink
@@ -391,6 +420,39 @@ CLASSPATH=${CLASSPATH}:${SPARK_JARS}
 export SPARK_YARN_DIST_FILES=`echo ${SPARK_YARN_DIST_FILES} | sed 's/^,//g'`
 export SPARK_JARS=${SPARK_YARN_DIST_FILES}
 export SPARK_DIST_CLASSPATH
+################# ADDING SPARK DEPENDENCIES ##################
+
+################# ADDING SPARK DEPENDENCIES ##################
+# For spark_local mode:
+if [ $isSparkLocalMode -eq 0 ]; then
+#SPARK_MASTER is forced to be "local" in spark_local mode
+        SPARK_MASTER="local"
+	for f in $PIG_HOME/lib/spark/*.jar; do
+	        CLASSPATH=${CLASSPATH}:$f;
+	done
+fi
+
+# For spark mode:
+# Please specify SPARK_HOME first so that we can locate $SPARK_HOME/lib/spark-assembly*.jar,
+# we will add spark-assembly*.jar to the classpath.
+if [ $isSparkMode -eq 0 ]; then
+	if [ -z "$SPARK_HOME" ]; then
+	   echo "Error: SPARK_HOME is not set!"  
+	   exit 1
+	fi
+	
+	# Please specify SPARK_JAR which is the hdfs path of spark-assembly*.jar to allow YARN to cache spark-assembly*.jar on nodes so that it doesn't need to be distributed each time an application runs.
+	if [ -z "$SPARK_JAR" ]; then
+	   echo "Error: SPARK_JAR is not set, SPARK_JAR stands for the hdfs location of spark-assembly*.jar. This allows YARN to cache spark-assembly*.jar on nodes so that it doesn't need to be distributed each time an application runs."  
+	   exit 1
+	fi
+	
+	if [ -n "$SPARK_HOME" ]; then
+	    echo "Using Spark Home: " ${SPARK_HOME}
+	    SPARK_ASSEMBLY_JAR=`ls ${SPARK_HOME}/lib/spark-assembly*`
+	    CLASSPATH=${CLASSPATH}:$SPARK_ASSEMBLY_JAR
+	fi
+fi
 ################# ADDING SPARK DEPENDENCIES ##################
 
 # run it
