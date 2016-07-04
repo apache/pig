@@ -34,6 +34,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.PigException;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PhyPlanSetter;
@@ -51,6 +52,7 @@ import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOpPlanVisit
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperator;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -76,8 +78,11 @@ public class JobGraphBuilder extends SparkOpPlanVisitor {
     private Map<OperatorKey, RDD<Tuple>> sparkOpRdds = new HashMap<OperatorKey, RDD<Tuple>>();
     private Map<OperatorKey, RDD<Tuple>> physicalOpRdds = new HashMap<OperatorKey, RDD<Tuple>>();
     private JobConf jobConf = null;
+    private PigContext pc;
 
-    public JobGraphBuilder(SparkOperPlan plan, Map<Class<? extends PhysicalOperator>, RDDConverter> convertMap, SparkPigStats sparkStats, JavaSparkContext sparkContext, JobMetricsListener jobMetricsListener, String jobGroupID, JobConf jobConf) {
+    public JobGraphBuilder(SparkOperPlan plan, Map<Class<? extends PhysicalOperator>, RDDConverter> convertMap,
+                           SparkPigStats sparkStats, JavaSparkContext sparkContext, JobMetricsListener
+            jobMetricsListener, String jobGroupID, JobConf jobConf, PigContext pc) {
         super(plan, new DependencyOrderWalker<SparkOperator, SparkOperPlan>(plan, true));
         this.sparkPlan = plan;
         this.convertMap = convertMap;
@@ -86,6 +91,7 @@ public class JobGraphBuilder extends SparkOpPlanVisitor {
         this.jobMetricsListener = jobMetricsListener;
         this.jobGroupID = jobGroupID;
         this.jobConf = jobConf;
+        this.pc = pc;
     }
 
     @Override
@@ -98,7 +104,9 @@ public class JobGraphBuilder extends SparkOpPlanVisitor {
             finishUDFs(sparkOp.physicalPlan);
         } catch (InterruptedException e) {
             throw new RuntimeException("fail to get the rdds of this spark operator: ", e);
-        } catch (JobCreationException e){
+        } catch (JobCreationException e) {
+            throw new RuntimeException("fail to get the rdds of this spark operator: ", e);
+        } catch (ExecException e) {
             throw new RuntimeException("fail to get the rdds of this spark operator: ", e);
         } catch (IOException e) {
             throw new RuntimeException("fail to get the rdds of this spark operator: ", e);
@@ -161,7 +169,7 @@ public class JobGraphBuilder extends SparkOpPlanVisitor {
         }
     }
 
-    private void sparkOperToRDD(SparkOperator sparkOperator) throws InterruptedException, VisitorException, JobCreationException {
+    private void sparkOperToRDD(SparkOperator sparkOperator) throws InterruptedException, VisitorException, JobCreationException, ExecException {
         List<SparkOperator> predecessors = sparkPlan
                 .getPredecessors(sparkOperator);
         Set<OperatorKey> predecessorOfPreviousSparkOp = new HashSet<OperatorKey>();
@@ -192,6 +200,14 @@ public class JobGraphBuilder extends SparkOpPlanVisitor {
                     LOG.error("throw exception in sparkOperToRDD: ", e);
                     exception = e;
                     isFail = true;
+                    boolean stopOnFailure = Boolean.valueOf(pc
+                            .getProperties().getProperty("stop.on.failure",
+                                    "false"));
+                    if (stopOnFailure) {
+                        int errCode = 6017;
+                        throw new ExecException(e.getMessage(), errCode,
+                                PigException.REMOTE_ENVIRONMENT);
+                    }
                 }
             }
 

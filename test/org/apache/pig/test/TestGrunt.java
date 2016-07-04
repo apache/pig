@@ -998,7 +998,13 @@ public class TestGrunt {
             grunt.exec();
         } catch (PigException e) {
             caught = true;
-            assertTrue(e.getErrorCode() == 6017);
+            if (!Util.isSparkExecType(cluster.getExecType())) {
+                assertTrue(e.getErrorCode() == 6017);
+            } else {
+                //In spark mode, We wrap ExecException to RunTimeException and is thrown out in JobGraphBuilder#sparkOperToRDD,
+                //So unwrap the exception here
+                assertTrue(((ExecException) e.getCause().getCause()).getErrorCode() == 6017);
+            }
         }
 
         assertFalse(server.existsFile("done"));

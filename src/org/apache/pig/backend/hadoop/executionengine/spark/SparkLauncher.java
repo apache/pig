@@ -215,7 +215,7 @@ public class SparkLauncher extends Launcher {
         convertMap.put(POPreCombinerLocalRearrange.class, new LocalRearrangeConverter());
 
         uploadResources(sparkplan);
-        new JobGraphBuilder(sparkplan, convertMap, sparkStats, sparkContext, jobMetricsListener, jobGroupID, jobConf).visit();
+        new JobGraphBuilder(sparkplan, convertMap, sparkStats, sparkContext, jobMetricsListener, jobGroupID, jobConf, pigContext).visit();
         cleanUpSparkJob(sparkStats);
         sparkStats.finish();
         return sparkStats;
