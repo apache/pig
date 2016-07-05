@@ -45,7 +45,7 @@ public class TestFinish {
     BagFactory mBf = BagFactory.getInstance();
     File f1;
 
-    static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
+    private static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
 
     static public class MyEvalFunction extends EvalFunc<Tuple> {
         String execType;
@@ -67,12 +67,7 @@ public class TestFinish {
         @Override
         public void finish() {
             try {
-                FileSystem fs = null;
-                if (execType.equalsIgnoreCase("SPARK")) {
-                    fs = FileSystem.get(cluster.getConfiguration());
-                } else {
-                    fs = FileSystem.get(PigMapReduce.sJobConfInternal.get());
-                }
+                FileSystem fs = FileSystem.get(PigMapReduce.sJobConfInternal.get());
                 fs.create(new Path(expectedFileName));
             } catch (IOException e) {
                 throw new RuntimeException("Unable to create file:" + expectedFileName);
@@ -141,7 +136,7 @@ public class TestFinish {
         String inputFileName = setUp(cluster.getExecType());
         // this file will be created on the cluster if finish() is called
         String expectedFileName = "testFinishInMapMR-finish.txt";
-        pigServer.registerQuery("define MYUDF " + MyEvalFunction.class.getName() + "('"+cluster.getExecType()+"','"
+        pigServer.registerQuery("define MYUDF " + MyEvalFunction.class.getName() + "('MAPREDUCE','"
                 + expectedFileName + "');");
         pigServer.registerQuery("a = load '" + Util.encodeEscape(inputFileName) + "' using "
                 + PigStorage.class.getName() + "(':');");
@@ -160,7 +155,7 @@ public class TestFinish {
         String inputFileName = setUp(cluster.getExecType());
         // this file will be created on the cluster if finish() is called
         String expectedFileName = "testFinishInReduceMR-finish.txt";
-        pigServer.registerQuery("define MYUDF " + MyEvalFunction.class.getName() + "('"+cluster.getExecType()+"','"
+        pigServer.registerQuery("define MYUDF " + MyEvalFunction.class.getName() + "('MAPREDUCE','"
                 + expectedFileName + "');");
         pigServer.registerQuery("a = load '" + Util.encodeEscape(inputFileName) + "' using "
                 + PigStorage.class.getName() + "(':');");
