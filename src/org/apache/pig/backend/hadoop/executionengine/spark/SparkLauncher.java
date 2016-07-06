@@ -224,7 +224,12 @@ public class SparkLauncher extends Launcher {
         new JobGraphBuilder(sparkplan, convertMap, sparkStats, sparkContext, jobMetricsListener, jobGroupID, jobConf, pigContext).visit();
         cleanUpSparkJob(sparkStats);
         sparkStats.finish();
+        resetUDFContext();
         return sparkStats;
+    }
+
+    private void resetUDFContext() {
+        UDFContext.getUDFContext().addJobConf(null);
     }
 
     private void uploadResources(SparkOperPlan sparkPlan) throws IOException {

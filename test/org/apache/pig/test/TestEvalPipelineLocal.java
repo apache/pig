@@ -65,7 +65,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TestEvalPipelineLocal {
-    
+
     private PigServer pigServer;
 
     static final int MAX_SIZE = 100000;
@@ -1114,8 +1114,6 @@ public class TestEvalPipelineLocal {
     
     @Test
     public void testSetLocationCalledInFE() throws Exception {
-        // Need to reset it when running multiple testcases
-        UDFContext.getUDFContext().addJobConf(null);
         File f1 = createFile(new String[]{"a","b"});
         pigServer.registerQuery("a = load '" + Util.generateURI(f1.toString(), pigServer.getPigContext())
                 + "' using " + SetLocationTestLoadFunc.class.getName()
