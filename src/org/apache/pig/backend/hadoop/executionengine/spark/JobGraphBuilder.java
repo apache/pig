@@ -23,6 +23,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -48,6 +50,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.spark.converter.RDDConverter;
 import org.apache.pig.backend.hadoop.executionengine.spark.operator.NativeSparkOperator;
+import org.apache.pig.backend.hadoop.executionengine.spark.operator.POJoinGroupSpark;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperator;
@@ -238,13 +241,8 @@ public class JobGraphBuilder extends SparkOpPlanVisitor {
                                Set<OperatorKey> predsFromPreviousSparkOper)
             throws IOException {
         RDD<Tuple> nextRDD = null;
-        List<PhysicalOperator> predecessorsOfCurrentPhysicalOp = plan
-                .getPredecessors(physicalOperator);
-        if (predecessorsOfCurrentPhysicalOp != null && predecessorsOfCurrentPhysicalOp.size() > 1) {
-            Collections.sort(predecessorsOfCurrentPhysicalOp);
-        }
-
-        Set<OperatorKey> operatorKeysOfAllPreds = new HashSet<OperatorKey>();
+        List<PhysicalOperator> predecessorsOfCurrentPhysicalOp = getPredecessors(plan, physicalOperator);
+        Set<OperatorKey> operatorKeysOfAllPreds = new LinkedHashSet<OperatorKey>();
         addPredsFromPrevoiousSparkOp(sparkOperator, physicalOperator, operatorKeysOfAllPreds);
         if (predecessorsOfCurrentPhysicalOp != null) {
             for (PhysicalOperator predecessor : predecessorsOfCurrentPhysicalOp) {
@@ -296,12 +294,29 @@ public class JobGraphBuilder extends SparkOpPlanVisitor {
         }
     }
 
+    private List<PhysicalOperator> getPredecessors(PhysicalPlan plan, PhysicalOperator op) {
+        List preds = null;
+        if (!(op instanceof POJoinGroupSpark)) {
+            preds = plan.getPredecessors(op);
+            if (preds != null && preds.size() > 1) {
+                Collections.sort(preds);
+            }
+        } else {
+            //For POJoinGroupSpark, we could not use plan.getPredecessors(op)+ sort to get
+            //the predecessors with correct order, more detail see JoinOptimizerSpark#restructSparkOp
+            preds = ((POJoinGroupSpark) op).getPredecessors();
+        }
+        return preds;
+    }
+
     //get all rdds of predecessors sorted by the OperatorKey
     private List<RDD<Tuple>> sortPredecessorRDDs(Set<OperatorKey> operatorKeysOfAllPreds) {
         List<RDD<Tuple>> predecessorRDDs = Lists.newArrayList();
-        List<OperatorKey> operatorKeyOfAllPreds = Lists.newArrayList(operatorKeysOfAllPreds);
-        Collections.sort(operatorKeyOfAllPreds);
-        for (OperatorKey operatorKeyOfAllPred : operatorKeyOfAllPreds) {
+//        List<OperatorKey> operatorKeyOfAllPreds = Lists.newArrayList(operatorKeysOfAllPreds);
+//        Collections.sort(operatorKeyOfAllPreds);
+        //We need not sort operatorKeyOfAllPreds any more because operatorKeyOfAllPreds is LinkedHashSet
+        //which provides the order of insertion, before we insert element which is sorted by OperatorKey
+        for (OperatorKey operatorKeyOfAllPred : operatorKeysOfAllPreds) {
             predecessorRDDs.add(physicalOpRdds.get(operatorKeyOfAllPred));
         }
         return predecessorRDDs;
