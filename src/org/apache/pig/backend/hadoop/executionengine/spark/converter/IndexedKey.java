@@ -19,7 +19,10 @@ package org.apache.pig.backend.hadoop.executionengine.spark.converter;
 
 import java.io.Serializable;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 
 /**
@@ -28,9 +31,12 @@ import org.apache.pig.data.Tuple;
  * either empty (or is a tuple with one or more empty fields). In this case,
  * we must respect the SQL standard as documented in the equals() method.
  */
-public class IndexedKey implements Serializable {
+public class IndexedKey implements Serializable, Comparable {
+    private static final Log LOG = LogFactory.getLog(IndexedKey.class);
     private byte index;
     private Object key;
+    private boolean useSecondaryKey;
+    private boolean[] secondarySortOrder;
 
     public IndexedKey(byte index, Object key) {
         this.index = index;
@@ -139,5 +145,41 @@ public class IndexedKey implements Serializable {
             result = key.hashCode();
         }
         return result;
+    }
+
+    //firstly compare the index
+    //secondly compare the key
+    @Override
+    public int compareTo(Object o) {
+        IndexedKey that = (IndexedKey) o;
+        int res = index - that.getIndex();
+        if (res > 0) {
+            return 1;
+        } else if (res < 0) {
+            return -1;
+        } else {
+            if (useSecondaryKey) {
+                Tuple thisCompoundKey = (Tuple) key;
+                Tuple thatCompoundKey = (Tuple) that.getKey();
+                try {
+                    Object thisSecondary = thisCompoundKey.get(1);
+                    Object thatSecondaryKey = thatCompoundKey.get(1);
+                    return PigSecondaryKeyComparatorSpark.compareSecondaryKeys(thisSecondary, thatSecondaryKey, secondarySortOrder);
+
+                } catch (ExecException e) {
+                    throw new RuntimeException("IndexedKey#compareTo throws exception ", e);
+                }
+            } else {
+                return DataType.compare(key, that.getKey());
+            }
+        }
+    }
+
+    public void setUseSecondaryKey(boolean useSecondaryKey) {
+        this.useSecondaryKey = useSecondaryKey;
+    }
+
+    public void setSecondarySortOrder(boolean[] secondarySortOrder) {
+        this.secondarySortOrder = secondarySortOrder;
     }
 }

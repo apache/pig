@@ -66,7 +66,7 @@ class PigSecondaryKeyComparatorSpark implements Comparator, Serializable {
         }
     }
 
-    private int compareSecondaryKeys(Object o1, Object o2, boolean[] asc) {
+    public static int compareSecondaryKeys(Object o1, Object o2, boolean[] asc) {
         int rc = 0;
         if (o1 != null && o2 != null && o1 instanceof Tuple && o2 instanceof Tuple) {
             // objects are Tuples, we may need to apply sort order inside them
