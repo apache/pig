@@ -391,38 +391,6 @@ if [ "$includeHCatalog" == "true" ]; then
 fi
 
 ################# ADDING SPARK DEPENDENCIES ##################
-# Spark typically works with a single assembly file. However this
-# assembly isn't available as a artifact to pull in via ivy.
-# To work around this short coming, we add all the jars barring
-# spark-yarn to DIST through dist-files and then add them to classpath
-# of the executors through an independent env variable. The reason
-# for excluding spark-yarn is because spark-yarn is already being added
-# by the spark-yarn-client via jarOf(Client.Class)
-
-for f in $PIG_HOME/lib/spark/*.jar; do
-    if [[ $f == $PIG_HOME/lib/spark/spark-yarn* ]]; then
-        # Exclude spark-yarn.jar from shipped jars, but retain in classpath
-        SPARK_JARS=${SPARK_JARS}:$f;
-    else
-        SPARK_JARS=${SPARK_JARS}:$f;
-        SPARK_YARN_DIST_FILES=${SPARK_YARN_DIST_FILES},file://$f;
-        SPARK_DIST_CLASSPATH=${SPARK_DIST_CLASSPATH}:\${PWD}/`basename $f`
-    fi
-done
-
-for f in $PIG_HOME/lib/*.jar; do
-    SPARK_JARS=${SPARK_JARS}:$f;
-    SPARK_YARN_DIST_FILES=${SPARK_YARN_DIST_FILES},file://$f;
-    SPARK_DIST_CLASSPATH=${SPARK_DIST_CLASSPATH}:\${PWD}/`basename $f`
-done
-CLASSPATH=${CLASSPATH}:${SPARK_JARS}
-
-export SPARK_YARN_DIST_FILES=`echo ${SPARK_YARN_DIST_FILES} | sed 's/^,//g'`
-export SPARK_JARS=${SPARK_YARN_DIST_FILES}
-export SPARK_DIST_CLASSPATH
-################# ADDING SPARK DEPENDENCIES ##################
-
-################# ADDING SPARK DEPENDENCIES ##################
 # For spark_local mode:
 if [ $isSparkLocalMode -eq 0 ]; then
 #SPARK_MASTER is forced to be "local" in spark_local mode
@@ -483,12 +451,6 @@ if [ -n "$HADOOP_BIN" ]; then
         CLASSPATH=${CLASSPATH}:$f;
     done
 
-    ###### Set Spark related env #####
-
-    export SPARK_PIG_JAR=${PIG_JAR}
-
-    ###### Set Spark related env #####a
-
     export HADOOP_CLASSPATH=$CLASSPATH:$HADOOP_CLASSPATH
     export HADOOP_CLIENT_OPTS="$JAVA_HEAP_MAX $PIG_OPTS $HADOOP_CLIENT_OPTS"
     if [ "$debug" == "true" ]; then
@@ -524,12 +486,6 @@ else
     if [ "$debug" == "true" ]; then
         echo "Cannot find local hadoop installation, using bundled `java -cp $CLASSPATH org.apache.hadoop.util.VersionInfo | head -1`"
     fi
-
-    ###### Set Spark related env #####
-
-    export SPARK_PIG_JAR=${PIG_JAR}
-
-    ###### Set Spark related env #####a
 
     CLASS=org.apache.pig.Main
     if [ "$debug" == "true" ]; then
