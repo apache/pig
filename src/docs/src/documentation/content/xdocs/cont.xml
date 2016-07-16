@@ -1388,7 +1388,7 @@ IMPORT 'my_macro.pig';
       </li>
    </ul>
    <p></p>
-   <p>Parameter substitution may be used inside of macros, but it is the responsibility of the user to ensure that there are no conflicts between names of parameters defined at the top level and names of arguments or return values for a macro. A simple way to ensure this is to use ALL_CAPS for top-level parameters and lower_case for macro-level parameters. See <a href="#define-macros">DEFINE (macros)</a>.</p>
+   <p>Parameter substitution may be used inside of macros. When there are conflicts between names of parameters defined at the top level and names of arguments or return values for a given macro, then ones inside the macro are used. See <a href="#define-macros">DEFINE (macros)</a>.</p>
    </section>
    
    <section>
