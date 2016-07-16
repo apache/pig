@@ -18,7 +18,21 @@
 
 Pig Change Log
 
-Release 0.16.0 - Unreleased
+Release 0.16.1 - Unreleased
+
+INCOMPATIBLE CHANGES
+
+IMPROVEMENTS
+
+PIG-4945: Update document for conflicting macro params (knoguchi via daijy)
+
+OPTIMIZATIONS
+
+BUG FIXES
+
+PIG-4949: Fix registering jar in S3 which was broken by PIG-4417 in Pig 0.16 (yangyishan0901m via daijy)
+
+Release 0.16.0
 
 INCOMPATIBLE CHANGES
 
@@ -132,8 +146,6 @@ PIG-4638: Allow TOMAP to accept dynamically sized input (nielsbasjes via daijy)
 PIG-4639: Add better parser for Apache HTTPD access log (nielsbasjes via daijy)
 
 BUG FIXES
-
-PIG-4949: Fix registering jar in S3 which was broken by PIG-4417 in Pig 0.16 (yangyishan0901m via daijy)
 
 PIG-4821: Pig chararray field with special UTF-8 chars as part of tuple join key produces wrong results in Tez (rohini)
 
