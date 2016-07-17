@@ -265,6 +265,13 @@ public abstract class PigStats {
         return ScriptState.get().getPigVersion();
     }
 
+    /**
+     *  Returns the contents of the script that was run.
+     */
+    public String getScript() {
+        return ScriptState.get().getScript();
+    }
+
     public String getScriptId() {
         return ScriptState.get().getId();
     }

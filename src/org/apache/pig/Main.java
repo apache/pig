@@ -477,7 +477,7 @@ public class Main {
                 }
 
 
-                logFileName = validateLogFile(logFileName, file);
+                logFileName = validateLogFile(logFileName, localFileRet.file);
                 pigContext.getProperties().setProperty("pig.logfile", (logFileName == null? "": logFileName));
 
                 // Set job name based on name of the script
@@ -488,7 +488,7 @@ public class Main {
                     new File(substFile).deleteOnExit();
                 }
 
-                scriptState.setScript(new File(file));
+                scriptState.setScript(localFileRet.file);
 
                 grunt = new Grunt(pin, pigContext);
                 gruntCalled = true;
@@ -605,7 +605,7 @@ public class Main {
                     return ReturnCode.SUCCESS;
                 }
 
-                logFileName = validateLogFile(logFileName, remainders[0]);
+                logFileName = validateLogFile(logFileName, localFileRet.file);
                 pigContext.getProperties().setProperty("pig.logfile", (logFileName == null? "": logFileName));
 
                 if (!debug) {
@@ -989,11 +989,10 @@ public class Main {
             System.out.println("Additionally, any Hadoop property can be specified.");
     }
 
-    private static String validateLogFile(String logFileName, String scriptName) {
+    private static String validateLogFile(String logFileName, File scriptFile) {
         String strippedDownScriptName = null;
 
-        if(scriptName != null) {
-            File scriptFile = new File(scriptName);
+        if (scriptFile != null) {
             if(!scriptFile.isDirectory()) {
                 String scriptFileAbsPath;
                 try {
