@@ -19,6 +19,7 @@ package org.apache.pig.test;
 
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -35,6 +36,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.Counters;
@@ -59,7 +62,9 @@ import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class TestPigRunner {
 
@@ -69,6 +74,9 @@ public class TestPigRunner {
     private static final String INPUT_FILE = "input";
     private static final String OUTPUT_FILE = "output";
     private static final String PIG_FILE = "test.pig";
+
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
@@ -1110,6 +1118,77 @@ public class TestPigRunner {
             Util.deleteFile(cluster, "tmp/output");
         }
     }
+
+    @Test
+    public void testStoredScriptContents() throws Exception {
+        String scriptContents = "sh echo success;\n";
+        FileUtils.writeStringToFile(new File(PIG_FILE), scriptContents);
+        Util.copyFromLocalToCluster(cluster, PIG_FILE, PIG_FILE);
+
+        Path inputInDfs = new Path(cluster.getFileSystem().getHomeDirectory(), PIG_FILE);
+        try {
+            runAndValidateStoredScriptContents(PIG_FILE, scriptContents);
+            runAndValidateStoredScriptContents(inputInDfs.toString(), scriptContents);
+        } finally {
+            FileUtils.deleteQuietly(new File(PIG_FILE));
+            Util.deleteQuietly(cluster, PIG_FILE);
+        }
+    }
+
+    @Test
+    public void testErrorLogUnderCustomDir() throws Exception {
+        try (PrintWriter w = new PrintWriter(new FileWriter(PIG_FILE))) {
+            w.println("A = load '" + INPUT_FILE + "' as (a0:int, a1:int, a2:int);");
+            w.println("B = foreach A generate StringSize(a0);");
+            w.println("store B into '" + OUTPUT_FILE + "';");
+        }
+        Util.copyFromLocalToCluster(cluster, PIG_FILE, PIG_FILE);
+
+        Path inputInDfs = new Path(cluster.getFileSystem().getHomeDirectory(), PIG_FILE);
+        try {
+            runAndValidateCustomErrorLogDir(PIG_FILE);
+            runAndValidateCustomErrorLogDir(inputInDfs.toString());
+        } finally {
+            FileUtils.deleteQuietly(new File(PIG_FILE));
+            Util.deleteQuietly(cluster, PIG_FILE);
+        }
+    }
+
+    private void runAndValidateStoredScriptContents(String scriptPath, String expectedContents) {
+        PigStats stats = runPigLocally(scriptPath);
+        assertTrue(stats.isSuccessful());
+        assertEquals(expectedContents, stats.getScript());
+
+        stats = runPigLocally("-f", scriptPath);
+        assertTrue(stats.isSuccessful());
+        assertEquals(expectedContents, stats.getScript());
+    }
+
+    private void runAndValidateCustomErrorLogDir(String scriptPath) throws IOException {
+        File logsFolder = temporaryFolder.newFolder();
+        String logsPath = logsFolder.getAbsolutePath();
+        assertFileCountUnderDir(logsFolder, 0);
+
+        PigStats stats = runPigLocally("-l", logsPath, scriptPath);
+        assertFalse(stats.isSuccessful());
+        assertFileCountUnderDir(logsFolder, 1);
+
+        stats = runPigLocally("-l", logsPath, "-f", scriptPath);
+        assertFalse(stats.isSuccessful());
+        assertFileCountUnderDir(logsFolder, 2);
+    }
+
+    private void assertFileCountUnderDir(File directory, int expectedFileCount) throws IOException {
+        String[] files = directory.list();
+        assertNotNull(files);
+        assertEquals(expectedFileCount, files.length);
+    }
+
+    private PigStats runPigLocally(String... extraArgs) {
+        String[] args = ArrayUtils.addAll(new String[]{"-x", "local"}, extraArgs);
+        return PigRunner.run(args, new TestNotificationListener("local"));
+    }
+
     public static class TestNotificationListener implements PigProgressNotificationListener {
 
         private Map<String, int[]> numMap = new HashMap<String, int[]>();

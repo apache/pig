@@ -32,6 +32,8 @@ BUG FIXES
 
 PIG-4949: Fix registering jar in S3 which was broken by PIG-4417 in Pig 0.16 (yangyishan0901m via daijy)
 
+PIG-4950: Fix minor issues with running scripts in non-local FileSystems (petersla via daijy)
+
 Release 0.16.0
 
 INCOMPATIBLE CHANGES
