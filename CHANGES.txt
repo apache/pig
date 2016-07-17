@@ -231,8 +231,6 @@ PIG-4867: -stop_on_failure does not work with Tez (rohini)
 
 PIG-4844: Tez AM runs out of memory when vertex has high number of outputs (rohini)
 
-PIG-3906: ant site errors out (nielsbasjes via daijy)
-
 PIG-4851: Null not padded when input has less fields than declared schema for some loader (rohini)
 
 PIG-4850: Registered jars do not use submit replication (rdblue via cheolsoo)
