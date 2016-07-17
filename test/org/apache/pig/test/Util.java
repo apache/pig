@@ -480,6 +480,19 @@ public class Util {
         fs.delete(new Path(fileName), true);
     }
 
+    /**
+     * Deletes a dfs file from the MiniCluster DFS quietly
+     *
+     * @param miniCluster the MiniCluster where the file should be deleted
+     * @param fileName the path of the file to be deleted
+     */
+     public static void deleteQuietly(MiniGenericCluster miniCluster, String fileName) {
+         try {
+             deleteFile(miniCluster, fileName);
+         } catch (IOException ignored) {
+         }
+     }
+
     static public void deleteFile(PigContext pigContext, String fileName)
     throws IOException {
         Configuration conf = ConfigurationUtil.toConfiguration(
