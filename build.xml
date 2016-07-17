@@ -1237,11 +1237,10 @@
           uri="urn:maven-artifact-ant"
           classpathref="mvn-ant-task.classpath"/>
     </target>
-    <target name="mvn-install" depends="mvn-taskdef,jar-h12, set-version, source-jar,
-      javadoc-jar, pigunit-jar, smoketests-jar, piggybank"
+    <target name="mvn-install" depends="mvn-taskdef, mvn-build, set-version"
          description="To install pig to local filesystem's m2 cache">
          <artifact:pom file="${pig.pom}" id="pig"/>
-          <artifact:install file="${output.jarfile.core-h1}">
+          <artifact:install file="${output.jarfile.core}">
                <pom refid="pig"/>
            <attach file="${output.jarfile.sources}" classifier="sources" />
            <attach file="${output.jarfile.javadoc}" classifier="javadoc" />
