@@ -148,7 +148,7 @@ public class IndexedKey implements Serializable, Comparable {
     }
 
     //firstly compare the index
-    //secondly compare the key
+    //secondly compare the key (both first and secondary key)
     @Override
     public int compareTo(Object o) {
         IndexedKey that = (IndexedKey) o;
@@ -160,15 +160,9 @@ public class IndexedKey implements Serializable, Comparable {
         } else {
             if (useSecondaryKey) {
                 Tuple thisCompoundKey = (Tuple) key;
-                Tuple thatCompoundKey = (Tuple) that.getKey();
-                try {
-                    Object thisSecondary = thisCompoundKey.get(1);
-                    Object thatSecondaryKey = thatCompoundKey.get(1);
-                    return PigSecondaryKeyComparatorSpark.compareSecondaryKeys(thisSecondary, thatSecondaryKey, secondarySortOrder);
-
-                } catch (ExecException e) {
-                    throw new RuntimeException("IndexedKey#compareTo throws exception ", e);
-                }
+                Tuple thatCompoundKey = (Tuple)that.getKey();
+                return PigSecondaryKeyComparatorSpark.compareKeys(thisCompoundKey, thatCompoundKey,
+                        secondarySortOrder);
             } else {
                 return DataType.compare(key, that.getKey());
             }

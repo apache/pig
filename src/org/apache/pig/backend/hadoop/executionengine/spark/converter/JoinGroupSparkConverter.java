@@ -23,6 +23,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 
 import scala.Product2;
 import scala.Tuple2;
@@ -46,10 +47,10 @@ import org.apache.pig.backend.hadoop.executionengine.spark.operator.POJoinGroupS
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
-import org.apache.spark.HashPartitioner;
+import org.apache.spark.Partitioner;
 import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.Function;
-import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.rdd.CoGroupedRDD;
 import org.apache.spark.rdd.RDD;
 
@@ -80,49 +81,171 @@ public class JoinGroupSparkConverter implements RDDConverter<Tuple, Tuple, POJoi
                     SparkUtil.<IndexedKey, Tuple>getTuple2Manifest()));
         }
         if (rddAfterLRA.size() == 1 && useSecondaryKey) {
-            rddAfterLRA.set(0, handleSecondarySort(rddAfterLRA.get(0), parallelism));
+            return handleSecondarySort(rddAfterLRA.get(0), pkgOp);
+        } else {
+
+            CoGroupedRDD<Object> coGroupedRDD = new CoGroupedRDD<Object>(
+                    (Seq<RDD<? extends Product2<Object, ?>>>) (Object) (JavaConversions
+                            .asScalaBuffer(rddAfterLRA).toSeq()),
+                    SparkUtil.getPartitioner(glaOp.getCustomPartitioner(), parallelism),
+                    SparkUtil.getManifest(Object.class));
+
+            RDD<Tuple2<IndexedKey, Seq<Seq<Tuple>>>> rdd =
+                    (RDD<Tuple2<IndexedKey, Seq<Seq<Tuple>>>>) (Object) coGroupedRDD;
+            return rdd.toJavaRDD().map(new GroupPkgFunction(pkgOp, this.confBytes)).rdd();
         }
-
-        CoGroupedRDD<Object> coGroupedRDD = new CoGroupedRDD<Object>(
-                (Seq<RDD<? extends Product2<Object, ?>>>) (Object) (JavaConversions
-                        .asScalaBuffer(rddAfterLRA).toSeq()),
-                SparkUtil.getPartitioner(glaOp.getCustomPartitioner(), parallelism),
-		SparkUtil.getManifest(Object.class));
-
-        RDD<Tuple2<IndexedKey, Seq<Seq<Tuple>>>> rdd =
-                (RDD<Tuple2<IndexedKey, Seq<Seq<Tuple>>>>) (Object) coGroupedRDD;
-        return rdd.toJavaRDD().map(new GroupPkgFunction(pkgOp, this.confBytes)).rdd();
     }
 
+    private RDD<Tuple> handleSecondarySort(
+            RDD<Tuple2<IndexedKey, Tuple>> rdd, POPackage pkgOp) {
+        JavaPairRDD<IndexedKey, Tuple> pairRDD = JavaPairRDD.fromRDD(rdd, SparkUtil.getManifest(IndexedKey.class),
+                SparkUtil.getManifest(Tuple.class));
 
-    private RDD<Tuple2<IndexedKey, Tuple>> handleSecondarySort(
-            RDD<Tuple2<IndexedKey, Tuple>> rdd, int parallelism) {
-
-        JavaPairRDD<IndexedKey, Tuple> pairRDD = JavaPairRDD.fromRDD(rdd, SparkUtil.getManifest(IndexedKey.class), SparkUtil.getManifest(Tuple.class));
-
-        //first sort the tuple by secondary key if enable useSecondaryKey sort
+        int partitionNums = pairRDD.partitions().size();
+        //repartition to group tuples with same indexedkey to same partition
         JavaPairRDD<IndexedKey, Tuple> sorted = pairRDD.repartitionAndSortWithinPartitions(
-                new HashPartitioner(parallelism));
-        JavaPairRDD<IndexedKey, Tuple> sortByKey = sorted.sortByKey();
-        return sortByKey.mapToPair(new RemoveSecondaryKey()).rdd();
+                new IndexedKeyPartitioner(partitionNums));
+        //Package tuples with same indexedkey as the result: (key,(val1,val2,val3,...))
+        return sorted.mapPartitions(new AccumulateByKey(pkgOp), true).rdd();
     }
 
-    private static class RemoveSecondaryKey implements
-            PairFunction<Tuple2<IndexedKey, Tuple>, IndexedKey, Tuple>,
-            Serializable {
+    //Group tuples with same IndexKey into same partition
+    private static class IndexedKeyPartitioner extends Partitioner {
+        private int partition;
+        public IndexedKeyPartitioner(int partition) {
+            this.partition = partition;
+        }
+        @Override
+        public int getPartition(Object obj) {
+            IndexedKey indexedKey = (IndexedKey) obj;
+            Tuple key = (Tuple) indexedKey.getKey();
+
+            int hashCode = 0;
+            try {
+                hashCode = Objects.hashCode(key.get(0));
+            } catch (ExecException e) {
+                throw new RuntimeException("IndexedKeyPartitioner#getPartition: ", e);
+            }
+            return Math.abs(hashCode) % partition;
+        }
 
         @Override
-        public Tuple2<IndexedKey, Tuple> call(Tuple2<IndexedKey, Tuple> t) throws Exception {
-            IndexedKey key = t._1();
-            Tuple compoundKey = (Tuple) key.getKey();
-            if (compoundKey.size() < 2) {
-                throw new RuntimeException("compoundKey.size() should be more than 2");
-            }
-            IndexedKey newKey = new IndexedKey(key.getIndex(), compoundKey.get(0));
-            return new Tuple2<IndexedKey, Tuple>(newKey, t._2());
+        public int numPartitions() {
+            return partition;
         }
     }
 
+    //Package tuples with same indexedkey as the result: (key,(val1,val2,val3,...))
+    //Send (key,Iterator) to POPackage, use POPackage#getNextTuple to get the result
+    private static class AccumulateByKey implements FlatMapFunction<Iterator<Tuple2<IndexedKey, Tuple>>, Tuple>,
+            Serializable {
+        private POPackage pkgOp;
+
+        public AccumulateByKey(POPackage pkgOp) {
+            this.pkgOp = pkgOp;
+        }
+
+        @Override
+        public Iterable<Tuple> call(final Iterator<Tuple2<IndexedKey, Tuple>> it) throws Exception {
+            return new Iterable<Tuple>() {
+                Object curKey = null;
+                ArrayList curValues = new ArrayList();
+
+                @Override
+                public Iterator<Tuple> iterator() {
+                    return new Iterator<Tuple>() {
+
+                        @Override
+                        public boolean hasNext() {
+                            return it.hasNext() || curKey != null;
+                        }
+
+                        @Override
+                        public Tuple next() {
+                            while (it.hasNext()) {
+                                Tuple2<IndexedKey, Tuple> t = it.next();
+                                //key changes, restruct the last tuple by curKey, curValues and return
+                                Object tMainKey = null;
+                                try {
+                                    tMainKey = ((Tuple) (t._1()).getKey()).get(0);
+                                    if (curKey != null && !curKey.equals(tMainKey)) {
+                                        Tuple result = restructTuple(curKey, new ArrayList(curValues));
+                                        curValues.clear();
+                                        curKey = tMainKey;
+                                        curValues.add(t._2());
+                                        return result;
+                                    }
+                                    curKey = tMainKey;
+                                    //if key does not change, just append the value to the same key
+                                    curValues.add(t._2());
+
+                                } catch (ExecException e) {
+                                    throw new RuntimeException("AccumulateByKey throw exception: ", e);
+                                }
+                            }
+                            if (curKey == null) {
+                                throw new RuntimeException("AccumulateByKey curKey is null");
+                            }
+
+                            //if we get here, this should be the last record
+                            Tuple res = restructTuple(curKey, curValues);
+                            curKey = null;
+                            return res;
+                        }
+
+
+                        @Override
+                        public void remove() {
+                            // Not implemented.
+                            // throw Unsupported Method Invocation Exception.
+                            throw new UnsupportedOperationException();
+                        }
+                    };
+                }
+            };
+        }
+
+        private Tuple restructTuple(final Object curKey, final ArrayList<Tuple> curValues) {
+            try {
+                Tuple retVal = null;
+                PigNullableWritable retKey = new PigNullableWritable() {
+
+                    public Object getValueAsPigType() {
+                        return curKey;
+                    }
+                };
+
+                //Here restruct a tupleIterator, later POPackage#tupIter will use it.
+                final Iterator<Tuple> tupleItearator = curValues.iterator();
+                Iterator<NullableTuple> iterator = new Iterator<NullableTuple>() {
+                    public boolean hasNext() {
+                        return tupleItearator.hasNext();
+                    }
+
+                    public NullableTuple next() {
+                        Tuple t = tupleItearator.next();
+                        return new NullableTuple(t);
+                    }
+
+                    public void remove() {
+                        throw new UnsupportedOperationException();
+                    }
+                };
+                pkgOp.setInputs(null);
+                pkgOp.attachInput(retKey, iterator);
+                Result res = pkgOp.getNextTuple();
+                if (res.returnStatus == POStatus.STATUS_OK) {
+                    retVal = (Tuple) res.result;
+                }
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("AccumulateByKey out: " + retVal);
+                }
+                return retVal;
+            } catch (ExecException e) {
+                throw new RuntimeException("AccumulateByKey#restructTuple throws exception: ", e);
+            }
+        }
+    }
 
     private static class LocalRearrangeFunction extends
             AbstractFunction1<Tuple, Tuple2<IndexedKey, Tuple>> implements Serializable {
