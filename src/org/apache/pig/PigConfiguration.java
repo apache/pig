@@ -434,6 +434,11 @@ public class PigConfiguration {
      */
     public static final String ENABLE_ATS = "pig.ats.enabled";
 
+    /**
+     * Enable ATS for Pig
+     */
+    public static final String PIG_TEZ_CONFIGURE_AM_MEMORY = "pig.tez.configure.am.memory";
+
     // Deprecated settings of Pig 0.13
 
     /**
