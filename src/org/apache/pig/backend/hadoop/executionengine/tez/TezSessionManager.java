@@ -29,6 +29,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezJob.TezJobConfig;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.MRToTezHelper;
 import org.apache.pig.impl.PigContext;
@@ -89,7 +90,9 @@ public class TezSessionManager {
         TezConfiguration amConf = MRToTezHelper.getDAGAMConfFromMRConf(conf);
         TezScriptState ss = TezScriptState.get();
         ss.addDAGSettingsToConf(amConf);
-        adjustAMConfig(amConf, tezJobConf);
+        if (amConf.getBoolean(PigConfiguration.PIG_TEZ_CONFIGURE_AM_MEMORY, true)) {
+            adjustAMConfig(amConf, tezJobConf);
+        }
         String jobName = conf.get(PigContext.JOB_NAME, "pig");
         TezClient tezClient = TezClient.create(jobName, amConf, true, requestedAMResources, creds);
         try {
