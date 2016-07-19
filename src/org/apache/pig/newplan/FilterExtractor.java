@@ -278,12 +278,21 @@ public abstract class FilterExtractor {
             if (unaryExpr instanceof CastExpression) {
                 return checkPushDown(unaryExpr.getExpression());
             }
-            if (unaryExpr instanceof IsNullExpression) {
-                state.pushdownExpr = unaryExpr;
-                state.filterExpr = null;
-            } else if (unaryExpr instanceof NotExpression) {
-                state.pushdownExpr = unaryExpr;
-                state.filterExpr = null;
+            // For IsNull, the child may not be a supported expression, e.g. MapLookupExpression.
+            // For NotExpression, the child, C, is broken into expressions P and F such that C = P AND F
+            // Consequently, NOT C = NOT P OR NOT F, which can't be expressed as an AND so both must be
+            // pushed or both used as a filter.
+            // For both cases, this expr can be pushed if and only if the entire child can be.
+            if (unaryExpr instanceof IsNullExpression || unaryExpr instanceof NotExpression) {
+                KeyState childState = checkPushDown(unaryExpr.getExpression());
+                if (childState.filterExpr == null) {
+                    // only push down if the entire expression can be pushed
+                    state.pushdownExpr = unaryExpr;
+                    state.filterExpr = null;
+                } else {
+                    state.filterExpr = addToFilterPlan(unaryExpr);
+                    state.pushdownExpr = null;
+                }
             } else {
                 state.filterExpr = addToFilterPlan(unaryExpr);
                 state.pushdownExpr = null;

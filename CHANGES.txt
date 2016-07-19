@@ -36,6 +36,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4940: Predicate push-down filtering unary expressions can be pushed (rdblue via daijy)
+
 PIG-4938: [PiggyBank] XPath returns empty values when using aggregation method (nkollar via daijy)
 
 PIG-4896: Param substitution ignored when redefined (knoguchi)
