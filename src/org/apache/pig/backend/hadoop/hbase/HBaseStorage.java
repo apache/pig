@@ -590,7 +590,9 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
                             new BinaryComparator(colInfo.getColumnName())));
                 }
             }
-            thisColumnGroupFilter.addFilter(columnFilters);
+            if (columnFilters.getFilters().size() != 0) {
+                thisColumnGroupFilter.addFilter(columnFilters);
+            }
             allColumnFilters.addFilter(thisColumnGroupFilter);
         }
         if (allColumnFilters != null) {
