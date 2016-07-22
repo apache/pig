@@ -57,6 +57,7 @@ import org.apache.pig.newplan.logical.expression.EqualExpression;
 import org.apache.pig.newplan.logical.expression.IsNullExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpression;
 import org.apache.pig.newplan.logical.expression.MapLookupExpression;
+import org.apache.pig.newplan.logical.expression.NotEqualExpression;
 import org.apache.pig.newplan.logical.expression.NotExpression;
 import org.apache.pig.newplan.logical.expression.OrExpression;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
@@ -121,6 +122,17 @@ public class TestNewPartitionFilterPushDown {
         test(q, Arrays.asList("srcid", "mrkt"),
                 "((srcid > 20) and (mrkt == 'us'))", null);
 
+    }
+
+    /**
+     * test case where filter only contains condition on partition cols
+     * @throws Exception
+     */
+    @Test
+    public void testPartIsNullFilter() throws Exception {
+        String q = query + "b = filter a by srcid is null;" + "store b into 'out';";
+        test(q, Arrays.asList("srcid"),
+                null, "(srcid is null)");
     }
 
     /**
@@ -859,7 +871,7 @@ public class TestNewPartitionFilterPushDown {
         return "(" + input + ")";
     }
 
-    private static String getTestExpression(LogicalExpression op) throws FrontendException {
+    public static String getTestExpression(LogicalExpression op) throws FrontendException {
         if(op == null) {
             return null;
         }
@@ -881,6 +893,8 @@ public class TestNewPartitionFilterPushDown {
                     opStr = " and ";
                 } else if (op instanceof OrExpression) {
                     opStr = " or ";
+                } else if (op instanceof NotEqualExpression) {
+                    opStr = " != ";
                 } else {
                     opStr = op.getName();
                 }
