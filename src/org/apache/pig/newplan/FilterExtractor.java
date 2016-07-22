@@ -98,13 +98,17 @@ public abstract class FilterExtractor {
     public void visit() throws FrontendException {
         // we will visit the leaf and it will recursively walk the plan
         LogicalExpression leaf = (LogicalExpression)originalPlan.getSources().get( 0 );
-        // if the leaf is a unary operator it should be a FilterFunc in
-        // which case we don't try to extract partition filter conditions
-        if(leaf instanceof BinaryExpression) {
-            // recursively traverse the tree bottom up
-            // checkPushdown returns KeyState which is pair of LogicalExpression
-            BinaryExpression binExpr = (BinaryExpression)leaf;
-            KeyState finale = checkPushDown(binExpr);
+
+        // recursively traverse the tree bottom up
+        // checkPushdown returns KeyState which is pair of LogicalExpression
+        KeyState finale = null;
+        if (leaf instanceof BinaryExpression) {
+            finale = checkPushDown((BinaryExpression) leaf);
+        } else if (leaf instanceof UnaryExpression) {
+            finale = checkPushDown((UnaryExpression) leaf);
+        }
+
+        if (finale != null) {
             this.filterExpr = finale.filterExpr;
             this.pushdownExpr = getExpression(finale.pushdownExpr);
         }
@@ -290,6 +294,7 @@ public abstract class FilterExtractor {
                     state.pushdownExpr = unaryExpr;
                     state.filterExpr = null;
                 } else {
+                    removeFromFilteredPlan(childState.filterExpr);
                     state.filterExpr = addToFilterPlan(unaryExpr);
                     state.pushdownExpr = null;
                 }
