@@ -106,8 +106,8 @@ public class MapReduceLauncher extends Launcher {
     @Override
     public void kill() {
         try {
-            log.info("Received kill signal");
-            if (jc!=null) {
+            if (jc != null && jc.getRunningJobs().size() > 0) {
+                log.info("Received kill signal");
                 for (Job job : jc.getRunningJobs()) {
                     HadoopShims.killJob(job);
                     log.info("Job " + job.getAssignedJobID() + " killed");
