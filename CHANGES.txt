@@ -36,6 +36,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4957: See "Received kill signal" message for a normal run after PIG-4921 (rohini)
+
 PIG-4953: Predicate push-down will not run filters for single unary expressions (rdblue via daijy)
 
 PIG-4940: Predicate push-down filtering unary expressions can be pushed (rdblue via daijy)
