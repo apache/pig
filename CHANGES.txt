@@ -38,6 +38,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4960: Split followed by order by/skewed join is skewed in Tez (rohini)
+
 PIG-4957: See "Received kill signal" message for a normal run after PIG-4921 (rohini)
 
 PIG-4953: Predicate push-down will not run filters for single unary expressions (rdblue via daijy)

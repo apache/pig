@@ -44,6 +44,9 @@ public class POPoissonSample extends PhysicalOperator {
 
     private transient boolean initialized;
 
+    // num of rows skipped so far
+    private transient int numSkipped;
+
     // num of rows sampled so far
     private transient int numRowsSampled;
 
@@ -89,6 +92,7 @@ public class POPoissonSample extends PhysicalOperator {
     @Override
     public Result getNextTuple() throws ExecException {
         if (!initialized) {
+            numSkipped = 0;
             numRowsSampled = 0;
             avgTupleMemSz = 0;
             rowNum = 0;
@@ -134,7 +138,7 @@ public class POPoissonSample extends PhysicalOperator {
         }
 
         // skip tuples
-        for (long numSkipped  = 0; numSkipped < skipInterval; numSkipped++) {
+        while (numSkipped < skipInterval) {
             res = processInput();
             if (res.returnStatus == POStatus.STATUS_NULL) {
                 continue;
@@ -148,6 +152,7 @@ public class POPoissonSample extends PhysicalOperator {
                 return res;
             }
             rowNum++;
+            numSkipped++;
         }
 
         // skipped enough, get new sample
@@ -173,6 +178,8 @@ public class POPoissonSample extends PhysicalOperator {
 
             rowNum++;
             newSample = res;
+            // reset skipped
+            numSkipped = 0;
             return currentSample;
         }
     }
