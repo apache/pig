@@ -738,9 +738,12 @@ public class POForEach extends PhysicalOperator {
             opsToBeReset.add(sort);
         }
 
-        /* (non-Javadoc)
-         * @see org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor#visitProject(org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject)
-         */
+        @Override
+        public void visitCross(POCross c) throws VisitorException {
+            // FIXME: add only if limit is present
+            opsToBeReset.add(c);
+        }
+
         @Override
         public void visitProject(POProject proj) throws VisitorException {
             if(proj instanceof PORelationToExprProject) {

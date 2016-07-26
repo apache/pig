@@ -30,6 +30,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-4961: CROSS followed by LIMIT inside nested foreach drop data from result (rohini)
+
 PIG-4960: Split followed by order by/skewed join is skewed in Tez (rohini)
 
 PIG-4947: LOAD with HBaseStorage using a mix of pure wildcards and prefixed wildcards results in
