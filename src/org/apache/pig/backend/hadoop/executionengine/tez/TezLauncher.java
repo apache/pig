@@ -166,7 +166,7 @@ public class TezLauncher extends Launcher {
         tezStats = new TezPigScriptStats(pc);
         PigStats.start(tezStats);
 
-        conf.set(TezConfiguration.TEZ_USE_CLUSTER_HADOOP_LIBS, "true");
+        conf.setIfUnset(TezConfiguration.TEZ_USE_CLUSTER_HADOOP_LIBS, "true");
         TezJobCompiler jc = new TezJobCompiler(pc, conf);
         TezPlanContainer tezPlanContainer = compile(php, pc);
 
