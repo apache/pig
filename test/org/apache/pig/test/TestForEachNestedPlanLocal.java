@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Random;
 
 import org.apache.pig.PigServer;
+import org.apache.pig.builtin.mock.Storage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.Test;
@@ -108,6 +109,31 @@ public class TestForEachNestedPlanLocal {
             assertEquals(expectedTuple, actualTuple);
         }
         assertEquals(expectedItr.hasNext(), actualItr.hasNext());
+    }
+
+    @Test
+    public void testNestedCrossTwoRelationsLimit() throws Exception {
+        Storage.Data data = Storage.resetData(pig);
+        data.set("input",
+                Storage.tuple(Storage.bag(Storage.tuple(1, 1), Storage.tuple(1, 2)), Storage.bag(Storage.tuple(1, 3), Storage.tuple(1, 4))),
+                Storage.tuple(Storage.bag(Storage.tuple(2, 1), Storage.tuple(2, 2)), Storage.bag(Storage.tuple(2, 3))),
+                Storage.tuple(Storage.bag(Storage.tuple(3, 1)), Storage.bag(Storage.tuple(3, 2))));
+
+        pig.setBatchOn();
+        pig.registerQuery("A = load 'input' using mock.Storage() as (bag1:bag{tup1:tuple(f1:int, f2:int)}, bag2:bag{tup2:tuple(f3:int, f4:int)});");
+        pig.registerQuery("B = foreach A {"
+                + "crossed = cross bag1, bag2;"
+                + "filtered = filter crossed by f1 == f3;"
+                + "lmt = limit filtered 1;"
+                + "generate FLATTEN(lmt);" + "}");
+        pig.registerQuery("store B into 'output' using mock.Storage();");
+
+        pig.executeBatch();
+
+        List<Tuple> actualResults = data.get("output");
+        List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
+                new String[] {"(1, 1, 1, 3)", "(2, 1, 2, 3)", "(3, 1, 3, 2)"});
+        Util.checkQueryOutputs(actualResults.iterator(), expectedResults);
     }
 
     @Test
