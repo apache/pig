@@ -30,6 +30,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-4960: Split followed by order by/skewed join is skewed in Tez (rohini)
+
 PIG-4947: LOAD with HBaseStorage using a mix of pure wildcards and prefixed wildcards results in
   empty maps for the pure wildcarded column families (daijy)
 
