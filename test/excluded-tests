@@ -2,5 +2,7 @@
 **/TestLargeFile.java
 **/TestOrderBy.java
 **/TestOrderBy2.java
+**/TestScriptUDF.java
+**/TestMacroExpansion.java
 **/TestPi.java
 **/e2e/**
