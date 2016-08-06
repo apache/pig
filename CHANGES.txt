@@ -38,6 +38,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4966: Fix Pig compatibility with Hive 2.1.0 (zyork via daijy)
+
 PIG-4935: TEZ_USE_CLUSTER_HADOOP_LIBS is always set to true (rohini)
 
 PIG-4961: CROSS followed by LIMIT inside nested foreach drop data from result (rohini)
