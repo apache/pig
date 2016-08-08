@@ -60,7 +60,8 @@ for(my $i = 1; $i <= 17; $i++) {
         print STDERR `$cmd 2>&1`;
         my $e = time();
         $pig_times += $e - $s;
-        cleanup($i);
+        my $output="$pigmixoutput/pig";
+        cleanup($output,$i);
     }
     # find avg
     $pig_times = $pig_times/$runs;
@@ -82,7 +83,8 @@ for(my $i = 1; $i <= 17; $i++) {
             print STDERR `$cmd 2>&1`;
             my $e = time();
             $mr_times += $e - $s;
-            cleanup($i);
+            my $output="$pigmixoutput/mapreduce";
+            cleanup($output,$i);
         }
         # find avg
         $mr_times = $mr_times/$runs;
@@ -108,20 +110,19 @@ else {
 }
 
 sub cleanup {
+    my $output = shift;
     my $suffix = shift;
     my $cmd;
-    $cmd = "$pigbin -e rmf L".$suffix."out";
-    print STDERR `$cmd 2>&1`;
-    $cmd = "$pigbin -e rmf highest_value_page_per_user";
-    print STDERR `$cmd 2>&1`;
-    $cmd = "$pigbin -e rmf total_timespent_per_term";
-    print STDERR `$cmd 2>&1`;
-    $cmd = "$pigbin -e rmf queries_per_action";
-    print STDERR `$cmd 2>&1`;
-    $cmd = "$pigbin -e rmf tmp";
-    print STDERR `$cmd 2>&1`;
     if ($cleanup_after_test) {
-        $cmd = "$hadoopbin fs -rmr $pigmixoutput";
+        $cmd = "$pigbin -e rmf $output/L".$suffix."out";
+        print STDERR `$cmd 2>&1`;
+        $cmd = "$pigbin -e rmf $output/highest_value_page_per_user";
+        print STDERR `$cmd 2>&1`;
+        $cmd = "$pigbin -e rmf $output/total_timespent_per_term";
+        print STDERR `$cmd 2>&1`;
+        $cmd = "$pigbin -e rmf $output/queries_per_action";
+        print STDERR `$cmd 2>&1`;
+        $cmd = "$pigbin -e rmf tmp";
         print STDERR `$cmd 2>&1`;
     }
 }

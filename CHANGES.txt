@@ -38,6 +38,9 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4965: Refactor test/perf/pigmix/bin/runpigmix.pl to delete the output of single test case
+  if we enable cleanup_after_test (kellyzly via daijy)
+
 PIG-4966: Fix Pig compatibility with Hive 2.1.0 (zyork via daijy)
 
 PIG-4935: TEZ_USE_CLUSTER_HADOOP_LIBS is always set to true (rohini)
