@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4931: Document IN operator (dbist13 vi daijy)
+
 PIG-4852: Add accumulator implementation for MaxTupleBy1stField (szita via daijy)
 
 PIG-4925: Support for passing the bloom filter to the Bloom UDF (rohini)
