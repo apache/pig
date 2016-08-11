@@ -1795,6 +1795,10 @@ public class POCast extends ExpressionOperator {
             default:
                 throw new ExecException("Cannot convert "+ obj + " to " + fs, 1120, PigException.INPUT);
             }
+        case DataType.BYTEARRAY:
+            //no-op (PIG-4933)
+            result = obj;
+            break;
         default:
             throw new ExecException("Don't know how to convert "+ obj + " to " + fs, 1120, PigException.INPUT);
         }

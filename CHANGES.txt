@@ -40,6 +40,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4933: TestDataBagAccess.testBagConstantFlatten1/TestLogicalPlanBuilder.testQuery90 broken after PIG-2315 (knoguchi)
+
 PIG-4965: Refactor test/perf/pigmix/bin/runpigmix.pl to delete the output of single test case
   if we enable cleanup_after_test (kellyzly via daijy)
 

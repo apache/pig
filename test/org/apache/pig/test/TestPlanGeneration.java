@@ -41,7 +41,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.builtin.mock.Storage;
 import org.apache.pig.builtin.mock.Storage.Data;
-import static org.apache.pig.builtin.mock.Storage.tuple;
+import static org.apache.pig.builtin.mock.Storage.*;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
@@ -71,8 +71,8 @@ public class TestPlanGeneration {
     private static PigServer ps;
 
     @BeforeClass
-    public static void setUp() throws ExecException {
-        ps = new PigServer(ExecType.LOCAL);
+    public static void setUp() throws Exception {
+        ps = new PigServer(Util.getLocalTestMode());
         pc = ps.getPigContext();
         pc.connect();
     }
@@ -466,8 +466,7 @@ public class TestPlanGeneration {
     @Test
     // See PIG-2315
     public void testAsType1() throws Exception {
-        PigServer pig = new PigServer(Util.getLocalTestMode());
-        Data data = Storage.resetData(pig);
+        Data data = Storage.resetData(ps);
         data.set("input", tuple(0.1), tuple(1.2), tuple(2.3));
 
         String query =
@@ -475,7 +474,7 @@ public class TestPlanGeneration {
             + "B = FOREACH A GENERATE a1 as (a2:int);\n"
             + "store B into 'out' using mock.Storage;" ;
 
-        Util.registerMultiLineQuery(pig, query);
+        Util.registerMultiLineQuery(ps, query);
         List<Tuple> list = data.get("out");
         // Without PIG-2315, this failed with (0.1), (1.2), (2.3)
         List<Tuple> expectedRes =
@@ -487,8 +486,7 @@ public class TestPlanGeneration {
     @Test
     // See PIG-2315
     public void testAsType2() throws Exception {
-        PigServer pig = new PigServer(Util.getLocalTestMode());
-        Data data = Storage.resetData(pig);
+        Data data = Storage.resetData(ps);
         data.set("input", tuple("a"), tuple("b"), tuple("c"));
 
         String query =
@@ -500,7 +498,7 @@ public class TestPlanGeneration {
             + "D = distinct C;\n"
             + "store D into 'out' using mock.Storage;" ;
 
-        Util.registerMultiLineQuery(pig, query);
+        Util.registerMultiLineQuery(ps, query);
         List<Tuple> list = data.get("out");
         // Without PIG-2315, this produced TWO 12345.
         // One by chararray and another by int.
@@ -508,5 +506,33 @@ public class TestPlanGeneration {
                 Util.getTuplesFromConstantTupleStrings(
                         new String[] {"('12345')"});
         Util.checkQueryOutputsAfterSort(list, expectedRes);
+    }
+
+    @Test
+    // See PIG-4933
+    public void testAsWithByteArrayCast() throws Exception {
+        Data data = Storage.resetData(ps);
+	    data.set("input_testAsWithByteArrayCast", "t1:(f1:bytearray, f2:bytearray), f3:chararray",
+				tuple(tuple(1,5), "a"),
+				tuple(tuple(2,4), "b"),
+				tuple(tuple(3,3), "c") );
+
+        String query =
+            "A = load 'input_testAsWithByteArrayCast' USING mock.Storage();\n"
+            + "B = FOREACH A GENERATE t1 as (t2:(newf1, newf2:float)), f3;"
+            + "store B into 'out' using mock.Storage;" ;
+
+        // This will call typecast of (bytearray,float) on a tuple
+        // bytearray2bytearray should be no-op.
+        // Without pig-4933 patch on POCast,
+        // this typecast was producing empty results
+
+        Util.registerMultiLineQuery(ps, query);
+        List<Tuple> list = data.get("out");
+        String[] expectedRes =
+                        new String[] {"((1,5.0),a)","((2,4.0),b)","((3,3.0),c)"};
+        for( int i=0; i < list.size(); i++ ) {
+            Assert.assertEquals(expectedRes[i], list.get(i).toString());
+        }
     }
 }

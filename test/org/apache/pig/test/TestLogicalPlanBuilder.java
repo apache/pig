@@ -1135,8 +1135,7 @@ public class TestLogicalPlanBuilder {
         	    "store c into 'output';");
         store = lp.getSinks().get(0);
         foreach = (LOForEach)lp.getPredecessors(store).get(0);
-        Assert.assertTrue(foreach.getSchema().toString( false ).equals("mygroup:tuple(myname:chararray,myage:int),mycount:long"));
-        /*
+        Assert.assertEquals(foreach.getSchema().toString( false ),"mygroup:tuple(myname:chararray,myage:int),mycount:long");
         //setting the schema of flattened bag that has no schema with the user defined schema
         String q = "a = load 'myfile' as (name:Chararray, age:Int, gpa:Float);" +
                    "c = load 'another_file';" +
@@ -1144,38 +1143,40 @@ public class TestLogicalPlanBuilder {
         lp = buildPlan( q + "e = foreach d generate flatten(DIFF(a, c)) as (x, y, z), COUNT(a) as mycount;" + "store e into 'output';" );
         store = lp.getSinks().get(0);
         foreach = (LOForEach)lp.getPredecessors(store).get(0);
-        Assert.assertTrue(foreach.getSchema().equals(Util.getSchemaFromString("x: bytearray, y: bytearray, z: bytearray, mycount: long")));
+        Assert.assertEquals(foreach.getSchema().toString(false),"x:bytearray,y:bytearray,z:bytearray,mycount:long");
 
         //setting the schema of flattened bag that has no schema with the user defined schema
         q = query +
                   "c = load 'another_file';" +
                   "d = cogroup a by $0, c by $0;" +
-                  "e = foreach d generate flatten(DIFF(a, c)) as (x: int, y: float, z), COUNT(a) as mycount;";
+                  "e = foreach d generate flatten(DIFF(a, c)) as (x: int, y: float, z), COUNT(a) as mycount;" +
+                  "store e into 'output';";
         lp = buildPlan(q);
         store = lp.getSinks().get(0);
         foreach = (LOForEach)lp.getPredecessors(store).get(0);
-        Assert.assertTrue(foreach.getSchema().equals(Util.getSchemaFromString("x: int, y: float, z: bytearray, mycount: long")));
+        Assert.assertEquals(foreach.getSchema().toString(false),"x:int,y:float,z:bytearray,mycount:long");
 
         //setting the schema of flattened bag that has no schema with the user defined schema
         q = query +
             "c = load 'another_file';" +
             "d = cogroup a by $0, c by $0;" +
-            "e = foreach d generate flatten(DIFF(a, c)) as x, COUNT(a) as mycount;";
+            "e = foreach d generate flatten(DIFF(a, c)) as x, COUNT(a) as mycount;" +
+            "store e into 'output';";
         lp = buildPlan(q);
         store = lp.getSinks().get(0);
         foreach = (LOForEach)lp.getPredecessors(store).get(0);
-        Assert.assertTrue(foreach.getSchema().equals(Util.getSchemaFromString("x: bytearray, mycount: long")));
+        Assert.assertEquals(foreach.getSchema().toString(false),"x:bytearray,mycount:long");
 
         //setting the schema of flattened bag that has no schema with the user defined schema
         q = query + 
             "c = load 'another_file';" +
             "d = cogroup a by $0, c by $0;" +
-            "e = foreach d generate flatten(DIFF(a, c)) as x: int, COUNT(a) as mycount;";
+            "e = foreach d generate flatten(DIFF(a, c)) as x: int, COUNT(a) as mycount;" +
+            "store e into 'output';";
         lp = buildPlan(q);
         store = lp.getSinks().get(0);
         foreach = (LOForEach)lp.getPredecessors(store).get(0);
-        Assert.assertTrue(foreach.getSchema().equals(Util.getSchemaFromString("x: int, mycount: long")));
-         */
+        Assert.assertEquals(foreach.getSchema().toString(false),"x:int,mycount:long");
     }
 
     @Test

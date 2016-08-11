@@ -41,6 +41,67 @@ public class ForEachUserSchemaVisitor extends LogicalRelationalNodesVisitor {
         super(plan, new DependencyOrderWalker(plan));
     }
 
+    private static LogicalSchema replaceNullByteArraySchema(
+                         LogicalSchema originalSchema,
+                         LogicalSchema userSchema) throws FrontendException {
+        if( originalSchema == null && userSchema == null ) {
+            return null;
+        } else if ( originalSchema == null ) {
+            return userSchema.deepCopy();
+        } else if ( userSchema == null ) {
+            return originalSchema.deepCopy();
+        }
+
+        LogicalSchema replacedSchema = new LogicalSchema();
+        for (int i=0;i<originalSchema.size();i++) {
+            LogicalFieldSchema replacedFS = replaceNullByteArrayFieldSchema(originalSchema.getField(i), userSchema.getField(i));
+            replacedSchema.addField(replacedFS);
+        }
+        return replacedSchema;
+    }
+
+    private static LogicalFieldSchema replaceNullByteArrayFieldSchema(
+                         LogicalFieldSchema originalFS,
+                         LogicalFieldSchema userFS) throws FrontendException {
+        if( originalFS == null && userFS == null ) {
+            return null;
+        } else if ( originalFS == null ) {
+            return userFS.deepCopy();
+        } else if ( userFS == null ) {
+            return originalFS.deepCopy();
+        }
+        if ( originalFS.type==DataType.NULL
+            || originalFS.type==DataType.BYTEARRAY ) {
+            return userFS.deepCopy();
+        } else if ( userFS.type==DataType.NULL
+            || userFS.type==DataType.BYTEARRAY ) {
+            // Use originalFS schema but keep the alias from userFS
+            return new LogicalFieldSchema(userFS.alias, originalFS.schema,  originalFS.type);
+        }
+
+        if ( !DataType.isSchemaType(originalFS.type) ) {
+            return userFS.deepCopy();
+        } else {
+            LogicalSchema replacedSchema = replaceNullByteArraySchema(originalFS.schema, userFS.schema);
+            return new LogicalFieldSchema(userFS.alias, replacedSchema, userFS.type);
+        }
+    }
+
+    private static boolean hasOnlyNullOrByteArraySchema (LogicalFieldSchema fs) {
+        if( DataType.isSchemaType(fs.type) ) {
+            if( fs.schema != null ) {
+                for (LogicalFieldSchema sub_fs : fs.schema.getFields() ) {
+                    if( !hasOnlyNullOrByteArraySchema(sub_fs)  ) {
+                        return false;
+                    }
+                }
+            }
+        } else if( fs.type != DataType.NULL && fs.type != DataType.BYTEARRAY )  {
+            return false;
+        }
+        return true;
+    }
+
     @Override
     public void visit(LOForEach foreach) throws FrontendException {
         LOGenerate generate = (LOGenerate)foreach.getInnerPlan().getSinks().get(0);
@@ -93,7 +154,7 @@ public class ForEachUserSchemaVisitor extends LogicalRelationalNodesVisitor {
             // Use user defined schema to cast, this is the prevailing use case
             if (mExpSchema==null) {
                 for (LogicalFieldSchema fs : mUserDefinedSchema.getFields()) {
-                    if (fs.type==DataType.NULL||fs.type==DataType.BYTEARRAY) {
+                    if (hasOnlyNullOrByteArraySchema(fs)) {
                         addToExps(casterForEach, innerPlan, gen, exps, index, false, null);
                     } else {
                         addToExps(casterForEach, innerPlan, gen, exps, index, true, fs);
@@ -120,11 +181,12 @@ public class ForEachUserSchemaVisitor extends LogicalRelationalNodesVisitor {
                         " fields to " + mUserDefinedSchema.size(), 0, foreach.getLocation());
             }
 
+            LogicalSchema replacedSchema = replaceNullByteArraySchema(mExpSchema,mUserDefinedSchema);
             for (int j=0;j<mExpSchema.size();j++) {
                 LogicalFieldSchema mExpFieldSchema = mExpSchema.getField(j);
-                LogicalFieldSchema mUserDefinedFieldSchema = mUserDefinedSchema.getField(j);
-                if (mUserDefinedFieldSchema.type==DataType.NULL ||
-                    mUserDefinedFieldSchema.type==DataType.BYTEARRAY ||
+                LogicalFieldSchema mUserDefinedFieldSchema = replacedSchema.getField(j);
+
+                if (hasOnlyNullOrByteArraySchema(mUserDefinedFieldSchema) ||
                     LogicalFieldSchema.typeMatch(mExpFieldSchema, mUserDefinedFieldSchema)) {
                     addToExps(casterForEach, innerPlan, gen, exps, index, false, null);
                 } else {
@@ -147,10 +209,18 @@ public class ForEachUserSchemaVisitor extends LogicalRelationalNodesVisitor {
             // 'generate' (LOGenerate) still holds the reference to this
             // mUserDefinedSchemas
             for( LogicalSchema mUserDefinedSchema : mUserDefinedSchemas ) {
-                if( mUserDefinedSchema != null ) {
-                    for (LogicalFieldSchema fs : mUserDefinedSchema.getFields()) {
-                        fs.type = DataType.NULL;
-                    }
+                resetTypeToNull( mUserDefinedSchema );
+            }
+        }
+    }
+
+    private void resetTypeToNull (LogicalSchema s1) {
+        if( s1 != null ) {
+            for (LogicalFieldSchema fs : s1.getFields()) {
+                if( DataType.isSchemaType(fs.type) ) {
+                    resetTypeToNull(fs.schema);
+                } else {
+                    fs.type = DataType.NULL;
                 }
             }
         }
