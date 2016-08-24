@@ -31,8 +31,12 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
+import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
+import org.apache.pig.data.SchemaTupleBackend;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.PigImplConstants;
+import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
 
@@ -42,7 +46,7 @@ public class PigInputFormatSpark extends PigInputFormat {
 	public RecordReader<Text, Tuple> createRecordReader(InputSplit split,
 			TaskAttemptContext context) throws IOException,
 			InterruptedException {
-        init();
+        initLogger();
         resetUDFContext();
         //PigSplit#conf is the default hadoop configuration, we need get the configuration
         //from context.getConfigration() to retrieve pig properties
@@ -55,14 +59,24 @@ public class PigInputFormatSpark extends PigInputFormat {
             PigMapReduce.sJobContext = HadoopShims.createJobContext(conf, new JobID());
         }
         PigMapReduce.sJobContext.getConfiguration().setInt(PigImplConstants.PIG_SPLIT_INDEX, pigSplit.getSplitIndex());
+        // Here JobConf is first available in spark Executor thread, we initialize PigContext,UDFContext and
+        // SchemaTupleBackend by reading properties from JobConf
+        initialize(conf);
         return super.createRecordReader(split, context);
     }
 
-	private void resetUDFContext() {
+    private void initialize(Configuration jobConf) throws IOException {
+        MapRedUtil.setupUDFContext(jobConf);
+        PigContext pc = (PigContext) ObjectSerializer.deserialize(jobConf.get("pig.pigContext"));
+        SchemaTupleBackend.initialize(jobConf, pc);
+        PigMapReduce.sJobConfInternal.set(jobConf);
+    }
+
+    private void resetUDFContext() {
 		UDFContext.getUDFContext().reset();
 	}
 
-	private void init() {
+	private void initLogger() {
 		PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
 		pigHadoopLogger.setReporter(PigStatusReporter.getInstance());
 		PhysicalOperator.setPigLogger(pigHadoopLogger);

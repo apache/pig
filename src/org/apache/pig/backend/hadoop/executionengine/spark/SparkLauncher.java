@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -41,7 +40,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.PigConfiguration;
-import org.apache.pig.PigConstants;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.BackendException;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -70,7 +68,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.spark.converter.CollectedGroupConverter;
 import org.apache.pig.backend.hadoop.executionengine.spark.converter.CounterConverter;
 import org.apache.pig.backend.hadoop.executionengine.spark.converter.DistinctConverter;
@@ -110,7 +107,6 @@ import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperator;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkPOPackageAnnotator;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkPrinter;
-import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.SchemaTupleBackend;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -154,7 +150,7 @@ public class SparkLauncher extends Launcher {
         if (LOG.isDebugEnabled())
             LOG.debug(physicalPlan);
         this.pigContext = pigContext;
-        initialize();
+        initialize(physicalPlan);
         SparkOperPlan sparkplan = compile(physicalPlan, pigContext);
         if (LOG.isDebugEnabled())
             explain(sparkplan, System.out, "text", true);
@@ -177,18 +173,7 @@ public class SparkLauncher extends Launcher {
                 .normalize().toString()
                 + "/";
 
-
-        LinkedList<POStore> stores = PlanHelper.getPhysicalOperators(
-                physicalPlan, POStore.class);
-        POStore firstStore = stores.getFirst();
-        if (firstStore != null) {
-            MapRedUtil.setupStreamingDirsConfSingle(firstStore, pigContext,
-                    jobConf);
-        }
-
         new ParallelismSetter(sparkplan, jobConf).visit();
-
-        byte[] confBytes = KryoSerializer.serializeJobConf(jobConf);
 
         SparkPigStatusReporter.getInstance().setCounters(new SparkCounters(sparkContext));
 
@@ -196,25 +181,25 @@ public class SparkLauncher extends Launcher {
         Map<Class<? extends PhysicalOperator>, RDDConverter> convertMap
                 = new HashMap<Class<? extends PhysicalOperator>, RDDConverter>();
         convertMap.put(POLoad.class, new LoadConverter(pigContext,
-                physicalPlan, sparkContext.sc()));
-        convertMap.put(POStore.class, new StoreConverter(pigContext));
-        convertMap.put(POForEach.class, new ForEachConverter(confBytes));
-        convertMap.put(POFilter.class, new FilterConverter(confBytes));
-        convertMap.put(POPackage.class, new PackageConverter(confBytes));
+                physicalPlan, sparkContext.sc(), jobConf));
+        convertMap.put(POStore.class, new StoreConverter(jobConf));
+        convertMap.put(POForEach.class, new ForEachConverter());
+        convertMap.put(POFilter.class, new FilterConverter());
+        convertMap.put(POPackage.class, new PackageConverter());
         convertMap.put(POLocalRearrange.class, new LocalRearrangeConverter());
         convertMap.put(POGlobalRearrangeSpark.class, new GlobalRearrangeConverter());
-	    convertMap.put(POJoinGroupSpark.class, new JoinGroupSparkConverter(confBytes));
+	    convertMap.put(POJoinGroupSpark.class, new JoinGroupSparkConverter());
         convertMap.put(POLimit.class, new LimitConverter());
         convertMap.put(PODistinct.class, new DistinctConverter());
         convertMap.put(POUnion.class, new UnionConverter(sparkContext.sc()));
         convertMap.put(POSort.class, new SortConverter());
         convertMap.put(POSplit.class, new SplitConverter());
         convertMap.put(POSkewedJoin.class, new SkewedJoinConverter());
-        convertMap.put(POMergeJoin.class, new MergeJoinConverter(confBytes));
+        convertMap.put(POMergeJoin.class, new MergeJoinConverter());
         convertMap.put(POCollectedGroup.class, new CollectedGroupConverter());
         convertMap.put(POCounter.class, new CounterConverter());
         convertMap.put(PORank.class, new RankConverter());
-        convertMap.put(POStream.class, new StreamConverter(confBytes));
+        convertMap.put(POStream.class, new StreamConverter());
         convertMap.put(POFRJoin.class, new FRJoinConverter());
         convertMap.put(POMergeCogroup.class, new MergeCogroupConverter());
         convertMap.put(POReduceBySpark.class, new ReduceByConverter());
@@ -378,13 +363,12 @@ public class SparkLauncher extends Launcher {
 
     private void cacheFiles(String cacheFiles) throws IOException {
         if (cacheFiles != null) {
-            Configuration conf = SparkUtil.newJobConf(pigContext);
             for (String file : cacheFiles.split(",")) {
                 String fileName = extractFileName(file.trim());
                 Path src = new Path(extractFileUrl(file.trim()));
                 File tmpFile = File.createTempFile(fileName, ".tmp");
                 Path tmpFilePath = new Path(tmpFile.getAbsolutePath());
-                FileSystem fs = tmpFilePath.getFileSystem(conf);
+                FileSystem fs = tmpFilePath.getFileSystem(jobConf);
                 fs.copyToLocalFile(src, tmpFilePath);
                 tmpFile.deleteOnExit();
                 LOG.info(String.format("cacheFile:%s", fileName));
@@ -659,12 +643,9 @@ public class SparkLauncher extends Launcher {
         pigContext.getProperties().setProperty("spark.udf.import.list", udfImportList);
     }
 
-    private void initialize() throws IOException {
+    private void initialize(PhysicalPlan physicalPlan) throws IOException {
         saveUdfImportList();
-        jobConf = SparkUtil.newJobConf(pigContext);
-        jobConf.set(PigConstants.LOCAL_CODE_DIR,
-                System.getProperty("java.io.tmpdir"));
-
+        jobConf = SparkUtil.newJobConf(pigContext, physicalPlan);
         SchemaTupleBackend.initialize(jobConf, pigContext);
         Utils.setDefaultTimeZone(jobConf);
         PigMapReduce.sJobConfInternal.set(jobConf);

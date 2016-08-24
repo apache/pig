@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigInputFormat;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.tools.pigstats.spark.SparkCounters;
@@ -67,26 +68,20 @@ public class LoadConverter implements RDDConverter<Tuple, Tuple, POLoad> {
     private PigContext pigContext;
     private PhysicalPlan physicalPlan;
     private SparkContext sparkContext;
+    private JobConf jobConf;
 
     public LoadConverter(PigContext pigContext, PhysicalPlan physicalPlan,
-            SparkContext sparkContext) {
+            SparkContext sparkContext, JobConf jobConf) {
         this.pigContext = pigContext;
         this.physicalPlan = physicalPlan;
         this.sparkContext = sparkContext;
+        this.jobConf = jobConf;
     }
 
     @Override
     public RDD<Tuple> convert(List<RDD<Tuple>> predecessorRdds, POLoad op)
             throws IOException {
-
-        // This configuration will be "broadcasted" by Spark, one to every
-        // node. Since we are changing the config here, the safe approach is
-        // to create a new conf for a new RDD.
-        JobConf jobConf = SparkUtil.newJobConf(pigContext);
         configureLoader(physicalPlan, op, jobConf);
-        // need to serialize the configuration loaded in jobConf
-        // to make sure we can access the right config later
-        UDFContext.getUDFContext().serialize(jobConf);
 
         // Set the input directory for input formats that are backed by a
         // filesystem. (Does not apply to HBase, for example).
@@ -99,6 +94,13 @@ public class LoadConverter implements RDDConverter<Tuple, Tuple, POLoad> {
             jobConf.set("pig.noSplitCombination", "true");
         }
 
+
+        //serialize the UDFContext#udfConfs in jobConf
+        UDFContext.getUDFContext().serialize(jobConf);
+
+        //SparkContext.newAPIHadoop will broadcast the jobConf to other worker nodes.
+        //Later in PigInputFormatSpark#createRecordReader, jobConf will be used to
+        //initialize PigContext,UDFContext and SchemaTupleBackend.
         RDD<Tuple2<Text, Tuple>> hadoopRDD = sparkContext.newAPIHadoopRDD(
                 jobConf, PigInputFormatSpark.class, Text.class, Tuple.class);
 
@@ -216,11 +218,11 @@ public class LoadConverter implements RDDConverter<Tuple, Tuple, POLoad> {
         inpSignatures.add(poLoad.getSignature());
         inpLimits.add(poLoad.getLimit());
 
-        jobConf.set("pig.inputs", ObjectSerializer.serialize(pigInputs));
-        jobConf.set("pig.inpTargets", ObjectSerializer.serialize(inpTargets));
-        jobConf.set("pig.inpSignatures",
+        jobConf.set(PigInputFormat.PIG_INPUTS, ObjectSerializer.serialize(pigInputs));
+        jobConf.set(PigInputFormat.PIG_INPUT_TARGETS, ObjectSerializer.serialize(inpTargets));
+        jobConf.set(PigInputFormat.PIG_INPUT_SIGNATURES,
                 ObjectSerializer.serialize(inpSignatures));
-        jobConf.set("pig.inpLimits", ObjectSerializer.serialize(inpLimits));
+        jobConf.set(PigInputFormat.PIG_INPUT_LIMITS, ObjectSerializer.serialize(inpLimits));
 
         return jobConf;
     }

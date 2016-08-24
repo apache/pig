@@ -33,14 +33,11 @@ import scala.runtime.AbstractFunction1;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
-import org.apache.pig.backend.hadoop.executionengine.spark.KryoSerializer;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.backend.hadoop.executionengine.spark.operator.POGlobalRearrangeSpark;
 import org.apache.pig.backend.hadoop.executionengine.spark.operator.POJoinGroupSpark;
@@ -58,11 +55,6 @@ import org.apache.spark.rdd.RDD;
 public class JoinGroupSparkConverter implements RDDConverter<Tuple, Tuple, POJoinGroupSpark> {
     private static final Log LOG = LogFactory
             .getLog(JoinGroupSparkConverter.class);
-    private byte[] confBytes;
-
-    public JoinGroupSparkConverter(byte[] confBytes) {
-        this.confBytes = confBytes;
-    }
 
     @Override
     public RDD<Tuple> convert(List<RDD<Tuple>> predecessors, POJoinGroupSpark op) throws IOException {
@@ -92,7 +84,7 @@ public class JoinGroupSparkConverter implements RDDConverter<Tuple, Tuple, POJoi
 
             RDD<Tuple2<IndexedKey, Seq<Seq<Tuple>>>> rdd =
                     (RDD<Tuple2<IndexedKey, Seq<Seq<Tuple>>>>) (Object) coGroupedRDD;
-            return rdd.toJavaRDD().map(new GroupPkgFunction(pkgOp, this.confBytes)).rdd();
+            return rdd.toJavaRDD().map(new GroupPkgFunction(pkgOp)).rdd();
         }
     }
 
@@ -317,26 +309,13 @@ public class JoinGroupSparkConverter implements RDDConverter<Tuple, Tuple, POJoi
             Function<Tuple2<IndexedKey, Seq<Seq<Tuple>>>, Tuple>, Serializable {
 
         private final POPackage pkgOp;
-        private byte[] confBytes;
-        private JobConf jobConf = null;
 
-        public GroupPkgFunction(POPackage pkgOp, byte[] confBytes) {
+        public GroupPkgFunction(POPackage pkgOp) {
             this.pkgOp = pkgOp;
-            this.confBytes = confBytes;
-        }
-
-        void initializeJobConf() {
-            jobConf = KryoSerializer.deserializeJobConf(this.confBytes);
-            jobConf.set("pig.cachedbag.type", "default");
-            PigMapReduce.sJobConfInternal.set(jobConf);
         }
 
         @Override
         public Tuple call(final Tuple2<IndexedKey, Seq<Seq<Tuple>>> input) {
-            if( jobConf == null) {
-                initializeJobConf();
-            }
-
             try {
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("GroupPkgFunction in " + input);

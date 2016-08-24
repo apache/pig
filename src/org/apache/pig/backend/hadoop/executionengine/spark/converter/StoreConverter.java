@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.pig.tools.pigstats.PigStatsUtil;
 import org.apache.pig.tools.pigstats.spark.SparkCounters;
 import org.apache.pig.tools.pigstats.spark.SparkPigStatusReporter;
 import org.apache.pig.tools.pigstats.spark.SparkStatsUtil;
@@ -43,7 +42,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
@@ -59,12 +57,11 @@ import com.google.common.collect.Lists;
 public class StoreConverter implements
         RDDConverter<Tuple, Tuple2<Text, Tuple>, POStore> {
 
-  private static final Log LOG = LogFactory.getLog(StoreConverter.class);
+    private static final Log LOG = LogFactory.getLog(StoreConverter.class);
 
-    private PigContext pigContext;
-
-    public StoreConverter(PigContext pigContext) {
-        this.pigContext = pigContext;
+    private JobConf jobConf = null;
+    public StoreConverter(JobConf jobConf) {
+        this.jobConf = jobConf;
     }
 
     @Override
@@ -84,7 +81,6 @@ public class StoreConverter implements
                 rddPairs.rdd(), SparkUtil.getManifest(Text.class),
                 SparkUtil.getManifest(Tuple.class), null);
 
-        JobConf jobConf = SparkUtil.newJobConf(pigContext);
         POStore poStore = configureStorer(jobConf, op);
 
         if ("true".equalsIgnoreCase(jobConf

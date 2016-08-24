@@ -22,13 +22,9 @@ import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
-import org.apache.pig.backend.hadoop.executionengine.spark.KryoSerializer;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.data.Tuple;
 import org.apache.spark.api.java.function.FlatMapFunction;
@@ -39,18 +35,13 @@ import org.apache.spark.rdd.RDD;
 public class MergeJoinConverter implements
         RDDConverter<Tuple, Tuple, POMergeJoin> {
 
-    private byte[] confBytes;
-    public MergeJoinConverter(byte[] confBytes) {
-        this.confBytes = confBytes;
-    }
-
     @Override
     public RDD<Tuple> convert(List<RDD<Tuple>> predecessors,
                               POMergeJoin poMergeJoin) throws IOException {
 
         SparkUtil.assertPredecessorSize(predecessors, poMergeJoin, 1);
         RDD<Tuple> rdd = predecessors.get(0);
-        MergeJoinFunction mergeJoinFunction = new MergeJoinFunction(poMergeJoin, confBytes);
+        MergeJoinFunction mergeJoinFunction = new MergeJoinFunction(poMergeJoin);
 
         return rdd.toJavaRDD().mapPartitions(mergeJoinFunction, true).rdd();
     }
@@ -59,24 +50,12 @@ public class MergeJoinConverter implements
             FlatMapFunction<Iterator<Tuple>, Tuple>, Serializable {
 
         private POMergeJoin poMergeJoin;
-        private byte[] confBytes;
 
-        private transient JobConf jobConf;
-
-        private MergeJoinFunction(POMergeJoin poMergeJoin, byte[] confBytes) {
+        private MergeJoinFunction(POMergeJoin poMergeJoin) {
             this.poMergeJoin = poMergeJoin;
-            this.confBytes = confBytes;
-        }
-
-        void initializeJobConf() {
-            if (this.jobConf == null) {
-                this.jobConf = KryoSerializer.deserializeJobConf(this.confBytes);
-                PigMapReduce.sJobConfInternal.set(jobConf);
-            }
         }
 
         public Iterable<Tuple> call(final Iterator<Tuple> input) {
-            initializeJobConf();
 
             return new Iterable<Tuple>() {
                 @Override

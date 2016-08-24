@@ -19,8 +19,10 @@ package org.apache.pig.backend.hadoop.executionengine.spark;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 
 import scala.Product2;
 import scala.Tuple2;
@@ -30,6 +32,7 @@ import scala.reflect.ClassTag;
 import scala.reflect.ClassTag$;
 
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.pig.PigConstants;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
@@ -37,7 +40,10 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperator;
+import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
@@ -45,7 +51,6 @@ import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.util.ObjectSerializer;
-import org.apache.pig.impl.util.UDFContext;
 import org.apache.spark.HashPartitioner;
 import org.apache.spark.Partitioner;
 import org.apache.spark.rdd.RDD;
@@ -66,7 +71,7 @@ public class SparkUtil {
         return (ClassTag<Product2<K, V>>) (Object) getManifest(Product2.class);
     }
 
-    public static JobConf newJobConf(PigContext pigContext) throws IOException {
+    public static JobConf newJobConf(PigContext pigContext, PhysicalPlan physicalPlan) throws IOException {
         JobConf jobConf = new JobConf(
                 ConfigurationUtil.toConfiguration(pigContext.getProperties()));
         // Serialize the PigContext so it's available in Executor thread.
@@ -74,9 +79,20 @@ public class SparkUtil {
         // Serialize the thread local variable inside PigContext separately
         jobConf.set("udf.import.list",
                 ObjectSerializer.serialize(PigContext.getPackageImportList()));
-        UDFContext.getUDFContext().serialize(jobConf);
         Random rand = new Random();
         jobConf.set(MRConfiguration.JOB_APPLICATION_ATTEMPT_ID, Integer.toString(rand.nextInt()));
+        jobConf.set(PigConstants.LOCAL_CODE_DIR,
+                System.getProperty("java.io.tmpdir"));
+        jobConf.set(MRConfiguration.JOB_ID, UUID.randomUUID().toString());
+        jobConf.set(PigConstants.TASK_INDEX, "0");
+
+        LinkedList<POStore> stores = PlanHelper.getPhysicalOperators(
+                physicalPlan, POStore.class);
+        POStore firstStore = stores.getFirst();
+        if (firstStore != null) {
+            MapRedUtil.setupStreamingDirsConfSingle(firstStore, pigContext,
+                    jobConf);
+        }
         return jobConf;
     }
 

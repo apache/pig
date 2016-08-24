@@ -17,28 +17,17 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.spark.converter;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.List;
-import java.util.UUID;
 
 import scala.runtime.AbstractFunction1;
 
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.pig.PigConstants;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFilter;
-import org.apache.pig.backend.hadoop.executionengine.spark.KryoSerializer;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
-import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
-import org.apache.pig.data.SchemaTupleBackend;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.spark.rdd.RDD;
 
 /**
@@ -47,18 +36,12 @@ import org.apache.spark.rdd.RDD;
 @SuppressWarnings({ "serial" })
 public class FilterConverter implements RDDConverter<Tuple, Tuple, POFilter> {
 
-    private byte[] confBytes;
-
-    public FilterConverter(byte[] confBytes) {
-        this.confBytes = confBytes;
-    }
-
     @Override
     public RDD<Tuple> convert(List<RDD<Tuple>> predecessors,
             POFilter physicalOperator) {
         SparkUtil.assertPredecessorSize(predecessors, physicalOperator, 1);
         RDD<Tuple> rdd = predecessors.get(0);
-        FilterFunction filterFunction = new FilterFunction(physicalOperator, confBytes);
+        FilterFunction filterFunction = new FilterFunction(physicalOperator);
         return rdd.filter(filterFunction);
     }
 
@@ -66,17 +49,13 @@ public class FilterConverter implements RDDConverter<Tuple, Tuple, POFilter> {
             AbstractFunction1<Tuple, Object> implements Serializable {
 
         private POFilter poFilter;
-        private byte[] confBytes;
-        private transient JobConf jobConf;
 
-        private FilterFunction(POFilter poFilter, byte[] confBytes) {
+        private FilterFunction(POFilter poFilter) {
             this.poFilter = poFilter;
-            this.confBytes = confBytes;
         }
 
         @Override
         public Boolean apply(Tuple v1) {
-            initializeJobConf();
             Result result;
             try {
                 poFilter.setInputs(null);
@@ -99,25 +78,6 @@ public class FilterConverter implements RDDConverter<Tuple, Tuple, POFilter> {
             default:
                 throw new RuntimeException(
                         "Unexpected response code from filter: " + result);
-            }
-        }
-
-        void initializeJobConf() {
-            if (this.jobConf != null) {
-                return;
-            }
-            this.jobConf = KryoSerializer.deserializeJobConf(this.confBytes);
-            PigMapReduce.sJobConfInternal.set(jobConf);
-            try {
-                MapRedUtil.setupUDFContext(jobConf);
-                PigContext pc = (PigContext) ObjectSerializer.deserialize(jobConf.get("pig.pigContext"));
-                SchemaTupleBackend.initialize(jobConf, pc);
-                // Although Job ID and task index are not really applicable for spark,
-                // set them here to overcome PIG-4827
-                jobConf.set(MRConfiguration.JOB_ID, UUID.randomUUID().toString());
-                jobConf.set(PigConstants.TASK_INDEX, "0");
-            } catch (IOException ioe) {
-                throw new RuntimeException("Problem while configuring UDFContext from FilterConverter.", ioe);
             }
         }
     }
