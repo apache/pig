@@ -179,7 +179,18 @@ public class PigJobControl extends JobControl {
           }
           while(it.hasNext()) {
             ControlledJob j = it.next();
-            log.debug("Checking state of job "+j);
+
+            // TODO: Need to re-visit the following try...catch
+            // when Pig picks up a Hadoop release with MAPREDUCE-6762 applied
+            // as its dependency.
+            try {
+              log.debug("Checking state of job " + j);
+            } catch(NullPointerException npe) {
+              log.warn("Failed to get job name " +
+                "when checking state of job. " +
+                "Check if job status is null.", npe);
+            }
+
             switch(checkState(j)) {
             case SUCCESS:
               getJobs(successfulJobs).add(j);

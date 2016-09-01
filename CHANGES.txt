@@ -40,6 +40,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4967: NPE in PigJobControl.run() when job status is null (water via daijy)
+
 PIG-4972: StreamingIO_1 fail on perl 5.22 (daijy)
 
 PIG-4933: TestDataBagAccess.testBagConstantFlatten1/TestLogicalPlanBuilder.testQuery90 broken after PIG-2315 (knoguchi)
