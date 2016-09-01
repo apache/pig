@@ -20,6 +20,9 @@ package org.apache.pig.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
 import java.util.Map;
 import java.util.Random;
 
@@ -53,7 +56,7 @@ public class TestDivide {
     public void testOperator() throws ExecException {
         // int TRIALS = 10;
         byte[] types = { DataType.BAG, DataType.BOOLEAN, DataType.BYTEARRAY, DataType.CHARARRAY,
-                        DataType.DOUBLE, DataType.FLOAT, DataType.INTEGER, DataType.LONG,
+                        DataType.DOUBLE, DataType.FLOAT, DataType.INTEGER, DataType.LONG, DataType.BIGDECIMAL,
                         DataType.DATETIME, DataType.MAP, DataType.TUPLE };
         // Map<Byte,String> map = GenRandomData.genTypeToNameMap();
         System.out.println("Testing DIVIDE operator");
@@ -248,6 +251,33 @@ public class TestDivide {
                 rt.setValue(0l);
                 resl = op.getNextLong();
                 assertEquals(null, (Long)resl.result);
+                break;
+            }
+            case DataType.BIGDECIMAL: {
+                MathContext mc = new MathContext(Divide.BIGDECIMAL_MINIMAL_SCALE, RoundingMode.HALF_UP);
+                BigDecimal inpf1 = new BigDecimal(r.nextDouble(),mc);
+                BigDecimal inpf2 = new BigDecimal(r.nextDouble(),mc);
+                lt.setValue(inpf1);
+                rt.setValue(inpf2);
+                Result resf = op.getNextBigDecimal();
+                BigDecimal expected = inpf1.divide(inpf2, 2 * Divide.BIGDECIMAL_MINIMAL_SCALE + 1, RoundingMode.HALF_UP);
+                assertEquals(expected, (BigDecimal)resf.result);
+
+                // test with null in lhs
+                lt.setValue(null);
+                rt.setValue(inpf2);
+                resf = op.getNextBigDecimal();
+                assertEquals(null, (BigDecimal)resf.result);
+                // test with null in rhs
+                lt.setValue(inpf1);
+                rt.setValue(null);
+                resf = op.getNextBigDecimal();
+                assertEquals(null, (BigDecimal)resf.result);
+                // test divide by 0
+                lt.setValue(inpf1);
+                rt.setValue(new BigDecimal(0.0f,mc));
+                resf = op.getNextBigDecimal();
+                assertEquals(null, (BigDecimal)resf.result);
                 break;
             }
             case DataType.DATETIME:
