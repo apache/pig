@@ -40,6 +40,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4973: Bigdecimal divison fails (szita via daijy)
+
 PIG-4967: NPE in PigJobControl.run() when job status is null (water via daijy)
 
 PIG-4972: StreamingIO_1 fail on perl 5.22 (daijy)
