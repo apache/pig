@@ -40,6 +40,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4975 Map schema shows "Type: null Uid: null" in explain (knoguchi)
+
 PIG-4973: Bigdecimal divison fails (szita via daijy)
 
 PIG-4967: NPE in PigJobControl.run() when job status is null (water via daijy)
