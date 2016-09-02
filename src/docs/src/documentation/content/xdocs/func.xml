@@ -1515,7 +1515,7 @@ DUMP X;
 <source>
 {code}
 A = LOAD 'data' AS (f1:chararray);
-B = FOREACH A TOKENIZE (f1,'||');
+B = FOREACH A GENERATE TOKENIZE (f1,'||');
 DUMP B;
 {code} 
 </source>
