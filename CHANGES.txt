@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-5022: Error in TOKENIZE Example (icook vi knoguchi)
+
 PIG-4931: Document IN operator (dbist13 vi daijy)
 
 PIG-4852: Add accumulator implementation for MaxTupleBy1stField (szita via daijy)
