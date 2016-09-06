@@ -294,6 +294,75 @@ team_parkyearslist = FOREACH (GROUP team_park_yearslist BY team_id) {
   </section>
 </section>
 
+<section id="bagtotuple">
+  <title>BagToTuple</title>
+  <p>Un-nests the elements of a bag into a tuple.</p>
+
+  <section>
+    <title>Syntax</title>
+    <table>
+      <tr>
+        <td>
+          <p>BagToTuple(expression)</p>
+        </td>
+      </tr>
+  </table></section>
+
+  <section>
+    <title>Terms</title>
+    <table>
+      <tr>
+        <td>
+         <p>expression</p>
+        </td>
+        <td>
+         <p>An expression with data type bag.</p>
+        </td>
+      </tr> 
+    </table>
+  </section>
+
+  <section>
+    <title>Usage</title>
+    <p>BagToTuple creates a tuple from the elements of a bag. It removes only
+      the first level of nesting; it does not recursively un-nest nested bags.
+      Unlike FLATTEN, BagToTuple will not generate multiple output records per
+      input record.
+    </p>
+  </section>
+  <section>
+    <title>Examples</title>
+    <p>In this example, a bag containing tuples with one field is converted to a tuple.</p>
+<source>
+A = LOAD 'bag_data' AS (B1:bag{T1:tuple(f1:chararray)});
+
+DUMP A;
+({('a'),('b'),('c')})
+({('d'),('e'),('f')})
+
+X = FOREACH A GENERATE BagToTuple(B1);
+
+DUMP X;
+(('a','b','c'))
+(('d','e','f'))
+</source>
+    <p>In this example, a bag containing tuples with two fields is converted to a tuple.</p>
+<source>
+A = LOAD 'bag_data' AS (B1:bag{T1:tuple(f1:int,f2:int)});
+
+DUMP A;
+({(4,1),(7,8),(4,9)})
+({(5,8),(4,3),(3,8)})
+
+X = FOREACH A GENERATE BagToTuple(B1);
+
+DUMP X;
+((4,1,7,8,4,9))
+((5,8,4,3,3,8))
+</source>
+  </section>
+</section>
+
 <section id="bloom">
   <title>Bloom</title>
   <p>Bloom filters are a common way to select a limited set of records before

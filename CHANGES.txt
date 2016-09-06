@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-5023: Documentation for BagToTuple (icook via knoguchi)
+
 PIG-5022: Error in TOKENIZE Example (icook vi knoguchi)
 
 PIG-4931: Document IN operator (dbist13 vi daijy)

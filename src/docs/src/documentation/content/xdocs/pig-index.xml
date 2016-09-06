@@ -137,11 +137,14 @@
 <br></br>&nbsp;&nbsp;&nbsp; <a href="func.html#tobag">and TOBAG function</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#type-construction">and type construction operators</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="func.html#bagtostring">converting to string</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="func.html#bagtotuple">converting to tuple</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#schema-multi">schemas for multiple types</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#bag">syntax</a>
 </p>
 
 <p><a href="func.html#bagtostring">BagToString</a> function</p>
+
+<p><a href="func.html#bagtotuple">BagToTuple</a> function</p>
 
 <p><a href="start.html#batch-mode">batch mode</a>. <em>See also</em> memory management</p>
 
