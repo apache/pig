@@ -729,6 +729,15 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
             }
         }
 
+        @Override
+        public void visit(UserFuncExpression op) throws FrontendException {
+            if(op.getFuncSpec().getClassName().equals(IdentityColumn.class.getName())) {
+                // IdentityColumn only expects one arg
+                FuncSpec funcSpec = uid2LoadFuncMap.get(op.getArguments().get(0).getFieldSchema().uid);
+                addUidLoadFuncToMap(op.getFieldSchema().uid, funcSpec);
+            }
+        }
+
         /**
          * if there is a null constant under casts, return it
          * @param rel
