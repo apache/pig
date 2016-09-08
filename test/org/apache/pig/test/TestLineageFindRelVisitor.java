@@ -24,11 +24,16 @@ import junit.framework.Assert;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.util.List;
 
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadCaster;
+import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.builtin.Utf8StorageConverter;
+import org.apache.pig.builtin.mock.Storage;
+import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
@@ -41,6 +46,12 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestLineageFindRelVisitor {
+
+    private PigServer pig ;
+
+    public TestLineageFindRelVisitor() throws Throwable {
+        pig = new PigServer(Util.getLocalTestMode()) ;
+    }
 
     public static class SillyLoadCasterWithExtraConstructor extends Utf8StorageConverter {
         public SillyLoadCasterWithExtraConstructor(String ignored) {
@@ -124,5 +135,33 @@ public class TestLineageFindRelVisitor {
                                      casterWithExtraConstuctorSpec, casterWithExtraConstuctorSpec) );
 
         Assert.assertEquals("Loader should be instantiated at most once.", SillyLoaderWithLoadCasterWithExtraConstructor.counter, 1);
+    }
+
+    @Test
+    public void testIdenticalColumnUDFForwardingLoadCaster() throws Exception {
+        Storage.Data data = Storage.resetData(pig);
+        data.set("input",
+                Storage.tuple(Storage.map(
+                                 "key1",new DataByteArray("aaa"),
+                                 "key2",new DataByteArray("bbb"),
+                                 "key3",new DataByteArray("ccc"))),
+                Storage.tuple(Storage.map(
+                                 "key1",new DataByteArray("zzz"),
+                                 "key2",new DataByteArray("yyy"),
+                                 "key3",new DataByteArray("xxx"))));
+        pig.setBatchOn();
+        pig.registerQuery("A = load 'input' using mock.Storage() as (m:[bytearray]);");
+        pig.registerQuery("B = foreach A GENERATE m#'key1' as key1, m#'key2' as key2; "
+                // this equal comparison creates implicit typecast to chararray
+                // which requires loadcaster
+                + "C = FILTER B by key1 == 'aaa' and key2 == 'bbb';");
+        pig.registerQuery("store C into 'output' using mock.Storage();");
+
+        pig.executeBatch();
+
+        List<Tuple> actualResults = data.get("output");
+        List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
+                new String[] {"('aaa', 'bbb')"});
+        Util.checkQueryOutputs(actualResults.iterator(), expectedResults);
     }
 }

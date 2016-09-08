@@ -30,6 +30,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-4974: A simple map reference fail to cast (knoguchi)
+
 PIG-4967: NPE in PigJobControl.run() when job status is null (water via daijy)
 
 PIG-4935: TEZ_USE_CLUSTER_HADOOP_LIBS is always set to true (rohini)
