@@ -63,6 +63,7 @@ import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.tools.pigstats.spark.SparkPigStats;
 import org.apache.pig.tools.pigstats.spark.SparkStatsUtil;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.broadcast.Broadcast;
 import org.apache.spark.rdd.RDD;
 
 import com.google.common.collect.Lists;

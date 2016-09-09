@@ -23,7 +23,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.spark.broadcast.Broadcast;
 import scala.Product2;
 import scala.Tuple2;
 import scala.collection.JavaConversions;
@@ -56,6 +58,8 @@ import org.apache.spark.Partitioner;
 import org.apache.spark.rdd.RDD;
 
 public class SparkUtil {
+
+    private static ConcurrentHashMap<String, Broadcast<List<Tuple>>> broadcastedVars = new ConcurrentHashMap() ;
 
     public static <T> ClassTag<T> getManifest(Class<T> clazz) {
         return ClassTag$.MODULE$.apply(clazz);
@@ -164,5 +168,9 @@ public class SparkUtil {
         POSort sort = new POSort(new OperatorKey(scope, nig.getNextNodeId(scope)), requestedParallelism, null, eps, ascCol, null);
         //POSort is added to sort the index tuples genereated by MergeJoinIndexer.More detail, see PIG-4601
         baseSparkOp.physicalPlan.addAsLeaf(sort);
+    }
+
+    static public ConcurrentHashMap<String, Broadcast<List<Tuple>>> getBroadcastedVars() {
+        return broadcastedVars;
     }
 }
