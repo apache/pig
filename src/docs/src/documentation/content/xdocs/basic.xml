@@ -7981,10 +7981,10 @@ X = SAMPLE A 0.01;
 </source>
 <p>In this example, a scalar expression is used (it will sample approximately 1000 records from the input).</p>
 <source>
-a = load 'a.txt';
-b = group a all;
-c = foreach b generate COUNT(a) as num_rows;
-e = sample a 1000/c.num_rows;
+a = LOAD 'a.txt';
+b = GROUP a ALL;
+c = FOREACH b GENERATE COUNT_STAR(a) AS num_rows;
+d = SAMPLE a (double)1000/c.num_rows;
 </source>
    </section></section>  
    
