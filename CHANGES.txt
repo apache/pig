@@ -30,6 +30,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-5019: Pig generates tons of warnings for udf with enabled warnings aggregation (murshyd via rohini)
+
 PIG-4974: A simple map reference fail to cast (knoguchi)
 
 PIG-4967: NPE in PigJobControl.run() when job status is null (water via daijy)
