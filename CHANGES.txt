@@ -44,6 +44,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5019: Pig generates tons of warnings for udf with enabled warnings aggregation (murshyd via rohini)
+
 PIG-4974: A simple map reference fail to cast (knoguchi)
 
 PIG-4975 Map schema shows "Type: null Uid: null" in explain (knoguchi)
