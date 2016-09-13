@@ -849,6 +849,7 @@ public class TezCompiler extends PhyPlanVisitor {
             } else {
                 curTezOp.plan.addAsLeaf(op);
             }
+            phyToTezOpMap.put(op, curTezOp);
 
         } catch (Exception e) {
             int errCode = 2034;
