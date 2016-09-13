@@ -353,6 +353,19 @@ public class TestTezCompiler {
     }
 
     @Test
+    public void testLimitReplJoin() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' as (x:int, y:int);" +
+                "b = load 'file:///tmp/input' as (x:int, y:int);" +
+                "c = limit a 1;" +
+                "d = join c by x, b by x using 'replicated';" +
+                "store a into 'file:///tmp/pigoutput/a';" +
+                "store d into 'file:///tmp/pigoutput/d';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Limit-4.gld");
+    }
+
+    @Test
     public void testDistinct() throws Exception {
         String query =
                 "a = load 'file:///tmp/input' as (x:int, y:int);" +
