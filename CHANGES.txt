@@ -46,6 +46,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5032: Output record stats in Tez is wrong when there is split followed by union (rohini)
+
 PIG-5031: Tez failing to compile when replicate join is done with a limit vertex on left (knoguchi)
 
 PIG-5019: Pig generates tons of warnings for udf with enabled warnings aggregation (murshyd via rohini)
