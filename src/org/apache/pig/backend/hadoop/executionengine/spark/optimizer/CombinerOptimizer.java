@@ -86,7 +86,6 @@ public class CombinerOptimizer extends SparkOpPlanVisitor {
     // Output:
     // foreach (using algebraicOp.Final)
     //   -> reduceBy (uses algebraicOp.Intermediate)
-    //      -> localRearrange
     //         -> foreach (using algebraicOp.Initial)
     //             -> CombinerRearrange
     private void addCombiner(PhysicalPlan phyPlan) throws VisitorException, PlanException, CloneNotSupportedException {
@@ -251,7 +250,7 @@ public class CombinerOptimizer extends SparkOpPlanVisitor {
                     // Create a reduceBy operator.
                     POReduceBySpark reduceOperator = new POReduceBySpark(cfe.getOperatorKey(), cfe
                             .getRequestedParallelism(),
-                            cfe.getInputPlans(), cfe.getToBeFlattened(), combinePack.getPkgr());
+                            cfe.getInputPlans(), cfe.getToBeFlattened(), combinePack, newRearrange);
                     reduceOperator.setCustomPartitioner(glr.getCustomPartitioner());
                     fixReduceSideFE(postReduceFE, algebraicOps);
                     CombinerOptimizerUtil.changeFunc(reduceOperator, POUserFunc.INTERMEDIATE);
@@ -259,14 +258,11 @@ public class CombinerOptimizer extends SparkOpPlanVisitor {
 
                     // Add the new operators
                     phyPlan.add(reduceOperator);
-                    phyPlan.add(newRearrange);
                     phyPlan.add(mfe);
                     // Connect the new operators as follows:
                     // reduceBy (using algebraicOp.Intermediate)
-                    //   -> rearrange
                     //      -> foreach (using algebraicOp.Initial)
-                    phyPlan.connect(mfe, newRearrange);
-                    phyPlan.connect(newRearrange, reduceOperator);
+                     phyPlan.connect(mfe, reduceOperator);
 
                     // Insert the reduce stage between combiner rearrange and its successor.
                     phyPlan.disconnect(combinerLocalRearrange, packageSuccessor);
@@ -329,7 +325,7 @@ public class CombinerOptimizer extends SparkOpPlanVisitor {
 
     // Update the ReduceBy Operator with the packaging used by Local rearrange.
     private void updatePackager(POReduceBySpark reduceOperator, POLocalRearrange lrearrange) throws OptimizerException {
-        Packager pkgr = reduceOperator.getPkgr();
+        Packager pkgr = reduceOperator.getPkg().getPkgr();
         // annotate the package with information from the LORearrange
         // update the keyInfo information if already present in the POPackage
         Map<Integer, Pair<Boolean, Map<Integer, Integer>>> keyInfo = pkgr.getKeyInfo();

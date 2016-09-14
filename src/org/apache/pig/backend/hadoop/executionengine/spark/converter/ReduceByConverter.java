@@ -55,25 +55,24 @@ public class ReduceByConverter implements RDDConverter<Tuple, Tuple, POReduceByS
         int parallelism = SparkUtil.getParallelism(predecessors, op);
 
         RDD<Tuple> rdd = predecessors.get(0);
-
-        JavaRDD<Tuple2<IndexedKey, Tuple>> rddPair;
+        RDD<Tuple2<IndexedKey, Tuple>> rddPair
+                = rdd.map(new LocalRearrangeFunction(op.getLgr(), op.isUseSecondaryKey(), op.getSecondarySortOrder())
+                , SparkUtil.<IndexedKey, Tuple>getTuple2Manifest());
         if (op.isUseSecondaryKey()) {
-            rddPair = handleSecondarySort(rdd, op, parallelism);
+            return SecondaryKeySortUtil.handleSecondarySort(rddPair, op.getPkg());
         } else {
-            JavaRDD<Tuple> jrdd = JavaRDD.fromRDD(rdd, SparkUtil.getManifest(Tuple.class));
-            rddPair = jrdd.map(new ToKeyValueFunction(op));
+            PairRDDFunctions<IndexedKey, Tuple> pairRDDFunctions
+                    = new PairRDDFunctions<>(rddPair,
+                    SparkUtil.getManifest(IndexedKey.class),
+                    SparkUtil.getManifest(Tuple.class), null);
+
+            RDD<Tuple2<IndexedKey, Tuple>> tupleRDD = pairRDDFunctions.reduceByKey(
+                    SparkUtil.getPartitioner(op.getCustomPartitioner(), parallelism),
+                    new MergeValuesFunction(op));
+            LOG.debug("Custom Partitioner and parallelims used : " + op.getCustomPartitioner() + ", " + parallelism);
+
+            return tupleRDD.map(new ToTupleFunction(op), SparkUtil.getManifest(Tuple.class));
         }
-        PairRDDFunctions<IndexedKey, Tuple> pairRDDFunctions
-                = new PairRDDFunctions<>(rddPair.rdd(),
-                SparkUtil.getManifest(IndexedKey.class),
-                SparkUtil.getManifest(Tuple.class), null);
-
-        RDD<Tuple2<IndexedKey, Tuple>> tupleRDD = pairRDDFunctions.reduceByKey(
-                SparkUtil.getPartitioner(op.getCustomPartitioner(), parallelism),
-                new MergeValuesFunction(op));
-        LOG.debug("Custom Partitioner and parallelims used : " + op.getCustomPartitioner() + ", " + parallelism);
-
-        return tupleRDD.map(new ToTupleFunction(op), SparkUtil.getManifest(Tuple.class));
     }
 
     private JavaRDD<Tuple2<IndexedKey, Tuple>> handleSecondarySort(
@@ -188,8 +187,8 @@ public class ReduceByConverter implements RDDConverter<Tuple, Tuple, POReduceByS
                 t.append(key);
                 t.append(bag);
 
-                poReduce.getPkgr().attachInput(key, new DataBag[]{(DataBag) t.get(1)}, new boolean[]{true});
-                Tuple packagedTuple = (Tuple) poReduce.getPkgr().getNext().result;
+                poReduce.getPkg().getPkgr().attachInput(key, new DataBag[]{(DataBag) t.get(1)}, new boolean[]{true});
+                Tuple packagedTuple = (Tuple) poReduce.getPkg().getPkgr().getNext().result;
 
                 // Perform the operation
                 LOG.debug("MergeValuesFunction packagedTuple : " + t);
@@ -241,8 +240,8 @@ public class ReduceByConverter implements RDDConverter<Tuple, Tuple, POReduceByS
                 bag.add((Tuple) v1._2().get(1));
                 t.append(key);
                 t.append(bag);
-                poReduce.getPkgr().attachInput(key, new DataBag[]{(DataBag) t.get(1)}, new boolean[]{true});
-                packagedTuple = (Tuple) poReduce.getPkgr().getNext().result;
+                poReduce.getPkg().getPkgr().attachInput(key, new DataBag[]{(DataBag) t.get(1)}, new boolean[]{true});
+                packagedTuple = (Tuple) poReduce.getPkg().getPkgr().getNext().result;
             } catch (ExecException e) {
                 throw new RuntimeException(e);
             }
