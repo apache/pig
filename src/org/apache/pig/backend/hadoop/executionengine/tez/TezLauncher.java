@@ -519,7 +519,7 @@ public class TezLauncher extends Launcher {
 
     @Override
     public void killJob(String jobID, Configuration conf) throws BackendException {
-        if (runningJob != null && runningJob.getApplicationId().toString() == jobID) {
+        if (runningJob != null && runningJob.getApplicationId().toString().equals(jobID)) {
             try {
                 runningJob.killJob();
             } catch (Exception e) {
