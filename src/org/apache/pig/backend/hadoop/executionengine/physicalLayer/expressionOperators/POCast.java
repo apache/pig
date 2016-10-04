@@ -165,7 +165,7 @@ public class POCast extends ExpressionOperator {
                         res.result = caster.bytesToBigInteger(dba.get());
                     } else {
                         int errCode = 1075;
-                        String msg = unknownByteArrayErrorMessage + "BigInteger.";
+                        String msg = unknownByteArrayErrorMessage + "BigInteger for " + this.getOriginalLocations();
                         throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {
@@ -281,7 +281,7 @@ public class POCast extends ExpressionOperator {
                         res.result = caster.bytesToBigDecimal(dba.get());
                     } else {
                         int errCode = 1075;
-                        String msg = unknownByteArrayErrorMessage + "BigDecimal.";
+                        String msg = unknownByteArrayErrorMessage + "BigDecimal for " + this.getOriginalLocations();
                         throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {
@@ -396,7 +396,7 @@ public class POCast extends ExpressionOperator {
                         res.result = caster.bytesToBoolean(dba.get());
                     } else {
                         int errCode = 1075;
-                        String msg = unknownByteArrayErrorMessage + "boolean.";
+                        String msg = unknownByteArrayErrorMessage + "boolean for " + this.getOriginalLocations();
                         throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {
@@ -510,7 +510,7 @@ public class POCast extends ExpressionOperator {
                         res.result = caster.bytesToInteger(dba.get());
                     } else {
                         int errCode = 1075;
-                        String msg = unknownByteArrayErrorMessage + "int.";
+                        String msg = unknownByteArrayErrorMessage + "int for " + this.getOriginalLocations();
                         throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {
@@ -636,7 +636,7 @@ public class POCast extends ExpressionOperator {
                         res.result = caster.bytesToLong(dba.get());
                     } else {
                         int errCode = 1075;
-                        String msg = unknownByteArrayErrorMessage + "long.";
+                        String msg = unknownByteArrayErrorMessage + "long for " + this.getOriginalLocations();
                         throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {
@@ -759,7 +759,7 @@ public class POCast extends ExpressionOperator {
                         res.result = caster.bytesToDouble(dba.get());
                     } else {
                         int errCode = 1075;
-                        String msg = unknownByteArrayErrorMessage + "double.";
+                        String msg = unknownByteArrayErrorMessage + "double for " + this.getOriginalLocations();
                         throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {
@@ -881,7 +881,7 @@ public class POCast extends ExpressionOperator {
                         res.result = caster.bytesToFloat(dba.get());
                     } else {
                         int errCode = 1075;
-                        String msg = unknownByteArrayErrorMessage + "float.";
+                        String msg = unknownByteArrayErrorMessage + "float for " + this.getOriginalLocations();
                         throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {
@@ -1007,7 +1007,7 @@ public class POCast extends ExpressionOperator {
                         res.result = caster.bytesToDateTime(dba.get());
                     } else {
                         int errCode = 1075;
-                        String msg = unknownByteArrayErrorMessage + "datetime.";
+                        String msg = unknownByteArrayErrorMessage + "datetime for " + this.getOriginalLocations();
                         throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {
@@ -1118,7 +1118,7 @@ public class POCast extends ExpressionOperator {
                         res.result = caster.bytesToCharArray(dba.get());
                     } else {
                         int errCode = 1075;
-                        String msg = unknownByteArrayErrorMessage + "string.";
+                        String msg = unknownByteArrayErrorMessage + "string for " + this.getOriginalLocations();
                         throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {
@@ -1270,7 +1270,7 @@ public class POCast extends ExpressionOperator {
                         res.result = caster.bytesToTuple(dba.get(), fieldSchema);
                     } else {
                         int errCode = 1075;
-                        String msg = unknownByteArrayErrorMessage + "tuple.";
+                        String msg = unknownByteArrayErrorMessage + "tuple for " + this.getOriginalLocations();
                         throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {
@@ -1332,7 +1332,7 @@ public class POCast extends ExpressionOperator {
                     result = caster.bytesToBag(((DataByteArray)obj).get(), fs);
                 } else {
                     int errCode = 1075;
-                    String msg = unknownByteArrayErrorMessage + "bag.";
+                    String msg = unknownByteArrayErrorMessage + "bag for " + this.getOriginalLocations();
                     throw new ExecException(msg, errCode, PigException.INPUT);
                 }
             } else {
@@ -1363,7 +1363,7 @@ public class POCast extends ExpressionOperator {
                     result = caster.bytesToTuple(((DataByteArray)obj).get(), fs);
                 } else {
                     int errCode = 1075;
-                    String msg = unknownByteArrayErrorMessage + "tuple.";
+                    String msg = unknownByteArrayErrorMessage + "tuple for " + this.getOriginalLocations();
                     throw new ExecException(msg, errCode, PigException.INPUT);
                 }
             } else {
@@ -1388,7 +1388,7 @@ public class POCast extends ExpressionOperator {
                     result = caster.bytesToMap(((DataByteArray)obj).get(), fs);
                 } else {
                     int errCode = 1075;
-                    String msg = unknownByteArrayErrorMessage + "tuple.";
+                    String msg = unknownByteArrayErrorMessage + "tuple for " + this.getOriginalLocations();
                     throw new ExecException(msg, errCode, PigException.INPUT);
                 }
             } else {
@@ -1402,7 +1402,7 @@ public class POCast extends ExpressionOperator {
                     result = caster.bytesToBoolean(((DataByteArray) obj).get());
                 } else {
                     int errCode = 1075;
-                    String msg = unknownByteArrayErrorMessage + "int.";
+                    String msg = unknownByteArrayErrorMessage + "int for " + this.getOriginalLocations();
                     throw new ExecException(msg, errCode, PigException.INPUT);
                 }
                 break;
@@ -1441,7 +1441,7 @@ public class POCast extends ExpressionOperator {
                     result = caster.bytesToInteger(((DataByteArray) obj).get());
                 } else {
                     int errCode = 1075;
-                    String msg = unknownByteArrayErrorMessage + "int.";
+                    String msg = unknownByteArrayErrorMessage + "int for " + this.getOriginalLocations();
                     throw new ExecException(msg, errCode, PigException.INPUT);
                 }
                 break;
@@ -1487,7 +1487,7 @@ public class POCast extends ExpressionOperator {
                     result = caster.bytesToDouble(((DataByteArray) obj).get());
                 } else {
                     int errCode = 1075;
-                    String msg = unknownByteArrayErrorMessage + "double.";
+                    String msg = unknownByteArrayErrorMessage + "double for " + this.getOriginalLocations();
                     throw new ExecException(msg, errCode, PigException.INPUT);
                 }
                 break;
@@ -1533,7 +1533,7 @@ public class POCast extends ExpressionOperator {
                     result = caster.bytesToLong(((DataByteArray)obj).get());
                 } else {
                     int errCode = 1075;
-                    String msg = unknownByteArrayErrorMessage + "long.";
+                    String msg = unknownByteArrayErrorMessage + "long for " + this.getOriginalLocations();
                     throw new ExecException(msg, errCode, PigException.INPUT);
                 }
                 break;
@@ -1579,7 +1579,7 @@ public class POCast extends ExpressionOperator {
                     result = caster.bytesToFloat(((DataByteArray)obj).get());
                 } else {
                     int errCode = 1075;
-                    String msg = unknownByteArrayErrorMessage + "float.";
+                    String msg = unknownByteArrayErrorMessage + "float for " + this.getOriginalLocations();
                     throw new ExecException(msg, errCode, PigException.INPUT);
                 }
                 break;
@@ -1625,7 +1625,7 @@ public class POCast extends ExpressionOperator {
                     result = caster.bytesToDateTime(((DataByteArray)obj).get());
                 } else {
                     int errCode = 1075;
-                    String msg = unknownByteArrayErrorMessage + "datetime.";
+                    String msg = unknownByteArrayErrorMessage + "datetime for " + this.getOriginalLocations();
                     throw new ExecException(msg, errCode, PigException.INPUT);
                 }
                 break;
@@ -1664,7 +1664,7 @@ public class POCast extends ExpressionOperator {
                     result = caster.bytesToCharArray(((DataByteArray)obj).get());
                 } else {
                     int errCode = 1075;
-                    String msg = unknownByteArrayErrorMessage + "float.";
+                    String msg = unknownByteArrayErrorMessage + "float for " + this.getOriginalLocations();
                     throw new ExecException(msg, errCode, PigException.INPUT);
                 }
                 break;
@@ -1712,7 +1712,7 @@ public class POCast extends ExpressionOperator {
                     result = caster.bytesToBigInteger(((DataByteArray)obj).get());
                 } else {
                     int errCode = 1075;
-                    String msg = unknownByteArrayErrorMessage + "BigInteger.";
+                    String msg = unknownByteArrayErrorMessage + "BigInteger for " + this.getOriginalLocations();
                     throw new ExecException(msg, errCode, PigException.INPUT);
                 }
                 break;
@@ -1757,7 +1757,7 @@ public class POCast extends ExpressionOperator {
                     result = caster.bytesToBigDecimal(((DataByteArray)obj).get());
                 } else {
                     int errCode = 1075;
-                    String msg = unknownByteArrayErrorMessage + "BigDecimal.";
+                    String msg = unknownByteArrayErrorMessage + "BigDecimal for " + this.getOriginalLocations();
                     throw new ExecException(msg, errCode, PigException.INPUT);
                 }
                 break;
@@ -1865,7 +1865,7 @@ public class POCast extends ExpressionOperator {
                         res.result = caster.bytesToBag(dba.get(), fieldSchema);
                     } else {
                         int errCode = 1075;
-                        String msg = unknownByteArrayErrorMessage + "bag.";
+                        String msg = unknownByteArrayErrorMessage + "bag for " + this.getOriginalLocations();
                         throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {
@@ -1956,7 +1956,7 @@ public class POCast extends ExpressionOperator {
                         res.result = caster.bytesToMap(dba.get(), fieldSchema);
                     } else {
                         int errCode = 1075;
-                        String msg = unknownByteArrayErrorMessage + "map.";
+                        String msg = unknownByteArrayErrorMessage + "map for " + this.getOriginalLocations();
                         throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {

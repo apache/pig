@@ -2912,12 +2912,12 @@ public class TestTypeCheckingValidatorNewLP {
 
         @Test
         public void testUnionLineageDifferentSchemaFail() throws Throwable {
-            String query = "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
-            + "b = load 'a' using org.apache.pig.test.PigStorageWithDifferentCaster('b') as (field4, field5, field6: chararray, field7 );"
-            + "c = union a , b;"
+            String query = "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );\n"
+            + "b = load 'a' using org.apache.pig.test.PigStorageWithDifferentCaster('b') as (field4, field5, field6: chararray, field7 );\n"
+            + "c = union a , b;\n"
             + "d = foreach c generate $3 + 2.0 ;";
 
-            checkWarning(query, CAST_LOAD_NOT_FOUND);
+            checkWarning(query, CAST_LOAD_NOT_FOUND + " to double at <line 4,");
         }
 
         private void checkWarning(String query, String warnMsg) throws FrontendException {
@@ -2959,12 +2959,12 @@ public class TestTypeCheckingValidatorNewLP {
         public void testUnionLineageMixSchemaFail() throws Throwable {
             // different loader caster associated with each input, so can't determine
             // which one to use on union output
-            String query = "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
-            + "b = load 'a' using org.apache.pig.test.PigStorageWithDifferentCaster('b');"
-            + "c = union a , b;"
+            String query = "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );\n"
+            + "b = load 'a' using org.apache.pig.test.PigStorageWithDifferentCaster('b');\n"
+            + "c = union a , b;\n"
             + "d = foreach c generate $3 + 2.0 ;";
 
-            checkWarning(query, CAST_LOAD_NOT_FOUND);
+            checkWarning(query, CAST_LOAD_NOT_FOUND + " to double at <line 4,");
         }
 
         @Test
@@ -3306,12 +3306,12 @@ public class TestTypeCheckingValidatorNewLP {
 
         @Test
         public void testCrossLineageNoSchemaFail() throws Throwable {
-            String query = "a = load 'a' using PigStorage('a');"
-            + "b = load 'a' using org.apache.pig.test.PigStorageWithDifferentCaster('b');"
-            + "c = cross a , b;"
+            String query = "a = load 'a' using PigStorage('a');\n"
+            + "b = load 'a' using org.apache.pig.test.PigStorageWithDifferentCaster('b');\n"
+            + "c = cross a , b;\n"
             + "d = foreach c generate $1 + 2.0 ;";
 
-            checkWarning(query, CAST_LOAD_NOT_FOUND);
+            checkWarning(query, CAST_LOAD_NOT_FOUND + " to double at <line 4,");
         }
 
         @Test
@@ -3327,12 +3327,12 @@ public class TestTypeCheckingValidatorNewLP {
 
         @Test
         public void testCrossLineageMixSchemaFail() throws Throwable {
-            String query = "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
-            + "b = load 'a' using org.apache.pig.test.PigStorageWithDifferentCaster('b');"
-            + "c = cross a , b;"
+            String query = "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );\n"
+            + "b = load 'a' using org.apache.pig.test.PigStorageWithDifferentCaster('b');\n"
+            + "c = cross a , b;\n"
             + "d = foreach c generate $3 + 2.0 ;";
 
-            checkWarning(query, CAST_LOAD_NOT_FOUND);
+            checkWarning(query, CAST_LOAD_NOT_FOUND + " to double at <line 4,");
         }
 
         @Test
@@ -3361,12 +3361,12 @@ public class TestTypeCheckingValidatorNewLP {
         public void testJoinLineageNoSchemaFail() throws Throwable {
             //this test case should change when we decide on what flattening a tuple or bag
             //with null schema results in a foreach flatten and hence a join
-            String query =  "a = load 'a' using PigStorage('a');"
-            + "b = load 'a' using org.apache.pig.test.PigStorageWithDifferentCaster();"
-            + "c = join a by $0, b by $0;"
+            String query =  "a = load 'a' using PigStorage('a');\n"
+            + "b = load 'a' using org.apache.pig.test.PigStorageWithDifferentCaster();\n"
+            + "c = join a by $0, b by $0;\n"
             + "d = foreach c generate $1 + 2.0 ;";
 
-            checkWarning(query, CAST_LOAD_NOT_FOUND);
+            checkWarning(query, CAST_LOAD_NOT_FOUND + " to double at <line 4,");
         }
 
         @Test
@@ -3382,12 +3382,12 @@ public class TestTypeCheckingValidatorNewLP {
         public void testJoinLineageMixSchemaFail() throws Throwable {
             //this test case should change when we decide on what flattening a tuple or bag
             //with null schema results in a foreach flatten and hence a join
-            String query =  "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
-            + "b = load 'a' using org.apache.pig.test.PigStorageWithDifferentCaster();"
-            + "c = join a by field1, b by $0;"
+            String query =  "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );\n"
+            + "b = load 'a' using org.apache.pig.test.PigStorageWithDifferentCaster();\n"
+            + "c = join a by field1, b by $0;\n"
             + "d = foreach c generate $3 + 2.0 ;";
 
-            checkWarning(query, CAST_LOAD_NOT_FOUND);
+            checkWarning(query, CAST_LOAD_NOT_FOUND + " to double at <line 4,");
         }
 
         @Test
@@ -3871,12 +3871,12 @@ public class TestTypeCheckingValidatorNewLP {
          */
         @Test
         public void testLineageMultipleLoader3() throws FrontendException {
-            String query =  "A = LOAD 'data1' USING PigStorage() AS (u, v, w);"
-            +  "B = LOAD 'data2' USING TextLoader() AS (x, y);"
-            + "C = COGROUP A BY u, B by x;"
-            +  "D = FOREACH C GENERATE (chararray)group;";
+            String query =  "A = LOAD 'data1' USING PigStorage() AS (u, v, w);\n"
+            +  "B = LOAD 'data2' USING TextLoader() AS (x, y);\n"
+            +  "C = COGROUP A BY u, B by x;\n"
+            +  "D = FOREACH C GENERATE (chararray)group;\n";
 
-            checkWarning(query, CAST_LOAD_NOT_FOUND);
+            checkWarning(query, CAST_LOAD_NOT_FOUND + " to double at <line 4,");
         }
 
         /**

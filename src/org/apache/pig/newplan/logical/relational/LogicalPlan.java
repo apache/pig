@@ -191,6 +191,15 @@ public class LogicalPlan extends BaseOperatorPlan {
 
         new TypeCheckingRelVisitor( this, collector).visit();
 
+
+        new UnionOnSchemaSetter(this).visit();
+        new CastLineageSetter(this, collector).visit();
+        new ScalarVariableValidator(this).visit();
+        new StoreAliasSetter(this).visit();
+
+        // compute whether output data is sorted or not
+        new SortInfoSetter(this).visit();
+
         boolean aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
 
         if(aggregateWarning) {
@@ -200,14 +209,6 @@ public class LogicalPlan extends BaseOperatorPlan {
                 CompilationMessageCollector.logAllMessages(collector, log);
             }
         }
-
-        new UnionOnSchemaSetter(this).visit();
-        new CastLineageSetter(this, collector).visit();
-        new ScalarVariableValidator(this).visit();
-        new StoreAliasSetter(this).visit();
-
-        // compute whether output data is sorted or not
-        new SortInfoSetter(this).visit();
 
         if (!(skipInputOutputValidation || pigContext.inExplain || pigContext.inDumpSchema)) {
             // Validate input/output file
