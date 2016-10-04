@@ -48,6 +48,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4976: streaming job with store clause stuck if the script fail (daijy via knoguchi)
+
 PIG-5035: killJob API does not work in Tez (zjffdu via rohini)
 
 PIG-5032: Output record stats in Tez is wrong when there is split followed by union (rohini)
