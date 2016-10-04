@@ -175,8 +175,10 @@ public abstract class OutputHandler {
      */
     public synchronized void close() throws IOException {
         if(!alreadyClosed) {
-            istream.close();
-            istream = null;
+            if( istream != null ) {
+                istream.close();
+                istream = null;
+            }
             alreadyClosed = true;
         }
     }
