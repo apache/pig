@@ -107,7 +107,7 @@ public class CastLineageSetter extends AllExpressionVisitor{
                 if(inLoadFunc == null){
                     String msg = "Cannot resolve load function to use for casting from " + 
                                 DataType.findTypeName(inType) + " to " +
-                                DataType.findTypeName(outType) + ". ";
+                                DataType.findTypeName(outType) + " at " + cast.getLocation() ;
                     msgCollector.collect(msg, MessageType.Warning,
                            PigWarning.NO_LOAD_FUNCTION_FOR_CASTING_BYTEARRAY);
                 }else {
