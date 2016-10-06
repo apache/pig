@@ -48,8 +48,6 @@ OPTIMIZATIONS
  
 BUG FIXES
 
-PIG-4951: Rename PIG_ATS_ENABLED constant (szita via daijy)
-
 PIG-3087: Refactor TestLogicalPlanBuilder to be meaningful (szita via daijy)
 
 PIG-4976: streaming job with store clause stuck if the script fail (daijy via knoguchi)
@@ -112,6 +110,8 @@ PIG-4945: Update document for conflicting macro params (knoguchi via daijy)
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-4951: Rename PIG_ATS_ENABLED constant (szita via daijy)
 
 PIG-4947: LOAD with HBaseStorage using a mix of pure wildcards and prefixed wildcards results
   in empty maps for the pure wildcarded column families (daijy)
