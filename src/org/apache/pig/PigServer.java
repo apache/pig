@@ -246,13 +246,13 @@ public class PigServer {
 
         // log ATS event includes the caller context
         String auditId = PigATSClient.getPigAuditId(pigContext);
-        String callerId = (String)pigContext.getProperties().get(PigConfiguration.CALLER_ID);
+        String callerId = (String)pigContext.getProperties().get(PigConfiguration.PIG_LOG_TRACE_ID);
         log.info("Pig Script ID for the session: " + auditId);
         if (callerId != null) {
             log.info("Caller ID for session: " + callerId);
         }
         if (Boolean.parseBoolean(pigContext.getProperties()
-                .getProperty(PigConfiguration.ENABLE_ATS))) {
+                .getProperty(PigConfiguration.PIG_ATS_ENABLED))) {
             if (Boolean.parseBoolean(pigContext.getProperties()
                     .getProperty("yarn.timeline-service.enabled", "false"))) {
                 PigATSClient.ATSEvent event = new PigATSClient.ATSEvent(auditId, callerId);
