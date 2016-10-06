@@ -48,6 +48,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3087: Refactor TestLogicalPlanBuilder to be meaningful (szita via daijy)
+
 PIG-4976: streaming job with store clause stuck if the script fail (daijy via knoguchi)
 
 PIG-5035: killJob API does not work in Tez (zjffdu via rohini)
