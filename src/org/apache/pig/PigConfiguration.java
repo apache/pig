@@ -427,15 +427,25 @@ public class PigConfiguration {
     /**
      * Log tracing id that can be used by upstream clients for tracking respective logs
      */
-    public static final String CALLER_ID = "pig.log.trace.id";
+    public static final String PIG_LOG_TRACE_ID = "pig.log.trace.id";
+
+    /**
+     * @deprecated use {@link #PIG_LOG_TRACE_ID} instead. Will be removed in Pig 0.18
+     */
+    public static final String CALLER_ID = PIG_LOG_TRACE_ID;
 
     /**
      * Enable ATS for Pig
      */
-    public static final String ENABLE_ATS = "pig.ats.enabled";
+    public static final String PIG_ATS_ENABLED = "pig.ats.enabled";
 
     /**
-     * Enable ATS for Pig
+     * @deprecated use {@link #PIG_ATS_ENABLED} instead. Will be removed in Pig 0.18
+     */
+    public static final String ENABLE_ATS = PIG_ATS_ENABLED;
+
+    /**
+     * If set, Pig will override tez.am.launch.cmd-opts and tez.am.resource.memory.mb to optimal
      */
     public static final String PIG_TEZ_CONFIGURE_AM_MEMORY = "pig.tez.configure.am.memory";
 

@@ -48,6 +48,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4951: Rename PIG_ATS_ENABLED constant (szita via daijy)
+
 PIG-3087: Refactor TestLogicalPlanBuilder to be meaningful (szita via daijy)
 
 PIG-4976: streaming job with store clause stuck if the script fail (daijy via knoguchi)
