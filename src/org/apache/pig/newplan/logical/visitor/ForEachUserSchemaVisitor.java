@@ -200,8 +200,14 @@ public class ForEachUserSchemaVisitor extends LogicalRelationalNodesVisitor {
         gen.setFlattenFlags(new boolean[index]);
         if (needCast) {
             // Insert the casterForEach into the plan and patch up the plan.
-            Operator next = plan.getSuccessors(foreach).get(0);
-            plan.insertBetween(foreach, casterForEach, next);
+            List <Operator> successorOps = plan.getSuccessors(foreach);
+            if (successorOps != null && successorOps.size() > 0){
+                Operator next = plan.getSuccessors(foreach).get(0);
+                plan.insertBetween(foreach, casterForEach, next);
+            }else{
+                plan.add(casterForEach);
+                plan.connect(foreach,casterForEach);
+            }
 
             // Since the explict cast is now inserted after the original foreach,
             // throwing away the user defined "types" but keeping the user
