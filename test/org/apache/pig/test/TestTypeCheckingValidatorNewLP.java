@@ -3876,7 +3876,7 @@ public class TestTypeCheckingValidatorNewLP {
             +  "C = COGROUP A BY u, B by x;\n"
             +  "D = FOREACH C GENERATE (chararray)group;\n";
 
-            checkWarning(query, CAST_LOAD_NOT_FOUND + " to double at <line 4,");
+            checkWarning(query, CAST_LOAD_NOT_FOUND + " to chararray at <line 4,");
         }
 
         /**

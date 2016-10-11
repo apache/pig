@@ -48,6 +48,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5039: TestTypeCheckingValidatorNewLP.TestTypeCheckingValidatorNewLP is failing (nkollar via knoguchi)
+
 PIG-3087: Refactor TestLogicalPlanBuilder to be meaningful (szita via daijy)
 
 PIG-4976: streaming job with store clause stuck if the script fail (daijy via knoguchi)
