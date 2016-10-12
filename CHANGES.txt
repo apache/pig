@@ -48,6 +48,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5038: Pig Limit_2 e2e test failed with sort check (Konstantin_Harasov via rohini)
+
 PIG-5039: TestTypeCheckingValidatorNewLP.TestTypeCheckingValidatorNewLP is failing (nkollar via knoguchi)
 
 PIG-3087: Refactor TestLogicalPlanBuilder to be meaningful (szita via daijy)
