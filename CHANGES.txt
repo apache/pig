@@ -30,6 +30,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-5040: Order by and CROSS partitioning is not deterministic due to usage of Random (rohini)
+
 PIG-4951: Rename PIG_ATS_ENABLED constant (szita via daijy)
 
 PIG-5035: killJob API does not work in Tez (zjffdu via rohini)
