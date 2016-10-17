@@ -30,6 +30,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-5041: RoundRobinPartitioner is not deterministic when order of input records change (rohini)
+
 PIG-5040: Order by and CROSS partitioning is not deterministic due to usage of Random (rohini)
 
 PIG-4951: Rename PIG_ATS_ENABLED constant (szita via daijy)
