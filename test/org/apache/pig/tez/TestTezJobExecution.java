@@ -30,7 +30,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigRunner;
 import org.apache.pig.PigServer;
-import org.apache.pig.builtin.RoundRobinPartitioner;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.test.Util;
 import org.apache.pig.tools.pigstats.JobStats;
@@ -72,19 +71,17 @@ public class TestTezJobExecution {
     }
 
     @Test
-    public void testUnionParallelRoundRobinBatchSize() throws IOException {
+    public void testUnionParallelHashValuePartition() throws IOException {
         String output = TEST_DIR + Path.SEPARATOR + "output1";
         String query = "A = LOAD '" + INPUT_FILE + "';"
                 + "B = LOAD '" + INPUT_FILE + "';"
                 + "C = UNION A, B PARALLEL 2;"
                 + "STORE C into '" + output + "';";
-        pigServer.getPigContext().getProperties().setProperty(
-                RoundRobinPartitioner.PIG_ROUND_ROBIN_PARTITIONER_BATCH_SIZE, "3");
         pigServer.registerQuery(query);
         String part0 = FileUtils.readFileToString(new File(output + Path.SEPARATOR + "part-v002-o000-r-00000"));
         String part1 = FileUtils.readFileToString(new File(output + Path.SEPARATOR + "part-v002-o000-r-00001"));
-        assertEquals("1\n1\n1\n1\n1\n1\n", part0);
-        assertEquals("2\n2\n2\n2\n2\n2\n", part1);
+        assertEquals("2\n2\n2\n2\n2\n2\n", part0);
+        assertEquals("1\n1\n1\n1\n1\n1\n", part1);
     }
 
     @Test
@@ -108,7 +105,7 @@ public class TestTezJobExecution {
         // Recovery is not disabled when there is auto parallelism. Should reuse AM application session
         PigStats stats = PigRunner.run(args, listener);
         assertTrue(stats.isSuccessful());
-        assertEquals(listener.getJobsStarted().size(), 1);
+        assertEquals(1, listener.getJobsStarted().size());
 
         Util.deleteFile(pigServer.getPigContext(), output1);
         Util.deleteFile(pigServer.getPigContext(), output2);
@@ -122,7 +119,7 @@ public class TestTezJobExecution {
                 scriptFile };
         stats = PigRunner.run(args, listener);
         assertTrue(stats.isSuccessful());
-        assertEquals(listener.getJobsStarted().size(), 2);
+        assertEquals(2, listener.getJobsStarted().size());
     }
 
 
