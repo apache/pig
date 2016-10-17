@@ -17,13 +17,13 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.spark.converter;
 
-
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.pig.backend.executionengine.ExecException;
 import scala.Product2;
 import scala.Tuple2;
 import scala.collection.JavaConversions;
@@ -44,7 +44,7 @@ import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.rdd.CoGroupedRDD;
 import org.apache.spark.rdd.RDD;
-
+import scala.runtime.AbstractFunction1;
 
 public class JoinGroupSparkConverter implements RDDConverter<Tuple, Tuple, POJoinGroupSpark> {
     private static final Log LOG = LogFactory
@@ -63,8 +63,7 @@ public class JoinGroupSparkConverter implements RDDConverter<Tuple, Tuple, POJoi
 
         for (int i = 0; i < predecessors.size(); i++) {
             RDD<Tuple> rdd = predecessors.get(i);
-            rddAfterLRA.add(rdd.map(new LocalRearrangeFunction(lraOps.get(i), glaOp.isUseSecondaryKey(), glaOp
-                            .getSecondarySortOrder()),
+            rddAfterLRA.add(rdd.map(new LocalRearrangeFunction(lraOps.get(i), glaOp),
                     SparkUtil.<IndexedKey, Tuple>getTuple2Manifest()));
         }
         if (rddAfterLRA.size() == 1 && useSecondaryKey) {
@@ -83,6 +82,67 @@ public class JoinGroupSparkConverter implements RDDConverter<Tuple, Tuple, POJoi
         }
     }
 
+    private static class LocalRearrangeFunction extends
+            AbstractFunction1<Tuple, Tuple2<IndexedKey, Tuple>> implements Serializable {
+
+        private final POLocalRearrange lra;
+
+        private boolean useSecondaryKey;
+        private boolean[] secondarySortOrder;
+
+        public LocalRearrangeFunction(POLocalRearrange lra, POGlobalRearrangeSpark glaOp) {
+            if( glaOp.isUseSecondaryKey()) {
+                this.useSecondaryKey = glaOp.isUseSecondaryKey();
+                this.secondarySortOrder = glaOp.getSecondarySortOrder();
+            }
+            this.lra = lra;
+        }
+
+        @Override
+        public Tuple2<IndexedKey, Tuple> apply(Tuple t) {
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("LocalRearrangeFunction in " + t);
+            }
+            Result result;
+            try {
+                lra.setInputs(null);
+                lra.attachInput(t);
+                result = lra.getNextTuple();
+
+                if (result == null) {
+                    throw new RuntimeException(
+                            "Null response found for LocalRearange on tuple: "
+                                    + t);
+                }
+
+                switch (result.returnStatus) {
+                    case POStatus.STATUS_OK:
+                        // (index, key, value without keys)
+                        Tuple resultTuple = (Tuple) result.result;
+                        Object key = resultTuple.get(1);
+                        IndexedKey indexedKey = new IndexedKey((Byte) resultTuple.get(0), key);
+                        if( useSecondaryKey) {
+                            indexedKey.setUseSecondaryKey(useSecondaryKey);
+                            indexedKey.setSecondarySortOrder(secondarySortOrder);
+                        }
+                        Tuple2<IndexedKey, Tuple> out = new Tuple2<IndexedKey, Tuple>(indexedKey,
+                                (Tuple) resultTuple.get(2));
+                        if (LOG.isDebugEnabled()) {
+                            LOG.debug("LocalRearrangeFunction out " + out);
+                        }
+                        return out;
+                    default:
+                        throw new RuntimeException(
+                                "Unexpected response code from operator "
+                                        + lra + " : " + result);
+                }
+            } catch (ExecException e) {
+                throw new RuntimeException(
+                        "Couldn't do LocalRearange on tuple: " + t, e);
+            }
+        }
+
+    }
 
     /**
      * Send cogroup output where each element is {key, bag[]} to PoPackage
