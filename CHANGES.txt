@@ -48,6 +48,9 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5045: CSVExcelStorage Load: A Quoted Field with a Single Escaped Quote """" Becomes "" This should become " instead
+  (szita via daijy)
+
 PIG-5026: Remove src/META-INF/services/org.apache.hadoop.mapreduce.protocol.ClientProtocolProvider (nkollar via daijy)
 
 PIG-5041: RoundRobinPartitioner is not deterministic when order of input records change (rohini)
