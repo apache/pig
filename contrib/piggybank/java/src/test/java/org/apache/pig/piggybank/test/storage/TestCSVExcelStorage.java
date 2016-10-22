@@ -218,7 +218,7 @@ public class TestCSVExcelStorage  {
         Util.registerMultiLineQuery(pig, script);
         Iterator<Tuple> it = pig.openIterator("a");
         Assert.assertEquals(Util.createTuple(new String[] {"foo,\"bar\",baz"}), it.next());
-        Assert.assertEquals(Util.createTuple(new String[] {"\"\"\"\""}), it.next());
+        Assert.assertEquals(Util.createTuple(new String[] {"\"\"\""}), it.next());
     }
 
     // Handle newlines in fields
