@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-5037: Add api getDisplayString to PigStats (zjffdu)
+
 PIG-5020: Give file location for loadcaster related warning and errors (knoguchi)
 
 PIG-5027: Improve SAMPLE Scalar Expression Example (icook via knoguchi)
