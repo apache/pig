@@ -143,6 +143,7 @@ public class SparkLauncher extends Launcher {
     private PigContext pigContext = null;
     private JobConf jobConf = null;
     private String currentDirectoryPath = null;
+    private SparkEngineConf sparkEngineConf = new SparkEngineConf();
 
     @Override
     public PigStats launchPig(PhysicalPlan physicalPlan, String grpName,
@@ -181,7 +182,7 @@ public class SparkLauncher extends Launcher {
         Map<Class<? extends PhysicalOperator>, RDDConverter> convertMap
                 = new HashMap<Class<? extends PhysicalOperator>, RDDConverter>();
         convertMap.put(POLoad.class, new LoadConverter(pigContext,
-                physicalPlan, sparkContext.sc(), jobConf));
+                physicalPlan, sparkContext.sc(), jobConf, sparkEngineConf));
         convertMap.put(POStore.class, new StoreConverter(jobConf));
         convertMap.put(POForEach.class, new ForEachConverter());
         convertMap.put(POFilter.class, new FilterConverter());
@@ -633,19 +634,18 @@ public class SparkLauncher extends Launcher {
     }
 
     /**
-     * We store the value of udf.import.list in PigContext#properties.getProperty("spark.udf.import.list") in spark mode.
-     * Later we will use PigContext#properties.getProperty("spark.udf.import.list")in PigContext#writeObject.
-     * we don't save this value in PigContext#properties.getProperty("udf.import.list")
-     * because this will cause OOM problem(detailed see PIG-4295).
+     * We store the value of udf.import.list in SparkEngineConf#properties
+     * Later we will serialize it in SparkEngineConf#writeObject and deserialize in SparkEngineConf#readObject. More
+     * detail see PIG-4920
      */
     private void saveUdfImportList() {
         String udfImportList = Joiner.on(",").join(PigContext.getPackageImportList());
-        pigContext.getProperties().setProperty("spark.udf.import.list", udfImportList);
+        sparkEngineConf.setSparkUdfImportListStr(udfImportList);
     }
 
     private void initialize(PhysicalPlan physicalPlan) throws IOException {
         saveUdfImportList();
-        jobConf = SparkUtil.newJobConf(pigContext, physicalPlan);
+        jobConf = SparkUtil.newJobConf(pigContext, physicalPlan, sparkEngineConf);
         SchemaTupleBackend.initialize(jobConf, pigContext);
         Utils.setDefaultTimeZone(jobConf);
         PigMapReduce.sJobConfInternal.set(jobConf);

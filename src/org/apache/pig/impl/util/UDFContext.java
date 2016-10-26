@@ -76,7 +76,7 @@ public class UDFContext {
     /*
      *  internal pig use only - should NOT be called from user code
      */
-    HashMap<UDFContextKey, Properties> getUdfConfs() {
+    public HashMap<UDFContextKey, Properties> getUdfConfs() {
         return udfConfs;
     }
 
@@ -218,6 +218,14 @@ public class UDFContext {
                 jconf.get(CLIENT_SYS_PROPS));
     }
 
+    public void deserializeForSpark(String udfConfsStr, String clientSysPropsStr) throws IOException {
+        if( udfConfsStr!= null && clientSysPropsStr!=null) {
+            udfConfs = (HashMap<UDFContextKey, Properties>) ObjectSerializer.deserialize(udfConfsStr);
+            clientSysProps = (Properties) ObjectSerializer.deserialize(
+                    clientSysPropsStr);
+        }
+    }
+
     private UDFContextKey generateKey(Class<?> c, String[] args) {
         return new UDFContextKey(c.getName(), args);
     }
@@ -312,6 +320,10 @@ public class UDFContext {
                 return false;
             return true;
         }
+    }
+
+    public Properties getClientSysProps() {
+        return clientSysProps;
     }
 
 }

@@ -66,7 +66,6 @@ import org.apache.pig.backend.executionengine.ExecutionEngine;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
-import org.apache.pig.backend.hadoop.executionengine.spark.SparkExecType;
 import org.apache.pig.impl.streaming.ExecutableManager;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
@@ -911,44 +910,6 @@ public class PigContext implements Serializable {
             classloader = (ContextClassLoader) cl;
         } else {
             classloader = new ContextClassLoader(cl);
-        }
-    }
-
-    /**
-     * In spark mode, JavaSerializer will serialize objects when the a task starts(Detailed see PIG-4295)
-     * packageImportList is a ThreadLocal variable which can not be serialized.
-     * we overwrites writeObject method to serialize the value of packageImportList.
-     * @param out
-     * @throws IOException
-     */
-    private void writeObject(ObjectOutputStream out) throws IOException {
-        out.defaultWriteObject();
-        if(getExecType() instanceof SparkExecType) {
-            ArrayList<String> udfImportList = new ArrayList<String>();
-            if (packageImportList.get() == null) {
-                String udfImportListStr = properties.getProperty("spark.udf.import.list");
-                if (udfImportListStr != null) {
-                    udfImportList = Lists.newArrayList(Splitter.on(",").split(udfImportListStr));
-                }
-            } else {
-                udfImportList = packageImportList.get();
-            }
-            out.writeObject(udfImportList);
-        }
-    }
-
-    /**
-     * packageImportList is ThreadLocal variable which can not be deserialized.
-     * we overwrites readObject method to deserialize the value and set it to packageImportList.
-     * @param in
-     * @throws IOException
-     * @throws ClassNotFoundException
-     */
-    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
-        in.defaultReadObject();
-        if(getExecType() instanceof SparkExecType) {
-            ArrayList<String> udfImportList = (ArrayList<String>) in.readObject();
-            packageImportList.set(udfImportList);
         }
    }
 }

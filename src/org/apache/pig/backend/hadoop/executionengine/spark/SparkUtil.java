@@ -75,12 +75,18 @@ public class SparkUtil {
         return (ClassTag<Product2<K, V>>) (Object) getManifest(Product2.class);
     }
 
-    public static JobConf newJobConf(PigContext pigContext, PhysicalPlan physicalPlan) throws IOException {
+    public static JobConf newJobConf(PigContext pigContext, PhysicalPlan physicalPlan, SparkEngineConf sparkEngineConf) throws
+            IOException {
         JobConf jobConf = new JobConf(
                 ConfigurationUtil.toConfiguration(pigContext.getProperties()));
-        // Serialize the PigContext so it's available in Executor thread.
+        //Serialize the thread local variable UDFContext#udfConfs, UDFContext#clientSysProps and PigContext#packageImportList
+        //inside SparkEngineConf separately
+        jobConf.set("spark.engine.conf",ObjectSerializer.serialize(sparkEngineConf));
+        //Serialize the PigContext so it's available in Executor thread.
         jobConf.set("pig.pigContext", ObjectSerializer.serialize(pigContext));
         // Serialize the thread local variable inside PigContext separately
+        // Although after PIG-4920, we store udf.import.list in SparkEngineConf
+        // but we still need store it in jobConf because it will be used in PigOutputFormat#setupUdfEnvAndStores
         jobConf.set("udf.import.list",
                 ObjectSerializer.serialize(PigContext.getPackageImportList()));
         Random rand = new Random();

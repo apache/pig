@@ -27,6 +27,7 @@ import java.util.Map;
 
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigInputFormat;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
+import org.apache.pig.backend.hadoop.executionengine.spark.SparkEngineConf;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.tools.pigstats.spark.SparkCounters;
 import org.apache.pig.tools.pigstats.spark.SparkPigStatusReporter;
@@ -69,13 +70,15 @@ public class LoadConverter implements RDDConverter<Tuple, Tuple, POLoad> {
     private PhysicalPlan physicalPlan;
     private SparkContext sparkContext;
     private JobConf jobConf;
+    private SparkEngineConf sparkEngineConf;
 
     public LoadConverter(PigContext pigContext, PhysicalPlan physicalPlan,
-            SparkContext sparkContext, JobConf jobConf) {
+            SparkContext sparkContext, JobConf jobConf, SparkEngineConf sparkEngineConf) {
         this.pigContext = pigContext;
         this.physicalPlan = physicalPlan;
         this.sparkContext = sparkContext;
         this.jobConf = jobConf;
+        this.sparkEngineConf = sparkEngineConf;
     }
 
     @Override
@@ -106,7 +109,7 @@ public class LoadConverter implements RDDConverter<Tuple, Tuple, POLoad> {
 
         registerUdfFiles();
 
-        ToTupleFunction ttf = new ToTupleFunction();
+        ToTupleFunction ttf = new ToTupleFunction(sparkEngineConf);
 
         //create SparkCounter and set it for ToTupleFunction
         boolean disableCounter = jobConf.getBoolean("pig.disable.counter", false);
@@ -153,6 +156,12 @@ public class LoadConverter implements RDDConverter<Tuple, Tuple, POLoad> {
         private String counterName;
         private SparkCounters sparkCounters;
         private boolean disableCounter;
+        private SparkEngineConf sparkEngineConf;
+
+        public ToTupleFunction(SparkEngineConf sparkEngineConf){
+               this.sparkEngineConf = sparkEngineConf;
+
+        }
 
         @Override
         public Tuple apply(Tuple2<Text, Tuple> v1) {
@@ -223,7 +232,6 @@ public class LoadConverter implements RDDConverter<Tuple, Tuple, POLoad> {
         jobConf.set(PigInputFormat.PIG_INPUT_SIGNATURES,
                 ObjectSerializer.serialize(inpSignatures));
         jobConf.set(PigInputFormat.PIG_INPUT_LIMITS, ObjectSerializer.serialize(inpLimits));
-
         return jobConf;
     }
 
