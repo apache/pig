@@ -351,7 +351,11 @@ public abstract class HExecutionEngine implements ExecutionEngine {
     @Override
     public void setProperty(String property, String value) {
         Properties properties = pigContext.getProperties();
-        properties.put(property, value);
+        if (Configuration.isDeprecated(property)) {
+            properties.putAll(ConfigurationUtil.expandForAlternativeNames(property, value));
+        } else {
+            properties.put(property, value);
+        }
     }
 
     @Override
