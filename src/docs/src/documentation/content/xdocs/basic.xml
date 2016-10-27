@@ -1335,6 +1335,26 @@ dump X;
          </tr>
          <tr>
             <td>
+               <p>biginteger</p>
+            </td>
+            <td>
+               <p>19211921192119211921BI</p>
+            </td>
+            <td>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>bigdecimal</p>
+            </td>
+            <td>
+               <p>192119211921.192119211921BD</p>
+            </td>
+            <td>
+            </td>
+         </tr>
+         <tr>
+            <td>
                <p><strong>Complex Data Types</strong></p>
             </td>
             <td>
@@ -1388,7 +1408,18 @@ dump X;
          <p>To specify a long constant, l or L must be appended to the number (for example, 12345678L). If the l or L is not specified, but the number is too large to fit into an int, the problem will be detected at parse time and the processing is terminated. </p>
       </li>
       <li>
-         <p>Any numeric constant with decimal point (for example, 1.5) and/or exponent (for example, 5e+1) is treated as double unless it ends with f or F in which case it is assigned type float (for example,  1.5f). </p>
+         <p>Any numeric constant with decimal point (for example, 1.5) and/or exponent (for example, 5e+1) is treated as double unless it ends with the following characters:</p>
+         <ul>
+            <li>
+               <p>f or F in which case it is assigned type float (for example,  1.5f)</p>
+            </li>
+            <li>
+               <p>BD or bd in which case it is assigned type BigDecimal (for example,  12345678.12345678BD)</p>
+            </li>
+         </ul>
+      </li>
+      <li>
+         <p>BigIntegers can be specified by supplying BI or bi at the end of the number (for example, 123456789123456BI)</p>
       </li>
       <li>
          <p>There is no native constant type for datetime field. You can use a ToDate udf with chararray constant as argument to generate a datetime value. </p>

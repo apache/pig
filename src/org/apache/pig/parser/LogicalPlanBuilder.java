@@ -1357,13 +1357,19 @@ public class LogicalPlanBuilder {
         return Long.parseLong( num );
     }
 
+    /**
+     * Parse big integer formatted string (e.g. "1234567890123BI") into BigInteger object
+     */
     static BigInteger parseBigInteger(String s) {
-        String num = s.substring( 0, s.length() - 1 );
+        String num = s.substring( 0, s.length() - 2 );
         return new BigInteger( num );
     }
 
+    /**
+     * Parse big decimal formatted string (e.g. "123456.7890123BD") into BigDecimal object
+     */
     static BigDecimal parseBigDecimal(String s) {
-        String num = s.substring( 0, s.length() - 1 );
+        String num = s.substring( 0, s.length() - 2 );
         return new BigDecimal( num );
     }
 

@@ -50,6 +50,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4798: big integer literals fail to parse (szita via daijy)
+
 PIG-5045: CSVExcelStorage Load: A Quoted Field with a Single Escaped Quote """" Becomes "" This should become " instead
   (szita via daijy)
 

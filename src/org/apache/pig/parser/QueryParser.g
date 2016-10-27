@@ -889,6 +889,8 @@ scalar : INTEGER
        | LONGINTEGER
        | FLOATNUMBER
        | DOUBLENUMBER
+       | BIGINTEGERNUMBER
+       | BIGDECIMALNUMBER
        | QUOTEDSTRING
        | NULL
        | TRUE
