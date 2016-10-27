@@ -652,4 +652,14 @@ public class TestQueryParser {
     public void testSplit2() throws Exception {
         shouldPass("SPLIT logs INTO logins IF command == 'login', all_quits IF command == 'quit';");
     }
+
+    @Test
+    public void testBigDecimalParsing() throws Exception {
+        shouldPass("B = FILTER A BY $1 < 1234567890.123456789BD;");
+    }
+
+    @Test
+    public void testBigIntegerParsing() throws Exception {
+        shouldPass("B = FILTER A BY $1 < 1234567890123456789BI;");
+    }
 }
