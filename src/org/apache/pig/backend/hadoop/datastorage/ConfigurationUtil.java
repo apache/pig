@@ -106,4 +106,14 @@ public class ConfigurationUtil {
             }
         }
     }
+
+    /**
+     * Returns Properties containing alternative names of given property and same values - can be used to solve deprecations
+     * @return
+     */
+    public static Properties expandForAlternativeNames(String name, String value){
+        final Configuration config = new Configuration(false);
+        config.set(name,value);
+        return ConfigurationUtil.toProperties(config);
+    }
 }
