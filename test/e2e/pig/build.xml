@@ -61,6 +61,7 @@
   <property name="harness.PH_LOCAL" value="."/>
   <property name="harness.PH_OUT" value="."/>
   <property name="harness.PERL5LIB" value="./libexec"/>
+  <property name="harness.user.home" value="/user/pig" />
 
   <property name="test.location" value="${basedir}/testdist"/>
   <property name="benchmark.location" value="${test.location}/benchmarks"/>
@@ -309,6 +310,7 @@
       <env key="PH_HIVE_LIB_DIR" value="${hive.lib.dir}"/>
       <env key="PH_HIVE_VERSION" value="${hive.version}"/>
       <env key="PH_HIVE_SHIMS_VERSION" value="${hive.hadoop.shims.version}"/>
+      <env key="PH_HDFS_BASE" value="${harness.user.home}" />
       <env key="HARNESS_CONF" value="${harness.conf.file}"/>
       <env key="HADOOP_HOME" value="${harness.hadoop.home}"/>
       <env key="HADOOP_PREFIX" value="${HADOOP_PREFIX}"/>
@@ -363,6 +365,7 @@
       <env key="PH_CLUSTER_BIN" value="${harness.cluster.bin}"/>
       <env key="HARNESS_CONF" value="${harness.conf.file}"/>
       <env key="HADOOP_HOME" value="${harness.hadoop.home}"/>
+      <env key="PH_HDFS_BASE" value="${harness.user.home}" />
 
       <arg value="./test_harness.pl"/>
       <arg value="-deploycfg"/>
