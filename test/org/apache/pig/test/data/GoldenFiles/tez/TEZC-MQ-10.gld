@@ -1,0 +1,105 @@
+#--------------------------------------------------
+# There are 1 DAGs in the session
+#--------------------------------------------------
+#--------------------------------------------------
+# TEZ DAG plan: pig-0_scope-0
+#--------------------------------------------------
+Tez vertex scope-66	->	Tez vertex scope-56,Tez vertex scope-70,
+Tez vertex scope-70	->	Tez vertex scope-56,
+Tez vertex scope-56
+
+Tez vertex scope-66
+# Plan on vertex
+c: Split - scope-73
+|   |
+|   Local Rearrange[tuple]{int}(false) - scope-38	->	 scope-56
+|   |   |
+|   |   Project[int][0] - scope-34
+|   |
+|   |---e: Filter[bag] - scope-29
+|       |   |
+|       |   Less Than[boolean] - scope-32
+|       |   |
+|       |   |---Project[int][1] - scope-30
+|       |   |
+|       |   |---Constant(2) - scope-31
+|   |
+|   POValueOutputTez - scope-67	->	 [scope-70]
+|
+|---c: New For Each(false,false)[bag] - scope-25
+    |   |
+    |   Cast[int] - scope-20
+    |   |
+    |   |---Project[bytearray][0] - scope-19
+    |   |
+    |   Cast[int] - scope-23
+    |   |
+    |   |---Project[bytearray][1] - scope-22
+    |
+    |---c: Load(file:///tmp/input3:org.apache.pig.builtin.PigStorage) - scope-18
+Tez vertex scope-70
+# Plan on vertex
+Local Rearrange[tuple]{int}(false) - scope-52	->	 scope-56
+|   |
+|   Project[int][0] - scope-48
+|
+|---f: Filter[bag] - scope-43
+    |   |
+    |   Greater Than[boolean] - scope-46
+    |   |
+    |   |---Project[int][1] - scope-44
+    |   |
+    |   |---Constant(5) - scope-45
+    |
+    |---POValueInputTez - scope-71	<-	 scope-66
+Tez vertex scope-56
+# Plan on vertex
+a: Split - scope-72
+|   |
+|   h: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-90	->	 scope-55
+|   |
+|   |---h: FRJoin[tuple] - scope-82	<-	 scope-70
+|       |   |
+|       |   Project[int][0] - scope-83
+|       |   |
+|       |   Project[int][0] - scope-84
+|       |
+|       |---g: FRJoin[tuple] - scope-74	<-	 scope-66
+|           |   |
+|           |   Project[int][0] - scope-75
+|           |   |
+|           |   Project[int][0] - scope-76
+|   |
+|   h: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-107	->	 scope-55
+|   |
+|   |---h: FRJoin[tuple] - scope-99	<-	 scope-70
+|       |   |
+|       |   Project[int][0] - scope-100
+|       |   |
+|       |   Project[int][0] - scope-101
+|       |
+|       |---g: FRJoin[tuple] - scope-91	<-	 scope-66
+|           |   |
+|           |   Project[int][0] - scope-92
+|           |   |
+|           |   Project[int][0] - scope-93
+|           |
+|           |---b: Filter[bag] - scope-13
+|               |   |
+|               |   Equal To[boolean] - scope-16
+|               |   |
+|               |   |---Project[int][0] - scope-14
+|               |   |
+|               |   |---Constant(2) - scope-15
+|
+|---a: New For Each(false,false)[bag] - scope-7
+    |   |
+    |   Cast[int] - scope-2
+    |   |
+    |   |---Project[bytearray][0] - scope-1
+    |   |
+    |   Cast[int] - scope-5
+    |   |
+    |   |---Project[bytearray][1] - scope-4
+    |
+    |---a: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-0

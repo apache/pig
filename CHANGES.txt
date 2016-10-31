@@ -52,6 +52,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5033: MultiQueryOptimizerTez creates bad plan with union, split and FRJoin (rohini,tmwoordruff via rohini)
+
 PIG-4934: SET command does not work well with deprecated settings (szita via daijy)
 
 PIG-4798: big integer literals fail to parse (szita via daijy)

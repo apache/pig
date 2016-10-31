@@ -645,6 +645,46 @@ public class TestTezCompiler {
     }
 
     @Test
+    public void testMultiQueryMultipleReplicateJoinWithUnion() throws Exception {
+        // Replicate joins are from a split
+        String query =
+                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
+                "b = load 'file:///tmp/input2' as (x:int, y:int);" +
+                "c = load 'file:///tmp/input3' as (x:int, y:int);" +
+                "d = union a, b;" +
+                "e = filter c by y < 2;" +
+                "f = filter c by y > 5;" +
+                "g = join d by x, e by x using 'replicated';" +
+                "h = join g by d::x, f by x using 'replicated';" +
+                "store h into 'file:///tmp/pigoutput';";
+
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + true);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-9.gld");
+        resetScope();
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + false);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-9-OPTOFF.gld");
+
+        // Union is also from a split
+        query =
+                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
+                "b = filter a by x == 2;" +
+                "c = load 'file:///tmp/input3' as (x:int, y:int);" +
+                "d = union a, b;" +
+                "e = filter c by y < 2;" +
+                "f = filter c by y > 5;" +
+                "g = join d by x, e by x using 'replicated';" +
+                "h = join g by d::x, f by x using 'replicated';" +
+                "store h into 'file:///tmp/pigoutput';";
+
+        resetScope();
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + true);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-10.gld");
+        resetScope();
+        setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + false);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MQ-10-OPTOFF.gld");
+    }
+
+    @Test
     public void testUnionStore() throws Exception {
         String query =
                 "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
