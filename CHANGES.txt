@@ -32,6 +32,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-5033: MultiQueryOptimizerTez creates bad plan with union, split and FRJoin (rohini,tmwoordruff via rohini)
+
 PIG-5041: RoundRobinPartitioner is not deterministic when order of input records change (rohini)
 
 PIG-5040: Order by and CROSS partitioning is not deterministic due to usage of Random (rohini)
