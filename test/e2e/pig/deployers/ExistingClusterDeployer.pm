@@ -231,11 +231,6 @@ sub generateData
             'rows' => 5000,
             'hdfs' => "types/numbers.txt",
         }, {
-            'name' => "biggish",
-            'filetype' => "biggish",
-            'rows' => 1000000,
-            'hdfs' => "singlefile/biggish",
-        }, {
             'name' => "prerank",
             'filetype' => "ranking",
             'rows' => 30,
