@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-5036: Remove biggish from e2e input dataset (daijy)
+
 PIG-5053: Can't change HDFS user home in e2e tests using Ant (nkollar via daijy)
 
 PIG-5037: Add api getDisplayString to PigStats (zjffdu)
