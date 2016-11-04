@@ -25,7 +25,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.pig.PigConstants;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigInputFormat;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkEngineConf;
 import org.apache.pig.impl.util.UDFContext;
@@ -53,6 +55,7 @@ import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.spark.SparkContext;
+import org.apache.spark.TaskContext;
 import org.apache.spark.rdd.RDD;
 
 import com.google.common.collect.Lists;
@@ -157,6 +160,7 @@ public class LoadConverter implements RDDConverter<Tuple, Tuple, POLoad> {
         private SparkCounters sparkCounters;
         private boolean disableCounter;
         private SparkEngineConf sparkEngineConf;
+        private boolean initialized;
 
         public ToTupleFunction(SparkEngineConf sparkEngineConf){
                this.sparkEngineConf = sparkEngineConf;
@@ -165,6 +169,11 @@ public class LoadConverter implements RDDConverter<Tuple, Tuple, POLoad> {
 
         @Override
         public Tuple apply(Tuple2<Text, Tuple> v1) {
+            if (!initialized) {
+                long partitionId = TaskContext.get().partitionId();
+                PigMapReduce.sJobConfInternal.get().set(PigConstants.TASK_INDEX, Long.toString(partitionId));
+                initialized = true;
+            }
             if (sparkCounters != null && disableCounter == false) {
                 sparkCounters.increment(counterGroupName, counterName, 1L);
             }

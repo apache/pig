@@ -94,7 +94,6 @@ public class SparkUtil {
         jobConf.set(PigConstants.LOCAL_CODE_DIR,
                 System.getProperty("java.io.tmpdir"));
         jobConf.set(MRConfiguration.JOB_ID, UUID.randomUUID().toString());
-        jobConf.set(PigConstants.TASK_INDEX, "0");
 
         LinkedList<POStore> stores = PlanHelper.getPhysicalOperators(
                 physicalPlan, POStore.class);

@@ -3229,8 +3229,6 @@ public class TestBuiltin {
             assertEquals(iter.next().get(1), "1-3");
             assertEquals(iter.next().get(1), "1-4");
         } else{
-            //because we set PigConstants.TASK_INDEX as 0 in ForEachConverter#ForEachFunction#initializeJobConf
-            //UniqueID.exec() will output like 0-*
             //there will be 2 InputSplits when mapred.max.split.size is 10(byte) for the testUniqueID.txt(20 bytes)
             //Split0:
             //            1\n
@@ -3252,10 +3250,10 @@ public class TestBuiltin {
             assertEquals(iter.next().get(1), "0-3");
             assertEquals(iter.next().get(1), "0-4");
             assertEquals(iter.next().get(1), "0-5");
-            assertEquals(iter.next().get(1), "0-0");
-            assertEquals(iter.next().get(1), "0-1");
-            assertEquals(iter.next().get(1), "0-2");
-            assertEquals(iter.next().get(1), "0-3");
+            assertEquals(iter.next().get(1), "1-0");
+            assertEquals(iter.next().get(1), "1-1");
+            assertEquals(iter.next().get(1), "1-2");
+            assertEquals(iter.next().get(1), "1-3");
         }
         Util.deleteFile(cluster, inputFileName);
     }
