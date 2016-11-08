@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-5034: Remove org.apache.hadoop.hive.serde2.objectinspector.primitive package (nkollar via daijy)
+
 PIG-5036: Remove biggish from e2e input dataset (daijy)
 
 PIG-5053: Can't change HDFS user home in e2e tests using Ant (nkollar via daijy)
