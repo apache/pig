@@ -32,6 +32,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-5048: HiveUDTF fail if it is the first expression in projection (nkollar via daijy)
+
 PIG-5033: MultiQueryOptimizerTez creates bad plan with union, split and FRJoin (rohini,tmwoordruff via rohini)
 
 PIG-5041: RoundRobinPartitioner is not deterministic when order of input records change (rohini)
