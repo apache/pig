@@ -19,10 +19,20 @@ package org.apache.pig.parser;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.IOException;
 import java.util.Properties;
 
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.pig.ExecType;
+import org.apache.pig.LoadFunc;
+import org.apache.pig.NonFSLoadFunc;
+import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.test.Util;
 import org.junit.Test;
@@ -107,8 +117,44 @@ public class TestQueryParserUtils {
 
 
         }
-
-
     }
 
+
+    @Test
+    public void testNonFSLoadFunc() throws Exception {
+        PigServer pigServer = new PigServer(Util.getLocalTestMode(), new Properties());
+        pigServer.registerQuery("A =  load 'hbase://query/SELECT ID, NAME, DATE FROM HIRES WHERE DATE > TO_DATE(\"1990-12-21 05:55:00.000\")' using org.apache.pig.parser.TestQueryParserUtils$DummyNonFSLoader();");
+        pigServer.shutdown();
+    }
+
+    /**
+     * Test class for testNonFSLoadFuncNoSetHdfsServersCall test case
+     */
+    public static class DummyNonFSLoader extends LoadFunc implements NonFSLoadFunc {
+
+        @Override
+        public void setLocation(String location, Job job) throws IOException {
+            throw new RuntimeException("Should not be called");
+        }
+
+        @Override
+        public InputFormat getInputFormat() throws IOException {
+            throw new RuntimeException("Should not be called");
+        }
+
+        @Override
+        public void prepareToRead(RecordReader reader, PigSplit split) throws IOException {
+            throw new RuntimeException("Should not be called");
+        }
+
+        @Override
+        public Tuple getNext() throws IOException {
+            throw new RuntimeException("Should not be called");
+        }
+
+        @Override
+        public String relativeToAbsolutePath(String location, Path curDir) throws IOException {
+            return location;
+        }
+    }
 }

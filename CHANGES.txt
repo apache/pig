@@ -24,6 +24,9 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4939: QueryParserUtils.setHdfsServers(QueryParserUtils.java:104) should not be called for non-dfs
+  methods (szita via daijy)
+
 PIG-5034: Remove org.apache.hadoop.hive.serde2.objectinspector.primitive package (nkollar via daijy)
 
 PIG-5036: Remove biggish from e2e input dataset (daijy)

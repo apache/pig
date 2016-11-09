@@ -1038,6 +1038,9 @@ has methods to convert byte arrays to specific types. A loader implementation sh
 
 <li id="loadpredicatepushdown"><a href="http://svn.apache.org/viewvc/pig/trunk/src/org/apache/pig/LoadPredicatePushdown.java?view=markup">LoadPredicatePushdown</a> 
  has the methods to push predicates to the loader. It is different than LoadMetadata.setPartitionFilter in that loader may load records which does not satisfy the predicates. In other words, predicates is only a hint. Note this interface is still in development and might change in next version. Currently only OrcStorage implements this interface.</li>
+
+<li id="nonfsloadfunc"><a href="http://svn.apache.org/viewvc/pig/trunk/src/org/apache/pig/NonFSLoadFunc.java?view=markup">NonFSLoadFunc</a> 
+ is a marker interface to indicate that a LoadFunc implementation is not a filesystem loader. This is useful for LoadFunc classes that for example supply queries instead of filesystem pathes to the LOAD operator.</li>
 </ul>
 
  <p>The LoadFunc abstract class is the main class to extend for implementing a loader. The methods which need to be overridden are explained below:</p>

@@ -34,6 +34,7 @@ import org.antlr.runtime.RecognitionException;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.NonFSLoadFunc;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -888,7 +889,7 @@ public class LogicalPlanBuilder {
             if (absolutePath == null) {
                 absolutePath = loFunc.relativeToAbsolutePath( filename, QueryParserUtils.getCurrentDir( pigContext ) );
 
-                if (absolutePath!=null) {
+                if (absolutePath!=null && !(loFunc instanceof NonFSLoadFunc)) {
                     QueryParserUtils.setHdfsServers( absolutePath, pigContext );
                 }
                 fileNameMap.put( fileNameKey, absolutePath );
