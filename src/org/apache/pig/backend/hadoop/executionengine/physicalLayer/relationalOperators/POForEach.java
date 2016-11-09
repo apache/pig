@@ -55,6 +55,7 @@ import org.apache.pig.pen.util.LineageTracer;
 @SuppressWarnings("unchecked")
 public class POForEach extends PhysicalOperator {
     private static final long serialVersionUID = 1L;
+    private static final Result UNLIMITED_NULL_RESULT = new Result(POStatus.STATUS_OK, new UnlimitedNullTuple());
 
     protected List<PhysicalPlan> inputPlans;
 
@@ -264,7 +265,7 @@ public class POForEach extends PhysicalOperator {
                 if (inp.returnStatus == POStatus.STATUS_EOP) {
                     if (parentPlan!=null && parentPlan.endOfAllInput && !endOfAllInputProcessed && endOfAllInputProcessing) {
                         // continue pull one more output
-                        inp = new Result(POStatus.STATUS_OK, new UnlimitedNullTuple());
+                        inp = UNLIMITED_NULL_RESULT;
                     } else {
                         return inp;
                     }
