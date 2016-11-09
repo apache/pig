@@ -59,8 +59,6 @@ OPTIMIZATIONS
  
 BUG FIXES
 
-PIG-5048: HiveUDTF fail if it is the first expression in projection (nkollar via daijy)
-
 PIG-5049: Cleanup e2e tests turing_jython.conf (Daniel Dai)
 
 PIG-5033: MultiQueryOptimizerTez creates bad plan with union, split and FRJoin (rohini,tmwoordruff via rohini)
@@ -144,6 +142,8 @@ PIG-4945: Update document for conflicting macro params (knoguchi via daijy)
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-5048: HiveUDTF fail if it is the first expression in projection (nkollar via daijy)
 
 PIG-4951: Rename PIG_ATS_ENABLED constant (szita via daijy)
 
