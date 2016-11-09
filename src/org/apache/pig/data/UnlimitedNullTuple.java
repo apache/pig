@@ -28,7 +28,7 @@ public class UnlimitedNullTuple extends AbstractTuple {
 
     @Override
     public int size() {
-        throw new RuntimeException("Unimplemented");
+        return Integer.MAX_VALUE;
     }
 
     @Override
