@@ -59,6 +59,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5055: Infinite loop with join by fixed index (knoguchi)
+
 PIG-5049: Cleanup e2e tests turing_jython.conf (Daniel Dai)
 
 PIG-5033: MultiQueryOptimizerTez creates bad plan with union, split and FRJoin (rohini,tmwoordruff via rohini)
