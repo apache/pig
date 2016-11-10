@@ -59,6 +59,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5056: Fix AvroStorage writing enums (szita via daijy)
+
 PIG-5055: Infinite loop with join by fixed index (knoguchi)
 
 PIG-5049: Cleanup e2e tests turing_jython.conf (Daniel Dai)
