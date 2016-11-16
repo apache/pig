@@ -59,6 +59,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5060: TestPigRunner.testDisablePigCounters2 failing with tez (knoguchi)
+
 PIG-5056: Fix AvroStorage writing enums (szita via daijy)
 
 PIG-5055: Infinite loop with join by fixed index (knoguchi)
