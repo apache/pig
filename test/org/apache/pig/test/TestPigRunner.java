@@ -1055,8 +1055,13 @@ public class TestPigRunner {
             List<OutputStats> outputs = stats.getOutputStats();
             assertEquals(2, outputs.size());
             if (execType.equals("tez")) {
-                assertEquals(outputs.get(0).getNumberRecords(), 5);
-                assertEquals(outputs.get(1).getNumberRecords(), 2);
+                if( outputs.get(0).getLocation().endsWith("tmp/output") ) {
+                    assertEquals(2, outputs.get(0).getNumberRecords());
+                    assertEquals(5, outputs.get(1).getNumberRecords());
+                } else {
+                    assertEquals(5, outputs.get(0).getNumberRecords());
+                    assertEquals(2, outputs.get(1).getNumberRecords());
+                }
             } else {
                 for (OutputStats outstats : outputs) {
                     // the multi-output counters are disabled
