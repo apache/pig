@@ -59,6 +59,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5062: Allow Native e2e tests to run in parallel (knoguchi)
+
 PIG-5060: TestPigRunner.testDisablePigCounters2 failing with tez (knoguchi)
 
 PIG-5056: Fix AvroStorage writing enums (szita via daijy)
