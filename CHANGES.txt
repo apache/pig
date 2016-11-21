@@ -59,6 +59,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5063: e2e IOErrors_1 on mapreduce is unstable (knoguchi)
+
 PIG-5062: Allow Native e2e tests to run in parallel (knoguchi)
 
 PIG-5060: TestPigRunner.testDisablePigCounters2 failing with tez (knoguchi)
