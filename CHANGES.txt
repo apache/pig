@@ -155,6 +155,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-5064: NPE in TestScriptUDF#testPythonBuiltinModuleImport1 when JAVA_HOME is not set (water via daijy)
+
 PIG-5048: HiveUDTF fail if it is the first expression in projection (nkollar via daijy)
 
 PIG-4951: Rename PIG_ATS_ENABLED constant (szita via daijy)
