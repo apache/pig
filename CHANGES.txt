@@ -59,6 +59,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5061: ant test -Dtestcase=TestBoolean failing (knoguchi)
+
 PIG-5066: e2e Jython_Checkin_2 failing due to floating precision difference (knoguchi)
 
 PIG-5063: e2e IOErrors_1 on mapreduce is unstable (knoguchi)

@@ -942,7 +942,9 @@
                 </fileset>
             </batchtest>
             <batchtest fork="yes" todir="${test.log.dir}" if="testcase">
-                <fileset dir="test" includes="**/${testcase}.java"/>
+                <fileset dir="test" includes="**/${testcase}.java">
+                    <exclude name="e2e/**/*.java"/>
+                </fileset>
             </batchtest>
 
             <assertions>
