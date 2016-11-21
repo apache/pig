@@ -32,6 +32,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-5064: NPE in TestScriptUDF#testPythonBuiltinModuleImport1 when JAVA_HOME is not set (water via daijy)
+
 PIG-5048: HiveUDTF fail if it is the first expression in projection (nkollar via daijy)
 
 PIG-5033: MultiQueryOptimizerTez creates bad plan with union, split and FRJoin (rohini,tmwoordruff via rohini)

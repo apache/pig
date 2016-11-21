@@ -247,7 +247,11 @@ public class TestScriptUDF{
         Assert.assertTrue(t.get(0).toString().equals(System.getenv(input[0])));
         Assert.assertTrue(iter.hasNext());
         t = iter.next();
-        Assert.assertTrue(t.get(0).toString().equals(System.getenv(input[1])));
+        if (System.getenv(input[1]) != null) {  // JAVA_HOME is set, t.get(0) is not null
+            Assert.assertTrue(t.get(0).toString().equals(System.getenv(input[1])));
+        } else {  // JAVA_HOME is not set, t.get(0) is null
+            Assert.assertNull(t.get(0));
+        }
         Assert.assertFalse(iter.hasNext());
     }
 
