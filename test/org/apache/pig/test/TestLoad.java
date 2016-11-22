@@ -67,6 +67,8 @@ public class TestLoad {
 
     static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
 
+    private static final String WORKING_DIR = "/tmp/test" + java.util.UUID.randomUUID();
+
     @Before
     public void setUp() throws Exception {
         FileLocalizer.deleteTempFiles();
@@ -118,7 +120,7 @@ public class TestLoad {
     public void testLoadRemoteRel() throws Exception {
         for (PigServer pig : servers) {
             pc = pig.getPigContext();
-            checkLoadPath("test","/tmp/test");
+            checkLoadPath("test", WORKING_DIR + "/test");
         }
     }
 
@@ -127,7 +129,7 @@ public class TestLoad {
         for (PigServer pig : servers) {
             pc = pig.getPigContext();
             boolean noConversionExpected = true;
-            checkLoadPath("/tmp/test","/tmp/test", noConversionExpected);
+            checkLoadPath(WORKING_DIR + "/test", WORKING_DIR + "/test", noConversionExpected);
         }
     }
 
@@ -135,7 +137,7 @@ public class TestLoad {
     public void testLoadRemoteRelScheme() throws Exception {
         for (PigServer pig : servers) {
             pc = pig.getPigContext();
-            checkLoadPath("test","/tmp/test");
+            checkLoadPath("test", WORKING_DIR + "/test");
         }
     }
 
@@ -143,11 +145,11 @@ public class TestLoad {
     public void testLoadRemoteAbsScheme() throws Exception {
         pc = servers[0].getPigContext();
         boolean noConversionExpected = true;
-        checkLoadPath("hdfs:/tmp/test","hdfs:/tmp/test", noConversionExpected);
+        checkLoadPath("hdfs:" + WORKING_DIR + "/test","hdfs:" + WORKING_DIR + "/test", noConversionExpected);
 
         // check if a location 'hdfs:<abs path>' can actually be read using PigStorage
         String[] inputFileNames = new String[] {
-                "/tmp/TestLoad-testLoadRemoteAbsSchema-input.txt"};
+                WORKING_DIR + "/TestLoad-testLoadRemoteAbsSchema-input.txt"};
         testLoadingMultipleFiles(inputFileNames, "hdfs:" + inputFileNames[0]);
     }
 
@@ -162,7 +164,7 @@ public class TestLoad {
         for (PigServer pig : servers) {
             pc = pig.getPigContext();
             boolean noConversionExpected = true;
-            checkLoadPath("/tmp/foo/../././","/tmp/foo/.././.", noConversionExpected);
+            checkLoadPath(WORKING_DIR + "/foo/../././", WORKING_DIR + "/foo/.././.", noConversionExpected);
         }
     }
 
@@ -170,7 +172,7 @@ public class TestLoad {
     public void testGlobChars() throws Exception {
         for (PigServer pig : servers) {
             pc = pig.getPigContext();
-            checkLoadPath("t?s*","/tmp/t?s*");
+            checkLoadPath("t?s*", WORKING_DIR + "/t?s*");
         }
     }
 
@@ -178,7 +180,7 @@ public class TestLoad {
     public void testCommaSeparatedString() throws Exception {
         for (PigServer pig : servers) {
             pc = pig.getPigContext();
-            checkLoadPath("usr/pig/a,usr/pig/b","/tmp/usr/pig/a,/tmp/usr/pig/b");
+            checkLoadPath("usr/pig/a,b", WORKING_DIR + "/usr/pig/a,"+ WORKING_DIR + "/b");
         }
     }
 
@@ -186,7 +188,7 @@ public class TestLoad {
     public void testCommaSeparatedString2() throws Exception {
         for (PigServer pig : servers) {
             pc = pig.getPigContext();
-            checkLoadPath("t?s*,test","/tmp/t?s*,/tmp/test");
+            checkLoadPath("t?s*,test", WORKING_DIR + "/t?s*,"+ WORKING_DIR + "/test");
         }
     }
 
@@ -196,14 +198,14 @@ public class TestLoad {
         PigServer pig = servers[0];
         pc = pig.getPigContext();
         boolean noConversionExpected = true;
-        checkLoadPath("hdfs:/tmp/test,hdfs:/tmp/test2,hdfs:/tmp/test3",
-                "hdfs:/tmp/test,hdfs:/tmp/test2,hdfs:/tmp/test3", noConversionExpected );
+        checkLoadPath("hdfs:"+ WORKING_DIR + "/test,hdfs:" + WORKING_DIR + "/test2,hdfs:" + WORKING_DIR + "/test3",
+                "hdfs:" + WORKING_DIR + "/test,hdfs:" + WORKING_DIR + "/test2,hdfs:" + WORKING_DIR + "/test3", noConversionExpected );
 
         // check if a location 'hdfs:<abs path>,hdfs:<abs path>' can actually be
         // read using PigStorage
         String[] inputFileNames = new String[] {
-                "/tmp/TestLoad-testCommaSeparatedString3-input1.txt",
-                "/tmp/TestLoad-testCommaSeparatedString3-input2.txt"};
+                WORKING_DIR + "/TestLoad-testCommaSeparatedString3-input1.txt",
+                WORKING_DIR + "/TestLoad-testCommaSeparatedString3-input2.txt"};
         String inputString = "hdfs:" + inputFileNames[0] + ",hdfs:" +
         inputFileNames[1];
         testLoadingMultipleFiles(inputFileNames, inputString);
@@ -214,7 +216,7 @@ public class TestLoad {
     public void testCommaSeparatedString4() throws Exception {
         for (PigServer pig : servers) {
             pc = pig.getPigContext();
-            checkLoadPath("usr/pig/{a,c},usr/pig/b","/tmp/usr/pig/{a,c},/tmp/usr/pig/b");
+            checkLoadPath("usr/pig/{a,c},usr/pig/b", WORKING_DIR + "/usr/pig/{a,c}," + WORKING_DIR + "/usr/pig/b");
         }
     }
 
@@ -222,18 +224,18 @@ public class TestLoad {
     public void testCommaSeparatedString5() throws Exception {
         for (PigServer pig : servers) {
             pc = pig.getPigContext();
-            checkLoadPath("/usr/pig/{a,c},usr/pig/b","/usr/pig/{a,c},/tmp/usr/pig/b");
+            checkLoadPath("/usr/pig/{a,c},b", "/usr/pig/{a,c}," + WORKING_DIR + "/b");
         }
 
         // check if a location '<abs path>,<relative path>' can actually be
         // read using PigStorage
-        String loadLocationString = "/tmp/TestLoad-testCommaSeparatedStringMixed-input{1,2}.txt," +
-        "TestLoad-testCommaSeparatedStringMixed-input3.txt"; // current working dir is set to /tmp in checkLoadPath()
+        String loadLocationString = WORKING_DIR + "/TestLoad-testCommaSeparatedStringMixed-input{1,2}.txt," +
+        "TestLoad-testCommaSeparatedStringMixed-input3.txt"; // current working dir is set to WORKING_DIR in checkLoadPath()
 
         String[] inputFileNames = new String[] {
-                "/tmp/TestLoad-testCommaSeparatedStringMixed-input1.txt",
-                "/tmp/TestLoad-testCommaSeparatedStringMixed-input2.txt",
-                "/tmp/TestLoad-testCommaSeparatedStringMixed-input3.txt",};
+                WORKING_DIR + "/TestLoad-testCommaSeparatedStringMixed-input1.txt",
+                WORKING_DIR + "/TestLoad-testCommaSeparatedStringMixed-input2.txt",
+                WORKING_DIR + "/TestLoad-testCommaSeparatedStringMixed-input3.txt",};
         pc = servers[0].getPigContext(); // test in map reduce mode
         testLoadingMultipleFiles(inputFileNames, loadLocationString);
     }
@@ -242,7 +244,7 @@ public class TestLoad {
     public void testCommaSeparatedString6() throws Exception {
         for (PigServer pig : servers) {
             pc = pig.getPigContext();
-            checkLoadPath("usr/pig/{a,c},/usr/pig/b","/tmp/usr/pig/{a,c},/usr/pig/b");
+            checkLoadPath("usr/pig/{a,c},/usr/pig/b", WORKING_DIR + "/usr/pig/{a,c},/usr/pig/b");
         }
     }
 
@@ -308,7 +310,7 @@ public class TestLoad {
             pc.getProperties().setProperty(PigConfiguration.PIG_OPT_MULTIQUERY, "" + b);
 
             DataStorage dfs = pc.getDfs();
-            dfs.setActiveContainer(dfs.asContainer("/tmp"));
+            dfs.setActiveContainer(dfs.asContainer(WORKING_DIR));
             Map<String, String> fileNameMap = new HashMap<String, String>();
 
             QueryParserDriver builder = new QueryParserDriver(pc, "Test-Load", fileNameMap);
