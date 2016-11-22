@@ -163,8 +163,10 @@ public class SparkLauncher extends Launcher {
 
         startSparkIfNeeded(pigContext);
 
-        jobGroupID = sparkContext.getConf().getAppId();
-        jobConf.set(MRConfiguration.JOB_ID, jobGroupID);
+        jobGroupID = String.format("%s-%s",sparkContext.getConf().getAppId(),
+                UUID.randomUUID().toString());
+        jobConf.set(MRConfiguration.JOB_ID,jobGroupID);
+
         sparkContext.setJobGroup(jobGroupID, "Pig query to Spark cluster",
                 false);
         jobMetricsListener.reset();
