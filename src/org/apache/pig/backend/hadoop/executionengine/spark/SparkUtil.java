@@ -25,7 +25,6 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.spark.broadcast.Broadcast;
 import scala.Product2;
 import scala.Tuple2;
 import scala.collection.JavaConversions;
@@ -55,10 +54,12 @@ import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.spark.HashPartitioner;
 import org.apache.spark.Partitioner;
+import org.apache.spark.broadcast.Broadcast;
 import org.apache.spark.rdd.RDD;
 
 public class SparkUtil {
 
+    private static ThreadLocal<Integer> SPARK_REDUCERS = null;
     private static ConcurrentHashMap<String, Broadcast<List<Tuple>>> broadcastedVars = new ConcurrentHashMap() ;
 
     public static <T> ClassTag<T> getManifest(Class<T> clazz) {
@@ -130,10 +131,8 @@ public class SparkUtil {
 
     public static int getParallelism(List<RDD<Tuple>> predecessors,
             PhysicalOperator physicalOperator) {
-
-        String numReducers = System.getenv("SPARK_REDUCERS");
-        if (numReducers != null) {
-            return Integer.parseInt(numReducers);
+        if (SPARK_REDUCERS != null) {
+            return getSparkReducers();
         }
 
         int parallelism = physicalOperator.getRequestedParallelism();
@@ -177,5 +176,14 @@ public class SparkUtil {
 
     static public ConcurrentHashMap<String, Broadcast<List<Tuple>>> getBroadcastedVars() {
         return broadcastedVars;
+    }
+
+
+    public static int getSparkReducers() {
+        return SPARK_REDUCERS.get();
+    }
+
+    public static void setSparkReducers(int sparkReducers) {
+        SPARK_REDUCERS.set(sparkReducers);
     }
 }
