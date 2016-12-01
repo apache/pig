@@ -21,11 +21,14 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import junit.framework.TestCase;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.compress.BZip2Codec;
@@ -36,6 +39,10 @@ import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.test.Util;
+
+import com.google.common.collect.Sets;
+
+import org.junit.Assert;
 
 public class TestMultiStorageCompression extends TestCase {
 
@@ -59,8 +66,8 @@ public class TestMultiStorageCompression extends TestCase {
       filesToDelete.add(outputPath);
 
       try {
-         runQuery(outputPath, type);
-         verifyResults(type, filesToDelete, outputPath);
+         runQuery(outputPath, "0", type);
+         verifyResults(type, outputPath);
       } finally {
          cleanUpDirs(filesToDelete);
       }
@@ -77,22 +84,22 @@ public class TestMultiStorageCompression extends TestCase {
       filesToDelete.add(outputPath);
 
       try {
-         runQuery(outputPath, type);
-         verifyResults(type, filesToDelete, outputPath);
+         runQuery(outputPath, "0", type);
+         verifyResults(type, outputPath);
       } finally {
          cleanUpDirs(filesToDelete);
       }
    }
 
-   private void cleanUpDirs(List<String> filesToDelete) {
+   private void cleanUpDirs(List<String> filesToDelete) throws IOException {
       // Delete files recursively
       Collections.reverse(filesToDelete);
       for (String string : filesToDelete)
-         new File(string).delete();
+         FileUtils.deleteDirectory(new File(string));
    }
 
 
-   private void verifyResults(String type, List<String> filesToDelete,
+   private void verifyResults(String type,
          String outputPath) throws IOException, FileNotFoundException {
       // Verify the output
       File outputDir = new File(outputPath);
@@ -114,12 +121,10 @@ public class TestMultiStorageCompression extends TestCase {
              continue;
          String topFolder = outputPath + File.separator + indexFolder;
          File indexFolderFile = new File(topFolder);
-         filesToDelete.add(topFolder);
          String[] list = indexFolderFile.list();
          for (String outputFile : list) {
 
             String file = topFolder + File.separator + outputFile;
-            filesToDelete.add(file);
 
             // Skip off any file starting with .
             if (outputFile.startsWith("."))
@@ -159,7 +164,7 @@ public class TestMultiStorageCompression extends TestCase {
       }
    }
 
-   private void runQuery(String outputPath, String compressionType)
+   private void runQuery(String outputPath, String keyColIndices, String compressionType)
          throws Exception, ExecException, IOException, FrontendException {
 
       // create a data file
@@ -172,7 +177,7 @@ public class TestMultiStorageCompression extends TestCase {
 
       String query2 = "STORE A INTO '" + Util.encodeEscape(outputPath)
             + "' USING org.apache.pig.piggybank.storage.MultiStorage" + "('"
-            + Util.encodeEscape(outputPath) + "','0', '" + compressionType + "', '\\t');";
+            + Util.encodeEscape(outputPath) + "','"+keyColIndices+"', '" + compressionType + "', '\\t');";
 
       // Run Pig
       pig.setBatchOn();
@@ -182,5 +187,32 @@ public class TestMultiStorageCompression extends TestCase {
       pig.executeBatch();
    }
 
+   public void testMultiStorageShouldSupportMultiLevelAndGz() throws Exception {
+      String type = "gz";
+      String outputDir = "output001.multi." + type;
+      List<String> filesToDelete = new ArrayList<String>();
+
+      String tmpDir = System.getProperty("java.io.tmpdir");
+      String outputPath = tmpDir + File.separator + outputDir;
+
+      filesToDelete.add(outputPath);
+      try {
+         runQuery(outputPath, "1,0", type);
+         Collection<File> fileList = FileUtils.listFiles(new File(outputPath),null,true);
+         Set<String> expectedPaths = Sets.newHashSet( "output001.multi.gz/a.gz/f1.gz/a-f1-0,000.gz",
+                                                      "output001.multi.gz/b.gz/f2.gz/b-f2-0,000.gz",
+                                                      "output001.multi.gz/c.gz/f3.gz/c-f3-0,000.gz",
+                                                      "output001.multi.gz/d.gz/f4.gz/d-f4-0,000.gz");
+         for (File file : fileList){
+            String foundPath = file.getAbsolutePath().substring(file.getAbsolutePath().indexOf(outputDir));
+            if (expectedPaths.contains(foundPath)){
+               expectedPaths.remove(foundPath);
+            }
+         }
+         Assert.assertTrue(expectedPaths.isEmpty());
+      } finally {
+         cleanUpDirs(filesToDelete);
+      }
+   }
 
 }
