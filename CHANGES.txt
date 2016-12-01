@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-4901: To use Multistorage for each Group (szita via daijy)
+
 PIG-5025: Fix flaky test failures in TestLoad.java (szita via rohini)
 
 PIG-4939: QueryParserUtils.setHdfsServers(QueryParserUtils.java:104) should not be called for non-dfs
