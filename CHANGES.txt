@@ -63,6 +63,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5070: Allow Grunt e2e tests to run in parallel (knoguchi)
+
 PIG-5061: ant test -Dtestcase=TestBoolean failing (knoguchi)
 
 PIG-5066: e2e Jython_Checkin_2 failing due to floating precision difference (knoguchi)
