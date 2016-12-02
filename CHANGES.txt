@@ -21,6 +21,8 @@ Pig Change Log
 Trunk (unreleased changes)
  
 INCOMPATIBLE CHANGES
+
+PIG-5067: Revisit union on numeric type and chararray to bytearray (knoguchi)
  
 IMPROVEMENTS
 
