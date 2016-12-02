@@ -491,7 +491,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         byte outType = cast.getType();
         if(outType == DataType.BYTEARRAY && inType != outType) {
             int errCode = 1051;
-            String msg = "Cannot cast to bytearray";
+            String msg = "Cannot cast from " + DataType.findTypeName(inType) + " to bytearray";
             msgCollector.collect(msg, MessageType.Error) ;
             throw new TypeCheckerException(cast, msg, errCode, PigException.INPUT) ;
         }

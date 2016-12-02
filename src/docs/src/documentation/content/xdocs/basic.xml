@@ -713,7 +713,7 @@ This will cause an error …</source>
    <p></p>
    <ul>
       <li>
-         <p>If Pig cannot resolve incompatible types through implicit casts, an error will occur. For example, you cannot add chararray and float (see the Types Table for addition and subtraction).</p>
+         <p>If Pig cannot resolve incompatible types through implicit casts, an error will occur. For example, you cannot add chararray and float (see the <a href="#types-table-add">Types Table for addition and subtraction</a>).</p>
       <source>
 A = LOAD 'data' AS (name:chararray, age:int, gpa:float);
 B = FOREACH A GENERATE name + gpa;
@@ -8503,11 +8503,11 @@ B: (b1:long, b2:long, b3:long)
 A union B: null 
 </source>
   
-<p>Union columns with incompatible types result in a bytearray type: </p>
+<p>Union columns with incompatible types results in a failure. (See <a href="#types-table-add">Types Table for addition and subtraction</a> for incompatible types.)</p>
 <source>
-A: (a1:long, a2:long) 
-B: (b1:(b11:long, b12:long), b2:long) 
-A union B: (a1:bytearray, a2:long) 
+A: (a1:long)
+B: (a1:chararray)
+A union B: ERROR: Cannot cast from long to bytearray
 </source>
 
 <p>Union columns of compatible type will produce an "escalate" type. 
