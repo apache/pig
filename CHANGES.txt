@@ -65,6 +65,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3891: FileBasedOutputSizeReader does not calculate size of files in sub-directories (nkollar via rohini)
+
 PIG-5070: Allow Grunt e2e tests to run in parallel (knoguchi)
 
 PIG-5061: ant test -Dtestcase=TestBoolean failing (knoguchi)
