@@ -65,6 +65,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5072: e2e Union_12 fails on typecast when oldpig=0.11 (knoguchi)
+
 PIG-3891: FileBasedOutputSizeReader does not calculate size of files in sub-directories (nkollar via rohini)
 
 PIG-5070: Allow Grunt e2e tests to run in parallel (knoguchi)
