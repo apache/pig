@@ -17,7 +17,6 @@
  */
 package org.apache.pig.impl.builtin;
 
-import org.apache.commons.collections4.IteratorUtils;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -31,6 +30,8 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+
+import com.google.common.collect.Lists;
 
 import static org.apache.pig.builtin.mock.Storage.*;
 import static org.junit.Assert.assertEquals;
@@ -63,7 +64,7 @@ public class TestHiveUDTF {
         pigServer.registerQuery("B = foreach A generate posexplode(a0);");
 
         Iterator<Tuple> result = pigServer.openIterator("B");
-        List<Tuple> out = IteratorUtils.toList(result);
+        List<Tuple> out = Lists.newArrayList(result);
 
         assertEquals(2, out.size());
         assertTrue("Result doesn't contain the HiveUDTF output",
@@ -85,7 +86,7 @@ public class TestHiveUDTF {
         pigServer.registerQuery("B = foreach A generate a0, posexplode(a0);");
 
         Iterator<Tuple> result = pigServer.openIterator("B");
-        List<Tuple> out = IteratorUtils.toList(result);
+        List<Tuple> out = Lists.newArrayList(result);
 
         assertEquals(2, out.size());
         assertTrue("Result doesn't contain the HiveUDTF output",
@@ -107,7 +108,7 @@ public class TestHiveUDTF {
         pigServer.registerQuery("b = foreach a generate flatten(COUNT2(name));");
 
         Iterator<Tuple> result = pigServer.openIterator("b");
-        List<Tuple> out = IteratorUtils.toList(result);
+        List<Tuple> out = Lists.newArrayList(result);
 
         assertEquals(2, out.size());
         assertEquals(tuple(3), out.get(0));
