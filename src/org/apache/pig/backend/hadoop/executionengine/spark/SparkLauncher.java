@@ -31,6 +31,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -108,6 +110,7 @@ import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperator;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkPOPackageAnnotator;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkPrinter;
+import org.apache.pig.backend.hadoop.executionengine.spark.plan.XMLSparkPrinter;
 import org.apache.pig.data.SchemaTupleBackend;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -589,20 +592,20 @@ public class SparkLauncher extends Launcher {
         Map<OperatorKey, SparkOperator> allOperKeys = sparkPlan.getKeys();
         List<OperatorKey> operKeyList = new ArrayList(allOperKeys.keySet());
         Collections.sort(operKeyList);
-        for (OperatorKey operatorKey : operKeyList) {
-            SparkOperator op = sparkPlan.getOperator(operatorKey);
-            ps.print(op.getOperatorKey());
-            List<SparkOperator> successors = sparkPlan.getSuccessors(op);
-            if (successors != null) {
-                ps.print("->");
-                for (SparkOperator suc : successors) {
-                    ps.print(suc.getOperatorKey() + " ");
-                }
-            }
-            ps.println();
-        }
 
         if (format.equals("text")) {
+            for (OperatorKey operatorKey : operKeyList) {
+                SparkOperator op = sparkPlan.getOperator(operatorKey);
+                ps.print(op.getOperatorKey());
+                List<SparkOperator> successors = sparkPlan.getSuccessors(op);
+                if (successors != null) {
+                    ps.print("->");
+                    for (SparkOperator suc : successors) {
+                        ps.print(suc.getOperatorKey() + " ");
+                    }
+                }
+                ps.println();
+            }
             SparkPrinter printer = new SparkPrinter(ps, sparkPlan);
             printer.setVerbose(verbose);
             printer.visit();
@@ -615,9 +618,20 @@ public class SparkLauncher extends Launcher {
             printer.setVerbose(verbose);
             printer.dump();
             ps.println("");
-        } else { // TODO: add support for other file format
+        } else if (format.equals("xml")) {
+            try {
+                XMLSparkPrinter printer = new XMLSparkPrinter(ps, sparkPlan);
+                printer.visit();
+                printer.closePlan();
+            } catch (ParserConfigurationException e) {
+                e.printStackTrace();
+            } catch (TransformerException e) {
+                e.printStackTrace();
+            }
+        }
+        else {
             throw new IOException(
-                    "Non-text and non-dot output of explain is not supported.");
+                    "Unsupported explain format. Supported formats are: text, dot, xml");
         }
     }
 

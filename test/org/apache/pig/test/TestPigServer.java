@@ -547,7 +547,8 @@ public class TestPigServer {
     public void testExplainXmlComplex() throws Throwable {
         // TODO: Explain XML output is not supported in non-MR mode. Remove the
         // following condition once it's implemented in Tez.
-        if (cluster.getExecType() != ExecType.MAPREDUCE) {
+        String execType = cluster.getExecType().toString().toLowerCase();
+        if (!execType.equals(ExecType.MAPREDUCE.name().toLowerCase()) && !execType.equals(MiniGenericCluster.EXECTYPE_SPARK)) {
             return;
         }
         PigServer pig = new PigServer(cluster.getExecType(), properties);
@@ -574,6 +575,55 @@ public class TestPigServer {
         assertEquals(1, physicalPlan.getLength());
         assertTrue(physicalPlan.item(0).getTextContent().contains("Not Supported"));
 
+
+        if (execType.equals(ExecType.MAPREDUCE.name().toLowerCase())){
+            verifyExplainXmlComplexMR(doc);
+        } else if (execType.equals(MiniGenericCluster.EXECTYPE_SPARK)){
+            verifyExplainXmlComplexSpark(doc);
+        }
+
+
+    }
+
+    private void verifyExplainXmlComplexSpark(Document doc) {
+        NodeList stores = doc.getElementsByTagName("POStore");
+        assertEquals(1, stores.getLength());
+
+        NodeList groups = doc.getElementsByTagName("POJoinGroupSpark");
+        assertEquals(2, groups.getLength());
+
+        Node innerGroup = groups.item(1);
+
+        NodeList groupChildren = innerGroup.getChildNodes();
+
+        int foreachCount = 0;
+        int castCount = 0;
+        int loadCount = 0;
+
+        for (int i = 0; i < groupChildren.getLength(); i++) {
+            Node node = groupChildren.item(i);
+            if (node.getNodeName().equals("POForEach")){
+                ++foreachCount;
+                NodeList foreachNodes = node.getChildNodes();
+                for (int j = 0; j < foreachNodes.getLength(); j++) {
+                    Node innerNode = foreachNodes.item(j);
+                    if (innerNode.getNodeName().equals("alias")){
+                        assertEquals("b",innerNode.getTextContent());
+                    }else if (innerNode.getNodeName().equals("POCast")){
+                        ++castCount;
+                    }else if (innerNode.getNodeName().equals("POLoad")) {
+                        ++loadCount;
+                    }
+                }
+            }
+        }
+
+        assertEquals(1,foreachCount);
+        assertEquals(3,castCount);
+        assertEquals(1,loadCount);
+    }
+
+    private void verifyExplainXmlComplexMR(Document doc) {
         //Verify we have two loads and one is temporary
         NodeList loads = doc.getElementsByTagName("POLoad");
         assertEquals(2, loads.getLength());
