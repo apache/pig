@@ -65,6 +65,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5073: Skip e2e Limit_5 test for Tez (knoguchi)
+
 PIG-5072: e2e Union_12 fails on typecast when oldpig=0.11 (knoguchi)
 
 PIG-3891: FileBasedOutputSizeReader does not calculate size of files in sub-directories (nkollar via rohini)
