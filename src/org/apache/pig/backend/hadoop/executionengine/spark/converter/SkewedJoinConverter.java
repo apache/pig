@@ -78,9 +78,10 @@ public class SkewedJoinConverter implements
                 rdd2Pair, SparkUtil.getManifest(IndexedKey.class),
                 SparkUtil.getManifest(Tuple.class));
 
+        int parallelism = SparkUtil.getParallelism(predecessors, poSkewedJoin);
         // join() returns (key, (t1, t2)) where (key, t1) is in this and (key, t2) is in other
         JavaPairRDD<IndexedKey, Tuple2<Tuple, Tuple>> result_KeyValue = rdd1Pair_javaRDD
-                .join(rdd2Pair_javaRDD);
+                .join(rdd2Pair_javaRDD, parallelism);
 
         // map to get JavaRDD<Tuple> from JAvaPairRDD<IndexedKey, Tuple2<Tuple, Tuple>> by
         // ignoring the key (of type IndexedKey) and appending the values (the

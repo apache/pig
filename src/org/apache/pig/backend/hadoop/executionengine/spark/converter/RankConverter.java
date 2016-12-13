@@ -45,21 +45,22 @@ public class RankConverter implements RDDConverter<Tuple, Tuple, PORank> {
 	@Override
 	public RDD<Tuple> convert(List<RDD<Tuple>> predecessors, PORank poRank)
 			throws IOException {
-		SparkUtil.assertPredecessorSize(predecessors, poRank, 1);
+        int parallelism = SparkUtil.getParallelism(predecessors, poRank);
+        SparkUtil.assertPredecessorSize(predecessors, poRank, 1);
         RDD<Tuple> rdd = predecessors.get(0);
-		JavaPairRDD<Integer, Long> javaPairRdd = rdd.toJavaRDD()
-				.mapToPair(new ToPairRdd());
-		JavaPairRDD<Integer, Iterable<Long>> groupedByIndex = javaPairRdd
-				.groupByKey();
-		JavaPairRDD<Integer, Long> countsByIndex = groupedByIndex
-				.mapToPair(new IndexCounters());
-		JavaPairRDD<Integer, Long> sortedCountsByIndex = countsByIndex
-				.sortByKey(true);
-		Map<Integer, Long> counts = sortedCountsByIndex.collectAsMap();
-		JavaRDD<Tuple> finalRdd = rdd.toJavaRDD()
-				.map(new RankFunction(new HashMap<Integer, Long>(counts)));
-		return finalRdd.rdd();
-	}
+        JavaPairRDD<Integer, Long> javaPairRdd = rdd.toJavaRDD()
+                .mapToPair(new ToPairRdd());
+        JavaPairRDD<Integer, Iterable<Long>> groupedByIndex = javaPairRdd
+                .groupByKey(parallelism);
+        JavaPairRDD<Integer, Long> countsByIndex = groupedByIndex
+                .mapToPair(new IndexCounters());
+        JavaPairRDD<Integer, Long> sortedCountsByIndex = countsByIndex
+                .sortByKey(true, parallelism);
+        Map<Integer, Long> counts = sortedCountsByIndex.collectAsMap();
+        JavaRDD<Tuple> finalRdd = rdd.toJavaRDD()
+                .map(new RankFunction(new HashMap<Integer, Long>(counts)));
+        return finalRdd.rdd();
+    }
 
 	@SuppressWarnings("serial")
 	private static class ToPairRdd implements 

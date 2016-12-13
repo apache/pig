@@ -664,9 +664,9 @@ public class SparkLauncher extends Launcher {
         SchemaTupleBackend.initialize(jobConf, pigContext);
         Utils.setDefaultTimeZone(jobConf);
         PigMapReduce.sJobConfInternal.set(jobConf);
-        String sparkReducers = pigContext.getProperties().getProperty("spark.reducers");
-        if (sparkReducers != null) {
-            SparkUtil.setSparkReducers(Integer.parseInt(sparkReducers));
+        String parallelism = pigContext.getProperties().getProperty("spark.default.parallelism");
+        if (parallelism != null) {
+            SparkUtil.setSparkDefaultParallelism(Integer.parseInt(parallelism));
         }
     }
 }

@@ -46,6 +46,7 @@ public class SortConverter implements RDDConverter<Tuple, Tuple, POSort> {
             throws IOException {
         SparkUtil.assertPredecessorSize(predecessors, sortOperator, 1);
         RDD<Tuple> rdd = predecessors.get(0);
+        int parallelism = SparkUtil.getParallelism(predecessors, sortOperator);
         RDD<Tuple2<Tuple, Object>> rddPair = rdd.map(new ToKeyValueFunction(),
                 SparkUtil.<Tuple, Object> getTuple2Manifest());
 
@@ -53,8 +54,9 @@ public class SortConverter implements RDDConverter<Tuple, Tuple, POSort> {
                 SparkUtil.getManifest(Tuple.class),
                 SparkUtil.getManifest(Object.class));
 
+
         JavaPairRDD<Tuple, Object> sorted = r.sortByKey(
-                sortOperator.getMComparator(), true);
+                sortOperator.getMComparator(), true, parallelism);
         JavaRDD<Tuple> mapped = sorted.mapPartitions(TO_VALUE_FUNCTION);
 
         return mapped.rdd();

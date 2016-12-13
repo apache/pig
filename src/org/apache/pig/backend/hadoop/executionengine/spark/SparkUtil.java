@@ -59,7 +59,7 @@ import org.apache.spark.rdd.RDD;
 
 public class SparkUtil {
 
-    private static ThreadLocal<Integer> SPARK_REDUCERS = null;
+    private static ThreadLocal<Integer> SPARK_DEFAULT_PARALLELISM = null;
     private static ConcurrentHashMap<String, Broadcast<List<Tuple>>> broadcastedVars = new ConcurrentHashMap() ;
 
     public static <T> ClassTag<T> getManifest(Class<T> clazz) {
@@ -131,17 +131,25 @@ public class SparkUtil {
 
     public static int getParallelism(List<RDD<Tuple>> predecessors,
             PhysicalOperator physicalOperator) {
-        if (SPARK_REDUCERS != null) {
-            return getSparkReducers();
+        if (SPARK_DEFAULT_PARALLELISM != null) {
+            return getSparkDefaultParallelism();
         }
 
         int parallelism = physicalOperator.getRequestedParallelism();
         if (parallelism <= 0) {
-            // Parallelism wasn't set in Pig, so set it to whatever Spark thinks
-            // is reasonable.
-            parallelism = predecessors.get(0).context().defaultParallelism();
+            //Spark automatically sets the number of "map" tasks to run on each file according to its size (though
+            // you can control it through optional parameters to SparkContext.textFile, etc), and for distributed
+            //"reduce" operations, such as groupByKey and reduceByKey, it uses the largest parent RDD's number of
+            // partitions.
+            int maxParallism = 0;
+            for (int i = 0; i < predecessors.size(); i++) {
+                int tmpParallelism = predecessors.get(i).getNumPartitions();
+                if (tmpParallelism > maxParallism) {
+                    maxParallism = tmpParallelism;
+                }
+            }
+            parallelism = maxParallism;
         }
-
         return parallelism;
     }
 
@@ -179,11 +187,11 @@ public class SparkUtil {
     }
 
 
-    public static int getSparkReducers() {
-        return SPARK_REDUCERS.get();
+    public static int getSparkDefaultParallelism() {
+        return SPARK_DEFAULT_PARALLELISM.get();
     }
 
-    public static void setSparkReducers(int sparkReducers) {
-        SPARK_REDUCERS.set(sparkReducers);
+    public static void setSparkDefaultParallelism(int sparkDefaultParallelism) {
+        SPARK_DEFAULT_PARALLELISM.set(sparkDefaultParallelism);
     }
 }
