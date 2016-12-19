@@ -18,7 +18,7 @@ a: Split - scope-68
 |   |   |
 |   |   Constant(DummyVal) - scope-72
 |   |
-|   |---New For Each(true,true)[tuple] - scope-78
+|   |---New For Each(false,true)[tuple] - scope-78
 |       |   |
 |       |   Project[int][0] - scope-75
 |       |   |
@@ -36,7 +36,7 @@ a: Split - scope-68
 |   |   |
 |   |   Constant(DummyVal) - scope-82
 |   |
-|   |---New For Each(true,true)[tuple] - scope-88
+|   |---New For Each(false,true)[tuple] - scope-88
 |       |   |
 |       |   Project[int][0] - scope-85
 |       |   |
