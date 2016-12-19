@@ -2432,7 +2432,7 @@ public class MRCompiler extends PhyPlanVisitor {
         }else{
             for(int i=0; i<transformPlans.size(); i++) {
                 eps1.add(transformPlans.get(i));
-                flat1.add(true);
+                flat1.add(i == transformPlans.size() - 1 ? true : false);
             }
         }
 

@@ -16,7 +16,7 @@ Local Rearrange[tuple]{tuple}(false) - scope-35	->	 scope-40
 |   |
 |   Constant(DummyVal) - scope-34
 |
-|---New For Each(true,true)[tuple] - scope-39
+|---New For Each(false,true)[tuple] - scope-39
     |   |
     |   Project[int][0] - scope-20
     |   |
