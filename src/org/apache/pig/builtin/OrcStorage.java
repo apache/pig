@@ -56,6 +56,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.StructTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
+import org.apache.hadoop.hive.shims.Hadoop23Shims;
 import org.apache.hadoop.hive.shims.HadoopShimsSecure;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
@@ -389,20 +390,8 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
 
     @Override
     public List<String> getShipFiles() {
-        List<String> cacheFiles = new ArrayList<String>();
-        String hadoopVersion = "20S";
-        if (Utils.isHadoop23() || Utils.isHadoop2()) {
-            hadoopVersion = "23";
-        }
-        Class hadoopVersionShimsClass;
-        try {
-            hadoopVersionShimsClass = Class.forName("org.apache.hadoop.hive.shims.Hadoop" +
-                    hadoopVersion + "Shims");
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException("Cannot find Hadoop" + hadoopVersion + "ShimsClass in classpath");
-        }
         Class[] classList = new Class[] {OrcFile.class, HiveConf.class, AbstractSerDe.class,
-                org.apache.hadoop.hive.shims.HadoopShims.class, HadoopShimsSecure.class, hadoopVersionShimsClass,
+                org.apache.hadoop.hive.shims.HadoopShims.class, HadoopShimsSecure.class, Hadoop23Shims.class,
                 Input.class};
         return FuncUtils.getShipFiles(classList);
     }

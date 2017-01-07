@@ -75,7 +75,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfigurat
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
+import org.apache.pig.backend.hadoop.executionengine.tez.TezResourceManager;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.builtin.Utf8StorageConverter;
 import org.apache.pig.data.BagFactory;
@@ -648,13 +648,10 @@ public class Util {
          }
      }
 
-     static private String getMkDirCommandForHadoop2_0(String fileName) {
-         if (org.apache.pig.impl.util.Utils.isHadoop23() || org.apache.pig.impl.util.Utils.isHadoop2()) {
-             Path parentDir = new Path(fileName).getParent();
-             String mkdirCommand = parentDir.getName().isEmpty() ? "" : "fs -mkdir -p " + parentDir + "\n";
-             return mkdirCommand;
-         }
-         return "";
+     static private String getFSMkDirCommand(String fileName) {
+         Path parentDir = new Path(fileName).getParent();
+         String mkdirCommand = parentDir.getName().isEmpty() ? "" : "fs -mkdir -p " + parentDir + "\n";
+         return mkdirCommand;
      }
 
     /**
@@ -676,7 +673,7 @@ public class Util {
             fileNameOnCluster = fileNameOnCluster.replace('\\','/');
         }
         PigServer ps = new PigServer(cluster.getExecType(), cluster.getProperties());
-        String script = getMkDirCommandForHadoop2_0(fileNameOnCluster) + "fs -put " + localFileName + " " + fileNameOnCluster;
+        String script = getFSMkDirCommand(fileNameOnCluster) + "fs -put " + localFileName + " " + fileNameOnCluster;
         GruntParser parser = new GruntParser(new StringReader(script), ps);
         parser.setInteractive(false);
         try {
@@ -907,14 +904,7 @@ public class Util {
         MapRedUtil.checkLeafIsStore(pp, pc);
 
         MapReduceLauncher launcher = new MapReduceLauncher();
-
-        java.lang.reflect.Method compile = launcher.getClass()
-                .getDeclaredMethod("compile",
-                        new Class[] { PhysicalPlan.class, PigContext.class });
-
-        compile.setAccessible(true);
-
-        return (MROperPlan) compile.invoke(launcher, new Object[] { pp, pc });
+        return launcher.compile(pp,pc);
     }
 
     public static MROperPlan buildMRPlan(String query, PigContext pc) throws Exception {
@@ -1357,16 +1347,7 @@ public class Util {
 
         // For tez testing, we want to avoid TezResourceManager/LocalResource reuse
         // (when switching between local and mapreduce/tez)
-        if( HadoopShims.isHadoopYARN() ) {
-            try {
-                java.lang.reflect.Method tez_dropInstance = Class.forName(
-                  "org.apache.pig.backend.hadoop.executionengine.tez.TezResourceManager").getDeclaredMethod(
-                  "dropInstance", (Class<?>[]) null );
-                tez_dropInstance.invoke(null);
-            } catch (Exception e){
-                throw new RuntimeException(e);
-            }
-        }
+        TezResourceManager.dropInstance();
 
         // TODO: once we have Tez local mode, we can get rid of this. For now,
         // if we run this test suite in Tez mode and there are some tests

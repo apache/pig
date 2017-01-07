@@ -34,6 +34,8 @@
     </fileset>
   </path>
 
+  <property name="hadoopversion" value="2" />
+
   <property name="java.dir" value="${basedir}/src/java"/>
   <property name="pigmix.build.dir" value="${basedir}/build"/>
   <property name="pigmix.jar" value="${basedir}/pigmix.jar"/>

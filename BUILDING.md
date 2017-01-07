@@ -13,18 +13,14 @@
 
 ## Building Pig
 
-To compile with Hadoop 1.x 
-
-    ant clean jar piggybank 
-
 To compile with Hadoop 2.x 
 
-    ant clean jar piggybank -Dhadoopversion=23
+    ant clean jar piggybank
 
 Building and running the tests needed before submitting a patch.
 For more details https://cwiki.apache.org/confluence/display/PIG/HowToContribute
     
-    ANT_OPTS='-Djavac.args="-Xlint -Xmaxwarns 1000" -Dhadoopversion=23'
+    ANT_OPTS='-Djavac.args="-Xlint -Xmaxwarns 1000"'
     ant ${ANT_OPTS} clean piggybank jar compile-test test-commit
     cd contrib/piggybank/java && ant ${ANT_OPTS} test
 

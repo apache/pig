@@ -94,20 +94,6 @@ public class Utils {
     	  return System.getProperty("java.vendor").contains("IBM");
     }
 
-    public static boolean isHadoop23() {
-        String version = org.apache.hadoop.util.VersionInfo.getVersion();
-        if (version.matches("\\b0\\.23\\..+\\b"))
-            return true;
-        return false;
-    }
-
-    public static boolean isHadoop2() {
-        String version = org.apache.hadoop.util.VersionInfo.getVersion();
-        if (version.matches("\\b2\\.\\d+\\..+"))
-            return true;
-        return false;
-    }
-
     public static boolean is64bitJVM() {
         String arch = System.getProperties().getProperty("sun.arch.data.model",
                 System.getProperty("com.ibm.vm.bitmode"));

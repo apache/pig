@@ -1558,14 +1558,7 @@ public class TestMultiQueryCompiler {
         MROperPlan mrp = null;
 
         try {
-            java.lang.reflect.Method compile = launcher.getClass()
-                    .getDeclaredMethod("compile",
-                            new Class[] { PhysicalPlan.class, PigContext.class });
-
-            compile.setAccessible(true);
-
-            mrp = (MROperPlan) compile.invoke(launcher, new Object[] { pp, myPig.getPigContext() });
-
+            mrp = launcher.compile(pp, myPig.getPigContext());
             Assert.assertNotNull(mrp);
 
         } catch (Exception e) {

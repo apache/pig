@@ -22,8 +22,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.text.MessageFormat;
@@ -42,6 +40,7 @@ import java.util.zip.ZipOutputStream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.util.JarFinder;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
 
@@ -112,7 +111,7 @@ public class Utils {
         // attempt to locate an existing jar for the class.
         String jar = findContainingJar(my_class, packagedClasses);
         if (null == jar || jar.isEmpty()) {
-            jar = getJar(my_class);
+            jar = JarFinder.getJar(my_class);
             updateMap(jar, packagedClasses);
         }
 
@@ -197,41 +196,6 @@ public class Utils {
         // when
         // no jar is found.
         return packagedClasses.get(class_file);
-    }
-
-    /**
-     * Invoke 'getJar' on a JarFinder implementation. Useful for some job
-     * configuration contexts (HBASE-8140) and also for testing on MRv2. First
-     * check if we have HADOOP-9426. Lacking that, fall back to the backport.
-     * 
-     * @param my_class
-     *            the class to find.
-     * @return a jar file that contains the class, or null.
-     */
-    private static String getJar(Class<?> my_class) {
-        String ret = null;
-        String hadoopJarFinder = "org.apache.hadoop.util.JarFinder";
-        Class<?> jarFinder = null;
-        try {
-            log.debug("Looking for " + hadoopJarFinder + ".");
-            jarFinder = Class.forName(hadoopJarFinder);
-            log.debug(hadoopJarFinder + " found.");
-            Method getJar = jarFinder.getMethod("getJar", Class.class);
-            ret = (String) getJar.invoke(null, my_class);
-        } catch (ClassNotFoundException e) {
-            log.debug("Using backported JarFinder.");
-            ret = jarFinderGetJar(my_class);
-        } catch (InvocationTargetException e) {
-            // function was properly called, but threw it's own exception.
-            // Unwrap it
-            // and pass it on.
-            throw new RuntimeException(e.getCause());
-        } catch (Exception e) {
-            // toss all other exceptions, related to reflection failure
-            throw new RuntimeException("getJar invocation failed.", e);
-        }
-
-        return ret;
     }
 
     /**

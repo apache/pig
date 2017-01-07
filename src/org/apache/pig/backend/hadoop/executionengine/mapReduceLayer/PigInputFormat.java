@@ -267,7 +267,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
                                 jobcontext.getJobID()));
                 List<InputSplit> oneInputPigSplits = getPigSplits(
                         oneInputSplits, i, inpTargets.get(i),
-                        HadoopShims.getDefaultBlockSize(fs, isFsPath? path: fs.getWorkingDirectory()),
+                        fs.getDefaultBlockSize(isFsPath? path: fs.getWorkingDirectory()),
                         combinable, confClone);
                 splits.addAll(oneInputPigSplits);
             } catch (ExecException ee) {

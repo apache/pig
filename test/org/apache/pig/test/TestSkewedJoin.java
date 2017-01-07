@@ -65,6 +65,7 @@ public class TestSkewedJoin {
     private static final String INPUT_FILE5 = "SkewedJoinInput5.txt";
     private static final String INPUT_FILE6 = "SkewedJoinInput6.txt";
     private static final String INPUT_FILE7 = "SkewedJoinInput7.txt";
+    private static final String INPUT_FILE8 = "SkewedJoinInput8.txt";
     private static final String TEST_DIR = Util.getTestDirectory(TestSkewedJoin.class);
     private static final String INPUT_DIR = TEST_DIR + Path.SEPARATOR + "input";
     private static final String OUTPUT_DIR = TEST_DIR + Path.SEPARATOR + "output";
@@ -173,6 +174,11 @@ public class TestSkewedJoin {
         }
         w7.close();
 
+        //Empty file
+        PrintWriter w8 = new PrintWriter(new FileWriter(INPUT_DIR + "/" + INPUT_FILE8));
+        w8.close();
+
+
         Util.copyFromLocalToCluster(cluster, INPUT_DIR + "/" + INPUT_FILE1, INPUT_FILE1);
         Util.copyFromLocalToCluster(cluster, INPUT_DIR + "/" + INPUT_FILE2, INPUT_FILE2);
         Util.copyFromLocalToCluster(cluster, INPUT_DIR + "/" + INPUT_FILE3, INPUT_FILE3);
@@ -180,11 +186,27 @@ public class TestSkewedJoin {
         Util.copyFromLocalToCluster(cluster, INPUT_DIR + "/" + INPUT_FILE5, INPUT_FILE5);
         Util.copyFromLocalToCluster(cluster, INPUT_DIR + "/" + INPUT_FILE6, INPUT_FILE6);
         Util.copyFromLocalToCluster(cluster, INPUT_DIR + "/" + INPUT_FILE7, INPUT_FILE7);
+        Util.copyFromLocalToCluster(cluster, INPUT_DIR + "/" + INPUT_FILE8, INPUT_FILE8);
     }
 
     private static void deleteFiles() throws IOException {
         Util.deleteDirectory(new File(TEST_DIR));
     }
+
+    @Test
+    public void testSkewedJoinMapLeftEmpty() throws IOException{
+        pigServer.registerQuery("A = LOAD '" + INPUT_FILE8 + "' as (idM:[]);");
+        pigServer.registerQuery("B = LOAD '" + INPUT_FILE1 + "' as (id, name, n);");
+        pigServer.registerQuery("C = join A by idM#'id', B by id using 'skewed' PARALLEL 2;");
+        Iterator<Tuple> iter = pigServer.openIterator("C");
+        int count = 0;
+        while(iter.hasNext()) {
+            count++;
+            iter.next();
+        }
+        assertEquals(0, count);
+    }
+
 
     @Test
     public void testSkewedJoinWithGroup() throws IOException{
