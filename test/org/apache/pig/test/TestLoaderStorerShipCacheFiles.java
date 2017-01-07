@@ -45,12 +45,8 @@ public abstract class TestLoaderStorerShipCacheFiles {
                 "store a into 'ooo';";
         PhysicalPlan pp = Util.buildPp(pigServer, query);
 
-        String hadoopVersion = "20S";
-        if (Utils.isHadoop23() || Utils.isHadoop2()) {
-            hadoopVersion = "23";
-        }
-        String[] expectedJars = new String[] {"hive-common", "hive-exec", "hive-serde", 
-                "hive-shims-0." + hadoopVersion, "hive-shims-common", "kryo"};
+        String[] expectedJars = new String[] {"hive-common", "hive-exec", "hive-serde",
+                "hive-shims-0.23", "hive-shims-common", "kryo"};
 
         checkPlan(pp, expectedJars, 6, pigServer.getPigContext());
     }
@@ -61,12 +57,8 @@ public abstract class TestLoaderStorerShipCacheFiles {
                 "store a into 'ooo' using OrcStorage;";
         PhysicalPlan pp = Util.buildPp(pigServer, query);
 
-        String hadoopVersion = "20S";
-        if (Utils.isHadoop23() || Utils.isHadoop2()) {
-            hadoopVersion = "23";
-        }
-        String[] expectedJars = new String[] {"hive-common", "hive-exec", "hive-serde", 
-                "hive-shims-0." + hadoopVersion, "hive-shims-common", "kryo"};
+        String[] expectedJars = new String[] {"hive-common", "hive-exec", "hive-serde",
+                "hive-shims-0.23", "hive-shims-common", "kryo"};
 
         checkPlan(pp, expectedJars, 6, pigServer.getPigContext());
     }

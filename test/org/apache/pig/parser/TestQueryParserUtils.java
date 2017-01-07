@@ -82,41 +82,38 @@ public class TestQueryParserUtils {
         QueryParserUtils.setHdfsServers("hello://nn1/tmp", pc);
         assertEquals(null, props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
 
-        if(org.apache.pig.impl.util.Utils.isHadoop23() || org.apache.pig.impl.util.Utils.isHadoop2()) {
-            // webhdfs
-            props.remove(MRConfiguration.JOB_HDFS_SERVERS);
-            QueryParserUtils.setHdfsServers("webhdfs://nn1/tmp", pc);
-            assertEquals("webhdfs://nn1", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
-            QueryParserUtils.setHdfsServers("webhdfs://nn1:50070/tmp", pc);
-            assertEquals("webhdfs://nn1,webhdfs://nn1:50070", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
+        // webhdfs
+        props.remove(MRConfiguration.JOB_HDFS_SERVERS);
+        QueryParserUtils.setHdfsServers("webhdfs://nn1/tmp", pc);
+        assertEquals("webhdfs://nn1", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
+        QueryParserUtils.setHdfsServers("webhdfs://nn1:50070/tmp", pc);
+        assertEquals("webhdfs://nn1,webhdfs://nn1:50070", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
 
-            // har with webhfs
-            QueryParserUtils.setHdfsServers("har://webhdfs-nn1:50070/tmp", pc);
-            assertEquals("webhdfs://nn1,webhdfs://nn1:50070", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
-            QueryParserUtils.setHdfsServers("har://webhdfs-nn2:50070/tmp", pc);
-            assertEquals("webhdfs://nn1,webhdfs://nn1:50070,webhdfs://nn2:50070", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
-            props.remove(MRConfiguration.JOB_HDFS_SERVERS);
-            QueryParserUtils.setHdfsServers("har://webhdfs-nn1/tmp", pc);
-            assertEquals("webhdfs://nn1", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
+        // har with webhfs
+        QueryParserUtils.setHdfsServers("har://webhdfs-nn1:50070/tmp", pc);
+        assertEquals("webhdfs://nn1,webhdfs://nn1:50070", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
+        QueryParserUtils.setHdfsServers("har://webhdfs-nn2:50070/tmp", pc);
+        assertEquals("webhdfs://nn1,webhdfs://nn1:50070,webhdfs://nn2:50070", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
+        props.remove(MRConfiguration.JOB_HDFS_SERVERS);
+        QueryParserUtils.setHdfsServers("har://webhdfs-nn1/tmp", pc);
+        assertEquals("webhdfs://nn1", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
 
-            //viewfs
-            props.remove(MRConfiguration.JOB_HDFS_SERVERS);
-            QueryParserUtils.setHdfsServers("viewfs:/tmp", pc);
-            assertEquals("viewfs://", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
-            QueryParserUtils.setHdfsServers("viewfs:///tmp", pc);
-            assertEquals("viewfs://", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
-            QueryParserUtils.setHdfsServers("viewfs://cluster1/tmp", pc);
-            assertEquals("viewfs://,viewfs://cluster1", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
+        //viewfs
+        props.remove(MRConfiguration.JOB_HDFS_SERVERS);
+        QueryParserUtils.setHdfsServers("viewfs:/tmp", pc);
+        assertEquals("viewfs://", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
+        QueryParserUtils.setHdfsServers("viewfs:///tmp", pc);
+        assertEquals("viewfs://", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
+        QueryParserUtils.setHdfsServers("viewfs://cluster1/tmp", pc);
+        assertEquals("viewfs://,viewfs://cluster1", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
 
-            //har with viewfs
-            props.remove(MRConfiguration.JOB_HDFS_SERVERS);
-            QueryParserUtils.setHdfsServers("har://viewfs/tmp", pc);
-            assertEquals("viewfs://", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
-            QueryParserUtils.setHdfsServers("har://viewfs-cluster1/tmp", pc);
-            assertEquals("viewfs://,viewfs://cluster1", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
+        //har with viewfs
+        props.remove(MRConfiguration.JOB_HDFS_SERVERS);
+        QueryParserUtils.setHdfsServers("har://viewfs/tmp", pc);
+        assertEquals("viewfs://", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
+        QueryParserUtils.setHdfsServers("har://viewfs-cluster1/tmp", pc);
+        assertEquals("viewfs://,viewfs://cluster1", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
 
-
-        }
     }
 
 

@@ -23,3 +23,4 @@ contrib/piggybank/java/piggybank.jar
 conf/log4j.properties
 lib/jdiff/pig_*SNAPSHOT.xml
 test/resources/*.jar
+!ivy/ant-contrib-1.0b3.jar

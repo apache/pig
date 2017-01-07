@@ -27,9 +27,8 @@
   <property name="hive.lib.dir"
 	value="${pig.base.dir}/build/ivy/lib/Pig"/>
 
-  <condition property="hive.hadoop.shims.version" value="0.23" else="0.20S">
-    <equals arg1="${hadoopversion}" arg2="23" />
-  </condition>
+  <property name="hadoopversion" value="2" />
+  <property name="hive.hadoop.shims.version" value="0.23" />
 
   <property name="mvnrepo" value="http://repo2.maven.org/maven2"/>
 

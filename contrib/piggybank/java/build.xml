@@ -16,6 +16,13 @@
 -->
 
 <project basedir="." default="jar" name="pigudf">
+
+    <taskdef resource="net/sf/antcontrib/antcontrib.properties">
+        <classpath>
+            <pathelement location="../../../ivy/ant-contrib-1.0b3.jar"/>
+        </classpath>
+    </taskdef>
+
     <property file="../../../build.properties" />
     <!-- javac properties -->
     <property name="javac.debug" value="on" />
@@ -38,16 +45,30 @@
     <property name="src.dir" value="src/main/java/org/apache/pig/piggybank" />
     <property name="hsqldb.jar" value="../../../build/ivy/lib/Pig/hsqldb-1.8.0.10.jar"/>
 
-    <!-- JobHistoryLoader currently does not support 0.23 -->
-    <condition property="build.classes.excludes" value="**/HadoopJobHistoryLoader.java" else="">
+    <!--
+      Hadoop master version
+      (Value 23 is translated for backward compatibility in old build scripts)
+    -->
+    <if>
         <equals arg1="${hadoopversion}" arg2="23"/>
+        <then>
+            <echo>Property setting hadoopversion=23 is deprecated. Overwriting to hadoopversion=2</echo>
+            <var name="hadoopversion" unset="true"/>
+            <property name="hadoopversion" value="2" />
+        </then>
+    </if>
+    <property name="hadoopversion" value="2" />
+
+    <!-- JobHistoryLoader currently does not support 2 -->
+    <condition property="build.classes.excludes" value="**/HadoopJobHistoryLoader.java" else="">
+        <equals arg1="${hadoopversion}" arg2="2"/>
     </condition>
     <condition property="test.classes.excludes" value="**/TestHadoopJobHistoryLoader.java" else="">
-        <equals arg1="${hadoopversion}" arg2="23"/>
+        <equals arg1="${hadoopversion}" arg2="2"/>
     </condition>
 
-    <condition property="hadoopsuffix" value="2" else="1">
-        <equals arg1="${hadoopversion}" arg2="23"/>
+    <condition property="hadoopsuffix" value="2" else="">
+        <equals arg1="${hadoopversion}" arg2="2"/>
     </condition>
 
     <!-- jar properties -->

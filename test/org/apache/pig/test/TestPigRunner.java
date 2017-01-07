@@ -62,6 +62,7 @@ import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -763,10 +764,9 @@ public class TestPigRunner {
     }
 
     @Test
+    @Ignore
+    // Skip in hadoop 23 test, see PIG-2449
     public void classLoaderTest() throws Exception {
-        // Skip in hadoop 23 test, see PIG-2449
-        if (org.apache.pig.impl.util.Utils.isHadoop23() || org.apache.pig.impl.util.Utils.isHadoop2())
-            return;
         PrintWriter w = new PrintWriter(new FileWriter(PIG_FILE));
         w.println("register test/org/apache/pig/test/data/pigtestloader.jar");
         w.println("A = load '" + INPUT_FILE + "' using org.apache.pig.test.PigTestLoader();");

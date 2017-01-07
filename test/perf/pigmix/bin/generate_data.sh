@@ -25,20 +25,11 @@ fi
 
 source $PIGMIX_HOME/conf/config.sh
 
-if [ $HADOOP_VERSION == "23" ]; then
-    echo "Going to run $HADOOP_HOME/bin/hadoop fs -mkdir -p $hdfsroot"
-    $HADOOP_HOME/bin/hadoop fs -mkdir -p $hdfsroot
-else
-    echo "Going to run $HADOOP_HOME/bin/hadoop fs -mkdir $hdfsroot"
-    $HADOOP_HOME/bin/hadoop fs -mkdir $hdfsroot
-fi
+echo "Going to run $HADOOP_HOME/bin/hadoop fs -mkdir -p $hdfsroot"
+$HADOOP_HOME/bin/hadoop fs -mkdir -p $hdfsroot
 
 shopt -s extglob
-if [ $HADOOP_VERSION == "23" ]; then
-    pigjar=`echo $PIG_HOME/pig*-h2.jar`
-else
-    pigjar=`echo $PIG_HOME/pig*-h1.jar`
-fi
+pigjar=`echo $PIG_HOME/pig*-h2.jar`
 
 pigmixjar=$PIGMIX_HOME/pigmix.jar
 
