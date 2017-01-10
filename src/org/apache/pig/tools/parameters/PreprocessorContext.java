@@ -27,6 +27,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.StringReader;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -44,12 +46,23 @@ import org.python.google.common.base.Preconditions;
 
 public class PreprocessorContext {
 
-    private Map<String, String> param_val;
+    private int tableinitsize = 10;
+    private Deque<Map<String,String>> param_val_stack;
 
     private PigContext pigContext;
 
     public Map<String, String> getParamVal() {
-        return param_val;
+        Map <String, String> ret = new Hashtable <String, String>(tableinitsize);
+
+        //stack (deque) iterates LIFO
+        for (Map <String, String> map : param_val_stack ) {
+            for (Map.Entry<String, String> entry : map.entrySet()) {
+                if( ! ret.containsKey(entry.getKey()) ) {
+                    ret.put(entry.getKey(), entry.getValue());
+                }
+            }
+        }
+        return ret;
     }
 
     private final Log log = LogFactory.getLog(getClass());
@@ -59,11 +72,9 @@ public class PreprocessorContext {
      *                smaller number only impacts performance
      */
     public PreprocessorContext(int limit) {
-        param_val = new Hashtable<String, String> (limit);
-    }
-
-    public PreprocessorContext(Map<String, String> paramVal) {
-        param_val = paramVal;
+        tableinitsize = limit;
+        param_val_stack = new ArrayDeque<Map<String,String>> ();
+        param_val_stack.push(new Hashtable<String, String> (tableinitsize));
     }
 
     public void setPigContext(PigContext context) {
@@ -91,6 +102,36 @@ public class PreprocessorContext {
         processOrdLine(key, val, true);
     }
 
+    public void paramScopePush() {
+        param_val_stack.push( new Hashtable<String, String> (tableinitsize) );
+    }
+
+    public void paramScopePop() {
+        param_val_stack.pop();
+    }
+
+    public boolean paramval_containsKey(String key) {
+        for (Map <String, String> map : param_val_stack ) {
+            if( map.containsKey(key) ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public String paramval_get(String key) {
+        for (Map <String, String> map : param_val_stack ) {
+            if( map.containsKey(key) ) {
+                return map.get(key);
+            }
+        }
+        return null;
+    }
+
+    public void paramval_put(String key, String value) {
+        param_val_stack.peek().put(key, value);
+    }
+
     /**
      * This method generates parameter value by running specified command
      *
@@ -103,7 +144,7 @@ public class PreprocessorContext {
             filter.validate(PigCommandFilter.Command.SH);
         }
 
-        if (param_val.containsKey(key) && !overwrite) {
+        if (paramval_containsKey(key) && !overwrite) {
             return;
         }
 
@@ -111,13 +152,13 @@ public class PreprocessorContext {
         String sub_val = substitute(val);
         sub_val = executeShellCommand(sub_val);
 
-        if (param_val.containsKey(key) && !param_val.get(key).equals(sub_val) ) {
+        if (paramval_containsKey(key) && !paramval_get(key).equals(sub_val) ) {
             //(boolean overwrite is always true here)
             log.warn("Warning : Multiple values found for " + key + " command `" + val + "`. "
-                     + "Previous value " + param_val.get(key) + ", now using value " + sub_val);
+                     + "Previous value " + paramval_get(key) + ", now using value " + sub_val);
         }
 
-        param_val.put(key, sub_val);
+        paramval_put(key, sub_val);
     }
 
     public void validate(String preprocessorCmd) throws FrontendException {
@@ -150,17 +191,17 @@ public class PreprocessorContext {
     public  void processOrdLine(String key, String val, Boolean overwrite)  throws ParameterSubstitutionException {
 
         String sub_val = substitute(val, key);
-        if (param_val.containsKey(key)) {
-            if (param_val.get(key).equals(sub_val) || !overwrite) {
+        if (paramval_containsKey(key)) {
+            if (paramval_get(key).equals(sub_val) || !overwrite) {
                 return;
             } else {
                 log.warn("Warning : Multiple values found for " + key
-                         + ". Previous value " + param_val.get(key)
+                         + ". Previous value " + paramval_get(key)
                          + ", now using value " + sub_val);
             }
         }
 
-        param_val.put(key, sub_val);
+        paramval_put(key, sub_val);
     }
 
 
@@ -292,7 +333,7 @@ public class PreprocessorContext {
         while (bracketKeyMatcher.find()) {
             if ( (bracketKeyMatcher.start() == 0) || (line.charAt( bracketKeyMatcher.start() - 1)) != '\\' ) {
                 key = bracketKeyMatcher.group(1);
-                if (!(param_val.containsKey(key))) {
+                if (!(paramval_containsKey(key))) {
                     String message;
                     if (parentKey == null) {
                         message = "Undefined parameter : " + key;
@@ -301,7 +342,7 @@ public class PreprocessorContext {
                     }
                     throw new ParameterSubstitutionException(message);
                 }
-                val = param_val.get(key);
+                val = paramval_get(key);
                 if (val.contains("$")) {
                     val = val.replaceAll("(?<!\\\\)\\$", "\\\\\\$");
                 }
@@ -319,7 +360,7 @@ public class PreprocessorContext {
             // for escaped vars of the form \$<id>
             if ( (keyMatcher.start() == 0) || (line.charAt( keyMatcher.start() - 1)) != '\\' ) {
                 key = keyMatcher.group(1);
-                if (!(param_val.containsKey(key))) {
+                if (!(paramval_containsKey(key))) {
                     String message;
                     if (parentKey == null) {
                         message = "Undefined parameter : " + key;
@@ -328,7 +369,7 @@ public class PreprocessorContext {
                     }
                     throw new ParameterSubstitutionException(message);
                 }
-                val = param_val.get(key);
+                val = paramval_get(key);
                 if (val.contains("$")) {
                     val = val.replaceAll("(?<!\\\\)\\$", "\\\\\\$");
                 }

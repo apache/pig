@@ -43,6 +43,7 @@ import org.apache.pig.ExecType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 import org.apache.pig.tools.parameters.ParseException;
+import org.apache.pig.tools.pigstats.PigStats;
 import org.junit.Test;
 
 public class TestParamSubPreproc {
@@ -878,6 +879,213 @@ public class TestParamSubPreproc {
         String resultContent = Util.readFile(partFiles[0]);
         assertEquals(resultContent, "daniel\t10\njenny\t20\n");
     }
+
+    @Test
+    public void testCommandLineParamOverwritingDefault() throws Exception {
+        log.info("Starting test testCommandLineParamOverwritingDefault()");
+        File inputFile = Util.createFile(
+                  "runinput",
+                  new String[] { "daniel\t10",
+                                 "jenny\t20;"});
+        File output1 = File.createTempFile("output1_", "");
+        output1.delete();
+
+        File script1 = Util.createFile("runscript1.pig",
+                  new String[] { "%default output /invalidpathThatShouldFail;",
+                                 "a = load 'runinput';",
+                                  "store a into '$output';"});
+
+        PigStats stats = org.apache.pig.PigRunner.run(new String[] {
+                                 "-x", Util.getLocalTestMode().toString(),
+                                 "-p", "output=" + output1.getAbsolutePath(),
+                                 script1.getAbsolutePath()} , null);
+        Util.deleteDirectory(output1);
+
+        assertTrue("job should succeed", stats.isSuccessful());
+        assertTrue("Default param should be overridden by the commandline param",
+                     output1.getAbsolutePath().endsWith(stats.getOutputNames().get(0)));
+    }
+
+    @Test
+    public void testRunWithParamOverwritingDefault() throws Exception {
+        log.info("Starting test testScopeOfParamWithRunCommand()");
+        File inputFile = Util.createFile(
+                  "runinput",
+                  new String[] { "daniel\t10",
+                                 "jenny\t20;"});
+        File output1 = File.createTempFile("output1_", "");
+        File output2 = File.createTempFile("output2_", "");
+        output1.delete();
+        output2.delete();
+
+
+        File script1 = Util.createFile("runscript1.pig",
+                  new String[] { "%default output '" + output2.getAbsolutePath() + "';",
+                                 "a = load 'runinput';",
+                                  "store a into '$output';"});
+
+        File mainscript = Util.createFile("mainscript.pig",
+                  new String[] {"run -param output=" + output1.getAbsolutePath()
+                                + " " + script1.getAbsolutePath() + ";"});
+
+
+        PigStats stats = org.apache.pig.PigRunner.run(new String[] {
+                                 "-x", Util.getLocalTestMode().toString(),
+                                 mainscript.getAbsolutePath()} , null);
+        Util.deleteDirectory(output1);
+        Util.deleteDirectory(output2);
+
+        assertTrue("job should succeed", stats.isSuccessful());
+        assertEquals("There should only be 1 output.",
+                     1, stats.getOutputNames().size());
+        assertEquals("Output name should be from output1 and not output2",
+                     output1.getAbsolutePath(),
+                     stats.getOutputLocations().get(0));
+    }
+
+    @Test
+    public void testScopeOfParamWithRunCommand() throws Exception {
+        log.info("Starting test testScopeOfParamWithRunCommand()");
+        File inputFile = Util.createFile(
+                  "runinput",
+                  new String[] { "daniel\t10",
+                                 "jenny\t20;"});
+        File output1 = File.createTempFile("output1_", "");
+        File output2 = File.createTempFile("output2_", "");
+        output1.delete();
+        output2.delete();
+
+        File script1 = Util.createFile("runscript1.pig",
+                  new String[] { "%default output '" + output1.getAbsolutePath() + "';",
+                                 "a = load 'runinput';",
+                                  "store a into '$output';"});
+
+        File script2 = Util.createFile("runscript2.pig",
+                  new String[] { "%default output '" + output2.getAbsolutePath() + "';",
+                                 "a = load 'runinput';",
+                                  "store a into '$output';"});
+
+        File mainscript = Util.createFile("mainscript.pig",
+                  new String[] { "run " + script1.getAbsolutePath() + ";",
+                                 "run " + script2.getAbsolutePath() + ";" });
+
+        PigStats stats = org.apache.pig.PigRunner.run(new String[] {
+                                 "-x", Util.getLocalTestMode().toString(),
+                                 mainscript.getAbsolutePath()} , null);
+        Util.deleteDirectory(output1);
+        Util.deleteDirectory(output2);
+
+        assertTrue("job should succeed", stats.isSuccessful());
+        assertNotEquals("Two output paths should differ",
+               stats.getOutputNames().get(0), stats.getOutputNames().get(1));
+        assertEquals("Each output should contain 2 records",
+                      2, stats.getOutputStats().get(0).getNumberRecords());
+        assertEquals("Each output should contain 2 records",
+                      2, stats.getOutputStats().get(1).getNumberRecords());
+    }
+
+    @Test
+    public void testScopeOfParamWithNestedRunCommand() throws Exception {
+        log.info("Starting test testScopeOfParamWithRunCommand()");
+        File inputFile = Util.createFile(
+                  "runinput",
+                  new String[] { "daniel\t10",
+                                 "jenny\t20;"});
+        /*
+         * script1 sets a=1, b=2, c=3; calls script2
+         *   script2 sets b=22 (by -param); calls script3
+         *     script3 sets c=333; saves $a$b$c  (122333)
+         *   script2 saves $a$b$c (1223)
+         * script1 saves $a$b$c (123)
+         */
+        File script3 = Util.createFile("runscript3.pig",
+                  new String[] { "%declare c '333';",
+                                 "a = load 'runinput';",
+                                  "store a into 'testScopeOfParamWithNestedRunCommand${a}${b}${c}';"});
+
+        File script2 = Util.createFile("runscript2.pig",
+                  new String[] { "run " + script3.getAbsolutePath() + ";",
+                                 "a = load 'runinput';",
+                                  "store a into 'testScopeOfParamWithNestedRunCommand${a}${b}${c}';"});
+
+        File script1 = Util.createFile("runscript1.pig",
+                  new String[] { "%declare a '1';",
+                                 "%declare b '2';",
+                                 "%declare c '3';",
+                                 "run -param b=22 " + script2.getAbsolutePath() + ";",
+                                 "a = load 'runinput';",
+                                  "store a into 'testScopeOfParamWithNestedRunCommand${a}${b}${c}';"});
+
+        PigStats stats = org.apache.pig.PigRunner.run(new String[] {
+                                 "-x", Util.getLocalTestMode().toString(),
+                                 script1.getAbsolutePath()} , null);
+
+        for( String output : stats.getOutputNames() ) {
+            assertTrue(output.contains("testScopeOfParamWithNestedRunCommand"));
+            Util.deleteDirectory(new File(output));
+        }
+        assertTrue("job should succeed", stats.isSuccessful());
+        assertEquals("There should be three outputs.", 3, stats.getOutputNames().size());
+
+        for( String expectedoutput : new String [] {"testScopeOfParamWithNestedRunCommand123",
+                                            "testScopeOfParamWithNestedRunCommand1223",
+                                            "testScopeOfParamWithNestedRunCommand122333"} ) {
+            boolean found=false;
+            for( String output : stats.getOutputNames() ) {
+                if( output.endsWith(expectedoutput) ) {
+                    found=true;
+                }
+            }
+            assertTrue("Output " + expectedoutput + " should exist.", found);
+        }
+    }
+
+    /*  This currently does not work since PigMacro only picks the
+     *  param setting from the root script (script1)
+     *  To revisit after Grunt moves to ANTLR in PIG-2597.
+     *  Tracking in PIG-5028.
+     *
+
+    @Test
+    public void testScopeOfParamWithMacro() throws Exception {
+        log.info("Starting test testScopeOfParamWithMacro()");
+        File inputFile = Util.createFile(
+                  "runinput",
+                  new String[] { "daniel\t10",
+                                 "jenny\t20;"});
+        File macro = Util.createFile("testmacro.pig",
+                  new String[] { "DEFINE mymacro (A) RETURNS void {",
+                                 "store $A into 'testScopeOfParamWithMacro${a}${b}${c}';",
+                                 "};"});
+
+        File script3 = Util.createFile("runscript3.pig",
+                  new String[] { "%declare c '333';"});
+
+        File script2 = Util.createFile("runscript2.pig",
+                  new String[] { "%declare b '22';",
+                                 "import '" + macro.getAbsolutePath() + "';",
+                                 "a = load 'runinput';",
+                                 "mymacro(a);",
+                                 "exec " + script3.getAbsolutePath() + ";"});
+
+        File script1 = Util.createFile("runscript1.pig",
+                  new String[] { "%declare a '1';",
+                                 "%declare b '2';",
+                                 "%declare c '3';",
+                                 "exec " + script2.getAbsolutePath() + ";"});
+
+        PigStats stats = org.apache.pig.PigRunner.run(new String[] {
+                                 "-x", Util.getLocalTestMode().toString(),
+                                 script1.getAbsolutePath()} , null);
+
+        assertTrue("job should succeed", stats.isSuccessful());
+        Util.deleteDirectory(new File(stats.getOutputNames().get(0)));
+        assertEquals("There should be only 1 output.", 1, stats.getOutputNames().size());
+        assertTrue("Expected output testScopeOfParamWithMacro1223 but got " + stats.getOutputNames().get(0),
+                   stats.getOutputNames().get(0).equals("testScopeOfParamWithMacro1223"));
+    }
+    */
+
 
     /*
      *  Test parameter substition when register contains /* globbing

@@ -516,8 +516,13 @@ public class GruntParser extends PigScriptParser {
         ConsoleReader reader;
         boolean interactive;
 
-        mPigServer.getPigContext().setParams(params);
-        mPigServer.getPigContext().setParamFiles(files);
+        PigContext pc = mPigServer.getPigContext();
+
+        if( !loadOnly ) {
+          pc.getPreprocessorContext().paramScopePush();
+        }
+        pc.setParams(params);
+        pc.setParamFiles(files);
 
         try {
             FetchFileRet fetchFile = FileLocalizer.fetchFile(mConf, script);
@@ -559,6 +564,9 @@ public class GruntParser extends PigScriptParser {
 
         if (interactive) {
             System.out.println("");
+        }
+        if( ! loadOnly ) {
+          pc.getPreprocessorContext().paramScopePop();
         }
     }
 
