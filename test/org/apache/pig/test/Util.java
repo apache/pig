@@ -833,7 +833,23 @@ public class Util {
     }
 
     public static File createFile(String[] data) throws Exception{
-        File f = File.createTempFile("tmp", "");
+        return createFile(null,data);
+    }
+
+    public static File createFile(String filePath, String[] data) throws Exception {
+        File f;
+        if( null == filePath || filePath.isEmpty() ) {
+          f = File.createTempFile("tmp", "");
+        } else  {
+          f = new File(filePath);
+        }
+
+        if (f.getParent() != null && !(new File(f.getParent())).exists()) {
+            (new File(f.getParent())).mkdirs();
+        }
+
+        f.deleteOnExit();
+
         PrintWriter pw = new PrintWriter(f);
         for (int i=0; i<data.length; i++){
             pw.println(data[i]);
