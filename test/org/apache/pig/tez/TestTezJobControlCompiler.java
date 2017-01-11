@@ -23,6 +23,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -36,12 +37,14 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.InputSizeReducerEstimator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezJobCompiler;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezLauncher;
@@ -50,6 +53,7 @@ import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezCompiler;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperator;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPlanContainerNode;
+import org.apache.pig.backend.hadoop.executionengine.tez.runtime.PigGraceShuffleVertexManager;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -59,8 +63,11 @@ import org.apache.pig.test.junit.OrderedJUnit4Runner;
 import org.apache.pig.test.junit.OrderedJUnit4Runner.TestOrder;
 import org.apache.pig.tools.pigstats.ScriptState;
 import org.apache.pig.tools.pigstats.tez.TezScriptState;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Vertex;
+import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
+import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -79,7 +86,8 @@ import org.junit.runner.RunWith;
     "testTezParallelismEstimatorFilterFlatten",
     "testTezParallelismEstimatorHashJoin",
     "testTezParallelismEstimatorSplitBranch",
-    "testTezParallelismDefaultParallelism"
+    "testTezParallelismDefaultParallelism",
+    "testShuffleVertexManagerConfig"
 })
 public class TestTezJobControlCompiler {
     private static PigContext pc;
@@ -292,6 +300,72 @@ public class TestTezJobControlCompiler {
         TezOperator leafOper = compiledPlan.first.getLeaves().get(0);
         Vertex leafVertex = compiledPlan.second.getVertex(leafOper.getOperatorKey().toString());
         assertEquals(leafVertex.getParallelism(), 5);
+        pc.defaultParallel = -1;
+    }
+
+    @Test
+    public void testShuffleVertexManagerConfig() throws Exception{
+        pc.getProperties().setProperty(MRJobConfig.COMPLETED_MAPS_FOR_REDUCE_SLOWSTART, "0.3");
+        pc.getProperties().setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, "500");
+
+        try {
+
+            String query = "a = load '10' using " + ArbitarySplitsLoader.class.getName()
+                    + "() as (name:chararray, age:int, gpa:double);"
+                    + "b = limit a 5;"
+                    + "c = group b by name;"
+                    + "store c into 'output';";
+
+            VertexManagerPluginDescriptor vmPlugin = getLeafVertexVMPlugin(query);
+            Configuration vmPluginConf = TezUtils.createConfFromUserPayload(vmPlugin.getUserPayload());
+
+            // Case of grace auto parallelism (PigGraceShuffleVertexManager)
+            assertEquals(PigGraceShuffleVertexManager.class.getName(), vmPlugin.getClassName());
+            // min and max src fraction, auto parallel, desired size, bytes.per.reducer, pig.tez.plan and pigcontext
+            assertEquals(7, vmPluginConf.size());
+            assertEquals("0.3", vmPluginConf.get(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION));
+            assertEquals("0.3", vmPluginConf.get(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION));
+            assertEquals("true", vmPluginConf.get(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL));
+            assertEquals("500", vmPluginConf.get(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE));
+            assertEquals("500", vmPluginConf.get(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM));
+
+            // Case of auto parallelism (ShuffleVertexManager)
+            pc.getProperties().setProperty(PigConfiguration.PIG_TEZ_GRACE_PARALLELISM, "false");
+            vmPlugin = getLeafVertexVMPlugin(query);
+            vmPluginConf = TezUtils.createConfFromUserPayload(vmPlugin.getUserPayload());
+            assertEquals(ShuffleVertexManager.class.getName(), vmPlugin.getClassName());
+            // min and max src fraction, auto parallel, desired size
+            assertEquals(4, vmPluginConf.size());
+            assertEquals("0.3", vmPluginConf.get(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION));
+            assertEquals("0.3", vmPluginConf.get(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION));
+            assertEquals("true", vmPluginConf.get(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL));
+            assertEquals("500", vmPluginConf.get(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE));
+
+            // Case of default parallel or PARALLEL (ShuffleVertexManager)
+            pc.defaultParallel = 2;
+            vmPlugin = getLeafVertexVMPlugin(query);
+            vmPluginConf = TezUtils.createConfFromUserPayload(vmPlugin.getUserPayload());
+            assertEquals(ShuffleVertexManager.class.getName(), vmPlugin.getClassName());
+            // min and max src fraction
+            assertEquals(2, vmPluginConf.size());
+            assertEquals("0.3", vmPluginConf.get(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION));
+            assertEquals("0.3", vmPluginConf.get(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION));
+        } finally {
+            pc.getProperties().remove(MRJobConfig.COMPLETED_MAPS_FOR_REDUCE_SLOWSTART);
+            pc.getProperties().remove(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM);
+            pc.getProperties().remove(PigConfiguration.PIG_TEZ_GRACE_PARALLELISM);
+            pc.defaultParallel = -1;
+        }
+    }
+
+    private VertexManagerPluginDescriptor getLeafVertexVMPlugin(String query) throws Exception {
+        Pair<TezOperPlan, DAG> compiledPlan = compile(query);
+        TezOperator leafOper = compiledPlan.first.getLeaves().get(0);
+        Vertex leafVertex = compiledPlan.second.getVertex(leafOper.getOperatorKey().toString());
+        Field vmPluginField = Vertex.class.getDeclaredField("vertexManagerPlugin");
+        vmPluginField.setAccessible(true);
+        VertexManagerPluginDescriptor vmPlugin = (VertexManagerPluginDescriptor) vmPluginField.get(leafVertex);
+        return vmPlugin;
     }
 
     private Pair<TezOperPlan, DAG> compile(String query) throws Exception {

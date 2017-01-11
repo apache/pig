@@ -175,6 +175,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-5043: Slowstart not applied in Tez with PARALLEL clause (rohini)
+
 PIG-4930: Skewed Join Breaks On Empty Sampled Input When Key is From Map (nkollar via rohini)
 
 PIG-3417: Job fails when skewed join is done on tuple key (nkollar via rohini)
