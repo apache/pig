@@ -23,9 +23,11 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -174,6 +176,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
     private PigContext pc;
     private Configuration globalConf;
     private Configuration pigContextConf;
+    private Configuration shuffleVertexManagerBaseConf;
     private FileSystem fs;
     private long intermediateTaskInputSize;
     private Set<String> inputSplitInDiskVertices;
@@ -216,6 +219,16 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         this.pigContextConf = ConfigurationUtil.toConfiguration(pc.getProperties(), false);
         MRToTezHelper.processMRSettings(pigContextConf, globalConf);
+
+        shuffleVertexManagerBaseConf = new Configuration(false);
+        // Only copy tez.shuffle-vertex-manager config to keep payload size small
+        Iterator<Entry<String, String>> iter = pigContextConf.iterator();
+        while (iter.hasNext()) {
+            Entry<String, String> entry = iter.next();
+            if (entry.getKey().startsWith("tez.shuffle-vertex-manager")) {
+                shuffleVertexManagerBaseConf.set(entry.getKey(), entry.getValue());
+            }
+        }
 
         // Add credentials from binary token file and get tokens for namenodes
         // specified in mapreduce.job.hdfs-servers
@@ -265,7 +278,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         if (globalConf.get(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS) == null) {
             // If tez setting is not defined
             MRHelpers.updateEnvBasedOnMRTaskEnv(globalConf, mapTaskEnv, true);
-            MRHelpers.updateEnvBasedOnMRTaskEnv(globalConf, reduceTaskEnv, true);
+            MRHelpers.updateEnvBasedOnMRTaskEnv(globalConf, reduceTaskEnv, false);
         }
 
         if (globalConf.get(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS) != null) {
@@ -778,6 +791,21 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         String vmPluginName = null;
         Configuration vmPluginConf = null;
+        boolean containScatterGather = false;
+        boolean containCustomPartitioner = false;
+        for (TezEdgeDescriptor edge : tezOp.inEdges.values()) {
+            if (edge.dataMovementType == DataMovementType.SCATTER_GATHER) {
+                containScatterGather = true;
+            }
+            if (edge.partitionerClass != null) {
+                containCustomPartitioner = true;
+            }
+        }
+
+        if(containScatterGather) {
+            vmPluginName = ShuffleVertexManager.class.getName();
+            vmPluginConf = new Configuration(shuffleVertexManagerBaseConf);
+        }
 
         // Set the right VertexManagerPlugin
         if (tezOp.getEstimatedParallelism() != -1) {
@@ -792,31 +820,8 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                     log.info("Set VertexManagerPlugin to PartitionerDefinedParallelismVertexManager for vertex " + tezOp.getOperatorKey().toString());
                 }
             } else {
-                boolean containScatterGather = false;
-                boolean containCustomPartitioner = false;
-                for (TezEdgeDescriptor edge : tezOp.inEdges.values()) {
-                    if (edge.dataMovementType == DataMovementType.SCATTER_GATHER) {
-                        containScatterGather = true;
-                    }
-                    if (edge.partitionerClass!=null) {
-                        containCustomPartitioner = true;
-                    }
-                }
                 if (containScatterGather && !containCustomPartitioner) {
-                    vmPluginConf = (vmPluginConf == null) ? new Configuration(pigContextConf) : vmPluginConf;
-                    // Use auto-parallelism feature of ShuffleVertexManager to dynamically
-                    // reduce the parallelism of the vertex
-                    if (payloadConf.getBoolean(PigConfiguration.PIG_TEZ_GRACE_PARALLELISM, true)
-                            && !TezOperPlan.getGrandParentsForGraceParallelism(getPlan(), tezOp).isEmpty()
-                            && tezOp.getCrossKeys() == null) {
-                        vmPluginName = PigGraceShuffleVertexManager.class.getName();
-                        tezOp.setUseGraceParallelism(true);
-                        vmPluginConf.set("pig.tez.plan", getSerializedTezPlan());
-                        vmPluginConf.set(PigImplConstants.PIG_CONTEXT, serializedPigContext);
-                    } else {
-                        vmPluginName = ShuffleVertexManager.class.getName();
-                    }
-                    vmPluginConf.setBoolean(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL, true);
+
                     // For Intermediate reduce, set the bytes per reducer to be block size.
                     long bytesPerReducer = intermediateTaskInputSize;
                     // If there are store statements, use BYTES_PER_REDUCER_PARAM configured by user.
@@ -825,8 +830,8 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                     // In Tez, numReducers=(map output size/bytesPerReducer) we need lower values to avoid skews in reduce
                     // as map input sizes are mostly always high compared to map output.
                     if (stores.size() > 0) {
-                        if (vmPluginConf.get(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM) != null) {
-                            bytesPerReducer = vmPluginConf.getLong(
+                        if (pigContextConf.get(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM) != null) {
+                            bytesPerReducer = pigContextConf.getLong(
                                             InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM,
                                             InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER);
                         } else if (tezOp.isGroupBy()) {
@@ -835,6 +840,20 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                             bytesPerReducer = SHUFFLE_BYTES_PER_REDUCER_DEFAULT;
                         }
                     }
+
+                    // Use auto-parallelism feature of ShuffleVertexManager to dynamically
+                    // reduce the parallelism of the vertex. Use PigGraceShuffleVertexManager
+                    // instead of ShuffleVertexManager if pig.tez.grace.parallelism is turned on
+                    if (payloadConf.getBoolean(PigConfiguration.PIG_TEZ_GRACE_PARALLELISM, true)
+                            && !TezOperPlan.getGrandParentsForGraceParallelism(getPlan(), tezOp).isEmpty()
+                            && tezOp.getCrossKeys() == null) {
+                        vmPluginName = PigGraceShuffleVertexManager.class.getName();
+                        tezOp.setUseGraceParallelism(true);
+                        vmPluginConf.set("pig.tez.plan", getSerializedTezPlan());
+                        vmPluginConf.set(PigImplConstants.PIG_CONTEXT, serializedPigContext);
+                        vmPluginConf.setLong(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, bytesPerReducer);
+                    }
+                    vmPluginConf.setBoolean(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL, true);
                     vmPluginConf.setLong(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE, bytesPerReducer);
                     log.info("Set auto parallelism for vertex " + tezOp.getOperatorKey().toString());
                 }
