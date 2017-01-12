@@ -17,8 +17,6 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.tez.runtime;
 
-import java.util.Map;
-
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.pig.data.DataBag;
@@ -44,13 +42,10 @@ public class HashValuePartitioner extends Partitioner<Writable, Writable> {
                 if (o != null) {
                     // Skip computing hashcode for bags.
                     // Order of elements in the map/bag may be different on each run
+                    // Can't even include size as some DataBag implementations
+                    // iterate through all elements in the bag to get the size.
                     if (o instanceof DataBag) {
                         hash = 31 * hash;
-                    } else if (o instanceof Map) {
-                        // Including size of map as it is easily available
-                        // Not doing for DataBag as some implementations actually
-                        // iterate through all elements in the bag to get the size.
-                        hash = 31 * hash + ((Map) o).size();
                     } else {
                         hash = 31 * hash + o.hashCode();
                     }
