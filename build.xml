@@ -881,6 +881,9 @@
             <sysproperty key="test.exec.type" value="${test.exec.type}" />
             <sysproperty key="ssh.gateway" value="${ssh.gateway}" />
             <sysproperty key="hod.server" value="${hod.server}" />
+            <sysproperty key="build.classes" value="${build.classes}" />
+            <sysproperty key="test.build.classes" value="${test.build.classes}" />
+            <sysproperty key="ivy.lib.dir" value="${ivy.lib.dir}" />
             <sysproperty key="java.io.tmpdir" value="${junit.tmp.dir}" />
             <sysproperty key="hadoop.log.dir" value="${test.log.dir}"/>
             <jvmarg line="-XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=128M ${debugArgs} -Djava.library.path=${hadoop.root}\bin"/>
