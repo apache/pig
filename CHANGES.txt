@@ -71,6 +71,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5087 e2e Native3 failing after PIG-4923 (knoguchi)
+
 PIG-5073: Skip e2e Limit_5 test for Tez (knoguchi)
 
 PIG-5072: e2e Union_12 fails on typecast when oldpig=0.11 (knoguchi)
