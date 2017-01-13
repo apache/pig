@@ -703,7 +703,9 @@
             <fileset dir="${ivy.lib.dir}" includes="jruby-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="groovy-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="js-*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="hbase-*.jar" excludes="hbase-*tests.jar,hbase-*hadoop*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="htrace-core*incubating.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="metrics-core-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="hbase-*.jar" excludes="hbase-*tests.jar,hbase-*hadoop2*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="hive-*.jar" excludes="hive-shims-0.*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="protobuf-java-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="zookeeper-*.jar"/>
@@ -721,7 +723,7 @@
         <copy todir="${lib.dir}/h2">
             <fileset dir="${ivy.lib.dir}" includes="avro-mapred-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="hive-shims-0.*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="hbase-*hadoop2.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="hbase-hadoop2*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="tez-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="commons-collections4-*.jar"/>
         </copy>
