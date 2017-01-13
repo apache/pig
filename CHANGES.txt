@@ -32,6 +32,8 @@ PIG-5067: Revisit union on numeric type and chararray to bytearray (knoguchi)
  
 IMPROVEMENTS
 
+PIG-5105: Tez unit tests failing with "Argument list too long" (rohini)
+
 PIG-4901: To use Multistorage for each Group (szita via daijy)
 
 PIG-5025: Fix flaky test failures in TestLoad.java (szita via rohini)
