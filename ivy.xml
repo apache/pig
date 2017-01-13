@@ -337,10 +337,7 @@
     <dependency org="com.lmax" name="disruptor" rev="3.3.0" conf="hbase1->master"/>
 
     <!-- for TestHBaseStorage -->
-    <dependency org="com.github.stephenc.high-scale-lib" name="high-scale-lib" rev="${high-scale-lib.version}"
-       conf="test->default"/>
-    <dependency org="com.google.protobuf" name="protobuf-java" rev="${protobuf-java.version}"
-       conf="test->default"/>
+    <dependency org="org.apache.hbase" name="hbase-procedure" rev="${hbase1.version}" conf="test->master"/>
     <dependency org="com.yammer.metrics" name="metrics-core" rev="${metrics-core.version}"
        conf="test->default"/>
 

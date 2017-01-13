@@ -22,6 +22,8 @@ Trunk (unreleased changes)
  
 INCOMPATIBLE CHANGES
 
+PIG-4728: Compilation against hbase 1.x fails with hbase-hadoop1-compat not found (szita via rohini)
+
 PIG-4897: Scope of param substitution for run/exec commands (knoguchi)
 
 PIG-4923: Drop Hadoop 1.x support in Pig 0.17 (szita via rohini)
