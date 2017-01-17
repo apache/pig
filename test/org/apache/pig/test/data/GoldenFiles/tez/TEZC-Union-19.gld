@@ -1,0 +1,125 @@
+#--------------------------------------------------
+# There are 1 DAGs in the session
+#--------------------------------------------------
+#--------------------------------------------------
+# TEZ DAG plan: pig-0_scope-0
+#--------------------------------------------------
+Tez vertex scope-38	->	Tez vertex group scope-66,Tez vertex group scope-67,
+Tez vertex scope-39	->	Tez vertex group scope-66,Tez vertex group scope-67,
+Tez vertex group scope-66
+Tez vertex group scope-67
+
+Tez vertex scope-38
+# Plan on vertex
+1-2: Split - scope-68
+|   |
+|   h: Store(file:///tmp/pigoutput/1:org.apache.pig.builtin.PigStorage) - scope-73	->	 scope-27
+|   |
+|   |---d: Filter[bag] - scope-69
+|       |   |
+|       |   Less Than or Equal[boolean] - scope-72
+|       |   |
+|       |   |---Project[int][0] - scope-70
+|       |   |
+|       |   |---Constant(5) - scope-71
+|   |
+|   h: Store(file:///tmp/pigoutput/1:org.apache.pig.builtin.PigStorage) - scope-78	->	 scope-27
+|   |
+|   |---e: Filter[bag] - scope-74
+|       |   |
+|       |   Less Than or Equal[boolean] - scope-77
+|       |   |
+|       |   |---Project[int][0] - scope-75
+|       |   |
+|       |   |---Constant(10) - scope-76
+|   |
+|   i: Store(file:///tmp/pigoutput/2:org.apache.pig.builtin.PigStorage) - scope-83	->	 scope-37
+|   |
+|   |---f: Filter[bag] - scope-79
+|       |   |
+|       |   Greater Than[boolean] - scope-82
+|       |   |
+|       |   |---Project[int][0] - scope-80
+|       |   |
+|       |   |---Constant(10) - scope-81
+|   |
+|   i: Store(file:///tmp/pigoutput/2:org.apache.pig.builtin.PigStorage) - scope-88	->	 scope-37
+|   |
+|   |---g: Filter[bag] - scope-84
+|       |   |
+|       |   Equal To[boolean] - scope-87
+|       |   |
+|       |   |---Project[chararray][1] - scope-85
+|       |   |
+|       |   |---Constant(6) - scope-86
+|
+|---a: New For Each(false,false)[bag] - scope-7
+    |   |
+    |   Cast[int] - scope-2
+    |   |
+    |   |---Project[bytearray][0] - scope-1
+    |   |
+    |   Cast[chararray] - scope-5
+    |   |
+    |   |---Project[bytearray][1] - scope-4
+    |
+    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
+Tez vertex scope-39
+# Plan on vertex
+1-2: Split - scope-89
+|   |
+|   h: Store(file:///tmp/pigoutput/1:org.apache.pig.builtin.PigStorage) - scope-94	->	 scope-27
+|   |
+|   |---d: Filter[bag] - scope-90
+|       |   |
+|       |   Less Than or Equal[boolean] - scope-93
+|       |   |
+|       |   |---Project[int][0] - scope-91
+|       |   |
+|       |   |---Constant(5) - scope-92
+|   |
+|   h: Store(file:///tmp/pigoutput/1:org.apache.pig.builtin.PigStorage) - scope-99	->	 scope-27
+|   |
+|   |---e: Filter[bag] - scope-95
+|       |   |
+|       |   Less Than or Equal[boolean] - scope-98
+|       |   |
+|       |   |---Project[int][0] - scope-96
+|       |   |
+|       |   |---Constant(10) - scope-97
+|   |
+|   i: Store(file:///tmp/pigoutput/2:org.apache.pig.builtin.PigStorage) - scope-104	->	 scope-37
+|   |
+|   |---f: Filter[bag] - scope-100
+|       |   |
+|       |   Greater Than[boolean] - scope-103
+|       |   |
+|       |   |---Project[int][0] - scope-101
+|       |   |
+|       |   |---Constant(10) - scope-102
+|   |
+|   i: Store(file:///tmp/pigoutput/2:org.apache.pig.builtin.PigStorage) - scope-109	->	 scope-37
+|   |
+|   |---g: Filter[bag] - scope-105
+|       |   |
+|       |   Equal To[boolean] - scope-108
+|       |   |
+|       |   |---Project[chararray][1] - scope-106
+|       |   |
+|       |   |---Constant(6) - scope-107
+|
+|---c: New For Each(false,false)[bag] - scope-15
+    |   |
+    |   Cast[int] - scope-10
+    |   |
+    |   |---Project[bytearray][1] - scope-9
+    |   |
+    |   Cast[chararray] - scope-13
+    |   |
+    |   |---Project[bytearray][0] - scope-12
+    |
+    |---b: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-8
+Tez vertex group scope-66	<-	 [scope-38, scope-38, scope-39, scope-39]	->	 null
+# No plan on vertex group
+Tez vertex group scope-67	<-	 [scope-38, scope-38, scope-39, scope-39]	->	 null
+# No plan on vertex group
