@@ -1050,6 +1050,71 @@ public class TestTezCompiler {
     }
 
     @Test
+    public void testUnionSplitUnionStore() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
+                "b = load 'file:///tmp/input1' as (y:chararray, x:int);" +
+                "c = union onschema a, b;" +
+                "split c into d if x <= 5, e if x <= 10, f if x >10, g if y == '6';" +
+                "h = union onschema d, e;" +
+                "i = union onschema f, g;" +
+                "store h into 'file:///tmp/pigoutput/1';" +
+                "store i into 'file:///tmp/pigoutput/2';";
+
+        resetScope();
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-19.gld");
+        resetScope();
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-19-OPTOFF.gld");
+
+        // With a join in between
+        query =
+                "a = load 'file:///tmp/input' as (x:chararray);" +
+                "b = load 'file:///tmp/input' as (x:chararray);" +
+                "c = load 'file:///tmp/input' as (y:chararray);" +
+                "u1 = union onschema a, b;" +
+                "SPLIT u1 INTO r IF x != '', s OTHERWISE;" +
+                "d = JOIN r BY x LEFT, c BY y;" +
+                "u2 = UNION ONSCHEMA d, s;" +
+                "e = FILTER u2 BY x == '';" +
+                "f = FILTER u2 BY x == 'm';" +
+                "u3 = UNION ONSCHEMA e, f;" +
+                "store u3 into 'file:///tmp/pigoutput';";
+
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-20.gld");
+        resetScope();
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-20-OPTOFF.gld");
+    }
+
+    @Test
+    public void testUnionSplitUnionLimitStore() throws Exception {
+        // Similar to previous testcase but a LIMIT at the end to test a non-store vertex group
+        String query =
+                "a = load 'file:///tmp/input' as (x:chararray);" +
+                "b = load 'file:///tmp/input' as (x:chararray);" +
+                "c = load 'file:///tmp/input' as (y:chararray);" +
+                "u1 = union onschema a, b;" +
+                "SPLIT u1 INTO r IF x != '', s OTHERWISE;" +
+                "d = JOIN r BY x LEFT, c BY y;" +
+                "u2 = UNION ONSCHEMA d, s;" +
+                "e = FILTER u2 BY x == '';" +
+                "f = FILTER u2 BY x == 'm';" +
+                "u3 = UNION ONSCHEMA e, f;" +
+                "SPLIT u3 INTO t if x != '', u OTHERWISE;" +
+                "v = LIMIT t 10;" +
+                "store v into 'file:///tmp/pigoutput';";
+
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + true);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-21.gld");
+        resetScope();
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION, "" + false);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-21-OPTOFF.gld");
+    }
+
+    @Test
     public void testRank() throws Exception {
         String query =
                 "a = load 'file:///tmp/input1' as (x:int, y:int);" +

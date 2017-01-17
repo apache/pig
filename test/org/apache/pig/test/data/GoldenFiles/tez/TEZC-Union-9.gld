@@ -4,7 +4,7 @@
 #--------------------------------------------------
 # TEZ DAG plan: pig-0_scope-0
 #--------------------------------------------------
-Tez vertex scope-45	->	Tez vertex group scope-70,Tez vertex group scope-70,Tez vertex group scope-71,Tez vertex group scope-71,
+Tez vertex scope-45	->	Tez vertex group scope-70,Tez vertex group scope-71,
 Tez vertex scope-56	->	Tez vertex group scope-70,Tez vertex group scope-71,
 Tez vertex group scope-70
 Tez vertex group scope-71

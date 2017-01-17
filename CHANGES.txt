@@ -32,6 +32,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-5078: Script fails with error - POStoreTez only accepts MROutput (rohini)
+
 PIG-5088: HashValuePartitioner has skew when there is only map fields (rohini)
 
 PIG-5043: Slowstart not applied in Tez with PARALLEL clause (rohini)
