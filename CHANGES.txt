@@ -28,6 +28,8 @@ PIG-4897: Scope of param substitution for run/exec commands (knoguchi)
 
 PIG-4923: Drop Hadoop 1.x support in Pig 0.17 (szita via rohini)
 
+PIG-5109: Remove HadoopJobHistoryLoader (szita via daijy)
+
 PIG-5067: Revisit union on numeric type and chararray to bytearray (knoguchi)
  
 IMPROVEMENTS
