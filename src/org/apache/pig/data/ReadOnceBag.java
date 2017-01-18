@@ -50,6 +50,9 @@ public class ReadOnceBag implements DataBag {
      */
     private static final long serialVersionUID = 2L;
 
+    public ReadOnceBag() {
+    }
+
     /**
      * This constructor creates a bag out of an existing iterator
      * of tuples by taking ownership of the iterator and NOT
