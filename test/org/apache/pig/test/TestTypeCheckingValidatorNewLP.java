@@ -4067,12 +4067,12 @@ public class TestTypeCheckingValidatorNewLP {
 
         @Test
         public void testUDFNoInnerSchema() throws FrontendException {
-            String query = "a= load '1.txt';"
+            String query = "a= load '1.txt' using PigStorage(':') ;"
                 + "b = foreach a generate "+TestUDFTupleNullInnerSchema.class.getName()+"($0);"
                 + "c = foreach b generate flatten($0);"
                 + "d = foreach c generate $0 + 1;";
 
-            checkLastForeachCastLoadFunc(query, null, 0);
+            checkLastForeachCastLoadFunc(query, "PigStorage(':')");
         }
 
         //see PIG-1990
