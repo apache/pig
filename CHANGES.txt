@@ -181,6 +181,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-4918: Pig on Tez cannot switch pig.temp.dir to another fs (daijy)
+
 PIG-5078: Script fails with error - POStoreTez only accepts MROutput (rohini)
 
 PIG-5088: HashValuePartitioner has skew when there is only map fields (rohini)
