@@ -32,7 +32,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.PriorityQueue;
-  
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigCounters;
@@ -44,14 +44,14 @@ import org.apache.pig.PigWarning;
  * stored unsorted as it comes in, and only sorted when it is time to dump
  * it to a file or when the first iterator is requested.  Experementation
  * found this to be the faster than storing it sorted to begin with.
- * 
+ *
  * We allow a user defined comparator, but provide a default comparator in
  * cases where the user doesn't specify one.
  */
 public class SortedDataBag extends DefaultAbstractBag{
 
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = 2L;
 
@@ -76,7 +76,7 @@ public class SortedDataBag extends DefaultAbstractBag{
 
         @Override
         public int hashCode() {
-            return 42; 
+            return 42;
         }
 
     }
@@ -95,12 +95,12 @@ public class SortedDataBag extends DefaultAbstractBag{
     public boolean isSorted() {
         return true;
     }
-    
+
     @Override
     public boolean isDistinct() {
         return false;
     }
-    
+
     @Override
     public Iterator<Tuple> iterator() {
         return new SortedDataBagIterator();
@@ -145,12 +145,15 @@ public class SortedDataBag extends DefaultAbstractBag{
                     if ((spilled & 0x3fff) == 0) reportProgress();
                 }
                 out.flush();
-            } catch (IOException ioe) {
+                out.close();
+                out = null;
+                mContents.clear();
+            } catch (Throwable e) {
                 // Remove the last file from the spilled array, since we failed to
                 // write to it.
                 mSpillFiles.remove(mSpillFiles.size() - 1);
                 warn(
-                    "Unable to spill contents to disk", PigWarning.UNABLE_TO_SPILL, ioe);
+                    "Unable to spill contents to disk", PigWarning.UNABLE_TO_SPILL, e);
                 return 0;
             } finally {
                 if (out != null) {
@@ -161,7 +164,6 @@ public class SortedDataBag extends DefaultAbstractBag{
                     }
                 }
             }
-            mContents.clear();
         }
         // Increment the spill count
         incSpillCount(PigCounters.SPILLABLE_MEMORY_MANAGER_SPILL_COUNT);
@@ -203,7 +205,7 @@ public class SortedDataBag extends DefaultAbstractBag{
 
             @Override
             public int hashCode() {
-                return tuple.hashCode(); 
+                return tuple.hashCode();
             }
         }
 
@@ -228,7 +230,7 @@ public class SortedDataBag extends DefaultAbstractBag{
         }
 
         @Override
-        public boolean hasNext() { 
+        public boolean hasNext() {
             // See if we can find a tuple.  If so, buffer it.
             mBuf = next();
             return mBuf != null;
@@ -341,7 +343,7 @@ public class SortedDataBag extends DefaultAbstractBag{
                 Iterator<File> i = mSpillFiles.iterator();
                 while (i.hasNext()) {
                     try {
-                        DataInputStream in = 
+                        DataInputStream in =
                             new DataInputStream(new BufferedInputStream(
                                 new FileInputStream(i.next())));
                         mStreams.add(in);
@@ -351,7 +353,7 @@ public class SortedDataBag extends DefaultAbstractBag{
                     } catch (FileNotFoundException fnfe) {
                         // We can't find our own spill file?  That should
                         // never happen.
-                        String msg = "Unable to find our spill file."; 
+                        String msg = "Unable to find our spill file.";
                         log.fatal(msg, fnfe);
                         throw new RuntimeException(msg, fnfe);
                     }
@@ -411,7 +413,7 @@ public class SortedDataBag extends DefaultAbstractBag{
                         in.close();
                     }catch(IOException e) {
                         log.warn("Failed to close spill file.", e);
-                    }                	
+                    }
                     mStreams.set(fileNum, null);
                 } catch (IOException ioe) {
                     String msg = "Unable to find our spill file.";
@@ -518,7 +520,7 @@ public class SortedDataBag extends DefaultAbstractBag{
                         log.warn("Failed to delete spill file: " + f.getPath());
                     }
                 }
-                
+
                 // clear the list, so that finalize does not delete any files,
                 // when mSpillFiles is assigned a new value
                 mSpillFiles.clear();
