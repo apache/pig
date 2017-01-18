@@ -369,4 +369,17 @@ public abstract class EvalFunc<T>  {
 
     public void setEndOfAllInput(boolean endOfAllInput) {
     }
+
+    /**
+     * This will be called on both the front end and the back
+     * end during execution.
+     * @return the {@link LoadCaster} associated with this eval. Returning null
+     * indicates that casts from bytearray will pick the one associated with the
+     * parameters when they all come from the same loadcaster type.
+     * @throws IOException if there is an exception during LoadCaster
+     */
+    public LoadCaster getLoadCaster() throws IOException {
+        return null;
+    }
+
 }

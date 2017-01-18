@@ -8771,8 +8771,8 @@ DUMP U;
    </ul>
    
    
-   <section>
-   <title>About Input and Output</title>
+   <section id="pig-streaming-input-output">
+   <title>About Input and Output for Streaming</title>
    <p>Serialization is needed to convert data from tuples to a format that can be processed by the streaming application. Deserialization is needed to convert the output from the streaming application back into tuples. PigStreaming is the default serialization/deserialization function.</p>
    
 <p>Streaming uses the same default format as PigStorage to serialize/deserialize the data. If you want to explicitly specify a format, you can do it as show below (see more examples in the Examples: Input/Output section).  </p> 
@@ -8803,7 +8803,7 @@ interface StreamToPig {
     public Tuple deserialize(byte[]) throws IOException;
 
     /**
-     * This will be called on the front end during planning and not on the back
+     * This will be called on both the front end and the back
      * end during execution.
      *
      * @return the {@link LoadCaster} associated with this object.

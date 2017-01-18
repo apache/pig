@@ -976,6 +976,14 @@ public class CurrentTime extends EvalFunc&lt;DateTime&gt; {
 }
 </source>
 </section>
+<section id="udf-loadcaster">
+<title>Typecasting from bytearrays</title>
+<p>Just like <a href="#load-functions">Load Function</a> and <a href="basic.html#pig-streaming-input-output">Streaming</a>,
+Java UDF has a getLoadCaster() method that returns
+<a href="http://svn.apache.org/viewvc/pig/trunk/src/org/apache/pig/LoadCaster.java?view=markup">LoadCaster</a>
+to convert byte arrays to specific types. A UDf implementation should implement this if casts (implicit or explicit) from DataByteArray fields to other types need to be supported. Default implementation returns null and Pig will determine if all parameters passed to the UDF have identical loadcaster and use it when true. </p>
+</section>
+
 <section id="tez-jvm-reuse">
         <title>Clean up static variable in Tez</title>
         <p>In Tez, jvm could reuse for other tasks. It is important to cleanup static variable to make sure there is no side effect. Here is one example:</p>

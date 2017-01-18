@@ -34,6 +34,8 @@ PIG-5067: Revisit union on numeric type and chararray to bytearray (knoguchi)
  
 IMPROVEMENTS
 
+PIG-3938: Add LoadCaster to EvalFunc (knoguchi)
+
 PIG-5105: Tez unit tests failing with "Argument list too long" (rohini)
 
 PIG-4901: To use Multistorage for each Group (szita via daijy)

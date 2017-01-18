@@ -290,7 +290,7 @@ public class TestEvalPipeline {
             myMap.put("long", new Long(1));
             myMap.put("float", new Float(1.0));
             myMap.put("double", new Double(1.0));
-            myMap.put("dba", new DataByteArray(new String("bytes").getBytes()));
+            myMap.put("dba", new DataByteArray(new String("1234").getBytes()));
             myMap.put("map", mapInMap);
             myMap.put("tuple", tuple);
             myMap.put("bag", bag);
@@ -771,32 +771,31 @@ public class TestEvalPipeline {
     }
 
     @Test
-    public void testMapUDFfail() throws Exception{
+    public void testMapUDFWithImplicitTypeCast() throws Exception{
         int LOOP_COUNT = 2;
         File tmpFile = Util.createTempFileDelOnExit("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
-            for(int j=0;j<LOOP_COUNT;j+=2){
-                ps.println(i+"\t"+j);
-                ps.println(i+"\t"+j);
-            }
+            ps.println(i);
         }
         ps.close();
 
         pigServer.registerQuery("A = LOAD '"
                 + Util.generateURI(tmpFile.toString(), pigContext) + "';");
         pigServer.registerQuery("B = foreach A generate " + MapUDF.class.getName() + "($0) as mymap;"); //the argument does not matter
-        String query = "C = foreach B {"
-        + "generate mymap#'dba' * 10;"
-        + "};";
+        String query = "C = foreach B generate mymap#'dba' * 10; ";
 
         pigServer.registerQuery(query);
-        try {
-            pigServer.openIterator("C");
-            Assert.fail("Error expected.");
-        } catch (Exception e) {
-            e.getMessage().contains("Cannot determine");
+
+        Iterator<Tuple> iter = pigServer.openIterator("C");
+        if(!iter.hasNext()) Assert.fail("No output found");
+        int numIdentity = 0;
+        while(iter.hasNext()){
+            Tuple t = iter.next();
+            Assert.assertEquals(new Integer(12340), (Integer)t.get(0));
+            ++numIdentity;
         }
+        Assert.assertEquals(LOOP_COUNT, numIdentity);
     }
 
     @Test
