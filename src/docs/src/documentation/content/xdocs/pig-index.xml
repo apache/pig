@@ -404,7 +404,6 @@
 <p>Hadoop
 <br></br>&nbsp;&nbsp;&nbsp; <a href="cmds.html#fs">FsShell commands</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#load-glob">Hadoop globbing</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="test.html#hadoop-job-history-loader">HadoopJobHistoryLoader</a>
 <br></br>&nbsp;&nbsp;&nbsp; hadoop partitioner. <em>See</em> PARTITION BY
 <br></br>&nbsp;&nbsp;&nbsp; <a href="start.html#hadoop-properties">Hadoop properties</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="start.html#req">versions supported</a>

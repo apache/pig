@@ -59,14 +59,6 @@
     </if>
     <property name="hadoopversion" value="2" />
 
-    <!-- JobHistoryLoader currently does not support 2 -->
-    <condition property="build.classes.excludes" value="**/HadoopJobHistoryLoader.java" else="">
-        <equals arg1="${hadoopversion}" arg2="2"/>
-    </condition>
-    <condition property="test.classes.excludes" value="**/TestHadoopJobHistoryLoader.java" else="">
-        <equals arg1="${hadoopversion}" arg2="2"/>
-    </condition>
-
     <condition property="hadoopsuffix" value="2" else="">
         <equals arg1="${hadoopversion}" arg2="2"/>
     </condition>
