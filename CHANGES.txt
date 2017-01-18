@@ -183,6 +183,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-4260: SpillableMemoryManager.spill should revert spill on all exception (rohini)
+
 PIG-4918: Pig on Tez cannot switch pig.temp.dir to another fs (daijy)
 
 PIG-5078: Script fails with error - POStoreTez only accepts MROutput (rohini)
