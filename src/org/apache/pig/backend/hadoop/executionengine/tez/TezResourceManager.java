@@ -69,7 +69,7 @@ public class TezResourceManager {
     public void init(PigContext pigContext, Configuration conf) throws IOException {
         if (!inited) {
             this.resourcesDir = FileLocalizer.getTemporaryResourcePath(pigContext);
-            this.remoteFs = FileSystem.get(conf);
+            this.remoteFs = resourcesDir.getFileSystem(conf);
             this.conf = conf;
             this.pigContext = pigContext;
             this.inited = true;
