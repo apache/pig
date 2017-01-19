@@ -36,6 +36,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
+import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.InputSizeReducerEstimator;
@@ -47,6 +48,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.test.MiniGenericCluster;
 import org.apache.pig.test.Util;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -62,12 +64,23 @@ public class TestTezAutoParallelism {
     private static Properties properties;
     private static MiniGenericCluster cluster;
 
+    private static final PathFilter PART_FILE_FILTER = new PathFilter() {
+        @Override
+        public boolean accept(Path path) {
+            if (path.getName().startsWith("part")) {
+                return true;
+            }
+            return false;
+        }
+    };
+
     @BeforeClass
     public static void oneTimeSetUp() throws Exception {
         cluster = MiniGenericCluster.buildCluster(MiniGenericCluster.EXECTYPE_TEZ);
         properties = cluster.getProperties();
         //Test spilling to disk as tests here have multiple splits
         properties.setProperty(PigConfiguration.PIG_TEZ_INPUT_SPLITS_MEM_THRESHOLD, "10");
+        properties.setProperty(PigConfiguration.PIG_TEZ_GRACE_PARALLELISM, "false");
         createFiles();
     }
 
@@ -84,6 +97,11 @@ public class TestTezAutoParallelism {
 
     @After
     public void tearDown() throws Exception {
+        removeProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION);
+        removeProperty(MRConfiguration.MAX_SPLIT_SIZE);
+        removeProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM);
+        removeProperty(MRJobConfig.COMPLETED_MAPS_FOR_REDUCE_SLOWSTART);
+        removeProperty(TezConfiguration.TEZ_AM_LOG_LEVEL);
         pigServer.shutdown();
         pigServer = null;
     }
@@ -131,23 +149,15 @@ public class TestTezAutoParallelism {
     @Test
     public void testGroupBy() throws IOException{
         // parallelism is 3 originally, reduce to 1
-        pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
-        pigServer.getPigContext().getProperties().setProperty(MRConfiguration.MAX_SPLIT_SIZE, "3000");
-        pigServer.getPigContext().getProperties().setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM,
+        setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
+        setProperty(MRConfiguration.MAX_SPLIT_SIZE, "3000");
+        setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM,
                 Long.toString(InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER));
         pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (name:chararray, age:int);");
         pigServer.registerQuery("B = group A by name;");
         pigServer.store("B", "output1");
         FileSystem fs = cluster.getFileSystem();
-        FileStatus[] files = fs.listStatus(new Path("output1"), new PathFilter(){
-            @Override
-            public boolean accept(Path path) {
-                if (path.getName().startsWith("part")) {
-                    return true;
-                }
-                return false;
-            }
-        });
+        FileStatus[] files = fs.listStatus(new Path("output1"), PART_FILE_FILTER);
         assertEquals(files.length, 1);
         fs.delete(new Path("output1"), true);
     }
@@ -158,9 +168,9 @@ public class TestTezAutoParallelism {
         NodeIdGenerator.reset();
         PigServer.resetScope();
 
-        pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
-        pigServer.getPigContext().getProperties().setProperty(MRConfiguration.MAX_SPLIT_SIZE, "3000");
-        pigServer.getPigContext().getProperties().setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, "1000");
+        setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
+        setProperty(MRConfiguration.MAX_SPLIT_SIZE, "3000");
+        setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, "1000");
 
         StringWriter writer = new StringWriter();
         Util.createLogAppender("testAutoParallelism", writer, TezDagBuilder.class);
@@ -169,15 +179,7 @@ public class TestTezAutoParallelism {
             pigServer.registerQuery("B = group A by name;");
             pigServer.store("B", "output1");
             FileSystem fs = cluster.getFileSystem();
-            FileStatus[] files = fs.listStatus(new Path("output1"), new PathFilter(){
-                @Override
-                public boolean accept(Path path) {
-                    if (path.getName().startsWith("part")) {
-                        return true;
-                    }
-                    return false;
-                }
-            });
+            FileStatus[] files = fs.listStatus(new Path("output1"), PART_FILE_FILTER);
             assertEquals(files.length, 10);
             String log = writer.toString();
             assertTrue(log.contains("For vertex - scope-13: parallelism=3"));
@@ -191,9 +193,9 @@ public class TestTezAutoParallelism {
     @Test
     public void testOrderbyDecreaseParallelism() throws IOException{
         // order by parallelism is 3 originally, reduce to 1
-        pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
-        pigServer.getPigContext().getProperties().setProperty(MRConfiguration.MAX_SPLIT_SIZE, "3000");
-        pigServer.getPigContext().getProperties().setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM,
+        setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
+        setProperty(MRConfiguration.MAX_SPLIT_SIZE, "3000");
+        setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM,
                 Long.toString(InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER));
         pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (name:chararray, age:int);");
         pigServer.registerQuery("B = group A by name parallel 3;");
@@ -201,86 +203,54 @@ public class TestTezAutoParallelism {
         pigServer.registerQuery("D = order C by age;");
         pigServer.store("D", "output2");
         FileSystem fs = cluster.getFileSystem();
-        FileStatus[] files = fs.listStatus(new Path("output2"), new PathFilter(){
-            @Override
-            public boolean accept(Path path) {
-                if (path.getName().startsWith("part")) {
-                    return true;
-                }
-                return false;
-            }
-        });
+        FileStatus[] files = fs.listStatus(new Path("output2"), PART_FILE_FILTER);
         assertEquals(files.length, 1);
     }
 
     @Test
     public void testOrderbyIncreaseParallelism() throws IOException{
         // order by parallelism is 3 originally, increase to 4
-        pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
-        pigServer.getPigContext().getProperties().setProperty(MRConfiguration.MAX_SPLIT_SIZE, "3000");
-        pigServer.getPigContext().getProperties().setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, "1000");
+        setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
+        setProperty(MRConfiguration.MAX_SPLIT_SIZE, "3000");
+        setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, "1000");
         pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (name:chararray, age:int);");
         pigServer.registerQuery("B = group A by name parallel 3;");
         pigServer.registerQuery("C = foreach B generate group as name, AVG(A.age) as age;");
         pigServer.registerQuery("D = order C by age;");
         pigServer.store("D", "output3");
         FileSystem fs = cluster.getFileSystem();
-        FileStatus[] files = fs.listStatus(new Path("output3"), new PathFilter(){
-            @Override
-            public boolean accept(Path path) {
-                if (path.getName().startsWith("part")) {
-                    return true;
-                }
-                return false;
-            }
-        });
+        FileStatus[] files = fs.listStatus(new Path("output3"), PART_FILE_FILTER);
         assertEquals(files.length, 4);
     }
 
     @Test
     public void testSkewedJoinDecreaseParallelism() throws IOException{
         // skewed join parallelism is 4 originally, reduce to 1
-        pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
-        pigServer.getPigContext().getProperties().setProperty(MRConfiguration.MAX_SPLIT_SIZE, "3000");
-        pigServer.getPigContext().getProperties().setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM,
+        setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
+        setProperty(MRConfiguration.MAX_SPLIT_SIZE, "3000");
+        setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM,
                 Long.toString(InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER));
         pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (name:chararray, age:int);");
         pigServer.registerQuery("B = load '" + INPUT_FILE2 + "' as (name:chararray, gender:chararray);");
         pigServer.registerQuery("C = join A by name, B by name using 'skewed';");
         pigServer.store("C", "output4");
         FileSystem fs = cluster.getFileSystem();
-        FileStatus[] files = fs.listStatus(new Path("output4"), new PathFilter(){
-            @Override
-            public boolean accept(Path path) {
-                if (path.getName().startsWith("part")) {
-                    return true;
-                }
-                return false;
-            }
-        });
+        FileStatus[] files = fs.listStatus(new Path("output4"), PART_FILE_FILTER);
         assertEquals(files.length, 1);
     }
 
     @Test
     public void testSkewedJoinIncreaseParallelism() throws IOException{
         // skewed join parallelism is 3 originally, increase to 5
-        pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
-        pigServer.getPigContext().getProperties().setProperty(MRConfiguration.MAX_SPLIT_SIZE, "3000");
-        pigServer.getPigContext().getProperties().setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, "40000");
+        setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
+        setProperty(MRConfiguration.MAX_SPLIT_SIZE, "3000");
+        setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, "40000");
         pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (name:chararray, age:int);");
         pigServer.registerQuery("B = load '" + INPUT_FILE2 + "' as (name:chararray, gender:chararray);");
         pigServer.registerQuery("C = join A by name, B by name using 'skewed';");
         pigServer.store("C", "output5");
         FileSystem fs = cluster.getFileSystem();
-        FileStatus[] files = fs.listStatus(new Path("output5"), new PathFilter(){
-            @Override
-            public boolean accept(Path path) {
-                if (path.getName().startsWith("part")) {
-                    return true;
-                }
-                return false;
-            }
-        });
+        FileStatus[] files = fs.listStatus(new Path("output5"), PART_FILE_FILTER);
         assertEquals(files.length, 5);
     }
 
@@ -288,23 +258,15 @@ public class TestTezAutoParallelism {
     public void testSkewedFullJoinIncreaseParallelism() throws IOException{
         // skewed full join parallelism take the initial setting, since the join vertex has a broadcast(sample) dependency,
         // which prevent it changing parallelism
-        pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
-        pigServer.getPigContext().getProperties().setProperty(MRConfiguration.MAX_SPLIT_SIZE, "3000");
-        pigServer.getPigContext().getProperties().setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, "40000");
+        setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
+        setProperty(MRConfiguration.MAX_SPLIT_SIZE, "3000");
+        setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, "40000");
         pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (name:chararray, age:int);");
         pigServer.registerQuery("B = load '" + INPUT_FILE2 + "' as (name:chararray, gender:chararray);");
         pigServer.registerQuery("C = join A by name full, B by name using 'skewed';");
         pigServer.store("C", "output6");
         FileSystem fs = cluster.getFileSystem();
-        FileStatus[] files = fs.listStatus(new Path("output5"), new PathFilter(){
-            @Override
-            public boolean accept(Path path) {
-                if (path.getName().startsWith("part")) {
-                    return true;
-                }
-                return false;
-            }
-        });
+        FileStatus[] files = fs.listStatus(new Path("output5"), PART_FILE_FILTER);
         assertEquals(files.length, 5);
     }
 
@@ -312,9 +274,9 @@ public class TestTezAutoParallelism {
     public void testSkewedJoinIncreaseParallelismWithScalar() throws IOException{
         // skewed join parallelism take the initial setting, since the join vertex has a broadcast(scalar) dependency,
         // which prevent it changing parallelism
-        pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
-        pigServer.getPigContext().getProperties().setProperty(MRConfiguration.MAX_SPLIT_SIZE, "3000");
-        pigServer.getPigContext().getProperties().setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, "40000");
+        setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
+        setProperty(MRConfiguration.MAX_SPLIT_SIZE, "3000");
+        setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, "40000");
         pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (name:chararray, age:int);");
         pigServer.registerQuery("B = load '" + INPUT_FILE2 + "' as (name:chararray, gender:chararray);");
         pigServer.registerQuery("C = join A by name, B by name using 'skewed';");
@@ -324,16 +286,26 @@ public class TestTezAutoParallelism {
         pigServer.registerQuery("G = foreach C generate age/F.count, gender;");
         pigServer.store("G", "output7");
         FileSystem fs = cluster.getFileSystem();
-        FileStatus[] files = fs.listStatus(new Path("output7"), new PathFilter(){
-            @Override
-            public boolean accept(Path path) {
-                if (path.getName().startsWith("part")) {
-                    return true;
-                }
-                return false;
-            }
-        });
+        FileStatus[] files = fs.listStatus(new Path("output7"), PART_FILE_FILTER);
         assertEquals(files.length, 4);
+    }
+
+    @Test
+    public void testSkewedJoinRightInputAutoParallelism() throws IOException{
+        setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
+        setProperty(MRConfiguration.MAX_SPLIT_SIZE, "3000");
+        setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, "40000");
+        setProperty(MRJobConfig.COMPLETED_MAPS_FOR_REDUCE_SLOWSTART, "1.0");
+        setProperty(TezConfiguration.TEZ_AM_LOG_LEVEL, "DEBUG");
+        pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (name:chararray, age:int);");
+        pigServer.registerQuery("B = load '" + INPUT_FILE1 + "' as (name:chararray, age:int);");
+        pigServer.registerQuery("B = FILTER B by name == 'Noah';");
+        pigServer.registerQuery("B1 = group B by name;");
+        pigServer.registerQuery("C = join A by name, B1 by group using 'skewed';");
+        pigServer.store("C", "output8");
+        FileSystem fs = cluster.getFileSystem();
+        FileStatus[] files = fs.listStatus(new Path("output8"), PART_FILE_FILTER);
+        assertEquals(5, files.length);
     }
 
     @Test
@@ -423,9 +395,9 @@ public class TestTezAutoParallelism {
         // When there is a combiner operation involved user specified parallelism is overriden
         Util.createLogAppender("testAutoParallelism", writer, classesToLog);
         try {
-            pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
-            pigServer.getPigContext().getProperties().setProperty(MRConfiguration.MAX_SPLIT_SIZE, "4000");
-            pigServer.getPigContext().getProperties().setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, "80000");
+            setProperty(PigConfiguration.PIG_NO_SPLIT_COMBINATION, "true");
+            setProperty(MRConfiguration.MAX_SPLIT_SIZE, "4000");
+            setProperty(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, "80000");
             pigServer.setBatchOn();
             pigServer.registerScript(new ByteArrayInputStream(script.getBytes()));
             pigServer.executeBatch();
@@ -452,5 +424,13 @@ public class TestTezAutoParallelism {
             Util.removeLogAppender("testAutoParallelism", classesToLog);
             Util.deleteFile(cluster, outputDir);
         }
+    }
+
+    private void setProperty(String property, String value) {
+        pigServer.getPigContext().getProperties().setProperty(property, value);
+    }
+
+    private void removeProperty(String property) {
+        pigServer.getPigContext().getProperties().remove(property);
     }
 }

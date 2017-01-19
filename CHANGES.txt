@@ -187,6 +187,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-5046: Skewed join with auto parallelism hangs when right input also has autoparallelism (rohini)
+
 PIG-5108: AvroStorage on Tez with exception on nested records (daijy)
 
 PIG-4260: SpillableMemoryManager.spill should revert spill on all exception (rohini)
