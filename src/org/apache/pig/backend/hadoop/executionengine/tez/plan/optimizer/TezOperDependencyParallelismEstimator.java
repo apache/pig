@@ -97,14 +97,14 @@ public class TezOperDependencyParallelismEstimator implements TezParallelismEsti
 
         bytesPerReducer = conf.getLong(PigReducerEstimator.BYTES_PER_REDUCER_PARAM, PigReducerEstimator.DEFAULT_BYTES_PER_REDUCER);
 
+        // If we have already estimated parallelism, use that one
+        if (tezOper.getEstimatedParallelism() != -1) {
+            return tezOper.getEstimatedParallelism();
+        }
+
         // If parallelism is set explicitly, respect it
         if (!tezOper.isIntermediateReducer() && tezOper.getRequestedParallelism()!=-1) {
             return tezOper.getRequestedParallelism();
-        }
-
-        // If we have already estimated parallelism, use that one
-        if (tezOper.getEstimatedParallelism()!=-1) {
-            return tezOper.getEstimatedParallelism();
         }
 
         List<TezOperator> preds = plan.getPredecessors(tezOper);

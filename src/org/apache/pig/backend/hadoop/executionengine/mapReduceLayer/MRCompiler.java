@@ -1116,7 +1116,9 @@ public class MRCompiler extends PhyPlanVisitor {
         try{
             nonBlocking(op);
             phyToMROpMap.put(op, curMROp);
-            if (op.getPkgr().getPackageType() == PackageType.JOIN) {
+            if (op.getPkgr().getPackageType() == PackageType.JOIN
+                    || op.getPkgr().getPackageType() == PackageType.BLOOMJOIN) {
+                // Bloom join is not implemented in mapreduce mode and falls back to regular join
                 curMROp.markRegularJoin();
             } else if (op.getPkgr().getPackageType() == PackageType.GROUP) {
                 if (op.getNumInps() == 1) {

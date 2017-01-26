@@ -88,6 +88,7 @@ public class TestTezCompiler {
         pc.getProperties().remove(PigConfiguration.PIG_OPT_MULTIQUERY);
         pc.getProperties().remove(PigConfiguration.PIG_TEZ_OPT_UNION);
         pc.getProperties().remove(PigConfiguration.PIG_EXEC_NO_SECONDARY_KEY);
+        pc.getProperties().remove(PigConfiguration.PIG_BLOOMJOIN_STRATEGY);
         pigServer = new PigServer(pc);
     }
 
@@ -175,6 +176,125 @@ public class TestTezCompiler {
                 "store d into 'file:///tmp/pigoutput';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Join-1.gld");
+    }
+
+    @Test
+    public void testBloomJoin() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input1' as (x, y:int);" +
+                "b = load 'file:///tmp/input2' as (x, z:int);" +
+                "c = load 'file:///tmp/input2' as (x, w:int);" +
+                "d = join b by x, a by x, c by x using 'bloom';" +
+                "e = foreach d generate a::x as x, y, z, w;" +
+                "store e into 'file:///tmp/pigoutput';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-BloomJoin-1.gld");
+        resetScope();
+        setProperty(PigConfiguration.PIG_BLOOMJOIN_STRATEGY, "reduce");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-BloomJoin-1-KeyToReducer.gld");
+    }
+
+    @Test
+    public void testBloomJoinLeftOuter() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input1' as (x:chararray, y:int);" +
+                "b = load 'file:///tmp/input2' as (x:chararray, z:int);" +
+                "d = join a by x left, b by x using 'bloom';" +
+                "e = foreach d generate a::x as x, y, z;" +
+                "store e into 'file:///tmp/pigoutput';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-BloomJoin-2.gld");
+        resetScope();
+        setProperty(PigConfiguration.PIG_BLOOMJOIN_STRATEGY, "reduce");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-BloomJoin-2-KeyToReducer.gld");
+    }
+
+    @Test
+    public void testBloomJoinUnion() throws Exception {
+        // Left input from a union
+        String query =
+                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
+                "b = load 'file:///tmp/input2' as (x:int, z:int);" +
+                "c = load 'file:///tmp/input3' as (x:int, z:int);" +
+                "b = union b, c;" +
+                "d = join a by x, b by x using 'bloom';" +
+                "e = foreach d generate a::x as x, y, z;" +
+                "store e into 'file:///tmp/pigoutput';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-BloomJoin-3.gld");
+        resetScope();
+        setProperty(PigConfiguration.PIG_BLOOMJOIN_STRATEGY, "reduce");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-BloomJoin-3-KeyToReducer.gld");
+        setProperty(PigConfiguration.PIG_BLOOMJOIN_STRATEGY, null);
+
+        resetScope();
+        // Right input from a union
+        query =
+                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
+                "b = load 'file:///tmp/input2' as (x:int, z:int);" +
+                "c = load 'file:///tmp/input3' as (x:int, z:int);" +
+                "b = union b, c;" +
+                "d = join b by x, a by x using 'bloom';" +
+                "e = foreach d generate a::x as x, y, z;" +
+                "store e into 'file:///tmp/pigoutput';";
+
+        // Needs shared edges and PIG-3856 to be a more optimial plan
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-BloomJoin-4.gld");
+        resetScope();
+        setProperty(PigConfiguration.PIG_BLOOMJOIN_STRATEGY, "reduce");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-BloomJoin-4-KeyToReducer.gld");
+    }
+
+    @Test
+    public void testBloomJoinSplit() throws Exception {
+        // Left input from a split
+        String query =
+                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
+                "b = load 'file:///tmp/input2' as (x:int, z:int);" +
+                "a1 = filter a by x == 3;" +
+                "a2 = filter a by x == 4;" +
+                "d = join a1 by x, a2 by x, b by x using 'bloom';" +
+                "e = foreach d generate a1::x as x, a1::y as y1, a2::y as y2, z;" +
+                "store e into 'file:///tmp/pigoutput';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-BloomJoin-5.gld");
+        resetScope();
+        setProperty(PigConfiguration.PIG_BLOOMJOIN_STRATEGY, "reduce");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-BloomJoin-5-KeyToReducer.gld");
+        setProperty(PigConfiguration.PIG_BLOOMJOIN_STRATEGY, null);
+
+        resetScope();
+        // Right input from a split
+        query =
+                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
+                "b = load 'file:///tmp/input2' as (x:int, z:int);" +
+                "a1 = filter a by x == 3;" +
+                "a2 = filter a by x == 4;" +
+                "d = join b by x, a1 by x using 'bloom';" +
+                "e = foreach d generate a1::x as x, y, z;" +
+                "store a2 into 'file:///tmp/pigoutput/a2';" +
+                "store e into 'file:///tmp/pigoutput/e';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-BloomJoin-6.gld");
+        resetScope();
+        setProperty(PigConfiguration.PIG_BLOOMJOIN_STRATEGY, "reduce");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-BloomJoin-6-KeyToReducer.gld");
+    }
+
+    @Test
+    public void testBloomSelfJoin() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
+                "b = filter a by x < 5;" +
+                "c = filter a by x == 10;" +
+                "d = filter a by x > 10;" +
+                "e = join b by x, c by x, d by x using 'bloom';" +
+                "store e into 'file:///tmp/pigoutput';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-BloomJoin-7.gld");
+        resetScope();
+        setProperty(PigConfiguration.PIG_BLOOMJOIN_STRATEGY, "reduce");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-BloomJoin-7-KeyToReducer.gld");
     }
 
     @Test

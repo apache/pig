@@ -479,7 +479,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 POLocalRearrangeTez.class);
 
         for (POLocalRearrangeTez lr : lrs) {
-            if (lr.getOutputKey().equals(to.getOperatorKey().toString())) {
+            if (lr.containsOutputKey(to.getOperatorKey().toString())) {
                 byte keyType = lr.getKeyType();
                 setIntermediateOutputKeyValue(keyType, conf, to, lr.isConnectedToPackage(), isMergedInput);
                 // In case of secondary key sort, main key type is the actual key type
@@ -540,26 +540,36 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         UserPayload payLoad = TezUtils.createUserPayloadFromConf(conf);
         out.setUserPayload(payLoad);
+        in.setUserPayload(payLoad);
 
+        // Remove combiner and reset payload
         if (!combinePlan.isEmpty()) {
             boolean noCombineInReducer = false;
+            boolean noCombineInMapper = edge.getCombinerInMap() == null ? false : !edge.getCombinerInMap();
             String reducerNoCombiner = globalConf.get(PigConfiguration.PIG_EXEC_NO_COMBINER_REDUCER);
-            if (reducerNoCombiner == null || reducerNoCombiner.equals("auto")) {
+            if (edge.getCombinerInReducer() != null) {
+                noCombineInReducer = !edge.getCombinerInReducer();
+            } else if (reducerNoCombiner == null || reducerNoCombiner.equals("auto")) {
                 noCombineInReducer = TezCompilerUtil.bagDataTypeInCombinePlan(combinePlan);
             } else {
                 noCombineInReducer = Boolean.parseBoolean(reducerNoCombiner);
             }
-            if (noCombineInReducer) {
+            if (noCombineInReducer || noCombineInMapper) {
                 log.info("Turning off combiner in reducer vertex " + to.getOperatorKey() + " for edge from " + from.getOperatorKey());
                 conf.unset(TezRuntimeConfiguration.TEZ_RUNTIME_COMBINER_CLASS);
                 conf.unset(MRJobConfig.COMBINE_CLASS_ATTR);
                 conf.unset("pig.combinePlan");
                 conf.unset("pig.combine.package");
                 conf.unset("pig.map.keytype");
-                payLoad = TezUtils.createUserPayloadFromConf(conf);
+                UserPayload payLoadWithoutCombiner = TezUtils.createUserPayloadFromConf(conf);
+                if (noCombineInMapper) {
+                    out.setUserPayload(payLoadWithoutCombiner);
+                }
+                if (noCombineInReducer) {
+                    in.setUserPayload(payLoadWithoutCombiner);
+                }
             }
         }
-        in.setUserPayload(payLoad);
 
         if (edge.dataMovementType!=DataMovementType.BROADCAST && to.getEstimatedParallelism()!=-1 && to.getVertexParallelism()==-1 && (to.isGlobalSort()||to.isSkewedJoin())) {
             // Use custom edge
@@ -717,7 +727,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                             PlanHelper.getPhysicalOperators(pred.plan, POLocalRearrangeTez.class);
                     for (POLocalRearrangeTez lr : lrs) {
                         if (lr.isConnectedToPackage()
-                                && lr.getOutputKey().equals(tezOp.getOperatorKey().toString())) {
+                                && lr.containsOutputKey(tezOp.getOperatorKey().toString())) {
                             localRearrangeMap.put((int) lr.getIndex(), inputKey);
                             if (isVertexGroup) {
                                 isMergedInput = true;

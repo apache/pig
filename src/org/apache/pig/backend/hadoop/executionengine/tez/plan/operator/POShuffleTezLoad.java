@@ -129,7 +129,9 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
                 finished[i] = !readers.get(i).next();
             }
 
-            this.readOnceOneBag = (numInputs == 1) && (pkgr instanceof CombinerPackager || pkgr instanceof LitePackager);
+            this.readOnceOneBag = (numInputs == 1)
+                    && (pkgr instanceof CombinerPackager
+                            || pkgr instanceof LitePackager || pkgr instanceof BloomPackager);
             if (readOnceOneBag) {
                 readOnce[0] = true;
             }

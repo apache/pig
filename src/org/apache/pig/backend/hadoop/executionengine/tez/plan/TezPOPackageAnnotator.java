@@ -31,6 +31,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.BloomPackager;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POLocalRearrangeTez;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.VisitorException;
@@ -161,7 +162,7 @@ public class TezPOPackageAnnotator extends TezOpPlanVisitor {
         @Override
         public void visitLocalRearrange(POLocalRearrange lrearrange) throws VisitorException {
             POLocalRearrangeTez lr = (POLocalRearrangeTez) lrearrange;
-            if (!(lr.isConnectedToPackage() && lr.getOutputKey().equals(pkgTezOp.getOperatorKey().toString()))) {
+            if (!(lr.isConnectedToPackage() && lr.containsOutputKey(pkgTezOp.getOperatorKey().toString()))) {
                 return;
             }
             loRearrangeFound++;
@@ -180,7 +181,9 @@ public class TezPOPackageAnnotator extends TezOpPlanVisitor {
             if(keyInfo == null)
                 keyInfo = new HashMap<Integer, Pair<Boolean, Map<Integer, Integer>>>();
 
-            Integer index = Integer.valueOf(lrearrange.getIndex());
+            // For BloomPackager there is only one input, but the
+            // POBuildBloomRearrangeTez index is that of the join's index and can be non-zero
+            Integer index = (pkg.getPkgr() instanceof BloomPackager) ? 0 : Integer.valueOf(lrearrange.getIndex());
             if(keyInfo.get(index) != null) {
                 if (isPOSplit) {
                     // Case of POSplit having more than one input in case of self join or union
@@ -197,12 +200,20 @@ public class TezPOPackageAnnotator extends TezOpPlanVisitor {
 
             }
 
-            keyInfo.put(index,
-                    new Pair<Boolean, Map<Integer, Integer>>(
-                            lrearrange.isProjectStar(), lrearrange.getProjectedColsMap()));
-            pkg.getPkgr().setKeyInfo(keyInfo);
-            pkg.getPkgr().setKeyTuple(lrearrange.isKeyTuple());
-            pkg.getPkgr().setKeyCompound(lrearrange.isKeyCompound());
+            if (pkg.getPkgr() instanceof BloomPackager ) {
+                keyInfo.put(index,
+                        new Pair<Boolean, Map<Integer, Integer>>(
+                                Boolean.FALSE, new HashMap<Integer, Integer>()));
+                pkg.getPkgr().setKeyInfo(keyInfo);
+            } else {
+                keyInfo.put(index,
+                        new Pair<Boolean, Map<Integer, Integer>>(
+                                lrearrange.isProjectStar(), lrearrange.getProjectedColsMap()));
+                pkg.getPkgr().setKeyInfo(keyInfo);
+                pkg.getPkgr().setKeyTuple(lrearrange.isKeyTuple());
+                pkg.getPkgr().setKeyCompound(lrearrange.isKeyCompound());
+            }
+
         }
 
         /**

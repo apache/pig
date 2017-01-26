@@ -6955,7 +6955,7 @@ public class SimpleCustomPartitioner extends Partitioner &lt;PigNullableWritable
    <table>
       <tr> 
             <td>
-               <p>alias = JOIN alias BY {expression|'('expression [, expression …]')'} (, alias BY {expression|'('expression [, expression …]')'} …) [USING 'replicated' | 'skewed' | 'merge' | 'merge-sparse'] [PARTITION BY partitioner] [PARALLEL n];  </p>
+               <p>alias = JOIN alias BY {expression|'('expression [, expression …]')'} (, alias BY {expression|'('expression [, expression …]')'} …) [USING 'replicated' | 'bloom' | 'skewed' | 'merge' | 'merge-sparse'] [PARTITION BY partitioner] [PARALLEL n];  </p>
             </td>
          </tr> 
    </table></section>
@@ -7004,7 +7004,16 @@ public class SimpleCustomPartitioner extends Partitioner &lt;PigNullableWritable
                <p>Use to perform replicated joins (see <a href="perf.html#replicated-joins">Replicated Joins</a>).</p>
             </td>
          </tr>
-         
+
+         <tr>
+            <td>
+               <p>'bloom'</p>
+            </td>
+            <td>
+               <p>Use to perform bloom joins (see <a href="perf.html#bloom-joins">Bloom Joins</a>).</p>
+            </td>
+         </tr>
+
          <tr>
             <td>
                <p>'skewed'</p>
@@ -7142,7 +7151,7 @@ DUMP X;
       <tr> 
             <td>
                <p>alias = JOIN left-alias BY left-alias-column [LEFT|RIGHT|FULL] [OUTER], right-alias BY right-alias-column 
-               [USING 'replicated' | 'skewed' | 'merge'] [PARTITION BY partitioner] [PARALLEL n];  </p>
+               [USING 'replicated' | 'bloom' | 'skewed' | 'merge'] [PARTITION BY partitioner] [PARALLEL n];  </p>
             </td>
          </tr> 
    </table>
@@ -7213,7 +7222,7 @@ DUMP X;
             </td>
          </tr>
 
-  <tr>
+         <tr>
             <td>
                <p>USING</p>
             </td>
@@ -7230,8 +7239,18 @@ DUMP X;
                <p>Only left outer join is supported for replicated joins.</p>
             </td>
          </tr>
-         
-                  <tr>
+
+         <tr>
+            <td>
+               <p>'bloom'</p>
+            </td>
+            <td>
+               <p>Use to perform bloom joins (see <a href="perf.html#bloom-joins">Bloom Joins</a>).</p>
+               <p>Full outer join is not supported for bloom joins.</p>
+            </td>
+         </tr>
+
+         <tr>
             <td>
                <p>'skewed'</p>
             </td>
@@ -7322,6 +7341,13 @@ C = JOIN A BY $0 FULL, B BY $0;
 A = LOAD 'large';
 B = LOAD 'tiny';
 C= JOIN A BY $0 LEFT, B BY $0 USING 'replicated';
+</source>
+
+<p>This example shows a bloom right outer join.</p>
+<source>
+A = LOAD 'large';
+B = LOAD 'small';
+C= JOIN A BY $0 RIGHT, B BY $0 USING 'bloom';
 </source>
 
 <p>This example shows a skewed full outer join.</p>

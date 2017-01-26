@@ -1788,6 +1788,8 @@ public class LogicalPlanBuilder {
             return JOINTYPE.REPLICATED;
          } else if( modifier.equalsIgnoreCase( "hash" ) || modifier.equalsIgnoreCase( "default" ) ) {
              return LOJoin.JOINTYPE.HASH;
+         } else if( modifier.equalsIgnoreCase( "bloom" ) ) {
+             return LOJoin.JOINTYPE.BLOOM;
          } else if( modifier.equalsIgnoreCase( "skewed" ) ) {
              return JOINTYPE.SKEWED;
          } else if (modifier.equalsIgnoreCase("merge")) {
@@ -1796,7 +1798,7 @@ public class LogicalPlanBuilder {
              return JOINTYPE.MERGESPARSE;
          } else {
              throw new ParserValidationException( intStream, loc,
-                      "Only REPL, REPLICATED, HASH, SKEWED, MERGE, and MERGE-SPARSE are vaild JOIN modifiers." );
+                      "Only REPL, REPLICATED, HASH, BLOOM, SKEWED, MERGE, and MERGE-SPARSE are vaild JOIN modifiers." );
          }
     }
 
