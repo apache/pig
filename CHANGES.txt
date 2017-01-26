@@ -187,6 +187,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-5112: Cleanup pig-template.xml (daijy)
+
 PIG-5046: Skewed join with auto parallelism hangs when right input also has autoparallelism (rohini)
 
 PIG-5108: AvroStorage on Tez with exception on nested records (daijy)
