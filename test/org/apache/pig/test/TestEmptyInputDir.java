@@ -246,6 +246,66 @@ public class TestEmptyInputDir {
         }
     }
 
+    @Test
+    public void testBloomJoin() throws Exception {
+        PrintWriter w = new PrintWriter(new FileWriter(PIG_FILE));
+        w.println("A = load '" + INPUT_FILE + "' as (x:int);");
+        w.println("B = load '" + EMPTY_DIR + "' as (x:int);");
+        w.println("C = join B by $0, A by $0 using 'bloom';");
+        w.println("D = join A by $0, B by $0 using 'bloom';");
+        w.println("store C into '" + OUTPUT_FILE + "';");
+        w.println("store D into 'output1';");
+        w.close();
+
+        try {
+            String[] args = { "-x", cluster.getExecType().name(), PIG_FILE, };
+            PigStats stats = PigRunner.run(args, null);
+
+            assertTrue(stats.isSuccessful());
+            assertEquals(0, stats.getNumberRecords(OUTPUT_FILE));
+            assertEquals(0, stats.getNumberRecords("output1"));
+            assertEmptyOutputFile();
+        } finally {
+            new File(PIG_FILE).delete();
+            Util.deleteFile(cluster, OUTPUT_FILE);
+            Util.deleteFile(cluster, "output1");
+        }
+    }
+
+    @Test
+    public void testBloomJoinOuter() throws Exception {
+        PrintWriter w = new PrintWriter(new FileWriter(PIG_FILE));
+        w.println("A = load '" + INPUT_FILE + "' as (x:int);");
+        w.println("B = load '" + EMPTY_DIR + "' as (x:int);");
+        w.println("C = join B by $0 left outer, A by $0 using 'bloom';");
+        w.println("D = join A by $0 left outer, B by $0 using 'bloom';");
+        w.println("E = join B by $0 right outer, A by $0 using 'bloom';");
+        w.println("F = join A by $0 right outer, B by $0 using 'bloom';");
+        w.println("store C into '" + OUTPUT_FILE + "';");
+        w.println("store D into 'output1';");
+        w.println("store E into 'output2';");
+        w.println("store F into 'output3';");
+        w.close();
+
+        try {
+            String[] args = { "-x", cluster.getExecType().name(), PIG_FILE, };
+            PigStats stats = PigRunner.run(args, null);
+
+            assertTrue(stats.isSuccessful());
+            assertEquals(0, stats.getNumberRecords(OUTPUT_FILE));
+            assertEquals(2, stats.getNumberRecords("output1"));
+            assertEquals(2, stats.getNumberRecords("output2"));
+            assertEquals(0, stats.getNumberRecords("output3"));
+            assertEmptyOutputFile();
+        } finally {
+            new File(PIG_FILE).delete();
+            Util.deleteFile(cluster, OUTPUT_FILE);
+            Util.deleteFile(cluster, "output1");
+            Util.deleteFile(cluster, "output2");
+            Util.deleteFile(cluster, "output3");
+        }
+    }
+
     private void assertEmptyOutputFile() throws IllegalArgumentException, IOException {
         FileSystem fs = cluster.getFileSystem();
         FileStatus status = fs.getFileStatus(new Path(OUTPUT_FILE));

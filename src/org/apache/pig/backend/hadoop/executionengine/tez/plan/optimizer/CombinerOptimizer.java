@@ -69,6 +69,11 @@ public class CombinerOptimizer extends TezOpPlanVisitor {
         }
 
         for (TezOperator from : predecessors) {
+            PhysicalPlan combinePlan = to.inEdges.get(from.getOperatorKey()).combinePlan;
+            if (!combinePlan.isEmpty()) {
+                // Cases like bloom join have combine plan already set
+                continue;
+            }
             List<POLocalRearrangeTez> rearranges = PlanHelper.getPhysicalOperators(from.plan, POLocalRearrangeTez.class);
             if (rearranges.isEmpty()) {
                 continue;
@@ -77,7 +82,7 @@ public class CombinerOptimizer extends TezOpPlanVisitor {
             POLocalRearrangeTez connectingLR = null;
             PhysicalPlan rearrangePlan = from.plan;
             for (POLocalRearrangeTez lr : rearranges) {
-                if (lr.getOutputKey().equals(to.getOperatorKey().toString())) {
+                if (lr.containsOutputKey(to.getOperatorKey().toString())) {
                     connectingLR = lr;
                     break;
                 }
@@ -90,7 +95,6 @@ public class CombinerOptimizer extends TezOpPlanVisitor {
 
             // Detected the POLocalRearrange -> POPackage pattern. Let's add
             // combiner if possible.
-            PhysicalPlan combinePlan = to.inEdges.get(from.getOperatorKey()).combinePlan;
             CombinerOptimizerUtil.addCombiner(rearrangePlan, to.plan, combinePlan, messageCollector, doMapAgg);
 
             if(!combinePlan.isEmpty()) {

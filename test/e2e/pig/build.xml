@@ -137,6 +137,7 @@
       <path path="${test.location}/tests/multiquery.conf"/>
       <path path="${test.location}/tests/negative.conf"/>
       <path path="${test.location}/tests/nightly.conf"/>
+      <path path="${test.location}/tests/join.conf"/>
       <path path="${test.location}/tests/streaming.conf"/>
       <path path="${test.location}/tests/streaming_local.conf"/>
       <path path="${test.location}/tests/turing_jython.conf"/>

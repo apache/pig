@@ -31,9 +31,13 @@ import org.apache.tez.runtime.library.output.OrderedPartitionedKVOutput;
  * Descriptor for Tez edge. It holds combine plan as well as edge properties.
  */
 public class TezEdgeDescriptor implements Serializable {
-    // Combiner runs on both input and output of Tez edge.
-    transient public PhysicalPlan combinePlan;
+
+    public transient PhysicalPlan combinePlan;
     private boolean needsDistinctCombiner;
+    // Combiner runs on both input and output of Tez edge by default
+    // It can be configured to run only in output(map) or input(reduce)
+    private Boolean combinerInMap;
+    private Boolean combinerInReducer;
 
     public String inputClassName;
     public String outputClassName;
@@ -72,6 +76,22 @@ public class TezEdgeDescriptor implements Serializable {
 
     public void setNeedsDistinctCombiner(boolean nic) {
         needsDistinctCombiner = nic;
+    }
+
+    public Boolean getCombinerInMap() {
+        return combinerInMap;
+    }
+
+    public void setCombinerInMap(Boolean combinerInMap) {
+        this.combinerInMap = combinerInMap;
+    }
+
+    public Boolean getCombinerInReducer() {
+        return combinerInReducer;
+    }
+
+    public void setCombinerInReducer(Boolean combinerInReducer) {
+        this.combinerInReducer = combinerInReducer;
     }
 
     public boolean isUseSecondaryKey() {

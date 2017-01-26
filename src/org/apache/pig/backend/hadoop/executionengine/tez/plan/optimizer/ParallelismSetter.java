@@ -123,8 +123,8 @@ public class ParallelismSetter extends TezOpPlanVisitor {
                     boolean overrideRequestedParallelism = false;
                     if (parallelism != -1
                             && autoParallelismEnabled
-                            && tezOp.isIntermediateReducer()
                             && !tezOp.isDontEstimateParallelism()
+                            && tezOp.isIntermediateReducer()
                             && tezOp.isOverrideIntermediateParallelism()) {
                         overrideRequestedParallelism = true;
                     }

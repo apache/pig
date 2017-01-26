@@ -30,6 +30,8 @@ public class TezEstimatedParallelismClearer extends TezOpPlanVisitor{
 
     @Override
     public void visitTezOp(TezOperator tezOp) throws VisitorException {
-        tezOp.setEstimatedParallelism(-1);
+        if (!tezOp.isDontEstimateParallelism()) {
+            tezOp.setEstimatedParallelism(-1);
+        }
     }
 }
