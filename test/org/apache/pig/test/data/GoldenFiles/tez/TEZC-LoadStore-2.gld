@@ -1,11 +1,9 @@
 #--------------------------------------------------
-# There are 5 DAGs in the session
+# There are 3 DAGs in the session
 #--------------------------------------------------
-Tez DAG pig-0_scope-0	->	Tez DAG pig-1_scope-1,Tez DAG pig-3_scope-3,Tez DAG pig-4_scope-4,
-Tez DAG pig-1_scope-1	->	Tez DAG pig-2_scope-2,Tez DAG pig-4_scope-4,
+Tez DAG pig-0_scope-0	->	Tez DAG pig-1_scope-1,
+Tez DAG pig-1_scope-1	->	Tez DAG pig-2_scope-2,
 Tez DAG pig-2_scope-2
-Tez DAG pig-3_scope-3	->	Tez DAG pig-4_scope-4,
-Tez DAG pig-4_scope-4
 
 #--------------------------------------------------
 # TEZ DAG plan: pig-0_scope-0
@@ -21,54 +19,32 @@ a: Store(file:///tmp/pigoutput/Dir1:org.apache.pig.builtin.PigStorage) - scope-1
 # TEZ DAG plan: pig-1_scope-1
 #--------------------------------------------------
 Tez vertex scope-21
+Tez vertex scope-23
 
 Tez vertex scope-21
 # Plan on vertex
 a: Store(file:///tmp/pigoutput/Dir2:BinStorage) - scope-3
 |
 |---a: Load(file:///tmp/pigoutput/Dir1:org.apache.pig.builtin.PigStorage) - scope-2
-#--------------------------------------------------
-# TEZ DAG plan: pig-2_scope-2
-#--------------------------------------------------
-Tez vertex scope-22
-
-Tez vertex scope-22
-# Plan on vertex
-a: Store(file:///tmp/pigoutput/Dir4:org.apache.pig.builtin.PigStorage) - scope-5
-|
-|---a: Load(file:///tmp/pigoutput/Dir2:BinStorage) - scope-4
-#--------------------------------------------------
-# TEZ DAG plan: pig-3_scope-3
-#--------------------------------------------------
-Tez vertex scope-23
-
 Tez vertex scope-23
 # Plan on vertex
 a: Store(file:///tmp/pigoutput/Dir3:org.apache.pig.builtin.PigStorage) - scope-7
 |
 |---a: Load(file:///tmp/pigoutput/Dir1:org.apache.pig.builtin.PigStorage) - scope-6
 #--------------------------------------------------
-# TEZ DAG plan: pig-4_scope-4
+# TEZ DAG plan: pig-2_scope-2
 #--------------------------------------------------
-Tez vertex scope-26	->	Tez vertex scope-27,
-Tez vertex scope-25	->	Tez vertex scope-27,
+Tez vertex scope-22
 Tez vertex scope-24	->	Tez vertex scope-27,
+Tez vertex scope-25	->	Tez vertex scope-27,
+Tez vertex scope-26	->	Tez vertex scope-27,
 Tez vertex scope-27
 
-Tez vertex scope-26
+Tez vertex scope-22
 # Plan on vertex
-d: Local Rearrange[tuple]{bytearray}(false) - scope-17	->	 scope-27
-|   |
-|   Project[bytearray][0] - scope-18
+a: Store(file:///tmp/pigoutput/Dir4:org.apache.pig.builtin.PigStorage) - scope-5
 |
-|---c: Load(file:///tmp/pigoutput/Dir1:org.apache.pig.builtin.PigStorage) - scope-10
-Tez vertex scope-25
-# Plan on vertex
-d: Local Rearrange[tuple]{bytearray}(false) - scope-15	->	 scope-27
-|   |
-|   Project[bytearray][0] - scope-16
-|
-|---b: Load(file:///tmp/pigoutput/Dir2:BinStorage) - scope-9
+|---a: Load(file:///tmp/pigoutput/Dir2:BinStorage) - scope-4
 Tez vertex scope-24
 # Plan on vertex
 d: Local Rearrange[tuple]{bytearray}(false) - scope-13	->	 scope-27
@@ -76,6 +52,20 @@ d: Local Rearrange[tuple]{bytearray}(false) - scope-13	->	 scope-27
 |   Project[bytearray][0] - scope-14
 |
 |---a: Load(file:///tmp/pigoutput/Dir3:org.apache.pig.builtin.PigStorage) - scope-8
+Tez vertex scope-25
+# Plan on vertex
+d: Local Rearrange[tuple]{bytearray}(false) - scope-15	->	 scope-27
+|   |
+|   Project[bytearray][0] - scope-16
+|
+|---b: Load(file:///tmp/pigoutput/Dir2:BinStorage) - scope-9
+Tez vertex scope-26
+# Plan on vertex
+d: Local Rearrange[tuple]{bytearray}(false) - scope-17	->	 scope-27
+|   |
+|   Project[bytearray][0] - scope-18
+|
+|---c: Load(file:///tmp/pigoutput/Dir1:org.apache.pig.builtin.PigStorage) - scope-10
 Tez vertex scope-27
 # Plan on vertex
 d: Store(file:///tmp/pigoutput/Dir5:org.apache.pig.builtin.PigStorage) - scope-19
