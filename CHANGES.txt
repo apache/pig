@@ -189,6 +189,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-5118: Script fails with Invalid dag containing 0 vertices (rohini)
+
 PIG-5111: e2e Utf8Test fails in local mode (rohini)
 
 PIG-5112: Cleanup pig-template.xml (daijy)

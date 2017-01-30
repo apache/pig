@@ -22,6 +22,7 @@ import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -422,9 +423,11 @@ public class TezLauncher extends Launcher {
         TezCompiler comp = new TezCompiler(php, pc);
         comp.compile();
         TezPlanContainer planContainer = comp.getPlanContainer();
-        for (Map.Entry<OperatorKey, TezPlanContainerNode> entry : planContainer
-                .getKeys().entrySet()) {
-            TezOperPlan tezPlan = entry.getValue().getTezOperPlan();
+        // Doing a sort so that test plan printed remains same between jdk7 and jdk8
+        List<OperatorKey> opKeys = new ArrayList<>(planContainer.getKeys().keySet());
+        Collections.sort(opKeys);
+        for (OperatorKey opKey : opKeys) {
+            TezOperPlan tezPlan = planContainer.getOperator(opKey).getTezOperPlan();
             optimize(tezPlan, pc);
         }
         return planContainer;

@@ -26,6 +26,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Properties;
+import java.util.Random;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.mapreduce.Job;
@@ -44,6 +45,7 @@ import org.apache.pig.builtin.OrcStorage;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.test.TestMultiQueryBasic.DummyStoreWithOutputFormat;
 import org.apache.pig.test.Util;
@@ -74,12 +76,14 @@ public class TestTezCompiler {
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
+        resetFileLocalizer();
         pc = new PigContext(new TezLocalExecType(), new Properties());
         FileUtils.deleteDirectory(new File("/tmp/pigoutput"));
     }
 
     @AfterClass
     public static void tearDownAfterClass() throws Exception {
+        resetFileLocalizer();
     }
 
     @Before
@@ -96,6 +100,13 @@ public class TestTezCompiler {
         NodeIdGenerator.reset();
         PigServer.resetScope();
         TezPlanContainer.resetScope();
+    }
+
+    private static void resetFileLocalizer() {
+        FileLocalizer.deleteTempFiles();
+        FileLocalizer.setInitialized(false);
+        // Set random seed to generate deterministic temporary paths
+        FileLocalizer.setR(new Random(1331L));
     }
 
     @Test
@@ -126,12 +137,72 @@ public class TestTezCompiler {
                 "d = cogroup a by $0, b by $0, c by $0;" +
                 "store d into 'file:///tmp/pigoutput/Dir5';";
 
-        // To get around difference in ordering of operators in plan due to JDK7 and JDK8
-        if (System.getProperties().getProperty("java.version").startsWith("1.8")) {
-            run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-LoadStore-2.gld");
-        } else {
-            run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-LoadStore-2-JDK7.gld");
-        }
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-LoadStore-2.gld");
+    }
+
+    @Test
+    public void testStoreLoadJoinMultiple() throws Exception {
+        // Case where different store load statements are used in a single join
+        String query =
+                "a = load 'file:///tmp/pigoutput/Dir1';" +
+                "b = filter a by $0 == 1;" +
+                "c = filter a by $0 == 2;" +
+                "store b into 'file:///tmp/pigoutput/Dir2';" +
+                "store c into 'file:///tmp/pigoutput/Dir3';" +
+                "d = load 'file:///tmp/pigoutput/Dir2';" +
+                "e = load 'file:///tmp/pigoutput/Dir3';" +
+                "f = join d by $0, e by $0;" +
+                "store f into 'file:///tmp/pigoutput/Dir5';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-LoadStore-3.gld");
+
+        resetScope();
+        query =
+                "a = load 'file:///tmp/pigoutput/Dir1';" +
+                "b = distinct a;" +
+                "c = group a by $0;" +
+                "store b into 'file:///tmp/pigoutput/Dir2';" +
+                "store c into 'file:///tmp/pigoutput/Dir3';" +
+                "d = load 'file:///tmp/pigoutput/Dir2';" +
+                "e = load 'file:///tmp/pigoutput/Dir3';" +
+                "f = load 'file:///tmp/pigoutput/Dir4';" +
+                "g = join d by $0, f by $0 using 'repl';" +
+                "h = join e by $0, f by $0 using 'repl';" +
+                "store g into 'file:///tmp/pigoutput/Dir4';" +
+                "store h into 'file:///tmp/pigoutput/Dir5';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-LoadStore-4.gld");
+    }
+
+    @Test
+    public void testStoreLoadSplit() throws Exception {
+        // Cases where segmenting into two DAGs is not straight forward due to Split.
+        // The Split operator is required in both the segments.
+
+        resetFileLocalizer();
+        // Split operator as root vertex
+        String query =
+                "a = load 'file:///tmp/input';" +
+                "a1 = filter a by $0 == 5;" +
+                "store a1 into 'file:///tmp/pigoutput/Dir1';" +
+                "b = load 'file:///tmp/pigoutput/Dir1';" +
+                "c = join a by $0, b by $0;" +
+                "store c into 'file:///tmp/pigoutput/Dir2';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-LoadStore-5.gld");
+
+        // Split operator as intermediate vertex
+        query =
+                "a = load 'file:///tmp/input';" +
+                "a = distinct a;" +
+                "store a into 'file:///tmp/pigoutput/Dir1';" +
+                "b = load 'file:///tmp/pigoutput/Dir1';" +
+                "c = join a by $0, b by $0;" +
+                "store c into 'file:///tmp/pigoutput/Dir2';";
+
+        resetScope();
+        resetFileLocalizer();
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-LoadStore-6.gld");
     }
 
     @Test
