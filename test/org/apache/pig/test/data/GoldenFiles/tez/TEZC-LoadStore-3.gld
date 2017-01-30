@@ -1,0 +1,72 @@
+#--------------------------------------------------
+# There are 2 DAGs in the session
+#--------------------------------------------------
+Tez DAG pig-0_scope-0	->	Tez DAG pig-1_scope-1,
+Tez DAG pig-1_scope-1
+
+#--------------------------------------------------
+# TEZ DAG plan: pig-0_scope-0
+#--------------------------------------------------
+Tez vertex scope-32
+
+Tez vertex scope-32
+# Plan on vertex
+a: Split - scope-41
+|   |
+|   b: Store(file:///tmp/pigoutput/Dir2:org.apache.pig.builtin.PigStorage) - scope-9
+|   |
+|   |---b: Filter[bag] - scope-4
+|       |   |
+|       |   Equal To[boolean] - scope-8
+|       |   |
+|       |   |---Cast[int] - scope-6
+|       |   |   |
+|       |   |   |---Project[bytearray][0] - scope-5
+|       |   |
+|       |   |---Constant(1) - scope-7
+|   |
+|   c: Store(file:///tmp/pigoutput/Dir3:org.apache.pig.builtin.PigStorage) - scope-18
+|   |
+|   |---c: Filter[bag] - scope-13
+|       |   |
+|       |   Equal To[boolean] - scope-17
+|       |   |
+|       |   |---Cast[int] - scope-15
+|       |   |   |
+|       |   |   |---Project[bytearray][0] - scope-14
+|       |   |
+|       |   |---Constant(2) - scope-16
+|
+|---a: Load(file:///tmp/pigoutput/Dir1:org.apache.pig.builtin.PigStorage) - scope-0
+#--------------------------------------------------
+# TEZ DAG plan: pig-1_scope-1
+#--------------------------------------------------
+Tez vertex scope-38	->	Tez vertex scope-40,
+Tez vertex scope-39	->	Tez vertex scope-40,
+Tez vertex scope-40
+
+Tez vertex scope-38
+# Plan on vertex
+f: Local Rearrange[tuple]{bytearray}(false) - scope-24	->	 scope-40
+|   |
+|   Project[bytearray][0] - scope-25
+|
+|---d: Load(file:///tmp/pigoutput/Dir2:org.apache.pig.builtin.PigStorage) - scope-10
+Tez vertex scope-39
+# Plan on vertex
+f: Local Rearrange[tuple]{bytearray}(false) - scope-26	->	 scope-40
+|   |
+|   Project[bytearray][0] - scope-27
+|
+|---e: Load(file:///tmp/pigoutput/Dir3:org.apache.pig.builtin.PigStorage) - scope-19
+Tez vertex scope-40
+# Plan on vertex
+f: Store(file:///tmp/pigoutput/Dir5:org.apache.pig.builtin.PigStorage) - scope-31
+|
+|---f: New For Each(true,true)[tuple] - scope-30
+    |   |
+    |   Project[bag][1] - scope-28
+    |   |
+    |   Project[bag][2] - scope-29
+    |
+    |---f: Package(Packager)[tuple]{bytearray} - scope-23

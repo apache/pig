@@ -1081,7 +1081,7 @@ public class TezCompiler extends PhyPlanVisitor {
         indexerTezOp.setDontEstimateParallelism(true);
 
         POStore st = TezCompilerUtil.getStore(scope, nig);
-        FileSpec strFile = getTempFileSpec();
+        FileSpec strFile = getTempFileSpec(pigContext);
         st.setSFile(strFile);
         indexAggrOper.plan.addAsLeaf(st);
         indexAggrOper.setClosed(true);
@@ -1248,7 +1248,7 @@ public class TezCompiler extends PhyPlanVisitor {
                 rightTezOprAggr.setDontEstimateParallelism(true);
 
                 POStore st = TezCompilerUtil.getStore(scope, nig);
-                FileSpec strFile = getTempFileSpec();
+                FileSpec strFile = getTempFileSpec(pigContext);
                 st.setSFile(strFile);
                 rightTezOprAggr.plan.addAsLeaf(st);
                 rightTezOprAggr.setClosed(true);
@@ -1715,7 +1715,7 @@ public class TezCompiler extends PhyPlanVisitor {
      * @return
      * @throws IOException
      */
-    private FileSpec getTempFileSpec() throws IOException {
+    public static FileSpec getTempFileSpec(PigContext pigContext) throws IOException {
         return new FileSpec(FileLocalizer.getTemporaryPath(pigContext).toString(),
                 new FuncSpec(Utils.getTmpFileCompressorName(pigContext)));
     }

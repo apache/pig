@@ -1,0 +1,69 @@
+#--------------------------------------------------
+# There are 3 DAGs in the session
+#--------------------------------------------------
+Tez DAG pig-0_scope-0	->	Tez DAG pig-1_scope-1,
+Tez DAG pig-1_scope-1	->	Tez DAG pig-2_scope-2,
+Tez DAG pig-2_scope-2
+
+#--------------------------------------------------
+# TEZ DAG plan: pig-0_scope-0
+#--------------------------------------------------
+Tez vertex scope-25
+
+Tez vertex scope-25
+# Plan on vertex
+Store(file:/tmp/temp-994194982/tmp570752215:org.apache.pig.impl.io.InterStorage) - scope-33
+|
+|---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
+#--------------------------------------------------
+# TEZ DAG plan: pig-1_scope-1
+#--------------------------------------------------
+Tez vertex scope-27
+
+Tez vertex scope-27
+# Plan on vertex
+a1: Store(file:///tmp/pigoutput/Dir1:org.apache.pig.builtin.PigStorage) - scope-11
+|
+|---a1: Filter[bag] - scope-6
+    |   |
+    |   Equal To[boolean] - scope-10
+    |   |
+    |   |---Cast[int] - scope-8
+    |   |   |
+    |   |   |---Project[bytearray][0] - scope-7
+    |   |
+    |   |---Constant(5) - scope-9
+    |
+    |---Load(file:/tmp/temp-994194982/tmp570752215:org.apache.pig.impl.io.InterStorage) - scope-34
+#--------------------------------------------------
+# TEZ DAG plan: pig-2_scope-2
+#--------------------------------------------------
+Tez vertex scope-29	->	Tez vertex scope-32,
+Tez vertex scope-31	->	Tez vertex scope-32,
+Tez vertex scope-32
+
+Tez vertex scope-29
+# Plan on vertex
+c: Local Rearrange[tuple]{bytearray}(false) - scope-17	->	 scope-32
+|   |
+|   Project[bytearray][0] - scope-18
+|
+|---Load(file:/tmp/temp-994194982/tmp570752215:org.apache.pig.impl.io.InterStorage) - scope-35
+Tez vertex scope-31
+# Plan on vertex
+c: Local Rearrange[tuple]{bytearray}(false) - scope-19	->	 scope-32
+|   |
+|   Project[bytearray][0] - scope-20
+|
+|---b: Load(file:///tmp/pigoutput/Dir1:org.apache.pig.builtin.PigStorage) - scope-12
+Tez vertex scope-32
+# Plan on vertex
+c: Store(file:///tmp/pigoutput/Dir2:org.apache.pig.builtin.PigStorage) - scope-24
+|
+|---c: New For Each(true,true)[tuple] - scope-23
+    |   |
+    |   Project[bag][1] - scope-21
+    |   |
+    |   Project[bag][2] - scope-22
+    |
+    |---c: Package(Packager)[tuple]{bytearray} - scope-16
