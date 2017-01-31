@@ -1252,8 +1252,6 @@
            <pom refid="pig"/>
            <attach file="${output.jarfile.core}.asc" type="jar.asc"/>
            <attach file="${pig.pom}.asc" type="pom.asc"/>
-           <attach file="${output.jarfile.core-h2}.asc" type="jar.asc" classifier="h2"/>
-           <attach file="${output.jarfile.core-h2}" classifier="h2" />
            <attach file="${output.jarfile.sources}.asc" type="jar.asc" classifier="sources"/>
            <attach file="${output.jarfile.sources}" classifier="sources" />
            <attach file="${output.jarfile.javadoc}.asc" type="jar.asc"  classifier="javadoc"/>
@@ -1288,7 +1286,6 @@
       <artifact:deploy file="${output.jarfile.core}">
               <remoteRepository id="${snapshots_repo_id}" url="${asfsnapshotrepo}"/>
               <pom refid="pig"/>
-              <attach file="${output.jarfile.core-h2}" classifier="h2" />
               <attach file="${output.jarfile.sources}" classifier="sources" />
               <attach file="${output.jarfile.javadoc}" classifier="javadoc" />
       </artifact:deploy>
@@ -1332,8 +1329,6 @@
        </macrodef>
        <sign-artifact input.file="${output.jarfile.core}"
         output.file="${output.jarfile.core}.asc" gpg.passphrase="${gpg.passphrase}"/>
-       <sign-artifact input.file="${output.jarfile.core-h2}"
-        output.file="${output.jarfile.core-h2}.asc" gpg.passphrase="${gpg.passphrase}"/>
        <sign-artifact input.file="${output.jarfile.sources}"
         output.file="${output.jarfile.sources}.asc" gpg.passphrase="${gpg.passphrase}"/>
        <sign-artifact input.file="${output.jarfile.javadoc}"
