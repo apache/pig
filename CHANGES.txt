@@ -32,6 +32,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-5119: SkewedJoin_15 is unstable (daijy)
+
 PIG-5118: Script fails with Invalid dag containing 0 vertices (rohini)
 
 PIG-5111: e2e Utf8Test fails in local mode (rohini)
