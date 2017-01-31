@@ -22,7 +22,7 @@ Tez vertex scope-24
 # Combine plan on edge <scope-21>
 org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.DistinctCombiner$Combine
 # Plan on vertex
-Store(file:/tmp/temp-994194982/tmp570752215:org.apache.pig.impl.io.InterStorage) - scope-35
+Store(file:/tmp/temp-1456742965/tmp-26634357:org.apache.pig.impl.io.InterStorage) - scope-35
 |
 |---New For Each(true)[bag] - scope-27
     |   |
@@ -38,7 +38,7 @@ Tez vertex scope-29
 # Plan on vertex
 a: Store(file:///tmp/pigoutput/Dir1:org.apache.pig.builtin.PigStorage) - scope-7
 |
-|---Load(file:/tmp/temp-994194982/tmp570752215:org.apache.pig.impl.io.InterStorage) - scope-36
+|---Load(file:/tmp/temp-1456742965/tmp-26634357:org.apache.pig.impl.io.InterStorage) - scope-36
 #--------------------------------------------------
 # TEZ DAG plan: pig-2_scope-2
 #--------------------------------------------------
@@ -52,7 +52,7 @@ c: Local Rearrange[tuple]{bytearray}(false) - scope-13	->	 scope-34
 |   |
 |   Project[bytearray][0] - scope-14
 |
-|---Load(file:/tmp/temp-994194982/tmp570752215:org.apache.pig.impl.io.InterStorage) - scope-37
+|---Load(file:/tmp/temp-1456742965/tmp-26634357:org.apache.pig.impl.io.InterStorage) - scope-37
 Tez vertex scope-33
 # Plan on vertex
 c: Local Rearrange[tuple]{bytearray}(false) - scope-15	->	 scope-34
