@@ -37,7 +37,7 @@ import java.util.List;
 import java.util.ArrayList;
 import org.apache.pig.impl.util.StringUtils;
 
-import jline.ConsoleReader;
+import jline.console.ConsoleReader;
 
 public abstract class PigScriptParser
 {
@@ -218,7 +218,7 @@ TOKEN_MGR_DECLS : {
 		{
 			/*System.err.print(">> ");
 			System.err.flush();*/
-		    consoleReader.setDefaultPrompt(">> ");
+		    consoleReader.setPrompt(">> ");
 		}
 	}
 

@@ -42,7 +42,6 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.validator.BlackAndWhitelistFilter;
 import org.apache.pig.validator.PigCommandFilter;
-import org.python.google.common.base.Preconditions;
 
 public class PreprocessorContext {
 

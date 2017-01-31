@@ -26,12 +26,11 @@ import java.util.TreeSet;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.apache.pig.PigServer;
 
-import jline.Completor;
+import jline.console.completer.Completer;
 
-public class PigCompletorAliases implements Completor {
+public class PigCompletorAliases implements Completer {
     private final Log log = LogFactory.getLog(getClass());
     Set<String> keywords;
     PigServer pig;

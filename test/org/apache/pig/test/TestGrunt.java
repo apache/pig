@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.FilenameFilter;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -1554,5 +1555,21 @@ public class TestGrunt {
             }
         }
         assertTrue(found);
+    }
+
+    @Test
+    public void testGruntUtf8() throws Throwable {
+        String command = "mkdir 测试\n" +
+                "quit\n";
+        System.setProperty("jline.WindowsTerminal.directConsole", "false");
+        System.setIn(new ByteArrayInputStream(command.getBytes()));
+        org.apache.pig.PigRunner.run(new String[] {"-x", "local"}, null);
+        File[] partFiles = new File(".").listFiles(new FilenameFilter() {
+            public boolean accept(File dir, String name) { 
+            return name.equals("测试");
+        }
+        });
+        assertEquals(partFiles.length, 1);
+        new File("测试").delete();
     }
 }
