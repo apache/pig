@@ -33,9 +33,9 @@ import java.util.TreeSet;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import jline.Completor;
+import jline.console.completer.Completer;
 
-public class PigCompletor implements Completor {
+public class PigCompletor implements Completer {
     private final Log log = LogFactory.getLog(getClass());
     Set<String> candidates;
     static final String AUTOCOMPLETE_FILENAME = "autocomplete";

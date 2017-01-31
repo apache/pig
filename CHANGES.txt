@@ -34,6 +34,8 @@ PIG-5067: Revisit union on numeric type and chararray to bytearray (knoguchi)
  
 IMPROVEMENTS
 
+PIG-3851: Upgrade jline to 2.11 (daijy)
+
 PIG-4963: Add a Bloom join (rohini)
 
 PIG-3938: Add LoadCaster to EvalFunc (knoguchi)
