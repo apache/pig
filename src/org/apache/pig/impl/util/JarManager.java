@@ -207,7 +207,7 @@ public class JarManager {
         List<String> defaultJars = new ArrayList<String>();
         for (DefaultPigPackages pkgToSend : DefaultPigPackages.values()) {
             String jar = findContainingJar(pkgToSend.getPkgClass());
-            if (!defaultJars.contains(jar)) {
+            if (jar != null && !defaultJars.contains(jar)) {
                 defaultJars.add(jar);
             }
         }
