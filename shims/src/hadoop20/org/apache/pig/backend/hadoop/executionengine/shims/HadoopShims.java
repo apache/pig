@@ -204,4 +204,14 @@ public class HadoopShims {
     public static boolean isHadoopYARN() {
         return false;
     }
+
+    /**
+     * Add shutdown hook that runs before the FileSystem cache shutdown happens.
+     *
+     * @param hook code to execute during shutdown
+     * @param priority ignored in Hadoop 1
+     */
+    public static void addShutdownHookWithPriority(Runnable hook, int priority) {
+        Runtime.getRuntime().addShutdownHook(new Thread(hook));
+    }
 }

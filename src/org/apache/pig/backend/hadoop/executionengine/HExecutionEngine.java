@@ -378,6 +378,13 @@ public abstract class HExecutionEngine implements ExecutionEngine {
     }
 
     @Override
+    public void kill() throws BackendException {
+        if (launcher != null) {
+            launcher.kill();
+        }
+    }
+
+    @Override
     public void killJob(String jobID) throws BackendException {
         if (launcher != null) {
             launcher.killJob(jobID, getJobConf());
