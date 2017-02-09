@@ -1049,7 +1049,7 @@
         <ant dir="${test.e2e.dir}" target="test-tez"/>
     </target>
 
-	<target name="test-e2e-spark" depends="jar, piggybank" description="run end-to-end tests in tez mode">
+	<target name="test-e2e-spark" depends="jar, piggybank" description="run end-to-end tests in spark mode">
 	        <ant dir="${test.e2e.dir}" target="test-spark"/>
 	</target>
 

@@ -45,10 +45,12 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POBroadcastSpark;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCollectedGroup;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCross;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODistinct;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoinSpark;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFilter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POGlobalRearrange;
@@ -691,47 +693,29 @@ public class SparkCompiler extends PhyPlanVisitor {
 
     @Override
     public void visitFRJoin(POFRJoin op) throws VisitorException {
-        try {
-            FileSpec[] replFiles = new FileSpec[op.getInputs().size()];
-            for (int i = 0; i < replFiles.length; i++) {
-                if (i == op.getFragment()) continue;
-                replFiles[i] = getTempFileSpec();
-            }
-            op.setReplFiles(replFiles);
-            curSparkOp = phyToSparkOpMap.get(op.getInputs().get(op.getFragment()));
+		try {
+			curSparkOp = phyToSparkOpMap.get(op.getInputs().get(op.getFragment()));
+			for (int i = 0; i < compiledInputs.length; i++) {
+				SparkOperator sparkOperator = compiledInputs[i];
+				if (curSparkOp.equals(sparkOperator)) {
+					continue;
+				}
 
-            //We create a sparkOperator to save the result of replicated file to the hdfs
-            //temporary file. We load the temporary file in POFRJoin#setUpHashMap
-            //More detail see PIG-4771
-            for (int i = 0; i < compiledInputs.length; i++) {
-                SparkOperator sparkOp = compiledInputs[i];
-                if (curSparkOp.equals(sparkOp)) {
-                    continue;
-                }
-                POStore store = getStore();
-                store.setSFile(replFiles[i]);
-                sparkOp.physicalPlan.addAsLeaf(store);
-                sparkPlan.connect(sparkOp, curSparkOp);
-            }
+				OperatorKey broadcastKey = new OperatorKey(scope, nig.getNextNodeId(scope));
+				POBroadcastSpark poBroadcastSpark = new POBroadcastSpark(broadcastKey);
+				poBroadcastSpark.setBroadcastedVariableName(broadcastKey.toString());
 
-            curSparkOp.physicalPlan.addAsLeaf(op);
+				sparkOperator.physicalPlan.addAsLeaf(poBroadcastSpark);
+			}
 
-            List<List<PhysicalPlan>> joinPlans = op.getJoinPlans();
-            if (joinPlans != null) {
-                for (List<PhysicalPlan> joinPlan : joinPlans) {
-                    if (joinPlan != null) {
-                        for (PhysicalPlan plan : joinPlan) {
-                            processUDFs(plan);
-                        }
-                    }
-                }
-            }
-            phyToSparkOpMap.put(op, curSparkOp);
-        } catch (Exception e) {
-            int errCode = 2034;
-            String msg = "Error compiling operator " + op.getClass().getSimpleName();
-            throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
-        }
+			POFRJoinSpark poFRJoinSpark = new POFRJoinSpark(op);
+			addToPlan(poFRJoinSpark);
+			phyToSparkOpMap.put(op, curSparkOp);
+		} catch (Exception e) {
+			int errCode = 2034;
+			String msg = "Error compiling operator " + op.getClass().getSimpleName();
+			throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
+		}
     }
 
 	@Override
