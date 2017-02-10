@@ -950,6 +950,9 @@
         <propertyreset name="test.exec.type" value="mr" />
         <propertyreset name="test.log.dir" value="${test.build.dir}/logs/${test.exec.type}" />
         <macro-test-runner test.file="${test.all.file}" tests.failed="test.mr.failed"/>
+        <delete>
+            <fileset dir="${build.classes}" includes="*.xml" />
+        </delete>
         <echo />
         <echo message="=======================" />
         <echo message="Running Tez tests" />
