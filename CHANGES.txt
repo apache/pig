@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-5126. Add doc about pig in zeppelin (zjffdu)
+
 PIG-5037: Add api getDisplayString to PigStats (zjffdu)
 
 PIG-4945: Update document for conflicting macro params (knoguchi via daijy)
