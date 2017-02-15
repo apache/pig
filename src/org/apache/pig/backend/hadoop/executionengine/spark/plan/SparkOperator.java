@@ -84,6 +84,15 @@ public class SparkOperator extends Operator<SparkOpPlanVisitor> {
 
     private MultiMap<OperatorKey, OperatorKey> multiQueryOptimizeConnectionMap = new MultiMap<OperatorKey, OperatorKey>();
 
+    // Indicates if a UDF comparator is used
+    boolean isUDFComparatorUsed = false;
+
+    //The quantiles file name if globalSort is true
+    private String quantFile;
+
+    //Indicates if this job is an order by job
+    private boolean globalSort = false;
+
     public SparkOperator(OperatorKey k) {
         super(k);
         physicalPlan = new PhysicalPlan();
@@ -277,4 +286,13 @@ public class SparkOperator extends Operator<SparkOpPlanVisitor> {
     public MultiMap<OperatorKey, OperatorKey> getMultiQueryOptimizeConnectionItem() {
         return multiQueryOptimizeConnectionMap;
     }
+
+    public void setGlobalSort(boolean globalSort) {
+        this.globalSort = globalSort;
+    }
+
+    public boolean isGlobalSort() {
+        return globalSort;
+    }
+
 }

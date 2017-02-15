@@ -26,27 +26,34 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.CollectableLoadFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.IndexableLoadFunc;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.OrderedLoadFunc;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MergeJoinIndexer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.ScalarPhyFinder;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.UDFFinder;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POBroadcastSpark;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCollectedGroup;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCounter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCross;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODistinct;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin;
@@ -61,6 +68,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PONative;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORank;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSkewedJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
@@ -68,14 +76,17 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.Packager;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCounter;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORank;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.backend.hadoop.executionengine.spark.operator.NativeSparkOperator;
 import org.apache.pig.backend.hadoop.executionengine.spark.operator.POGlobalRearrangeSpark;
+import org.apache.pig.backend.hadoop.executionengine.spark.operator.POPoissonSampleSpark;
+import org.apache.pig.backend.hadoop.executionengine.spark.operator.POSampleSortSpark;
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.DefaultIndexableLoader;
+import org.apache.pig.impl.builtin.GetMemNumRows;
+import org.apache.pig.impl.builtin.PartitionSkewedKeys;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.DepthFirstWalker;
@@ -85,7 +96,9 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 
@@ -98,6 +111,7 @@ public class SparkCompiler extends PhyPlanVisitor {
     private static final Log LOG = LogFactory.getLog(SparkCompiler.class);
 
     private PigContext pigContext;
+    private Properties pigProperties;
 
 	// The physicalPlan that is being compiled
 	private PhysicalPlan physicalPlan;
@@ -691,6 +705,50 @@ public class SparkCompiler extends PhyPlanVisitor {
         }
     }
 
+//    /**
+//     * currently use regular join to replace skewedJoin
+//     * Skewed join currently works with two-table inner join.
+//     * More info about pig SkewedJoin, See https://wiki.apache.org/pig/PigSkewedJoinSpec
+//     *
+//     * @param op
+//     * @throws VisitorException
+//     */
+//    @Override
+//    public void visitSkewedJoin(POSkewedJoin op) throws VisitorException {
+//        try {
+//			Random r = new Random();
+//			String pigKeyDistFile = "pig.keyDistFile" + r.nextInt();
+//            // firstly, build sample job
+//            SparkOperator sampleSparkOp = getSkewedJoinSampleJob(op);
+//
+//			buildBroadcastForSkewedJoin(sampleSparkOp, pigKeyDistFile);
+//
+//			sampleSparkOp.markSampler();
+//			sparkPlan.add(sampleSparkOp);
+//
+//			// secondly, build the join job.
+//			addToPlan(op);
+//			curSparkOp.setSkewedJoinPartitionFile(pigKeyDistFile);
+//
+//			// do sampling job before join job
+//			sparkPlan.connect(sampleSparkOp, curSparkOp);
+//
+//			phyToSparkOpMap.put(op, curSparkOp);
+//        } catch (Exception e) {
+//            int errCode = 2034;
+//            String msg = "Error compiling operator " +
+//                    op.getClass().getSimpleName();
+//            throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
+//        }
+//    }
+
+/*    private void buildBroadcastForSkewedJoin(SparkOperator sampleSparkOp, String pigKeyDistFile) throws PlanException {
+
+        POBroadcastSpark poBroadcast = new POBroadcastSpark(new OperatorKey(scope, nig.getNextNodeId(scope)));
+        poBroadcast.setBroadcastedVariableName(pigKeyDistFile);
+        sampleSparkOp.physicalPlan.addAsLeaf(poBroadcast);
+    }*/
+
     @Override
     public void visitFRJoin(POFRJoin op) throws VisitorException {
 		try {
@@ -1140,5 +1198,360 @@ public class SparkCompiler extends PhyPlanVisitor {
     private FileSpec getTempFileSpec() throws IOException {
         return new FileSpec(FileLocalizer.getTemporaryPath(pigContext).toString(),
                 new FuncSpec(Utils.getTmpFileCompressorName(pigContext)));
+    }
+
+    private static class FindKeyTypeVisitor extends PhyPlanVisitor {
+
+        byte keyType = DataType.UNKNOWN;
+
+        FindKeyTypeVisitor(PhysicalPlan plan) {
+            super(plan,
+                    new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(plan));
+        }
+
+        @Override
+        public void visitProject(POProject p) throws VisitorException {
+            keyType = p.getResultType();
+        }
+    }
+
+
+    /**
+     * build a POPoissonSampleSpark operator for SkewedJoin's sampling job
+     */
+	private void addSampleOperatorForSkewedJoin(SparkOperator sampleSparkOp)
+			throws PlanException {
+		Configuration conf = ConfigurationUtil.toConfiguration(pigProperties);
+		int sampleRate = conf.getInt(
+				PigConfiguration.PIG_POISSON_SAMPLER_SAMPLE_RATE,
+				POPoissonSampleSpark.DEFAULT_SAMPLE_RATE);
+		float heapPerc = conf.getFloat(
+				PigConfiguration.PIG_SKEWEDJOIN_REDUCE_MEMUSAGE,
+				PartitionSkewedKeys.DEFAULT_PERCENT_MEMUSAGE);
+		long totalMemory = conf.getLong(
+				PigConfiguration.PIG_SKEWEDJOIN_REDUCE_MEM, -1);
+
+		POPoissonSampleSpark poSample = new POPoissonSampleSpark(
+				new OperatorKey(scope, nig.getNextNodeId(scope)), -1,
+				sampleRate, heapPerc, totalMemory);
+
+		sampleSparkOp.physicalPlan.addAsLeaf(poSample);
+	}
+
+    private SparkOperator getSortJob(
+            POSort sort,
+            SparkOperator quantJob,
+            FileSpec lFile,
+            FileSpec quantFile,
+            int rp, Pair<POProject, Byte>[] fields) throws PlanException {
+        SparkOperator sparkOper = startNew(lFile, quantJob);
+        List<PhysicalPlan> eps1 = new ArrayList<PhysicalPlan>();
+        byte keyType = DataType.UNKNOWN;
+        if (fields == null) {
+            // This is project *
+            PhysicalPlan ep = new PhysicalPlan();
+            POProject prj = new POProject(new OperatorKey(scope, nig.getNextNodeId(scope)));
+            prj.setStar(true);
+            prj.setOverloaded(false);
+            prj.setResultType(DataType.TUPLE);
+            ep.add(prj);
+            eps1.add(ep);
+        } else {
+            /*
+            for (int i : fields) {
+                PhysicalPlan ep = new PhysicalPlan();
+                POProject prj = new POProject(new OperatorKey(scope,
+                    nig.getNextNodeId(scope)));
+                prj.setColumn(i);
+                prj.setOverloaded(false);
+                prj.setResultType(DataType.BYTEARRAY);
+                ep.add(prj);
+                eps1.add(ep);
+            }
+            */
+            // Attach the sort plans to the local rearrange to get the
+            // projection.
+            eps1.addAll(sort.getSortPlans());
+
+            // Visit the first sort plan to figure out our key type.  We only
+            // have to visit the first because if we have more than one plan,
+            // then the key type will be tuple.
+            try {
+                FindKeyTypeVisitor fktv =
+                        new FindKeyTypeVisitor(sort.getSortPlans().get(0));
+                fktv.visit();
+                keyType = fktv.keyType;
+            } catch (VisitorException ve) {
+                int errCode = 2035;
+                String msg = "Internal error. Could not compute key type of sort operator.";
+                throw new PlanException(msg, errCode, PigException.BUG, ve);
+            }
+        }
+
+        POLocalRearrange lr = new POLocalRearrange(new OperatorKey(scope, nig.getNextNodeId(scope)));
+        try {
+            lr.setIndex(0);
+        } catch (ExecException e) {
+            int errCode = 2058;
+            String msg = "Unable to set index on newly created POLocalRearrange.";
+            throw new PlanException(msg, errCode, PigException.BUG, e);
+        }
+        lr.setKeyType((fields == null || fields.length > 1) ? DataType.TUPLE :
+                keyType);
+        lr.setPlans(eps1);
+        lr.setResultType(DataType.TUPLE);
+        lr.addOriginalLocation(sort.getAlias(), sort.getOriginalLocations());
+        sparkOper.physicalPlan.addAsLeaf(lr);
+
+        sparkOper.setGlobalSort(true);
+        pigContext.getProperties().setProperty("pig.reduce.keytype", Byte.toString(lr.getKeyType()));
+        sparkOper.requestedParallelism = rp;
+        sparkOper.physicalPlan.addAsLeaf(sort);
+
+        long limit = sort.getLimit();
+        if (limit != -1) {
+            POLimit pLimit2 = new POLimit(new OperatorKey(scope, nig.getNextNodeId(scope)));
+            pLimit2.setLimit(limit);
+            sparkOper.physicalPlan.addAsLeaf(pLimit2);
+            sparkOper.markLimitAfterSort();
+        }
+
+        return sparkOper;
+    }
+
+    /**
+     * Create a sampling job to collect statistics by sampling an input file. The sequence of operations is as
+     * following:
+     * <li>Transform input sample tuples into another tuple.</li>
+     * <li>Add an extra field &quot;all&quot; into the tuple </li>
+     * <li>Package all tuples into one bag </li>
+     * <li>Add constant field for number of reducers. </li>
+     * <li>Sorting the bag </li>
+     * <li>Invoke UDF with the number of reducers and the sorted bag.</li>
+     * <li>Data generated by UDF is stored into a file.</li>
+     *
+     * @param sort           the POSort operator used to sort the bag
+     * @param sampleOperator current sampling job
+     * @param rp             configured parallemism
+     * @param udfClassName   the class name of UDF
+     * @param udfArgs        the arguments of UDF
+     * @return pair<SparkOper,integer>
+     * @throws PlanException
+     * @throws VisitorException
+     */
+    @SuppressWarnings("deprecation")
+    private SparkOperator getSamplingJob(POSort sort, SparkOperator sampleOperator, List<PhysicalPlan>
+            transformPlans,
+                                         int rp,
+                                         String udfClassName, String[] udfArgs) throws PlanException,
+            VisitorException, ExecException {
+        addSampleOperatorForSkewedJoin(sampleOperator);
+        List<Boolean> flat1 = new ArrayList<Boolean>();
+        List<PhysicalPlan> eps1 = new ArrayList<PhysicalPlan>();
+
+        // if transform plans are not specified, project the columns of sorting keys
+        if (transformPlans == null) {
+            Pair<POProject, Byte>[] sortProjs = null;
+            try {
+                sortProjs = getSortCols(sort.getSortPlans());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+            // Set up the projections of the key columns
+            if (sortProjs == null) {
+                PhysicalPlan ep = new PhysicalPlan();
+                POProject prj = new POProject(new OperatorKey(scope,
+                        nig.getNextNodeId(scope)));
+                prj.setStar(true);
+                prj.setOverloaded(false);
+                prj.setResultType(DataType.TUPLE);
+                ep.add(prj);
+                eps1.add(ep);
+                flat1.add(false);
+            } else {
+                for (Pair<POProject, Byte> sortProj : sortProjs) {
+                    // Check for proj being null, null is used by getSortCols for a non POProject
+                    // operator. Since Order by does not allow expression operators,
+                    //it should never be set to null
+                    if (sortProj == null) {
+                        int errCode = 2174;
+                        String msg = "Internal exception. Could not create a sampler job";
+                        throw new SparkCompilerException(msg, errCode, PigException.BUG);
+                    }
+                    PhysicalPlan ep = new PhysicalPlan();
+                    POProject prj;
+                    try {
+                        prj = sortProj.first.clone();
+                    } catch (CloneNotSupportedException e) {
+                        //should not get here
+                        throw new AssertionError(
+                                "Error cloning project caught exception" + e
+                        );
+                    }
+                    ep.add(prj);
+                    eps1.add(ep);
+                    flat1.add(false);
+                }
+            }
+        } else {
+            for (int i = 0; i < transformPlans.size(); i++) {
+                eps1.add(transformPlans.get(i));
+                flat1.add(i == transformPlans.size() - 1 ? true : false);
+            }
+        }
+        // This foreach will pick the sort key columns from the RandomSampleLoader output
+        POForEach nfe1 = new POForEach(new OperatorKey(scope, nig.getNextNodeId(scope)), -1, eps1, flat1);
+        sampleOperator.physicalPlan.addAsLeaf(nfe1);
+
+        //sort the sample
+        POSampleSortSpark poSparkSampleSort = new POSampleSortSpark(sort);
+        sampleOperator.physicalPlan.addAsLeaf(poSparkSampleSort);
+
+        // for the foreach
+        PhysicalPlan fe2Plan = new PhysicalPlan();
+        POProject topPrj = new POProject(new OperatorKey(scope, nig.getNextNodeId(scope)));
+        topPrj.setColumn(1);
+        topPrj.setResultType(DataType.BAG);
+        topPrj.setOverloaded(true);
+        fe2Plan.add(topPrj);
+
+
+        // The plan which will have a constant representing the
+        // degree of parallelism for the final order by map-reduce job
+        // this will either come from a "order by parallel x" in the script
+        // or will be the default number of reducers for the cluster if
+        // "parallel x" is not used in the script
+        PhysicalPlan rpep = new PhysicalPlan();
+        ConstantExpression rpce = new ConstantExpression(new OperatorKey(scope, nig.getNextNodeId(scope)));
+        rpce.setRequestedParallelism(rp);
+
+        // We temporarily set it to rp and will adjust it at runtime, because the final degree of parallelism
+        // is unknown until we are ready to submit it. See PIG-2779.
+        rpce.setValue(rp);
+
+        rpce.setResultType(DataType.INTEGER);
+        rpep.add(rpce);
+
+        List<PhysicalPlan> genEps = new ArrayList<PhysicalPlan>();
+        genEps.add(rpep);
+        genEps.add(fe2Plan);
+
+        List<Boolean> flattened2 = new ArrayList<Boolean>();
+        flattened2.add(false);
+        flattened2.add(false);
+
+        POForEach nfe2 = new POForEach(new OperatorKey(scope, nig.getNextNodeId(scope)), -1, genEps, flattened2);
+        sampleOperator.physicalPlan.addAsLeaf(nfe2);
+
+        // Let's connect the output from the foreach containing
+        // number of quantiles and the sorted bag of samples to
+        // another foreach with the FindQuantiles udf. The input
+        // to the FindQuantiles udf is a project(*) which takes the
+        // foreach input and gives it to the udf
+        PhysicalPlan ep4 = new PhysicalPlan();
+        POProject prjStar4 = new POProject(new OperatorKey(scope, nig.getNextNodeId(scope)));
+        prjStar4.setResultType(DataType.TUPLE);
+        prjStar4.setStar(true);
+        ep4.add(prjStar4);
+
+        List<PhysicalOperator> ufInps = new ArrayList<PhysicalOperator>();
+        ufInps.add(prjStar4);
+
+        POUserFunc uf = new POUserFunc(new OperatorKey(scope, nig.getNextNodeId(scope)), -1, ufInps,
+                new FuncSpec(udfClassName, udfArgs));
+        ep4.add(uf);
+        ep4.connect(prjStar4, uf);
+
+        List<PhysicalPlan> ep4s = new ArrayList<PhysicalPlan>();
+        ep4s.add(ep4);
+        List<Boolean> flattened3 = new ArrayList<Boolean>();
+        flattened3.add(false);
+        POForEach nfe3 = new POForEach(new OperatorKey(scope, nig.getNextNodeId(scope)), -1, ep4s, flattened3);
+
+        sampleOperator.physicalPlan.addAsLeaf(nfe3);
+
+        sampleOperator.requestedParallelism = 1;
+        sampleOperator.markSampler();
+        return sampleOperator;
+    }
+
+    private Pair<POProject, Byte>[] getSortCols(List<PhysicalPlan> plans) throws PlanException, ExecException {
+        if (plans != null) {
+            @SuppressWarnings("unchecked")
+            Pair<POProject, Byte>[] ret = new Pair[plans.size()];
+            int i = -1;
+            for (PhysicalPlan plan : plans) {
+                PhysicalOperator op = plan.getLeaves().get(0);
+                POProject proj;
+                if (op instanceof POProject) {
+                    if (((POProject) op).isStar()) return null;
+                    proj = (POProject) op;
+                } else {
+                    proj = null;
+                }
+                byte type = op.getResultType();
+                ret[++i] = new Pair<POProject, Byte>(proj, type);
+            }
+            return ret;
+        }
+        int errCode = 2026;
+        String msg = "No expression plan found in POSort.";
+        throw new PlanException(msg, errCode, PigException.BUG);
+    }
+
+    /**
+     * Create Sampling job for skewed join.
+     */
+    private SparkOperator getSkewedJoinSampleJob(POSkewedJoin skewedJoin) throws PlanException, VisitorException {
+        try {
+            SparkOperator sampleOperator = new SparkOperator(new OperatorKey(scope, nig.getNextNodeId(scope)));
+            sampleOperator.physicalPlan = compiledInputs[0].physicalPlan.clone();
+            MultiMap<PhysicalOperator, PhysicalPlan> joinPlans = skewedJoin.getJoinPlans();
+
+            List<PhysicalOperator> l = physicalPlan.getPredecessors(skewedJoin);
+            List<PhysicalPlan> groups = joinPlans.get(l.get(0));
+            List<Boolean> ascCol = new ArrayList<Boolean>();
+            for (int i = 0; i < groups.size(); i++) {
+                ascCol.add(false);
+            }
+
+            POSort sort = new POSort(skewedJoin.getOperatorKey(), skewedJoin.getRequestedParallelism(), null, groups,
+                    ascCol, null);
+
+            // set up transform plan to get keys and memory size of input tuples
+            // it first adds all the plans to get key columns,
+            List<PhysicalPlan> transformPlans = new ArrayList<PhysicalPlan>();
+            transformPlans.addAll(groups);
+
+            // then it adds a column for memory size
+            POProject prjStar = new POProject(new OperatorKey(scope, nig.getNextNodeId(scope)));
+            prjStar.setResultType(DataType.TUPLE);
+            prjStar.setStar(true);
+
+            List<PhysicalOperator> ufInps = new ArrayList<PhysicalOperator>();
+            ufInps.add(prjStar);
+
+            PhysicalPlan ep = new PhysicalPlan();
+            POUserFunc uf = new POUserFunc(new OperatorKey(scope, nig.getNextNodeId(scope)), -1, ufInps,
+                    new FuncSpec(GetMemNumRows.class.getName(), (String[]) null));
+            uf.setResultType(DataType.TUPLE);
+            ep.add(uf);
+            ep.add(prjStar);
+            ep.connect(prjStar, uf);
+
+            transformPlans.add(ep);
+            // pass configurations to the User Function
+            String per = pigContext.getProperties().getProperty("pig.skewedjoin.reduce.memusage",
+                    String.valueOf(PartitionSkewedKeys.DEFAULT_PERCENT_MEMUSAGE));
+            String mc = pigContext.getProperties().getProperty("pig.skewedjoin.reduce.maxtuple", "0");
+
+            return getSamplingJob(sort, sampleOperator, transformPlans, skewedJoin.getRequestedParallelism(),
+                    PartitionSkewedKeys.class.getName(), new String[]{per, mc});
+        } catch (Exception e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator " +
+                    skewedJoin.getClass().getSimpleName();
+            throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
+        }
     }
 }
