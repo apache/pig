@@ -162,13 +162,8 @@ public class LoadConverter implements RDDConverter<Tuple, Tuple, POLoad> {
         private SparkEngineConf sparkEngineConf;
         private boolean initialized;
 
-        //LoadConverter#ToTupleFunction is executed more than once in multiquery case causing
-        //invalid number of input records, 'skip' flag below indicates first load is finished.
-        private boolean skip;
-
         public ToTupleFunction(SparkEngineConf sparkEngineConf){
                this.sparkEngineConf = sparkEngineConf;
-
         }
 
         @Override
@@ -177,14 +172,9 @@ public class LoadConverter implements RDDConverter<Tuple, Tuple, POLoad> {
                 long partitionId = TaskContext.get().partitionId();
                 PigMapReduce.sJobConfInternal.get().set(PigConstants.TASK_INDEX, Long.toString(partitionId));
 
-                //We're in POSplit and already counted all input records,
-                //in a multiquery case skip will be set to true after the first load is finished:
-                if (sparkCounters != null && SparkPigStatusReporter.getInstance().getCounters().getCounter(counterGroupName, counterName).getValue() > 0) {
-                    skip=true;
-                }
                 initialized = true;
             }
-            if (sparkCounters != null && disableCounter == false && skip == false) {
+            if (sparkCounters != null && disableCounter == false) {
                 sparkCounters.increment(counterGroupName, counterName, 1L);
             }
             return v1._2();

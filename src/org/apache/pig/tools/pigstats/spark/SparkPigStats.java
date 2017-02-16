@@ -38,6 +38,7 @@ import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperator;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.tools.pigstats.InputStats;
 import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
@@ -132,6 +133,9 @@ public class SparkPigStats extends PigStats {
             while (statIt.hasNext()) {
                 Map.Entry pairs = (Map.Entry)statIt.next();
                 LOG.info("\t" + pairs.getKey() + " : " + pairs.getValue());
+            }
+            for (InputStats inputStat : js.getInputs()){
+                LOG.info("\t"+inputStat.getDisplayString());
             }
         }
     }
