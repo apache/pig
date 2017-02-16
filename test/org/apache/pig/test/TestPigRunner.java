@@ -464,7 +464,7 @@ public class TestPigRunner {
                 assertEquals(3, stats.getJobGraph().size());
             } if (Util.isSparkExecType(cluster.getExecType())) {
                 // One for each store and 3 for join.
-                assertEquals(6, stats.getJobGraph().size());
+                assertEquals(4, stats.getJobGraph().size());
             } else {
                 assertEquals(1, stats.getJobGraph().size());
             }
