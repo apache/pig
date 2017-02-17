@@ -34,6 +34,8 @@ PIG-5067: Revisit union on numeric type and chararray to bytearray (knoguchi)
  
 IMPROVEMENTS
 
+PIG-5085: Support FLATTEN of maps (szita via rohini)
+
 PIG-5126. Add doc about pig in zeppelin (zjffdu)
 
 PIG-5120: Let tez_local mode run without a jar file (knoguchi)

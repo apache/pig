@@ -95,17 +95,17 @@ public class LOGenerate extends LogicalRelationalOperator {
                 fieldSchema = exp.getFieldSchema().deepCopy();
                 
                 expSchema = new LogicalSchema();
-                if ((fieldSchema.type != DataType.TUPLE && fieldSchema.type != DataType.BAG)||!flattenFlags[i]) {
+                if ((fieldSchema.type != DataType.TUPLE && fieldSchema.type != DataType.BAG && fieldSchema.type != DataType.MAP) || !flattenFlags[i]) {
                     // if type is primitive, just add to schema
-                    if (fieldSchema!=null)
+                    if (fieldSchema != null)
                         expSchema.addField(fieldSchema);
                 } else {
-                    // if bag/tuple don't have inner schema, after flatten, we don't have schema for the entire operator
+                    // if bag/tuple/map don't have inner schema, after flatten, we don't have schema for the entire operator
                     if (fieldSchema.schema==null) {
                         expSchema = null;
                     }
                     else {
-                     // if we come here, we get a BAG/Tuple with flatten, extract inner schema of the tuple as expSchema
+                     // if we come here, we get a BAG/Tuple/Map with flatten, extract inner schema of the tuple as expSchema
                         List<LogicalSchema.LogicalFieldSchema> innerFieldSchemas = new ArrayList<LogicalSchema.LogicalFieldSchema>();
                         if (flattenFlags[i]) {
                             if (fieldSchema.type == DataType.BAG) {
@@ -117,13 +117,23 @@ public class LOGenerate extends LogicalRelationalOperator {
                                         fs.alias = fs.alias == null ? null : fieldSchema.alias + "::" + fs.alias;
                                     }
                                 }
+                            } else if (fieldSchema.type == DataType.MAP) {
+                                //should only contain 1 schemafield for Map's value
+                                innerFieldSchemas = fieldSchema.schema.getFields();
+                                LogicalSchema.LogicalFieldSchema fsForValue = innerFieldSchemas.get(0);
+                                fsForValue.alias = fieldSchema.alias + "::value";
+
+                                LogicalSchema.LogicalFieldSchema fsForKey = new LogicalFieldSchema(
+                                        fieldSchema.alias + "::key" , null, DataType.CHARARRAY, fieldSchema.uid);
+
+                                expSchema.addField(fsForKey);
                             } else { // DataType.TUPLE
                                 innerFieldSchemas = fieldSchema.schema.getFields();
                                 for (LogicalSchema.LogicalFieldSchema fs : innerFieldSchemas) {
                                     fs.alias = fs.alias == null ? null : fieldSchema.alias + "::" + fs.alias;
                                 }
                             }
-                            
+
                             for (LogicalSchema.LogicalFieldSchema fs : innerFieldSchemas)
                                 expSchema.addField(fs);
                         }
