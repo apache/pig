@@ -5425,8 +5425,8 @@ D = foreach C generate y; -- which y?
    <section  id="flatten">
    <title>Flatten Operator</title>
    <p>The FLATTEN operator looks like a UDF syntactically, but it is actually an operator that changes the structure of tuples 
-   and bags in a way that a UDF cannot. Flatten un-nests tuples as well as bags. The idea is the same, but the operation and 
-   result is different for each type of structure.</p>
+   and bags in a way that a UDF cannot. Flatten un-nests tuples, bags and maps. The idea is the
+      same, but the operation and result is different for each type of structure.</p>
 
    <p>For tuples, flatten substitutes the fields of a tuple in place of the tuple. For example, consider a relation that has a tuple 
    of the form (a, (b, c)). The expression GENERATE $0, flatten($1), will cause that tuple to become (a, b, c).</p>
@@ -5436,6 +5436,14 @@ D = foreach C generate y; -- which y?
    tuples (b,c) and (d,e). When we remove a level of nesting in a bag, sometimes we cause a cross product to happen. 
    For example, consider a relation that has a tuple of the form (a, {(b,c), (d,e)}), commonly produced by the GROUP operator. 
    If we apply the expression GENERATE $0, flatten($1) to this tuple, we will create new tuples: (a, b, c) and (a, d, e).</p>
+
+   <p>For maps, flatten creates a tuple with two fields containing the key and value.
+      If we have a map field named kvpair with input as (m[k1#v1, k2#v2]) and we apply GENERATE flatten(kvpair),
+      it will generate two tuples (k1,v1) and (k2,v2) which can be accessed as kvpair::key and
+      kvpair::value.<br/>When there are additional projections in the expression, a cross product will happen similar
+      to bags. For example, if we apply the expression GENERATE $0, FLATTEN($1) to the input tuple (a, m[k1#1, k2#2, k3#3]),
+      we will see (a,k1,1), (a,k2,2) and (a,k3,3) as the result.
+   </p>
    
    <p>Also note that the flatten of empty bag will result in that row being discarded; no output is generated. 
    (See also <a href="perf.html#nulls">Drop Nulls Before a Join</a>.) </p>
@@ -6517,6 +6525,16 @@ B = LOAD 'data' AS (x, z);
 C = COGROUP A BY x, B BY x;
 D = FOREACH C GENERATE flatten(A), flatten(b);
 E = GROUP D BY A::x;
+……
+</source>
+
+   <p>A FLATTEN example on a map type. Here we load an integer and map (of integer values) into A. Then m gets
+      flattened, and finally we are filtering the result to only include tuples where the value among the un-nested
+      map entries was 5.</p>
+<source>
+A = LOAD 'data' AS (a:int, m:map[int]);
+B = FOREACH A GENERATE a, FLATTEN(m);
+C = FILTER B by m::value == 5;
 ……
 </source>
    

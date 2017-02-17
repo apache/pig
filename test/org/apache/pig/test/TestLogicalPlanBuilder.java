@@ -2072,7 +2072,25 @@ public class TestLogicalPlanBuilder {
         assertTrue("Sink must end with output", lData.getSinks().get(0).endsWith("output"));
         assertEquals("Number of logical relational operators must be 4", lData.getNumLogicalRelationOperators(), 4);
     }
-    
+
+    @Test
+    public void testFlattenMap() throws Exception {
+       String query = "A = LOAD 'input.txt' as (rowId:int, dataMap:map[int]);" +
+               "B = FOREACH A GENERATE rowId, FLATTEN(dataMap);";
+
+        pigServer.registerQuery(query);
+        Schema schema = pigServer.dumpSchema("B");
+
+        assertEquals(3, schema.size());
+
+        assertEquals(DataType.INTEGER, schema.getField(0).type);
+        assertEquals("rowId", schema.getField(0).alias);
+
+        assertEquals(DataType.CHARARRAY, schema.getField(1).type);
+        assertEquals("dataMap::key", schema.getField(1).alias);
+        assertEquals(DataType.INTEGER, schema.getField(2).type);
+        assertEquals("dataMap::value", schema.getField(2).alias);
+    }
     /**
      * This method is not generic. Expects logical plan to have atleast
      * 1 source and returns the corresponding FuncSpec.

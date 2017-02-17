@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -442,6 +443,8 @@ public class POForEach extends PhysicalOperator {
 
                 if(inputData.result instanceof DataBag && isToBeFlattenedArray[i]) {
                     its[i] = ((DataBag)bags[i]).iterator();
+                } else if (inputData.result instanceof Map && isToBeFlattenedArray[i]) {
+                    its[i] = ((Map)bags[i]).entrySet().iterator();
                 } else {
                     its[i] = null;
                 }
@@ -467,7 +470,7 @@ public class POForEach extends PhysicalOperator {
                 //we instantiate the template array and start populating it with data
                 data = new Object[noItems];
                 for(int i = 0; i < noItems; ++i) {
-                    if(isToBeFlattenedArray[i] && bags[i] instanceof DataBag) {
+                    if(isToBeFlattenedArray[i] && (bags[i] instanceof DataBag || bags[i] instanceof Map)) {
                         if(its[i].hasNext()) {
                             data[i] = its[i].next();
                         } else {
@@ -540,6 +543,15 @@ public class POForEach extends PhysicalOperator {
                     } else {
                     out.append(t.get(j));
                 }
+                }
+            } else if (isToBeFlattenedArray[i] && in instanceof Map.Entry) {
+                Map.Entry entry = (Map.Entry)in;
+                if (knownSize) {
+                    out.set(idx++, entry.getKey());
+                    out.set(idx++, entry.getValue());
+                } else {
+                    out.append(entry.getKey());
+                    out.append(entry.getValue());
                 }
             } else {
                 if (knownSize) {
