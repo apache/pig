@@ -38,10 +38,8 @@
     <conf name="jdiff" visibility="private"/>
     <conf name="checkstyle" visibility="private"/>
     <conf name="buildJar" extends="compile,test" visibility="private"/>
-    <conf name="hadoop20" visibility="private"/>
-    <conf name="hadoop23" visibility="private"/>
-    <conf name="hbase94" visibility="private"/>
-    <conf name="hbase95" visibility="private"/>
+    <conf name="hadoop2" visibility="private"/>
+    <conf name="hbase1" visibility="private"/>
     <conf name="spark" visibility="private" />
   </configurations>
   <publications>
@@ -61,17 +59,17 @@
     <dependency org="commons-beanutils" name="commons-beanutils-core" rev="${commons-beanutils.version}"
       conf="checkstyle->master"/>
     <dependency org="xmlenc" name="xmlenc" rev="${xmlenc.version}"
-      conf="hadoop23->master"/>
+      conf="hadoop2->master"/>
     <dependency org="com.sun.jersey" name="jersey-bundle" rev="${jersey.version}"
-      conf="hadoop23->master"/>
+      conf="hadoop2->master"/>
     <dependency org="com.sun.jersey" name="jersey-server" rev="${jersey.version}"
-      conf="hadoop23->master"/>
+      conf="hadoop2->master"/>
     <dependency org="com.sun.jersey.contribs" name="jersey-guice" rev="${jersey.version}"
-      conf="hadoop23->master"/>
+      conf="hadoop2->master"/>
     <dependency org="commons-codec" name="commons-codec" rev="${commons-codec.version}"
-      conf="hadoop23->master"/>
+      conf="hadoop2->master"/>
     <dependency org="commons-httpclient" name="commons-httpclient" rev="${commons-httpclient.version}"
-      conf="hadoop23->master"/>
+      conf="hadoop2->master"/>
     <dependency org="commons-el" name="commons-el" rev="${commons-el.version}"
       conf="compile->master"/>
     <dependency org="commons-io" name="commons-io" rev="${commons-io.version}"
@@ -89,92 +87,86 @@
     <dependency org="nl.basjes.parse" name="parser-core" rev="${basjes-httpdlog-pigloader.version}"
       conf="compile->master"/>
     <dependency org="commons-configuration" name="commons-configuration" rev="${commons-configuration.version}"
-      conf="hadoop23->master"/>
+      conf="hadoop2->master"/>
     <dependency org="commons-collections" name="commons-collections" rev="${commons-collections.version}"
-      conf="hadoop23->master"/>
+      conf="hadoop2->master"/>
     <dependency org="javax.servlet" name="servlet-api" rev="${servlet-api.version}"
-      conf="hadoop23->master"/>
+      conf="hadoop2->master"/>
     <dependency org="javax.ws.rs" name="jsr311-api" rev="${jsr311-api.version}"
-      conf="hadoop23->master"/>
+      conf="hadoop2->master"/>
     <dependency org="com.google.protobuf" name="protobuf-java" rev="${protobuf-java.version}"
-      conf="hadoop23->master"/>
+      conf="hadoop2->master"/>
     <dependency org="javax.inject" name="javax.inject" rev="${javax-inject.version}"
-      conf="hadoop23->master"/>
+      conf="hadoop2->master"/>
     <dependency org="javax.xml.bind" name="jaxb-api" rev="${jaxb-api.version}"
-      conf="hadoop23->master"/>
+      conf="hadoop2->master"/>
     <dependency org="com.sun.xml.bind" name="jaxb-impl" rev="${jaxb-impl.version}"
-      conf="hadoop23->master"/> 
+      conf="hadoop2->master"/>
     <dependency org="com.google.inject" name="guice" rev="${guice.version}"
-      conf="hadoop23->master"/>
+      conf="hadoop2->master"/>
     <dependency org="com.google.inject.extensions" name="guice-servlet" rev="${guice-servlet.version}"
-      conf="hadoop23->master"/>
+      conf="hadoop2->master"/>
     <dependency org="aopalliance" name="aopalliance" rev="${aopalliance.version}"
-      conf="hadoop23->master"/>
+      conf="hadoop2->master"/>
     <dependency org="org.mortbay.jetty" name="jsp-2.1" rev="${jasper.version}"
-      conf="hadoop23->master"/>
+      conf="hadoop2->master"/>
     <dependency org="org.mortbay.jetty" name="jsp-api-2.1" rev="${jasper.version}"
-      conf="hadoop23->master"/>
+      conf="hadoop2->master"/>
     <dependency org="log4j" name="log4j" rev="${log4j.version}"
       conf="compile->master"/>
-    <dependency org="com.sun.jersey" name="jersey-core" rev="${jersey-core.version}"
-      conf="hadoop20->default"/>
-    <dependency org="org.apache.hadoop" name="hadoop-core" rev="${hadoop-core.version}"
-      conf="hadoop20->default"/>
-    <dependency org="org.apache.hadoop" name="hadoop-test" rev="${hadoop-test.version}"
-      conf="hadoop20->default"/>
-    <dependency org="org.apache.hadoop" name="hadoop-annotations" 
-      rev="${hadoop-common.version}" conf="hadoop23->master"/>
+    <dependency org="org.apache.hadoop" name="hadoop-annotations"
+      rev="${hadoop-common.version}" conf="hadoop2->master"/>
     <dependency org="org.apache.hadoop" name="hadoop-auth" 
-      rev="${hadoop-common.version}" conf="hadoop23->master"/>
+      rev="${hadoop-common.version}" conf="hadoop2->master"/>
     <dependency org="org.apache.hadoop" name="hadoop-common" 
-      rev="${hadoop-common.version}" conf="hadoop23->master">
+      rev="${hadoop-common.version}" conf="hadoop2->master">
       <artifact name="hadoop-common" ext="jar" />
       <artifact name="hadoop-common" type="tests" ext="jar" m:classifier="tests" />
     </dependency>
     <dependency org="org.apache.hadoop" name="hadoop-hdfs"
-      rev="${hadoop-hdfs.version}" conf="hadoop23->master">
+      rev="${hadoop-hdfs.version}" conf="hadoop2->master">
       <artifact name="hadoop-hdfs" ext="jar" />
       <artifact name="hadoop-hdfs" type="tests" ext="jar" m:classifier="tests" />
     </dependency>
     <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-core" rev="${hadoop-mapreduce.version}"
-      conf="hadoop23->master"/>
+      conf="hadoop2->master"/>
     <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-jobclient" rev="${hadoop-mapreduce.version}"
-      conf="hadoop23->master">
+      conf="hadoop2->master">
         <artifact name="hadoop-mapreduce-client-jobclient" ext="jar" />
         <artifact name="hadoop-mapreduce-client-jobclient" type="tests" ext="jar" m:classifier="tests"/>
         <exclude org="commons-daemon" module="commons-daemon"/><!--bad POM-->
         <exclude org="org.apache.commons" module="commons-daemon"/><!--bad POM-->
     </dependency>
     <dependency org="org.apache.hadoop" name="hadoop-yarn-server-tests" rev="${hadoop-mapreduce.version}"
-      conf="hadoop23->master">
+      conf="hadoop2->master">
       <artifact name="hadoop-yarn-server-tests" type="jar" m:classifier="tests"/>
     </dependency>
     <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-app" rev="${hadoop-mapreduce.version}"
-      conf="hadoop23->master" />
+      conf="hadoop2->master" />
     <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-shuffle" rev="${hadoop-mapreduce.version}"
-      conf="hadoop23->master" />
+      conf="hadoop2->master" />
     <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-common" 
-      rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
+      rev="${hadoop-mapreduce.version}" conf="hadoop2->master"/>
     <dependency org="org.apache.hadoop" name="hadoop-yarn-api" 
-      rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
+      rev="${hadoop-mapreduce.version}" conf="hadoop2->master"/>
     <dependency org="org.apache.hadoop" name="hadoop-yarn-common" 
-      rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
+      rev="${hadoop-mapreduce.version}" conf="hadoop2->master"/>
     <dependency org="org.apache.hadoop" name="hadoop-yarn-server" 
-      rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
+      rev="${hadoop-mapreduce.version}" conf="hadoop2->master"/>
     <dependency org="org.apache.hadoop" name="hadoop-yarn-server-web-proxy" 
-      rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
+      rev="${hadoop-mapreduce.version}" conf="hadoop2->master"/>
     <dependency org="org.apache.hadoop" name="hadoop-yarn-server-common" 
-      rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
+      rev="${hadoop-mapreduce.version}" conf="hadoop2->master"/>
     <dependency org="org.apache.hadoop" name="hadoop-yarn-server-nodemanager" 
-      rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
+      rev="${hadoop-mapreduce.version}" conf="hadoop2->master"/>
     <dependency org="org.apache.hadoop" name="hadoop-yarn-server-resourcemanager" 
-      rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
+      rev="${hadoop-mapreduce.version}" conf="hadoop2->master"/>
     <dependency org="org.apache.hadoop" name="hadoop-yarn-client" 
-      rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
+      rev="${hadoop-mapreduce.version}" conf="hadoop2->master"/>
     <dependency org="org.apache.hadoop" name="hadoop-yarn-server-applicationhistoryservice" 
-      rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
+      rev="${hadoop-mapreduce.version}" conf="hadoop2->master"/>
     <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-hs" 
-      rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
+      rev="${hadoop-mapreduce.version}" conf="hadoop2->master"/>
     <dependency org="org.mortbay.jetty" name="jetty" rev="${jetty.version}"
       conf="compile->master">
       <artifact name="jetty" ext="jar" />
@@ -193,13 +185,7 @@
       <exclude org="org.codehaus.jackson" module="jackson-mapper-asl"/>
     </dependency>
     <dependency org="org.apache.avro" name="avro-mapred" rev="${avro.version}"
-      conf="hadoop20->default;checkstyle->master">
-      <exclude org="org.codehaus.jackson" module="jackson-core-asl"/>
-      <exclude org="org.codehaus.jackson" module="jackson-mapper-asl"/>
-      <exclude org="io.netty" module="netty"/>
-    </dependency>
-    <dependency org="org.apache.avro" name="avro-mapred" rev="${avro.version}"
-      conf="hadoop23->default;checkstyle->master">
+      conf="hadoop2->default;checkstyle->master">
       <artifact name="avro-mapred" type="jar" m:classifier="hadoop2"/>
       <exclude org="org.codehaus.jackson" module="jackson-core-asl"/>
       <exclude org="org.codehaus.jackson" module="jackson-mapper-asl"/>
@@ -261,37 +247,14 @@
     <dependency org="org.antlr" name="ST4" rev="${stringtemplate.version}" conf="compile->default"/>
     <dependency org="org.apache.zookeeper" name="zookeeper" rev="${zookeeper.version}" conf="compile->master"/>
     <dependency org="io.netty" name="netty" rev="${netty.version}" conf="test->master"/>
+    <dependency org="io.netty" name="netty-all" rev="${netty-all.version}" conf="test->master" />
     <dependency org="dk.brics.automaton" name="automaton" rev="1.11-8" conf="compile->default"/>
 
     <dependency org="org.jruby" name="jruby-complete" rev="${jruby.version}" conf="compile->master"/>
     <dependency org="asm" name="asm" rev="${asm.version}" conf="compile->default"/>
 
-    <!-- HBase dependency in format for releases up to 0.94 (including) -->
-    <dependency org="org.apache.hbase" name="hbase" rev="${hbase94.version}" conf="hbase94->master">
-      <artifact name="hbase" type="jar"/>
-      <artifact name="hbase" type="test-jar" ext="jar" m:classifier="tests"/>
-      <exclude org="org.apache.thrift" module="thrift"/>
-      <exclude org="org.apache.hadoop" module="hadoop-core"/>
-      <exclude org="org.apache.ant" module="ant" />
-      <exclude org="org.slf4j" module="slf4j"/>
-      <exclude org="org.slf4j" module="slf4j-api"/>
-      <exclude org="org.slf4j" module="slf4j-log4j12" />
-      <exclude org="org.slf4j" module="log4j12"/>
-      <exclude org="org.slf4j" module="log4j-over-slf4j"/>
-      <exclude org="stax" module="stax-api" />
-      <exclude org="javax.xml.bind" module="jaxb-api" />
-      <exclude org="javax.ws.rs" module="jsr311-api" />
-      <exclude org="tomcat" module="jasper-runtime"/>
-      <exclude org="tomcat" module="jasper-compiler"/>
-      <exclude org="com.google.protobuf" module="protobuf-java"/>
-      <exclude org="com.sun.jersey" module="jersey-core"/>
-      <exclude org="com.sun.jersey" module="jersey-server"/>
-      <exclude org="com.sun.jersey" module="jersey-json"/>
-      <exclude org="asm" module="asm"/>
-    </dependency>
-
     <!-- HBase dependency in format for releases higher or equal to 0.95 -->
-    <dependency org="org.apache.hbase" name="hbase-client" rev="${hbase95.version}" conf="hbase95->master">
+    <dependency org="org.apache.hbase" name="hbase-client" rev="${hbase1.version}" conf="hbase1->master">
       <artifact name="hbase-client" type="jar"/>
       <artifact name="hbase-client" type="test-jar" ext="jar" m:classifier="tests"/>
       <exclude org="org.slf4j" module="slf4j-api"/>
@@ -307,7 +270,7 @@
       <exclude org="asm" module="asm"/>
     </dependency>
 
-    <dependency org="org.apache.hbase" name="hbase-common" rev="${hbase95.version}" conf="hbase95->master">
+    <dependency org="org.apache.hbase" name="hbase-common" rev="${hbase1.version}" conf="hbase1->master">
       <artifact name="hbase-common" type="jar"/>
       <artifact name="hbase-common" type="test-jar" ext="jar" m:classifier="tests"/>
       <exclude org="org.apache.hadoop" module="hadoop-core"/>
@@ -322,7 +285,7 @@
       <exclude org="asm" module="asm"/>
     </dependency>
 
-    <dependency org="org.apache.hbase" name="hbase-server" rev="${hbase95.version}" conf="hbase95->master">
+    <dependency org="org.apache.hbase" name="hbase-server" rev="${hbase1.version}" conf="hbase1->master">
       <artifact name="hbase-server" type="jar"/>
       <artifact name="hbase-server" type="test-jar" ext="jar" m:classifier="tests"/>
       <exclude org="org.apache.hadoop" module="hadoop-core"/>
@@ -339,20 +302,20 @@
       <exclude org="asm" module="asm"/>
     </dependency>
 
-    <dependency org="org.apache.hbase" name="hbase-protocol" rev="${hbase95.version}" conf="hbase95->master">
+    <dependency org="org.apache.hbase" name="hbase-protocol" rev="${hbase1.version}" conf="hbase1->master">
       <artifact name="hbase-protocol" type="jar"/>
       <artifact name="hbase-protocol" type="test-jar" ext="jar" m:classifier="tests"/>
       <exclude org="com.google.protobuf" module="protobuf-java"/>
     </dependency>
 
-    <dependency org="org.apache.hbase" name="hbase-hadoop-compat" rev="${hbase95.version}" conf="hbase95->master">
+    <dependency org="org.apache.hbase" name="hbase-hadoop-compat" rev="${hbase1.version}" conf="hbase1->master">
       <artifact name="hbase-hadoop-compat" type="jar"/>
       <artifact name="hbase-hadoop-compat" type="test-jar" ext="jar" m:classifier="tests"/>
     </dependency>
 
-    <dependency org="org.apache.hbase" name="hbase-${hbase.hadoop.version}-compat" rev="${hbase95.version}" conf="hbase95->master">
-      <artifact name="hbase-${hbase.hadoop.version}-compat" type="jar"/>
-      <artifact name="hbase-${hbase.hadoop.version}-compat" type="test-jar" ext="jar" m:classifier="tests"/>
+    <dependency org="org.apache.hbase" name="hbase-hadoop2-compat" rev="${hbase1.version}" conf="hbase1->master">
+      <artifact name="hbase-hadoop2-compat" type="jar"/>
+      <artifact name="hbase-hadoop2-compat" type="test-jar" ext="jar" m:classifier="tests"/>
       <exclude org="org.apache.hadoop" module="hadoop-core"/>
       <exclude org="org.slf4j" module="slf4j-api"/>
       <exclude org="stax" module="stax-api" />
@@ -365,20 +328,17 @@
       <exclude org="asm" module="asm"/>
     </dependency>
 
-    <dependency org="org.htrace" name="htrace-core" rev="3.0.4" conf="hadoop23->master"/>
-    <dependency org="org.apache.htrace" name="htrace-core" rev="${htrace.version}" conf="hadoop23->master"/>
+    <dependency org="org.htrace" name="htrace-core" rev="3.0.4" conf="hadoop2->master"/>
+    <dependency org="org.apache.htrace" name="htrace-core" rev="${htrace.version}" conf="hadoop2->master"/>
     <dependency org="org.fusesource.leveldbjni" name="leveldbjni-all" rev="${leveldbjni.version}"
-      conf="hadoop23->master"/>
-    <dependency org="org.cloudera.htrace" name="htrace-core" rev="2.00" conf="hbase95->master">
+      conf="hadoop2->master"/>
+    <dependency org="org.cloudera.htrace" name="htrace-core" rev="2.00" conf="hbase1->master">
       <artifact name="htrace-core" type="jar"/>
     </dependency>
-    <dependency org="com.lmax" name="disruptor" rev="3.3.0" conf="hbase95->master"/>
+    <dependency org="com.lmax" name="disruptor" rev="3.3.0" conf="hbase1->master"/>
 
     <!-- for TestHBaseStorage -->
-    <dependency org="com.github.stephenc.high-scale-lib" name="high-scale-lib" rev="${high-scale-lib.version}"
-       conf="test->default"/>
-    <dependency org="com.google.protobuf" name="protobuf-java" rev="${protobuf-java.version}"
-       conf="test->default"/>
+    <dependency org="org.apache.hbase" name="hbase-procedure" rev="${hbase1.version}" conf="test->master"/>
     <dependency org="com.yammer.metrics" name="metrics-core" rev="${metrics-core.version}"
        conf="test->default"/>
 
@@ -428,10 +388,10 @@
       conf="compile->master" />
     <dependency org="org.apache.hive.shims" name="hive-shims-common" rev="${hive.version}" changing="true"
       conf="compile->master" />
+    <dependency org="org.apache.hive" name="hive-contrib" rev="${hive.version}" changing="true"
+                conf="test->master" />
     <dependency org="org.apache.hive.shims" name="hive-shims-0.23" rev="${hive.version}" changing="true"
-      conf="hadoop23->master" />
-    <dependency org="org.apache.hive.shims" name="hive-shims-0.20S" rev="${hive.version}" changing="true"
-      conf="hadoop20->master" />
+      conf="hadoop2->master" />
     <dependency org="org.iq80.snappy" name="snappy" rev="${snappy.version}"
       conf="test->master" />
     <dependency org="com.esotericsoftware.kryo" name="kryo" rev="${kryo.version}"
@@ -466,31 +426,31 @@
 
     <!-- for Tez integration -->
     <dependency org="org.apache.tez" name="tez" rev="${tez.version}"
-       conf="hadoop23->master"/>
+       conf="hadoop2->master"/>
     <dependency org="org.apache.tez" name="tez-common" rev="${tez.version}"
-       conf="hadoop23->master"/>
+       conf="hadoop2->master"/>
     <dependency org="org.apache.tez" name="tez-api" rev="${tez.version}"
-       conf="hadoop23->master"/>
+       conf="hadoop2->master"/>
     <dependency org="org.apache.tez" name="tez-dag" rev="${tez.version}"
-       conf="hadoop23->master"/>
+       conf="hadoop2->master"/>
     <dependency org="org.apache.tez" name="tez-runtime-internals" rev="${tez.version}"
-       conf="hadoop23->master"/>
+       conf="hadoop2->master"/>
     <dependency org="org.apache.tez" name="tez-runtime-library" rev="${tez.version}"
-       conf="hadoop23->master"/>
+       conf="hadoop2->master"/>
     <dependency org="org.apache.tez" name="tez-mapreduce" rev="${tez.version}"
-       conf="hadoop23->master"/>
+       conf="hadoop2->master"/>
     <dependency org="org.apache.tez" name="tez-yarn-timeline-history-with-acls" rev="${tez.version}"
-       conf="hadoop23->master"/>
+       conf="hadoop2->master"/>
     <dependency org="org.apache.commons" name="commons-collections4" rev="${commons-collections4.version}"
-      conf="hadoop23->master"/>
+      conf="hadoop2->master"/>
     <dependency org="org.codehaus.jettison" name="jettison" rev="${jettison.version}"
-      conf="hadoop23->master"/>
+      conf="hadoop2->master"/>
     <dependency org="org.apache.commons" name="commons-math3" rev="${commons-math3.version}"
-      conf="hadoop23->master"/>
+      conf="hadoop2->master"/>
     <dependency org="org.apache.curator" name="curator-framework" rev="${curator.version}"
-      conf="hadoop23->master"/>
+      conf="hadoop2->master"/>
     <dependency org="org.apache.curator" name="curator-client" rev="${curator.version}"
-      conf="hadoop23->master"/>
+      conf="hadoop2->master"/>
   </dependencies>
 </ivy-module>
 

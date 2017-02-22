@@ -18,7 +18,7 @@ a: Split - scope-68
 |   |   |
 |   |   Constant(DummyVal) - scope-72
 |   |
-|   |---New For Each(true,true)[tuple] - scope-78
+|   |---New For Each(false,true)[tuple] - scope-78
 |       |   |
 |       |   Project[int][0] - scope-75
 |       |   |
@@ -36,7 +36,7 @@ a: Split - scope-68
 |   |   |
 |   |   Constant(DummyVal) - scope-82
 |   |
-|   |---New For Each(true,true)[tuple] - scope-88
+|   |---New For Each(false,true)[tuple] - scope-88
 |       |   |
 |       |   Project[int][0] - scope-85
 |       |   |
@@ -110,7 +110,7 @@ Partition Rearrange[tuple]{int}(false) - scope-60	->	 scope-62
     |---d: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-18
 Tez vertex scope-62
 # Plan on vertex
-e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-29
+e: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-29
 |
 |---New For Each(true,true)[tuple] - scope-66
     |   |

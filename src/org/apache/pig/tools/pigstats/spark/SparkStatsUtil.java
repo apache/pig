@@ -18,12 +18,8 @@
 
 package org.apache.pig.tools.pigstats.spark;
 
-import java.util.List;
-
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.spark.JobMetricsListener;
 import org.apache.pig.backend.hadoop.executionengine.spark.operator.NativeSparkOperator;
@@ -101,21 +97,7 @@ public class SparkStatsUtil {
 
     public static long getLoadSparkCounterValue(POLoad load) {
         SparkPigStatusReporter reporter = SparkPigStatusReporter.getInstance();
-        int loadersCount = countCoLoadsIfInSplit(load,load.getParentPlan());
-        return reporter.getCounters().getValue(SPARK_INPUT_COUNTER_GROUP, getLoadSparkCounterName(load))/loadersCount;
-    }
-
-    private static int countCoLoadsIfInSplit(PhysicalOperator op, PhysicalPlan pp){
-        List<PhysicalOperator> successors = pp.getSuccessors(op);
-        if (successors == null || successors.size()==0) return 1;
-        for (PhysicalOperator successor : successors){
-            if (successor instanceof POSplit){
-                return ((POSplit)successor).getPlans().size();
-            }else{
-                return countCoLoadsIfInSplit(successor,pp);
-            }
-        }
-        return 1;
+        return reporter.getCounters().getValue(SPARK_INPUT_COUNTER_GROUP, getLoadSparkCounterName(load));
     }
 
     public static boolean isJobSuccess(int jobID,

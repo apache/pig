@@ -18,6 +18,7 @@
 
 package org.apache.pig;
 
+
 /**
  * Container for static configuration strings, defaults, etc. This is intended just for keys that can
  * be set by users, not for keys that are generally used within pig.
@@ -62,9 +63,15 @@ public class PigConfiguration {
     public static final String PIG_TEZ_OPT_UNION = "pig.tez.opt.union";
     /**
      * These keys are used to enable or disable tez union optimization for
-     * specific StoreFuncs so that optimization is only applied to StoreFuncs
-     * that do not hard part file names and honor mapreduce.output.basename and
-     * is turned of for those that do not. Refer PIG-4649
+     * specific StoreFuncs. Optimization should be turned off for those
+     * StoreFuncs that hard code part file names and do not prefix file names
+     * with mapreduce.output.basename configuration.
+     *
+     * If the StoreFuncs implement
+     * {@link StoreFunc#supportsParallelWriteToStoreLocation()} and return true
+     * or false then that is is used to turn on or off union optimization
+     * respectively. These settings can be used for StoreFuncs that have not
+     * implemented the API yet.
      */
     public static final String PIG_TEZ_OPT_UNION_SUPPORTED_STOREFUNCS = "pig.tez.opt.union.supported.storefuncs";
     public static final String PIG_TEZ_OPT_UNION_UNSUPPORTED_STOREFUNCS = "pig.tez.opt.union.unsupported.storefuncs";
@@ -127,6 +134,58 @@ public class PigConfiguration {
     public static final String PIG_SKEWEDJOIN_REDUCE_MEM = "pig.skewedjoin.reduce.mem";
 
     /**
+     * Bloom join has two different kind of implementations.
+     * <ul>
+     * <li>map <br>
+     * In each map, bloom filters are computed on the join keys partitioned by
+     * the hashcode of the key with {@link #PIG_BLOOMJOIN_NUM_FILTERS} number of
+     * partitions. Bloom filters from different maps are then combined in the
+     * reducer producing one bloom filter per partition. This is efficient and
+     * fast if there are smaller number of maps (<10) and the number of
+     * distinct keys are not too high. It can be faster with larger number of
+     * maps and even with bigger bloom vector sizes, but the amount of data
+     * shuffled to the reducer for aggregation becomes huge making it
+     * inefficient.</li>
+     * <li>reduce <br>
+     * Join keys are sent from the map to the reducer partitioned by hashcode of
+     * the key with {@link #PIG_BLOOMJOIN_NUM_FILTERS} number of reducers. One
+     * bloom filter is then created per partition. This is efficient for larger
+     * datasets with lot of maps or very large
+     * {@link #PIG_BLOOMJOIN_VECTORSIZE_BYTES}. In this case size of keys sent
+     * to the reducer is smaller than sending bloom filters to reducer for
+     * aggregation making it efficient.</li>
+     * </ul>
+     * Default value is map.
+     */
+    public static final String PIG_BLOOMJOIN_STRATEGY = "pig.bloomjoin.strategy";
+
+    /**
+     * The number of bloom filters that will be created.
+     * Default is 1 for map strategy and 11 for reduce strategy.
+     */
+    public static final String PIG_BLOOMJOIN_NUM_FILTERS = "pig.bloomjoin.num.filters";
+
+    /**
+     * The size in bytes of the bit vector to be used for the bloom filter.
+     * A bigger vector size will be needed when the number of distinct keys is higher.
+     * Default value is 1048576 (1MB).
+     */
+    public static final String PIG_BLOOMJOIN_VECTORSIZE_BYTES = "pig.bloomjoin.vectorsize.bytes";
+
+    /**
+     * The type of hash function to use. Valid values are jenkins and murmur.
+     * Default is murmur.
+     */
+    public static final String PIG_BLOOMJOIN_HASH_TYPE = "pig.bloomjoin.hash.type";
+
+    /**
+     * The number of hash functions to be used in bloom computation. It determines the probability of false positives.
+     * Higher the number lower the false positives. Too high a value can increase the cpu time.
+     * Default value is 3.
+     */
+    public static final String PIG_BLOOMJOIN_HASH_FUNCTIONS = "pig.bloomjoin.hash.functions";
+
+    /**
      * This key used to control the maximum size loaded into
      * the distributed cache when doing fragment-replicated join
      */
@@ -151,6 +210,12 @@ public class PigConfiguration {
      * This key is used to configure grace parallelism in tez. Default is true.
      */
     public static final String PIG_TEZ_GRACE_PARALLELISM = "pig.tez.grace.parallelism";
+    /**
+     * This key is used to turn off dag recovery if there is auto parallelism.
+     * Default is false. Useful when running with Tez versions before Tez 0.8
+     * which have issues with auto parallelism during DAG recovery.
+     */
+    public static final String PIG_TEZ_AUTO_PARALLELISM_DISABLE_DAG_RECOVERY = "pig.tez.auto.parallelism.disable.dag.recovery";
 
     /**
      * This key is used to configure compression for the pig input splits which
@@ -324,17 +389,17 @@ public class PigConfiguration {
     /**
      * Boolean value used to enable or disable error handling for storers
      */
-    public static final String PIG_ALLOW_STORE_ERRORS = "pig.allow.store.errors";
+    public static final String PIG_ERROR_HANDLING_ENABLED = "pig.error-handling.enabled";
 
     /**
      * Controls the minimum number of errors
      */
-    public static final String PIG_ERRORS_MIN_RECORDS = "pig.errors.min.records";
+    public static final String PIG_ERROR_HANDLING_MIN_ERROR_RECORDS = "pig.error-handling.min.error.records";
 
     /**
      * Set the threshold for percentage of errors
      */
-    public static final String PIG_ERROR_THRESHOLD_PERCENT = "pig.error.threshold.percent";
+    public static final String PIG_ERROR_HANDLING_THRESHOLD_PERCENT = "pig.error-handling.error.threshold";
 
     /**
      * Comma-delimited entries of commands/operators that must be disallowed.
@@ -410,6 +475,31 @@ public class PigConfiguration {
      * Default is 350MB
      */
     public static final String PIG_SPILL_UNUSED_MEMORY_THRESHOLD_SIZE = "pig.spill.unused.memory.threshold.size";
+
+    /**
+     * Log tracing id that can be used by upstream clients for tracking respective logs
+     */
+    public static final String PIG_LOG_TRACE_ID = "pig.log.trace.id";
+
+    /**
+     * @deprecated use {@link #PIG_LOG_TRACE_ID} instead. Will be removed in Pig 0.18
+     */
+    public static final String CALLER_ID = PIG_LOG_TRACE_ID;
+
+    /**
+     * Enable ATS for Pig
+     */
+    public static final String PIG_ATS_ENABLED = "pig.ats.enabled";
+
+    /**
+     * @deprecated use {@link #PIG_ATS_ENABLED} instead. Will be removed in Pig 0.18
+     */
+    public static final String ENABLE_ATS = PIG_ATS_ENABLED;
+
+    /**
+     * If set, Pig will override tez.am.launch.cmd-opts and tez.am.resource.memory.mb to optimal
+     */
+    public static final String PIG_TEZ_CONFIGURE_AM_MEMORY = "pig.tez.configure.am.memory";
 
     // Deprecated settings of Pig 0.13
 

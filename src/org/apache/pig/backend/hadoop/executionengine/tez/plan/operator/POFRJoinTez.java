@@ -19,6 +19,8 @@
 package org.apache.pig.backend.hadoop.executionengine.tez.plan.operator;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -101,9 +103,13 @@ public class POFRJoinTez extends POFRJoin implements TezInput {
                 LogicalInput input = inputs.get(key);
                 if (!this.replInputs.contains(input)) {
                     this.replInputs.add(input);
-                    this.replReaders.add((KeyValueReader) input.getReader());
+                    KeyValueReader reader = (KeyValueReader) input.getReader();
+                    this.replReaders.add(reader);
+                    log.info("Attached input from vertex " + key + " : input=" + input + ", reader=" + reader);
                 }
             }
+            // Do not force fetch input by reading first record. Cases like MultiQuery_Union_4 have
+            // multiple POFRJoinTez loading same replicate input and will skip records
         } catch (Exception e) {
             throw new ExecException(e);
         }
@@ -114,6 +120,7 @@ public class POFRJoinTez extends POFRJoin implements TezInput {
      *
      * @throws ExecException
      */
+    @SuppressWarnings("unchecked")
     @Override
     protected void setUpHashMap() throws ExecException {
 
@@ -121,8 +128,8 @@ public class POFRJoinTez extends POFRJoin implements TezInput {
         // where same POFRJoinTez occurs in different Split sub-plans
         Object cacheValue = ObjectCache.getInstance().retrieve(cacheKey);
         if (cacheValue != null) {
-            replicates = (TupleToMapKey[]) cacheValue;
-            log.info("Found " + (replicates.length - 1) + " replication hash tables in Tez cache. cachekey=" + cacheKey);
+            replicates =  (List<Map<? extends Object, ? extends List<Tuple>>>) cacheValue;
+            log.info("Found " + (replicates.size() - 1) + " replication hash tables in Tez cache. cachekey=" + cacheKey);
             return;
         }
 
@@ -148,7 +155,7 @@ public class POFRJoinTez extends POFRJoin implements TezInput {
 
         long time1 = System.currentTimeMillis();
 
-        replicates[fragment] = null;
+        replicates.set(fragment, null);
         int inputIdx = 0;
         // We need to adjust the index because the number of replInputs is
         // one less than the number of inputSchemas. The inputSchemas
@@ -158,7 +165,12 @@ public class POFRJoinTez extends POFRJoin implements TezInput {
             SchemaTupleFactory inputSchemaTupleFactory = inputSchemaTupleFactories[schemaIdx];
             SchemaTupleFactory keySchemaTupleFactory = keySchemaTupleFactories[schemaIdx];
 
-            TupleToMapKey replicate = new TupleToMapKey(4000, keySchemaTupleFactory);
+            Map<Object, ArrayList<Tuple>> replicate;
+            if (keySchemaTupleFactory == null) {
+                replicate = new HashMap<Object, ArrayList<Tuple>>(4000);
+            } else {
+                replicate = new TupleToMapKey(4000, keySchemaTupleFactory);
+            }
             POLocalRearrange lr = LRs[schemaIdx];
 
             try {
@@ -168,7 +180,8 @@ public class POFRJoinTez extends POFRJoin implements TezInput {
                     }
 
                     PigNullableWritable key = (PigNullableWritable) replReaders.get(inputIdx).getCurrentKey();
-                    if (isKeyNull(key.getValueAsPigType())) continue;
+                    Object keyValue = key.getValueAsPigType();
+                    if (isKeyNull(keyValue)) continue;
                     NullableTuple val = (NullableTuple) replReaders.get(inputIdx).getCurrentValue();
 
                     // POFRJoin#getValueTuple() is reused to construct valTuple,
@@ -176,27 +189,31 @@ public class POFRJoinTez extends POFRJoin implements TezInput {
                     // construct one here.
                     Tuple retTuple = mTupleFactory.newTuple(3);
                     retTuple.set(0, key.getIndex());
-                    retTuple.set(1, key.getValueAsPigType());
+                    retTuple.set(1, keyValue);
                     retTuple.set(2, val.getValueAsPigType());
                     Tuple valTuple = getValueTuple(lr, retTuple);
 
-                    Tuple keyTuple = mTupleFactory.newTuple(1);
-                    keyTuple.set(0, key.getValueAsPigType());
-                    if (replicate.get(keyTuple) == null) {
-                        replicate.put(keyTuple, new TuplesToSchemaTupleList(1, inputSchemaTupleFactory));
+                    ArrayList<Tuple> values = replicate.get(keyValue);
+                    if (values == null) {
+                        if (inputSchemaTupleFactory == null) {
+                            values = new ArrayList<Tuple>(1);
+                        } else {
+                            values = new TuplesToSchemaTupleList(1, inputSchemaTupleFactory);
+                        }
+                        replicate.put(keyValue, values);
                     }
-                    replicate.get(keyTuple).add(valTuple);
+                    values.add(valTuple);
                 }
             } catch (IOException e) {
                 throw new ExecException(e);
             }
-            replicates[schemaIdx] = replicate;
+            replicates.set(schemaIdx, replicate);
             inputIdx++;
             schemaIdx++;
         }
 
         long time2 = System.currentTimeMillis();
-        log.info((replicates.length - 1) + " replication hash tables built. Time taken: " + (time2 - time1));
+        log.info((replicates.size() - 1) + " replication hash tables built. Time taken: " + (time2 - time1));
 
         ObjectCache.getInstance().cache(cacheKey, replicates);
         log.info("Cached replicate hash tables in Tez ObjectRegistry with vertex scope. cachekey=" + cacheKey);

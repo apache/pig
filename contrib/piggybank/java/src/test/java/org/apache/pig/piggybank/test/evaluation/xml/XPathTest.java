@@ -151,6 +151,95 @@ public class XPathTest {
     }
 
     @Test
+    public void testExecTupleWithDontIgnoreNamespace() throws Exception {
+
+        final XPath xpath = new XPath();
+
+        final Tuple tuple = mock(Tuple.class);
+
+        when(tuple.get(0)).thenReturn("<?xml version='1.0'?>\n" +
+                "<foo:document xmlns:foo=\"http://apache.org/foo\" xmlns:bar=\"http://apache.org/bar\">" +
+                "<bar:element>MyBar</bar:element>" +
+                "</foo:document>");
+
+        when(tuple.size()).thenReturn(4);
+        when(tuple.get(2)).thenReturn(true);
+        when(tuple.get(3)).thenReturn(false);
+
+        when(tuple.get(1)).thenReturn("/foo:document/bar:element");
+        assertEquals("MyBar", xpath.exec(tuple));
+
+    }
+
+    @Test
+    public void testExecTupleWithDontIgnoreNamespace() throws Exception {
+
+        final XPath xpath = new XPath();
+
+        final Tuple tuple = mock(Tuple.class);
+
+        when(tuple.get(0)).thenReturn("<?xml version='1.0'?>\n" +
+                "<foo:document xmlns:foo=\"http://apache.org/foo\" xmlns:bar=\"http://apache.org/bar\">" +
+                "<bar:element>MyBar</bar:element>" +
+                "</foo:document>");
+
+        when(tuple.size()).thenReturn(4);
+        when(tuple.get(2)).thenReturn(true);
+        when(tuple.get(3)).thenReturn(false);
+
+        when(tuple.get(1)).thenReturn("/foo:document/bar:element");
+        assertEquals("MyBar", xpath.exec(tuple));
+
+    }
+
+    @Test
+    public void testExecTupleWithDontIgnoreNamespace() throws Exception {
+
+        final XPath xpath = new XPath();
+
+        final Tuple tuple = mock(Tuple.class);
+
+        when(tuple.get(0)).thenReturn("<?xml version='1.0'?>\n" +
+                "<foo:document xmlns:foo=\"http://apache.org/foo\" xmlns:bar=\"http://apache.org/bar\">" +
+                "<bar:element>MyBar</bar:element>" +
+                "</foo:document>");
+
+        when(tuple.size()).thenReturn(4);
+        when(tuple.get(2)).thenReturn(true);
+        when(tuple.get(3)).thenReturn(false);
+
+        when(tuple.get(1)).thenReturn("/foo:document/bar:element");
+        assertEquals("MyBar", xpath.exec(tuple));
+
+    }
+
+
+    @Test
+    public void testFunctionInXPath() throws Exception {
+
+        final XPath xpath = new XPath();
+
+        final Tuple tuple = mock(Tuple.class);
+
+        when(tuple.get(0)).thenReturn("<Aa name=\"test1\">" +
+                "<Bb Cc=\"1\"/>" +
+                "<Bb Cc=\"1\"/>" +
+                "<Bb Cc=\"1\"/>" +
+                "<Bb Cc=\"1\"/>" +
+                "<Dd>test2</Dd>" +
+                "</Aa>");
+
+        when(tuple.size()).thenReturn(4);
+        when(tuple.get(1)).thenReturn("sum(Aa/Bb/@Cc)");
+        when(tuple.get(2)).thenReturn(true);
+        when(tuple.get(3)).thenReturn(true);
+
+        assertEquals("4", xpath.exec(tuple));
+
+    }
+
+
+    @Test
     public void testExecTupleWithElementNodeWithComplexNameSpace() throws Exception {
 
         final XPath xpath = new XPath();
@@ -210,7 +299,31 @@ public class XPathTest {
         assertEquals("4 stars3.5 stars4 stars4.2 stars3.5 stars", xpath.exec(tuple));
 
     }
-    
+
+    @Test
+    public void testFunctionInXPath() throws Exception {
+
+        final XPath xpath = new XPath();
+
+        final Tuple tuple = mock(Tuple.class);
+
+        when(tuple.get(0)).thenReturn("<Aa name=\"test1\">" +
+                "<Bb Cc=\"1\"/>" +
+                "<Bb Cc=\"1\"/>" +
+                "<Bb Cc=\"1\"/>" +
+                "<Bb Cc=\"1\"/>" +
+                "<Dd>test2</Dd>" +
+                "</Aa>");
+
+        when(tuple.size()).thenReturn(4);
+        when(tuple.get(1)).thenReturn("sum(Aa/Bb/@Cc)");
+        when(tuple.get(2)).thenReturn(true);
+        when(tuple.get(3)).thenReturn(true);
+
+        assertEquals("4", xpath.exec(tuple));
+
+    }
+
     @Ignore //--optional test
     @Test 
     public void testCacheBenefit() throws Exception{

@@ -21,6 +21,7 @@ package org.apache.pig.newplan.logical.visitor;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.pig.PigException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Pair;
@@ -110,9 +111,20 @@ public class UnionOnSchemaSetter extends LogicalRelationalNodesVisitor{
                 } else {
                     ProjectExpression projExpr = 
                         new ProjectExpression( exprPlan, genInputs.size(), 0, gen );
-                    if( fs.type != DataType.BYTEARRAY
-                        && opSchema.getField( pos ).type != fs.type ) {
-                        new CastExpression( exprPlan, projExpr, fs );
+                    if( opSchema.getField( pos ).type != fs.type ) {
+                        if( fs.type != DataType.BYTEARRAY ) {
+                            CastExpression castexpr = new CastExpression( exprPlan, projExpr, fs );
+                            castexpr.setLocation(union.getLocation());
+                        } else {
+                            int errCode = 1056;
+                            String msg = "Union of incompatible types not allowed. "
+                                         + "Cannot cast from "
+                                         + DataType.findTypeName(opSchema.getField( pos ).type)
+                                         + " to bytearray for '"
+                                         + opSchema.getField( pos ).alias
+                                         + "'. Please typecast to compatible types before union." ;
+                            throw new FrontendException(union, msg, errCode, PigException.INPUT) ;
+                        }
                     }
                     genInputs.add( new LOInnerLoad( innerPlan, foreach, pos ) );
                 }

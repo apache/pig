@@ -34,10 +34,10 @@ public class CounterBasedErrorHandler implements ErrorHandler {
 
     public CounterBasedErrorHandler() {
         Configuration conf = UDFContext.getUDFContext().getJobConf();
-        this.minErrors = conf.getLong(PigConfiguration.PIG_ERRORS_MIN_RECORDS,
+        this.minErrors = conf.getLong(PigConfiguration.PIG_ERROR_HANDLING_MIN_ERROR_RECORDS,
                 0);
         this.errorThreshold = conf.getFloat(
-                PigConfiguration.PIG_ERROR_THRESHOLD_PERCENT, 0.0f);
+                PigConfiguration.PIG_ERROR_HANDLING_THRESHOLD_PERCENT, 0.0f);
     }
 
     @Override

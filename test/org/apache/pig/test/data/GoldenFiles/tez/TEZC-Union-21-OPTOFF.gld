@@ -1,0 +1,163 @@
+#--------------------------------------------------
+# There are 1 DAGs in the session
+#--------------------------------------------------
+#--------------------------------------------------
+# TEZ DAG plan: pig-0_scope-0
+#--------------------------------------------------
+Tez vertex scope-83	->	Tez vertex scope-84,
+Tez vertex scope-74	->	Tez vertex scope-76,
+Tez vertex scope-75	->	Tez vertex scope-76,
+Tez vertex scope-76	->	Tez vertex scope-84,Tez vertex scope-87,
+Tez vertex scope-84	->	Tez vertex scope-87,
+Tez vertex scope-87	->	Tez vertex scope-94,Tez vertex scope-96,
+Tez vertex scope-94	->	Tez vertex scope-96,
+Tez vertex scope-96	->	Tez vertex scope-104,
+Tez vertex scope-104
+
+Tez vertex scope-83
+# Plan on vertex
+d: Local Rearrange[tuple]{chararray}(false) - scope-29	->	 scope-84
+|   |
+|   Project[chararray][0] - scope-30
+|
+|---c: New For Each(false)[bag] - scope-22
+    |   |
+    |   Cast[chararray] - scope-20
+    |   |
+    |   |---Project[bytearray][0] - scope-19
+    |
+    |---c: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-18
+Tez vertex scope-74
+# Plan on vertex
+POValueOutputTez - scope-78	->	 [scope-76]
+|
+|---a: New For Each(false)[bag] - scope-6
+    |   |
+    |   Cast[chararray] - scope-4
+    |   |
+    |   |---Project[bytearray][0] - scope-3
+    |
+    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-2
+Tez vertex scope-75
+# Plan on vertex
+POValueOutputTez - scope-79	->	 [scope-76]
+|
+|---b: New For Each(false)[bag] - scope-11
+    |   |
+    |   Cast[chararray] - scope-9
+    |   |
+    |   |---Project[bytearray][0] - scope-8
+    |
+    |---b: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-7
+Tez vertex scope-76
+# Plan on vertex
+1-3: Split - scope-108
+|   |
+|   d: Local Rearrange[tuple]{chararray}(false) - scope-27	->	 scope-84
+|   |   |
+|   |   Project[chararray][0] - scope-28
+|   |
+|   |---r: Filter[bag] - scope-14
+|       |   |
+|       |   Not Equal To[boolean] - scope-17
+|       |   |
+|       |   |---Project[chararray][0] - scope-15
+|       |   |
+|       |   |---Constant() - scope-16
+|   |
+|   POValueOutputTez - scope-90	->	 [scope-87]
+|   |
+|   |---u2: New For Each(false,false)[bag] - scope-51
+|       |   |
+|       |   Project[chararray][0] - scope-48
+|       |   |
+|       |   Constant(DummyVal) - scope-50
+|       |
+|       |---s: Filter[bag] - scope-43
+|           |   |
+|           |   Not[boolean] - scope-47
+|           |   |
+|           |   |---Not Equal To[boolean] - scope-46
+|           |       |
+|           |       |---Project[chararray][0] - scope-44
+|           |       |
+|           |       |---Constant() - scope-45
+|
+|---POShuffledValueInputTez - scope-77	<-	 [scope-74, scope-75]
+Tez vertex scope-84
+# Plan on vertex
+POValueOutputTez - scope-89	->	 [scope-87]
+|
+|---u2: New For Each(false,false)[bag] - scope-42
+    |   |
+    |   Project[chararray][0] - scope-38
+    |   |
+    |   Project[chararray][1] - scope-40
+    |
+    |---d: New For Each(true,true)[tuple] - scope-37
+        |   |
+        |   Project[bag][1] - scope-31
+        |   |
+        |   POBinCond[bag] - scope-36
+        |   |
+        |   |---Project[bag][2] - scope-32
+        |   |
+        |   |---POUserFunc(org.apache.pig.builtin.IsEmpty)[boolean] - scope-34
+        |   |   |
+        |   |   |---Project[bag][2] - scope-33
+        |   |
+        |   |---Constant({()}) - scope-35
+        |
+        |---d: Package(Packager)[tuple]{chararray} - scope-26
+Tez vertex scope-87
+# Plan on vertex
+u2: Split - scope-107
+|   |
+|   POValueOutputTez - scope-98	->	 [scope-96]
+|   |
+|   |---e: Filter[bag] - scope-56
+|       |   |
+|       |   Equal To[boolean] - scope-59
+|       |   |
+|       |   |---Project[chararray][0] - scope-57
+|       |   |
+|       |   |---Constant() - scope-58
+|   |
+|   POValueOutputTez - scope-91	->	 [scope-94]
+|
+|---POShuffledValueInputTez - scope-88	<-	 [scope-76, scope-84]
+Tez vertex scope-94
+# Plan on vertex
+POValueOutputTez - scope-99	->	 [scope-96]
+|
+|---f: Filter[bag] - scope-62
+    |   |
+    |   Equal To[boolean] - scope-65
+    |   |
+    |   |---Project[chararray][0] - scope-63
+    |   |
+    |   |---Constant(m) - scope-64
+    |
+    |---POValueInputTez - scope-95	<-	 scope-87
+Tez vertex scope-96
+# Plan on vertex
+POValueOutputTez - scope-103	->	 [scope-104]
+|
+|---v: Limit - scope-72
+    |
+    |---t: Filter[bag] - scope-68
+        |   |
+        |   Not Equal To[boolean] - scope-71
+        |   |
+        |   |---Project[chararray][0] - scope-69
+        |   |
+        |   |---Constant() - scope-70
+        |
+        |---POShuffledValueInputTez - scope-97	<-	 [scope-87, scope-94]
+Tez vertex scope-104
+# Plan on vertex
+v: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-73
+|
+|---v: Limit - scope-106
+    |
+    |---POValueInputTez - scope-105	<-	 scope-96

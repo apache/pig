@@ -20,6 +20,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
+import java.util.List;
+
+import junit.framework.Assert;
 
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.ExecType;
@@ -36,15 +39,22 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.builtin.mock.Storage;
+import org.apache.pig.builtin.mock.Storage.Data;
+import static org.apache.pig.builtin.mock.Storage.*;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.Operator;
+import org.apache.pig.newplan.logical.expression.CastExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpression;
+import org.apache.pig.newplan.logical.expression.ProjectExpression;
 import org.apache.pig.newplan.logical.relational.LOCogroup;
 import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LOForEach;
+import org.apache.pig.newplan.logical.relational.LOGenerate;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LOStore;
@@ -61,8 +71,8 @@ public class TestPlanGeneration {
     private static PigServer ps;
 
     @BeforeClass
-    public static void setUp() throws ExecException {
-        ps = new PigServer(ExecType.LOCAL);
+    public static void setUp() throws Exception {
+        ps = new PigServer(Util.getLocalTestMode());
         pc = ps.getPigContext();
         pc.connect();
     }
@@ -310,5 +320,219 @@ public class TestPlanGeneration {
         LOStore loStore = (LOStore)lp.getSuccessors(loLoad).get(0);
         assertNotNull(((PartitionedLoader)loLoad.getLoadFunc()).getPartFilter());
         assertEquals("b", loStore.getAlias());
+    }
+
+    @Test
+    // See PIG-2315
+    public void testForEachWithCast1() throws Exception {
+        // A cast ForEach is inserted to take care of the user schema
+        String query = "A = load 'foo' as (a, b:int);\n" +
+                "B = foreach A generate a as a0:chararray, b as b:int;\n" +
+                "store B into 'output';";
+
+        LogicalPlan lp = Util.parse(query, pc);
+        Util.optimizeNewLP(lp);
+
+        LOLoad loLoad = (LOLoad)lp.getSources().get(0);
+        LOForEach loForEach1 = (LOForEach)lp.getSuccessors(loLoad).get(0);
+        LOForEach loForEach2 = (LOForEach)lp.getSuccessors(loForEach1).get(0);
+        // before a0 is typecasted to chararray, it should be bytearray
+        assertEquals(DataType.BYTEARRAY, loForEach1.getSchema().getField(0).type);
+        // type of b should stay as int
+        assertEquals(DataType.INTEGER, loForEach1.getSchema().getField(1).type);
+        assertEquals("B", loForEach2.getAlias());
+        LOGenerate generate = (LOGenerate)loForEach2.getInnerPlan().getSinks().get(0);
+        CastExpression cast = (CastExpression)generate.getOutputPlans().get(0).getSources().get(0);
+        Assert.assertTrue(cast.getType()==DataType.CHARARRAY);
+        assertEquals(loForEach2.getSchema().getField(0).alias, "a0");
+        Assert.assertTrue(lp.getSuccessors(loForEach2).get(0) instanceof LOStore);
+    }
+
+    @Test
+    // See PIG-2315
+    public void testForEachWithCast2() throws Exception {
+        // No additional cast ForEach will be inserted, but schema should match
+        String query = "A = load 'foo' as (a, b);\n" +
+                "B = foreach A generate (chararray)a as a0:chararray;\n" +
+                "store B into 'output';";
+
+        LogicalPlan lp = Util.parse(query, pc);
+        Util.optimizeNewLP(lp);
+
+        LOLoad loLoad = (LOLoad)lp.getSources().get(0);
+        LOForEach loForEach = (LOForEach)lp.getSuccessors(loLoad).get(0);
+        assertEquals(loForEach.getSchema().getField(0).alias, "a0");
+        Assert.assertTrue(lp.getSuccessors(loForEach).get(0) instanceof LOStore);
+    }
+
+    @Test
+    // See PIG-2315
+    public void testForEachWithCast3() throws Exception {
+        // No additional cast ForEach will be inserted, but schema should match
+        String query = "A = load 'foo' as (a, b);\n" +
+                "B = foreach A generate (chararray)a as a0:int;\n" +
+                "store B into 'output';";
+
+        LogicalPlan lp = Util.parse(query, pc);
+        Util.optimizeNewLP(lp);
+
+        LOLoad loLoad = (LOLoad)lp.getSources().get(0);
+        LOForEach loForEach1 = (LOForEach)lp.getSuccessors(loLoad).get(0);
+        LOGenerate generate1 = (LOGenerate)loForEach1.getInnerPlan().getSinks().get(0);
+        CastExpression cast1 = (CastExpression)generate1.getOutputPlans().get(0).getSources().get(0);
+        Assert.assertTrue(cast1.getType()==DataType.CHARARRAY);
+        //before a0 is typecasted to int, it should be chararray
+        Assert.assertEquals(DataType.CHARARRAY, loForEach1.getSchema().getField(0).type);
+        LOForEach loForEach2 = (LOForEach)lp.getSuccessors(loForEach1).get(0);
+        LOGenerate generate2 = (LOGenerate)loForEach2.getInnerPlan().getSinks().get(0);
+        CastExpression cast2 = (CastExpression)generate2.getOutputPlans().get(0).getSources().get(0);
+        Assert.assertTrue(cast2.getType()==DataType.INTEGER);
+        Assert.assertTrue(lp.getSuccessors(loForEach2).get(0) instanceof LOStore);
+    }
+
+    @Test
+    // See PIG-2315
+    public void testForEachWithCast4() throws Exception {
+        // No additional cast ForEach will be inserted
+        String query = "a = load 'foo' as (nb1:bag{}, nb2:chararray);\n" +
+                "b = foreach a generate flatten(nb1) as (year, name), nb2;\n" +
+                "store b into 'output';";
+
+        LogicalPlan lp = Util.parse(query, pc);
+        Util.optimizeNewLP(lp);
+
+        LOLoad loLoad = (LOLoad)lp.getSources().get(0);
+        LOForEach loForEach = (LOForEach)lp.getSuccessors(loLoad).get(0);
+        Assert.assertTrue(lp.getSuccessors(loForEach).get(0) instanceof LOStore);
+    }
+
+    @Test
+    // See PIG-2315
+    public void testForEachWithCast5() throws Exception {
+        // cast ForEach will be inserted
+        String query = "a = load 'foo' as (nb1:bag{}, nb2:chararray);\n" +
+                "b = foreach a generate flatten(nb1) as (year, name:chararray), nb2 as nb2:chararray;\n" +
+                "store b into 'output';";
+
+        LogicalPlan lp = Util.parse(query, pc);
+        Util.optimizeNewLP(lp);
+
+        LOLoad loLoad = (LOLoad)lp.getSources().get(0);
+        LOForEach loForEach1 = (LOForEach)lp.getSuccessors(loLoad).get(0);
+        // flattened "name" field should be bytearray before typecasted to  chararray
+        Assert.assertEquals(DataType.BYTEARRAY, loForEach1.getSchema().getField(1).type);
+        LOForEach loForEach2 = (LOForEach)lp.getSuccessors(loForEach1).get(0);
+        LOGenerate generate = (LOGenerate)loForEach2.getInnerPlan().getSinks().get(0);
+        Assert.assertTrue(generate.getOutputPlans().get(0).getSources().get(0) instanceof ProjectExpression);
+        CastExpression cast = (CastExpression)generate.getOutputPlans().get(1).getSources().get(0);
+        Assert.assertTrue(cast.getType()==DataType.CHARARRAY);
+        Assert.assertTrue(generate.getOutputPlans().get(2).getSources().get(0) instanceof ProjectExpression);
+    }
+
+    @Test
+    // See PIG-2315
+    public void testForEachWithCast6() throws Exception {
+        // no cast ForEach will be inserted
+        String query = "a = load 'foo' as (nb1:bag{(year,name)}, nb2);\n" +
+                "b = foreach a generate flatten(nb1) as (year, name2), nb2;\n" +
+                "store b into 'output';";
+
+        LogicalPlan lp = Util.parse(query, pc);
+        Util.optimizeNewLP(lp);
+
+        LOLoad loLoad = (LOLoad)lp.getSources().get(0);
+        LOForEach loForEach = (LOForEach)lp.getSuccessors(loLoad).get(0);
+        assertEquals(loForEach.getSchema().getField(1).alias, "name2");
+        Assert.assertTrue(lp.getSuccessors(loForEach).get(0) instanceof LOStore);
+    }
+
+    @Test
+    // See PIG-2315
+    public void testForEachWithCast7() throws Exception {
+        // no cast ForEach will be inserted, since we don't know the size of outputs
+        // in first inner plan
+        String query = "a = load 'foo' as (nb1:bag{}, nb2:bag{});\n" +
+                "b = foreach a generate flatten(nb1), flatten(nb2) as (year, name);\n" +
+                "store b into 'output';";
+
+        LogicalPlan lp = Util.parse(query, pc);
+        Util.optimizeNewLP(lp);
+
+        LOLoad loLoad = (LOLoad)lp.getSources().get(0);
+        LOForEach loForEach = (LOForEach)lp.getSuccessors(loLoad).get(0);
+        Assert.assertTrue(lp.getSuccessors(loForEach).get(0) instanceof LOStore);
+    }
+
+    @Test
+    // See PIG-2315
+    public void testAsType1() throws Exception {
+        Data data = Storage.resetData(ps);
+        data.set("input", tuple(0.1), tuple(1.2), tuple(2.3));
+
+        String query =
+            "A = load 'input' USING mock.Storage() as (a1:double);\n"
+            + "B = FOREACH A GENERATE a1 as (a2:int);\n"
+            + "store B into 'out' using mock.Storage;" ;
+
+        Util.registerMultiLineQuery(ps, query);
+        List<Tuple> list = data.get("out");
+        // Without PIG-2315, this failed with (0.1), (1.2), (2.3)
+        List<Tuple> expectedRes =
+                Util.getTuplesFromConstantTupleStrings(
+                        new String[] {"(0)", "(1)", "(2)"});
+        Util.checkQueryOutputsAfterSort(list, expectedRes);
+    }
+
+    @Test
+    // See PIG-2315
+    public void testAsType2() throws Exception {
+        Data data = Storage.resetData(ps);
+        data.set("input", tuple("a"), tuple("b"), tuple("c"));
+
+        String query =
+            "A = load 'input' USING mock.Storage(); \n"
+            + "A2 = FOREACH A GENERATE 12345 as (a2:chararray); \n"
+            + "B = load 'input' USING mock.Storage(); \n"
+            + "B2 = FOREACH A GENERATE '12345' as (b2:chararray); \n"
+            + "C = union A2, B2;\n"
+            + "D = distinct C;\n"
+            + "store D into 'out' using mock.Storage;" ;
+
+        Util.registerMultiLineQuery(ps, query);
+        List<Tuple> list = data.get("out");
+        // Without PIG-2315, this produced TWO 12345.
+        // One by chararray and another by int.
+        List<Tuple> expectedRes =
+                Util.getTuplesFromConstantTupleStrings(
+                        new String[] {"('12345')"});
+        Util.checkQueryOutputsAfterSort(list, expectedRes);
+    }
+
+    @Test
+    // See PIG-4933
+    public void testAsWithByteArrayCast() throws Exception {
+        Data data = Storage.resetData(ps);
+	    data.set("input_testAsWithByteArrayCast", "t1:(f1:bytearray, f2:bytearray), f3:chararray",
+				tuple(tuple(1,5), "a"),
+				tuple(tuple(2,4), "b"),
+				tuple(tuple(3,3), "c") );
+
+        String query =
+            "A = load 'input_testAsWithByteArrayCast' USING mock.Storage();\n"
+            + "B = FOREACH A GENERATE t1 as (t2:(newf1, newf2:float)), f3;"
+            + "store B into 'out' using mock.Storage;" ;
+
+        // This will call typecast of (bytearray,float) on a tuple
+        // bytearray2bytearray should be no-op.
+        // Without pig-4933 patch on POCast,
+        // this typecast was producing empty results
+
+        Util.registerMultiLineQuery(ps, query);
+        List<Tuple> list = data.get("out");
+        String[] expectedRes =
+                        new String[] {"((1,5.0),a)","((2,4.0),b)","((3,3.0),c)"};
+        for( int i=0; i < list.size(); i++ ) {
+            Assert.assertEquals(expectedRes[i], list.get(i).toString());
+        }
     }
 }

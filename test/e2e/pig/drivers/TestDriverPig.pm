@@ -211,13 +211,6 @@ sub runTest
            $testCmd->{'pig'} = $testCmd->{'pig_win'};
        }
 
-       if ( $testCmd->{'hadoopversion'} == '23' && $testCmd->{'pig23'}) {
-           $oldpig = $testCmd->{'pig'};
-           $testCmd->{'pig'} = $testCmd->{'pig23'};
-       }
-       if ( $testCmd->{'hadoopversion'} == '23' && $testCmd->{'expected_err_regex23'}) {
-           $testCmd->{'expected_err_regex'} = $testCmd->{'expected_err_regex23'};
-       }
        my $res = $self->runPigCmdLine( $testCmd, $log, 1, $resources );
        if ($oldpig) {
            $testCmd->{'pig'} = $oldpig;
@@ -231,10 +224,6 @@ sub runTest
            $testCmd->{'pig'} = $testCmd->{'pig_win'};
        }
 
-       if ( $testCmd->{'hadoopversion'} == '23' && $testCmd->{'pig23'}) {
-           $oldpig = $testCmd->{'pig'};
-           $testCmd->{'pig'} = $testCmd->{'pig23'};
-       }
        my $res = $self->runPig( $testCmd, $log, 1, $resources );
        if ($oldpig) {
            $testCmd->{'pig'} = $oldpig;
@@ -686,9 +675,6 @@ sub generateBenchmark
         if ((Util::isWindows()||Util::isCygwin()) && $testCmd->{'pig_win'}) {
            $modifiedTestCmd{'pig'} = $testCmd->{'pig_win'};
        }
-	   if ( $testCmd->{'hadoopversion'} == '23' && $testCmd->{'pig23'}) {
-           $modifiedTestCmd{'pig'} = $testCmd->{'pig23'};
-       }
 		# Change so we're looking at the old version of Pig
                 if (defined $testCmd->{'oldpigpath'} && $testCmd->{'oldpigpath'} ne "") {
 		    $modifiedTestCmd{'pigpath'} = $testCmd->{'oldpigpath'};
@@ -1056,10 +1042,6 @@ sub wrongExecutionMode($$)
                 $testCmd->{'exectype'} . " mode.\n";
             return 1;
         }
-    }
-
-    if (defined $testCmd->{'ignore23'} && $testCmd->{'hadoopversion'}=='23') {
-        $wrong = 1;
     }
 
     if ($wrong) {

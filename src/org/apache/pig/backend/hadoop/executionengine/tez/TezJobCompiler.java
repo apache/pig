@@ -19,6 +19,7 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,6 +31,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.pig.PigException;
+import org.apache.pig.backend.hadoop.PigATSClient;
 import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezPlanContainer;
@@ -50,11 +52,12 @@ public class TezJobCompiler {
     private static final Log log = LogFactory.getLog(TezJobCompiler.class);
 
     private PigContext pigContext;
-    private TezConfiguration tezConf;
+    private Configuration conf;
+    private boolean disableDAGRecovery;
 
     public TezJobCompiler(PigContext pigContext, Configuration conf) throws IOException {
         this.pigContext = pigContext;
-        this.tezConf = new TezConfiguration(conf);
+        this.conf = conf;
     }
 
     public DAG buildDAG(TezPlanContainerNode tezPlanNode, Map<String, LocalResource> localResources)
@@ -64,6 +67,7 @@ public class TezJobCompiler {
         TezDagBuilder dagBuilder = new TezDagBuilder(pigContext, tezPlanNode.getTezOperPlan(), tezDag, localResources);
         dagBuilder.visit();
         dagBuilder.avoidContainerReuseIfInputSplitInDisk();
+        disableDAGRecovery = dagBuilder.shouldDisableDAGRecovery();
         return tezDag;
     }
 
@@ -85,6 +89,7 @@ public class TezJobCompiler {
         return job;
     }
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     private TezJob getJob(TezPlanContainerNode tezPlanNode, TezPlanContainer planContainer)
             throws JobCreationException {
         try {
@@ -107,8 +112,34 @@ public class TezJobCompiler {
             }
             DAG tezDag = buildDAG(tezPlanNode, localResources);
             tezDag.setDAGInfo(createDagInfo(TezScriptState.get().getScript()));
+            // set Tez caller context
+            // Reflection for the following code since it is only available since tez 0.8.1:
+            // CallerContext context = CallerContext.create(ATSService.CallerContext, ATSService.getPigAuditId(pigContext),
+            //     ATSService.EntityType, "");
+            // tezDag.setCallerContext(context);
+            Class callerContextClass = null;
+            try {
+                callerContextClass = Class.forName("org.apache.tez.client.CallerContext");
+            } catch (ClassNotFoundException e) {
+                // If pre-Tez 0.8.1, skip setting CallerContext
+            }
+            if (callerContextClass != null) {
+                Method builderBuildMethod = callerContextClass.getMethod("create", String.class,
+                        String.class, String.class, String.class);
+                Object context = builderBuildMethod.invoke(null, PigATSClient.CALLER_CONTEXT,
+                        PigATSClient.getPigAuditId(pigContext), PigATSClient.ENTITY_TYPE, "");
+                Method dagSetCallerContext = tezDag.getClass().getMethod("setCallerContext",
+                        context.getClass());
+                dagSetCallerContext.invoke(tezDag, context);
+            }
             log.info("Total estimated parallelism is " + tezPlan.getEstimatedTotalParallelism());
-            return new TezJob(tezConf, tezDag, localResources, tezPlan.getEstimatedTotalParallelism());
+            TezConfiguration tezConf = new TezConfiguration(conf);
+            if (disableDAGRecovery
+                    && tezConf.getBoolean(TezConfiguration.DAG_RECOVERY_ENABLED,
+                            TezConfiguration.DAG_RECOVERY_ENABLED_DEFAULT)) {
+                tezConf.setBoolean(TezConfiguration.DAG_RECOVERY_ENABLED, false);
+            }
+            return new TezJob(tezConf, tezDag, localResources, tezPlan);
         } catch (Exception e) {
             int errCode = 2017;
             String msg = "Internal error creating job configuration.";

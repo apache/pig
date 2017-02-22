@@ -33,15 +33,15 @@ import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperator;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer.ParallelismSetter;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.optimizer.TezEstimatedParallelismClearer;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.EdgeProperty;
-import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
-import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.event.VertexState;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
@@ -72,7 +72,7 @@ public class PigGraceShuffleVertexManager extends ShuffleVertexManager {
             conf = TezUtils.createConfFromUserPayload(getContext().getUserPayload());
             bytesPerTask = conf.getLong(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM,
                     InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER);
-            pc = (PigContext)ObjectSerializer.deserialize(conf.get("pig.pigContext"));
+            pc = (PigContext)ObjectSerializer.deserialize(conf.get(PigImplConstants.PIG_CONTEXT));
             tezPlan = (TezOperPlan)ObjectSerializer.deserialize(conf.get("pig.tez.plan"));
             TezEstimatedParallelismClearer clearer = new TezEstimatedParallelismClearer(tezPlan);
             try {
@@ -81,9 +81,10 @@ public class PigGraceShuffleVertexManager extends ShuffleVertexManager {
                 throw new TezUncheckedException(e);
             }
             TezOperator op = tezPlan.getOperator(OperatorKey.fromString(getContext().getVertexName()));
-    
+
             // Collect grandparents of the vertex
-            Function<TezOperator, String> tezOpToString = new Function<TezOperator, String>() { 
+            Function<TezOperator, String> tezOpToString = new Function<TezOperator, String>() {
+                @Override
                 public String apply(TezOperator op) { return op.getOperatorKey().toString(); }
             };
             grandParents = Lists.transform(TezOperPlan.getGrandParentsForGraceParallelism(tezPlan, op), tezOpToString);
@@ -135,7 +136,7 @@ public class PigGraceShuffleVertexManager extends ShuffleVertexManager {
         // Now one of the predecessor is about to start, we need to make a decision now
         if (anyPredAboutToStart) {
             // All grandparents finished, start parents with right parallelism
-            
+
             for (TezOperator pred : preds) {
                 if (pred.getRequestedParallelism()==-1) {
                     List<TezOperator> predPreds = tezPlan.getPredecessors(pred);

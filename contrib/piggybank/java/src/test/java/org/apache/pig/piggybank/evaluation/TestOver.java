@@ -18,12 +18,11 @@
 package org.apache.pig.piggybank.evaluation;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.math.BigDecimal;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Random;
 
 import org.apache.pig.backend.executionengine.ExecException;
@@ -34,8 +33,6 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-
-import org.junit.Before;
 import org.junit.Test;
 
 public class TestOver {
@@ -66,11 +63,25 @@ public class TestOver {
         out = func.outputSchema(in);
         assertEquals("{org.apache.pig.piggybank.evaluation.over_3: {result: double}}", out.toString());
 
+        // bigdecimal
+        func = new Over("BIGDECIMAL");
+        in = Schema.generateNestedSchema(DataType.BAG, DataType.INTEGER);
+        out = func.outputSchema(in);
+        assertEquals("{org.apache.pig.piggybank.evaluation.over_4: {result: bigdecimal}}", out.toString());
+        
         // named 
         func = new Over("bob:chararray");
         in = Schema.generateNestedSchema(DataType.BAG, DataType.INTEGER);
         out = func.outputSchema(in);
-        assertEquals("{org.apache.pig.piggybank.evaluation.over_4: {bob: chararray}}", out.toString());
+        assertEquals("{org.apache.pig.piggybank.evaluation.over_5: {bob: chararray}}", out.toString());
+        
+        
+        // Search inner alias and type
+        func = new Over("true");
+        in = Schema.generateNestedSchema(DataType.BAG, DataType.BIGDECIMAL);
+        in.getField(0).schema.getField(0).alias="test";
+        out = func.outputSchema(in);
+        assertEquals("{org.apache.pig.piggybank.evaluation.over_6: {test_over: bigdecimal}}", out.toString());
     }
 
     @Test
@@ -397,6 +408,28 @@ public class TestOver {
             assertEquals(new Long(10), to.get(0));
         }
     }
+    
+    @Test
+    public void testSumBigDecimal() throws Exception {
+    	Over func = new Over();
+        DataBag inbag = BagFactory.getInstance().newDefaultBag();
+        for (int i = 0; i < 10; i++) {
+            Tuple t = TupleFactory.getInstance().newTuple(1);
+            t.set(0, new BigDecimal(1));
+            inbag.add(t);
+        }
+        Tuple t = TupleFactory.getInstance().newTuple(4);
+        t.set(0, inbag);
+        t.set(1, "sum(bigdecimal)");
+        t.set(2, -1);
+        t.set(3, -1);
+        DataBag outbag = func.exec(t);
+        assertEquals(10, outbag.size());
+        for (Tuple to : outbag) {
+            assertEquals(1, to.size());
+            assertEquals(new BigDecimal(10), to.get(0));
+        }
+    }
 
     @Test
     public void testAvgDouble() throws Exception {
@@ -507,6 +540,29 @@ public class TestOver {
             assertEquals(new Double(4.5), to.get(0));
         }
     }
+    
+    @Test
+    public void testAvgBigDecimal() throws Exception {
+        Over func = new Over();
+        DataBag inbag = BagFactory.getInstance().newDefaultBag();
+        for (int i = 0; i < 10; i++) {
+            Tuple t = TupleFactory.getInstance().newTuple(1);
+            t.set(0, new BigDecimal(i));
+            inbag.add(t);
+        }
+        Tuple t = TupleFactory.getInstance().newTuple(4);
+        t.set(0, inbag);
+        t.set(1, "avg(bigdecimal)");
+        t.set(2, -1);
+        t.set(3, -1);
+        DataBag outbag = func.exec(t);
+        assertEquals(10, outbag.size());
+        for (Tuple to : outbag) {
+            assertEquals(1, to.size());
+            assertEquals(new BigDecimal(4.5), to.get(0));
+        }
+    }
+    
     
     @Test
     public void testMinDouble() throws Exception {
@@ -625,6 +681,26 @@ public class TestOver {
         for (Tuple to : outbag) {
             assertEquals(1, to.size());
             assertEquals("0", to.get(0));
+        }
+    }
+    
+    @Test
+    public void testMinBigDecimal() throws Exception {
+        Over func = new Over();
+        DataBag inbag = BagFactory.getInstance().newDefaultBag();
+        for (int i = 0; i < 10; i++) {
+            Tuple t = TupleFactory.getInstance().newTuple(1);
+            t.set(0,  new BigDecimal(i));
+            inbag.add(t);
+        }
+        Tuple t = TupleFactory.getInstance().newTuple(2);
+        t.set(0, inbag);
+        t.set(1, "min(bigdecimal)");
+        DataBag outbag = func.exec(t);
+        assertEquals(10, outbag.size());
+        for (Tuple to : outbag) {
+            assertEquals(1, to.size());
+            assertEquals(new BigDecimal(0), to.get(0));
         }
     }
 
@@ -754,6 +830,28 @@ public class TestOver {
             assertEquals("9", to.get(0));
         }
     }
+    
+    @Test
+    public void testMaxBigDecimal() throws Exception {
+        Over func = new Over();
+        DataBag inbag = BagFactory.getInstance().newDefaultBag();
+        for (int i = 0; i < 10; i++) {
+            Tuple t = TupleFactory.getInstance().newTuple(1);
+            t.set(0, new BigDecimal(i));
+            inbag.add(t);
+        }
+        Tuple t = TupleFactory.getInstance().newTuple(2);
+        t.set(0, inbag);
+        t.set(1, "max(bigdecimal)");
+        DataBag outbag = func.exec(t);
+        assertEquals(10, outbag.size());
+        int count = 0;
+        for (Tuple to : outbag) {
+            assertEquals(1, to.size());
+            assertEquals(new BigDecimal(count++), to.get(0));
+        }
+    }
+	
 
     @Test
     public void testRowNumber() throws Exception {

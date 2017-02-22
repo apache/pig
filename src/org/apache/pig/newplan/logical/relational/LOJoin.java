@@ -38,6 +38,7 @@ public class LOJoin extends LogicalRelationalOperator {
      */
     public static enum JOINTYPE {
         HASH,    // Hash Join
+        BLOOM,   // Bloom Join
         REPLICATED, // Fragment Replicated join
         SKEWED, // Skewed Join
         MERGE,   // Sort Merge Join

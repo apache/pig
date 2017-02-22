@@ -25,6 +25,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigHadoopLogger;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.UDFFinishVisitor;
@@ -122,7 +123,8 @@ public class FetchLauncher {
         poStore.setUp();
 
         TaskAttemptID taskAttemptID = HadoopShims.getNewTaskAttemptID();
-        HadoopShims.setTaskAttemptId(conf, taskAttemptID);
+        //Fetch mode needs to explicitly set the task id which is otherwise done by Hadoop
+        conf.setInt(MRConfiguration.JOB_APPLICATION_ATTEMPT_ID, taskAttemptID.getId());
 
         if (!PlanHelper.getPhysicalOperators(pp, POStream.class).isEmpty()) {
             MapRedUtil.setupStreamingDirsConfSingle(poStore, pigContext, conf);

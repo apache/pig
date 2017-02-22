@@ -60,7 +60,7 @@ public class StoreFuncDecorator {
 
     private boolean allowErrors() {
         return UDFContext.getUDFContext().getJobConf()
-                .getBoolean(PigConfiguration.PIG_ALLOW_STORE_ERRORS, false);
+                .getBoolean(PigConfiguration.PIG_ERROR_HANDLING_ENABLED, false);
     }
 
     /**

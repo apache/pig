@@ -1,0 +1,91 @@
+#--------------------------------------------------
+# There are 1 DAGs in the session
+#--------------------------------------------------
+#--------------------------------------------------
+# TEZ DAG plan: pig-0_scope-0
+#--------------------------------------------------
+Tez vertex scope-48	->	Tez vertex scope-49,Tez vertex scope-50,
+Tez vertex scope-50	->	Tez vertex scope-46,Tez vertex scope-47,
+Tez vertex scope-46	->	Tez vertex scope-49,
+Tez vertex scope-47	->	Tez vertex scope-49,
+Tez vertex scope-49
+
+Tez vertex scope-48
+# Plan on vertex
+d: BuildBloom Rearrange[tuple]{bytearray}(false) - scope-30	->	[ scope-49, scope-50]
+|   |
+|   Project[bytearray][0] - scope-31
+|
+|---c: New For Each(false,false)[bag] - scope-20
+    |   |
+    |   Project[bytearray][0] - scope-15
+    |   |
+    |   Cast[int] - scope-18
+    |   |
+    |   |---Project[bytearray][1] - scope-17
+    |
+    |---c: Load(file:///tmp/input2:org.apache.pig.builtin.PigStorage) - scope-14
+Tez vertex scope-50
+# Combine plan on edge <scope-48>
+Local Rearrange[tuple]{int}(false) - scope-55	->	 scope-50
+|   |
+|   Project[int][0] - scope-54
+|
+|---Package(BloomPackager)[tuple]{int} - scope-53
+# Plan on vertex
+POValueOutputTez - scope-52	->	 [scope-46, scope-47]
+|
+|---Package(BloomPackager)[tuple]{int} - scope-51
+Tez vertex scope-46
+# Plan on vertex
+d: BloomFilter Rearrange[tuple]{bytearray}(false) - scope-26	<-	 scope-50	->	 scope-49
+|   |
+|   Project[bytearray][0] - scope-27
+|
+|---b: New For Each(false,false)[bag] - scope-6
+    |   |
+    |   Project[bytearray][0] - scope-1
+    |   |
+    |   Cast[int] - scope-4
+    |   |
+    |   |---Project[bytearray][1] - scope-3
+    |
+    |---b: Load(file:///tmp/input2:org.apache.pig.builtin.PigStorage) - scope-0
+Tez vertex scope-47
+# Plan on vertex
+d: BloomFilter Rearrange[tuple]{bytearray}(false) - scope-28	<-	 scope-50	->	 scope-49
+|   |
+|   Project[bytearray][0] - scope-29
+|
+|---a: New For Each(false,false)[bag] - scope-13
+    |   |
+    |   Project[bytearray][0] - scope-8
+    |   |
+    |   Cast[int] - scope-11
+    |   |
+    |   |---Project[bytearray][1] - scope-10
+    |
+    |---a: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-7
+Tez vertex scope-49
+# Plan on vertex
+e: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-45
+|
+|---e: New For Each(false,false,false,false)[bag] - scope-44
+    |   |
+    |   Project[bytearray][2] - scope-36
+    |   |
+    |   Project[int][3] - scope-38
+    |   |
+    |   Project[int][1] - scope-40
+    |   |
+    |   Project[int][5] - scope-42
+    |
+    |---d: New For Each(true,true,true)[tuple] - scope-35
+        |   |
+        |   Project[bag][1] - scope-32
+        |   |
+        |   Project[bag][2] - scope-33
+        |   |
+        |   Project[bag][3] - scope-34
+        |
+        |---d: Package(Packager)[tuple]{bytearray} - scope-25

@@ -43,7 +43,6 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
-import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
@@ -67,16 +66,10 @@ public class TestBZip {
 
     @Parameters(name = "pig.bzip.use.hadoop.inputformat = {0}.")
     public static Iterable<Object[]> data() {
-        if ( HadoopShims.isHadoopYARN() ) {
-            return Arrays.asList(new Object[][] {
-                { false  },
-                { true   }
-            });
-        } else {
-            return Arrays.asList(new Object[][] {
-                { false }
-            });
-        }
+        return Arrays.asList(new Object[][] {
+            { false  },
+            { true   }
+        });
     }
 
     public TestBZip (Boolean useBzipFromHadoop) {

@@ -183,6 +183,14 @@ public interface ExecutionEngine {
     public ExecutableManager getExecutableManager();
 
     /**
+     * This method is called when user requests to kill all jobs
+     * associated with the execution engine
+     *
+     * @throws BackendException
+     */
+    public void kill() throws BackendException;
+
+    /**
      * This method is called when a user requests to kill a job associated with
      * the given job id. If it is not possible for a user to kill a job, throw a
      * exception. It is imperative for the job id's being displayed to be unique

@@ -21,6 +21,7 @@ package org.apache.pig.piggybank.evaluation;
 import java.io.IOException;
 import java.util.Iterator;
 
+import org.apache.pig.Accumulator;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -43,7 +44,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  * 
  * @author Vadim Zaliva <lord@codemindes.com>
  */
-public class MaxTupleBy1stField extends EvalFunc<Tuple> implements Algebraic
+public class MaxTupleBy1stField extends EvalFunc<Tuple> implements Algebraic, Accumulator<Tuple>
 {
     /**
      * Indicates once for how many items progress hartbeat should be sent.
@@ -131,6 +132,11 @@ public class MaxTupleBy1stField extends EvalFunc<Tuple> implements Algebraic
     protected static Tuple max(Tuple input, PigProgressable reporter) throws ExecException
     {
         DataBag values = (DataBag) input.get(0);
+        return max(values,reporter);
+    }
+
+    protected static Tuple max(DataBag values, PigProgressable reporter) throws ExecException
+    {
 
         // if we were handed an empty bag, return NULL
         // this is in compliance with SQL standard
@@ -181,6 +187,46 @@ public class MaxTupleBy1stField extends EvalFunc<Tuple> implements Algebraic
     public String getFinal()
     {
         return Final.class.getName();
+    }
+
+
+    /**
+     * Accumulator implementation
+     */
+
+    private Tuple intermediate = null;
+
+    /**
+     * Accumulate implementation - calls max() on the incoming tuple set including intermediate tuple if already exists
+     * @param b A tuple containing a single field, which is a bag.  The bag will contain the set
+     * @throws IOException
+     */
+    @Override
+    public void accumulate(Tuple b) throws IOException {
+        try{
+            DataBag values = BagFactory.getInstance().newDefaultBag();
+            values.addAll((DataBag) b.get(0));
+
+            if (intermediate != null) {
+                values.add(intermediate);
+            }
+            intermediate = max(values,reporter);
+
+        }catch (ExecException ee){
+            IOException oughtToBeEE = new IOException();
+            oughtToBeEE.initCause(ee);
+            throw oughtToBeEE;
+        }
+    }
+
+    @Override
+    public Tuple getValue() {
+        return intermediate;
+    }
+
+    @Override
+    public void cleanup() {
+        intermediate = null;
     }
 
 }

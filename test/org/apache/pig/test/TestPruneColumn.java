@@ -1397,13 +1397,13 @@ public class TestPruneColumn {
     }
 
     @Test
-    public void testRelayFlattenMap() throws Exception {
+    public void testFlattenMapCantPruneKeys() throws Exception {
         pigServer.registerQuery("A = load '"+ Util.generateURI(tmpFile3.toString(), pigServer.getPigContext())
-                + "' as (a0, a1:map[]);");
+                + "' as (a0, a1:map[int]);");
 
         pigServer.registerQuery("B = foreach A generate flatten(a1);");
-        pigServer.registerQuery("C = foreach B generate a1#'key1';");
-
+        pigServer.registerQuery("B1 = filter B by a1::key == 'key1';");
+        pigServer.registerQuery("C = foreach B1 generate a1::value;");
         Iterator<Tuple> iter = pigServer.openIterator("C");
 
         assertTrue(iter.hasNext());
@@ -1418,8 +1418,7 @@ public class TestPruneColumn {
 
         assertFalse(iter.hasNext());
 
-        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0",
-                "Map key required for A: $1->[key1]"}));
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0"}));
     }
 
     @Test

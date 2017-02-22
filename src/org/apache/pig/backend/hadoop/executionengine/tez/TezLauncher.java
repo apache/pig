@@ -22,6 +22,7 @@ import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -166,13 +167,17 @@ public class TezLauncher extends Launcher {
         tezStats = new TezPigScriptStats(pc);
         PigStats.start(tezStats);
 
-        conf.set(TezConfiguration.TEZ_USE_CLUSTER_HADOOP_LIBS, "true");
+        conf.setIfUnset(TezConfiguration.TEZ_USE_CLUSTER_HADOOP_LIBS, "true");
         TezJobCompiler jc = new TezJobCompiler(pc, conf);
         TezPlanContainer tezPlanContainer = compile(php, pc);
 
         tezStats.initialize(tezPlanContainer);
         tezScriptState.emitInitialPlanNotification(tezPlanContainer);
         tezScriptState.emitLaunchStartedNotification(tezPlanContainer.size()); //number of DAGs to Launch
+
+        boolean stop_on_failure =
+                Boolean.valueOf(pc.getProperties().getProperty("stop.on.failure", "false"));
+        boolean stoppedOnFailure = false;
 
         TezPlanContainerNode tezPlanContainerNode;
         TezOperPlan tezPlan;
@@ -252,7 +257,18 @@ public class TezLauncher extends Launcher {
                     ((tezPlanContainer.size() - processedDAGs)/tezPlanContainer.size()) * 100);
             }
             handleUnCaughtException(pc);
-            tezPlanContainer.updatePlan(tezPlan, reporter.notifyFinishedOrFailed());
+            boolean tezDAGSucceeded = reporter.notifyFinishedOrFailed();
+            tezPlanContainer.updatePlan(tezPlan, tezDAGSucceeded);
+            // if stop_on_failure is enabled, we need to stop immediately when any job has failed
+            if (!tezDAGSucceeded) {
+                if (stop_on_failure) {
+                    stoppedOnFailure = true;
+                    break;
+                } else {
+                    log.warn("Ooops! Some job has failed! Specify -stop_on_failure if you "
+                            + "want Pig to stop immediately on failure.");
+                }
+            }
         }
 
         tezStats.finish();
@@ -277,6 +293,11 @@ public class TezLauncher extends Launcher {
                 // older instance of a StoreFunc that doesn't implement
                 // this method.
             }
+        }
+
+        if (stoppedOnFailure) {
+            throw new ExecException("Stopping execution on job failure with -stop_on_failure option", 6017,
+                    PigException.REMOTE_ENVIRONMENT);
         }
 
         return tezStats;
@@ -402,9 +423,11 @@ public class TezLauncher extends Launcher {
         TezCompiler comp = new TezCompiler(php, pc);
         comp.compile();
         TezPlanContainer planContainer = comp.getPlanContainer();
-        for (Map.Entry<OperatorKey, TezPlanContainerNode> entry : planContainer
-                .getKeys().entrySet()) {
-            TezOperPlan tezPlan = entry.getValue().getTezOperPlan();
+        // Doing a sort so that test plan printed remains same between jdk7 and jdk8
+        List<OperatorKey> opKeys = new ArrayList<>(planContainer.getKeys().keySet());
+        Collections.sort(opKeys);
+        for (OperatorKey opKey : opKeys) {
+            TezOperPlan tezPlan = planContainer.getOperator(opKey).getTezOperPlan();
             optimize(tezPlan, pc);
         }
         return planContainer;
@@ -499,7 +522,7 @@ public class TezLauncher extends Launcher {
 
     @Override
     public void killJob(String jobID, Configuration conf) throws BackendException {
-        if (runningJob != null && runningJob.getApplicationId().toString() == jobID) {
+        if (runningJob != null && runningJob.getApplicationId().toString().equals(jobID)) {
             try {
                 runningJob.killJob();
             } catch (Exception e) {

@@ -58,12 +58,12 @@ POValueOutputTez - scope-120	->	 [scope-121, scope-123, scope-125]
     |---c: Package(Packager)[tuple]{int} - scope-83
 Tez vertex scope-121
 # Plan on vertex
-c: Store(file:///tmp/output/c:org.apache.pig.builtin.PigStorage) - scope-94
+c: Store(file:///tmp/pigoutput/c:org.apache.pig.builtin.PigStorage) - scope-94
 |
 |---POValueInputTez - scope-122	<-	 scope-119
 Tez vertex scope-123
 # Plan on vertex
-d: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-104
+d: Store(file:///tmp/pigoutput/d:org.apache.pig.builtin.PigStorage) - scope-104
 |
 |---d: New For Each(false,false,false)[bag] - scope-103
     |   |
@@ -76,7 +76,7 @@ d: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-104
     |---POValueInputTez - scope-124	<-	 scope-119
 Tez vertex scope-125
 # Plan on vertex
-e: Store(file:///tmp/output/e:org.apache.pig.builtin.PigStorage) - scope-116
+e: Store(file:///tmp/pigoutput/e:org.apache.pig.builtin.PigStorage) - scope-116
 |
 |---e: New For Each(false,false,false,false)[bag] - scope-115
     |   |

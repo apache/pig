@@ -51,7 +51,7 @@ public class POFRJoinSpark extends POFRJoin {
             addSchemaToFactories(keySchemas[i], keySchemaTupleFactories, i);
         }
 
-        replicates[fragment] = null;
+        replicates.set(fragment, null);
         int i = -1;
         long start = System.currentTimeMillis();
         for (int k = 0; k < inputSchemas.length; ++k) {
@@ -61,7 +61,7 @@ public class POFRJoinSpark extends POFRJoin {
             SchemaTupleFactory keySchemaTupleFactory = keySchemaTupleFactories[i];
 
             if (i == fragment) {
-                replicates[i] = null;
+                replicates.set(fragment, null);
                 continue;
             }
 
@@ -91,7 +91,7 @@ public class POFRJoinSpark extends POFRJoin {
                 replicate.get(key).add(value);
 
             }
-            replicates[i] = replicate;
+            replicates.set(i, replicate);
         }
         long end = System.currentTimeMillis();
         log.debug("Hash Table built. Time taken: " + (end - start));

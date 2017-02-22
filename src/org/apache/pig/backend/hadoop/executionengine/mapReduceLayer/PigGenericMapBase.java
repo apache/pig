@@ -21,6 +21,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -45,6 +46,7 @@ import org.apache.pig.data.SchemaTupleBackend;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -88,7 +90,6 @@ public abstract class PigGenericMapBase extends Mapper<Text, Tuple, PigNullableW
 
     private PhysicalOperator leaf;
 
-    PigContext pigContext = null;
     private volatile boolean initialized = false;
 
     /**
@@ -168,13 +169,15 @@ public abstract class PigGenericMapBase extends Mapper<Text, Tuple, PigNullableW
         inIllustrator = inIllustrator(context);
 
         PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.deserialize(job.get("udf.import.list")));
-        pigContext = (PigContext)ObjectSerializer.deserialize(job.get("pig.pigContext"));
 
         // This attempts to fetch all of the generated code from the distributed cache, and resolve it
-        SchemaTupleBackend.initialize(job, pigContext);
+        SchemaTupleBackend.initialize(job);
 
-        if (pigContext.getLog4jProperties()!=null)
-            PropertyConfigurator.configure(pigContext.getLog4jProperties());
+        Properties log4jProperties = (Properties) ObjectSerializer
+                .deserialize(job.get(PigImplConstants.PIG_LOG4J_PROPERTIES));
+        if (log4jProperties != null) {
+            PropertyConfigurator.configure(log4jProperties);
+        }
 
         if (mp == null)
             mp = (PhysicalPlan) ObjectSerializer.deserialize(
@@ -236,7 +239,7 @@ public abstract class PigGenericMapBase extends Mapper<Text, Tuple, PigNullableW
             pigReporter.setRep(context);
             PhysicalOperator.setReporter(pigReporter);
 
-            boolean aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
+            boolean aggregateWarning = "true".equalsIgnoreCase(context.getConfiguration().get("aggregate.warning"));
             PigStatusReporter pigStatusReporter = PigStatusReporter.getInstance();
             pigStatusReporter.setContext(new MRTaskContext(context));
             PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
@@ -249,8 +252,7 @@ public abstract class PigGenericMapBase extends Mapper<Text, Tuple, PigNullableW
                     MapReducePOStoreImpl impl
                         = new MapReducePOStoreImpl(context);
                     store.setStoreImpl(impl);
-                    if (!pigContext.inIllustrator)
-                        store.setUp();
+                    store.setUp();
                 }
             }
         }

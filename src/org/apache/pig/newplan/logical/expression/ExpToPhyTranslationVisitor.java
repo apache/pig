@@ -323,6 +323,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
     public void visit( CastExpression op ) throws FrontendException {
         POCast pCast = new POCast(new OperatorKey(DEFAULT_SCOPE, nodeGen
                 .getNextNodeId(DEFAULT_SCOPE)));
+        pCast.addOriginalLocation(op.getFieldSchema().alias, op.getLocation()) ;
 //        physOp.setAlias(op.getAlias());
         currentPlan.add(pCast);
 

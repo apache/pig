@@ -103,11 +103,7 @@ public class TestPigStatsMR extends TestPigStats {
 
     private static MROperPlan getMRPlan(PhysicalPlan pp, PigContext ctx) throws Exception {
         MapReduceLauncher launcher = new MapReduceLauncher();
-        java.lang.reflect.Method compile = launcher.getClass()
-                .getDeclaredMethod("compile",
-                        new Class[] { PhysicalPlan.class, PigContext.class });
-        compile.setAccessible(true);
-        return (MROperPlan) compile.invoke(launcher, new Object[] { pp, ctx });
+        return launcher.compile(pp,ctx);
     }
 
     private static String getAlias(MapReduceOper mro) throws Exception {

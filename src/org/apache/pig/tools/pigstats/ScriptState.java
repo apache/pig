@@ -133,6 +133,8 @@ public abstract class ScriptState {
         MERGE_SPARSE_JOIN,
         REPLICATED_JOIN,
         SKEWED_JOIN,
+        BUILD_BLOOM,
+        FILTER_BLOOM,
         HASH_JOIN,
         COLLECTED_GROUP,
         MERGE_COGROUP,
@@ -312,7 +314,7 @@ public abstract class ScriptState {
                 maxScriptSize = Integer.valueOf(prop);
             }
         }
-       
+
         this.truncatedScript = (script.length() > maxScriptSize) ? script.substring(0, maxScriptSize)
                                                    : script;
 
@@ -485,6 +487,10 @@ public abstract class ScriptState {
         public void visit(LOJoin op) {
             if (op.getJoinType() == JOINTYPE.HASH) {
                 feature.set(PIG_FEATURE.HASH_JOIN.ordinal());
+            } else if (op.getJoinType() == JOINTYPE.BLOOM) {
+                feature.set(PIG_FEATURE.HASH_JOIN.ordinal());
+                feature.set(PIG_FEATURE.BUILD_BLOOM.ordinal());
+                feature.set(PIG_FEATURE.FILTER_BLOOM.ordinal());
             } else if (op.getJoinType() == JOINTYPE.MERGE) {
                 feature.set(PIG_FEATURE.MERGE_JOIN.ordinal());
             } else if (op.getJoinType() == JOINTYPE.MERGESPARSE) {
@@ -506,6 +512,7 @@ public abstract class ScriptState {
             feature.set(PIG_FEATURE.RANK.ordinal());
         }
 
+        @Override
         public void visit(LOSort op) {
             feature.set(PIG_FEATURE.ORDER_BY.ordinal());
         }

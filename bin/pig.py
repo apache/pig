@@ -338,7 +338,7 @@ hadoopCoreJars = glob.glob(os.path.join(hadoopHomePath, "hadoop-core*.jar"))
 if len(hadoopCoreJars) == 0:
   hadoopVersion = 2
 else:
-  hadoopVersion = 1
+  sys.exit("Cannot locate Hadoop 2 binaries, please install Hadoop 2.x and try again.")
 
 if hadoopBin != "":
   if debug == True:
@@ -361,10 +361,7 @@ if hadoopBin != "":
       if len(pigJars) == 1:
         pigJar = pigJars[0]
       else:
-        if hadoopVersion == 1:
-          sys.exit("Cannot locate pig-core-h1.jar do 'ant jar', and try again")
-        else:
-          sys.exit("Cannot locate pig-core-h2.jar do 'ant -Dhadoopversion=23 jar', and try again")
+        sys.exit("Cannot locate pig-core-h2.jar do 'ant jar', and try again")
 
   pigLibJars = glob.glob(os.path.join(os.environ['PIG_HOME']+"/lib", "h" + str(hadoopVersion), "*.jar"))
   for jar in pigLibJars:
@@ -393,13 +390,13 @@ if hadoopBin != "":
 else:
   # fall back to use fat pig.jar
   if debug == True:
-    print "Cannot find local hadoop installation, using bundled hadoop 1"
-    
-  if os.path.exists(os.path.join(os.environ['PIG_HOME'], "pig-core-h1.jar")):
-    pigJar = os.path.join(os.environ['PIG_HOME'], "pig-core-h1.jar")
+    print "Cannot find local hadoop installation, using bundled hadoop 2"
+
+  if os.path.exists(os.path.join(os.environ['PIG_HOME'], "pig-core-h2.jar")):
+    pigJar = os.path.join(os.environ['PIG_HOME'], "pig-core-h2.jar")
 
   else:
-    pigJars = glob.glob(os.path.join(os.environ['PIG_HOME'], "pig-*-core-h1.jar"))
+    pigJars = glob.glob(os.path.join(os.environ['PIG_HOME'], "pig-*-core-h2.jar"))
 
     if len(pigJars) == 1:
       pigJar = pigJars[0]
@@ -407,15 +404,15 @@ else:
     elif len(pigJars) > 1:
       print "Ambiguity with pig jars found the following jars"
       print pigJars
-      sys.exit("Please remove irrelavant jars from %s" % os.path.join(os.environ['PIG_HOME'], "pig-core-h1.jar"))
+      sys.exit("Please remove irrelavant jars from %s" % os.path.join(os.environ['PIG_HOME'], "pig-core-h2.jar"))
     else:
-      sys.exit("Cannot locate pig-core-h1.jar. do 'ant jar' and try again")
+      sys.exit("Cannot locate pig-core-h2.jar. do 'ant jar' and try again")
 
-  pigLibJars = glob.glob(os.path.join(os.environ['PIG_HOME']+"/lib", "h1", "*.jar"))
+  pigLibJars = glob.glob(os.path.join(os.environ['PIG_HOME']+"/lib", "h2", "*.jar"))
   for jar in pigLibJars:
     classpath += os.pathsep + jar
 
-  pigLibJars = glob.glob(os.path.join(os.environ['PIG_HOME']+"/lib", "hadoop1-runtime", "*.jar"))
+  pigLibJars = glob.glob(os.path.join(os.environ['PIG_HOME']+"/lib", "hadoop2-runtime", "*.jar"))
   for jar in pigLibJars:
     classpath += os.pathsep + jar
 
@@ -423,7 +420,7 @@ else:
   pigClass = "org.apache.pig.Main"
   if debug == True:
     print "dry runXXX:"
-    print "%s %s %s -classpath %s %s %s" % (java, javaHeapMax, pigOpts, classpath, pigClass, ' '.join(restArgs)) 
+    print "%s %s %s -classpath %s %s %s" % (java, javaHeapMax, pigOpts, classpath, pigClass, ' '.join(restArgs))
   else:
     cmdLine = java + ' ' + javaHeapMax + ' ' + pigOpts
     cmdLine += ' ' + '-classpath ' + classpath + ' ' + pigClass +  ' ' + ' '.join(restArgs)

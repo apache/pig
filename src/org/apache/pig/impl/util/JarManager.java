@@ -47,7 +47,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
-import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.impl.PigContext;
 import org.apache.tools.bzip2r.BZip2Constants;
 import org.joda.time.DateTime;
@@ -66,7 +65,6 @@ public class JarManager {
         BZIP2R(BZip2Constants.class),
         AUTOMATON(Automaton.class),
         ANTLR(CommonTokenStream.class),
-        GUAVA(Multimaps.class),
         JODATIME(DateTime.class);
 
         private final Class pkgClass;
@@ -208,11 +206,8 @@ public class JarManager {
     public static List<String> getDefaultJars() {
         List<String> defaultJars = new ArrayList<String>();
         for (DefaultPigPackages pkgToSend : DefaultPigPackages.values()) {
-            if(pkgToSend.equals(DefaultPigPackages.GUAVA) && HadoopShims.isHadoopYARN()) {
-                continue; //Skip
-            }
             String jar = findContainingJar(pkgToSend.getPkgClass());
-            if (!defaultJars.contains(jar)) {
+            if (jar != null && !defaultJars.contains(jar)) {
                 defaultJars.add(jar);
             }
         }

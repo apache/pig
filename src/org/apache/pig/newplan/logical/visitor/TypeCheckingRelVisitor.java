@@ -351,7 +351,8 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
 
             if (outFieldSchema.type != fs.type) {
                 castNeededCounter++ ;
-                new CastExpression(genPlan, project, outFieldSchema);
+                CastExpression castexp = new CastExpression(genPlan, project, outFieldSchema);
+                castexp.setLocation(toOp.getLocation());
             }
 
             generatePlans.add(genPlan) ;

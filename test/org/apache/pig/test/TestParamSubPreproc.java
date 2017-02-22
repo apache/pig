@@ -19,6 +19,7 @@
 package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -42,6 +43,7 @@ import org.apache.pig.ExecType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 import org.apache.pig.tools.parameters.ParseException;
+import org.apache.pig.tools.pigstats.PigStats;
 import org.junit.Test;
 
 public class TestParamSubPreproc {
@@ -52,24 +54,9 @@ public class TestParamSubPreproc {
     private FileInputStream pigExResultStream;
     private String basedir = "test/org/apache/pig/test/data";
 
-    /* Test case 1
-     * Use a parameter within a pig script and provide value on the command line.
-     */
-    @Test
-    public void testCmdlineParam() throws Exception{
-        log.info("Starting test testCmdlineParam() ...");
-        ParameterSubstitutionPreprocessor ps = new ParameterSubstitutionPreprocessor(50);
-        pigIStream = new BufferedReader(new FileReader(basedir + "/input1.pig"));
-        pigOStream = new FileWriter(basedir + "/output1.pig");
-
-        String[] arg = {"date=20080228"};
-        String[] argFiles = null;
-        ps.genSubstitutedFile(pigIStream , pigOStream , arg , argFiles);
-
-        FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
-        pigExResultStream = new FileInputStream(basedir + "/ExpectedResult.pig");
-        BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
-        BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
+    private void compareResults(InputStream expected, InputStream result) throws IOException {
+        BufferedReader inExpected = new BufferedReader(new InputStreamReader(expected));
+        BufferedReader inResult = new BufferedReader(new InputStreamReader(result));
 
         String exLine;
         String resLine;
@@ -89,6 +76,26 @@ public class TestParamSubPreproc {
 
         inExpected.close();
         inResult.close();
+    }
+
+    /* Test case 1
+     * Use a parameter within a pig script and provide value on the command line.
+     */
+    @Test
+    public void testCmdlineParam() throws Exception{
+        log.info("Starting test testCmdlineParam() ...");
+        ParameterSubstitutionPreprocessor ps = new ParameterSubstitutionPreprocessor(50);
+        pigIStream = new BufferedReader(new FileReader(basedir + "/input1.pig"));
+        pigOStream = new FileWriter(basedir + "/output1.pig");
+
+        String[] arg = {"date=20080228"};
+        String[] argFiles = null;
+        ps.genSubstitutedFile(pigIStream , pigOStream , arg , argFiles);
+
+        FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
+        pigExResultStream = new FileInputStream(basedir + "/ExpectedResult.pig");
+
+        compareResults(pigExResultStream, pigResultStream);
 
         log.info("Done");
 
@@ -110,27 +117,8 @@ public class TestParamSubPreproc {
 
         FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
         pigExResultStream = new FileInputStream(basedir + "/ExpectedResult.pig");
-        BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
-        BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
-        String exLine;
-        String resLine;
-        int lineNum=0;
-
-        while (true) {
-            lineNum++;
-            exLine = inExpected.readLine();
-            resLine = inResult.readLine();
-            if (exLine==null || resLine==null)
-                break;
-            assertEquals("Parameter substitution from config file failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
-        }
-        if (!(exLine==null && resLine==null)) {
-            fail ("Parameter substitution from config file failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
-        }
-
-        inExpected.close();
-        inResult.close();
+        compareResults(pigExResultStream, pigResultStream);
 
         log.info("Done");
     }
@@ -152,27 +140,8 @@ public class TestParamSubPreproc {
 
         FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
         pigExResultStream = new FileInputStream(basedir + "/ExpectedResultDefault.pig");
-        BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
-        BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
-        String exLine;
-        String resLine;
-        int lineNum=0;
-
-        while (true) {
-            lineNum++;
-            exLine = inExpected.readLine();
-            resLine = inResult.readLine();
-            if (exLine==null || resLine==null)
-                break;
-            assertEquals("Parameter substitution with shell command failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
-        }
-        if (!(exLine==null && resLine==null)) {
-            fail ("Parameter substitution with shell command failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
-        }
-
-        inExpected.close();
-        inResult.close();
+        compareResults(pigExResultStream, pigResultStream);
 
         log.info("Done");
     }
@@ -236,27 +205,8 @@ public class TestParamSubPreproc {
 
         FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
         pigExResultStream = new FileInputStream(basedir + "/ExpectedResult4.pig");
-        BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
-        BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
-        String exLine;
-        String resLine;
-        int lineNum=0;
-
-        while (true) {
-            lineNum++;
-            exLine = inExpected.readLine();
-            resLine = inResult.readLine();
-            if (exLine==null || resLine==null)
-                break;
-            assertEquals("Parameter substitution within a value failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
-        }
-        if (!(exLine==null && resLine==null)) {
-            fail ("Parameter substitution within a value failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
-        }
-
-        inExpected.close();
-        inResult.close();
+        compareResults(pigExResultStream, pigResultStream);
 
         log.info("Done");
     }
@@ -280,27 +230,9 @@ public class TestParamSubPreproc {
 
         FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
         pigExResultStream = new FileInputStream(basedir + "/ExpectedResult4.pig");
-        BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
-        BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
-        String exLine;
-        String resLine;
-        int lineNum=0;
+        compareResults(pigExResultStream, pigResultStream);
 
-        while (true) {
-            lineNum++;
-            exLine = inExpected.readLine();
-            resLine = inResult.readLine();
-            if (exLine==null || resLine==null)
-                break;
-            assertEquals("Parameter substitution with shell command failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
-        }
-        if (!(exLine==null && resLine==null)) {
-            fail ("Parameter substitution with shell command failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
-        }
-
-        inExpected.close();
-        inResult.close();
         log.info("Done");
     }
 
@@ -321,27 +253,8 @@ public class TestParamSubPreproc {
 
         FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
         pigExResultStream = new FileInputStream(basedir + "/ExpectedResultCmdLnPriorDeclare.pig");
-        BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
-        BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
-        String exLine;
-        String resLine;
-        int lineNum=0;
-
-        while (true) {
-            lineNum++;
-            exLine = inExpected.readLine();
-            resLine = inResult.readLine();
-            if (exLine==null || resLine==null)
-                break;
-            assertEquals("Parameter substitution of command line arg. prior to declare stmt failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
-        }
-        if (!(exLine==null && resLine==null)) {
-            fail ("Parameter substitution of command line arg. prior to declare stmt failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
-        }
-
-        inExpected.close();
-        inResult.close();
+        compareResults(pigExResultStream, pigResultStream);
 
         log.info("Done");
     }
@@ -364,27 +277,9 @@ public class TestParamSubPreproc {
 
         FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
         pigExResultStream = new FileInputStream(basedir + "/ExpectedResult4.pig");
-        BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
-        BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
-        String exLine;
-        String resLine;
-        int lineNum=0;
+        compareResults(pigExResultStream, pigResultStream);
 
-        while (true) {
-            lineNum++;
-            exLine = inExpected.readLine();
-            resLine = inResult.readLine();
-            if (exLine==null || resLine==null)
-                break;
-            assertEquals("Parameter substitution for a command with shell command failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
-        }
-        if (!(exLine==null && resLine==null)) {
-            fail ("Parameter substitution for a command with shell command failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
-        }
-
-        inExpected.close();
-        inResult.close();
         log.info("Done");
     }
 
@@ -406,27 +301,9 @@ public class TestParamSubPreproc {
 
         FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
         pigExResultStream = new FileInputStream(basedir + "/ExpectedResult.pig");
-        BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
-        BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
-        String exLine;
-        String resLine;
-        int lineNum=0;
+        compareResults(pigExResultStream, pigResultStream);
 
-        while (true) {
-            lineNum++;
-            exLine = inExpected.readLine();
-            resLine = inResult.readLine();
-            if (exLine==null || resLine==null)
-                break;
-            assertEquals("Command line parameter substitution failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
-        }
-        if (!(exLine==null && resLine==null)) {
-            fail ("Command line parameter substitution failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
-        }
-
-        inExpected.close();
-        inResult.close();
         log.info("Done");
     }
 
@@ -446,27 +323,9 @@ public class TestParamSubPreproc {
 
         FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
         pigExResultStream = new FileInputStream(basedir + "/ExpectedResult.pig");
-        BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
-        BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
-        String exLine;
-        String resLine;
-        int lineNum=0;
+        compareResults(pigExResultStream, pigResultStream);
 
-        while (true) {
-            lineNum++;
-            exLine = inExpected.readLine();
-            resLine = inResult.readLine();
-            if (exLine==null || resLine==null)
-                break;
-            assertEquals("Parameter substitution from multiple config files failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
-        }
-        if (!(exLine==null && resLine==null)) {
-            fail ("Parameter substitution from multiple config files failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
-        }
-
-        inExpected.close();
-        inResult.close();
         log.info("Done");
     }
 
@@ -487,27 +346,9 @@ public class TestParamSubPreproc {
 
         FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
         pigExResultStream = new FileInputStream(basedir + "/ExpectedResult.pig");
-        BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
-        BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
-        String exLine;
-        String resLine;
-        int lineNum=0;
+        compareResults(pigExResultStream, pigResultStream);
 
-        while (true) {
-            lineNum++;
-            exLine = inExpected.readLine();
-            resLine = inResult.readLine();
-            if (exLine==null || resLine==null)
-                break;
-            assertEquals("Same Parameter substitution from multiple config files failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
-        }
-        if (!(exLine==null && resLine==null)) {
-            fail ("Same Parameter substitution from multiple config files failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
-        }
-
-        inExpected.close();
-        inResult.close();
         log.info("Done");
     }
 
@@ -527,27 +368,9 @@ public class TestParamSubPreproc {
 
         FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
         pigExResultStream = new FileInputStream(basedir + "/ExpectedResult.pig");
-        BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
-        BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
-        String exLine;
-        String resLine;
-        int lineNum=0;
+        compareResults(pigExResultStream, pigResultStream);
 
-        while (true) {
-            lineNum++;
-            exLine = inExpected.readLine();
-            resLine = inResult.readLine();
-            if (exLine==null || resLine==null)
-                break;
-            assertEquals("Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
-        }
-        if (!(exLine==null && resLine==null)) {
-            fail ("Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
-        }
-
-        inExpected.close();
-        inResult.close();
     }
 
     /* Test case 15,16
@@ -615,27 +438,8 @@ public class TestParamSubPreproc {
 
         FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
         pigExResultStream = new FileInputStream(basedir + "/ExpectedResult.pig");
-        BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
-        BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
-        String exLine;
-        String resLine;
-        int lineNum=0;
-
-        while (true) {
-            lineNum++;
-            exLine = inExpected.readLine();
-            resLine = inResult.readLine();
-            if (exLine==null || resLine==null)
-                break;
-            assertEquals("Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
-        }
-        if (!(exLine==null && resLine==null)) {
-            fail ("Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
-        }
-
-        inExpected.close();
-        inResult.close();
+        compareResults(pigExResultStream, pigResultStream);
     }
 
     /* Test case 21
@@ -654,27 +458,8 @@ public class TestParamSubPreproc {
 
         FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
         pigExResultStream = new FileInputStream(basedir + "/ExpectedResult.pig");
-        BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
-        BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
-        String exLine;
-        String resLine;
-        int lineNum=0;
-
-        while (true) {
-            lineNum++;
-            exLine = inExpected.readLine();
-            resLine = inResult.readLine();
-            if (exLine==null || resLine==null)
-                break;
-            assertEquals("Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
-        }
-        if (!(exLine==null && resLine==null)) {
-            fail ("Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
-        }
-
-        inExpected.close();
-        inResult.close();
+        compareResults(pigExResultStream, pigResultStream);
     }
 
 
@@ -693,27 +478,9 @@ public class TestParamSubPreproc {
 
         FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
         pigExResultStream = new FileInputStream(basedir + "/ExpectedResult.pig");
-        BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
-        BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
-        String exLine;
-        String resLine;
-        int lineNum=0;
+        compareResults(pigExResultStream, pigResultStream);
 
-        while (true) {
-            lineNum++;
-            exLine = inExpected.readLine();
-            resLine = inResult.readLine();
-            if (exLine==null || resLine==null)
-                break;
-            assertEquals("Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
-        }
-        if (!(exLine==null && resLine==null)) {
-            fail ("Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
-        }
-
-        inExpected.close();
-        inResult.close();
     }
 
     /* Test case 23
@@ -732,27 +499,8 @@ public class TestParamSubPreproc {
 
         FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
         pigExResultStream = new FileInputStream(basedir + "/ExpectedResult.pig");
-        BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
-        BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
-        String exLine;
-        String resLine;
-        int lineNum=0;
-
-        while (true) {
-            lineNum++;
-            exLine = inExpected.readLine();
-            resLine = inResult.readLine();
-            if (exLine==null || resLine==null)
-                break;
-            assertEquals("Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
-        }
-        if (!(exLine==null && resLine==null)) {
-            fail ("Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
-        }
-
-        inExpected.close();
-        inResult.close();
+        compareResults(pigExResultStream, pigResultStream);
     }
 
     /* Test case 24
@@ -771,27 +519,8 @@ public class TestParamSubPreproc {
 
         FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
         pigExResultStream = new FileInputStream(basedir + "/ExpectedResultMulDecs.pig");
-        BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
-        BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
-        String exLine;
-        String resLine;
-        int lineNum=0;
-
-        while (true) {
-            lineNum++;
-            exLine = inExpected.readLine();
-            resLine = inResult.readLine();
-            if (exLine==null || resLine==null)
-                break;
-            assertEquals("Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
-        }
-        if (!(exLine==null && resLine==null)) {
-            fail ("Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
-        }
-
-        inExpected.close();
-        inResult.close();
+        compareResults(pigExResultStream, pigResultStream);
     }
 
     /* Test case 25
@@ -809,27 +538,8 @@ public class TestParamSubPreproc {
 
         FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
         pigExResultStream = new FileInputStream(basedir + "/ExpectedResult.pig");
-        BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
-        BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
-        String exLine;
-        String resLine;
-        int lineNum=0;
-
-        while (true) {
-            lineNum++;
-            exLine = inExpected.readLine();
-            resLine = inResult.readLine();
-            if (exLine==null || resLine==null)
-                break;
-            assertEquals("Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
-        }
-        if (!(exLine==null && resLine==null)) {
-            fail ("Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
-        }
-
-        inExpected.close();
-        inResult.close();
+        compareResults(pigExResultStream, pigResultStream);
     }
 
     /* Test case 26
@@ -847,27 +557,8 @@ public class TestParamSubPreproc {
 
         FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
         pigExResultStream = new FileInputStream(basedir + "/ExpectedResult.pig");
-        BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
-        BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
-        String exLine;
-        String resLine;
-        int lineNum=0;
-
-        while (true) {
-            lineNum++;
-            exLine = inExpected.readLine();
-            resLine = inResult.readLine();
-            if (exLine==null || resLine==null)
-                break;
-            assertEquals("Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
-        }
-        if (!(exLine==null && resLine==null)) {
-            fail ("Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
-        }
-
-        inExpected.close();
-        inResult.close();
+        compareResults(pigExResultStream, pigResultStream);
     }
 
 
@@ -886,27 +577,8 @@ public class TestParamSubPreproc {
 
         FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
         pigExResultStream = new FileInputStream(basedir + "/ExpectedResult.pig");
-        BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
-        BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
-        String exLine;
-        String resLine;
-        int lineNum=0;
-
-        while (true) {
-            lineNum++;
-            exLine = inExpected.readLine();
-            resLine = inResult.readLine();
-            if (exLine==null || resLine==null)
-                break;
-            assertEquals("Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
-        }
-        if (!(exLine==null && resLine==null)) {
-            fail ("Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
-        }
-
-        inExpected.close();
-        inResult.close();
+        compareResults(pigExResultStream, pigResultStream);
     }
 
     /* Test case 29
@@ -924,27 +596,8 @@ public class TestParamSubPreproc {
 
         FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
         pigExResultStream = new FileInputStream(basedir + "/ExpectedResult.pig");
-        BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
-        BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
-        String exLine;
-        String resLine;
-        int lineNum=0;
-
-        while (true) {
-            lineNum++;
-            exLine = inExpected.readLine();
-            resLine = inResult.readLine();
-            if (exLine==null || resLine==null)
-                break;
-            assertEquals("Command line parameter substitution failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
-        }
-        if (!(exLine==null && resLine==null)) {
-            fail ("Command line parameter substitution failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
-        }
-
-        inExpected.close();
-        inResult.close();
+        compareResults(pigExResultStream, pigResultStream);
     }
 
     /* Test case 30
@@ -962,27 +615,8 @@ public class TestParamSubPreproc {
 
         FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
         pigExResultStream = new FileInputStream(basedir + "/ExpectedResult2.pig");
-        BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
-        BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
-        String exLine;
-        String resLine;
-        int lineNum=0;
-
-        while (true) {
-            lineNum++;
-            exLine = inExpected.readLine();
-            resLine = inResult.readLine();
-            if (exLine==null || resLine==null)
-                break;
-            assertEquals("Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
-        }
-        if (!(exLine==null && resLine==null)) {
-            fail ("Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
-        }
-
-        inExpected.close();
-        inResult.close();
+        compareResults(pigExResultStream, pigResultStream);
     }
 
     /* Test case 31
@@ -1001,27 +635,8 @@ public class TestParamSubPreproc {
 
         FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
         pigExResultStream = new FileInputStream(basedir + "/ExpectedResult.pig");
-        BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
-        BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
-        String exLine;
-        String resLine;
-        int lineNum=0;
-
-        while (true) {
-            lineNum++;
-            exLine = inExpected.readLine();
-            resLine = inResult.readLine();
-            if (exLine==null || resLine==null)
-                break;
-            assertEquals("Command line parameter substitution failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
-        }
-        if (!(exLine==null && resLine==null)) {
-            fail ("Command line parameter substitution failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
-        }
-
-        inExpected.close();
-        inResult.close();
+        compareResults(pigExResultStream, pigResultStream);
 
         log.info("Done");
     }
@@ -1042,27 +657,9 @@ public class TestParamSubPreproc {
 
         FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
         pigExResultStream = new FileInputStream(basedir + "/inputNoVars.pig");
-        BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
-        BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
-        String exLine;
-        String resLine;
-        int lineNum=0;
+        compareResults(pigExResultStream, pigResultStream);
 
-        while (true) {
-            lineNum++;
-            exLine = inExpected.readLine();
-            resLine = inResult.readLine();
-            if (exLine==null || resLine==null)
-                break;
-            assertEquals("Command line parameter substitution failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
-        }
-        if (!(exLine==null && resLine==null)) {
-            fail ("Command line parameter substitution failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
-        }
-
-        inExpected.close();
-        inResult.close();
         log.info("Done");
     }
 
@@ -1083,27 +680,8 @@ public class TestParamSubPreproc {
 
         FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
         pigExResultStream = new FileInputStream(basedir + "/ExpectedResult3.txt");
-        BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
-        BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
-        String exLine;
-        String resLine;
-        int lineNum=0;
-
-        while (true) {
-            lineNum++;
-            exLine = inExpected.readLine();
-            resLine = inResult.readLine();
-            if (exLine==null || resLine==null)
-                break;
-            assertEquals("Command line parameter substitution failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
-        }
-        if (!(exLine==null && resLine==null)) {
-            fail ("Command line parameter substitution failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
-        }
-
-        inExpected.close();
-        inResult.close();
+        compareResults(pigExResultStream, pigResultStream);
 
         log.info("Done");
     }
@@ -1123,27 +701,8 @@ public class TestParamSubPreproc {
 
         FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
         pigExResultStream = new FileInputStream(basedir + "/ExpectedResultComment.pig");
-        BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
-        BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
-        String exLine;
-        String resLine;
-        int lineNum=0;
-
-        while (true) {
-            lineNum++;
-            exLine = inExpected.readLine();
-            resLine = inResult.readLine();
-            if (exLine==null || resLine==null)
-                break;
-            assertEquals("Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
-        }
-        if (!(exLine==null && resLine==null)) {
-            fail ("Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
-        }
-
-        inExpected.close();
-        inResult.close();
+        compareResults(pigExResultStream, pigResultStream);
     }
 
     /* Test case
@@ -1212,27 +771,7 @@ public class TestParamSubPreproc {
 
         FileInputStream pigResultStream = new FileInputStream(basedir + "/output26.pig");
         InputStream expected = new ByteArrayInputStream(expectedString.getBytes("UTF-8"));
-        BufferedReader inExpected = new BufferedReader(new InputStreamReader(expected));
-        BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
-
-        String exLine;
-        String resLine;
-        int lineNum=0;
-
-        while (true) {
-            lineNum++;
-            exLine = inExpected.readLine();
-            resLine = inResult.readLine();
-            if (exLine==null || resLine==null)
-                break;
-            assertEquals("Parameter substitution with shell command failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
-        }
-        if (!(exLine==null && resLine==null)) {
-            fail ("Parameter substitution with shell command failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
-        }
-
-        inExpected.close();
-        inResult.close();
+        compareResults(expected, pigResultStream);
 
         log.info("Done");
     }
@@ -1252,27 +791,8 @@ public class TestParamSubPreproc {
 
         FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
         pigExResultStream = new FileInputStream(basedir + "/ExpectedResultDollarSign.pig");
-        BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
-        BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
-        String exLine;
-        String resLine;
-        int lineNum=0;
-
-        while (true) {
-            lineNum++;
-            exLine = inExpected.readLine();
-            resLine = inResult.readLine();
-            if (exLine==null || resLine==null)
-                break;
-            assertEquals("Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
-        }
-        if (!(exLine==null && resLine==null)) {
-            fail ("Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
-        }
-
-        inExpected.close();
-        inResult.close();
+        compareResults(pigExResultStream, pigResultStream);
     }
 
     @Test
@@ -1289,28 +809,8 @@ public class TestParamSubPreproc {
 
         FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
         pigExResultStream = new FileInputStream(basedir + "/ExpectedResult6.pig");
-        BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
-        BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
-        String exLine;
-        String resLine;
-        int lineNum=0;
-
-        while (true) {
-            lineNum++;
-            exLine = inExpected.readLine();
-            resLine = inResult.readLine();
-            if (exLine==null || resLine==null)
-                break;
-            assertEquals("Command line parameter substitution failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
-        }
-        if (!(exLine==null && resLine==null)) {
-            fail ("Command line parameter substitution failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
-        }
-
-        inExpected.close();
-        inResult.close();
-
+        compareResults(pigExResultStream, pigResultStream);
         log.info("Done");
     }
 
@@ -1326,27 +826,9 @@ public class TestParamSubPreproc {
 
         FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
         pigExResultStream = new FileInputStream(basedir + "/ExpectedResult7.pig");
-        BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
-        BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
-        String exLine;
-        String resLine;
-        int lineNum=0;
-
-        while (true) {
-            lineNum++;
-            exLine = inExpected.readLine();
-            resLine = inResult.readLine();
-            if (exLine==null || resLine==null)
-                break;
-            assertEquals("Command line parameter substitution failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
-        }
-        if (!(exLine==null && resLine==null)) {
-            fail ("Command line parameter substitution failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
-        }
-
-        inExpected.close();
-        inResult.close();
+        compareResults(pigExResultStream, pigResultStream);
+        log.info("Done");
     }
 
     @Test
@@ -1396,6 +878,351 @@ public class TestParamSubPreproc {
         });
         String resultContent = Util.readFile(partFiles[0]);
         assertEquals(resultContent, "daniel\t10\njenny\t20\n");
+    }
+
+    @Test
+    public void testCommandLineParamOverwritingDefault() throws Exception {
+        log.info("Starting test testCommandLineParamOverwritingDefault()");
+        File inputFile = Util.createFile(
+                  "runinput",
+                  new String[] { "daniel\t10",
+                                 "jenny\t20;"});
+        File output1 = File.createTempFile("output1_", "");
+        output1.delete();
+
+        File script1 = Util.createFile("runscript1.pig",
+                  new String[] { "%default output /invalidpathThatShouldFail;",
+                                 "a = load 'runinput';",
+                                  "store a into '$output';"});
+
+        PigStats stats = org.apache.pig.PigRunner.run(new String[] {
+                                 "-x", Util.getLocalTestMode().toString(),
+                                 "-p", "output=" + output1.getAbsolutePath(),
+                                 script1.getAbsolutePath()} , null);
+        Util.deleteDirectory(output1);
+
+        assertTrue("job should succeed", stats.isSuccessful());
+        assertTrue("Default param should be overridden by the commandline param",
+                     output1.getAbsolutePath().endsWith(stats.getOutputNames().get(0)));
+    }
+
+    @Test
+    public void testRunWithParamOverwritingDefault() throws Exception {
+        log.info("Starting test testScopeOfParamWithRunCommand()");
+        File inputFile = Util.createFile(
+                  "runinput",
+                  new String[] { "daniel\t10",
+                                 "jenny\t20;"});
+        File output1 = File.createTempFile("output1_", "");
+        File output2 = File.createTempFile("output2_", "");
+        output1.delete();
+        output2.delete();
+
+
+        File script1 = Util.createFile("runscript1.pig",
+                  new String[] { "%default output '" + output2.getAbsolutePath() + "';",
+                                 "a = load 'runinput';",
+                                  "store a into '$output';"});
+
+        File mainscript = Util.createFile("mainscript.pig",
+                  new String[] {"run -param output=" + output1.getAbsolutePath()
+                                + " " + script1.getAbsolutePath() + ";"});
+
+
+        PigStats stats = org.apache.pig.PigRunner.run(new String[] {
+                                 "-x", Util.getLocalTestMode().toString(),
+                                 mainscript.getAbsolutePath()} , null);
+        Util.deleteDirectory(output1);
+        Util.deleteDirectory(output2);
+
+        assertTrue("job should succeed", stats.isSuccessful());
+        assertEquals("There should only be 1 output.",
+                     1, stats.getOutputNames().size());
+        assertEquals("Output name should be from output1 and not output2",
+                     output1.getAbsolutePath(),
+                     stats.getOutputLocations().get(0));
+    }
+
+    @Test
+    public void testScopeOfParamWithRunCommand() throws Exception {
+        log.info("Starting test testScopeOfParamWithRunCommand()");
+        File inputFile = Util.createFile(
+                  "runinput",
+                  new String[] { "daniel\t10",
+                                 "jenny\t20;"});
+        File output1 = File.createTempFile("output1_", "");
+        File output2 = File.createTempFile("output2_", "");
+        output1.delete();
+        output2.delete();
+
+        File script1 = Util.createFile("runscript1.pig",
+                  new String[] { "%default output '" + output1.getAbsolutePath() + "';",
+                                 "a = load 'runinput';",
+                                  "store a into '$output';"});
+
+        File script2 = Util.createFile("runscript2.pig",
+                  new String[] { "%default output '" + output2.getAbsolutePath() + "';",
+                                 "a = load 'runinput';",
+                                  "store a into '$output';"});
+
+        File mainscript = Util.createFile("mainscript.pig",
+                  new String[] { "run " + script1.getAbsolutePath() + ";",
+                                 "run " + script2.getAbsolutePath() + ";" });
+
+        PigStats stats = org.apache.pig.PigRunner.run(new String[] {
+                                 "-x", Util.getLocalTestMode().toString(),
+                                 mainscript.getAbsolutePath()} , null);
+        Util.deleteDirectory(output1);
+        Util.deleteDirectory(output2);
+
+        assertTrue("job should succeed", stats.isSuccessful());
+        assertNotEquals("Two output paths should differ",
+               stats.getOutputNames().get(0), stats.getOutputNames().get(1));
+        assertEquals("Each output should contain 2 records",
+                      2, stats.getOutputStats().get(0).getNumberRecords());
+        assertEquals("Each output should contain 2 records",
+                      2, stats.getOutputStats().get(1).getNumberRecords());
+    }
+
+    @Test
+    public void testScopeOfParamWithNestedRunCommand() throws Exception {
+        log.info("Starting test testScopeOfParamWithRunCommand()");
+        File inputFile = Util.createFile(
+                  "runinput",
+                  new String[] { "daniel\t10",
+                                 "jenny\t20;"});
+        /*
+         * script1 sets a=1, b=2, c=3; calls script2
+         *   script2 sets b=22 (by -param); calls script3
+         *     script3 sets c=333; saves $a$b$c  (122333)
+         *   script2 saves $a$b$c (1223)
+         * script1 saves $a$b$c (123)
+         */
+        File script3 = Util.createFile("runscript3.pig",
+                  new String[] { "%declare c '333';",
+                                 "a = load 'runinput';",
+                                  "store a into 'testScopeOfParamWithNestedRunCommand${a}${b}${c}';"});
+
+        File script2 = Util.createFile("runscript2.pig",
+                  new String[] { "run " + script3.getAbsolutePath() + ";",
+                                 "a = load 'runinput';",
+                                  "store a into 'testScopeOfParamWithNestedRunCommand${a}${b}${c}';"});
+
+        File script1 = Util.createFile("runscript1.pig",
+                  new String[] { "%declare a '1';",
+                                 "%declare b '2';",
+                                 "%declare c '3';",
+                                 "run -param b=22 " + script2.getAbsolutePath() + ";",
+                                 "a = load 'runinput';",
+                                  "store a into 'testScopeOfParamWithNestedRunCommand${a}${b}${c}';"});
+
+        PigStats stats = org.apache.pig.PigRunner.run(new String[] {
+                                 "-x", Util.getLocalTestMode().toString(),
+                                 script1.getAbsolutePath()} , null);
+
+        for( String output : stats.getOutputNames() ) {
+            assertTrue(output.contains("testScopeOfParamWithNestedRunCommand"));
+            Util.deleteDirectory(new File(output));
+        }
+        assertTrue("job should succeed", stats.isSuccessful());
+        assertEquals("There should be three outputs.", 3, stats.getOutputNames().size());
+
+        for( String expectedoutput : new String [] {"testScopeOfParamWithNestedRunCommand123",
+                                            "testScopeOfParamWithNestedRunCommand1223",
+                                            "testScopeOfParamWithNestedRunCommand122333"} ) {
+            boolean found=false;
+            for( String output : stats.getOutputNames() ) {
+                if( output.endsWith(expectedoutput) ) {
+                    found=true;
+                }
+            }
+            assertTrue("Output " + expectedoutput + " should exist.", found);
+        }
+    }
+
+    /*  This currently does not work since PigMacro only picks the
+     *  param setting from the root script (script1)
+     *  To revisit after Grunt moves to ANTLR in PIG-2597.
+     *  Tracking in PIG-5028.
+     *
+
+    @Test
+    public void testScopeOfParamWithMacro() throws Exception {
+        log.info("Starting test testScopeOfParamWithMacro()");
+        File inputFile = Util.createFile(
+                  "runinput",
+                  new String[] { "daniel\t10",
+                                 "jenny\t20;"});
+        File macro = Util.createFile("testmacro.pig",
+                  new String[] { "DEFINE mymacro (A) RETURNS void {",
+                                 "store $A into 'testScopeOfParamWithMacro${a}${b}${c}';",
+                                 "};"});
+
+        File script3 = Util.createFile("runscript3.pig",
+                  new String[] { "%declare c '333';"});
+
+        File script2 = Util.createFile("runscript2.pig",
+                  new String[] { "%declare b '22';",
+                                 "import '" + macro.getAbsolutePath() + "';",
+                                 "a = load 'runinput';",
+                                 "mymacro(a);",
+                                 "exec " + script3.getAbsolutePath() + ";"});
+
+        File script1 = Util.createFile("runscript1.pig",
+                  new String[] { "%declare a '1';",
+                                 "%declare b '2';",
+                                 "%declare c '3';",
+                                 "exec " + script2.getAbsolutePath() + ";"});
+
+        PigStats stats = org.apache.pig.PigRunner.run(new String[] {
+                                 "-x", Util.getLocalTestMode().toString(),
+                                 script1.getAbsolutePath()} , null);
+
+        assertTrue("job should succeed", stats.isSuccessful());
+        Util.deleteDirectory(new File(stats.getOutputNames().get(0)));
+        assertEquals("There should be only 1 output.", 1, stats.getOutputNames().size());
+        assertTrue("Expected output testScopeOfParamWithMacro1223 but got " + stats.getOutputNames().get(0),
+                   stats.getOutputNames().get(0).equals("testScopeOfParamWithMacro1223"));
+    }
+    */
+
+
+    /*
+     *  Test parameter substition when register contains /* globbing
+     */
+    @Test
+    public void testSubstitutionWithRegisterGlobbing() throws Exception{
+        log.info("Starting test testSubstitutionWithRegisterGlobbing()");
+        final String queryString =
+                "register /abc/$regdir/*.jar;\n" +
+                "A = LOAD '$input' USING PigStorage ();\n" +
+                "STORE A INTO '$output';\n" +
+                " /* comment that would make register globbing to be part of the multi-line comment */\n";
+
+
+        ParameterSubstitutionPreprocessor ps = new ParameterSubstitutionPreprocessor(50);
+        pigIStream = new BufferedReader(
+                                        new InputStreamReader(new ByteArrayInputStream(queryString.getBytes("UTF-8"))));
+        pigOStream = new FileWriter(basedir + "/output1.pig");
+
+        String[] arg = {"input = 'input.txt'", "output = 'output.txt'", "regdir = 'def'"};
+        String[] argFiles = null;
+        ps.genSubstitutedFile(pigIStream , pigOStream , arg , argFiles);
+
+        FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
+
+        String expectedString = queryString.replaceAll("\\$input","input.txt")
+                                           .replaceAll("\\$output","output.txt")
+                                           .replaceAll("\\$regdir","def");
+        InputStream expected = new ByteArrayInputStream(expectedString.getBytes("UTF-8"));
+
+        compareResults(expected, pigResultStream);
+
+        log.info("Done");
+    }
+
+    /*
+     *  Test parameter substition when load contains /* globbing
+     */
+    @Test
+    public void testSubstitutionWithLoadGlobbing() throws Exception{
+        log.info("Starting test testSubstitutionWithLoadGlobbing()");
+        final String queryString =
+                "A = LOAD '/zzz/*' USING PigStorage ();\n" +
+                "STORE A INTO '$output';\n" +
+                " /* comment that would make register globbing to be part of the multi-line comment */\n";
+
+
+        ParameterSubstitutionPreprocessor ps = new ParameterSubstitutionPreprocessor(50);
+        pigIStream = new BufferedReader(
+                                        new InputStreamReader(new ByteArrayInputStream(queryString.getBytes("UTF-8"))));
+        pigOStream = new FileWriter(basedir + "/output1.pig");
+
+        String[] arg = {"output = 'output.txt'"};
+        String[] argFiles = null;
+        ps.genSubstitutedFile(pigIStream , pigOStream , arg , argFiles);
+
+        FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
+
+        String expectedString = queryString.replaceAll("\\$output","output.txt");
+        InputStream expected = new ByteArrayInputStream(expectedString.getBytes("UTF-8"));
+
+        compareResults(expected, pigResultStream);
+
+        log.info("Done");
+    }
+
+    @Test
+    public void testSubstitutionWithRedeclaration() throws Exception{
+        log.info("Starting test testSubstitutionWithRedeclaration()");
+        final String queryString =
+              "%declare output '/tmp/abc';\n" +
+              "%declare actualoutput '$output.out';\n" +
+              "A = load 'input.txt' ;\n" +
+              "store A into '$actualoutput';\n" +
+              "%declare output '/tmp/def';\n" +
+              "%declare actualoutput '$output.out';\n" +
+              "store A into '$actualoutput';";
+
+
+        ParameterSubstitutionPreprocessor ps = new ParameterSubstitutionPreprocessor(50);
+        pigIStream = new BufferedReader(
+                                        new InputStreamReader(new ByteArrayInputStream(queryString.getBytes("UTF-8"))));
+        pigOStream = new FileWriter(basedir + "/output1.pig");
+
+        String[] arg = {"output = 'output.txt'"};
+        String[] argFiles = null;
+        ps.genSubstitutedFile(pigIStream , pigOStream , arg , argFiles);
+
+        FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
+
+        String expectedString = queryString.replaceAll("%declare [0-9a-zA-Z.'/\\$; ]*\n",";\n")
+                                .replaceAll("\\$","")
+                                .replaceFirst("actualoutput","/tmp/abc.out")
+                                .replaceFirst("actualoutput","/tmp/def.out");
+        InputStream expected = new ByteArrayInputStream(expectedString.getBytes("UTF-8"));
+
+        compareResults(expected, pigResultStream);
+
+        log.info("Done");
+    }
+
+    @Test
+    public void testSubstitutionWithRedeclaredShell() throws Exception{
+        log.info("Starting test testSubstitutionWithRedeclaredShell()");
+        final String queryString =
+              "A = load 'input.txt' ;\n" +
+              "%declare now `bash -c \"date +'%Y%m%d_%H:%M:%S'; sleep 1;\"`;\n" +
+              "store A into '$now';\n" +
+              "%declare now `bash -c \"date +'%Y%m%d_%H:%M:%S'; sleep 1;\"`;\n" +
+              "store A into '$now';\n";
+
+        ParameterSubstitutionPreprocessor ps = new ParameterSubstitutionPreprocessor(50);
+        pigIStream = new BufferedReader(
+                                        new InputStreamReader(new ByteArrayInputStream(queryString.getBytes("UTF-8"))));
+        pigOStream = new FileWriter(basedir + "/output1.pig");
+
+        String[] arg = {"output = 'output.txt'"};
+        String[] argFiles = null;
+        ps.genSubstitutedFile(pigIStream , pigOStream , arg , argFiles);
+
+        BufferedReader pigresult = new BufferedReader(new InputStreamReader(new FileInputStream(basedir + "/output1.pig")));
+
+
+        String [] filenames = new String [2];
+        int index=0;
+        String line;
+        while ((line = pigresult.readLine())!=null) {
+            if( line.startsWith("store A into") ) {
+                filenames[index++] = line.split(" ")[3];
+            }
+        }
+
+        assertEquals("There should be 2 store statements", 2, index);
+        assertNotEquals("Identical shell param should be reexecuted.",
+                     filenames[0],
+                     filenames[1]);
+        log.info("Done");
     }
 
     @SuppressWarnings("resource")

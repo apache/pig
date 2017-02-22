@@ -102,7 +102,7 @@ public class TestMRJobStats {
         try {
             Constructor<MRJobStats> con = MRJobStats.class.getDeclaredConstructor(String.class, JobGraph.class);
             con.setAccessible(true);
-            MRJobStats jobStats = (MRJobStats) con.newInstance(name, plan);
+            MRJobStats jobStats = con.newInstance(name, plan);
             return jobStats;
         } catch (Exception e) {
             return null;
@@ -202,14 +202,49 @@ public class TestMRJobStats {
         }
     }
 
-    private static POStore createPOStoreForFileBasedSystem(long size, StoreFuncInterface storeFunc,
-            Configuration conf) throws Exception {
+    private POStore createPOStoreForFileBasedSystemWithSubDirectories(long size, StoreFuncInterface storeFunc, Configuration conf) throws Exception {
+        File root = createTmpDirectory("outputRoot", null);
+        File dir1 = createTmpDirectory("dir1", root);
+        File dir2 = createTmpDirectory("dir2", root);
+        createTmpFile("tempFile1", size, dir1);
+        createTmpFile("tempFile2", size, dir2);
 
-        File file = File.createTempFile("tempFile", ".tmp");
+        storeFunc.setStoreLocation(root.getAbsolutePath(), new Job(conf));
+        FuncSpec funcSpec = new FuncSpec(storeFunc.getClass().getCanonicalName());
+        POStore poStore = new POStore(new OperatorKey());
+        poStore.setSFile(new FileSpec(root.getAbsolutePath(), funcSpec));
+        poStore.setStoreFunc(storeFunc);
+        poStore.setUp();
+
+        return poStore;
+    }
+
+    private static File createTmpDirectory(String name, File root) throws Exception {
+        File directory = File.createTempFile(name, "", root);
+
+        if (!(directory.delete())) {
+            throw new IOException("Could not delete temp file: " + directory.getAbsolutePath());
+        }
+
+        if (!(directory.mkdir())) {
+            throw new IOException("Could not create temp directory: " + directory.getAbsolutePath());
+        }
+
+        return directory;
+    }
+
+    private static File createTmpFile(String name, long size, File directory) throws Exception {
+        File file = directory == null ? File.createTempFile(name, ".tmp") : File.createTempFile(name, ".tmp", directory);
         file.deleteOnExit();
         RandomAccessFile f = new RandomAccessFile(file, "rw");
         f.setLength(size);
         f.close();
+        return file;
+    }
+
+    private static POStore createPOStoreForFileBasedSystem(long size, StoreFuncInterface storeFunc,
+            Configuration conf) throws Exception {
+        File file = createTmpFile("tempFile", size, null);
 
         storeFunc.setStoreLocation(file.getAbsolutePath(), new Job(conf));
         FuncSpec funcSpec = new FuncSpec(storeFunc.getClass().getCanonicalName());
@@ -236,7 +271,7 @@ public class TestMRJobStats {
     }
 
     @Test
-    public void testGetOuputSizeUsingFileBasedStorage() throws Exception {
+    public void testGetOutputSizeUsingFileBasedStorage() throws Exception {
         // By default, FileBasedOutputSizeReader is used to compute the size of output.
         Configuration conf = new Configuration();
 
@@ -249,7 +284,20 @@ public class TestMRJobStats {
     }
 
     @Test
-    public void testGetOuputSizeUsingNonFileBasedStorage1() throws Exception {
+    public void testGetOutputSizeUsingFileBasedStorageWithSubDirectories() throws Exception {
+        // By default, FileBasedOutputSizeReader is used to compute the size of output.
+        Configuration conf = new Configuration();
+
+        long size = 2L * 1024 * 1024 * 1024;
+        long outputSize = JobStats.getOutputSize(
+                createPOStoreForFileBasedSystemWithSubDirectories(size, new PigStorageWithStatistics(), conf), conf);
+
+        assertEquals("The returned output size is expected to be sum of file sizes in the sub-directories",
+                2 * size, outputSize);
+    }
+
+    @Test
+    public void testGetOutputSizeUsingNonFileBasedStorage1() throws Exception {
         // By default, FileBasedOutputSizeReader is used to compute the size of output.
         Configuration conf = new Configuration();
 
@@ -263,7 +311,7 @@ public class TestMRJobStats {
     }
 
     @Test
-    public void testGetOuputSizeUsingNonFileBasedStorage2() throws Exception {
+    public void testGetOutputSizeUsingNonFileBasedStorage2() throws Exception {
         // Register a custom output size reader in configuration
         Configuration conf = new Configuration();
         conf.set(PigStatsOutputSizeReader.OUTPUT_SIZE_READER_KEY,
@@ -279,7 +327,7 @@ public class TestMRJobStats {
     }
 
     @Test(expected = RuntimeException.class)
-    public void testGetOuputSizeUsingNonFileBasedStorage3() throws Exception {
+    public void testGetOutputSizeUsingNonFileBasedStorage3() throws Exception {
         // Register an invalid output size reader in configuration, and verify
         // that an exception is thrown at run-time.
         Configuration conf = new Configuration();
@@ -292,7 +340,7 @@ public class TestMRJobStats {
     }
 
     @Test
-    public void testGetOuputSizeUsingNonFileBasedStorage4() throws Exception {
+    public void testGetOutputSizeUsingNonFileBasedStorage4() throws Exception {
         // Register a comma-separated list of readers in configuration, and
         // verify that the one that supports a non-file-based uri is used.
         Configuration conf = new Configuration();
@@ -310,7 +358,7 @@ public class TestMRJobStats {
     }
 
     @Test
-    public void testGetOuputSizeUsingNonFileBasedStorage5() throws Exception {
+    public void testGetOutputSizeUsingNonFileBasedStorage5() throws Exception {
         Configuration conf = new Configuration();
 
         long size = 2L * 1024 * 1024 * 1024;

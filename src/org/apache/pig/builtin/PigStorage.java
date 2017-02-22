@@ -68,7 +68,6 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTextInputFormat;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTextOutputFormat;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
-import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.bzip2r.Bzip2TextInputFormat;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
@@ -171,7 +170,7 @@ LoadPushDown, LoadMetadata, StoreMetadata, OverwritableStoreFunc {
         validOptions.addOption(TAG_SOURCE_FILE, false, "Appends input source file name to beginning of each tuple.");
         validOptions.addOption(TAG_SOURCE_PATH, false, "Appends input source file path to beginning of each tuple.");
         validOptions.addOption("tagsource", false, "Appends input source file name to beginning of each tuple.");
-        Option overwrite = new Option(" ", "Overwrites the destination.");
+        Option overwrite = new Option("overwrite", "Overwrites the destination.");
         overwrite.setLongOpt("overwrite");
         overwrite.setOptionalArg(true);
         overwrite.setArgs(1);
@@ -412,7 +411,7 @@ LoadPushDown, LoadMetadata, StoreMetadata, OverwritableStoreFunc {
     @Override
     public InputFormat getInputFormat() {
         if((loadLocation.endsWith(".bz2") || loadLocation.endsWith(".bz"))
-           && (!bzipinput_usehadoops || !HadoopShims.isHadoopYARN()) ) {
+           && (!bzipinput_usehadoops) ) {
             mLog.info("Using Bzip2TextInputFormat");
             return new Bzip2TextInputFormat();
         } else {
