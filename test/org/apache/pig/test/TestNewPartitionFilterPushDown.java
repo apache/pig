@@ -57,6 +57,8 @@ import org.apache.pig.newplan.logical.expression.EqualExpression;
 import org.apache.pig.newplan.logical.expression.IsNullExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpression;
 import org.apache.pig.newplan.logical.expression.MapLookupExpression;
+import org.apache.pig.newplan.logical.expression.NotEqualExpression;
+import org.apache.pig.newplan.logical.expression.NotExpression;
 import org.apache.pig.newplan.logical.expression.OrExpression;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
@@ -120,6 +122,17 @@ public class TestNewPartitionFilterPushDown {
         test(q, Arrays.asList("srcid", "mrkt"),
                 "((srcid > 20) and (mrkt == 'us'))", null);
 
+    }
+
+    /**
+     * test case where filter only contains condition on partition cols
+     * @throws Exception
+     */
+    @Test
+    public void testPartIsNullFilter() throws Exception {
+        String q = query + "b = filter a by srcid is null;" + "store b into 'out';";
+        test(q, Arrays.asList("srcid"),
+                null, "(srcid is null)");
     }
 
     /**
@@ -685,6 +698,15 @@ public class TestNewPartitionFilterPushDown {
         testFull(q, "((srcid < 5) or (srcid == 10))", "((f1 < 5) or (f2 == 'UK'))", false);
     }
 
+    // PIG-4940
+    @Test
+    public void testUnaryExpressions() throws Exception {
+        String q = query + "b = filter a by srcid == 10 and not browser#'type' is null;" +
+                "store b into 'out';";
+        test(q, Arrays.asList("srcid"), "(srcid == 10)",
+                "(not (browser#'type' is null))", true);
+    }
+
     //// helper methods ///////
     private PartitionFilterExtractor test(String query, List<String> partitionCols,
             String expPartFilterString, String expFilterString)
@@ -849,7 +871,7 @@ public class TestNewPartitionFilterPushDown {
         return "(" + input + ")";
     }
 
-    private static String getTestExpression(LogicalExpression op) throws FrontendException {
+    public static String getTestExpression(LogicalExpression op) throws FrontendException {
         if(op == null) {
             return null;
         }
@@ -871,6 +893,8 @@ public class TestNewPartitionFilterPushDown {
                     opStr = " and ";
                 } else if (op instanceof OrExpression) {
                     opStr = " or ";
+                } else if (op instanceof NotEqualExpression) {
+                    opStr = " != ";
                 } else {
                     opStr = op.getName();
                 }
@@ -890,6 +914,9 @@ public class TestNewPartitionFilterPushDown {
                 int colind = ((DereferenceExpression) op).getBagColumns().get(0);
                 String column = String.valueOf(colind);
                 return alias + ".$" + column;
+            } else if (op instanceof NotExpression) {
+                String expr = getTestExpression(((NotExpression) op).getExpression());
+                return braketize("not " + expr);
             } else {
                 throw new FrontendException("Unsupported conversion of LogicalExpression to Expression: " + op.getName());
             }

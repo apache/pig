@@ -72,7 +72,7 @@ b: Local Rearrange[tuple]{int}(false) - scope-12	->	 scope-37
     |---a: Load(file:///tmp/input:PigStorage(',')) - scope-13
 Tez vertex scope-37
 # Plan on vertex
-b: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-10
+b: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-10
 |
 |---New For Each(true)[tuple] - scope-40
     |   |

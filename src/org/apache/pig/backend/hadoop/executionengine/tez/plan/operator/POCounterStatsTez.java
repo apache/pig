@@ -56,6 +56,7 @@ public class POCounterStatsTez extends PhysicalOperator implements TezInput, Tez
     private transient KeyValuesReader reader;
     private transient KeyValueWriter writer;
     private transient boolean finished = false;
+    private transient boolean hasNext = false;
 
     public POCounterStatsTez(OperatorKey k) {
         super(k);
@@ -88,6 +89,7 @@ public class POCounterStatsTez extends PhysicalOperator implements TezInput, Tez
         try {
             reader = (KeyValuesReader) input.getReader();
             LOG.info("Attached input from vertex " + inputKey + " : input=" + input + ", reader=" + reader);
+            hasNext = reader.next();
         } catch (Exception e) {
             throw new ExecException(e);
         }
@@ -130,12 +132,13 @@ public class POCounterStatsTez extends PhysicalOperator implements TezInput, Tez
             Integer key = null;
             Long value = null;
             // Read count of records per task
-            while (reader.next()) {
+            while (hasNext) {
                 key = ((IntWritable)reader.getCurrentKey()).get();
                 for (Object val : reader.getCurrentValues()) {
                     value = ((LongWritable)val).get();
                     counterRecords.put(key, value);
                 }
+                hasNext = reader.next();
             }
 
             // BinInterSedes only takes String for map key

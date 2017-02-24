@@ -441,6 +441,10 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     public void reset() {
     }
 
+    public boolean isEndOfAllInput() {
+        return parentPlan.endOfAllInput;
+    }
+
     /**
      * @return PigProgressable stored in threadlocal
      */

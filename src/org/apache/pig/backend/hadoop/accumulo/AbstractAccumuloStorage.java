@@ -17,8 +17,6 @@
 package org.apache.pig.backend.hadoop.accumulo;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Collection;
@@ -303,24 +301,8 @@ public abstract class AbstractAccumuloStorage extends LoadFunc implements
      */
     protected void simpleUnset(Configuration conf,
             Map<String, String> entriesToUnset) {
-        try {
-            Method unset = conf.getClass().getMethod("unset", String.class);
-
-            for (String key : entriesToUnset.keySet()) {
-                unset.invoke(conf, key);
-            }
-        } catch (NoSuchMethodException e) {
-            log.error("Could not invoke Configuration.unset method", e);
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
-            log.error("Could not invoke Configuration.unset method", e);
-            throw new RuntimeException(e);
-        } catch (IllegalArgumentException e) {
-            log.error("Could not invoke Configuration.unset method", e);
-            throw new RuntimeException(e);
-        } catch (InvocationTargetException e) {
-            log.error("Could not invoke Configuration.unset method", e);
-            throw new RuntimeException(e);
+        for (String key : entriesToUnset.keySet()) {
+            conf.unset(key);
         }
     }
 

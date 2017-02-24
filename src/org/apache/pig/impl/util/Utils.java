@@ -48,6 +48,7 @@ import org.apache.hadoop.io.compress.BZip2Codec;
 import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.util.ShutdownHookManager;
 import org.apache.pig.FileInputLoadFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
@@ -93,18 +94,10 @@ public class Utils {
     	  return System.getProperty("java.vendor").contains("IBM");
     }
 
-    public static boolean isHadoop23() {
-        String version = org.apache.hadoop.util.VersionInfo.getVersion();
-        if (version.matches("\\b0\\.23\\..+\\b"))
-            return true;
-        return false;
-    }
-
-    public static boolean isHadoop2() {
-        String version = org.apache.hadoop.util.VersionInfo.getVersion();
-        if (version.matches("\\b2\\.\\d+\\..+"))
-            return true;
-        return false;
+    public static boolean is64bitJVM() {
+        String arch = System.getProperties().getProperty("sun.arch.data.model",
+                System.getProperty("com.ibm.vm.bitmode"));
+        return arch != null && arch.equals("64");
     }
 
     /**
@@ -574,6 +567,11 @@ public class Utils {
         return pigContext.getExecType().isLocal() || conf.getBoolean(PigImplConstants.CONVERTED_TO_LOCAL, false);
     }
 
+    public static boolean isLocal(Configuration conf) {
+        return conf.getBoolean(PigImplConstants.PIG_EXECTYPE_MODE_LOCAL, false)
+                || conf.getBoolean(PigImplConstants.CONVERTED_TO_LOCAL, false);
+    }
+
     // PIG-3929 use parameter substitution for pig properties similar to Hadoop Configuration
     // Following code has been borrowed from Hadoop's Configuration#substituteVars
     private static Pattern varPat = Pattern.compile("\\$\\{[^\\}\\$\u0020]+\\}");
@@ -696,5 +694,16 @@ public class Utils {
             // don't use offsets because it breaks across DST/Standard Time
             DateTimeZone.setDefault(DateTimeZone.forID(dtzStr));
         }
+    }
+
+    /**
+     * Add shutdown hook that runs before the FileSystem cache shutdown happens.
+     *
+     * @param hook code to execute during shutdown
+     * @param priority Priority over the  FileSystem.SHUTDOWN_HOOK_PRIORITY
+     */
+    public static void addShutdownHookWithPriority(Runnable hook, int priority) {
+        ShutdownHookManager.get().addShutdownHook(hook,
+                FileSystem.SHUTDOWN_HOOK_PRIORITY + priority);
     }
 }

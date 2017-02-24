@@ -96,8 +96,6 @@ public class TestUnionOnSchema  {
 
     /**
      * Test UNION ONSCHEMA on two inputs with same schema
-     * @throws IOException
-     * @throws ParserException
      */
     @Test
     public void testUnionOnSchemaSameSchema() throws Exception {
@@ -128,8 +126,6 @@ public class TestUnionOnSchema  {
     
     /**
      * Test UNION ONSCHEMA with operations after the union
-     * @throws IOException
-     * @throws ParserException
      */
     @Test
     public void testUnionOnSchemaFilter() throws Exception {
@@ -161,8 +157,6 @@ public class TestUnionOnSchema  {
     
     /**
      * Test UNION ONSCHEMA with operations after the union
-     * @throws IOException
-     * @throws ParserException
      */
     @Test
     public void testUnionOnSchemaSuccOps() throws Exception {
@@ -194,8 +188,6 @@ public class TestUnionOnSchema  {
     
     /**
      * Test UNION ONSCHEMA with cast from bytearray to another type
-     * @throws IOException
-     * @throws ParserException
      */
     @Test
     public void testUnionOnSchemaCastOnByteArray() throws Exception {
@@ -223,8 +215,6 @@ public class TestUnionOnSchema  {
     /**
      * Test UNION ONSCHEMA where a common column has additional 'namespace' part
      *  in the column name in one of the inputs
-     * @throws IOException
-     * @throws ParserException
      */
     @Test
     public void testUnionOnSchemaScopedColumnName() throws Exception {
@@ -266,8 +256,6 @@ public class TestUnionOnSchema  {
     /**
      * Test UNION ONSCHEMA where a common column has additional 'namespace' part
      *  in the column name in both the inputs
-     * @throws IOException
-     * @throws ParserException
      */
     @Test
     public void testUnionOnSchemaScopedColumnNameBothInp1() throws Exception {
@@ -302,8 +290,6 @@ public class TestUnionOnSchema  {
     /**
      * Test UNION ONSCHEMA where a common column has additional 'namespace' part
      *  in the column name in both the inputs
-     * @throws IOException
-     * @throws ParserException
      */
     @Test
     public void testUnionOnSchemaScopedColumnNameBothInp2() throws Exception {
@@ -340,8 +326,6 @@ public class TestUnionOnSchema  {
      * Test UNION ONSCHEMA where a common column has additional 'namespace' part
      *  in the column name in one of the inputs.
      *  Negative test case
-     * @throws IOException
-     * @throws ParserException
      */
     @Test
     public void testUnionOnSchemaScopedColumnNameNeg() throws Exception {
@@ -366,8 +350,6 @@ public class TestUnionOnSchema  {
     /**
      * Test UNION ONSCHEMA on two inputs with same column names, but different
      * numeric types - test type promotion
-     * @throws IOException
-     * @throws ParserException
      */
     @Test
     public void testUnionOnSchemaDiffNumType() throws Exception {
@@ -396,8 +378,6 @@ public class TestUnionOnSchema  {
 
     /**
      * Test UNION ONSCHEMA on two inputs with no common columns
-     * @throws IOException
-     * @throws ParserException
      */
     @Test
     public void testUnionOnSchemaNoCommonCols() throws Exception {
@@ -424,8 +404,6 @@ public class TestUnionOnSchema  {
     
     /**
      * Test UNION ONSCHEMA on two inputs , one input with additional columns
-     * @throws IOException
-     * @throws ParserException
      */
     @Test
     public void testUnionOnSchemaAdditionalColumn() throws Exception {
@@ -498,8 +476,6 @@ public class TestUnionOnSchema  {
     
     /**
      * Test UNION ONSCHEMA on 3 inputs 
-     * @throws IOException
-     * @throws ParserException
      */
     @Test
     public void testUnionOnSchema3Inputs() throws Exception {
@@ -533,8 +509,6 @@ public class TestUnionOnSchema  {
 
     /**
      * Test UNION ONSCHEMA with bytearray type 
-     * @throws IOException
-     * @throws ParserException
      */
     @Test
     public void testUnionOnSchemaByteArrayConversions() throws Exception {
@@ -572,8 +546,6 @@ public class TestUnionOnSchema  {
     
     /**
      * negative test - test error on no schema
-     * @throws IOException
-     * @throws ParserException
      */
     @Test
     public void testUnionOnSchemaNoSchema() throws Exception {
@@ -597,8 +569,6 @@ public class TestUnionOnSchema  {
     
     /**
      * negative test - test error on null alias in one of the FieldSchema
-     * @throws IOException
-     * @throws ParserException
      */
     @Test
     public void testUnionOnSchemaNullAliasInFieldSchema() throws Exception {
@@ -640,8 +610,6 @@ public class TestUnionOnSchema  {
 
     /**
      * test union with incompatible types in schema
-     * @throws IOException
-     * @throws ParserException
      */
     @Test
     public void testUnionOnSchemaIncompatibleTypes() throws Exception {
@@ -650,7 +618,15 @@ public class TestUnionOnSchema  {
             + "l2 = load '" + INP_FILE_2NUMS + "' as (x : long, y : float);"
             + "u = union onschema l1, l2;";
 
-        checkSchemaEquals(query, "x : long, y : bytearray");
+        checkSchemaEx(query, "Cannot cast from chararray to bytearray");
+
+        //without "onschema"
+        query =
+            "  l1 = load '" + INP_FILE_2NUMS + "' as (x : long, y : chararray);"
+            + "l2 = load '" + INP_FILE_2NUMS + "' as (x : long, y : float);"
+            + "u = union l1, l2;";
+
+        checkSchemaEx(query, "Cannot cast from chararray to bytearray");
 
 
         
@@ -659,8 +635,15 @@ public class TestUnionOnSchema  {
             + "l2 = load '" + INP_FILE_2NUMS + "' as (x : map[ ], y : chararray);"
             + "u = union onschema l1, l2;"
         ; 
-        checkSchemaEquals(query, "x : bytearray, y : chararray");
+        checkSchemaEx(query, "Cannot cast from long to bytearray");
                
+        query =
+            "  l1 = load '" + INP_FILE_2NUMS + "' as (x : long, y : chararray);"
+            + "l2 = load '" + INP_FILE_2NUMS + "' as (x : map[ ], y : chararray);"
+            + "u = union l1, l2;"
+        ;
+        checkSchemaEx(query, "Cannot cast from long to bytearray");
+
         // bag column with different internal column types
         query =
             "  l1 = load '" + INP_FILE_2NUMS 
@@ -708,8 +691,6 @@ public class TestUnionOnSchema  {
 
     /**
      * Test UNION ONSCHEMA with input relation having udfs
-     * @throws IOException
-     * @throws ParserException
      */
     @Test
     public void testUnionOnSchemaInputUdfs() throws Exception {
@@ -745,8 +726,6 @@ public class TestUnionOnSchema  {
     /**
      * Test UNION ONSCHEMA with udf whose default type is different from
      * final type
-     * @throws IOException
-     * @throws ParserException
      */
     @Test
     public void testUnionOnSchemaUdfTypeEvolution() throws Exception {
@@ -797,8 +776,6 @@ public class TestUnionOnSchema  {
     /**
      * Test UNION ONSCHEMA with udf whose default type is different from
      * final type - where udf is not in immediate input of union
-     * @throws IOException
-     * @throws ParserException
      */
     @Test
     public void testUnionOnSchemaUdfTypeEvolution2() throws Exception {
@@ -869,8 +846,6 @@ public class TestUnionOnSchema  {
     /**
      * Test UNION ONSCHEMA with input relation having column names with multiple
      * level of namespace in their names
-     * @throws IOException
-     * @throws ParserException
      */
     @Test
     public void testUnionOnSchemaScopeMulti() throws Exception {
@@ -916,8 +891,6 @@ public class TestUnionOnSchema  {
     
     /**
      * Test query with a union-onschema having another as input 
-     * @throws IOException
-     * @throws ParserException
      */
     @Test
     public void testTwoUnions() throws Exception {

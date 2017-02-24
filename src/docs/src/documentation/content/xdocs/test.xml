@@ -540,7 +540,7 @@ job_201004271216_12714 1 1 3 3 3 12 12 12 D ORDER_BY,COMBINER
 
 <p>Pig Statistics is a framework for collecting and storing script-level statistics for Pig Latin. Characteristics of Pig Latin scripts and the resulting MapReduce jobs are collected while the script is executed. These statistics are then available for Pig users and tools using Pig (such as Oozie) to retrieve after the job is done.</p>
 
-<p>The new Pig statistics and the existing Hadoop statistics can also be accessed via the Hadoop job history file (and job xml file). Piggybank has a HadoopJobHistoryLoader which acts as an example of using Pig itself to query these statistics (the loader can be used as a reference implementation but is NOT supported for production use).</p>
+<p>The new Pig statistics and the existing Hadoop statistics can also be accessed via the Hadoop job history file (and job xml file).</p>
 
 <!-- +++++++++++++++++++++++++++++++++++++++ -->
 <section>
@@ -548,7 +548,7 @@ job_201004271216_12714 1 1 3 3 3 12 12 12 D ORDER_BY,COMBINER
 
 <p>Several new public classes make it easier for external tools such as Oozie to integrate with Pig statistics. </p>
 
-<p>The Pig statistics are available here: <a href="http://pig.apache.org/docs/r0.14.0/api/">http://pig.apache.org/docs/r0.14.0/api/</a></p>
+<p>The Pig statistics are available here: <a href="http://pig.apache.org/docs/r0.16.0/api/">http://pig.apache.org/docs/r0.16.0/api/</a></p>
 
 <p id="stats-classes">The stats classes are in the package: org.apache.pig.tools.pigstats</p>
 <ul>
@@ -707,93 +707,6 @@ public interface PigProgressNotificationListener extends java.util.EventListener
 </td>
 </tr>
 </table>
-</section>
-
-
-<!-- +++++++++++++++++++++++++++++++++++++++ -->
-<section id="hadoop-job-history-loader">
-<title>Hadoop Job History Loader</title>
-<p>The HadoopJobHistoryLoader in Piggybank loads Hadoop job history files and job xml files from file system. For each MapReduce job, the loader produces a tuple with schema (j:map[], m:map[], r:map[]). The first map in the schema contains job-related entries. Here are some of important key names in the map: </p>
-
-<table>
-<tr>
-<td>
-<p>PIG_SCRIPT_ID</p>
-<p>CLUSTER </p>
-<p>QUEUE_NAME</p>
-<p>JOBID</p>
-<p>JOBNAME</p>
-<p>STATUS</p>
-</td>
-<td>
-<p>USER </p>
-<p>HADOOP_VERSION  </p>
-<p>PIG_VERSION</p>
-<p>PIG_JOB_FEATURE</p>
-<p>PIG_JOB_ALIAS </p>
-<p>PIG_JOB_PARENTS</p>
-</td>
-<td>
-<p>SUBMIT_TIME</p>
-<p>LAUNCH_TIME</p>
-<p>FINISH_TIME</p>
-<p>TOTAL_MAPS</p>
-<p>TOTAL_REDUCES</p>
-</td>
-</tr>
-</table>
-<p></p>
-<p>Examples that use the loader to query Pig statistics are shown below.</p>
-</section>
-
-<!-- +++++++++++++++++++++++++++++++++++++++ -->
-<section>
-<title>Examples</title>
-<p>Find scripts that generate more then three MapReduce jobs:</p>
-<source>
-a = load '/mapred/history/done' using HadoopJobHistoryLoader() as (j:map[], m:map[], r:map[]);
-b = group a by (j#'PIG_SCRIPT_ID', j#'USER', j#'JOBNAME');
-c = foreach b generate group.$1, group.$2, COUNT(a);
-d = filter c by $2 > 3;
-dump d;
-</source>
-
-<p>Find the running time of each script (in seconds): </p>
-<source>
-a = load '/mapred/history/done' using HadoopJobHistoryLoader() as (j:map[], m:map[], r:map[]);
-b = foreach a generate j#'PIG_SCRIPT_ID' as id, j#'USER' as user, j#'JOBNAME' as script_name, 
-         (Long) j#'SUBMIT_TIME' as start, (Long) j#'FINISH_TIME' as end;
-c = group b by (id, user, script_name)
-d = foreach c generate group.user, group.script_name, (MAX(b.end) - MIN(b.start)/1000;
-dump d;
-</source>
-
-<p>Find the number of scripts run by user and queue on a cluster: </p>
-<source>
-a = load '/mapred/history/done' using HadoopJobHistoryLoader() as (j:map[], m:map[], r:map[]);
-b = foreach a generate j#'PIG_SCRIPT_ID' as id, j#'USER' as user, j#'QUEUE_NAME' as queue;
-c = group b by (id, user, queue) parallel 10;
-d = foreach c generate group.user, group.queue, COUNT(b);
-dump d;
-</source>
-
-<p>Find scripts that have failed jobs: </p>
-<source>
-a = load '/mapred/history/done' using HadoopJobHistoryLoader() as (j:map[], m:map[], r:map[]);
-b = foreach a generate (Chararray) j#'STATUS' as status, j#'PIG_SCRIPT_ID' as id, j#'USER' as user, j#'JOBNAME' as script_name, j#'JOBID' as job;
-c = filter b by status != 'SUCCESS';
-dump c;
-</source>
-
-<p>Find scripts that use only the default parallelism: </p>
-<source>
-a = load '/mapred/history/done' using HadoopJobHistoryLoader() as (j:map[], m:map[], r:map[]);
-b = foreach a generate j#'PIG_SCRIPT_ID' as id, j#'USER' as user, j#'JOBNAME' as script_name, (Long) r#'NUMBER_REDUCES' as reduces;
-c = group b by (id, user, script_name) parallel 10;
-d = foreach c generate group.user, group.script_name, MAX(b.reduces) as max_reduces;
-e = filter d by max_reduces == 1;
-dump e;
-</source>
 </section>
 </section>   
 

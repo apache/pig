@@ -54,7 +54,7 @@ public class JythonFunction extends EvalFunc<Object> {
         try {
             f = JythonScriptEngine.getFunction(filename, functionName);
             this.function = f;
-            num_parameters = ((PyBaseCode) f.func_code).co_argcount;
+            num_parameters = ((PyBaseCode) f.__code__).co_argcount;
             PyObject outputSchemaDef = f.__findattr__("outputSchema".intern());
             if (outputSchemaDef != null) {
                 this.schema = Utils.getSchemaFromString(outputSchemaDef.toString());
@@ -105,7 +105,7 @@ public class JythonFunction extends EvalFunc<Object> {
     @Override
     public Object exec(Tuple tuple) throws IOException {
         try {
-            if (tuple == null || (num_parameters == 0 && !((PyTableCode)function.func_code).varargs)) {
+            if (tuple == null || (num_parameters == 0 && !((PyTableCode)function.__code__).varargs)) {
                 // ignore input tuple
                 PyObject out = function.__call__();
                 return JythonUtils.pythonToPig(out);

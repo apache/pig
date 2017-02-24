@@ -57,6 +57,7 @@ public class POIdentityInOutTez extends POLocalRearrangeTez implements TezInput,
     private transient KeyValuesReader shuffleReader;
     private transient boolean shuffleInput;
     private transient boolean finished = false;
+    private transient boolean hasNext = false;
 
     public POIdentityInOutTez(OperatorKey k, POLocalRearrange inputRearrange, String inputKey) {
         super(inputRearrange);
@@ -95,9 +96,12 @@ public class POIdentityInOutTez extends POLocalRearrangeTez implements TezInput,
             Reader r = input.getReader();
             if (r instanceof KeyValueReader) {
                 reader = (KeyValueReader) r;
+                // Force input fetch
+                hasNext = reader.next();
             } else {
                 shuffleInput = true;
                 shuffleReader = (KeyValuesReader) r;
+                hasNext = shuffleReader.next();
             }
             LOG.info("Attached input from vertex " + inputKey + " : input=" + input + ", reader=" + r);
         } catch (Exception e) {
@@ -127,7 +131,7 @@ public class POIdentityInOutTez extends POLocalRearrangeTez implements TezInput,
                 return RESULT_EOP;
             }
             if (shuffleInput) {
-                while (shuffleReader.next()) {
+                while (hasNext) {
                     Object curKey = shuffleReader.getCurrentKey();
                     Iterable<Object> vals = shuffleReader.getCurrentValues();
                     if (isSkewedJoin) {
@@ -139,9 +143,10 @@ public class POIdentityInOutTez extends POLocalRearrangeTez implements TezInput,
                     for (Object val : vals) {
                         writer.write(curKey, val);
                     }
+                    hasNext = shuffleReader.next();
                 }
             } else {
-                while (reader.next()) {
+                while (hasNext) {
                     if (isSkewedJoin) {
                         NullablePartitionWritable wrappedKey = new NullablePartitionWritable(
                                 (PigNullableWritable) reader.getCurrentKey());
@@ -155,6 +160,7 @@ public class POIdentityInOutTez extends POLocalRearrangeTez implements TezInput,
                         writer.write(reader.getCurrentKey(),
                                 reader.getCurrentValue());
                     }
+                    hasNext = reader.next();
                 }
             }
             finished = true;

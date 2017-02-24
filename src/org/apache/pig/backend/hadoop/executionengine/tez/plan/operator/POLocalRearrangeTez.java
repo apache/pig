@@ -71,8 +71,8 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
         }
     }
 
-    public String getOutputKey() {
-        return outputKey;
+    public boolean containsOutputKey(String key) {
+        return outputKey.equals(key);
     }
 
     public void setOutputKey(String outputKey) {
@@ -120,6 +120,10 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
         } catch (Exception e) {
             throw new ExecException(e);
         }
+    }
+
+    protected Result getRearrangedTuple() throws ExecException {
+        return super.getNextTuple();
     }
 
     @Override

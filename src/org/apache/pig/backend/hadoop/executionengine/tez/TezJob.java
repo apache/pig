@@ -30,6 +30,11 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.pig.PigConfiguration;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOpPlanVisitor;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
+import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperator;
+import org.apache.pig.impl.plan.DependencyOrderWalker;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.tools.pigstats.tez.TezPigScriptStats;
 import org.apache.tez.client.TezClient;
@@ -51,7 +56,7 @@ import com.google.common.collect.Maps;
  */
 public class TezJob implements Runnable {
     private static final Log log = LogFactory.getLog(TezJob.class);
-    private Configuration conf;
+    private TezConfiguration conf;
     private EnumSet<StatusGetOpts> statusGetOpts;
     private Map<String, LocalResource> requestAMResources;
     private ApplicationId appId;
@@ -69,30 +74,70 @@ public class TezJob implements Runnable {
 
     public TezJob(TezConfiguration conf, DAG dag,
             Map<String, LocalResource> requestAMResources,
-            int estimatedTotalParallelism) throws IOException {
+            TezOperPlan tezPlan) throws IOException {
         this.conf = conf;
         this.dag = dag;
         this.requestAMResources = requestAMResources;
         this.reuseSession = conf.getBoolean(PigConfiguration.PIG_TEZ_SESSION_REUSE, true);
         this.statusGetOpts = EnumSet.of(StatusGetOpts.GET_COUNTERS);
-        tezJobConf = new TezJobConfig(estimatedTotalParallelism);
+        tezJobConf = new TezJobConfig(tezPlan);
     }
 
     static class TezJobConfig {
 
         private int estimatedTotalParallelism = -1;
+        private int maxOutputsinSingleVertex;
+        private int totalVertices  = 0;
 
-        public TezJobConfig(int estimatedTotalParallelism) {
-            this.estimatedTotalParallelism = estimatedTotalParallelism;
+        public TezJobConfig(TezOperPlan tezPlan) throws VisitorException {
+            this.estimatedTotalParallelism = tezPlan.getEstimatedTotalParallelism();
+            MaxOutputsFinder finder = new MaxOutputsFinder(tezPlan);
+            finder.visit();
+            this.maxOutputsinSingleVertex = finder.getMaxOutputsinSingleVertex();
+            this.totalVertices = finder.getTotalVertices();
         }
 
         public int getEstimatedTotalParallelism() {
             return estimatedTotalParallelism;
         }
 
-        public void setEstimatedTotalParallelism(int estimatedTotalParallelism) {
-            this.estimatedTotalParallelism = estimatedTotalParallelism;
+        public int getMaxOutputsinSingleVertex() {
+            return maxOutputsinSingleVertex;
         }
+
+        public int getTotalVertices() {
+            return totalVertices;
+        }
+
+    }
+
+    private static class MaxOutputsFinder extends TezOpPlanVisitor {
+
+        private int maxOutputsinSingleVertex  = 1;
+        private int totalVertices  = 0;
+
+        public MaxOutputsFinder(TezOperPlan plan) {
+            super(plan, new DependencyOrderWalker<TezOperator, TezOperPlan>(plan));
+        }
+
+        public int getMaxOutputsinSingleVertex() {
+            return maxOutputsinSingleVertex;
+        }
+
+        public int getTotalVertices() {
+            return totalVertices;
+        }
+
+        @Override
+        public void visitTezOp(TezOperator tezOperator) throws VisitorException {
+            if (!tezOperator.isVertexGroup()) {
+                totalVertices++;
+                int outputs = tezOperator.outEdges.keySet().size();
+                maxOutputsinSingleVertex = maxOutputsinSingleVertex > outputs ? maxOutputsinSingleVertex : outputs;
+            }
+        }
+
+
 
     }
 

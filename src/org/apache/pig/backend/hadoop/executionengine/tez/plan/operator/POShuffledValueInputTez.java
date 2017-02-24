@@ -57,6 +57,7 @@ public class POShuffledValueInputTez extends PhysicalOperator implements TezInpu
     private transient Iterator<KeyValueReader> readers;
     private transient KeyValueReader currentReader;
     private transient Configuration conf;
+    private transient Boolean hasFirstRecord;
 
     public POShuffledValueInputTez(OperatorKey k) {
         super(k);
@@ -98,6 +99,8 @@ public class POShuffledValueInputTez extends PhysicalOperator implements TezInpu
             }
             readers = readersList.iterator();
             currentReader = readers.next();
+            // Force input fetch
+            hasFirstRecord = currentReader.next();
         } catch (Exception e) {
             throw new ExecException(e);
         }
@@ -111,7 +114,15 @@ public class POShuffledValueInputTez extends PhysicalOperator implements TezInpu
             }
 
             do {
-                if (currentReader.next()) {
+                if (hasFirstRecord != null) {
+                    if (hasFirstRecord) {
+                        hasFirstRecord = null;
+                        Tuple origTuple = (Tuple) currentReader.getCurrentValue();
+                        Tuple copy = mTupleFactory.newTuple(origTuple.getAll());
+                        return new Result(POStatus.STATUS_OK, copy);
+                    }
+                    hasFirstRecord = null;
+                } else if (currentReader.next()) {
                     Tuple origTuple = (Tuple) currentReader.getCurrentValue();
                     Tuple copy = mTupleFactory.newTuple(origTuple.getAll());
                     return new Result(POStatus.STATUS_OK, copy);

@@ -458,6 +458,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         collectCastWarning(node, arg.getType(), toFs.type, msgCollector);
 
         CastExpression cast = new CastExpression(plan, arg, toFs);
+        cast.setLocation(node.getLocation());
         try {
             // disconnect cast and arg because the connection is already
             // added by cast constructor and insertBetween call is going
@@ -490,7 +491,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         byte outType = cast.getType();
         if(outType == DataType.BYTEARRAY && inType != outType) {
             int errCode = 1051;
-            String msg = "Cannot cast to bytearray";
+            String msg = "Cannot cast from " + DataType.findTypeName(inType) + " to bytearray";
             msgCollector.collect(msg, MessageType.Error) ;
             throw new TypeCheckerException(cast, msg, errCode, PigException.INPUT) ;
         }
@@ -607,7 +608,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             // Matching schemas if we're working with tuples/bags
             if (DataType.isSchemaType(lhsType)) {
                 try {
-                    if(! binCond.getLhs().getFieldSchema().isEqual(binCond.getRhs().getFieldSchema())){
+                    if(!LogicalFieldSchema.isEqualUnlessUnknown(binCond.getLhs().getFieldSchema(), binCond.getRhs().getFieldSchema())){
                         int errCode = 1048;
                         String msg = "Two inputs of BinCond must have compatible schemas."
                             + " left hand side: " + binCond.getLhs().getFieldSchema()

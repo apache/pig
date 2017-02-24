@@ -1348,7 +1348,7 @@ IMPORT 'my_macro.pig';
                <p>Preprocessor statement included in a Pig script.</p>
                <p>Use to describe one parameter in terms of other parameters.</p>
                <p>The declare statement is processed prior to running the Pig script. </p>
-               <p>The scope of a parameter value defined using declare is all the lines following the declare statement until the next declare statement that defines the same parameter is encountered.</p>
+               <p>The scope of a parameter value defined using declare is all the lines following the declare statement until the next declare statement that defines the same parameter is encountered. When used with run/exec command, see <a href="#Parameter-Sub-scope">Scope section</a>.</p>
             </td>
          </tr>
          <tr>
@@ -1388,7 +1388,7 @@ IMPORT 'my_macro.pig';
       </li>
    </ul>
    <p></p>
-   <p>Parameter substitution may be used inside of macros, but it is the responsibility of the user to ensure that there are no conflicts between names of parameters defined at the top level and names of arguments or return values for a macro. A simple way to ensure this is to use ALL_CAPS for top-level parameters and lower_case for macro-level parameters. See <a href="#define-macros">DEFINE (macros)</a>.</p>
+   <p>Parameter substitution may be used inside of macros. When there are conflicts between names of parameters defined at the top level and names of arguments or return values for a given macro, then ones inside the macro are used. See <a href="#define-macros">DEFINE (macros)</a>.</p>
    </section>
    
    <section>
@@ -1424,6 +1424,12 @@ IMPORT 'my_macro.pig';
          <p>Declare and default preprocessors statements are processed in the order they appear in the Pig script. </p>
       </li>
    </ul>
+   </section>
+
+   <section id="Parameter-Sub-scope">
+   <title>Scope</title>
+   <p>Scope of the parameters is global except when used with run/exec command. Caller would not see the parameters declared within the callee's scripts. See <a href='#Parameter-Sub-scope-example'>example</a> for more details.</p>
+
    </section></section>
   
   
@@ -1530,6 +1536,28 @@ A = LOAD '/data/mydata/$CMD';
 B = FILTER A BY $0>'5';
  
 <em>etc ... </em>
+</source>
+   </section>
+   <section id="Parameter-Sub-scope-example">
+   <title>Scoping with run/exec commands </title>
+   <p> In this example, parameters passed to run/exec command or declared within the called scripts are not visible to the caller.</p>
+<source>
+/* main.pig */
+run -param var1=10 script1.pig
+exec script2.pig
+
+A = ...
+B = FOREACH A generate $var1, $var2, ...  --ERROR. unknown parameters var1, var2
+
+</source>
+<source>
+/* script1.pig */
+...
+</source>
+<source>
+/* script2.pig */
+%declare var2 20
+...
 </source>
    </section>
    </section>

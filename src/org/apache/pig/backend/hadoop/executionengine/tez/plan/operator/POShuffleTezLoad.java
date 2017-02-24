@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -32,12 +34,16 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCo
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.AccumulativeTupleBuffer;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.CombinerPackager;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.LitePackager;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.Packager;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.TezInput;
 import org.apache.pig.backend.hadoop.executionengine.util.AccumulatorOptimizerUtil;
 import org.apache.pig.data.AccumulativeBag;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.InternalCachedBag;
+import org.apache.pig.data.ReadOnceBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
@@ -48,6 +54,7 @@ import org.apache.tez.runtime.library.common.ConfigUtils;
 public class POShuffleTezLoad extends POPackage implements TezInput {
 
     private static final long serialVersionUID = 1L;
+    private static final Log LOG = LogFactory.getLog(POShuffleTezLoad.class);
 
     protected List<String> inputKeys = new ArrayList<String>();
     private boolean isSkewedJoin = false;
@@ -61,6 +68,7 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
     private transient WritableComparator groupingComparator = null;
     private transient Configuration conf;
     private transient int accumulativeBatchSize;
+    private transient boolean readOnceOneBag;
 
     public POShuffleTezLoad(POPackage pack) {
         super(pack);
@@ -101,7 +109,10 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
                 //     - Input key will be repeated, but index would be same within a TezInput
                 if (!this.inputs.contains(input)) {
                     this.inputs.add(input);
-                    this.readers.add((KeyValuesReader)input.getReader());
+                    KeyValuesReader reader = (KeyValuesReader)input.getReader();
+                    this.readers.add(reader);
+                    LOG.info("Attached input from vertex " + inputKey
+                            + " : input=" + input + ", reader=" + reader);
                 }
             }
 
@@ -116,6 +127,13 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
             finished = new boolean[numTezInputs];
             for (int i = 0; i < numTezInputs; i++) {
                 finished[i] = !readers.get(i).next();
+            }
+
+            this.readOnceOneBag = (numInputs == 1)
+                    && (pkgr instanceof CombinerPackager
+                            || pkgr instanceof LitePackager || pkgr instanceof BloomPackager);
+            if (readOnceOneBag) {
+                readOnce[0] = true;
             }
         } catch (Exception e) {
             throw new ExecException(e);
@@ -187,43 +205,47 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
 
                 } else {
 
-                    for (int i = 0; i < numInputs; i++) {
-                        bags[i] = new InternalCachedBag(numInputs);
-                    }
-
-                    if (numTezInputs == 1) {
-                        do {
-                            Iterable<Object> vals = readers.get(0).getCurrentValues();
-                            for (Object val : vals) {
-                                NullableTuple nTup = (NullableTuple) val;
-                                int index = nTup.getIndex();
-                                Tuple tup = pkgr.getValueTuple(keyWritable, nTup, index);
-                                bags[index].add(tup);
-                            }
-                            finished[0] = !readers.get(0).next();
-                            if (finished[0]) {
-                                break;
-                            }
-                            cur = readers.get(0).getCurrentKey();
-                        } while (groupingComparator.compare(min, cur) == 0); // We need to loop in case of Grouping Comparators
+                    if (readOnceOneBag) {
+                        bags[0] = new TezReadOnceBag(pkgr, min);
                     } else {
-                        for (int i = 0; i < numTezInputs; i++) {
-                            if (!finished[i]) {
-                                cur = readers.get(i).getCurrentKey();
-                                // We need to loop in case of Grouping Comparators
-                                while (groupingComparator.compare(min, cur) == 0) {
-                                    Iterable<Object> vals = readers.get(i).getCurrentValues();
-                                    for (Object val : vals) {
-                                        NullableTuple nTup = (NullableTuple) val;
-                                        int index = nTup.getIndex();
-                                        Tuple tup = pkgr.getValueTuple(keyWritable, nTup, index);
-                                        bags[index].add(tup);
-                                    }
-                                    finished[i] = !readers.get(i).next();
-                                    if (finished[i]) {
-                                        break;
-                                    }
+                        for (int i = 0; i < numInputs; i++) {
+                            bags[i] = new InternalCachedBag(numInputs);
+                        }
+
+                        if (numTezInputs == 1) {
+                            do {
+                                Iterable<Object> vals = readers.get(0).getCurrentValues();
+                                for (Object val : vals) {
+                                    NullableTuple nTup = (NullableTuple) val;
+                                    int index = nTup.getIndex();
+                                    Tuple tup = pkgr.getValueTuple(keyWritable, nTup, index);
+                                    bags[index].add(tup);
+                                }
+                                finished[0] = !readers.get(0).next();
+                                if (finished[0]) {
+                                    break;
+                                }
+                                cur = readers.get(0).getCurrentKey();
+                            } while (groupingComparator.compare(min, cur) == 0); // We need to loop in case of Grouping Comparators
+                        } else {
+                            for (int i = 0; i < numTezInputs; i++) {
+                                if (!finished[i]) {
                                     cur = readers.get(i).getCurrentKey();
+                                    // We need to loop in case of Grouping Comparators
+                                    while (groupingComparator.compare(min, cur) == 0) {
+                                        Iterable<Object> vals = readers.get(i).getCurrentValues();
+                                        for (Object val : vals) {
+                                            NullableTuple nTup = (NullableTuple) val;
+                                            int index = nTup.getIndex();
+                                            Tuple tup = pkgr.getValueTuple(keyWritable, nTup, index);
+                                            bags[index].add(tup);
+                                        }
+                                        finished[i] = !readers.get(i).next();
+                                        if (finished[i]) {
+                                            break;
+                                        }
+                                        cur = readers.get(i).getCurrentKey();
+                                    }
                                 }
                             }
                         }
@@ -382,5 +404,75 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
         //TODO: illustratorMarkup
 
     }
+
+    private class TezReadOnceBag extends ReadOnceBag {
+
+        private static final long serialVersionUID = 1L;
+        private Iterator<Object> iter;
+
+        public TezReadOnceBag(Packager pkgr,
+                PigNullableWritable currentKey) throws IOException {
+            this.pkgr = pkgr;
+            this.keyWritable = currentKey;
+            this.iter = readers.get(0).getCurrentValues().iterator();
+        }
+
+        @Override
+        public Iterator<Tuple> iterator() {
+            return new TezReadOnceBagIterator();
+        }
+
+        private class TezReadOnceBagIterator implements Iterator<Tuple> {
+
+            @Override
+            public boolean hasNext() {
+                if (iter.hasNext()) {
+                    return true;
+                } else {
+                    try {
+                        finished[0] = !readers.get(0).next();
+                        if (finished[0]) {
+                            return false;
+                        }
+                        // Currently combiner is not being applied when secondary key(grouping comparator) is used
+                        // But might change in future. So check if the next key is same and return its values
+                        Object cur = readers.get(0).getCurrentKey();
+                        if (groupingComparator.compare(keyWritable, cur) == 0) {
+                            iter = readers.get(0).getCurrentValues().iterator();
+                            // Key should at least have one value. But doing a check just for safety
+                            if (iter.hasNext()) {
+                                return true;
+                            } else {
+                                throw new RuntimeException("Unexpected. Key " + keyWritable + " does not have any values");
+                            }
+                        }
+                        return false;
+                    } catch (IOException e) {
+                        throw new RuntimeException("ReadOnceBag failed to get value tuple : ", e);
+                    }
+                }
+            }
+
+            @Override
+            public Tuple next() {
+                NullableTuple ntup = (NullableTuple) iter.next();
+                int index = ntup.getIndex();
+                Tuple ret = null;
+                try {
+                    ret = pkgr.getValueTuple(keyWritable, ntup, index);
+                } catch (ExecException e) {
+                    throw new RuntimeException("ReadOnceBag failed to get value tuple : ", e);
+                }
+                return ret;
+            }
+
+            @Override
+            public void remove() {
+                throw new RuntimeException("ReadOnceBag.iterator().remove() is not allowed");
+            }
+        }
+
+    }
+
 
 }

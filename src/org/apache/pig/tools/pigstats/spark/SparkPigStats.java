@@ -115,6 +115,12 @@ public class SparkPigStats extends PigStats {
     }
 
     private void display() {
+       LOG.info(getDisplayString());
+    }
+
+    @Override
+    public String getDisplayString() {
+        StringBuilder sb = new StringBuilder();
         Iterator<JobStats> iter = jobPlan.iterator();
         while (iter.hasNext()) {
             SparkJobStats js = (SparkJobStats)iter.next();
@@ -122,22 +128,23 @@ public class SparkPigStats extends PigStats {
                 SparkOperator sparkOperator = jobSparkOperatorMap.get(js);
                 js.setAlias(sparkOperator);
             }
-            LOG.info( "Spark Job [" + js.getJobId() + "] Metrics");
+            sb.append("Spark Job [" + js.getJobId() + "] Metrics");
             Map<String, Long> stats = js.getStats();
             if (stats == null) {
-                LOG.info("No statistics found for job " + js.getJobId());
-                return;
+                sb.append("No statistics found for job " + js.getJobId());
+                return sb.toString();
             }
 
             Iterator statIt = stats.entrySet().iterator();
             while (statIt.hasNext()) {
                 Map.Entry pairs = (Map.Entry)statIt.next();
-                LOG.info("\t" + pairs.getKey() + " : " + pairs.getValue());
+                sb.append("\t" + pairs.getKey() + " : " + pairs.getValue());
             }
             for (InputStats inputStat : js.getInputs()){
-                LOG.info("\t"+inputStat.getDisplayString());
+                sb.append("\t"+inputStat.getDisplayString());
             }
         }
+        return sb.toString();
     }
 
     @Override

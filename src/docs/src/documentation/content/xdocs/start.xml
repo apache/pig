@@ -34,7 +34,7 @@
  <p><strong>Mandatory</strong></p>
       <p>Unix and Windows users need the following:</p>
 		<ul>
-		  <li> <strong>Hadoop 0.23.X, 1.X or 2.X</strong> - <a href="http://hadoop.apache.org/common/releases.html">http://hadoop.apache.org/common/releases.html</a> (You can run Pig with different versions of Hadoop by setting HADOOP_HOME to point to the directory where you have installed Hadoop. If you do not set HADOOP_HOME, by default Pig will run with the embedded version, currently Hadoop 1.0.4.)</li>
+		  <li> <strong>Hadoop 2.X</strong> - <a href="http://hadoop.apache.org/common/releases.html">http://hadoop.apache.org/common/releases.html</a> (You can run Pig with different versions of Hadoop by setting HADOOP_HOME to point to the directory where you have installed Hadoop. If you do not set HADOOP_HOME, by default Pig will run with the embedded version, currently Hadoop 2.7.3.)</li>
 		  <li> <strong>Java 1.7</strong> - <a href="http://java.sun.com/javase/downloads/index.jsp">http://java.sun.com/javase/downloads/index.jsp</a> (set JAVA_HOME to the root of your Java installation)</li>	
 		</ul>
 		<p></p>
@@ -82,7 +82,6 @@ Test the Pig installation with this simple command: <code>$ pig -help</code>
 	  <li> Build the code from the top directory: <code>ant</code> <br></br>
 	  If the build is successful, you should see the pig.jar file created in that directory. </li>	
 	  <li> Validate the pig.jar  by running a unit test: <code>ant test</code></li>
-	  <li> If you are using Hadoop 0.23.X or 2.X, please add -Dhadoopversion=23 in your ant command line in the previous steps</li>
      </ol>
  </section>
 </section>
@@ -558,16 +557,16 @@ However, in a production environment you always want to use the STORE operator t
 <li>Make sure the JAVA_HOME environment variable is set the root of your Java installation.</li>
 <li>Make sure your PATH includes bin/pig (this enables you to run the tutorials using the "pig" command). 
 <source>
-$ export PATH=/&lt;my-path-to-pig&gt;/pig-0.14.0/bin:$PATH 
+$ export PATH=/&lt;my-path-to-pig&gt;/pig-0.16.0/bin:$PATH 
 </source>
 </li>
 <li>Set the PIG_HOME environment variable:
 <source>
-$ export PIG_HOME=/&lt;my-path-to-pig&gt;/pig-0.14.0 
+$ export PIG_HOME=/&lt;my-path-to-pig&gt;/pig-0.16.0 
 </source></li>
 <li>Create the pigtutorial.tar.gz file:
 <ul>
-    <li>Move to the Pig tutorial directory (.../pig-0.14.0/tutorial).</li>
+    <li>Move to the Pig tutorial directory (.../pig-0.16.0/tutorial).</li>
 	<li>Run the "ant" command from the tutorial directory. This will create the pigtutorial.tar.gz file.
 	</li>
 </ul>

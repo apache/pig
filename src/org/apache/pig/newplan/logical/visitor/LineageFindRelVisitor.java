@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
@@ -729,6 +730,44 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
             }
         }
 
+        @Override
+        public void visit(UserFuncExpression op) throws FrontendException {
+
+            if( op.getFieldSchema() == null ) {
+                return;
+            }
+
+            FuncSpec funcSpec = null;
+            Class loader = instantiateCaster(op.getFuncSpec());
+            List<LogicalExpression> arguments = op.getArguments();
+            if ( loader != null ) {
+                // if evalFunc.getLoadCaster() returns, simply use that.
+                funcSpec = op.getFuncSpec();
+            } else if (arguments.size() != 0 ) {
+                FuncSpec baseFuncSpec = null;
+                LogicalFieldSchema fs = arguments.get(0).getFieldSchema();
+                if ( fs != null ) {
+                    baseFuncSpec = uid2LoadFuncMap.get(fs.uid);
+                    if( baseFuncSpec != null ) {
+                        funcSpec = baseFuncSpec;
+                        for(int i = 1; i < arguments.size(); i++) {
+                            fs = arguments.get(i).getFieldSchema();
+                            if( fs == null || !haveIdenticalCasters(baseFuncSpec, uid2LoadFuncMap.get(fs.uid)) ) {
+                                funcSpec = null;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if( funcSpec != null ) {
+                addUidLoadFuncToMap(op.getFieldSchema().uid, funcSpec);
+                // in case schema is nested, set funcSpec for all
+                setLoadFuncForUids(op.getFieldSchema().schema, funcSpec);
+            }
+        }
+
         /**
          * if there is a null constant under casts, return it
          * @param rel
@@ -770,6 +809,8 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
                 caster = ((LoadFunc)obj).getLoadCaster();
             } else if (obj instanceof StreamToPig) {
                 caster = ((StreamToPig)obj).getLoadCaster();
+            } else if (obj instanceof EvalFunc) {
+                caster = ((EvalFunc)obj).getLoadCaster();
             } else {
                 throw new VisitorException("Invalid class type " + funcSpec.getClassName(),
                                            2270, PigException.BUG );

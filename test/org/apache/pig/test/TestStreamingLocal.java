@@ -18,6 +18,7 @@
 package org.apache.pig.test;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -372,4 +373,41 @@ public class TestStreamingLocal {
             Util.checkQueryOutputs(pigServer.openIterator("OP"), expectedResults);
         }
     }
+
+    @Test
+    // Perl script with a syntax error, See PIG-4976
+    public void testNegativeScriptSyntaxError() throws IOException {
+
+        for( int numinput : new int [] {10, 9999} ) {
+            String[] inputStrings = new String[numinput];
+            for (int i=0;i<numinput;i++) {
+                inputStrings[i] = Integer.toString(i);
+            }
+            File input = Util.createInputFile("tmp", "", inputStrings);
+            // Perl script
+            String[] script =
+                new String[] {
+                              "#!/usr/bin/perl",
+                              "syntax error",
+                             };
+            File command1 = Util.createInputFile("script", "pl", script);
+            String query =
+                    "define CMD `perl " + command1.getName() + "` output('foo')" +
+                    "ship ('" + Util.encodeEscape(command1.toString()) + "');";
+            boolean succeeded=true;
+            try {
+                pigServer.registerQuery( query );
+                pigServer.registerQuery("A = load '"
+                        + Util.generateURI(input.toString(),
+                                pigServer.getPigContext())
+                        + "' using PigStorage();");
+                pigServer.registerQuery("B = stream A through CMD;");
+                pigServer.openIterator("B");
+            } catch(Exception ex) {
+                succeeded=false;
+            }
+           Assert.assertFalse("Job with " + numinput + " lines input did not fail.", succeeded);
+        }
+    }
+
 }

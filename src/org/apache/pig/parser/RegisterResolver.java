@@ -23,6 +23,10 @@ import java.net.URISyntaxException;
 
 import org.apache.pig.PigServer;
 import org.apache.pig.tools.DownloadResolver;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
+import org.apache.hadoop.fs.Path;
 
 public class RegisterResolver {
 
@@ -66,15 +70,24 @@ public class RegisterResolver {
         String scheme = uri.getScheme();
         if (scheme != null) {
             scheme = scheme.toLowerCase();
+            if (scheme.equals("ivy")) {
+                DownloadResolver downloadResolver = DownloadResolver.getInstance();
+                return downloadResolver.downloadArtifact(uri, pigServer);
+            }
+            if (!hasFileSystemImpl(uri)) {
+                throw new ParserException("Invalid Scheme: " + uri.getScheme());
+            }
         }
-        if (scheme == null || scheme.equals("file") || scheme.equals("hdfs")) {
-            return new URI[] { uri };
-        } else if (scheme.equals("ivy")) {
-            DownloadResolver downloadResolver = DownloadResolver.getInstance();
-            return downloadResolver.downloadArtifact(uri, pigServer);
-        } else {
-            throw new ParserException("Invalid Scheme: " + uri.getScheme());
-        }
+        return new URI[] { uri };
+    }
+   
+    /**
+     * @param uri
+     * @return True if the uri has valid file system implementation
+     */ 
+    private boolean hasFileSystemImpl(URI uri) {
+      Configuration conf = ConfigurationUtil.toConfiguration(pigServer.getPigContext().getProperties(), true);
+      return HadoopShims.hasFileSystemImpl(new Path(uri), conf);
     }
 
     /**

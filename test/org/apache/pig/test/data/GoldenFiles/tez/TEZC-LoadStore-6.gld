@@ -1,0 +1,73 @@
+#--------------------------------------------------
+# There are 3 DAGs in the session
+#--------------------------------------------------
+Tez DAG pig-0_scope-0	->	Tez DAG pig-1_scope-1,
+Tez DAG pig-1_scope-1	->	Tez DAG pig-2_scope-2,
+Tez DAG pig-2_scope-2
+
+#--------------------------------------------------
+# TEZ DAG plan: pig-0_scope-0
+#--------------------------------------------------
+Tez vertex scope-21	->	Tez vertex scope-24,
+Tez vertex scope-24
+
+Tez vertex scope-21
+# Plan on vertex
+a: Local Rearrange[tuple]{tuple}(true) - scope-23	->	 scope-24
+|   |
+|   Project[tuple][*] - scope-22
+|
+|---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
+Tez vertex scope-24
+# Combine plan on edge <scope-21>
+org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.DistinctCombiner$Combine
+# Plan on vertex
+Store(file:/tmp/temp-1456742965/tmp-26634357:org.apache.pig.impl.io.InterStorage) - scope-35
+|
+|---New For Each(true)[bag] - scope-27
+    |   |
+    |   Project[tuple][0] - scope-26
+    |
+    |---Package(Packager)[tuple]{tuple} - scope-25
+#--------------------------------------------------
+# TEZ DAG plan: pig-1_scope-1
+#--------------------------------------------------
+Tez vertex scope-29
+
+Tez vertex scope-29
+# Plan on vertex
+a: Store(file:///tmp/pigoutput/Dir1:org.apache.pig.builtin.PigStorage) - scope-7
+|
+|---Load(file:/tmp/temp-1456742965/tmp-26634357:org.apache.pig.impl.io.InterStorage) - scope-36
+#--------------------------------------------------
+# TEZ DAG plan: pig-2_scope-2
+#--------------------------------------------------
+Tez vertex scope-31	->	Tez vertex scope-34,
+Tez vertex scope-33	->	Tez vertex scope-34,
+Tez vertex scope-34
+
+Tez vertex scope-31
+# Plan on vertex
+c: Local Rearrange[tuple]{bytearray}(false) - scope-13	->	 scope-34
+|   |
+|   Project[bytearray][0] - scope-14
+|
+|---Load(file:/tmp/temp-1456742965/tmp-26634357:org.apache.pig.impl.io.InterStorage) - scope-37
+Tez vertex scope-33
+# Plan on vertex
+c: Local Rearrange[tuple]{bytearray}(false) - scope-15	->	 scope-34
+|   |
+|   Project[bytearray][0] - scope-16
+|
+|---b: Load(file:///tmp/pigoutput/Dir1:org.apache.pig.builtin.PigStorage) - scope-8
+Tez vertex scope-34
+# Plan on vertex
+c: Store(file:///tmp/pigoutput/Dir2:org.apache.pig.builtin.PigStorage) - scope-20
+|
+|---c: New For Each(true,true)[tuple] - scope-19
+    |   |
+    |   Project[bag][1] - scope-17
+    |   |
+    |   Project[bag][2] - scope-18
+    |
+    |---c: Package(Packager)[tuple]{bytearray} - scope-12

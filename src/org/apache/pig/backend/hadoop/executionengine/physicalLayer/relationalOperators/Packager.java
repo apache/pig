@@ -51,13 +51,13 @@ public class Packager implements Illustrable, Serializable, Cloneable {
     protected DataBag[] bags;
 
     public static enum PackageType {
-        GROUP, JOIN
+        GROUP, JOIN, BLOOMJOIN
     };
 
     protected transient Illustrator illustrator = null;
 
     // The key being worked on
-    Object key;
+    protected Object key;
 
     // marker to indicate if key is a tuple
     protected boolean isKeyTuple = false;
@@ -65,7 +65,7 @@ public class Packager implements Illustrable, Serializable, Cloneable {
     protected boolean isKeyCompound = false;
 
     // key's type
-    byte keyType;
+    protected byte keyType;
 
     // The number of inputs to this
     // co-group. 0 indicates a distinct, which means there will only be a

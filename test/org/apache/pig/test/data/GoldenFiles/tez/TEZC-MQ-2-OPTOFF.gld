@@ -72,12 +72,12 @@ POValueOutputTez - scope-325	->	 [scope-326, scope-328]
 |---b1: Package(Packager)[tuple]{int} - scope-228
 Tez vertex scope-326
 # Plan on vertex
-b1: Store(file:///tmp/output/b1:org.apache.pig.builtin.PigStorage) - scope-234
+b1: Store(file:///tmp/pigoutput/b1:org.apache.pig.builtin.PigStorage) - scope-234
 |
 |---POValueInputTez - scope-327	<-	 scope-324
 Tez vertex scope-328
 # Plan on vertex
-b2: Store(file:///tmp/output/b2:org.apache.pig.builtin.PigStorage) - scope-244
+b2: Store(file:///tmp/pigoutput/b2:org.apache.pig.builtin.PigStorage) - scope-244
 |
 |---b2: New For Each(false,false)[bag] - scope-243
     |   |
@@ -119,7 +119,7 @@ c1: Local Rearrange[tuple]{int}(false) - scope-260	->	 scope-337
 |---POValueInputTez - scope-336	<-	 scope-319
 Tez vertex scope-337
 # Plan on vertex
-c1: Store(file:///tmp/output/c1:org.apache.pig.builtin.PigStorage) - scope-265
+c1: Store(file:///tmp/pigoutput/c1:org.apache.pig.builtin.PigStorage) - scope-265
 |
 |---c1: New For Each(true,true)[tuple] - scope-264
     |   |
@@ -163,7 +163,7 @@ c2: Local Rearrange[tuple]{int}(false) - scope-408	->	 scope-340
     |
     |---c2: Package(CombinerPackager)[tuple]{int} - scope-403
 # Plan on vertex
-c3: Store(file:///tmp/output/c1:org.apache.pig.builtin.PigStorage) - scope-279
+c3: Store(file:///tmp/pigoutput/c1:org.apache.pig.builtin.PigStorage) - scope-279
 |
 |---c3: New For Each(false,false)[bag] - scope-278
     |   |
@@ -197,7 +197,7 @@ POValueOutputTez - scope-343	->	 [scope-344, scope-384]
         |---POValueInputTez - scope-342	<-	 scope-317
 Tez vertex scope-344
 # Plan on vertex
-d1: Store(file:///tmp/output/d1:org.apache.pig.builtin.PigStorage) - scope-291
+d1: Store(file:///tmp/pigoutput/d1:org.apache.pig.builtin.PigStorage) - scope-291
 |
 |---POValueInputTez - scope-345	<-	 scope-341
 Tez vertex scope-346
@@ -258,7 +258,7 @@ POIdentityInOutTez - scope-370	<-	 scope-349	->	 scope-371
 |   Project[int][0] - scope-299
 Tez vertex scope-371
 # Plan on vertex
-e1: Store(file:///tmp/output/e1:org.apache.pig.builtin.PigStorage) - scope-301
+e1: Store(file:///tmp/pigoutput/e1:org.apache.pig.builtin.PigStorage) - scope-301
 |
 |---New For Each(true)[tuple] - scope-374
     |   |
@@ -289,17 +289,17 @@ POValueOutputTez - scope-381	->	 [scope-382, scope-386]
     |---POValueInputTez - scope-379	<-	 scope-375
 Tez vertex scope-382
 # Plan on vertex
-f1: Store(file:///tmp/output/f1:org.apache.pig.builtin.PigStorage) - scope-310
+f1: Store(file:///tmp/pigoutput/f1:org.apache.pig.builtin.PigStorage) - scope-310
 |
 |---POValueInputTez - scope-383	<-	 scope-378
 Tez vertex scope-384
 # Plan on vertex
-f2: Store(file:///tmp/output/f2:org.apache.pig.builtin.PigStorage) - scope-413	->	 scope-316
+f2: Store(file:///tmp/pigoutput/f2:org.apache.pig.builtin.PigStorage) - scope-413	->	 scope-316
 |
 |---POValueInputTez - scope-385	<-	 scope-341
 Tez vertex scope-386
 # Plan on vertex
-f2: Store(file:///tmp/output/f2:org.apache.pig.builtin.PigStorage) - scope-414	->	 scope-316
+f2: Store(file:///tmp/pigoutput/f2:org.apache.pig.builtin.PigStorage) - scope-414	->	 scope-316
 |
 |---POValueInputTez - scope-387	<-	 scope-378
 Tez vertex group scope-412	<-	 [scope-384, scope-386]	->	 null

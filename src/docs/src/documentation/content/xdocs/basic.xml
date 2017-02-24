@@ -713,7 +713,7 @@ This will cause an error …</source>
    <p></p>
    <ul>
       <li>
-         <p>If Pig cannot resolve incompatible types through implicit casts, an error will occur. For example, you cannot add chararray and float (see the Types Table for addition and subtraction).</p>
+         <p>If Pig cannot resolve incompatible types through implicit casts, an error will occur. For example, you cannot add chararray and float (see the <a href="#types-table-add">Types Table for addition and subtraction</a>).</p>
       <source>
 A = LOAD 'data' AS (name:chararray, age:int, gpa:float);
 B = FOREACH A GENERATE name + gpa;
@@ -1335,6 +1335,26 @@ dump X;
          </tr>
          <tr>
             <td>
+               <p>biginteger</p>
+            </td>
+            <td>
+               <p>19211921192119211921BI</p>
+            </td>
+            <td>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>bigdecimal</p>
+            </td>
+            <td>
+               <p>192119211921.192119211921BD</p>
+            </td>
+            <td>
+            </td>
+         </tr>
+         <tr>
+            <td>
                <p><strong>Complex Data Types</strong></p>
             </td>
             <td>
@@ -1388,7 +1408,18 @@ dump X;
          <p>To specify a long constant, l or L must be appended to the number (for example, 12345678L). If the l or L is not specified, but the number is too large to fit into an int, the problem will be detected at parse time and the processing is terminated. </p>
       </li>
       <li>
-         <p>Any numeric constant with decimal point (for example, 1.5) and/or exponent (for example, 5e+1) is treated as double unless it ends with f or F in which case it is assigned type float (for example,  1.5f). </p>
+         <p>Any numeric constant with decimal point (for example, 1.5) and/or exponent (for example, 5e+1) is treated as double unless it ends with the following characters:</p>
+         <ul>
+            <li>
+               <p>f or F in which case it is assigned type float (for example,  1.5f)</p>
+            </li>
+            <li>
+               <p>BD or bd in which case it is assigned type BigDecimal (for example,  12345678.12345678BD)</p>
+            </li>
+         </ul>
+      </li>
+      <li>
+         <p>BigIntegers can be specified by supplying BI or bi at the end of the number (for example, 123456789123456BI)</p>
       </li>
       <li>
          <p>There is no native constant type for datetime field. You can use a ToDate udf with chararray constant as argument to generate a datetime value. </p>
@@ -5394,8 +5425,8 @@ D = foreach C generate y; -- which y?
    <section  id="flatten">
    <title>Flatten Operator</title>
    <p>The FLATTEN operator looks like a UDF syntactically, but it is actually an operator that changes the structure of tuples 
-   and bags in a way that a UDF cannot. Flatten un-nests tuples as well as bags. The idea is the same, but the operation and 
-   result is different for each type of structure.</p>
+   and bags in a way that a UDF cannot. Flatten un-nests tuples, bags and maps. The idea is the
+      same, but the operation and result is different for each type of structure.</p>
 
    <p>For tuples, flatten substitutes the fields of a tuple in place of the tuple. For example, consider a relation that has a tuple 
    of the form (a, (b, c)). The expression GENERATE $0, flatten($1), will cause that tuple to become (a, b, c).</p>
@@ -5405,6 +5436,14 @@ D = foreach C generate y; -- which y?
    tuples (b,c) and (d,e). When we remove a level of nesting in a bag, sometimes we cause a cross product to happen. 
    For example, consider a relation that has a tuple of the form (a, {(b,c), (d,e)}), commonly produced by the GROUP operator. 
    If we apply the expression GENERATE $0, flatten($1) to this tuple, we will create new tuples: (a, b, c) and (a, d, e).</p>
+
+   <p>For maps, flatten creates a tuple with two fields containing the key and value.
+      If we have a map field named kvpair with input as (m[k1#v1, k2#v2]) and we apply GENERATE flatten(kvpair),
+      it will generate two tuples (k1,v1) and (k2,v2) which can be accessed as kvpair::key and
+      kvpair::value.<br/>When there are additional projections in the expression, a cross product will happen similar
+      to bags. For example, if we apply the expression GENERATE $0, FLATTEN($1) to the input tuple (a, m[k1#1, k2#2, k3#3]),
+      we will see (a,k1,1), (a,k2,2) and (a,k3,3) as the result.
+   </p>
    
    <p>Also note that the flatten of empty bag will result in that row being discarded; no output is generated. 
    (See also <a href="perf.html#nulls">Drop Nulls Before a Join</a>.) </p>
@@ -6488,6 +6527,16 @@ D = FOREACH C GENERATE flatten(A), flatten(b);
 E = GROUP D BY A::x;
 ……
 </source>
+
+   <p>A FLATTEN example on a map type. Here we load an integer and map (of integer values) into A. Then m gets
+      flattened, and finally we are filtering the result to only include tuples where the value among the un-nested
+      map entries was 5.</p>
+<source>
+A = LOAD 'data' AS (a:int, m:map[int]);
+B = FOREACH A GENERATE a, FLATTEN(m);
+C = FILTER B by m::value == 5;
+……
+</source>
    
    </section>
    
@@ -6924,7 +6973,7 @@ public class SimpleCustomPartitioner extends Partitioner &lt;PigNullableWritable
    <table>
       <tr> 
             <td>
-               <p>alias = JOIN alias BY {expression|'('expression [, expression …]')'} (, alias BY {expression|'('expression [, expression …]')'} …) [USING 'replicated' | 'skewed' | 'merge' | 'merge-sparse'] [PARTITION BY partitioner] [PARALLEL n];  </p>
+               <p>alias = JOIN alias BY {expression|'('expression [, expression …]')'} (, alias BY {expression|'('expression [, expression …]')'} …) [USING 'replicated' | 'bloom' | 'skewed' | 'merge' | 'merge-sparse'] [PARTITION BY partitioner] [PARALLEL n];  </p>
             </td>
          </tr> 
    </table></section>
@@ -6973,7 +7022,16 @@ public class SimpleCustomPartitioner extends Partitioner &lt;PigNullableWritable
                <p>Use to perform replicated joins (see <a href="perf.html#replicated-joins">Replicated Joins</a>).</p>
             </td>
          </tr>
-         
+
+         <tr>
+            <td>
+               <p>'bloom'</p>
+            </td>
+            <td>
+               <p>Use to perform bloom joins (see <a href="perf.html#bloom-joins">Bloom Joins</a>).</p>
+            </td>
+         </tr>
+
          <tr>
             <td>
                <p>'skewed'</p>
@@ -7111,7 +7169,7 @@ DUMP X;
       <tr> 
             <td>
                <p>alias = JOIN left-alias BY left-alias-column [LEFT|RIGHT|FULL] [OUTER], right-alias BY right-alias-column 
-               [USING 'replicated' | 'skewed' | 'merge'] [PARTITION BY partitioner] [PARALLEL n];  </p>
+               [USING 'replicated' | 'bloom' | 'skewed' | 'merge'] [PARTITION BY partitioner] [PARALLEL n];  </p>
             </td>
          </tr> 
    </table>
@@ -7182,7 +7240,7 @@ DUMP X;
             </td>
          </tr>
 
-  <tr>
+         <tr>
             <td>
                <p>USING</p>
             </td>
@@ -7199,8 +7257,18 @@ DUMP X;
                <p>Only left outer join is supported for replicated joins.</p>
             </td>
          </tr>
-         
-                  <tr>
+
+         <tr>
+            <td>
+               <p>'bloom'</p>
+            </td>
+            <td>
+               <p>Use to perform bloom joins (see <a href="perf.html#bloom-joins">Bloom Joins</a>).</p>
+               <p>Full outer join is not supported for bloom joins.</p>
+            </td>
+         </tr>
+
+         <tr>
             <td>
                <p>'skewed'</p>
             </td>
@@ -7291,6 +7359,13 @@ C = JOIN A BY $0 FULL, B BY $0;
 A = LOAD 'large';
 B = LOAD 'tiny';
 C= JOIN A BY $0 LEFT, B BY $0 USING 'replicated';
+</source>
+
+<p>This example shows a bloom right outer join.</p>
+<source>
+A = LOAD 'large';
+B = LOAD 'small';
+C= JOIN A BY $0 RIGHT, B BY $0 USING 'bloom';
 </source>
 
 <p>This example shows a skewed full outer join.</p>
@@ -7981,10 +8056,10 @@ X = SAMPLE A 0.01;
 </source>
 <p>In this example, a scalar expression is used (it will sample approximately 1000 records from the input).</p>
 <source>
-a = load 'a.txt';
-b = group a all;
-c = foreach b generate COUNT(a) as num_rows;
-e = sample a 1000/c.num_rows;
+a = LOAD 'a.txt';
+b = GROUP a ALL;
+c = FOREACH b GENERATE COUNT_STAR(a) AS num_rows;
+d = SAMPLE a (double)1000/c.num_rows;
 </source>
    </section></section>  
    
@@ -8407,7 +8482,7 @@ X = STREAM A THROUGH `stream.pl` as (f1:int, f2:int, f3:int);
    <table>
       <tr> 
             <td>
-               <p>alias = UNION [ONSCHEMA] alias, alias [, alias …];</p>
+               <p>alias = UNION [ONSCHEMA] alias, alias [, alias …] [PARALLEL n];</p>
             </td>
          </tr> 
    </table></section>
@@ -8434,6 +8509,16 @@ X = STREAM A THROUGH `stream.pl` as (f1:int, f2:int, f3:int);
                All inputs to the union must have a non-unknown (non-null) <a href="#schemas">schema</a>.</p>
             </td>
          </tr>
+         
+     <tr>
+        <td>
+           <p>PARALLEL n</p>
+        </td>
+        <td>
+           <p>This is only applicable for Tez execution mode and will not work with Mapreduce mode. Specifying PARALLEL will introduce an extra reduce step that will slightly degrade performance. The primary purpose in this case is to control the number of output files.</p>
+           <p>For more information, see <a href="perf.html#parallel">Use the Parallel Features</a>.</p>
+        </td>
+     </tr>
    </table>
    </section>
    
@@ -8462,11 +8547,11 @@ B: (b1:long, b2:long, b3:long)
 A union B: null 
 </source>
   
-<p>Union columns with incompatible types result in a bytearray type: </p>
+<p>Union columns with incompatible types results in a failure. (See <a href="#types-table-add">Types Table for addition and subtraction</a> for incompatible types.)</p>
 <source>
-A: (a1:long, a2:long) 
-B: (b1:(b11:long, b12:long), b2:long) 
-A union B: (a1:bytearray, a2:long) 
+A: (a1:long)
+B: (a1:chararray)
+A union B: ERROR: Cannot cast from long to bytearray
 </source>
 
 <p>Union columns of compatible type will produce an "escalate" type. 
@@ -8730,8 +8815,8 @@ DUMP U;
    </ul>
    
    
-   <section>
-   <title>About Input and Output</title>
+   <section id="pig-streaming-input-output">
+   <title>About Input and Output for Streaming</title>
    <p>Serialization is needed to convert data from tuples to a format that can be processed by the streaming application. Deserialization is needed to convert the output from the streaming application back into tuples. PigStreaming is the default serialization/deserialization function.</p>
    
 <p>Streaming uses the same default format as PigStorage to serialize/deserialize the data. If you want to explicitly specify a format, you can do it as show below (see more examples in the Examples: Input/Output section).  </p> 
@@ -8762,7 +8847,7 @@ interface StreamToPig {
     public Tuple deserialize(byte[]) throws IOException;
 
     /**
-     * This will be called on the front end during planning and not on the back
+     * This will be called on both the front end and the back
      * end during execution.
      *
      * @return the {@link LoadCaster} associated with this object.

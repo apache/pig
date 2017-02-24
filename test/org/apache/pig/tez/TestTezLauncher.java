@@ -23,7 +23,6 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.Iterator;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezExecType;
@@ -35,6 +34,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.test.MiniGenericCluster;
 import org.apache.pig.test.Util;
 import org.apache.pig.tools.pigstats.PigStats;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -124,11 +124,11 @@ public class TestTezLauncher {
 
     @Test
     public void testQueueName() throws Exception {
-        Configuration conf = new Configuration();
+        TezConfiguration conf = new TezConfiguration();
         conf.set("tez.queue.name", "special");
-        conf = MRToTezHelper.getDAGAMConfFromMRConf(conf);
+        MRToTezHelper.translateMRSettingsForTezAM(conf);
         assertEquals(conf.get("tez.queue.name"), "special");
-        
+
     }
 }
 

@@ -330,7 +330,8 @@ HADOOP_CORE_JAR=`echo ${HADOOP_HOME}/hadoop-core*.jar`
 if [ -z "$HADOOP_CORE_JAR" ]; then
     HADOOP_VERSION=2
 else
-    HADOOP_VERSION=1
+    echo "Pig requires Hadoop 2 to be present in HADOOP_HOME (currently: $HADOOP_HOME). Please install Hadoop 2.x"
+    exit 1
 fi
 
 # if using HBase, likely want to include HBase jars and config
@@ -439,11 +440,7 @@ if [ -n "$HADOOP_BIN" ]; then
     if [ -n "$PIG_JAR" ]; then
         CLASSPATH=${CLASSPATH}:$PIG_JAR
     else
-        if [ "$HADOOP_VERSION" == "1" ]; then
-            echo "Cannot locate pig-core-h${HADOOP_VERSION}.jar. do 'ant jar', and try again"
-        else
-            echo "Cannot locate pig-core-h${HADOOP_VERSION}.jar. do 'ant -Dhadoopversion=23 jar', and try again"
-        fi
+        echo "Cannot locate pig-core-h${HADOOP_VERSION}.jar. do 'ant jar', and try again"
         exit 1
     fi
 
@@ -464,8 +461,8 @@ if [ -n "$HADOOP_BIN" ]; then
         exec "$HADOOP_BIN" jar "$PIG_JAR" "${remaining[@]}"
     fi
 else
-    # use hadoop-core.jar to run local mode
-    PIG_JAR=`echo $PIG_HOME/pig*-core-h1.jar`
+    # use bundled hadoop to run local mode
+    PIG_JAR=`echo $PIG_HOME/pig*-core-h2.jar`
 
     if [ -n "$PIG_JAR" ]; then
         CLASSPATH="${CLASSPATH}:$PIG_JAR"
@@ -474,12 +471,12 @@ else
         exit 1
     fi
 
-    for f in $PIG_HOME/lib/h1/*.jar; do
+    for f in $PIG_HOME/lib/h2/*.jar; do
         CLASSPATH=${CLASSPATH}:$f;
     done
 
-    # Add bundled hadoop-core.jar
-    for f in $PIG_HOME/lib/hadoop1-runtime/*.jar; do
+    # Add bundled hadoop jars
+    for f in $PIG_HOME/lib/hadoop2-runtime/*.jar; do
         CLASSPATH=${CLASSPATH}:$f;
     done
 

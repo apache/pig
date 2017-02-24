@@ -92,7 +92,7 @@ public class InputSizeReducerEstimator implements PigReducerEstimator {
         return reducers;
     }
 
-    static long getTotalInputFileSize(Configuration conf,
+    public static long getTotalInputFileSize(Configuration conf,
             List<POLoad> lds, Job job) throws IOException {
         return getTotalInputFileSize(conf, lds, job, Long.MAX_VALUE);
     }
@@ -100,7 +100,7 @@ public class InputSizeReducerEstimator implements PigReducerEstimator {
     /**
      * Get the input size for as many inputs as possible. Inputs that do not report
      * their size nor can pig look that up itself are excluded from this size.
-     * 
+     *
      * @param conf Configuration
      * @param lds List of POLoads
      * @param job Job

@@ -30,6 +30,7 @@ import java.util.Properties;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.PigException;
@@ -76,8 +77,6 @@ public abstract class HExecutionEngine implements ExecutionEngine {
     public static final String MAPRED_DEFAULT_SITE = "mapred-default.xml";
     public static final String YARN_DEFAULT_SITE = "yarn-default.xml";
 
-    public static final String FILE_SYSTEM_LOCATION = "fs.default.name";
-    public static final String ALTERNATIVE_FILE_SYSTEM_LOCATION = "fs.defaultFS";
     public static final String LOCAL = "local";
 
     protected PigContext pigContext;
@@ -203,8 +202,8 @@ public abstract class HExecutionEngine implements ExecutionEngine {
                 properties.setProperty(MRConfiguration.FRAMEWORK_NAME, LOCAL);
             }
             properties.setProperty(MRConfiguration.JOB_TRACKER, LOCAL);
-            properties.setProperty(FILE_SYSTEM_LOCATION, "file:///");
-            properties.setProperty(ALTERNATIVE_FILE_SYSTEM_LOCATION, "file:///");
+            properties.remove("fs.default.name"); //Deprecated in Hadoop 2.x
+            properties.setProperty(FileSystem.FS_DEFAULT_NAME_KEY, "file:///");
 
             jc = getLocalConf();
             JobConf s3Jc = getS3Conf();
@@ -220,24 +219,7 @@ public abstract class HExecutionEngine implements ExecutionEngine {
         HKerberos.tryKerberosKeytabLogin(jc);
 
         cluster = jc.get(MRConfiguration.JOB_TRACKER);
-        nameNode = jc.get(FILE_SYSTEM_LOCATION);
-        if (nameNode == null) {
-            nameNode = (String) pigContext.getProperties().get(ALTERNATIVE_FILE_SYSTEM_LOCATION);
-        }
-
-        if (cluster != null && cluster.length() > 0) {
-            if (!cluster.contains(":") && !cluster.equalsIgnoreCase(LOCAL)) {
-                cluster = cluster + ":50020";
-            }
-            properties.setProperty(MRConfiguration.JOB_TRACKER, cluster);
-        }
-
-        if (nameNode != null && nameNode.length() > 0) {
-            if (!nameNode.contains(":") && !nameNode.equalsIgnoreCase(LOCAL)) {
-                nameNode = nameNode + ":8020";
-            }
-            properties.setProperty(FILE_SYSTEM_LOCATION, nameNode);
-        }
+        nameNode = jc.get(FileSystem.FS_DEFAULT_NAME_KEY);
 
         LOG.info("Connecting to hadoop file system at: "
                 + (nameNode == null ? LOCAL : nameNode));
@@ -369,12 +351,23 @@ public abstract class HExecutionEngine implements ExecutionEngine {
     @Override
     public void setProperty(String property, String value) {
         Properties properties = pigContext.getProperties();
-        properties.put(property, value);
+        if (Configuration.isDeprecated(property)) {
+            properties.putAll(ConfigurationUtil.expandForAlternativeNames(property, value));
+        } else {
+            properties.put(property, value);
+        }
     }
 
     @Override
     public ExecutableManager getExecutableManager() {
         return new HadoopExecutableManager();
+    }
+
+    @Override
+    public void kill() throws BackendException {
+        if (launcher != null) {
+            launcher.kill();
+        }
     }
 
     @Override

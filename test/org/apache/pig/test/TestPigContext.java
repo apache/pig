@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
@@ -270,7 +271,7 @@ public class TestPigContext {
         assertEquals(JOB_TRACKER,
                 pigServer.getPigContext().getProperties().getProperty(MRConfiguration.JOB_TRACKER));
         assertEquals(FS_NAME,
-                pigServer.getPigContext().getProperties().getProperty("fs.default.name"));
+                pigServer.getPigContext().getProperties().getProperty(FileSystem.FS_DEFAULT_NAME_KEY));
         assertEquals(TMP_DIR_PROP,
                 pigServer.getPigContext().getProperties().getProperty("hadoop.tmp.dir"));
     }

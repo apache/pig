@@ -26,7 +26,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.Reader;
 import java.io.StringReader;
@@ -42,8 +41,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import jline.ConsoleReader;
-import jline.ConsoleReaderInputStream;
+import jline.console.ConsoleReader;
 
 import org.apache.commons.io.output.NullOutputStream;
 import org.apache.commons.logging.Log;
@@ -264,7 +262,7 @@ public class GruntParser extends PigScriptParser {
     public void prompt()
     {
         if (mInteractive) {
-            mConsoleReader.setDefaultPrompt("grunt> ");
+            mConsoleReader.setPrompt("grunt> ");
         }
     }
 
@@ -516,8 +514,13 @@ public class GruntParser extends PigScriptParser {
         ConsoleReader reader;
         boolean interactive;
 
-        mPigServer.getPigContext().setParams(params);
-        mPigServer.getPigContext().setParamFiles(files);
+        PigContext pc = mPigServer.getPigContext();
+
+        if( !loadOnly ) {
+          pc.getPreprocessorContext().paramScopePush();
+        }
+        pc.setParams(params);
+        pc.setParamFiles(files);
 
         try {
             FetchFileRet fetchFile = FileLocalizer.fetchFile(mConf, script);
@@ -528,7 +531,7 @@ public class GruntParser extends PigScriptParser {
                 cmds = cmds.replaceAll("\t","    ");
 
                 reader = new ConsoleReader(new ByteArrayInputStream(cmds.getBytes()),
-                                           new OutputStreamWriter(System.out));
+                                           System.out);
                 reader.setHistory(mConsoleReader.getHistory());
                 InputStream in = new ConsoleReaderInputStream(reader);
                 inputReader = new BufferedReader(new InputStreamReader(in));
@@ -559,6 +562,9 @@ public class GruntParser extends PigScriptParser {
 
         if (interactive) {
             System.out.println("");
+        }
+        if( ! loadOnly ) {
+          pc.getPreprocessorContext().paramScopePop();
         }
     }
 

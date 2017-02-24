@@ -71,11 +71,15 @@ public class TestHBaseStorage {
     private static final String TESTTABLE_1 = "pigtable_1";
     private static final String TESTTABLE_2 = "pigtable_2";
     private static final byte[] COLUMNFAMILY = Bytes.toBytes("pig");
+    private static final byte[] COLUMNFAMILY2 = Bytes.toBytes("pig2");
     private static final String TESTCOLUMN_A = "pig:col_a";
     private static final String TESTCOLUMN_B = "pig:col_b";
     private static final String TESTCOLUMN_C = "pig:col_c";
 
     private static final int TEST_ROW_COUNT = 100;
+
+    private enum TableType {ONE_CF, TWO_CF};
+    private TableType lastTableType;
 
     @BeforeClass
     public static void setUp() throws Exception {
@@ -313,13 +317,13 @@ public class TestHBaseStorage {
      */
     @Test
     public void testLoadWithMap_3_col_prefix() throws IOException {
-        prepareTable(TESTTABLE_1, true, DataFormat.UTF8PlainText);
+        prepareTable(TESTTABLE_1, true, DataFormat.UTF8PlainText, TableType.TWO_CF);
 
         pig.registerQuery("a = load 'hbase://"
                 + TESTTABLE_1
                 + "' using "
                 + "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
-                + "pig:col_* pig:prefixed_col_*"
+                + "pig2:* pig:prefixed_col_*"
                 + "','-loadKey') as (rowKey:chararray, pig_cf_map:map[], pig_prefix_cf_map:map[]);");
         Iterator<Tuple> it = pig.openIterator("a");
         int count = 0;
@@ -328,23 +332,17 @@ public class TestHBaseStorage {
             Tuple t = it.next();
             LOG.info("LoadFromHBase " + t);
             String rowKey = t.get(0).toString();
-            Map pig_cf_map = (Map) t.get(1);
+            Map pig_secondery_cf_map = (Map) t.get(1);
             Map pig_prefix_cf_map = (Map) t.get(2);
             Assert.assertEquals(3, t.size());
 
             Assert.assertEquals("00".substring((count + "").length()) + count,
                     rowKey);
+            Assert.assertEquals(count,
+                    Integer.parseInt(pig_secondery_cf_map.get("col_x").toString()));
             Assert.assertEquals("PrefixedText_" + count,
                     ((DataByteArray) pig_prefix_cf_map.get("prefixed_col_d")).toString());
             Assert.assertEquals(1, pig_prefix_cf_map.size());
-
-            Assert.assertEquals(count,
-                    Integer.parseInt(pig_cf_map.get("col_a").toString()));
-            Assert.assertEquals(count + 0.0,
-                    Double.parseDouble(pig_cf_map.get("col_b").toString()), 1e-6);
-            Assert.assertEquals("Text_" + count,
-                    ((DataByteArray) pig_cf_map.get("col_c")).toString());
-            Assert.assertEquals(3, pig_cf_map.size());
 
             count++;
         }
@@ -427,6 +425,39 @@ public class TestHBaseStorage {
                     ((DataByteArray) pig_cf_map.get("prefixed_col_d")).toString());
             Assert.assertEquals(1, pig_cf_map.size());
             Assert.assertEquals(Integer.toString(count), col_a);
+
+            count++;
+        }
+        Assert.assertEquals(TEST_ROW_COUNT, count);
+        LOG.info("LoadFromHBase done");
+    }
+
+    public void testLoadWithFixedAndPrefixedCols3() throws IOException {
+        prepareTable(TESTTABLE_1, true, DataFormat.UTF8PlainText);
+
+        pig.registerQuery("a = load 'hbase://"
+                + TESTTABLE_1
+                + "' using "
+                + "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
+                + "pig:* pig:prefixed_col_*"
+                + "','-loadKey') as (rowKey:chararray, pig_cf_map:map[], pig_prefix_cf_map:map[]);");
+        Iterator<Tuple> it = pig.openIterator("a");
+        int count = 0;
+        LOG.info("LoadFromHBase Starting");
+        while (it.hasNext()) {
+            Tuple t = it.next();
+            LOG.info("LoadFromHBase " + t);
+            String rowKey = (String) t.get(0);
+            Map pig_cf_map = (Map) t.get(1);
+            Map pig_prefix_cf_map = (Map) t.get(2);
+            Assert.assertEquals(3, t.size());
+
+            Assert.assertEquals("00".substring((count + "").length()) + count,
+                    rowKey);
+            Assert.assertEquals("PrefixedText_" + count,
+                    ((DataByteArray) pig_cf_map.get("prefixed_col_d")).toString());
+            Assert.assertEquals(1, pig_cf_map.size());
+            Assert.assertEquals(1, pig_prefix_cf_map.size());
 
             count++;
         }
@@ -1486,22 +1517,36 @@ public class TestHBaseStorage {
                 + "') as (rowKey:chararray,col_a:int, col_b:double, col_c:chararray);");
     }
 
+    private HTable prepareTable(String tableName, boolean initData,
+            DataFormat format) throws IOException {
+        return prepareTable(tableName, initData, format, TableType.ONE_CF);
+    }
     /**
      * Prepare a table in hbase for testing.
      *
      */
     private HTable prepareTable(String tableName, boolean initData,
-            DataFormat format) throws IOException {
+            DataFormat format, TableType type) throws IOException {
         // define the table schema
         HTable table = null;
         try {
-            deleteAllRows(tableName);
+            if (lastTableType == type) {
+                deleteAllRows(tableName);
+            } else {
+                util.deleteTable(tableName);
+            }
         } catch (Exception e) {
             // It's ok, table might not exist.
         }
         try {
-        table = util.createTable(Bytes.toBytesBinary(tableName),
-                COLUMNFAMILY);
+            if (type == TableType.TWO_CF) {
+                table = util.createTable(Bytes.toBytesBinary(tableName),
+                        new byte[][]{COLUMNFAMILY, COLUMNFAMILY2});
+            } else {
+                table = util.createTable(Bytes.toBytesBinary(tableName),
+                        COLUMNFAMILY);
+            }
+            lastTableType = type;
         } catch (Exception e) {
             table = new HTable(conf, Bytes.toBytesBinary(tableName));
         }
@@ -1528,6 +1573,11 @@ public class TestHBaseStorage {
                     // prefixed_col_d: string type
                     put.add(COLUMNFAMILY, Bytes.toBytes("prefixed_col_d"),
                             Bytes.toBytes("PrefixedText_" + i));
+                    // another cf
+                    if (type == TableType.TWO_CF) {
+                        put.add(COLUMNFAMILY2, Bytes.toBytes("col_x"),
+                                Bytes.toBytes(i));
+                    }
                     table.put(put);
                 } else {
                     // row key: string type
@@ -1548,6 +1598,11 @@ public class TestHBaseStorage {
                     // prefixed_col_d: string type
                     put.add(COLUMNFAMILY, Bytes.toBytes("prefixed_col_d"),
                             ("PrefixedText_" + i).getBytes());
+                    // another cf
+                    if (type == TableType.TWO_CF) {
+                        put.add(COLUMNFAMILY2, Bytes.toBytes("col_x"),
+                                (i + "").getBytes());
+                    }
                     table.put(put);
                 }
             }

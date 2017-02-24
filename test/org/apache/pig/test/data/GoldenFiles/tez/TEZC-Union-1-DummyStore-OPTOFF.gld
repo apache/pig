@@ -40,6 +40,6 @@ POValueOutputTez - scope-23	->	 [scope-20]
     |---b: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-8
 Tez vertex scope-20
 # Plan on vertex
-c: Store(file:///tmp/output:org.apache.pig.test.TestMultiQueryBasic$DummyStoreWithOutputFormat) - scope-17
+c: Store(file:///tmp/pigoutput:org.apache.pig.test.TestMultiQueryBasic$DummyStoreWithOutputFormat) - scope-17
 |
 |---POShuffledValueInputTez - scope-21	<-	 [scope-18, scope-19]

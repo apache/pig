@@ -8,7 +8,7 @@ Tez vertex scope-16
 
 Tez vertex scope-16
 # Plan on vertex
-c: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-15
+c: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-15
 |
 |---c: New For Each(false)[bag] - scope-14
     |   |

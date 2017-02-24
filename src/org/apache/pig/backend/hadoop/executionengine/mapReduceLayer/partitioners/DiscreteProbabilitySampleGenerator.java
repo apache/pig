@@ -26,21 +26,21 @@ public class DiscreteProbabilitySampleGenerator {
     Random rGen;
     float[] probVec;
     float epsilon = 0.0001f;
-        
+
     private static final Log LOG = LogFactory.getLog(DiscreteProbabilitySampleGenerator.class);
-    
-    public DiscreteProbabilitySampleGenerator(float[] probVec) {
-        rGen = new Random();
+
+    public DiscreteProbabilitySampleGenerator(long seed, float[] probVec) {
+        rGen = new Random(seed);
         float sum = 0.0f;
         for (float f : probVec) {
             sum += f;
         }
         this.probVec = probVec;
-        if (1-epsilon > sum || sum > 1+epsilon) { 
+        if (1-epsilon > sum || sum > 1+epsilon) {
             LOG.info("Sum of probabilities should be near one: " + sum);
         }
     }
-    
+
     public int getNext(){
         double toss = rGen.nextDouble();
         // if the uniformly random number that I generated
@@ -57,13 +57,13 @@ public class DiscreteProbabilitySampleGenerator {
             toss -= probVec[i];
             if(toss<=0.0)
                 return i;
-        }        
+        }
         return lastIdx;
     }
-    
+
     public static void main(String[] args) {
         float[] vec = { 0, 0.3f, 0.2f, 0, 0, 0.5f };
-        DiscreteProbabilitySampleGenerator gen = new DiscreteProbabilitySampleGenerator(vec);
+        DiscreteProbabilitySampleGenerator gen = new DiscreteProbabilitySampleGenerator(11317, vec);
         CountingMap<Integer> cm = new CountingMap<Integer>();
         for(int i=0;i<100;i++){
             cm.put(gen.getNext(), 1);
@@ -75,6 +75,6 @@ public class DiscreteProbabilitySampleGenerator {
     public String toString() {
         return Arrays.toString(probVec);
     }
-    
-    
+
+
 }

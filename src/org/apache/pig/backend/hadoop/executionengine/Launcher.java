@@ -32,7 +32,8 @@ import java.util.regex.Pattern;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapred.TaskReport;
+import org.apache.hadoop.mapred.TIPStatus;
+import org.apache.hadoop.mapreduce.TaskReport;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.pig.FuncSpec;
@@ -40,7 +41,6 @@ import org.apache.pig.PigException;
 import org.apache.pig.backend.BackendException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.PlanException;
@@ -76,7 +76,7 @@ public abstract class Launcher {
     protected Map<FileSpec, Exception> failureMap;
     protected JobControl jc = null;
 
-    class HangingJobKiller extends Thread {
+    protected class HangingJobKiller extends Thread {
         public HangingJobKiller() {}
 
         @Override
@@ -90,7 +90,6 @@ public abstract class Launcher {
     }
 
     protected Launcher() {
-        Runtime.getRuntime().addShutdownHook(new HangingJobKiller());
         // handle the windows portion of \r
         if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS")) {
             newLine = "\r\n";
@@ -104,7 +103,6 @@ public abstract class Launcher {
     public void reset() {
         failureMap = Maps.newHashMap();
         totalHadoopTimeSpent = 0;
-        jc = null;
     }
 
     /**
@@ -179,7 +177,7 @@ public abstract class Launcher {
             String exceptionCreateFailMsg = null;
             boolean jobFailed = false;
             if (msgs.length > 0) {
-                if (HadoopShims.isJobFailed(report)) {
+                if (report.getCurrentStatus()== TIPStatus.FAILED) {
                     jobFailed = true;
                 }
                 Set<String> errorMessageSet = new HashSet<String>();
@@ -261,9 +259,28 @@ public abstract class Launcher {
 
         List<Job> runnJobs = jc.getRunningJobs();
         for (Job j : runnJobs) {
-            prog += HadoopShims.progressOfRunningJob(j);
+            prog += progressOfRunningJob(j);
         }
         return prog;
+    }
+
+    /**
+     * Returns the progress of a Job j which is part of a submitted JobControl
+     * object. The progress is for this Job. So it has to be scaled down by the
+     * num of jobs that are present in the JobControl.
+     *
+     * @param j The Job for which progress is required
+     * @return Returns the percentage progress of this Job
+     * @throws IOException
+     */
+    private static double progressOfRunningJob(Job j)
+            throws IOException {
+        org.apache.hadoop.mapreduce.Job mrJob = j.getJob();
+        try {
+            return (mrJob.mapProgress() + mrJob.reduceProgress()) / 2;
+        } catch (Exception ir) {
+            return 0;
+        }
     }
 
     public long getTotalHadoopTimeSpent() {
