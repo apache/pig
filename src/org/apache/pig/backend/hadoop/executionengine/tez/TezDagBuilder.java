@@ -19,14 +19,13 @@
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -44,7 +43,6 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.filecache.ClientDistributedCacheManager;
-import org.apache.hadoop.mapreduce.lib.output.LazyOutputFormat;
 import org.apache.hadoop.mapreduce.v2.util.MRApps;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
@@ -58,7 +56,6 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.DistinctCombiner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.InputSizeReducerEstimator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigSecondaryKeyGroupComparator;
@@ -90,6 +87,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezEdgeDescriptor;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
@@ -110,6 +108,7 @@ import org.apache.pig.backend.hadoop.executionengine.tez.util.TezUDFContextSepar
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.PigImplConstants;
+import org.apache.pig.impl.builtin.DefaultIndexableLoader;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.NullablePartitionWritable;
 import org.apache.pig.impl.io.NullableTuple;
@@ -175,7 +174,6 @@ public class TezDagBuilder extends TezOpPlanVisitor {
     private PigContext pc;
     private Configuration globalConf;
     private Configuration pigContextConf;
-    private Configuration shuffleVertexManagerBaseConf;
     private FileSystem fs;
     private long intermediateTaskInputSize;
     private Set<String> inputSplitInDiskVertices;
@@ -192,8 +190,6 @@ public class TezDagBuilder extends TezOpPlanVisitor {
     private Map<String, String> reduceTaskEnv = new HashMap<String, String>();
     private String mapTaskLaunchCmdOpts;
     private String reduceTaskLaunchCmdOpts;
-
-    private boolean disableDAGRecovery = false;
 
     public TezDagBuilder(PigContext pc, TezOperPlan plan, DAG dag,
             Map<String, LocalResource> localResources) {
@@ -214,26 +210,12 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         }
     }
 
-    public boolean shouldDisableDAGRecovery() {
-        return disableDAGRecovery;
-    }
-
     private void initialize(PigContext pc) throws IOException {
 
         this.globalConf = ConfigurationUtil.toConfiguration(pc.getProperties(), true);
 
         this.pigContextConf = ConfigurationUtil.toConfiguration(pc.getProperties(), false);
         MRToTezHelper.processMRSettings(pigContextConf, globalConf);
-
-        shuffleVertexManagerBaseConf = new Configuration(false);
-        // Only copy tez.shuffle-vertex-manager config to keep payload size small
-        Iterator<Entry<String, String>> iter = pigContextConf.iterator();
-        while (iter.hasNext()) {
-            Entry<String, String> entry = iter.next();
-            if (entry.getKey().startsWith("tez.shuffle-vertex-manager")) {
-                shuffleVertexManagerBaseConf.set(entry.getKey(), entry.getValue());
-            }
-        }
 
         // Add credentials from binary token file and get tokens for namenodes
         // specified in mapreduce.job.hdfs-servers
@@ -283,7 +265,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         if (globalConf.get(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS) == null) {
             // If tez setting is not defined
             MRHelpers.updateEnvBasedOnMRTaskEnv(globalConf, mapTaskEnv, true);
-            MRHelpers.updateEnvBasedOnMRTaskEnv(globalConf, reduceTaskEnv, false);
+            MRHelpers.updateEnvBasedOnMRTaskEnv(globalConf, reduceTaskEnv, true);
         }
 
         if (globalConf.get(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS) != null) {
@@ -297,7 +279,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         try {
             fs = FileSystem.get(globalConf);
-            intermediateTaskInputSize = fs.getDefaultBlockSize(FileLocalizer.getTemporaryResourcePath(pc));
+            intermediateTaskInputSize = HadoopShims.getDefaultBlockSize(fs, FileLocalizer.getTemporaryResourcePath(pc));
         } catch (Exception e) {
             log.warn("Unable to get the block size for temporary directory, defaulting to 128MB", e);
             intermediateTaskInputSize = 134217728L;
@@ -415,11 +397,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 tezOp.getVertexGroupInfo().setVertexGroup(vertexGroup);
                 POStore store = tezOp.getVertexGroupInfo().getStore();
                 if (store != null) {
-                    String outputKey = store.getOperatorKey().toString();
-                    if (store instanceof POStoreTez) {
-                        outputKey = ((POStoreTez) store).getOutputKey();
-                    }
-                    vertexGroup.addDataSink(outputKey,
+                    vertexGroup.addDataSink(store.getOperatorKey().toString(),
                             DataSinkDescriptor.create(tezOp.getVertexGroupInfo().getStoreOutputDescriptor(),
                             OutputCommitterDescriptor.create(MROutputCommitter.class.getName()), dag.getCredentials()));
                 }
@@ -463,14 +441,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         Configuration conf = new Configuration(pigContextConf);
 
-        if (edge.needsDistinctCombiner()) {
-            conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_COMBINER_CLASS,
-                    MRCombiner.class.getName());
-            conf.set(MRJobConfig.COMBINE_CLASS_ATTR,
-                    DistinctCombiner.Combine.class.getName());
-            log.info("Setting distinct combiner class between "
-                    + from.getOperatorKey() + " and " + to.getOperatorKey());
-        } else if (!combinePlan.isEmpty()) {
+        if (!combinePlan.isEmpty()) {
             udfContextSeparator.serializeUDFContextForEdge(conf, from, to, UDFType.USERFUNC);
             addCombiner(combinePlan, to, conf, isMergedInput);
         }
@@ -479,7 +450,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 POLocalRearrangeTez.class);
 
         for (POLocalRearrangeTez lr : lrs) {
-            if (lr.containsOutputKey(to.getOperatorKey().toString())) {
+            if (lr.getOutputKey().equals(to.getOperatorKey().toString())) {
                 byte keyType = lr.getKeyType();
                 setIntermediateOutputKeyValue(keyType, conf, to, lr.isConnectedToPackage(), isMergedInput);
                 // In case of secondary key sort, main key type is the actual key type
@@ -508,8 +479,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         conf.setBoolean(MRConfiguration.MAPPER_NEW_API, true);
         conf.setBoolean(MRConfiguration.REDUCER_NEW_API, true);
-        conf.setBoolean(PigImplConstants.PIG_EXECTYPE_MODE_LOCAL, pc.getExecType().isLocal());
-        conf.set(PigImplConstants.PIG_LOG4J_PROPERTIES, ObjectSerializer.serialize(pc.getLog4jProperties()));
+        conf.set("pig.pigContext", serializedPigContext);
         conf.set("udf.import.list", serializedUDFImportList);
 
         if(to.isGlobalSort() || to.isLimitAfterSort()){
@@ -540,36 +510,26 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         UserPayload payLoad = TezUtils.createUserPayloadFromConf(conf);
         out.setUserPayload(payLoad);
-        in.setUserPayload(payLoad);
 
-        // Remove combiner and reset payload
         if (!combinePlan.isEmpty()) {
             boolean noCombineInReducer = false;
-            boolean noCombineInMapper = edge.getCombinerInMap() == null ? false : !edge.getCombinerInMap();
             String reducerNoCombiner = globalConf.get(PigConfiguration.PIG_EXEC_NO_COMBINER_REDUCER);
-            if (edge.getCombinerInReducer() != null) {
-                noCombineInReducer = !edge.getCombinerInReducer();
-            } else if (reducerNoCombiner == null || reducerNoCombiner.equals("auto")) {
+            if (reducerNoCombiner == null || reducerNoCombiner.equals("auto")) {
                 noCombineInReducer = TezCompilerUtil.bagDataTypeInCombinePlan(combinePlan);
             } else {
                 noCombineInReducer = Boolean.parseBoolean(reducerNoCombiner);
             }
-            if (noCombineInReducer || noCombineInMapper) {
+            if (noCombineInReducer) {
                 log.info("Turning off combiner in reducer vertex " + to.getOperatorKey() + " for edge from " + from.getOperatorKey());
                 conf.unset(TezRuntimeConfiguration.TEZ_RUNTIME_COMBINER_CLASS);
                 conf.unset(MRJobConfig.COMBINE_CLASS_ATTR);
                 conf.unset("pig.combinePlan");
                 conf.unset("pig.combine.package");
                 conf.unset("pig.map.keytype");
-                UserPayload payLoadWithoutCombiner = TezUtils.createUserPayloadFromConf(conf);
-                if (noCombineInMapper) {
-                    out.setUserPayload(payLoadWithoutCombiner);
-                }
-                if (noCombineInReducer) {
-                    in.setUserPayload(payLoadWithoutCombiner);
-                }
+                payLoad = TezUtils.createUserPayloadFromConf(conf);
             }
         }
+        in.setUserPayload(payLoad);
 
         if (edge.dataMovementType!=DataMovementType.BROADCAST && to.getEstimatedParallelism()!=-1 && to.getVertexParallelism()==-1 && (to.isGlobalSort()||to.isSkewedJoin())) {
             // Use custom edge
@@ -633,8 +593,6 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         setOutputFormat(job);
         payloadConf.set("udf.import.list", serializedUDFImportList);
         payloadConf.set("exectype", "TEZ");
-        payloadConf.setBoolean(PigImplConstants.PIG_EXECTYPE_MODE_LOCAL, pc.getExecType().isLocal());
-        payloadConf.set(PigImplConstants.PIG_LOG4J_PROPERTIES, ObjectSerializer.serialize(pc.getLog4jProperties()));
 
         // Process stores
         LinkedList<POStore> stores = processStores(tezOp, payloadConf, job);
@@ -653,7 +611,11 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             payloadConf.set(PigInputFormat.PIG_INPUT_SIGNATURES, ObjectSerializer.serialize(tezOp.getLoaderInfo().getInpSignatureLists()));
             payloadConf.set(PigInputFormat.PIG_INPUT_LIMITS, ObjectSerializer.serialize(tezOp.getLoaderInfo().getInpLimits()));
             inputPayLoad = new Configuration(payloadConf);
+            if (tezOp.getLoaderInfo().getLoads().get(0).getLoadFunc() instanceof DefaultIndexableLoader) {
+                inputPayLoad.set("pig.pigContext", serializedPigContext);
+            }
         }
+        payloadConf.set("pig.pigContext", serializedPigContext);
 
         if (tezOp.getSampleOperator() != null) {
             payloadConf.set(PigProcessor.SAMPLE_VERTEX, tezOp.getSampleOperator().getOperatorKey().toString());
@@ -727,7 +689,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                             PlanHelper.getPhysicalOperators(pred.plan, POLocalRearrangeTez.class);
                     for (POLocalRearrangeTez lr : lrs) {
                         if (lr.isConnectedToPackage()
-                                && lr.containsOutputKey(tezOp.getOperatorKey().toString())) {
+                                && lr.getOutputKey().equals(tezOp.getOperatorKey().toString())) {
                             localRearrangeMap.put((int) lr.getIndex(), inputKey);
                             if (isVertexGroup) {
                                 isMergedInput = true;
@@ -810,25 +772,9 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         String vmPluginName = null;
         Configuration vmPluginConf = null;
-        boolean containScatterGather = false;
-        boolean containCustomPartitioner = false;
-        for (TezEdgeDescriptor edge : tezOp.inEdges.values()) {
-            if (edge.dataMovementType == DataMovementType.SCATTER_GATHER) {
-                containScatterGather = true;
-            }
-            if (edge.partitionerClass != null) {
-                containCustomPartitioner = true;
-            }
-        }
-
-        if(containScatterGather) {
-            vmPluginName = ShuffleVertexManager.class.getName();
-            vmPluginConf = new Configuration(shuffleVertexManagerBaseConf);
-        }
 
         // Set the right VertexManagerPlugin
         if (tezOp.getEstimatedParallelism() != -1) {
-            boolean autoParallelism = false;
             if (tezOp.isGlobalSort()||tezOp.isSkewedJoin()) {
                 if (tezOp.getVertexParallelism()==-1 && (
                         tezOp.isGlobalSort() &&getPlan().getPredecessors(tezOp).size()==1||
@@ -837,12 +783,33 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                     // to decrease/increase parallelism of sorting vertex dynamically
                     // based on the numQuantiles calculated by sample aggregation vertex
                     vmPluginName = PartitionerDefinedVertexManager.class.getName();
-                    autoParallelism = true;
                     log.info("Set VertexManagerPlugin to PartitionerDefinedParallelismVertexManager for vertex " + tezOp.getOperatorKey().toString());
                 }
             } else {
+                boolean containScatterGather = false;
+                boolean containCustomPartitioner = false;
+                for (TezEdgeDescriptor edge : tezOp.inEdges.values()) {
+                    if (edge.dataMovementType == DataMovementType.SCATTER_GATHER) {
+                        containScatterGather = true;
+                    }
+                    if (edge.partitionerClass!=null) {
+                        containCustomPartitioner = true;
+                    }
+                }
                 if (containScatterGather && !containCustomPartitioner) {
-
+                    vmPluginConf = (vmPluginConf == null) ? new Configuration(pigContextConf) : vmPluginConf;
+                    // Use auto-parallelism feature of ShuffleVertexManager to dynamically
+                    // reduce the parallelism of the vertex
+                    if (payloadConf.getBoolean(PigConfiguration.PIG_TEZ_GRACE_PARALLELISM, true)
+                            && !TezOperPlan.getGrandParentsForGraceParallelism(getPlan(), tezOp).isEmpty()) {
+                        vmPluginName = PigGraceShuffleVertexManager.class.getName();
+                        tezOp.setUseGraceParallelism(true);
+                        vmPluginConf.set("pig.tez.plan", getSerializedTezPlan());
+                        vmPluginConf.set("pig.pigContext", serializedPigContext);
+                    } else {
+                        vmPluginName = ShuffleVertexManager.class.getName();
+                    }
+                    vmPluginConf.setBoolean(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL, true);
                     // For Intermediate reduce, set the bytes per reducer to be block size.
                     long bytesPerReducer = intermediateTaskInputSize;
                     // If there are store statements, use BYTES_PER_REDUCER_PARAM configured by user.
@@ -851,8 +818,8 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                     // In Tez, numReducers=(map output size/bytesPerReducer) we need lower values to avoid skews in reduce
                     // as map input sizes are mostly always high compared to map output.
                     if (stores.size() > 0) {
-                        if (pigContextConf.get(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM) != null) {
-                            bytesPerReducer = pigContextConf.getLong(
+                        if (vmPluginConf.get(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM) != null) {
+                            bytesPerReducer = vmPluginConf.getLong(
                                             InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM,
                                             InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER);
                         } else if (tezOp.isGroupBy()) {
@@ -861,27 +828,9 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                             bytesPerReducer = SHUFFLE_BYTES_PER_REDUCER_DEFAULT;
                         }
                     }
-
-                    // Use auto-parallelism feature of ShuffleVertexManager to dynamically
-                    // reduce the parallelism of the vertex. Use PigGraceShuffleVertexManager
-                    // instead of ShuffleVertexManager if pig.tez.grace.parallelism is turned on
-                    if (payloadConf.getBoolean(PigConfiguration.PIG_TEZ_GRACE_PARALLELISM, true)
-                            && !TezOperPlan.getGrandParentsForGraceParallelism(getPlan(), tezOp).isEmpty()
-                            && tezOp.getCrossKeys() == null) {
-                        vmPluginName = PigGraceShuffleVertexManager.class.getName();
-                        tezOp.setUseGraceParallelism(true);
-                        vmPluginConf.set("pig.tez.plan", getSerializedTezPlan());
-                        vmPluginConf.set(PigImplConstants.PIG_CONTEXT, serializedPigContext);
-                        vmPluginConf.setLong(InputSizeReducerEstimator.BYTES_PER_REDUCER_PARAM, bytesPerReducer);
-                    }
-                    vmPluginConf.setBoolean(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL, true);
                     vmPluginConf.setLong(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE, bytesPerReducer);
-                    autoParallelism = true;
                     log.info("Set auto parallelism for vertex " + tezOp.getOperatorKey().toString());
                 }
-            }
-            if (globalConf.getBoolean(PigConfiguration.PIG_TEZ_AUTO_PARALLELISM_DISABLE_DAG_RECOVERY, false) && autoParallelism) {
-                disableDAGRecovery = true;
             }
         }
         if (tezOp.isLimit() && (vmPluginName == null || vmPluginName.equals(PigGraceShuffleVertexManager.class.getName())||
@@ -1460,12 +1409,22 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
     private void setOutputFormat(org.apache.hadoop.mapreduce.Job job) {
         // the OutputFormat we report to Hadoop is always PigOutputFormat which
-        // can be wrapped with LazyOutputFormat provided if PigConfiguration.PIG_OUTPUT_LAZY is set
+        // can be wrapped with LazyOutputFormat provided if it is supported by
+        // the Hadoop version and PigConfiguration.PIG_OUTPUT_LAZY is set
         if ("true".equalsIgnoreCase(job.getConfiguration().get(PigConfiguration.PIG_OUTPUT_LAZY))) {
-            LazyOutputFormat.setOutputFormatClass(job,PigOutputFormatTez.class);
+            try {
+                Class<?> clazz = PigContext
+                        .resolveClassName("org.apache.hadoop.mapreduce.lib.output.LazyOutputFormat");
+                Method method = clazz.getMethod("setOutputFormatClass",
+                        org.apache.hadoop.mapreduce.Job.class, Class.class);
+                method.invoke(null, job, PigOutputFormatTez.class);
+            } catch (Exception e) {
+                job.setOutputFormatClass(PigOutputFormatTez.class);
+                log.warn(PigConfiguration.PIG_OUTPUT_LAZY
+                        + " is set but LazyOutputFormat couldn't be loaded. Default PigOutputFormat will be used");
+            }
         } else {
             job.setOutputFormatClass(PigOutputFormatTez.class);
         }
     }
-
 }

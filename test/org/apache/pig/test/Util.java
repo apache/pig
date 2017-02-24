@@ -480,19 +480,6 @@ public class Util {
         fs.delete(new Path(fileName), true);
     }
 
-    /**
-     * Deletes a dfs file from the MiniCluster DFS quietly
-     *
-     * @param miniCluster the MiniCluster where the file should be deleted
-     * @param fileName the path of the file to be deleted
-     */
-     public static void deleteQuietly(MiniGenericCluster miniCluster, String fileName) {
-         try {
-             deleteFile(miniCluster, fileName);
-         } catch (IOException ignored) {
-         }
-     }
-
     static public void deleteFile(PigContext pigContext, String fileName)
     throws IOException {
         Configuration conf = ConfigurationUtil.toConfiguration(
@@ -671,10 +658,13 @@ public class Util {
          }
      }
 
-     static private String getFSMkDirCommand(String fileName) {
-         Path parentDir = new Path(fileName).getParent();
-         String mkdirCommand = parentDir.getName().isEmpty() ? "" : "fs -mkdir -p " + parentDir + "\n";
-         return mkdirCommand;
+     static private String getMkDirCommandForHadoop2_0(String fileName) {
+         if (org.apache.pig.impl.util.Utils.isHadoop23() || org.apache.pig.impl.util.Utils.isHadoop2()) {
+             Path parentDir = new Path(fileName).getParent();
+             String mkdirCommand = parentDir.getName().isEmpty() ? "" : "fs -mkdir -p " + parentDir + "\n";
+             return mkdirCommand;
+         }
+         return "";
      }
 
     /**
@@ -696,7 +686,7 @@ public class Util {
             fileNameOnCluster = fileNameOnCluster.replace('\\','/');
         }
         PigServer ps = new PigServer(cluster.getExecType(), cluster.getProperties());
-        String script = getFSMkDirCommand(fileNameOnCluster) + "fs -put " + localFileName + " " + fileNameOnCluster;
+        String script = getMkDirCommandForHadoop2_0(fileNameOnCluster) + "fs -put " + localFileName + " " + fileNameOnCluster;
         GruntParser parser = new GruntParser(new StringReader(script), ps);
         parser.setInteractive(false);
         try {
@@ -857,23 +847,7 @@ public class Util {
     }
 
     public static File createFile(String[] data) throws Exception{
-        return createFile(null,data);
-    }
-
-    public static File createFile(String filePath, String[] data) throws Exception {
-        File f;
-        if( null == filePath || filePath.isEmpty() ) {
-          f = File.createTempFile("tmp", "");
-        } else  {
-          f = new File(filePath);
-        }
-
-        if (f.getParent() != null && !(new File(f.getParent())).exists()) {
-            (new File(f.getParent())).mkdirs();
-        }
-
-        f.deleteOnExit();
-
+        File f = File.createTempFile("tmp", "");
         PrintWriter pw = new PrintWriter(f);
         for (int i=0; i<data.length; i++){
             pw.println(data[i]);
@@ -944,7 +918,14 @@ public class Util {
         MapRedUtil.checkLeafIsStore(pp, pc);
 
         MapReduceLauncher launcher = new MapReduceLauncher();
-        return launcher.compile(pp,pc);
+
+        java.lang.reflect.Method compile = launcher.getClass()
+                .getDeclaredMethod("compile",
+                        new Class[] { PhysicalPlan.class, PigContext.class });
+
+        compile.setAccessible(true);
+
+        return (MROperPlan) compile.invoke(launcher, new Object[] { pp, pc });
     }
 
     public static MROperPlan buildMRPlan(String query, PigContext pc) throws Exception {

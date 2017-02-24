@@ -16,11 +16,8 @@ package org.apache.pig.piggybank.evaluation.xml;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
-import javax.xml.XMLConstants;
-import javax.xml.namespace.NamespaceContext;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.xpath.XPathFactory;
@@ -52,7 +49,8 @@ public class XPath extends EvalFunc<String> {
     
     private static boolean cache = true;
     private static boolean ignoreNamespace = true;
-
+    public static final String EMPTY_STRING = "";
+    
     /**
      * input should contain: 1) xml 2) xpath 
      *                       3) optional cache xml doc flag 
@@ -97,13 +95,8 @@ public class XPath extends EvalFunc<String> {
                 return null;
             }
             
-            if(input.size() > 2) {
+            if(input.size() > 2)
                 cache = (Boolean) input.get(2);
-            }
-
-            if (input.size() > 3) {
-                ignoreNamespace = (Boolean) input.get(3);
-            }
 
             if (!cache || xpath == null || !xml.equals(this.xml)) {
                 final InputSource source = new InputSource(new StringReader(xml));
@@ -111,7 +104,6 @@ public class XPath extends EvalFunc<String> {
                 this.xml = xml; // track the xml for subsequent calls to this udf
 
                 final DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-                dbf.setNamespaceAware(!ignoreNamespace);
                 final DocumentBuilder db = dbf.newDocumentBuilder();
 
                 this.document = db.parse(source);
@@ -120,31 +112,13 @@ public class XPath extends EvalFunc<String> {
 
                 this.xpath = xpathFactory.newXPath();
 
-                if (!ignoreNamespace) {
-                    xpath.setNamespaceContext(new NamespaceContext() {
-                        @Override
-                        public String getNamespaceURI(String prefix) {
-                            if (prefix.equals(XMLConstants.DEFAULT_NS_PREFIX)) {
-                                return document.lookupNamespaceURI(null);
-                            } else {
-                                return document.lookupNamespaceURI(prefix);
-                            }
-                        }
-
-                        @Override
-                        public String getPrefix(String namespaceURI) {
-                            return document.lookupPrefix(namespaceURI);
-                        }
-
-                        @Override
-                        public Iterator getPrefixes(String namespaceURI) {
-                            return null;
-                        }
-                    });
-                }
             }
 
             String xpathString = (String) input.get(1);
+
+            if (ignoreNamespace) {
+                xpathString = createNameSpaceIgnoreXpathString(xpathString);
+            }
 
             final String value = xpath.evaluate(xpathString, document);
 
@@ -190,6 +164,34 @@ public class XPath extends EvalFunc<String> {
             return false;
         }
         return true;
+    }
+    
+    
+    /**
+     * Returns a new the xPathString by adding additional parameters 
+     * in the existing xPathString for ignoring the namespace during compilation.
+     * 
+     * @param String xpathString
+     * @return String modified xpathString
+     */
+    private String createNameSpaceIgnoreXpathString(final String xpathString) {
+        final String QUERY_PREFIX = "//*";
+        final String LOCAL_PREFIX = "[local-name()='";
+        final String LOCAL_POSTFIX = "']";
+        final String SPLITTER = "/";
+
+        try {
+            String xpathStringWithLocalName = EMPTY_STRING;
+            String[] individualNodes = xpathString.split(SPLITTER);
+
+            for (String node : individualNodes) {
+                xpathStringWithLocalName = xpathStringWithLocalName.concat(QUERY_PREFIX + LOCAL_PREFIX + node
+                        + LOCAL_POSTFIX);
+            }
+            return xpathStringWithLocalName;
+        } catch (Exception ex) {
+            return xpathString;
+        }
     }
 
     /**

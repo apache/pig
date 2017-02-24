@@ -117,11 +117,6 @@ public class TezPigScriptStats extends PigStats {
     }
 
     private void display() {
-        LOG.info(getDisplayString());
-    }
-
-    @Override
-    public String getDisplayString() {
         SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT);
         StringBuilder sb = new StringBuilder();
         sb.append("\n");
@@ -175,7 +170,7 @@ public class TezPigScriptStats extends PigStats {
         for (OutputStats os : getOutputStats()) {
             sb.append(os.getDisplayString().trim()).append("\n");
         }
-        return "Script Statistics:\n" + sb.toString();
+        LOG.info("Script Statistics:\n" + sb.toString());
     }
 
     /**

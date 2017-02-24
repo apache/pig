@@ -153,8 +153,6 @@ public class MultiQueryOptimizerTez extends TezOpPlanVisitor {
                     }
                 }
                 if (getPlan().getSuccessors(successor) != null) {
-                    nonPackageInputSuccessors.clear();
-                    toMergeSuccessors.clear();
                     for (TezOperator succSuccessor : getPlan().getSuccessors(successor)) {
                         if (succSuccessor.isUnion()) {
                             if (!(unionOptimizerOn &&
@@ -173,13 +171,7 @@ public class MultiQueryOptimizerTez extends TezOpPlanVisitor {
                                         continue;
                                     }
                                 }
-                                if (TezCompilerUtil.isNonPackageInput(successor.getOperatorKey().toString(), succSuccessor)) {
-                                    // Output goes to scalar or POFRJoinTez in the union operator
-                                    // We need to ensure it is the only one to avoid parallel edges
-                                    canMerge = canMerge ? nonPackageInputSuccessors.add(succSuccessor) : false;
-                                } else {
-                                    toMergeSuccessors.add(succSuccessor);
-                                }
+                                toMergeSuccessors.add(succSuccessor);
                                 List<TezOperator> unionSuccessors = getPlan().getSuccessors(succSuccessor);
                                 if (unionSuccessors != null) {
                                     for (TezOperator unionSuccessor : unionSuccessors) {

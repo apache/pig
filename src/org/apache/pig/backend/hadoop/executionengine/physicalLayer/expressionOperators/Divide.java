@@ -19,10 +19,7 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOp
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.math.RoundingMode;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigWarning;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -39,8 +36,6 @@ public class Divide extends BinaryExpressionOperator {
      *
      */
     private static final long serialVersionUID = 1L;
-    public static final short BIGDECIMAL_MINIMAL_SCALE = 6;
-    private static final Log LOG = LogFactory.getLog(Divide.class);
 
     public Divide(OperatorKey k) {
         super(k);
@@ -77,20 +72,10 @@ public class Divide extends BinaryExpressionOperator {
         case DataType.BIGINTEGER:
             return ((BigInteger) a).divide((BigInteger) b);
         case DataType.BIGDECIMAL:
-            return bigDecimalDivideWithScale(a, b);
+            return ((BigDecimal) a).divide((BigDecimal) b);
         default:
             throw new ExecException("called on unsupported Number class " + DataType.findTypeName(dataType));
         }
-    }
-
-    private Number bigDecimalDivideWithScale(Number a, Number b) {
-        // Using same result scaling as Hive. See Arithmetic Rules:
-        //   https://cwiki.apache.org/confluence/download/attachments/27362075/Hive_Decimal_Precision_Scale_Support.pdf
-        int resultScale = Math.max(BIGDECIMAL_MINIMAL_SCALE, ((BigDecimal)a).scale() + ((BigDecimal)b).precision() + 1);
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("For bigdecimal divide: using " + resultScale + " as result scale.");
-        }
-        return ((BigDecimal)a).divide((BigDecimal)b, resultScale, RoundingMode.HALF_UP);
     }
 
     /*

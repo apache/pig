@@ -43,7 +43,7 @@ Tez vertex scope-81
 # Plan on vertex
 1-1: Split - scope-133
 |   |
-|   u3: Store(file:///tmp/pigoutput/u3:org.apache.pig.builtin.PigStorage) - scope-135	->	 scope-57
+|   u3: Store(file:///tmp/output/u3:org.apache.pig.builtin.PigStorage) - scope-135	->	 scope-57
 |   |
 |   |---e: Filter[bag] - scope-43
 |       |   |
@@ -73,7 +73,7 @@ Tez vertex scope-81
 |   |
 |   d: Split - scope-132
 |   |   |
-|   |   u3: Store(file:///tmp/pigoutput/u3:org.apache.pig.builtin.PigStorage) - scope-134	->	 scope-57
+|   |   u3: Store(file:///tmp/output/u3:org.apache.pig.builtin.PigStorage) - scope-134	->	 scope-57
 |   |   |
 |   |   POValueOutputTez - scope-128	->	 [scope-126]
 |   |   |
@@ -99,7 +99,7 @@ Tez vertex scope-81
 |   |
 |   b: Split - scope-130
 |   |   |
-|   |   u1: Store(file:///tmp/pigoutput/u1:org.apache.pig.builtin.PigStorage) - scope-136	->	 scope-27
+|   |   u1: Store(file:///tmp/output/u1:org.apache.pig.builtin.PigStorage) - scope-136	->	 scope-27
 |   |   |
 |   |   POValueOutputTez - scope-107	->	 [scope-104]
 |   |
@@ -113,7 +113,7 @@ Tez vertex scope-81
 |   |
 |   c: Split - scope-131
 |   |   |
-|   |   u1: Store(file:///tmp/pigoutput/u1:org.apache.pig.builtin.PigStorage) - scope-137	->	 scope-27
+|   |   u1: Store(file:///tmp/output/u1:org.apache.pig.builtin.PigStorage) - scope-137	->	 scope-27
 |   |   |
 |   |   POValueOutputTez - scope-108	->	 [scope-104]
 |   |
@@ -128,7 +128,7 @@ Tez vertex scope-81
 |---POValueInputTez - scope-82	<-	 scope-79
 Tez vertex scope-104
 # Plan on vertex
-u2: Store(file:///tmp/pigoutput/u2:org.apache.pig.builtin.PigStorage) - scope-35
+u2: Store(file:///tmp/output/u2:org.apache.pig.builtin.PigStorage) - scope-35
 |
 |---POShuffledValueInputTez - scope-105	<-	 [scope-81, scope-98]
 Tez vertex scope-124
@@ -138,6 +138,6 @@ POValueOutputTez - scope-129	->	 [scope-126]
 |---POValueInputTez - scope-125	<-	 scope-79
 Tez vertex scope-126
 # Plan on vertex
-u4: Store(file:///tmp/pigoutput/u4:org.apache.pig.builtin.PigStorage) - scope-78
+u4: Store(file:///tmp/output/u4:org.apache.pig.builtin.PigStorage) - scope-78
 |
 |---POShuffledValueInputTez - scope-127	<-	 [scope-124, scope-81]

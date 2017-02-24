@@ -10,7 +10,7 @@ Tez vertex scope-24
 # Plan on vertex
 1-1: Split - scope-32
 |   |
-|   b: Store(file:///tmp/pigoutput/b:org.apache.pig.builtin.PigStorage) - scope-13
+|   b: Store(file:///tmp/output/b:org.apache.pig.builtin.PigStorage) - scope-13
 |   |
 |   |---b: Filter[bag] - scope-9
 |       |   |
@@ -20,7 +20,7 @@ Tez vertex scope-24
 |       |   |
 |       |   |---Constant(5) - scope-11
 |   |
-|   c: Store(file:///tmp/pigoutput/c:org.apache.pig.builtin.PigStorage) - scope-18
+|   c: Store(file:///tmp/output/c:org.apache.pig.builtin.PigStorage) - scope-18
 |   |
 |   |---c: Filter[bag] - scope-14
 |       |   |
@@ -30,7 +30,7 @@ Tez vertex scope-24
 |       |   |
 |       |   |---Constant(10) - scope-16
 |   |
-|   d: Store(file:///tmp/pigoutput/d:org.apache.pig.builtin.PigStorage) - scope-23
+|   d: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-23
 |   |
 |   |---d: Filter[bag] - scope-19
 |       |   |

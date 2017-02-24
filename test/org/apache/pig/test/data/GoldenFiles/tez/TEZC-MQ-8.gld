@@ -74,7 +74,7 @@ POValueOutputTez - scope-61	->	 [scope-59]
             |---POValueInputTez - scope-56	<-	 scope-51
 Tez vertex scope-59
 # Plan on vertex
-e: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-50
+e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-50
 |
 |---e: New For Each(false,false,false)[bag] - scope-49
     |   |

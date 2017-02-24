@@ -22,7 +22,6 @@ import static org.apache.pig.tools.pigstats.tez.TezDAGStats.PIG_COUNTER_GROUP;
 import static org.apache.pig.tools.pigstats.tez.TezDAGStats.TASK_COUNTER_GROUP;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -290,19 +289,13 @@ public class TezVertexStats extends JobStats {
         }
 
         // Split followed by union will have multiple stores writing to same location
-        Map<String, List<POStore>> uniqueOutputs = new HashMap<String, List<POStore>>();
+        Map<String, POStore> uniqueOutputs = new HashMap<String, POStore>();
         for (POStore sto : stores) {
             POStoreTez store = (POStoreTez) sto;
-            List<POStore> stores = uniqueOutputs.get(store.getOutputKey());
-            if (stores == null) {
-                stores = new ArrayList<POStore>();
-            }
-            stores.add(store);
-            uniqueOutputs.put(store.getOutputKey(), stores);
+            uniqueOutputs.put(store.getOutputKey(), store);
         }
 
-        for (List<POStore> stores : uniqueOutputs.values()) {
-            POStore sto = stores.get(0);
+        for (POStore sto : uniqueOutputs.values()) {
             if (sto.isTmpStore()) {
                 continue;
             }
@@ -311,16 +304,11 @@ public class TezVertexStats extends JobStats {
             String filename = sto.getSFile().getFileName();
             if (counters != null) {
                 if (msGroup != null) {
-                    long n = 0;
-                    Long val = null;
-                    for (POStore store : stores) {
-                        val = msGroup.get(PigStatsUtil.getMultiStoreCounterName(store));
-                        // Tez removes 0 value counters for efficiency.
-                        if (val != null) {
-                            n += val;
-                        };
-                    }
-                    records = n;
+                    Long n = msGroup.get(PigStatsUtil.getMultiStoreCounterName(sto));
+                    if (n != null) records = n;
+                }
+                if (records == -1) {
+                    records = outputRecords;
                 }
                 if (isSuccessful() && records == -1) {
                     // Tez removes 0 value counters for efficiency.
@@ -350,13 +338,13 @@ public class TezVertexStats extends JobStats {
     @Override
     @Deprecated
     public int getNumberMaps() {
-        return this.isMapOpts ? numTasks : 0;
+        return this.isMapOpts ? numTasks : -1;
     }
 
     @Override
     @Deprecated
     public int getNumberReduces() {
-        return this.isMapOpts ? 0 : numTasks;
+        return this.isMapOpts ? -1 : numTasks;
     }
 
     @Override
@@ -398,25 +386,25 @@ public class TezVertexStats extends JobStats {
     @Override
     @Deprecated
     public long getMapInputRecords() {
-        return this.isMapOpts ? numInputRecords : 0;
+        return this.isMapOpts ? numInputRecords : -1;
     }
 
     @Override
     @Deprecated
     public long getMapOutputRecords() {
-        return this.isMapOpts ? numOutputRecords : 0;
+        return this.isMapOpts ? numOutputRecords : -1;
     }
 
     @Override
     @Deprecated
     public long getReduceInputRecords() {
-        return numReduceInputRecords;
+        return this.isMapOpts ? -1 : numInputRecords;
     }
 
     @Override
     @Deprecated
     public long getReduceOutputRecords() {
-        return this.isMapOpts ? 0 : numOutputRecords;
+        return this.isMapOpts ? -1 : numOutputRecords;
     }
 
     @Override

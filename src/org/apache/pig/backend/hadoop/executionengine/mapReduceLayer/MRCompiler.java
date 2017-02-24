@@ -1116,9 +1116,7 @@ public class MRCompiler extends PhyPlanVisitor {
         try{
             nonBlocking(op);
             phyToMROpMap.put(op, curMROp);
-            if (op.getPkgr().getPackageType() == PackageType.JOIN
-                    || op.getPkgr().getPackageType() == PackageType.BLOOMJOIN) {
-                // Bloom join is not implemented in mapreduce mode and falls back to regular join
+            if (op.getPkgr().getPackageType() == PackageType.JOIN) {
                 curMROp.markRegularJoin();
             } else if (op.getPkgr().getPackageType() == PackageType.GROUP) {
                 if (op.getNumInps() == 1) {
@@ -1280,7 +1278,7 @@ public class MRCompiler extends PhyPlanVisitor {
                             List<InputSplit> splits = inf.getSplits(HadoopShims.cloneJobContext(job));
                             List<List<InputSplit>> results = MapRedUtil
                             .getCombinePigSplits(splits,
-                                    fs.getDefaultBlockSize(path),
+                                    HadoopShims.getDefaultBlockSize(fs, path),
                                     conf);
                             numFiles += results.size();
                         } else {
@@ -2434,7 +2432,7 @@ public class MRCompiler extends PhyPlanVisitor {
         }else{
             for(int i=0; i<transformPlans.size(); i++) {
                 eps1.add(transformPlans.get(i));
-                flat1.add(i == transformPlans.size() - 1 ? true : false);
+                flat1.add(true);
             }
         }
 

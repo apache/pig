@@ -25,8 +25,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.StringReader;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -55,7 +53,6 @@ import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
-import org.apache.pig.backend.hadoop.PigATSClient;
 import org.apache.pig.backend.hadoop.executionengine.HJob;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.classification.InterfaceAudience;
@@ -244,54 +241,6 @@ public class PigServer {
         }
         PigStats.start(pigContext.getExecutionEngine().instantiatePigStats());
 
-        // log ATS event includes the caller context
-        String auditId = PigATSClient.getPigAuditId(pigContext);
-        String callerId = (String)pigContext.getProperties().get(PigConfiguration.PIG_LOG_TRACE_ID);
-        log.info("Pig Script ID for the session: " + auditId);
-        if (callerId != null) {
-            log.info("Caller ID for session: " + callerId);
-        }
-        if (Boolean.parseBoolean(pigContext.getProperties()
-                .getProperty(PigConfiguration.PIG_ATS_ENABLED))) {
-            if (Boolean.parseBoolean(pigContext.getProperties()
-                    .getProperty("yarn.timeline-service.enabled", "false"))) {
-                PigATSClient.ATSEvent event = new PigATSClient.ATSEvent(auditId, callerId);
-                try {
-                    PigATSClient.getInstance().logEvent(event);
-                } catch (Exception e) {
-                    log.warn("Error posting to ATS: ", e);
-                }
-            } else {
-                log.warn("ATS is disabled since"
-                        + " yarn.timeline-service.enabled set to false");
-            }
-
-        }
-
-        // set hdfs caller context
-        Class callerContextClass = null;
-        try {
-            callerContextClass = Class.forName("org.apache.hadoop.ipc.CallerContext");
-        } catch (ClassNotFoundException e) {
-            // If pre-Hadoop 2.8.0, skip setting CallerContext
-        }
-        if (callerContextClass != null) {
-            try {
-                // Reflection for the following code since it is only available since hadoop 2.8.0:
-                // CallerContext hdfsContext = new CallerContext.Builder(auditId).build();
-                // CallerContext.setCurrent(hdfsContext);
-                Class callerContextBuilderClass = Class.forName("org.apache.hadoop.ipc.CallerContext$Builder");
-                Constructor callerContextBuilderConstruct = callerContextBuilderClass.getConstructor(String.class);
-                Object builder = callerContextBuilderConstruct.newInstance(auditId);
-                Method builderBuildMethod = builder.getClass().getMethod("build");
-                Object hdfsContext = builderBuildMethod.invoke(builder);
-                Method callerContextSetCurrentMethod = callerContextClass.getMethod("setCurrent", hdfsContext.getClass());
-                callerContextSetCurrentMethod.invoke(callerContextClass, hdfsContext);
-            } catch (Exception e) {
-                // Shall not happen unless API change in future Hadoop commons
-                throw new ExecException(e);
-            }
-        }
     }
 
     private void addHadoopProperties() throws ExecException {
@@ -663,8 +612,7 @@ public class PigServer {
             pigContext.scriptingUDFs.put(path, namespace);
         }
 
-        FetchFileRet ret = FileLocalizer.fetchFile(pigContext.getProperties(), path);
-        File f = ret.file;
+        File f = FileLocalizer.fetchFile(pigContext.getProperties(), path).file;
         if (!f.canRead()) {
             int errCode = 4002;
             String msg = "Can't read file: " + path;
@@ -673,19 +621,9 @@ public class PigServer {
         }
         String cwd = new File(".").getCanonicalPath();
         String filePath = f.getCanonicalPath();
-        String nameInJar = filePath;
-        // Use the relative path in the jar, if the path specified is relative
-        if (!ret.didFetch) {
-            if (!new File(path).isAbsolute() && path.indexOf("." + File.separator) == -1) {
-                // In case of Oozie, the localized files are in a different
-                // directory symlinked to the current directory. Canonical path will not point to cwd.
-                nameInJar = path;
-            } else if (filePath.equals(cwd + File.separator + path)) {
-                // If user specified absolute path and it refers to cwd
-                nameInJar = filePath.substring(cwd.length() + 1);
-            }
-        }
-
+        //Use the relative path in the jar, if the path specified is relative
+        String nameInJar = filePath.equals(cwd + File.separator + path) ?
+                filePath.substring(cwd.length() + 1) : filePath;
         pigContext.addScriptFile(nameInJar, filePath);
         if(scriptingLang != null) {
             ScriptEngine se = ScriptEngine.getInstance(scriptingLang);

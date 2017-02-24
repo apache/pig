@@ -147,11 +147,6 @@ final class EmbeddedPigStats extends PigStats {
     }
 
     @Override
-    public String getDisplayString() {
-        return null;
-    }
-
-    @Override
     public long getProactiveSpillCountObjects() {
         throw new UnsupportedOperationException();
     }

@@ -19,7 +19,7 @@ Local Rearrange[tuple]{tuple}(false) - scope-67	->	 scope-43
 |   |
 |   Constant(DummyVal) - scope-68
 |
-|---New For Each(false,true)[tuple] - scope-74
+|---New For Each(true,true)[tuple] - scope-74
     |   |
     |   Project[int][0] - scope-71
     |   |
@@ -50,7 +50,7 @@ Local Rearrange[tuple]{tuple}(false) - scope-77	->	 scope-43
 |   |
 |   Constant(DummyVal) - scope-78
 |
-|---New For Each(false,true)[tuple] - scope-84
+|---New For Each(true,true)[tuple] - scope-84
     |   |
     |   Project[int][0] - scope-81
     |   |
@@ -120,7 +120,7 @@ Partition Rearrange[tuple]{int}(false) - scope-55	->	 scope-57
     |---d: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-17
 Tez vertex scope-57
 # Plan on vertex
-e: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-28
+e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-28
 |
 |---New For Each(true,true)[tuple] - scope-61
     |   |

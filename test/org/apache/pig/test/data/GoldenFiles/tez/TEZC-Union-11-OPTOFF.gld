@@ -62,6 +62,6 @@ POValueOutputTez - scope-37	->	 [scope-34]
     |---d: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-17
 Tez vertex scope-34
 # Plan on vertex
-e: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-26
+e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-26
 |
 |---POShuffledValueInputTez - scope-35	<-	 [scope-29, scope-33]

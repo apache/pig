@@ -73,7 +73,7 @@ while (<$input_handle>)
 {
 	chomp;	
 	$data = $_;
-	if (exists $hash{$data})
+	if (defined(%hash) && (exists $hash{$data}))
 	{
 		print $output_handle "$hash{$data}\n";		
 	}

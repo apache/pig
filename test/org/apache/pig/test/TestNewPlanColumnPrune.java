@@ -454,34 +454,6 @@ public class TestNewPlanColumnPrune {
         }
     }
 
-    @Test
-    public void testNoAddForeach() throws Exception  {
-        // PIG-5055
-        // Need to make sure that it does not add foreach
-        // that drops all the fields from B2.
-        String query = "A = load 'd.txt' as (a0:int, a1:int, a2:int);" +
-        "B = load 'd.txt' as (b0:int, b1:int, b2:int);" +
-        "B2 = FILTER B by b0 == 0;" +
-        "C = join A by (1), B2 by (1) ;" +
-        "D = FOREACH C GENERATE A::a1, A::a2;" +
-        "store D into 'empty';";
-
-        LogicalPlan newLogicalPlan = buildPlan(query);
-
-        PlanOptimizer optimizer = new MyPlanOptimizer(newLogicalPlan, 3);
-        optimizer.optimize();
-        System.err.println(newLogicalPlan);
-        Iterator<Operator> iter = newLogicalPlan.getOperators();
-        while (iter.hasNext()) {
-            Operator o = iter.next();
-            LogicalRelationalOperator lro = (LogicalRelationalOperator)o;
-            if (lro == null || lro.getAlias() == null) continue;
-            if (lro.getAlias().equals("B2")) {
-                assertNotNull(lro.getSchema());
-            }
-        }
-    }
-
     public class MyPlanOptimizer extends LogicalPlanOptimizer {
 
         protected MyPlanOptimizer(OperatorPlan p,  int iterations) {

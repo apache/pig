@@ -77,7 +77,7 @@ POValueOutputTez - scope-60	->	 [scope-56, scope-58]
     |---b: Package(CombinerPackager)[tuple]{int} - scope-15
 Tez vertex scope-56
 # Plan on vertex
-d: Store(file:///tmp/pigoutput1:org.apache.pig.builtin.PigStorage) - scope-35
+d: Store(file:///tmp/output1:org.apache.pig.builtin.PigStorage) - scope-35
 |
 |---d: Filter[bag] - scope-25
     |   |
@@ -100,7 +100,7 @@ d: Store(file:///tmp/pigoutput1:org.apache.pig.builtin.PigStorage) - scope-35
     |---POValueInputTez - scope-57	<-	 scope-53
 Tez vertex scope-58
 # Plan on vertex
-e: Store(file:///tmp/pigoutput2:org.apache.pig.builtin.PigStorage) - scope-47
+e: Store(file:///tmp/output2:org.apache.pig.builtin.PigStorage) - scope-47
 |
 |---e: Filter[bag] - scope-36
     |   |

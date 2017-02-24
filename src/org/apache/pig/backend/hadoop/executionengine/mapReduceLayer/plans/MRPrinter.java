@@ -27,7 +27,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.NativeMapRed
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PlanPrinter;
-import org.apache.pig.impl.plan.DependencyOrderWalker;
+import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.VisitorException;
 
 /**
@@ -43,7 +43,7 @@ public class MRPrinter extends MROpPlanVisitor {
      * @param plan MR plan to print
      */
     public MRPrinter(PrintStream ps, MROperPlan plan) {
-        super(plan, new DependencyOrderWalker<MapReduceOper, MROperPlan>(plan, true));
+        super(plan, new DepthFirstWalker<MapReduceOper, MROperPlan>(plan));
         mStream = ps;
         mStream.println("#--------------------------------------------------");
         mStream.println("# Map Reduce Plan                                  ");

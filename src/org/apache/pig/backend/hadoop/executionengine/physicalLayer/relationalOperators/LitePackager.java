@@ -17,7 +17,7 @@
  */
 
 /**
- *
+ * 
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
@@ -28,7 +28,6 @@ import java.util.Map;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
@@ -47,15 +46,6 @@ public class LitePackager extends Packager {
 
     private static final long serialVersionUID = 1L;
     private PigNullableWritable keyWritable;
-
-    @Override
-    public void attachInput(Object key, DataBag[] bags, boolean[] readOnce)
-            throws ExecException {
-        this.key = key;
-        this.bags = bags;
-        this.readOnce = readOnce;
-        // Bag can be read directly and need not be materialized again
-    }
 
     @Override
     public boolean[] getInner() {

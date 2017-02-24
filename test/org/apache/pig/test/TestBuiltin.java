@@ -130,7 +130,6 @@ import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -3207,31 +3206,29 @@ public class TestBuiltin {
     @Test
     public void testUniqueID() throws Exception {
         Util.resetStateForExecModeSwitch();
+        String inputFileName = "testUniqueID.txt";
+        Util.createInputFile(cluster, inputFileName, new String[]
+            {"1\n2\n3\n4\n5\n1\n2\n3\n4\n5\n"});
         Properties copyproperties = new Properties();
         copyproperties.putAll(cluster.getProperties());
         PigServer pigServer = new PigServer(cluster.getExecType(), copyproperties);
-
-        // running with 2 mappers each taking 5 records
-        String TMP_DIR = FileLocalizer.getTemporaryPath(pigServer.getPigContext()).toUri().getPath();
-        Util.createInputFile(cluster, TMP_DIR + "/input1.txt", new String[] {"1\n2\n3\n4\n5"});
-        Util.createInputFile(cluster, TMP_DIR + "/input2.txt", new String[] {"1\n2\n3\n4\n5"});
+        pigServer.getPigContext().getProperties().setProperty("mapred.max.split.size", "10");
         pigServer.getPigContext().getProperties().setProperty("pig.noSplitCombination", "true");
-
-        pigServer.registerQuery("A = load '" + TMP_DIR + "' as (name);");
+        pigServer.registerQuery("A = load '" + inputFileName + "' as (name);");
         pigServer.registerQuery("B = foreach A generate name, UniqueID();");
         Iterator<Tuple> iter = pigServer.openIterator("B");
         if (!Util.isSparkExecType(cluster.getExecType())) {
-            assertEquals("0-0", iter.next().get(1));
-            assertEquals("0-1", iter.next().get(1));
-            assertEquals("0-2", iter.next().get(1));
-            assertEquals("0-3", iter.next().get(1));
-            assertEquals("0-4", iter.next().get(1));
-            assertEquals("1-0", iter.next().get(1));
-            assertEquals("1-1", iter.next().get(1));
-            assertEquals("1-2", iter.next().get(1));
-            assertEquals("1-3", iter.next().get(1));
-            assertEquals("1-4", iter.next().get(1));
-        } else {
+            assertEquals(iter.next().get(1), "0-0");
+            assertEquals(iter.next().get(1), "0-1");
+            assertEquals(iter.next().get(1), "0-2");
+            assertEquals(iter.next().get(1), "0-3");
+            assertEquals(iter.next().get(1), "0-4");
+            assertEquals(iter.next().get(1), "1-0");
+            assertEquals(iter.next().get(1), "1-1");
+            assertEquals(iter.next().get(1), "1-2");
+            assertEquals(iter.next().get(1), "1-3");
+            assertEquals(iter.next().get(1), "1-4");
+        } else{
             //there will be 2 InputSplits when mapred.max.split.size is 10(byte) for the testUniqueID.txt(20 bytes)
             //Split0:
             //            1\n
@@ -3247,35 +3244,34 @@ public class TestBuiltin {
             //            5\n
             //The size of Split0 is 12 not 10 because LineRecordReader#nextKeyValue will read one more line
             //More detail see PIG-4383
-            assertEquals("0-0", iter.next().get(1));
-            assertEquals("0-1", iter.next().get(1));
-            assertEquals("0-2", iter.next().get(1));
-            assertEquals("0-3", iter.next().get(1));
-            assertEquals("0-4", iter.next().get(1));
-            assertEquals("0-5", iter.next().get(1));
-            assertEquals("1-0", iter.next().get(1));
-            assertEquals("1-1", iter.next().get(1));
-            assertEquals("1-2", iter.next().get(1));
-            assertEquals("1-3", iter.next().get(1));
+            assertEquals(iter.next().get(1), "0-0");
+            assertEquals(iter.next().get(1), "0-1");
+            assertEquals(iter.next().get(1), "0-2");
+            assertEquals(iter.next().get(1), "0-3");
+            assertEquals(iter.next().get(1), "0-4");
+            assertEquals(iter.next().get(1), "0-5");
+            assertEquals(iter.next().get(1), "1-0");
+            assertEquals(iter.next().get(1), "1-1");
+            assertEquals(iter.next().get(1), "1-2");
+            assertEquals(iter.next().get(1), "1-3");
         }
-        Util.deleteFile(cluster, TMP_DIR + "/input1.txt");
-        Util.deleteFile(cluster, TMP_DIR + "/input2.txt");
+        Util.deleteFile(cluster, inputFileName);
     }
 
     @Test
     public void testRANDOMWithJob() throws Exception {
         Util.resetStateForExecModeSwitch();
+        String inputFileName = "testRANDOM.txt";
+        Util.createInputFile(cluster, inputFileName, new String[]
+            {"1\n2\n3\n4\n5\n1\n2\n3\n4\n5\n"});
+
         Properties copyproperties = new Properties();
         copyproperties.putAll(cluster.getProperties());
         PigServer pigServer = new PigServer(cluster.getExecType(), copyproperties);
-
-        // running with 2 mappers each taking 5 records
-        String TMP_DIR = FileLocalizer.getTemporaryPath(pigServer.getPigContext()).toUri().getPath();
-        Util.createInputFile(cluster, TMP_DIR + "/input1.txt", new String[] {"1\n2\n3\n4\n5"});
-        Util.createInputFile(cluster, TMP_DIR + "/input2.txt", new String[] {"1\n2\n3\n4\n5"});
+        // running with two mappers
+        pigServer.getPigContext().getProperties().setProperty("mapred.max.split.size", "10");
         pigServer.getPigContext().getProperties().setProperty("pig.noSplitCombination", "true");
-
-        pigServer.registerQuery("A = load '" + TMP_DIR + "' as (name);");
+        pigServer.registerQuery("A = load '" + inputFileName + "' as (name);");
         pigServer.registerQuery("B = foreach A generate name, RANDOM();");
         Iterator<Tuple> iter = pigServer.openIterator("B");
         double [] mapper1 = new double[5];
@@ -3298,8 +3294,7 @@ public class TestBuiltin {
         for( int i = 0; i < 5; i++ ){
             assertNotEquals(mapper1[i], mapper2[i], 0.0001);
         }
-        Util.deleteFile(cluster, TMP_DIR + "/input1.txt");
-        Util.deleteFile(cluster, TMP_DIR + "/input2.txt");
+        Util.deleteFile(cluster, inputFileName);
     }
 
 

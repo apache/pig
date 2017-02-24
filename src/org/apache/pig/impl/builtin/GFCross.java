@@ -26,7 +26,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
@@ -43,7 +42,7 @@ public class GFCross extends EvalFunc<DataBag> {
     private BagFactory mBagFactory = BagFactory.getInstance();
     private TupleFactory mTupleFactory = TupleFactory.getInstance();
     private int parallelism = 0;
-    private Random r;
+    private Random r = new Random();
     private String crossKey;
 
     static private final int DEFAULT_PARALLELISM = 96;
@@ -70,14 +69,6 @@ public class GFCross extends EvalFunc<DataBag> {
                 if (parallelism < 0) {
                     throw new IOException(PigImplConstants.PIG_CROSS_PARALLELISM + "." + crossKey  + " was " + parallelism);
                 }
-                long taskIdHashCode = cfg.get(MRConfiguration.TASK_ID).hashCode();
-                long seed = ((long)taskIdHashCode << 32) | (taskIdHashCode & 0xffffffffL);
-                r = new Random(seed);
-            } else {
-                // Don't see a case where cfg can be null.
-                // But there is an existing testcase TestGFCross.testDefault
-                // Using constant generated from task_14738102975522_0001_r_000000 hashcode
-                r = new Random(-4235927512599300514L);
             }
 
             numInputs = (Integer)input.get(0);

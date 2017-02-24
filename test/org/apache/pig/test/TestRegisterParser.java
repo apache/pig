@@ -30,7 +30,6 @@ import java.io.IOException;
 import java.io.Writer;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Properties;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.impl.PigContext;
@@ -43,9 +42,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.apache.pig.impl.util.PropertiesUtil;
-import org.apache.hadoop.fs.LocalFileSystem;
-
 
 public class TestRegisterParser {
     private PigServer pigServer;
@@ -53,12 +49,7 @@ public class TestRegisterParser {
 
     @Before
     public void setUp() throws Exception {
-        Properties properties = PropertiesUtil.loadDefaultProperties();
-        properties.setProperty("fs.s3.impl", LocalFileSystem.class.getName());
-        properties.setProperty("fs.s3n.impl", LocalFileSystem.class.getName());
-        properties.setProperty("fs.s3a.impl", LocalFileSystem.class.getName());
-
-	pigServer = new PigServer(ExecType.LOCAL, properties);
+	pigServer = new PigServer(ExecType.LOCAL);
 
 	// Generate test jar files
 	for (int i = 1; i <= 5; i++) {
@@ -114,34 +105,6 @@ public class TestRegisterParser {
 	for (URI dependency : list) {
 	    Assert.assertTrue(pigServer.getPigContext().hasJar(dependency.toString()));
 	}
-    }
-
-    @Test
-    public void testResolveForVariousFileSystemSchemes() throws URISyntaxException, IOException, ParserException {
-        URI[] list = new URI[6];
-        list[0] = new URI("file://test.jar");
-        list[1] = new URI("hdfs://test.jar");
-        list[2] = new URI("s3://test.jar");
-        list[3] = new URI("s3n://test.jar");
-        list[4] = new URI("s3a://test.jar");
-        list[5] = new URI("test.jar");
-
-        RegisterResolver registerResolver = new RegisterResolver(pigServer);
-        for (URI uri : list) {
-            URI[] resolvedUris = registerResolver.resolve(uri);
-	    Assert.assertEquals(1, resolvedUris.length);
-            Assert.assertEquals(uri, resolvedUris[0]);
-        }
-    }
-
-    @Test(expected = ParserException.class)
-    public void testResolveParseException() throws URISyntaxException, IOException, ParserException {
-        new RegisterResolver(pigServer).resolve(new URI("abc://test.jar"));
-    }
-
-    @Test(expected = URISyntaxException.class)
-    public void testResolveURISyntaxException() throws URISyntaxException, IOException, ParserException {
-        new RegisterResolver(pigServer).resolve(new URI("123://test.jar"));
     }
 
     // Throw error when a scripting language and namespace is specified for a jar

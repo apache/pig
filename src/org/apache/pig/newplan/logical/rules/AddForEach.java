@@ -95,7 +95,7 @@ public class AddForEach extends WholePlanRule {
             }
             
             Set<Long> outputUids = (Set<Long>)op.getAnnotation(ColumnPruneHelper.OUTPUTUIDS);
-            if (outputUids==null || outputUids.size() == 0 )
+            if (outputUids==null)
                 return false;
             
             LogicalSchema schema = op.getSchema();

@@ -51,9 +51,10 @@ public class SpillableMemoryManager implements NotificationListener {
 
     private static final Log log = LogFactory.getLog(SpillableMemoryManager.class);
 
+    private static final int ONE_GB = 1024 * 1024 * 1024;
     private static final int UNUSED_MEMORY_THRESHOLD_DEFAULT = 350 * 1024 * 1024;
-    private static final float MEMORY_THRESHOLD_FRACTION_DEFAULT = 0.7f;
-    private static final float COLLECTION_THRESHOLD_FRACTION_DEFAULT = 0.7f;
+    private static final double MEMORY_THRESHOLD_FRACTION_DEFAULT = 0.7;
+    private static final double COLLECTION_THRESHOLD_FRACTION_DEFAULT = 0.7;
 
     private LinkedList<WeakReference<Spillable>> spillables = new LinkedList<WeakReference<Spillable>>();
     // References to spillables with size
@@ -85,7 +86,7 @@ public class SpillableMemoryManager implements NotificationListener {
 
     // fraction of the total heap used for the threshold to determine
     // if we want to perform an extra gc before the spill
-    private float extraGCThresholdFraction = 0.05f;
+    private double extraGCThresholdFraction = 0.05;
     private long extraGCSpillSizeThreshold  = 0L;
 
     private volatile boolean blockRegisterOnSpill = false;
@@ -141,7 +142,7 @@ public class SpillableMemoryManager implements NotificationListener {
      * @param unusedMemoryThreshold
      *            Unused memory size below which we want to get notifications
      */
-    private void configureMemoryThresholds(float memoryThresholdFraction, float collectionMemoryThresholdFraction, long unusedMemoryThreshold) {
+    private void configureMemoryThresholds(double memoryThresholdFraction, double collectionMemoryThresholdFraction, long unusedMemoryThreshold) {
         long tenuredHeapSize = tenuredHeap.getUsage().getMax();
         memoryThresholdSize = (long)(tenuredHeapSize * memoryThresholdFraction);
         collectionThresholdSize = (long)(tenuredHeapSize * collectionMemoryThresholdFraction);
@@ -183,8 +184,8 @@ public class SpillableMemoryManager implements NotificationListener {
 
         spillFileSizeThreshold = conf.getLong("pig.spill.size.threshold", spillFileSizeThreshold);
         gcActivationSize = conf.getLong("pig.spill.gc.activation.size", gcActivationSize);
-        float memoryThresholdFraction = conf.getFloat(PigConfiguration.PIG_SPILL_MEMORY_USAGE_THRESHOLD_FRACTION, MEMORY_THRESHOLD_FRACTION_DEFAULT);
-        float collectionThresholdFraction = conf.getFloat(PigConfiguration.PIG_SPILL_COLLECTION_THRESHOLD_FRACTION, COLLECTION_THRESHOLD_FRACTION_DEFAULT);
+        double memoryThresholdFraction = conf.getDouble(PigConfiguration.PIG_SPILL_MEMORY_USAGE_THRESHOLD_FRACTION, MEMORY_THRESHOLD_FRACTION_DEFAULT);
+        double collectionThresholdFraction = conf.getDouble(PigConfiguration.PIG_SPILL_COLLECTION_THRESHOLD_FRACTION, COLLECTION_THRESHOLD_FRACTION_DEFAULT);
         long unusedMemoryThreshold = conf.getLong(PigConfiguration.PIG_SPILL_UNUSED_MEMORY_THRESHOLD_SIZE, UNUSED_MEMORY_THRESHOLD_DEFAULT);
         configureMemoryThresholds(memoryThresholdFraction, collectionThresholdFraction, unusedMemoryThreshold);
     }
@@ -198,7 +199,7 @@ public class SpillableMemoryManager implements NotificationListener {
         // used - heapmax/2 + heapmax/4
         long toFree = 0L;
         if(n.getType().equals(MemoryNotificationInfo.MEMORY_THRESHOLD_EXCEEDED)) {
-            toFree = info.getUsage().getUsed() - memoryThresholdSize + (long)(memoryThresholdSize * 0.5);
+            toFree = info.getUsage().getUsed() - collectionThresholdSize + (long)(collectionThresholdSize * 0.5);
 
             //log
             String msg = "memory handler call- Usage threshold "
@@ -210,7 +211,7 @@ public class SpillableMemoryManager implements NotificationListener {
                 log.debug(msg);
             }
         } else { // MEMORY_COLLECTION_THRESHOLD_EXCEEDED CASE
-            toFree = info.getUsage().getUsed() - collectionThresholdSize + (long)(collectionThresholdSize * 0.5);
+            toFree = info.getUsage().getUsed() - memoryThresholdSize + (long)(memoryThresholdSize * 0.5);
 
             //log
             String msg = "memory handler call - Collection threshold "

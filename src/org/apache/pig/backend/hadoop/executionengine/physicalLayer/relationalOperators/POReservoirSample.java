@@ -125,7 +125,7 @@ public class POReservoirSample extends PhysicalOperator {
                 }
 
                 // collect samples until input is exhausted
-                int rand = randGen.nextInt(rowProcessed + 1);
+                int rand = randGen.nextInt(rowProcessed);
                 if (rand < numSamples) {
                     samples[rand] = res;
                 }
@@ -133,13 +133,8 @@ public class POReservoirSample extends PhysicalOperator {
             }
         }
 
-        if (res.returnStatus == POStatus.STATUS_EOP) {
-            if (this.parentPlan.endOfAllInput) {
-                sampleCollectionDone = true;
-            } else {
-                // In case of Split can get EOP in between.
-                return res;
-            }
+        if (this.parentPlan.endOfAllInput && res.returnStatus == POStatus.STATUS_EOP) {
+            sampleCollectionDone = true;
         }
 
         return getSample();

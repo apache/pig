@@ -16,9 +16,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.text.NumberFormat;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
@@ -44,9 +42,6 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.util.StorageUtil;
-import org.apache.xml.utils.StringBufferPool;
-
-import com.google.common.base.Strings;
 
 /**
  * The UDF is useful for splitting the output data into a bunch of directories
@@ -78,21 +73,13 @@ import com.google.common.base.Strings;
  * If the output is compressed,then the sub directories and the output files will
  * be having the extension. Say for example in the above case if bz2 is used one file 
  * will look like ;/my/home/output.bz2/a1.bz2/a1-0000.bz2
- *
- * Key field can also be a comma separated list of indices e.g. '0,1' - in this case
- * storage will be multi-level:
- * /my/home/output/a1/b1/a1-b1-0000
- * /my/home/output/a1/b2/a1-b2-0000
- * There is also an option to leave key values out of storage, see isRemoveKeys.
  */
 public class MultiStorage extends StoreFunc {
 
-  private static final String KEYFIELD_DELIMETER = ",";
   private Path outputPath; // User specified output Path
-  private final List<Integer> splitFieldIndices= new ArrayList<Integer>(); // Indices of the key fields
+  private int splitFieldIndex = -1; // Index of the key field
   private String fieldDel; // delimiter of the output record.
   private Compression comp; // Compression type of output data.
-  private boolean isRemoveKeys = false;
   
   // Compression types supported by this store
   enum Compression {
@@ -108,14 +95,9 @@ public class MultiStorage extends StoreFunc {
     this(parentPathStr, splitFieldIndex, compression, "\\t");
   }
 
-  public MultiStorage(String parentPathStr, String splitFieldIndex,
-      String compression, String fieldDel) {
-    this(parentPathStr, splitFieldIndex, compression, fieldDel, "false");
-  }
-
   /**
    * Constructor
-   *
+   * 
    * @param parentPathStr
    *          Parent output dir path (this will be specified in store statement,
    *            so MultiStorage don't use this parameter in reality. However, we don't
@@ -126,26 +108,18 @@ public class MultiStorage extends StoreFunc {
    *          'bz2', 'bz', 'gz' or 'none'
    * @param fieldDel
    *          Output record field delimiter.
-   * @param isRemoveKeys
-   *          Removes key columns from result during write.
    */
   public MultiStorage(String parentPathStr, String splitFieldIndex,
-                      String compression, String fieldDel, String isRemoveKeys) {
-    this.isRemoveKeys = Boolean.parseBoolean(isRemoveKeys);
+      String compression, String fieldDel) {
     this.outputPath = new Path(parentPathStr);
-
-    String[] splitFieldIndices = splitFieldIndex.split(KEYFIELD_DELIMETER);
-    for (String splitFieldIndexString : splitFieldIndices){
-      this.splitFieldIndices.add(Integer.parseInt(splitFieldIndexString));
-    }
-
+    this.splitFieldIndex = Integer.parseInt(splitFieldIndex);
     this.fieldDel = fieldDel;
     try {
       this.comp = (compression == null) ? Compression.none : Compression
-              .valueOf(compression.toLowerCase());
+        .valueOf(compression.toLowerCase());
     } catch (IllegalArgumentException e) {
       System.err.println("Exception when converting compression string: "
-              + compression + " to enum. No compression will be used");
+          + compression + " to enum. No compression will be used");
       this.comp = Compression.none;
     }
   }
@@ -153,26 +127,22 @@ public class MultiStorage extends StoreFunc {
   //--------------------------------------------------------------------------
   // Implementation of StoreFunc
 
-  private RecordWriter<List<String>, Tuple> writer;
+  private RecordWriter<String, Tuple> writer;
   
   @Override
   public void putNext(Tuple tuple) throws IOException {
-    for (int splitFieldIndex : this.splitFieldIndices) {
-      if (tuple.size() <= splitFieldIndex) {
-        throw new IOException("split field index:" + splitFieldIndex
-                + " >= tuple size:" + tuple.size());
-      }
+    if (tuple.size() <= splitFieldIndex) {
+      throw new IOException("split field index:" + this.splitFieldIndex
+          + " >= tuple size:" + tuple.size());
     }
-    List<String> fields = new ArrayList<String>();
-    for (int splitFieldIndex : this.splitFieldIndices){
-      try {
-        fields.add(String.valueOf(tuple.get(splitFieldIndex)));
-      } catch (ExecException exec) {
-        throw new IOException(exec);
-      }
+    Object field = null;
+    try {
+      field = tuple.get(splitFieldIndex);
+    } catch (ExecException exec) {
+      throw new IOException(exec);
     }
     try {
-      writer.write(fields, tuple);
+      writer.write(String.valueOf(field), tuple);
     } catch (InterruptedException e) {
       throw new IOException(e);
     }
@@ -183,9 +153,6 @@ public class MultiStorage extends StoreFunc {
   public OutputFormat getOutputFormat() throws IOException {
       MultiStorageOutputFormat format = new MultiStorageOutputFormat();
       format.setKeyValueSeparator(fieldDel);
-      if (this.isRemoveKeys){
-        format.setSkipIndices(this.splitFieldIndices);
-      }
       return format;
   }
     
@@ -207,33 +174,27 @@ public class MultiStorage extends StoreFunc {
       FileOutputFormat.setOutputCompressorClass(job, GzipCodec.class);
     }
   }
-
-  @Override
-  public Boolean supportsParallelWriteToStoreLocation() {
-    return false;
-  }
-
+ 
   //--------------------------------------------------------------------------
   // Implementation of OutputFormat
   
   public static class MultiStorageOutputFormat extends
-  TextOutputFormat<List<String>, Tuple> {
+  TextOutputFormat<String, Tuple> {
 
     private String keyValueSeparator = "\\t";
     private byte fieldDel = '\t';
-    private List<Integer> skipIndices = null;
-
+  
     @Override
-    public RecordWriter<List<String>, Tuple>
+    public RecordWriter<String, Tuple> 
     getRecordWriter(TaskAttemptContext context
                 ) throws IOException, InterruptedException {
     
       final TaskAttemptContext ctx = context;
         
-      return new RecordWriter<List<String>, Tuple>() {
+      return new RecordWriter<String, Tuple>() {
 
-        private Map<List<String>, MyLineRecordWriter> storeMap =
-              new HashMap<List<String>, MyLineRecordWriter>();
+        private Map<String, MyLineRecordWriter> storeMap = 
+              new HashMap<String, MyLineRecordWriter>();
           
         private static final int BUFFER_SIZE = 1024;
           
@@ -241,7 +202,7 @@ public class MultiStorage extends StoreFunc {
               new ByteArrayOutputStream(BUFFER_SIZE);
                            
         @Override
-        public void write(List<String> key, Tuple val) throws IOException {
+        public void write(String key, Tuple val) throws IOException {                
           int sz = val.size();
           for (int i = 0; i < sz; i++) {
             Object field;
@@ -251,13 +212,9 @@ public class MultiStorage extends StoreFunc {
               throw ee;
             }
 
-            boolean skipCurrentField = skipIndices != null && skipIndices.contains(i);
+            StorageUtil.putField(mOut, field);
 
-            if (!skipCurrentField) {
-              StorageUtil.putField(mOut, field);
-            }
-
-            if (i != sz - 1 && !skipCurrentField) {
+            if (i != sz - 1) {
               mOut.write(fieldDel);
             }
           }
@@ -274,17 +231,17 @@ public class MultiStorage extends StoreFunc {
           }
         }
       
-        private MyLineRecordWriter getStore(List<String> fieldValues) throws IOException {
-          MyLineRecordWriter store = storeMap.get(fieldValues);
+        private MyLineRecordWriter getStore(String fieldValue) throws IOException {
+          MyLineRecordWriter store = storeMap.get(fieldValue);
           if (store == null) {                  
-            DataOutputStream os = createOutputStream(fieldValues);
+            DataOutputStream os = createOutputStream(fieldValue);
             store = new MyLineRecordWriter(os, keyValueSeparator);
-            storeMap.put(fieldValues, store);
+            storeMap.put(fieldValue, store);
           }
           return store;
         }
           
-        private DataOutputStream createOutputStream(List<String> fieldValues) throws IOException {
+        private DataOutputStream createOutputStream(String fieldValue) throws IOException {
           Configuration conf = ctx.getConfiguration();
           TaskID taskId = ctx.getTaskAttemptID().getTaskID();
           
@@ -302,21 +259,7 @@ public class MultiStorage extends StoreFunc {
           NumberFormat nf = NumberFormat.getInstance();
           nf.setMinimumIntegerDigits(4);
 
-          StringBuffer pathStringBuffer = new StringBuffer();
-          for (String fieldValue : fieldValues){
-            String safeFieldValue = fieldValue.replaceAll("\\/","-");
-            pathStringBuffer.append(safeFieldValue);
-            pathStringBuffer.append("/");
-          }
-          pathStringBuffer.deleteCharAt(pathStringBuffer.length()-1);
-          String pathString = pathStringBuffer.toString();
-          String idString = pathString.replaceAll("\\/","-");
-
-          if (!Strings.isNullOrEmpty(extension)){
-            pathString = pathString.replaceAll("\\/",extension+"\\/");
-          }
-
-          Path path = new Path(pathString+extension, idString + '-'
+          Path path = new Path(fieldValue+extension, fieldValue + '-'
                 + nf.format(taskId.getId())+extension);
           Path workOutputPath = ((FileOutputCommitter)getOutputCommitter(ctx)).getWorkPath();
           Path file = new Path(workOutputPath, path);
@@ -336,12 +279,8 @@ public class MultiStorage extends StoreFunc {
       keyValueSeparator = sep;
       fieldDel = StorageUtil.parseFieldDel(keyValueSeparator);  
     }
-
-    public void setSkipIndices(List<Integer> skipIndices) {
-      this.skipIndices = skipIndices;
-    }
-
-    //------------------------------------------------------------------------
+  
+  //------------------------------------------------------------------------
   //
   
     protected static class MyLineRecordWriter

@@ -90,9 +90,7 @@ public class PoissonSampleLoader extends SampleLoader {
             // number of tuples to be skipped
             Tuple t = loader.getNext();
             if(t == null) {
-                // since skipInterval is -1, no previous sample,
-                // and next sample is null -> the data set is empty
-                return null;
+                return createNumRowTuple(null);
             }
             long availRedMem = (long) ( totalMemory * heapPerc);
             // availRedMem = 155084396;

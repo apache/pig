@@ -65,7 +65,7 @@ Tez vertex scope-44
 # Plan on vertex
 e: Split - scope-54
 |   |
-|   e: Store(file:///tmp/pigoutput1:org.apache.pig.builtin.PigStorage) - scope-29
+|   e: Store(file:///tmp/output1:org.apache.pig.builtin.PigStorage) - scope-29
 |   |
 |   f: Local Rearrange[tuple]{int}(false) - scope-34	->	 scope-53
 |   |   |
@@ -74,6 +74,6 @@ e: Split - scope-54
 |---POShuffledValueInputTez - scope-45	<-	 [scope-39, scope-43]
 Tez vertex scope-53
 # Plan on vertex
-f: Store(file:///tmp/pigoutput2:org.apache.pig.builtin.PigStorage) - scope-36
+f: Store(file:///tmp/output2:org.apache.pig.builtin.PigStorage) - scope-36
 |
 |---f: Package(Packager)[tuple]{int} - scope-33

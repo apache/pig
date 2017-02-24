@@ -71,7 +71,7 @@ Tez vertex scope-53
 # Plan on vertex
 1-1: Split - scope-79
 |   |
-|   d: Store(file:///tmp/pigoutput1:org.apache.pig.builtin.PigStorage) - scope-35
+|   d: Store(file:///tmp/output1:org.apache.pig.builtin.PigStorage) - scope-35
 |   |
 |   |---d: Filter[bag] - scope-25
 |       |   |
@@ -96,7 +96,7 @@ Tez vertex scope-53
 |---POValueInputTez - scope-54	<-	 scope-48
 Tez vertex scope-58
 # Plan on vertex
-e: Store(file:///tmp/pigoutput2:org.apache.pig.builtin.PigStorage) - scope-47
+e: Store(file:///tmp/output2:org.apache.pig.builtin.PigStorage) - scope-47
 |
 |---e: Filter[bag] - scope-36
     |   |

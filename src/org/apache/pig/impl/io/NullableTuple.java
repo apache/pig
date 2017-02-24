@@ -57,8 +57,6 @@ public class NullableTuple extends PigNullableWritable {
     public void readFields(DataInput in) throws IOException {
         boolean nullness = in.readBoolean();
         setNull(nullness);
-        // Free up the previous value for GC
-        mValue = null;
         if (!nullness) {
             mValue = bis.readTuple(in);
         }

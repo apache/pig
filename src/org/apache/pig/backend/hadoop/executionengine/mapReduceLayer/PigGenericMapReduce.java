@@ -287,6 +287,7 @@ public class PigGenericMapReduce {
 
         private PhysicalOperator leaf;
 
+        PigContext pigContext = null;
         protected volatile boolean initialized = false;
 
         private boolean inIllustrator = false;
@@ -318,9 +319,10 @@ public class PigGenericMapReduce {
             sJobConf = context.getConfiguration();
             try {
                 PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.deserialize(jConf.get("udf.import.list")));
+                pigContext = (PigContext)ObjectSerializer.deserialize(jConf.get("pig.pigContext"));
 
                 // This attempts to fetch all of the generated code from the distributed cache, and resolve it
-                SchemaTupleBackend.initialize(jConf);
+                SchemaTupleBackend.initialize(jConf, pigContext);
 
                 if (rp == null)
                     rp = (PhysicalPlan) ObjectSerializer.deserialize(jConf
@@ -375,7 +377,7 @@ public class PigGenericMapReduce {
                 pigReporter.setRep(context);
                 PhysicalOperator.setReporter(pigReporter);
 
-                boolean aggregateWarning = "true".equalsIgnoreCase(context.getConfiguration().get("aggregate.warning"));
+                boolean aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
                 PigStatusReporter pigStatusReporter = PigStatusReporter.getInstance();
                 pigStatusReporter.setContext(new MRTaskContext(context));
                 PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
@@ -606,7 +608,7 @@ public class PigGenericMapReduce {
                 pigReporter.setRep(context);
                 PhysicalOperator.setReporter(pigReporter);
 
-                boolean aggregateWarning = "true".equalsIgnoreCase(context.getConfiguration().get("aggregate.warning"));
+                boolean aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
                 PigStatusReporter pigStatusReporter = PigStatusReporter.getInstance();
                 pigStatusReporter.setContext(new MRTaskContext(context));
                 PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();

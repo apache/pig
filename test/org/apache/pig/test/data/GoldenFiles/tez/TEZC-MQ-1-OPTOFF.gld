@@ -26,7 +26,7 @@ POValueOutputTez - scope-58	->	 [scope-59, scope-61, scope-63]
     |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-33
 Tez vertex scope-59
 # Plan on vertex
-b: Store(file:///tmp/pigoutput/b:org.apache.pig.builtin.PigStorage) - scope-46
+b: Store(file:///tmp/output/b:org.apache.pig.builtin.PigStorage) - scope-46
 |
 |---b: Filter[bag] - scope-42
     |   |
@@ -39,7 +39,7 @@ b: Store(file:///tmp/pigoutput/b:org.apache.pig.builtin.PigStorage) - scope-46
     |---POValueInputTez - scope-60	<-	 scope-57
 Tez vertex scope-61
 # Plan on vertex
-c: Store(file:///tmp/pigoutput/c:org.apache.pig.builtin.PigStorage) - scope-51
+c: Store(file:///tmp/output/c:org.apache.pig.builtin.PigStorage) - scope-51
 |
 |---c: Filter[bag] - scope-47
     |   |
@@ -52,7 +52,7 @@ c: Store(file:///tmp/pigoutput/c:org.apache.pig.builtin.PigStorage) - scope-51
     |---POValueInputTez - scope-62	<-	 scope-57
 Tez vertex scope-63
 # Plan on vertex
-d: Store(file:///tmp/pigoutput/d:org.apache.pig.builtin.PigStorage) - scope-56
+d: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-56
 |
 |---d: Filter[bag] - scope-52
     |   |

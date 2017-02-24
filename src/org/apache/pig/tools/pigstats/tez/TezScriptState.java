@@ -275,12 +275,6 @@ public class TezScriptState extends ScriptState {
                 if (tezOp.isRegularJoin()) {
                     feature.set(PIG_FEATURE.HASH_JOIN.ordinal());
                 }
-                if (tezOp.isBuildBloom()) {
-                    feature.set(PIG_FEATURE.BUILD_BLOOM.ordinal());
-                }
-                if (tezOp.isFilterBloom()) {
-                    feature.set(PIG_FEATURE.FILTER_BLOOM.ordinal());
-                }
                 if (tezOp.isUnion()) {
                     feature.set(PIG_FEATURE.UNION.ordinal());
                 }

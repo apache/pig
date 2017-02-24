@@ -209,21 +209,11 @@ sub generateData
             'filetype' => "ranking",
             'rows' => 30,
             'outfile' => "singlefile/prerank",
-        }, {
-            'name' => "utf8Voter",
-            'filetype' => "utf8Voter",
-            'rows' => 30,
-            'outfile' => "utf8Data/选民/utf8Voter",
-        }, {
-            'name' => "utf8Student",
-            'filetype' => "utf8Student",
-            'rows' => 300,
-            'outfile' => "utf8Data/学生/utf8Student",
         }
     );
 
 	# Create the target directories
-    for my $dir ("singlefile", "utf8Data/选民", "utf8Data/学生", "dir", "types", "glob/star/somegood",
+    for my $dir ("singlefile", "dir", "types", "glob/star/somegood",
             "glob/star/moregood", "glob/star/bad") {
         my @cmd = ("mkdir", "-p", "$cfg->{'inpathbase'}/$dir");
 	    $self->runCmd($log, \@cmd);

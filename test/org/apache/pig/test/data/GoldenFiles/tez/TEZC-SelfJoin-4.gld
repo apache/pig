@@ -53,7 +53,7 @@ Tez vertex group scope-42	<-	 [scope-35, scope-36]	->	 scope-33
 # No plan on vertex group
 Tez vertex scope-33
 # Plan on vertex
-d: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-30
+d: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-30
 |
 |---d: FRJoin[tuple] - scope-24	<-	 scope-42
     |   |

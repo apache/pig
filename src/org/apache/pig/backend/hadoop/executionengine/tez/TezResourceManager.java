@@ -39,8 +39,6 @@ import org.apache.pig.PigConfiguration;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 
-import com.google.common.annotations.VisibleForTesting;
-
 public class TezResourceManager {
     private static TezResourceManager instance = null;
     private boolean inited = false;
@@ -61,7 +59,6 @@ public class TezResourceManager {
     /**
      * This method is only used by test code to reset state.
      */
-    @VisibleForTesting
     public static void dropInstance() {
         instance = null;
     }
@@ -69,7 +66,7 @@ public class TezResourceManager {
     public void init(PigContext pigContext, Configuration conf) throws IOException {
         if (!inited) {
             this.resourcesDir = FileLocalizer.getTemporaryResourcePath(pigContext);
-            this.remoteFs = resourcesDir.getFileSystem(conf);
+            this.remoteFs = FileSystem.get(conf);
             this.conf = conf;
             this.pigContext = pigContext;
             this.inited = true;

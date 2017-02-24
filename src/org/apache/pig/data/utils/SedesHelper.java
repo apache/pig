@@ -61,25 +61,25 @@ public class SedesHelper {
     public static void writeChararray(DataOutput out, String s) throws IOException {
         // a char can take up to 3 bytes in the modified utf8 encoding
         // used by DataOutput.writeUTF, so use UNSIGNED_SHORT_MAX/3
-        byte[] utfBytes = s.getBytes(BinInterSedes.UTF8);
-        int length = utfBytes.length;
-        if (length < BinInterSedes.UNSIGNED_SHORT_MAX) {
+        if (s.length() < BinInterSedes.UNSIGNED_SHORT_MAX / 3) {
             out.writeByte(BinInterSedes.SMALLCHARARRAY);
-            out.writeShort(length);
+            out.writeUTF(s);
         } else {
+            byte[] utfBytes = s.getBytes(BinInterSedes.UTF8);
+            int length = utfBytes.length;
+
             out.writeByte(BinInterSedes.CHARARRAY);
             out.writeInt(length);
+            out.write(utfBytes);
         }
-        out.write(utfBytes);
     }
 
     public static String readChararray(DataInput in, byte type) throws IOException {
-        int size;
         if (type == BinInterSedes.SMALLCHARARRAY) {
-            size = in.readUnsignedShort();
-        } else {
-            size = in.readInt();
+            return in.readUTF();
         }
+
+        int size = in.readInt();
         byte[] buf = new byte[size];
         in.readFully(buf);
         return new String(buf, BinInterSedes.UTF8);

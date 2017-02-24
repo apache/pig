@@ -27,6 +27,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.StringReader;
 import java.net.URL;
@@ -44,8 +45,9 @@ import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
-import jline.console.ConsoleReader;
-import jline.console.history.FileHistory;
+import jline.ConsoleReader;
+import jline.ConsoleReaderInputStream;
+import jline.History;
 
 import org.antlr.runtime.RecognitionException;
 import org.apache.commons.logging.Log;
@@ -57,7 +59,6 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.pig.PigRunner.ReturnCode;
-import org.apache.pig.backend.BackendException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.classification.InterfaceAudience;
@@ -75,7 +76,6 @@ import org.apache.pig.parser.DryRunGruntParser;
 import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.scripting.ScriptEngine.SupportedScriptLang;
 import org.apache.pig.tools.cmdline.CmdLineParser;
-import org.apache.pig.tools.grunt.ConsoleReaderInputStream;
 import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.tools.pigstats.PigProgressNotificationListener;
 import org.apache.pig.tools.pigstats.PigStats;
@@ -100,12 +100,13 @@ import com.google.common.io.Closeables;
 public class Main {
 
     static {
-        Utils.addShutdownHookWithPriority(new Runnable() {
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+
             @Override
             public void run() {
                 FileLocalizer.deleteTempResourceFiles();
             }
-        }, PigImplConstants.SHUTDOWN_HOOK_TMP_FILES_CLEANUP_PRIORITY);
+        });
     }
 
     private final static Log log = LogFactory.getLog(Main.class);
@@ -476,7 +477,7 @@ public class Main {
                 }
 
 
-                logFileName = validateLogFile(logFileName, localFileRet.file);
+                logFileName = validateLogFile(logFileName, file);
                 pigContext.getProperties().setProperty("pig.logfile", (logFileName == null? "": logFileName));
 
                 // Set job name based on name of the script
@@ -487,7 +488,7 @@ public class Main {
                     new File(substFile).deleteOnExit();
                 }
 
-                scriptState.setScript(localFileRet.file);
+                scriptState.setScript(new File(file));
 
                 grunt = new Grunt(pin, pigContext);
                 gruntCalled = true;
@@ -550,13 +551,12 @@ public class Main {
                 }
                 // Interactive
                 mode = ExecMode.SHELL;
-                //Reader is created by first loading "pig.load.default.statements" or .pigbootup file if available
-                ConsoleReader reader = new ConsoleReader(Utils.getCompositeStream(System.in, properties), System.out);
-                reader.setExpandEvents(false);
-                reader.setPrompt("grunt> ");
+              //Reader is created by first loading "pig.load.default.statements" or .pigbootup file if available
+                ConsoleReader reader = new ConsoleReader(Utils.getCompositeStream(System.in, properties), new OutputStreamWriter(System.out));
+                reader.setDefaultPrompt("grunt> ");
                 final String HISTORYFILE = ".pig_history";
                 String historyFile = System.getProperty("user.home") + File.separator  + HISTORYFILE;
-                reader.setHistory(new FileHistory(new File(historyFile)));
+                reader.setHistory(new History(new File(historyFile)));
                 ConsoleReaderInputStream inputStream = new ConsoleReaderInputStream(reader);
                 grunt = new Grunt(new BufferedReader(new InputStreamReader(inputStream)), pigContext);
                 grunt.setConsoleReader(reader);
@@ -605,7 +605,7 @@ public class Main {
                     return ReturnCode.SUCCESS;
                 }
 
-                logFileName = validateLogFile(logFileName, localFileRet.file);
+                logFileName = validateLogFile(logFileName, remainders[0]);
                 pigContext.getProperties().setProperty("pig.logfile", (logFileName == null? "": logFileName));
 
                 if (!debug) {
@@ -660,7 +660,6 @@ public class Main {
             if(!gruntCalled) {
                 LogUtils.writeLog(e, logFileName, log, verbose, "Error before Pig is launched");
             }
-            killRunningJobsIfInterrupted(e, pigContext);
         } catch (Throwable e) {
             rc = ReturnCode.THROWABLE_EXCEPTION;
             PigStatsUtil.setErrorMessage(e.getMessage());
@@ -669,7 +668,6 @@ public class Main {
             if(!gruntCalled) {
                 LogUtils.writeLog(e, logFileName, log, verbose, "Error before Pig is launched");
             }
-            killRunningJobsIfInterrupted(e, pigContext);
         } finally {
             if (printScriptRunTime) {
                 printScriptRunTime(startTime);
@@ -694,22 +692,6 @@ public class Main {
         log.info("Pig script completed in "
                 + PeriodFormat.getDefault().print(period)
                 + " (" + duration.getMillis() + " ms)");
-    }
-
-    private static void killRunningJobsIfInterrupted(Throwable e, PigContext pigContext) {
-        Throwable cause = e.getCause();
-        // Kill running job when we get InterruptedException
-        // Pig thread is interrupted by mapreduce when Oozie launcher job is killed
-        // Shutdown hook kills running jobs, but sometimes NodeManager can issue
-        // a SIGKILL after AM unregisters and before shutdown hook gets to execute
-        // causing orphaned jobs that continue to run.
-        if (e instanceof InterruptedException || (cause != null && cause instanceof InterruptedException)) {
-            try {
-                pigContext.getExecutionEngine().kill();
-            } catch (BackendException be) {
-                log.error("Error while killing running jobs", be);
-            }
-        }
     }
 
     protected static PigProgressNotificationListener makeListener(Properties properties) {
@@ -989,10 +971,11 @@ public class Main {
             System.out.println("Additionally, any Hadoop property can be specified.");
     }
 
-    private static String validateLogFile(String logFileName, File scriptFile) {
+    private static String validateLogFile(String logFileName, String scriptName) {
         String strippedDownScriptName = null;
 
-        if (scriptFile != null) {
+        if(scriptName != null) {
+            File scriptFile = new File(scriptName);
             if(!scriptFile.isDirectory()) {
                 String scriptFileAbsPath;
                 try {

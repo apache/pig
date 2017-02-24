@@ -34,7 +34,6 @@ import org.antlr.runtime.RecognitionException;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
-import org.apache.pig.NonFSLoadFunc;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -889,7 +888,7 @@ public class LogicalPlanBuilder {
             if (absolutePath == null) {
                 absolutePath = loFunc.relativeToAbsolutePath( filename, QueryParserUtils.getCurrentDir( pigContext ) );
 
-                if (absolutePath!=null && !(loFunc instanceof NonFSLoadFunc)) {
+                if (absolutePath!=null) {
                     QueryParserUtils.setHdfsServers( absolutePath, pigContext );
                 }
                 fileNameMap.put( fileNameKey, absolutePath );
@@ -1358,19 +1357,13 @@ public class LogicalPlanBuilder {
         return Long.parseLong( num );
     }
 
-    /**
-     * Parse big integer formatted string (e.g. "1234567890123BI") into BigInteger object
-     */
     static BigInteger parseBigInteger(String s) {
-        String num = s.substring( 0, s.length() - 2 );
+        String num = s.substring( 0, s.length() - 1 );
         return new BigInteger( num );
     }
 
-    /**
-     * Parse big decimal formatted string (e.g. "123456.7890123BD") into BigDecimal object
-     */
     static BigDecimal parseBigDecimal(String s) {
-        String num = s.substring( 0, s.length() - 2 );
+        String num = s.substring( 0, s.length() - 1 );
         return new BigDecimal( num );
     }
 
@@ -1788,8 +1781,6 @@ public class LogicalPlanBuilder {
             return JOINTYPE.REPLICATED;
          } else if( modifier.equalsIgnoreCase( "hash" ) || modifier.equalsIgnoreCase( "default" ) ) {
              return LOJoin.JOINTYPE.HASH;
-         } else if( modifier.equalsIgnoreCase( "bloom" ) ) {
-             return LOJoin.JOINTYPE.BLOOM;
          } else if( modifier.equalsIgnoreCase( "skewed" ) ) {
              return JOINTYPE.SKEWED;
          } else if (modifier.equalsIgnoreCase("merge")) {
@@ -1798,7 +1789,7 @@ public class LogicalPlanBuilder {
              return JOINTYPE.MERGESPARSE;
          } else {
              throw new ParserValidationException( intStream, loc,
-                      "Only REPL, REPLICATED, HASH, BLOOM, SKEWED, MERGE, and MERGE-SPARSE are vaild JOIN modifiers." );
+                      "Only REPL, REPLICATED, HASH, SKEWED, MERGE, and MERGE-SPARSE are vaild JOIN modifiers." );
          }
     }
 

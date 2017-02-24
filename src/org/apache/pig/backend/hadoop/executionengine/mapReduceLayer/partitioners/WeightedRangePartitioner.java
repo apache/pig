@@ -17,6 +17,7 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -30,13 +31,13 @@ import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.InternalMap;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.PigImplConstants;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.FindQuantiles;
 import org.apache.pig.impl.io.NullableBigDecimalWritable;
 import org.apache.pig.impl.io.NullableBigIntegerWritable;
@@ -51,6 +52,7 @@ import org.apache.pig.impl.io.NullableText;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.io.ReadToEndLoader;
+import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Utils;
 
 public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, Writable>
@@ -60,6 +62,7 @@ public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, W
             new HashMap<PigNullableWritable, DiscreteProbabilitySampleGenerator>();
     protected PigNullableWritable[] quantiles;
     protected RawComparator<PigNullableWritable> comparator;
+    private PigContext pigContext;
     protected Configuration job;
 
     protected boolean inited = false;
@@ -90,6 +93,11 @@ public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, W
     @SuppressWarnings("unchecked")
     public void init() {
         weightedParts = new HashMap<PigNullableWritable, DiscreteProbabilitySampleGenerator>();
+        try {
+            pigContext = (PigContext)ObjectSerializer.deserialize(job.get("pig.pigContext"));
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to deserialize pig context: ", e);
+        }
 
         String quantilesFile = job.get("pig.quantilesFile", "");
         if (quantilesFile.length() == 0) {
@@ -101,10 +109,10 @@ public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, W
             // use local file system to get the quantilesFile
             Map<String, Object> quantileMap = null;
             Configuration conf;
-            if (job.getBoolean(PigImplConstants.PIG_EXECTYPE_MODE_LOCAL, false)) {
-                conf = new Configuration(false);
+            if (!pigContext.getExecType().isLocal()) {
+                conf = ConfigurationUtil.toConfiguration(pigContext.getProperties());
             } else {
-                conf = new Configuration(job);
+                conf = new Configuration(false);
             }
             if (job.get("fs.file.impl") != null) {
                 conf.set("fs.file.impl", job.get("fs.file.impl"));
@@ -130,13 +138,11 @@ public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, W
                 DataBag quantilesList = (DataBag) quantileMap.get(FindQuantiles.QUANTILES_LIST);
                 InternalMap weightedPartsData = (InternalMap) quantileMap.get(FindQuantiles.WEIGHTED_PARTS);
                 convertToArray(quantilesList);
-                long taskIdHashCode = job.get(MRConfiguration.TASK_ID).hashCode();
-                long randomSeed = ((long)taskIdHashCode << 32) | (taskIdHashCode & 0xffffffffL);
                 for (Entry<Object, Object> ent : weightedPartsData.entrySet()) {
                     Tuple key = (Tuple)ent.getKey(); // sample item which repeats
                     float[] probVec = getProbVec((Tuple)ent.getValue());
                     weightedParts.put(getPigNullableWritable(key),
-                            new DiscreteProbabilitySampleGenerator(randomSeed, probVec));
+                            new DiscreteProbabilitySampleGenerator(probVec));
                 }
             }
             // else - the quantiles file is empty - unless we have a bug, the

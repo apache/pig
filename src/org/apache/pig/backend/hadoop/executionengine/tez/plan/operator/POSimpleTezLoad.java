@@ -60,8 +60,6 @@ public class POSimpleTezLoad extends POLoad implements TezInput, TezTaskConfigur
     private transient Configuration conf;
     private transient boolean finished = false;
     private transient TezCounter inputRecordCounter;
-    private transient boolean initialized;
-    private transient boolean noTupleCopy;
 
     public POSimpleTezLoad(OperatorKey k, LoadFunc loader) {
         super(k, loader);
@@ -151,13 +149,7 @@ public class POSimpleTezLoad extends POLoad implements TezInput, TezTaskConfigur
             } else {
                 Result res = new Result();
                 Tuple next = (Tuple) reader.getCurrentValue();
-                if (!initialized) {
-                    noTupleCopy = mTupleFactory.newTuple(1).getClass().isInstance(next);
-                    initialized = true;
-                }
-                // Some Loaders return implementations of DefaultTuple instead of BinSedesTuple
-                // In that case copy to BinSedesTuple
-                res.result = noTupleCopy ? next : mTupleFactory.newTupleNoCopy(next.getAll());
+                res.result = next;
                 res.returnStatus = POStatus.STATUS_OK;
                 if (inputRecordCounter != null) {
                     inputRecordCounter.increment(1);

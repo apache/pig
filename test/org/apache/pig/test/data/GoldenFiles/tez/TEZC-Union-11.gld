@@ -11,7 +11,7 @@ Tez vertex group scope-38
 
 Tez vertex scope-33
 # Plan on vertex
-e: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-40	->	 scope-26
+e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-40	->	 scope-26
 |
 |---d: New For Each(false,false)[bag] - scope-24
     |   |
@@ -26,7 +26,7 @@ e: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-40	->	
     |---d: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-17
 Tez vertex scope-27
 # Plan on vertex
-e: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-41	->	 scope-26
+e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-41	->	 scope-26
 |
 |---a: New For Each(false,false)[bag] - scope-7
     |   |
@@ -41,7 +41,7 @@ e: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-41	->	
     |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
 Tez vertex scope-28
 # Plan on vertex
-e: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-42	->	 scope-26
+e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-42	->	 scope-26
 |
 |---c: New For Each(false,false)[bag] - scope-15
     |   |

@@ -39,10 +39,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 
 import junit.framework.Assert;
@@ -57,8 +55,6 @@ import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
-import org.apache.pig.data.DefaultTuple;
-import org.apache.pig.data.NonSpillableDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
@@ -2912,12 +2908,12 @@ public class TestTypeCheckingValidatorNewLP {
 
         @Test
         public void testUnionLineageDifferentSchemaFail() throws Throwable {
-            String query = "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );\n"
-            + "b = load 'a' using org.apache.pig.test.PigStorageWithDifferentCaster('b') as (field4, field5, field6: chararray, field7 );\n"
-            + "c = union a , b;\n"
+            String query = "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
+            + "b = load 'a' using org.apache.pig.test.PigStorageWithDifferentCaster('b') as (field4, field5, field6: chararray, field7 );"
+            + "c = union a , b;"
             + "d = foreach c generate $3 + 2.0 ;";
 
-            checkWarning(query, CAST_LOAD_NOT_FOUND + " to double at <line 4,");
+            checkWarning(query, CAST_LOAD_NOT_FOUND);
         }
 
         private void checkWarning(String query, String warnMsg) throws FrontendException {
@@ -2959,12 +2955,12 @@ public class TestTypeCheckingValidatorNewLP {
         public void testUnionLineageMixSchemaFail() throws Throwable {
             // different loader caster associated with each input, so can't determine
             // which one to use on union output
-            String query = "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );\n"
-            + "b = load 'a' using org.apache.pig.test.PigStorageWithDifferentCaster('b');\n"
-            + "c = union a , b;\n"
+            String query = "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
+            + "b = load 'a' using org.apache.pig.test.PigStorageWithDifferentCaster('b');"
+            + "c = union a , b;"
             + "d = foreach c generate $3 + 2.0 ;";
 
-            checkWarning(query, CAST_LOAD_NOT_FOUND + " to double at <line 4,");
+            checkWarning(query, CAST_LOAD_NOT_FOUND);
         }
 
         @Test
@@ -3306,12 +3302,12 @@ public class TestTypeCheckingValidatorNewLP {
 
         @Test
         public void testCrossLineageNoSchemaFail() throws Throwable {
-            String query = "a = load 'a' using PigStorage('a');\n"
-            + "b = load 'a' using org.apache.pig.test.PigStorageWithDifferentCaster('b');\n"
-            + "c = cross a , b;\n"
+            String query = "a = load 'a' using PigStorage('a');"
+            + "b = load 'a' using org.apache.pig.test.PigStorageWithDifferentCaster('b');"
+            + "c = cross a , b;"
             + "d = foreach c generate $1 + 2.0 ;";
 
-            checkWarning(query, CAST_LOAD_NOT_FOUND + " to double at <line 4,");
+            checkWarning(query, CAST_LOAD_NOT_FOUND);
         }
 
         @Test
@@ -3327,12 +3323,12 @@ public class TestTypeCheckingValidatorNewLP {
 
         @Test
         public void testCrossLineageMixSchemaFail() throws Throwable {
-            String query = "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );\n"
-            + "b = load 'a' using org.apache.pig.test.PigStorageWithDifferentCaster('b');\n"
-            + "c = cross a , b;\n"
+            String query = "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
+            + "b = load 'a' using org.apache.pig.test.PigStorageWithDifferentCaster('b');"
+            + "c = cross a , b;"
             + "d = foreach c generate $3 + 2.0 ;";
 
-            checkWarning(query, CAST_LOAD_NOT_FOUND + " to double at <line 4,");
+            checkWarning(query, CAST_LOAD_NOT_FOUND);
         }
 
         @Test
@@ -3361,12 +3357,12 @@ public class TestTypeCheckingValidatorNewLP {
         public void testJoinLineageNoSchemaFail() throws Throwable {
             //this test case should change when we decide on what flattening a tuple or bag
             //with null schema results in a foreach flatten and hence a join
-            String query =  "a = load 'a' using PigStorage('a');\n"
-            + "b = load 'a' using org.apache.pig.test.PigStorageWithDifferentCaster();\n"
-            + "c = join a by $0, b by $0;\n"
+            String query =  "a = load 'a' using PigStorage('a');"
+            + "b = load 'a' using org.apache.pig.test.PigStorageWithDifferentCaster();"
+            + "c = join a by $0, b by $0;"
             + "d = foreach c generate $1 + 2.0 ;";
 
-            checkWarning(query, CAST_LOAD_NOT_FOUND + " to double at <line 4,");
+            checkWarning(query, CAST_LOAD_NOT_FOUND);
         }
 
         @Test
@@ -3382,12 +3378,12 @@ public class TestTypeCheckingValidatorNewLP {
         public void testJoinLineageMixSchemaFail() throws Throwable {
             //this test case should change when we decide on what flattening a tuple or bag
             //with null schema results in a foreach flatten and hence a join
-            String query =  "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );\n"
-            + "b = load 'a' using org.apache.pig.test.PigStorageWithDifferentCaster();\n"
-            + "c = join a by field1, b by $0;\n"
+            String query =  "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
+            + "b = load 'a' using org.apache.pig.test.PigStorageWithDifferentCaster();"
+            + "c = join a by field1, b by $0;"
             + "d = foreach c generate $3 + 2.0 ;";
 
-            checkWarning(query, CAST_LOAD_NOT_FOUND + " to double at <line 4,");
+            checkWarning(query, CAST_LOAD_NOT_FOUND);
         }
 
         @Test
@@ -3871,12 +3867,12 @@ public class TestTypeCheckingValidatorNewLP {
          */
         @Test
         public void testLineageMultipleLoader3() throws FrontendException {
-            String query =  "A = LOAD 'data1' USING PigStorage() AS (u, v, w);\n"
-            +  "B = LOAD 'data2' USING TextLoader() AS (x, y);\n"
-            +  "C = COGROUP A BY u, B by x;\n"
-            +  "D = FOREACH C GENERATE (chararray)group;\n";
+            String query =  "A = LOAD 'data1' USING PigStorage() AS (u, v, w);"
+            +  "B = LOAD 'data2' USING TextLoader() AS (x, y);"
+            + "C = COGROUP A BY u, B by x;"
+            +  "D = FOREACH C GENERATE (chararray)group;";
 
-            checkWarning(query, CAST_LOAD_NOT_FOUND + " to chararray at <line 4,");
+            checkWarning(query, CAST_LOAD_NOT_FOUND);
         }
 
         /**
@@ -4067,12 +4063,12 @@ public class TestTypeCheckingValidatorNewLP {
 
         @Test
         public void testUDFNoInnerSchema() throws FrontendException {
-            String query = "a= load '1.txt' using PigStorage(':') ;"
+            String query = "a= load '1.txt';"
                 + "b = foreach a generate "+TestUDFTupleNullInnerSchema.class.getName()+"($0);"
                 + "c = foreach b generate flatten($0);"
                 + "d = foreach c generate $0 + 1;";
 
-            checkLastForeachCastLoadFunc(query, "PigStorage(':')");
+            checkLastForeachCastLoadFunc(query, null, 0);
         }
 
         //see PIG-1990
@@ -4121,57 +4117,5 @@ public class TestTypeCheckingValidatorNewLP {
                 " has datatype int which is incompatible with type of" +
                 " corresponding column in earlier relation(s) in the statement";
             Util.checkExceptionMessage(query, "c", msg);
-        }
-        //see PIG-4734
-        public static class GenericToMap extends EvalFunc<Map<String, Double>> {
-            @Override
-            public Map exec(Tuple input) throws IOException {
-                Map<String, Double> output = new HashMap<String, Double>();
-                output.put((String)input.get(0), (Double)input.get(1));
-                return output;
-            }
-        }
-        @Test
-        public void testBinCondCompatMap() throws Exception {
-            String query =
-                "a = load 'studenttab10k' as (name:chararray, gpa:double);"
-                + "b = foreach a generate gpa, TOMAP(name, gpa) as m1, "
-                + GenericToMap.class.getName() + "(name, gpa) as m2;"
-                + "c = foreach b generate (gpa>3? m1 : m2);";
-                createAndProcessLPlan(query);
-        }
-        public static class GenericToTuple extends EvalFunc<Tuple> {
-            @Override
-            public Tuple exec(Tuple input) throws IOException {
-                return input;
-            }
-        }
-        @Test
-        public void testBinCondCompatTuple() throws Exception {
-            String query =
-                "a = load 'studenttab10k' as (name:chararray, gpa:double);"
-                + "b = foreach a generate gpa, TOTUPLE(name, gpa) as t1, "
-                + GenericToTuple.class.getName() + "(name, gpa) as t2;"
-                + "c = foreach b generate (gpa>3? t1 : t2);";
-                createAndProcessLPlan(query);
-        }
-        public static class GenericToBag extends EvalFunc<DataBag> {
-            @Override
-            public DataBag exec(Tuple input) throws IOException {
-                DataBag bag = new NonSpillableDataBag(1);
-                Tuple t = new DefaultTuple();
-                t.append(input.get(0));
-                bag.add(t);
-                return bag;
-            }
-        }
-        @Test
-        public void testBinCondCompatBag() throws Exception {
-            String query =
-                "a = load 'studenttab10k' as (name:chararray, gpa:double);"
-                + "b = foreach a generate gpa, TOBAG(name) as b1, "
-                + GenericToBag.class.getName() + "(name) as b2;"
-                + "c = foreach b generate (gpa>3? b1 : b2);";
-                createAndProcessLPlan(query);
         }
 }

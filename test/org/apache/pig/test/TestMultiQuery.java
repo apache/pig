@@ -883,49 +883,6 @@ public class TestMultiQuery {
     }
 
     @Test
-    public void testMultiQueryJiraPig4883() throws Exception {
-        Storage.Data data = Storage.resetData(myPig);
-        data.set("inputLocation",
-                Storage.tuple("c", "12"), Storage.tuple("d", "-12"));
-        myPig.setBatchOn();
-        myPig.registerQuery("A = load 'inputLocation' using mock.Storage();");
-        myPig.registerQuery("A = foreach A generate (chararray)$0 as id, (long)$1 as val;");
-        myPig.registerQuery("B = filter A by val > 0;");
-        myPig.registerQuery("B1 = group B by val;");
-        myPig.registerQuery("B1 = foreach B1 generate group as name, COUNT(B) as value;");
-        myPig.registerQuery("B1 = foreach B1 generate (chararray)name,value;");
-        myPig.registerQuery("store B1 into 'output1' using mock.Storage();");
-        myPig.registerQuery("B2 = group B by id;");
-        myPig.registerQuery("B2 = foreach B2 generate group as name, COUNT(B) as value;");
-        myPig.registerQuery("store B2 into 'output2' using mock.Storage();");
-        myPig.registerQuery("C = filter A by val < 0;");
-        myPig.registerQuery("C1 = group C by val;");
-        myPig.registerQuery("C1 = foreach C1 generate group as name, COUNT(C) as value;");
-        myPig.registerQuery("store C1 into 'output3' using mock.Storage();");
-        myPig.registerQuery("C2 = group C by id;");
-        myPig.registerQuery("C2 = foreach C2 generate group as name, COUNT(C) as value;");
-        myPig.registerQuery("store C2 into 'output4' using mock.Storage();");
-        myPig.executeBatch();
-
-        List<Tuple> actualResults = data.get("output1");
-        String[] expectedResults = new String[]{"(12, 1)"};
-        Util.checkQueryOutputsAfterSortRecursive(actualResults.iterator(), expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(myPig.dumpSchema("B1")));
-
-
-        actualResults = data.get("output2");
-        expectedResults = new String[]{"(c,1)"};
-        Util.checkQueryOutputsAfterSortRecursive(actualResults.iterator(), expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(myPig.dumpSchema("B2")));
-
-        actualResults = data.get("output3");
-        expectedResults = new String[]{"(-12, 1)"};
-        Util.checkQueryOutputsAfterSortRecursive(actualResults.iterator(), expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(myPig.dumpSchema("C1")));
-
-        actualResults = data.get("output4");
-        expectedResults = new String[]{"(d,1)"};
-        Util.checkQueryOutputsAfterSortRecursive(actualResults.iterator(), expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(myPig.dumpSchema("C2")));
-    }
-
-    @Test
     public void testMultiQueryJiraPig4899() throws Exception {
         myPig.setBatchOn();
 

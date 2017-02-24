@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.DiscreteProbabilitySampleGenerator;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.InternalMap;
@@ -37,10 +38,10 @@ import org.apache.pig.impl.builtin.FindQuantiles;
 import org.junit.Test;
 
 public class TestFindQuantiles {
-
+    
     private static TupleFactory tFact = TupleFactory.getInstance();
     private static final float epsilon = 0.0001f;
-
+    
     @Test
     public void testFindQuantiles() throws Exception {
        final int numSamples = 97778;
@@ -49,7 +50,7 @@ public class TestFindQuantiles {
        System.out.println("sum: " + sum);
        assertTrue(sum > (1-epsilon) && sum < (1+epsilon));
     }
-
+    
     @Test
     public void testFindQuantiles2() throws Exception {
        final int numSamples = 30000;
@@ -85,7 +86,7 @@ public class TestFindQuantiles {
     }
 
     private float[] getProbVec(Tuple values) throws Exception {
-        float[] probVec = new float[values.size()];
+        float[] probVec = new float[values.size()];        
         for(int i = 0; i < values.size(); i++) {
             probVec[i] = (Float)values.get(i);
         }
@@ -94,7 +95,7 @@ public class TestFindQuantiles {
 
     private DataBag generateRandomSortedSamples(int numSamples, int max) throws Exception {
         Random rand = new Random(1000);
-        List<Tuple> samples = new ArrayList<Tuple>();
+        List<Tuple> samples = new ArrayList<Tuple>(); 
         for (int i=0; i<numSamples; i++) {
             Tuple t = tFact.newTuple(1);
             t.set(0, rand.nextInt(max));
@@ -105,7 +106,7 @@ public class TestFindQuantiles {
     }
 
     private DataBag generateUniqueSamples(int numSamples) throws Exception {
-        DataBag samples = BagFactory.getInstance().newDefaultBag();
+        DataBag samples = BagFactory.getInstance().newDefaultBag(); 
         for (int i=0; i<numSamples; i++) {
             Tuple t = tFact.newTuple(1);
             t.set(0, new Integer(23));
@@ -120,9 +121,9 @@ public class TestFindQuantiles {
 
         in.set(0, new Integer(numReduceres));
         in.set(1, samples);
-
+        
         FindQuantiles fq = new FindQuantiles();
-
+        
         Map<String, Object> res = fq.exec(in);
         return res;
     }
@@ -134,11 +135,12 @@ public class TestFindQuantiles {
         InternalMap weightedPartsData = (InternalMap) res.get(FindQuantiles.WEIGHTED_PARTS);
         Iterator<Object> it = weightedPartsData.values().iterator();
         float[] probVec = getProbVec((Tuple)it.next());
+        new DiscreteProbabilitySampleGenerator(probVec);
         float sum = 0.0f;
         for (float f : probVec) {
             sum += f;
         }
         return sum;
     }
-
+    
 }

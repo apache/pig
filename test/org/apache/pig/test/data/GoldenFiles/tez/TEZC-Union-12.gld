@@ -18,13 +18,13 @@ a: Split - scope-141
 |   |   |
 |   |   a1: Split - scope-169
 |   |   |   |
-|   |   |   a1: Store(file:///tmp/pigoutput1:org.apache.pig.builtin.PigStorage) - scope-170	->	 scope-62
+|   |   |   a1: Store(file:///tmp/output1:org.apache.pig.builtin.PigStorage) - scope-170	->	 scope-62
 |   |   |   |
 |   |   |   Local Rearrange[tuple]{tuple}(false) - scope-173	->	 scope-118
 |   |   |   |   |
 |   |   |   |   Constant(DummyVal) - scope-174
 |   |   |   |
-|   |   |   |---New For Each(false,true)[tuple] - scope-180
+|   |   |   |---New For Each(true,true)[tuple] - scope-180
 |   |   |       |   |
 |   |   |       |   Project[int][0] - scope-177
 |   |   |       |   |
@@ -46,13 +46,13 @@ a: Split - scope-141
 |   |   |
 |   |   a1: Split - scope-181
 |   |   |   |
-|   |   |   a1: Store(file:///tmp/pigoutput1:org.apache.pig.builtin.PigStorage) - scope-182	->	 scope-62
+|   |   |   a1: Store(file:///tmp/output1:org.apache.pig.builtin.PigStorage) - scope-182	->	 scope-62
 |   |   |   |
 |   |   |   Local Rearrange[tuple]{tuple}(false) - scope-185	->	 scope-118
 |   |   |   |   |
 |   |   |   |   Constant(DummyVal) - scope-186
 |   |   |   |
-|   |   |   |---New For Each(false,true)[tuple] - scope-192
+|   |   |   |---New For Each(true,true)[tuple] - scope-192
 |   |   |       |   |
 |   |   |       |   Project[int][0] - scope-189
 |   |   |       |   |
@@ -84,13 +84,13 @@ a: Split - scope-141
 |   |   |
 |   |   a1: Split - scope-196
 |   |   |   |
-|   |   |   a1: Store(file:///tmp/pigoutput1:org.apache.pig.builtin.PigStorage) - scope-197	->	 scope-62
+|   |   |   a1: Store(file:///tmp/output1:org.apache.pig.builtin.PigStorage) - scope-197	->	 scope-62
 |   |   |   |
 |   |   |   Local Rearrange[tuple]{tuple}(false) - scope-200	->	 scope-118
 |   |   |   |   |
 |   |   |   |   Constant(DummyVal) - scope-201
 |   |   |   |
-|   |   |   |---New For Each(false,true)[tuple] - scope-207
+|   |   |   |---New For Each(true,true)[tuple] - scope-207
 |   |   |       |   |
 |   |   |       |   Project[int][0] - scope-204
 |   |   |       |   |
@@ -118,13 +118,13 @@ a: Split - scope-141
 |   |   |
 |   |   a1: Split - scope-211
 |   |   |   |
-|   |   |   a1: Store(file:///tmp/pigoutput1:org.apache.pig.builtin.PigStorage) - scope-212	->	 scope-62
+|   |   |   a1: Store(file:///tmp/output1:org.apache.pig.builtin.PigStorage) - scope-212	->	 scope-62
 |   |   |   |
 |   |   |   Local Rearrange[tuple]{tuple}(false) - scope-215	->	 scope-118
 |   |   |   |   |
 |   |   |   |   Constant(DummyVal) - scope-216
 |   |   |   |
-|   |   |   |---New For Each(false,true)[tuple] - scope-222
+|   |   |   |---New For Each(true,true)[tuple] - scope-222
 |   |   |       |   |
 |   |   |       |   Project[int][0] - scope-219
 |   |   |       |   |
@@ -210,7 +210,7 @@ Partition Rearrange[tuple]{int}(false) - scope-130	->	 scope-132
     |---d: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-65
 Tez vertex scope-132
 # Plan on vertex
-e: Store(file:///tmp/pigoutput2:org.apache.pig.builtin.PigStorage) - scope-76
+e: Store(file:///tmp/output2:org.apache.pig.builtin.PigStorage) - scope-76
 |
 |---New For Each(true,true)[tuple] - scope-136
     |   |

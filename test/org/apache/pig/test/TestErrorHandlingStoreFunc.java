@@ -200,11 +200,11 @@ public class TestErrorHandlingStoreFunc {
     private void updatePigProperties(boolean allowErrors, long minErrors,
             double errorThreshold) {
         Properties properties = pigServer.getPigContext().getProperties();
-        properties.put(PigConfiguration.PIG_ERROR_HANDLING_ENABLED,
+        properties.put(PigConfiguration.PIG_ALLOW_STORE_ERRORS,
                 Boolean.toString(allowErrors));
-        properties.put(PigConfiguration.PIG_ERROR_HANDLING_MIN_ERROR_RECORDS,
+        properties.put(PigConfiguration.PIG_ERRORS_MIN_RECORDS,
                 Long.toString(minErrors));
-        properties.put(PigConfiguration.PIG_ERROR_HANDLING_THRESHOLD_PERCENT,
+        properties.put(PigConfiguration.PIG_ERROR_THRESHOLD_PERCENT,
                 Double.toString(errorThreshold));
     }
 }

@@ -19,9 +19,7 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import java.io.IOException;
 import java.io.PrintStream;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -42,8 +40,7 @@ import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.RunningJob;
-import org.apache.hadoop.mapreduce.Cluster;
-import org.apache.hadoop.mapreduce.TaskReport;
+import org.apache.hadoop.mapred.TaskReport;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.pig.PigConfiguration;
@@ -68,7 +65,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
@@ -82,18 +78,15 @@ import org.apache.pig.impl.util.Utils;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStatsUtil;
-import org.apache.pig.tools.pigstats.mapreduce.MRJobStats;
 import org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil;
 import org.apache.pig.tools.pigstats.mapreduce.MRScriptState;
-
-import org.python.google.common.collect.Lists;
 
 
 /**
  * Main class that launches pig for Map Reduce
  *
  */
-public class MapReduceLauncher extends Launcher {
+public class MapReduceLauncher extends Launcher{
 
     public static final String SUCCEEDED_FILE_NAME = "_SUCCESS";
 
@@ -101,30 +94,14 @@ public class MapReduceLauncher extends Launcher {
 
     private boolean aggregateWarning = false;
 
-    public MapReduceLauncher() {
-        super();
-        Utils.addShutdownHookWithPriority(new HangingJobKiller(),
-                PigImplConstants.SHUTDOWN_HOOK_JOB_KILL_PRIORITY);
-    }
-
     @Override
     public void kill() {
         try {
-            if (jc != null && jc.getRunningJobs().size() > 0) {
-                log.info("Received kill signal");
+            log.debug("Receive kill signal");
+            if (jc!=null) {
                 for (Job job : jc.getRunningJobs()) {
-                    org.apache.hadoop.mapreduce.Job mrJob = job.getJob();
-                    try {
-                        if (mrJob != null) {
-                            mrJob.killJob();
-                        }
-                    } catch (Exception ir) {
-                        throw new IOException(ir);
-                    }
+                    HadoopShims.killJob(job);
                     log.info("Job " + job.getAssignedJobID() + " killed");
-                    String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
-                            .format(Calendar.getInstance().getTime());
-                    System.err.println(timeStamp + " Job " + job.getAssignedJobID() + " killed");
                 }
             }
         } catch (Exception e) {
@@ -324,7 +301,8 @@ public class MapReduceLauncher extends Launcher {
                 // Now wait, till we are finished.
                 while(!jc.allFinished()){
 
-                    jcThread.join(sleepTime);
+                    try { jcThread.join(sleepTime); }
+                    catch (InterruptedException e) {}
 
                     List<Job> jobsAssignedIdInThisRun = new ArrayList<Job>();
 
@@ -341,6 +319,11 @@ public class MapReduceLauncher extends Launcher {
                                 log.info("Processing aliases " + alias);
                                 String aliasLocation = MRScriptState.get().getAliasLocation(mro);
                                 log.info("detailed locations: " + aliasLocation);
+                            }
+
+                            if (!HadoopShims.isHadoopYARN() && jobTrackerLoc != null) {
+                                log.info("More information at: http://" + jobTrackerLoc
+                                        + "/jobdetails.jsp?jobid=" + job.getAssignedJobID());
                             }
 
                             // update statistics for this job so jobId is set
@@ -492,6 +475,10 @@ public class MapReduceLauncher extends Launcher {
             for (Job job : succJobs) {
                 List<POStore> sts = jcc.getStores(job);
                 for (POStore st : sts) {
+                    if (Utils.isLocal(pc, job.getJobConf())) {
+                        HadoopShims.storeSchemaForLocal(job, st);
+                    }
+
                     if (!st.isTmpStore()) {
                         // create an "_SUCCESS" file in output location if
                         // output location is a filesystem dir
@@ -757,7 +744,7 @@ public class MapReduceLauncher extends Launcher {
     @SuppressWarnings("deprecation")
     void computeWarningAggregate(Job job, Map<Enum, Long> aggMap) {
         try {
-            Counters counters = MRJobStats.getCounters(job);
+            Counters counters = HadoopShims.getCounters(job);
             if (counters==null)
             {
                 long nullCounterCount =
@@ -811,13 +798,13 @@ public class MapReduceLauncher extends Launcher {
             throw new ExecException(backendException);
         }
         try {
-            Iterator<TaskReport> mapRep = MRJobStats.getTaskReports(job, TaskType.MAP);
+            Iterator<TaskReport> mapRep = HadoopShims.getTaskReports(job, TaskType.MAP);
             if (mapRep != null) {
                 getErrorMessages(mapRep, "map", errNotDbg, pigContext);
                 totalHadoopTimeSpent += computeTimeSpent(mapRep);
                 mapRep = null;
             }
-            Iterator<TaskReport> redRep = MRJobStats.getTaskReports(job, TaskType.REDUCE);
+            Iterator<TaskReport> redRep = HadoopShims.getTaskReports(job, TaskType.REDUCE);
             if (redRep != null) {
                 getErrorMessages(redRep, "reduce", errNotDbg, pigContext);
                 totalHadoopTimeSpent += computeTimeSpent(redRep);
@@ -835,6 +822,5 @@ public class MapReduceLauncher extends Launcher {
             throw new ExecException(e);
         }
     }
-
 }
 

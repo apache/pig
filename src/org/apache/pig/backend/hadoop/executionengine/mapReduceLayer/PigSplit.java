@@ -515,11 +515,9 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
             for (int i = 0; i < wrappedSplits.length; i++) {
                 st.append("Input split["+i+"]:\n   Length = "+ wrappedSplits[i].getLength()+"\n   ClassName: " +
                     wrappedSplits[i].getClass().getName() + "\n   Locations:\n");
-                if (wrappedSplits[i]!=null && wrappedSplits[i].getLocations()!=null) {
-                    for (String location :  wrappedSplits[i].getLocations())
-                        st.append("    "+location+"\n");
-                    st.append("\n-----------------------\n");
-                }
+                for (String location :  wrappedSplits[i].getLocations())
+                    st.append("    "+location+"\n");
+                st.append("\n-----------------------\n");
           }
         } catch (IOException e) {
           return null;

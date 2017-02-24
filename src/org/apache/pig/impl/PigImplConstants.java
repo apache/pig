@@ -38,12 +38,6 @@ public class PigImplConstants {
     public static final String PIG_OPTIMIZER_RULES_KEY = "pig.optimizer.rules";
 
     /**
-     * Used by pig to indicate that current job is running in local mode (local/tez_local)
-     * ie. ExecType.isLocal() is true
-     */
-    public static final String PIG_EXECTYPE_MODE_LOCAL = "pig.exectype.mode.local";
-
-    /**
      * Used by pig to indicate that current job has been converted to run in local mode
      */
     public static final String CONVERTED_TO_LOCAL = "pig.job.converted.local";
@@ -69,24 +63,4 @@ public class PigImplConstants {
      * Parallelism to be used for CROSS operation by GFCross UDF
      */
     public static final String PIG_CROSS_PARALLELISM = "pig.cross.parallelism";
-
-    /**
-     * Pig context
-     */
-    public static final String PIG_CONTEXT = "pig.pigContext";
-
-    /**
-     * Pig log4j properties
-     */
-    public static final String PIG_LOG4J_PROPERTIES = "pig.log4j.properties";
-
-    /**
-     * A unique id for a Pig session used as callerId for underlining component
-     */
-    public static final String PIG_AUDIT_ID = "pig.script.id";
-
-    // Kill the jobs before cleaning up tmp files
-    public static int SHUTDOWN_HOOK_JOB_KILL_PRIORITY = 3;
-    public static int SHUTDOWN_HOOK_TMP_FILES_CLEANUP_PRIORITY = 2;
-    public static int SHUTDOWN_HOOK_ATS_CLIENT_PRIORITY = 1;
 }

@@ -18,15 +18,16 @@
 
 package org.apache.pig.builtin;
 
+import java.io.IOException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.IOException;
 import java.util.Iterator;
 
 import org.apache.hadoop.util.bloom.BloomFilter;
 import org.apache.hadoop.util.hash.Hash;
+
 import org.apache.pig.EvalFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
@@ -46,7 +47,7 @@ public abstract class BuildBloomBase<T> extends EvalFunc<T> {
     protected BuildBloomBase() {
     }
 
-    /**
+    /** 
      * @param hashType type of the hashing function (see
      * {@link org.apache.hadoop.util.hash.Hash}).
      * @param mode Will be ignored, though by convention it should be
@@ -63,7 +64,7 @@ public abstract class BuildBloomBase<T> extends EvalFunc<T> {
         hType = convertHashType(hashType);
     }
 
-    /**
+    /** 
      * @param hashType type of the hashing function (see
      * {@link org.apache.hadoop.util.hash.Hash}).
      * @param numElements The number of distinct elements expected to be
@@ -103,7 +104,7 @@ public abstract class BuildBloomBase<T> extends EvalFunc<T> {
         return new DataByteArray(baos.toByteArray());
     }
 
-    public static BloomFilter bloomIn(DataByteArray b) throws IOException {
+    protected BloomFilter bloomIn(DataByteArray b) throws IOException {
         DataInputStream dis = new DataInputStream(new
             ByteArrayInputStream(b.get()));
         BloomFilter f = new BloomFilter();

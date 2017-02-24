@@ -29,7 +29,7 @@ import org.apache.pig.classification.InterfaceStability;
 
 /**
  * Common functionality for proactively spilling bags that need to keep the data
- * sorted.
+ * sorted. 
  */
 @InterfaceAudience.Private
 @InterfaceStability.Evolving
@@ -54,9 +54,9 @@ public abstract class SortedSpillBag extends SelfSpillBag {
         //count for number of objects that have spilled
         if(mSpillFiles == null)
             incSpillCount(PigCounters.PROACTIVE_SPILL_COUNT_BAGS);
-
+        
         long spilled = 0;
-
+        
         DataOutputStream out = null;
         try {
             out = getSpillFile();
@@ -71,13 +71,13 @@ public abstract class SortedSpillBag extends SelfSpillBag {
             //sort the tuples
             // as per documentation of collection.sort(), it copies to an array,
             // sorts and copies back to collection
-            // Avoiding that extra copy back to collection (mContents) by
+            // Avoiding that extra copy back to collection (mContents) by 
             // copying to an array and using Arrays.sort
             Tuple[] array = new Tuple[mContents.size()];
             mContents.toArray(array);
             if(comp == null)
                 Arrays.sort(array);
-            else
+            else 
                 Arrays.sort(array,comp);
 
             //dump the array
@@ -89,15 +89,12 @@ public abstract class SortedSpillBag extends SelfSpillBag {
             }
 
             out.flush();
-            out.close();
-            out = null;
-            mContents.clear();
-        } catch (Throwable e) {
+        } catch (IOException ioe) {
             // Remove the last file from the spilled array, since we failed to
             // write to it.
             mSpillFiles.remove(mSpillFiles.size() - 1);
             warn(
-                "Unable to spill contents to disk", PigWarning.UNABLE_TO_SPILL, e);
+                "Unable to spill contents to disk", PigWarning.UNABLE_TO_SPILL, ioe);
             return 0;
         } finally {
             if (out != null) {
@@ -108,9 +105,11 @@ public abstract class SortedSpillBag extends SelfSpillBag {
                 }
             }
         }
+        mContents.clear();
+        
         incSpillCount(PigCounters.PROACTIVE_SPILL_COUNT_RECS, spilled);
-
+        
         return spilled;
     }
-
+    
 }

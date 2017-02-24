@@ -245,11 +245,7 @@ public class TezDAGStats extends JobStats {
                             OutputStats existingOut = outputsByLocation.get(output.getLocation());
                             // In case of multistore, bytesWritten is already calculated
                             // from size of all the files in the output directory.
-                            // So use that if there is a combination of multistore and single store
-                            if (output.getPOStore().isMultiStore()) {
-                                existingOut.setBytes(output.getBytes());
-                                existingOut.setPOStore(output.getPOStore());
-                            } else if (!existingOut.getPOStore().isMultiStore() && output.getBytes() > -1) {
+                            if (!output.getPOStore().isMultiStore() && output.getBytes() > -1) {
                                 long bytes = existingOut.getBytes() > -1
                                         ? (existingOut.getBytes() + output.getBytes())
                                         : output.getBytes();

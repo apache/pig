@@ -40,7 +40,7 @@ a: Split - scope-46
     |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-8
 Tez vertex scope-35
 # Plan on vertex
-e: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-34
+e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-34
 |
 |---e: FRJoin[tuple] - scope-28	<-	 scope-36
     |   |

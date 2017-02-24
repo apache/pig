@@ -709,19 +709,6 @@ public class TestAvroStorage {
     }
 
     @Test
-    public void testGroupWithRepeatedSubRecords() throws Exception {
-      final String input = basedir + "data/avro/uncompressed/recordWithRepeatedSubRecords.avro";
-      final String check = basedir + "data/avro/uncompressed/recordWithRepeatedSubRecords.avro";
-      testAvroStorage(true, basedir + "code/pig/group_test.pig",
-          ImmutableMap.of(
-              "INFILE",           input,
-              "AVROSTORAGE_OUT_2", "-f " + basedir + "schema/recordWithRepeatedSubRecords.avsc",
-              "OUTFILE",          createOutputName())
-        );
-      verifyResults(createOutputName(),check);
-    }
-
-    @Test
     public void testLoadDirectory() throws Exception {
       final String input = basedir + "data/avro/uncompressed/testdirectory";
       final String check = basedir + "data/avro/uncompressed/testDirectoryCounts.avro";

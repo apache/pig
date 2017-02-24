@@ -39,7 +39,6 @@ import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
-import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -167,8 +166,7 @@ public class TestLocal {
         public Tuple getNext() throws IOException {
             if (count < COUNT) {
 
-                   Tuple t = new DefaultTuple();
-                   t.append(Integer.toString(count++));
+                   Tuple t = TupleFactory.getInstance().newTuple(Integer.toString(count++));
                    return t;
 
             }

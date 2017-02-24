@@ -95,7 +95,7 @@ public class FetchPOStoreImpl extends POStoreImpl {
         }
         if (outputCommitter.needsTaskCommit(context))
             outputCommitter.commitTask(context);
-        outputCommitter.commitJob(context);
+        HadoopShims.commitOrCleanup(outputCommitter, context);
     }
 
     @Override
@@ -109,7 +109,7 @@ public class FetchPOStoreImpl extends POStoreImpl {
             }
             writer = null;
         }
-        outputCommitter.commitJob(context);
+        HadoopShims.commitOrCleanup(outputCommitter, context);
     }
 
 }

@@ -102,19 +102,19 @@ public class POStoreTez extends POStore implements TezOutput, TezTaskConfigurabl
             throw new ExecException(e);
         }
 
-        // Even if there is a single hdfs output, we add multi store counter
-        // Makes it easier for user to see records for a particular store from
-        // the DAG counter
-        CounterGroup multiStoreGroup = processorContext.getCounters()
-                .getGroup(MRPigStatsUtil.MULTI_STORE_COUNTER_GROUP);
-        if (multiStoreGroup == null) {
-            processorContext.getCounters().addGroup(
-                    MRPigStatsUtil.MULTI_STORE_COUNTER_GROUP,
-                    MRPigStatsUtil.MULTI_STORE_COUNTER_GROUP);
-        }
-        String name = MRPigStatsUtil.getMultiStoreCounterName(this);
-        if (name != null) {
-            outputRecordCounter = multiStoreGroup.addCounter(name, name, 0);
+        // Multiple outputs - can be another store or other outputs (shuffle, broadcast)
+        if (outputs.size() > 1) {
+            CounterGroup multiStoreGroup = processorContext.getCounters()
+                    .getGroup(MRPigStatsUtil.MULTI_STORE_COUNTER_GROUP);
+            if (multiStoreGroup == null) {
+                processorContext.getCounters().addGroup(
+                        MRPigStatsUtil.MULTI_STORE_COUNTER_GROUP,
+                        MRPigStatsUtil.MULTI_STORE_COUNTER_GROUP);
+            }
+            String name = MRPigStatsUtil.getMultiStoreCounterName(this);
+            if (name != null) {
+                outputRecordCounter = multiStoreGroup.addCounter(name, name, 0);
+            }
         }
     }
 

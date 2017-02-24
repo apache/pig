@@ -51,7 +51,6 @@ public class PORankTez extends PORank implements TezInput {
     private transient Map<Integer, Long> counterOffsets;
     private transient Configuration conf;
     private transient boolean finished = false;
-    private transient Boolean hasFirstRecord;
 
     public PORankTez(PORank copy) {
         super(copy);
@@ -101,7 +100,6 @@ public class PORankTez extends PORank implements TezInput {
         try {
             reader = (KeyValueReader) input.getReader();
             LOG.info("Attached input from vertex " + tuplesInputKey + " : input=" + input + ", reader=" + reader);
-            hasFirstRecord = reader.next();
         } catch (Exception e) {
             throw new ExecException(e);
         }
@@ -142,18 +140,9 @@ public class PORankTez extends PORank implements TezInput {
         Result inp = null;
 
         try {
-            if (hasFirstRecord != null) {
-                if (hasFirstRecord) {
-                    hasFirstRecord = null;
-                    inp = new Result(POStatus.STATUS_OK, reader.getCurrentValue());
-                    return addRank(inp);
-                }
-                hasFirstRecord = null;
-            } else {
-                while (reader.next()) {
-                    inp = new Result(POStatus.STATUS_OK, reader.getCurrentValue());
-                    return addRank(inp);
-                }
+            while (reader.next()) {
+                inp = new Result(POStatus.STATUS_OK, reader.getCurrentValue());
+                return addRank(inp);
             }
         } catch (IOException e) {
             throw new ExecException(e);

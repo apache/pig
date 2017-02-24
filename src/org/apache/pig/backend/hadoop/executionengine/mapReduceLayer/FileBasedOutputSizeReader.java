@@ -75,24 +75,16 @@ public class FileBasedOutputSizeReader implements PigStatsOutputSizeReader {
             return -1;
         }
 
-        Path p = new Path(getLocationUri(sto));
-        return getPathSize(p, p.getFileSystem(conf));
-    }
-
-    private long getPathSize(Path storePath, FileSystem fs) throws IOException {
         long bytes = 0;
-        FileStatus[] lst = fs.listStatus(storePath);
+        Path p = new Path(getLocationUri(sto));
+        FileSystem fs = p.getFileSystem(conf);
+        FileStatus[] lst = fs.listStatus(p);
         if (lst != null) {
             for (FileStatus status : lst) {
-                if (status.isFile()) {
-                    if (status.getLen() > 0)
-                        bytes += status.getLen();
-                }
-                else { // recursively count nested leaves' (files) sizes
-                    bytes += getPathSize(status.getPath(), fs);
-                }
+                bytes += status.getLen();
             }
         }
+
         return bytes;
     }
 

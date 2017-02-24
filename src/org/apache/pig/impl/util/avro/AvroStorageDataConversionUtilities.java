@@ -118,8 +118,6 @@ public class AvroStorageDataConversionUtilities {
         return ByteBuffer.wrap(((DataByteArray) o).get());
       case FIXED:
         return new GenericData.Fixed(s, ((DataByteArray) o).get());
-      case ENUM:
-        return new GenericData.EnumSymbol(s,o.toString());
       default:
         if (DataType.findType(o) == DataType.DATETIME) {
           return ((DateTime) o).getMillis();

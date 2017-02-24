@@ -86,7 +86,7 @@ POIdentityInOutTez - scope-118	<-	 scope-95	->	 scope-119
 |   Project[int][0] - scope-90
 Tez vertex scope-119
 # Plan on vertex
-d: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-92
+d: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-92
 |
 |---New For Each(true)[tuple] - scope-122
     |   |

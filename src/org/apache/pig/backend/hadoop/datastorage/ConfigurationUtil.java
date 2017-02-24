@@ -29,6 +29,7 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigConstants;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 
 public class ConfigurationUtil {
@@ -88,7 +89,7 @@ public class ConfigurationUtil {
             // so build/classes/hadoop-site.xml contains such entry. This prevents some tests from
             // successful (They expect those files in hdfs), so we need to unset it in hadoop 23.
             // This should go away once MiniMRCluster fix the distributed cache issue.
-            localConf.unset(MRConfiguration.JOB_CACHE_FILES);
+            HadoopShims.unsetConf(localConf, MRConfiguration.JOB_CACHE_FILES);
         }
         localConf.set(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
         Properties props = ConfigurationUtil.toProperties(localConf);
@@ -104,15 +105,5 @@ public class ConfigurationUtil {
                 configuration.set(realConfKey, value);
             }
         }
-    }
-
-    /**
-     * Returns Properties containing alternative names of given property and same values - can be used to solve deprecations
-     * @return
-     */
-    public static Properties expandForAlternativeNames(String name, String value){
-        final Configuration config = new Configuration(false);
-        config.set(name,value);
-        return ConfigurationUtil.toProperties(config);
     }
 }

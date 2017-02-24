@@ -18,6 +18,7 @@ package org.apache.pig.backend.hadoop.hbase;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -64,7 +65,6 @@ import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
 import org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil;
 import org.apache.hadoop.hbase.mapreduce.TableOutputFormat;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
-import org.apache.hadoop.hbase.security.token.TokenUtil;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapred.JobConf;
@@ -86,6 +86,7 @@ import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.StoreResources;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.backend.hadoop.hbase.HBaseTableInputFormat.HBaseTableIFBuilder;
 import org.apache.pig.builtin.FuncUtils;
 import org.apache.pig.builtin.Utf8StorageConverter;
@@ -596,9 +597,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
                             new BinaryComparator(colInfo.getColumnName())));
                 }
             }
-            if (columnFilters.getFilters().size() != 0) {
-                thisColumnGroupFilter.addFilter(columnFilters);
-            }
+            thisColumnGroupFilter.addFilter(columnFilters);
             allColumnFilters.addFilter(thisColumnGroupFilter);
         }
         if (allColumnFilters != null) {
@@ -793,35 +792,46 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     public List<String> getShipFiles() {
         // Depend on HBase to do the right thing when available, as of HBASE-9165
         try {
-            Configuration conf = new Configuration();
-            TableMapReduceUtil.addHBaseDependencyJars(conf);
-            if (conf.get("tmpjars") != null) {
-                String[] tmpjars = conf.getStrings("tmpjars");
-                List<String> shipFiles = new ArrayList<String>(tmpjars.length);
-                for (String tmpjar : tmpjars) {
-                    shipFiles.add(new URL(tmpjar).getPath());
+            Method addHBaseDependencyJars =
+              TableMapReduceUtil.class.getMethod("addHBaseDependencyJars", Configuration.class);
+            if (addHBaseDependencyJars != null) {
+                Configuration conf = new Configuration();
+                addHBaseDependencyJars.invoke(null, conf);
+                if (conf.get("tmpjars") != null) {
+                    String[] tmpjars = conf.getStrings("tmpjars");
+                    List<String> shipFiles = new ArrayList<String>(tmpjars.length);
+                    for (String tmpjar : tmpjars) {
+                        shipFiles.add(new URL(tmpjar).getPath());
+                    }
+                    return shipFiles;
                 }
-                return shipFiles;
             }
-        } catch (IOException e) {
-            if(e instanceof MalformedURLException){
-                LOG.debug("TableMapReduceUtils#addHBaseDependencyJars tmpjars"
-                        + " had malformed url. Falling back to previous logic.", e);
-            }else {
-                LOG.debug("TableMapReduceUtils#addHBaseDependencyJars invocation"
-                        + " failed. Falling back to previous logic.", e);
-            }
+        } catch (NoSuchMethodException e) {
+            LOG.debug("TableMapReduceUtils#addHBaseDependencyJars not available."
+              + " Falling back to previous logic.", e);
+        } catch (IllegalAccessException e) {
+            LOG.debug("TableMapReduceUtils#addHBaseDependencyJars invocation"
+              + " not permitted. Falling back to previous logic.", e);
+        } catch (InvocationTargetException e) {
+            LOG.debug("TableMapReduceUtils#addHBaseDependencyJars invocation"
+              + " failed. Falling back to previous logic.", e);
+        } catch (MalformedURLException e) {
+            LOG.debug("TableMapReduceUtils#addHBaseDependencyJars tmpjars"
+                    + " had malformed url. Falling back to previous logic.", e);
         }
 
         List<Class> classList = new ArrayList<Class>();
         classList.add(org.apache.hadoop.hbase.client.HTable.class); // main hbase jar or hbase-client
         classList.add(org.apache.hadoop.hbase.mapreduce.TableSplit.class); // main hbase jar or hbase-server
+        if (!HadoopShims.isHadoopYARN()) { //Avoid shipping duplicate. Hadoop 0.23/2 itself has guava
+            classList.add(com.google.common.collect.Lists.class); // guava
+        }
         classList.add(org.apache.zookeeper.ZooKeeper.class); // zookeeper
         // Additional jars that are specific to v0.95.0+
         addClassToList("org.cloudera.htrace.Trace", classList); // htrace
         addClassToList("org.apache.hadoop.hbase.protobuf.generated.HBaseProtos", classList); // hbase-protocol
         addClassToList("org.apache.hadoop.hbase.TableName", classList); // hbase-common
-        addClassToList("org.apache.hadoop.hbase.CompatibilityFactory", classList); // hbase-hadoop-compat
+        addClassToList("org.apache.hadoop.hbase.CompatibilityFactory", classList); // hbase-hadoop-compar
         addClassToList("org.jboss.netty.channel.ChannelFactory", classList); // netty
         return FuncUtils.getShipFiles(classList);
     }
@@ -872,13 +882,27 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         }
 
         if ("kerberos".equalsIgnoreCase(hbaseConf.get(HBASE_SECURITY_CONF_KEY))) {
+            // Will not be entering this block for 0.20.2 as it has no security.
             try {
-                UserGroupInformation currentUser = UserGroupInformation.getCurrentUser();
-                if (currentUser.hasKerberosCredentials()) {
-                    TokenUtil.obtainTokenForJob(hbaseConf,currentUser,job);
+                // getCurrentUser method is not public in 0.20.2
+                Method m1 = UserGroupInformation.class.getMethod("getCurrentUser");
+                UserGroupInformation currentUser = (UserGroupInformation) m1.invoke(null,(Object[]) null);
+                // hasKerberosCredentials method not available in 0.20.2
+                Method m2 = UserGroupInformation.class.getMethod("hasKerberosCredentials");
+                boolean hasKerberosCredentials = (Boolean) m2.invoke(currentUser, (Object[]) null);
+                if (hasKerberosCredentials) {
+                    // Class and method are available only from 0.92 security release
+                    Class tokenUtilClass = Class
+                            .forName("org.apache.hadoop.hbase.security.token.TokenUtil");
+                    Method m3 = tokenUtilClass.getMethod("obtainTokenForJob", new Class[] {
+                            Configuration.class, UserGroupInformation.class, Job.class });
+                    m3.invoke(null, new Object[] { hbaseConf, currentUser, job });
                 } else {
                     LOG.info("Not fetching hbase delegation token as no Kerberos TGT is available");
                 }
+            } catch (ClassNotFoundException cnfe) {
+                throw new RuntimeException("Failure loading TokenUtil class, "
+                        + "is secure RPC available?", cnfe);
             } catch (RuntimeException re) {
                 throw re;
             } catch (Exception e) {

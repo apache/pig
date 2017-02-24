@@ -87,11 +87,6 @@ public class EmptyPigStats extends PigStats {
     }
 
     @Override
-    public String getDisplayString() {
-        return null;
-    }
-
-    @Override
     public JobGraph getJobGraph() {
        return emptyJobPlan;
     }

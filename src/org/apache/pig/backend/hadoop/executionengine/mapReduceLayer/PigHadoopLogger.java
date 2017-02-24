@@ -17,6 +17,9 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
+import java.util.Map;
+import java.util.WeakHashMap;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.EvalFunc;
@@ -38,6 +41,7 @@ public final class PigHadoopLogger implements PigLogger {
 
     private PigStatusReporter reporter = null;
     private boolean aggregate = false;
+    private Map<Object, String> msgMap = new WeakHashMap<Object, String>();
 
     private PigHadoopLogger() {
     }
@@ -64,6 +68,11 @@ public final class PigHadoopLogger implements PigLogger {
 
         if (getAggregate()) {
             if (reporter != null) {
+                // log at least once
+                if (msgMap.get(o) == null || !msgMap.get(o).equals(displayMessage)) {
+                    log.warn(displayMessage);
+                    msgMap.put(o, displayMessage);
+                }
                 if (o instanceof EvalFunc || o instanceof LoadFunc || o instanceof StoreFunc) {
                     reporter.incrCounter(className, warningEnum.name(), 1);
                 }

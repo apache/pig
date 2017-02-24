@@ -32,12 +32,10 @@ import java.util.Stack;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.lib.partition.HashPartitioner;
 import org.apache.hadoop.util.StringUtils;
-import org.apache.hadoop.util.hash.Hash;
 import org.apache.pig.CollectableLoadFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.IndexableLoadFunc;
@@ -46,10 +44,8 @@ import org.apache.pig.OrderedLoadFunc;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigTupleWritableComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MergeJoinIndexer;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigWritableComparators;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.ScalarPhyFinder;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.UDFFinder;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -86,10 +82,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.Packager.PackageType;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
-import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.BloomPackager;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.NativeTezOper;
-import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POBloomFilterRearrangeTez;
-import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POBuildBloomRearrangeTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POCounterStatsTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POCounterTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POFRJoinTez;
@@ -117,7 +110,6 @@ import org.apache.pig.impl.builtin.GetMemNumRows;
 import org.apache.pig.impl.builtin.PartitionSkewedKeys;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.impl.io.NullableIntWritable;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.Operator;
@@ -175,10 +167,6 @@ public class TezCompiler extends PhyPlanVisitor {
 
     private Map<PhysicalOperator, TezOperator> phyToTezOpMap;
 
-    // Contains the inputs to operator like join, with the list maintaining the
-    // same order of join from left to right
-    private Map<TezOperator, List<TezOperator>> inputsMap;
-
     public static final String USER_COMPARATOR_MARKER = "user.comparator.func:";
     public static final String FILE_CONCATENATION_THRESHOLD = "pig.files.concatenation.threshold";
     public static final String OPTIMISTIC_FILE_CONCATENATION = "pig.optimistic.files.concatenation";
@@ -186,8 +174,6 @@ public class TezCompiler extends PhyPlanVisitor {
     private int fileConcatenationThreshold = 100;
     private boolean optimisticFileConcatenation = false;
     private List<String> readOnceLoadFuncs = null;
-
-    private Configuration conf;
 
     private POLocalRearrangeTezFactory localRearrangeFactory;
 
@@ -198,7 +184,6 @@ public class TezCompiler extends PhyPlanVisitor {
         this.pigContext = pigContext;
 
         pigProperties = pigContext.getProperties();
-        conf = ConfigurationUtil.toConfiguration(pigProperties, false);
         splitsSeen = Maps.newHashMap();
         tezPlan = new TezOperPlan();
         nig = NodeIdGenerator.getGenerator();
@@ -212,7 +197,6 @@ public class TezCompiler extends PhyPlanVisitor {
         scope = roots.get(0).getOperatorKey().getScope();
         localRearrangeFactory = new POLocalRearrangeTezFactory(scope, nig);
         phyToTezOpMap = Maps.newHashMap();
-        inputsMap = Maps.newHashMap();
 
         fileConcatenationThreshold = Integer.parseInt(pigProperties
                 .getProperty(FILE_CONCATENATION_THRESHOLD, "100"));
@@ -671,8 +655,15 @@ public class TezCompiler extends PhyPlanVisitor {
             blocking();
             TezCompilerUtil.setCustomPartitioner(op.getCustomPartitioner(), curTezOp);
 
-            TezEdgeDescriptor edge = curTezOp.inEdges.get(lastOp.getOperatorKey());
-            edge.setNeedsDistinctCombiner(true);
+            // Add the DISTINCT plan as the combine plan. In MR Pig, the combiner is implemented
+            // with a global variable and a specific DistinctCombiner class. This seems better.
+            PhysicalPlan combinePlan = curTezOp.inEdges.get(lastOp.getOperatorKey()).combinePlan;
+            addDistinctPlan(combinePlan, 1);
+
+            POLocalRearrangeTez clr = localRearrangeFactory.create();
+            clr.setOutputKey(curTezOp.getOperatorKey().toString());
+            clr.setDistinct(true);
+            combinePlan.addAsLeaf(clr);
 
             curTezOp.markDistinct();
             addDistinctPlan(curTezOp.plan, op.getRequestedParallelism());
@@ -865,7 +856,6 @@ public class TezCompiler extends PhyPlanVisitor {
             } else {
                 curTezOp.plan.addAsLeaf(op);
             }
-            phyToTezOpMap.put(op, curTezOp);
 
         } catch (Exception e) {
             int errCode = 2034;
@@ -910,7 +900,6 @@ public class TezCompiler extends PhyPlanVisitor {
     public void visitGlobalRearrange(POGlobalRearrange op) throws VisitorException {
         try {
             blocking();
-            inputsMap.put(curTezOp, new ArrayList<>(Arrays.asList(compiledInputs)));
             TezCompilerUtil.setCustomPartitioner(op.getCustomPartitioner(), curTezOp);
             curTezOp.setRequestedParallelism(op.getRequestedParallelism());
             if (op.isCross()) {
@@ -1099,7 +1088,7 @@ public class TezCompiler extends PhyPlanVisitor {
         indexerTezOp.setDontEstimateParallelism(true);
 
         POStore st = TezCompilerUtil.getStore(scope, nig);
-        FileSpec strFile = getTempFileSpec(pigContext);
+        FileSpec strFile = getTempFileSpec();
         st.setSFile(strFile);
         indexAggrOper.plan.addAsLeaf(st);
         indexAggrOper.setClosed(true);
@@ -1266,7 +1255,7 @@ public class TezCompiler extends PhyPlanVisitor {
                 rightTezOprAggr.setDontEstimateParallelism(true);
 
                 POStore st = TezCompilerUtil.getStore(scope, nig);
-                FileSpec strFile = getTempFileSpec(pigContext);
+                FileSpec strFile = getTempFileSpec();
                 st.setSFile(strFile);
                 rightTezOprAggr.plan.addAsLeaf(st);
                 rightTezOprAggr.setClosed(true);
@@ -1357,141 +1346,12 @@ public class TezCompiler extends PhyPlanVisitor {
                 } else if (op.getNumInps() > 1) {
                     curTezOp.markCogroup();
                 }
-            } else if (op.getPkgr().getPackageType() == PackageType.BLOOMJOIN) {
-                curTezOp.markRegularJoin();
-                addBloomToJoin(op, curTezOp);
             }
         } catch (Exception e) {
             int errCode = 2034;
             String msg = "Error compiling operator " + op.getClass().getSimpleName();
             throw new TezCompilerException(msg, errCode, PigException.BUG, e);
         }
-    }
-
-    private void addBloomToJoin(POPackage op, TezOperator curTezOp) throws PlanException {
-
-        List<TezOperator> inputs = inputsMap.get(curTezOp);
-        TezOperator buildBloomOp;
-        List<TezOperator> applyBloomOps = new ArrayList<>();
-
-        String strategy = conf.get(PigConfiguration.PIG_BLOOMJOIN_STRATEGY, POBuildBloomRearrangeTez.DEFAULT_BLOOM_STRATEGY);
-        boolean createBloomInMap = "map".equals(strategy);
-        if (!createBloomInMap && !strategy.equals("reduce")) {
-            throw new PlanException(new IllegalArgumentException(
-                    "Invalid value for "
-                            + PigConfiguration.PIG_BLOOMJOIN_STRATEGY + " -  "
-                            + strategy + ". Valid values are map and reduce"));
-        }
-        int numHash = conf.getInt(PigConfiguration.PIG_BLOOMJOIN_HASH_FUNCTIONS, POBuildBloomRearrangeTez.DEFAULT_NUM_BLOOM_HASH_FUNCTIONS);
-        int vectorSizeBytes =  conf.getInt(PigConfiguration.PIG_BLOOMJOIN_VECTORSIZE_BYTES, POBuildBloomRearrangeTez.DEFAULT_BLOOM_VECTOR_SIZE_BYTES);
-        int numBloomFilters = POBuildBloomRearrangeTez.getNumBloomFilters(conf);
-        int hashType = Hash.parseHashType(conf.get(PigConfiguration.PIG_BLOOMJOIN_HASH_TYPE, POBuildBloomRearrangeTez.DEFAULT_BLOOM_HASH_TYPE));
-
-        // We build bloom of the right most input and apply the bloom filter on the left inputs by default.
-        // But in case of left outer join we build bloom of the left input and use it on the right input
-        boolean[] inner = op.getPkgr().getInner();
-        boolean skipNullKeys = true;
-        if (inner[inner.length - 1]) {  // inner has from right to left while inputs has from left to right
-            buildBloomOp = inputs.get(inputs.size() - 1); // Bloom filter is built from right most input
-            for (int i = 0; i < (inner.length - 1); i++) {
-                applyBloomOps.add(inputs.get(i));
-            }
-            skipNullKeys = inner[0];
-        } else {
-            // Left outer join
-            skipNullKeys = false;
-            buildBloomOp = inputs.get(0); // Bloom filter is built from left most input
-            for (int i = 1; i < inner.length; i++) {
-                applyBloomOps.add(inputs.get(i));
-            }
-        }
-
-        // Add BuildBloom operator to the input
-        POLocalRearrangeTez lr = (POLocalRearrangeTez) buildBloomOp.plan.getLeaves().get(0);
-        POBuildBloomRearrangeTez bbr = new POBuildBloomRearrangeTez(lr, createBloomInMap, numBloomFilters, vectorSizeBytes, numHash, hashType);
-        bbr.setSkipNullKeys(skipNullKeys);
-        buildBloomOp.plan.remove(lr);
-        buildBloomOp.plan.addAsLeaf(bbr);
-
-        // Add a new reduce vertex that will construct the final bloom filter
-        //    - by combining the bloom filters from the buildBloomOp input tasks in the map strategy
-        //    - or directly from the keys from the buildBloomOp input tasks in the reduce strategy
-        TezOperator combineBloomOp = getTezOp();
-        tezPlan.add(combineBloomOp);
-        combineBloomOp.markBuildBloom();
-        // Explicitly set the parallelism for the new vertex to number of bloom filters.
-        // Auto parallelism will bring it down based on the actual output size
-        combineBloomOp.setEstimatedParallelism(numBloomFilters);
-        // We don't want parallelism to be changed during the run by grace auto parallelism
-        // It will take the whole input size and estimate way higher
-        combineBloomOp.setDontEstimateParallelism(true);
-
-        String combineBloomOpKey = combineBloomOp.getOperatorKey().toString();
-        TezEdgeDescriptor edge = new TezEdgeDescriptor();
-        TezCompilerUtil.connect(tezPlan, buildBloomOp, combineBloomOp, edge);
-        bbr.setBloomOutputKey(combineBloomOpKey);
-
-
-        POPackage pkg = new POPackage(OperatorKey.genOpKey(scope));
-        pkg.setNumInps(1);
-        BloomPackager pkgr = new BloomPackager(createBloomInMap, vectorSizeBytes, numHash, hashType);;
-        pkgr.setKeyType(DataType.INTEGER);
-        pkg.setPkgr(pkgr);
-        POValueOutputTez combineBloomOutput = new POValueOutputTez(OperatorKey.genOpKey(scope));
-        combineBloomOp.plan.addAsLeaf(pkg);
-        combineBloomOp.plan.addAsLeaf(combineBloomOutput);
-
-        edge.setIntermediateOutputKeyClass(NullableIntWritable.class.getName());
-        edge.setIntermediateOutputKeyComparatorClass(PigWritableComparators.PigIntRawBytesComparator.class.getName());
-
-        // Add combiner as well.
-        POPackage pkg_c = new POPackage(OperatorKey.genOpKey(scope));
-        BloomPackager combinerPkgr = new BloomPackager(createBloomInMap, vectorSizeBytes, numHash, hashType);
-        combinerPkgr.setCombiner(true);
-        combinerPkgr.setKeyType(DataType.INTEGER);
-        pkg_c.setPkgr(combinerPkgr);
-        pkg_c.setNumInps(1);
-        edge.combinePlan.addAsLeaf(pkg_c);
-        POProject prjKey = new POProject(OperatorKey.genOpKey(scope));
-        prjKey.setResultType(DataType.INTEGER);
-        List<PhysicalPlan> clrInps = new ArrayList<PhysicalPlan>();
-        PhysicalPlan pp = new PhysicalPlan();
-        pp.add(prjKey);
-        clrInps.add(pp);
-        POLocalRearrangeTez clr = localRearrangeFactory.create(0, LocalRearrangeType.WITHPLAN, clrInps, DataType.INTEGER);
-        clr.setOutputKey(combineBloomOpKey);
-        edge.combinePlan.addAsLeaf(clr);
-
-        if (createBloomInMap) {
-            // No combiner needed on map as there will be only one bloom filter per map for each partition
-            // In the reducer, the bloom filters will be combined with same logic of reduce in BloomPackager
-            edge.setCombinerInMap(false);
-            edge.setCombinerInReducer(true);
-        } else {
-            pkgr.setBloomKeyType(op.getPkgr().getKeyType());
-            // Do distinct of the keys on the map side to reduce data sent to reducers.
-            // In case of reduce, not adding a combiner and doing the distinct during reduce itself.
-            // If needed one can be added later
-            edge.setCombinerInMap(true);
-            edge.setCombinerInReducer(false);
-        }
-
-        // Broadcast the final bloom filter to other inputs
-        for (TezOperator applyBloomOp : applyBloomOps) {
-            applyBloomOp.markFilterBloom();
-            lr = (POLocalRearrangeTez) applyBloomOp.plan.getLeaves().get(0);
-            POBloomFilterRearrangeTez bfr = new POBloomFilterRearrangeTez(lr, numBloomFilters);
-            applyBloomOp.plan.remove(lr);
-            applyBloomOp.plan.addAsLeaf(bfr);
-            bfr.setInputKey(combineBloomOpKey);
-            edge = new TezEdgeDescriptor();
-            edge.setIntermediateOutputKeyClass(NullableIntWritable.class.getName());
-            edge.setIntermediateOutputKeyComparatorClass(PigWritableComparators.PigIntRawBytesComparator.class.getName());
-            TezCompilerUtil.configureValueOnlyTupleOutput(edge, DataMovementType.BROADCAST);
-            TezCompilerUtil.connect(tezPlan, combineBloomOp, applyBloomOp, edge);
-            combineBloomOutput.addOutputKey(applyBloomOp.getOperatorKey().toString());
-        }
-
     }
 
     @Override
@@ -1653,7 +1513,7 @@ public class TezCompiler extends PhyPlanVisitor {
 
             for (int i=0; i<transformPlans.size(); i++) {
                 eps1.add(transformPlans.get(i));
-                flat1.add(i == transformPlans.size() - 1 ? true : false);
+                flat1.add(true);
             }
 
             // This foreach will pick the sort key columns from the POPoissonSample output
@@ -1862,7 +1722,7 @@ public class TezCompiler extends PhyPlanVisitor {
      * @return
      * @throws IOException
      */
-    public static FileSpec getTempFileSpec(PigContext pigContext) throws IOException {
+    private FileSpec getTempFileSpec() throws IOException {
         return new FileSpec(FileLocalizer.getTemporaryPath(pigContext).toString(),
                 new FuncSpec(Utils.getTmpFileCompressorName(pigContext)));
     }

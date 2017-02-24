@@ -64,7 +64,7 @@ POValueOutputTez - scope-36	->	 [scope-33]
             |---POValueInputTez - scope-31	<-	 scope-28
 Tez vertex scope-33
 # Plan on vertex
-d: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-22
+d: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-22
 |
 |---d: Limit - scope-21
     |

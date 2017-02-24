@@ -95,8 +95,7 @@ public class MapLookupExpression extends ColumnExpression {
         LogicalFieldSchema predFS = successor.getFieldSchema();
         if (predFS!=null) {
             if (predFS.type==DataType.MAP && predFS.schema!=null) {
-                fieldSchema = predFS.schema.getField(0);
-                return fieldSchema;
+                return (predFS.schema.getField(0));
             }
             else {
                 fieldSchema = new LogicalSchema.LogicalFieldSchema(null, null, DataType.BYTEARRAY);

@@ -78,7 +78,7 @@ c: Local Rearrange[tuple]{tuple}(false) - scope-34	->	 scope-60
         |---POValueInputTez - scope-59	<-	 scope-53
 Tez vertex scope-60
 # Plan on vertex
-d: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-52
+d: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-52
 |
 |---d: New For Each(false,false,false)[bag] - scope-51
     |   |

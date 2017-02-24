@@ -102,7 +102,7 @@ public class PigFile {
         if(oc.needsTaskCommit(tac)) {
             oc.commitTask(tac);
         }
-        oc.commitJob(jc);
+        HadoopShims.commitOrCleanup(oc, jc);
     }
 
     @Override

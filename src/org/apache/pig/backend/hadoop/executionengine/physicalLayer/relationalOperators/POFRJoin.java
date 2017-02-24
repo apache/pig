@@ -97,7 +97,7 @@ public class POFRJoin extends PhysicalOperator {
 
     // The array of Hashtables one per replicated input. replicates[fragment] =
     // null fragment is the input which is fragmented and not replicated.
-    protected transient List<Map<? extends Object, ? extends List<Tuple>>> replicates;
+    protected transient TupleToMapKey replicates[];
     // varaible which denotes whether we are returning tuples from the foreach
     // operator
     protected transient boolean processingPlan;
@@ -234,10 +234,7 @@ public class POFRJoin extends PhysicalOperator {
         Result res = null;
         Result inp = null;
         if (!setUp) {
-            replicates = new ArrayList<Map<? extends Object, ? extends List<Tuple>>>(phyPlanLists.size());
-            for (int i = 0 ; i < phyPlanLists.size(); i++) {
-                replicates.add(null);
-            }
+            replicates = new TupleToMapKey[phyPlanLists.size()];
             dumTup = mTupleFactory.newTuple(1);
             setUpHashMap();
             setUp = true;
@@ -285,7 +282,8 @@ public class POFRJoin extends PhysicalOperator {
                 return new Result();
             }
             Tuple lrOutTuple = (Tuple) lrOut.result;
-            Object key = lrOutTuple.get(1);
+            Tuple key = mTupleFactory.newTuple(1);
+            key.set(0, lrOutTuple.get(1));
             Tuple value = getValueTuple(lr, lrOutTuple);
             lr.detachInput();
             // Configure the for each operator with the relevant bags
@@ -298,7 +296,7 @@ public class POFRJoin extends PhysicalOperator {
                     ce.setValue(value);
                     continue;
                 }
-                Map<? extends Object, ? extends List<Tuple>> replicate = replicates.get(i);
+                TupleToMapKey replicate = replicates[i];
                 if (replicate.get(key) == null) {
                     if (isLeftOuterJoin) {
                         ce.setValue(nullBag);
@@ -306,7 +304,7 @@ public class POFRJoin extends PhysicalOperator {
                     noMatch = true;
                     break;
                 }
-                ce.setValue(new NonSpillableDataBag(replicate.get(key)));
+                ce.setValue(new NonSpillableDataBag(replicate.get(key).getList()));
             }
 
             // If this is not LeftOuter Join and there was no match we
@@ -329,28 +327,27 @@ public class POFRJoin extends PhysicalOperator {
         }
     }
 
-    protected static class TupleToMapKey extends HashMap<Object, ArrayList<Tuple>> {
+    protected static class TupleToMapKey {
+        private HashMap<Tuple, TuplesToSchemaTupleList> tuples;
         private SchemaTupleFactory tf;
 
         public TupleToMapKey(int ct, SchemaTupleFactory tf) {
-            super(ct);
+            tuples = new HashMap<Tuple, TuplesToSchemaTupleList>(ct);
             this.tf = tf;
         }
 
-        @Override
-        public TuplesToSchemaTupleList put(Object key, ArrayList<Tuple> val) {
-            if (tf != null && key instanceof Tuple) {
-                key = TuplesToSchemaTupleList.convert((Tuple)key, tf);
+        public TuplesToSchemaTupleList put(Tuple key, TuplesToSchemaTupleList val) {
+            if (tf != null) {
+                key = TuplesToSchemaTupleList.convert(key, tf);
             }
-            return (TuplesToSchemaTupleList) super.put(key, val);
+            return tuples.put(key, val);
         }
 
-        @Override
-        public TuplesToSchemaTupleList get(Object key) {
-            if (tf != null && key instanceof Tuple) {
-                key = TuplesToSchemaTupleList.convert((Tuple)key, tf);
+        public TuplesToSchemaTupleList get(Tuple key) {
+            if (tf != null) {
+                key = TuplesToSchemaTupleList.convert(key, tf);
             }
-            return (TuplesToSchemaTupleList) super.get(key);
+            return tuples.get(key);
         }
     }
 
@@ -385,7 +382,7 @@ public class POFRJoin extends PhysicalOperator {
             SchemaTupleFactory keySchemaTupleFactory = keySchemaTupleFactories[i];
 
             if (i == fragment) {
-                replicates.set(i, null);
+                replicates[i] = null;
                 continue;
             }
 
@@ -404,34 +401,25 @@ public class POFRJoin extends PhysicalOperator {
             POLocalRearrange lr = LRs[i];
             lr.setInputs(Arrays.asList((PhysicalOperator) ld));
 
-            Map<Object, ArrayList<Tuple>> replicate;
-            if (keySchemaTupleFactory == null) {
-                replicate = new HashMap<Object, ArrayList<Tuple>>(1000);
-            } else {
-                replicate = new TupleToMapKey(1000, keySchemaTupleFactory);
-            }
+            TupleToMapKey replicate = new TupleToMapKey(1000, keySchemaTupleFactory);
 
             log.debug("Completed setup. Trying to build replication hash table");
             for (Result res = lr.getNextTuple(); res.returnStatus != POStatus.STATUS_EOP; res = lr.getNextTuple()) {
                 if (getReporter() != null)
                     getReporter().progress();
                 Tuple tuple = (Tuple) res.result;
-                Object key = tuple.get(1);
-                if (isKeyNull(key)) continue;
+                if (isKeyNull(tuple.get(1))) continue;
+                Tuple key = mTupleFactory.newTuple(1);
+                key.set(0, tuple.get(1));
                 Tuple value = getValueTuple(lr, tuple);
 
-                ArrayList<Tuple> values = replicate.get(key);
-                if (values == null) {
-                    if (inputSchemaTupleFactory == null) {
-                        values = new ArrayList<Tuple>(1);
-                    } else {
-                        values = new TuplesToSchemaTupleList(1, inputSchemaTupleFactory);
-                    }
-                    replicate.put(key, values);
+                if (replicate.get(key) == null) {
+                    replicate.put(key, new TuplesToSchemaTupleList(1, inputSchemaTupleFactory));
                 }
-                values.add(value);
+
+                replicate.get(key).add(value);
             }
-            replicates.set(i, replicate);
+            replicates[i] = replicate;
         }
         long time2 = System.currentTimeMillis();
         log.debug("Hash Table built. Time taken: " + (time2 - time1));

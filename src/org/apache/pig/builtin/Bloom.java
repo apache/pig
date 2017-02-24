@@ -35,7 +35,6 @@ import org.apache.pig.FilterFunc;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 
 /**
  * Use a Bloom filter build previously by BuildBloom.  You would first
@@ -55,36 +54,14 @@ import org.apache.pig.data.TupleFactory;
  * C = filter B by bloom(z);
  * D = join C by z, A by x;
  * It uses {@link org.apache.hadoop.util.bloom.BloomFilter}.
- *
- * You can also pass the Bloom filter from BuildBloom directly to Bloom UDF
- * as a scalar instead of storing it to file and loading again. This is simpler
- * if the Bloom filter will not be reused and needs to be discarded after the
- * run of the script.
- *
- * define bb BuildBloom('jenkins', '100', '0.1');
- * A = load 'foo' as (x, y);
- * B = group A all;
- * C = foreach B generate bb(A.x) as bloomfilter;
- * D = load 'bar' as (z);
- * E = filter D by Bloom(C.bloomfilter, z);
- * F = join E by z, A by x;
  */
 public class Bloom extends FilterFunc {
 
-    private static TupleFactory mTupleFactory = TupleFactory.getInstance();
-
     private String bloomFile;
-    private BloomFilter filter = null;
+    public BloomFilter filter = null;
 
-    public Bloom() {
-    }
-
-    /**
-     * The filename containing the serialized Bloom filter. If filename is null
-     * or the no-arg constructor is used, then the bloomfilter bytearray which
-     * is the output of BuildBloom should be passed as the first argument to the UDF
-     *
-     * @param filename  file containing the serialized Bloom filter
+    /** 
+     * @param filename file containing the serialized Bloom filter
      */
     public Bloom(String filename) {
         bloomFile = filename;
@@ -93,25 +70,11 @@ public class Bloom extends FilterFunc {
     @Override
     public Boolean exec(Tuple input) throws IOException {
         if (filter == null) {
-            init(input);
+            init();
         }
         byte[] b;
-        if (bloomFile == null) {
-            // The first one is the bloom filter. Skip that
-            if (input.size() == 2) {
-                b = DataType.toBytes(input.get(1));
-            } else {
-                List<Object> inputList = input.getAll();
-                Tuple tuple = mTupleFactory.newTupleNoCopy(inputList.subList(1, inputList.size()));
-                b = DataType.toBytes(tuple, DataType.TUPLE);
-            }
-        } else {
-            if (input.size() == 1) {
-                b = DataType.toBytes(input.get(0));
-            } else {
-                b = DataType.toBytes(input, DataType.TUPLE);
-            }
-        }
+        if (input.size() == 1) b = DataType.toBytes(input.get(0));
+        else b = DataType.toBytes(input, DataType.TUPLE);
 
         Key k = new Key(b);
         return filter.membershipTest(k);
@@ -119,46 +82,34 @@ public class Bloom extends FilterFunc {
 
     @Override
     public List<String> getCacheFiles() {
-        if (bloomFile != null) {
-            List<String> list = new ArrayList<String>(1);
-            // We were passed the name of the file on HDFS.  Append a
-            // name for the file on the task node.
-            try {
-                list.add(bloomFile + "#" + getFilenameFromPath(bloomFile));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            return list;
+        List<String> list = new ArrayList<String>(1);
+        // We were passed the name of the file on HDFS.  Append a
+        // name for the file on the task node.
+        try {
+            list.add(bloomFile + "#" + getFilenameFromPath(bloomFile));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-        return null;
+        return list;
     }
 
-    private void init(Tuple input) throws IOException {
-        if (bloomFile == null) {
-            if (input.get(0) instanceof DataByteArray) {
-                filter = BuildBloomBase.bloomIn((DataByteArray) input.get(0));
-            } else {
-                throw new IllegalArgumentException("The first argument to the Bloom UDF should be"
-                        + " the bloom filter if a bloom file is not specified in the constructor");
-            }
-        } else {
-            filter = new BloomFilter();
-            String dir = "./" + getFilenameFromPath(bloomFile);
-            String[] partFiles = new File(dir)
-                    .list(new FilenameFilter() {
-                        @Override
-                        public boolean accept(File current, String name) {
-                            return name.startsWith("part");
-                        }
-                    });
+    private void init() throws IOException {
+        filter = new BloomFilter();
+        String dir = "./" + getFilenameFromPath(bloomFile);
+        String[] partFiles = new File(dir)
+                .list(new FilenameFilter() {
+                    @Override
+                    public boolean accept(File current, String name) {
+                        return name.startsWith("part");
+                    }
+                });
 
-            String dcFile = dir + "/" + partFiles[0];
-            DataInputStream dis = new DataInputStream(new FileInputStream(dcFile));
-            try {
-                filter.readFields(dis);
-            } finally {
-                dis.close();
-            }
+        String dcFile = dir + "/" + partFiles[0];
+        DataInputStream dis = new DataInputStream(new FileInputStream(dcFile));
+        try {
+            filter.readFields(dis);
+        } finally {
+            dis.close();
         }
     }
 

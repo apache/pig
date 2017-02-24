@@ -21,10 +21,8 @@ package org.apache.pig.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -48,7 +46,6 @@ public class TestPOGenerate {
     DataBag cogroup;
     DataBag partialFlatten;
     DataBag simpleGenerate;
-    DataBag mapFlatten;
     Random r = new Random();
     BagFactory bf = BagFactory.getInstance();
     TupleFactory tf = TupleFactory.getInstance();
@@ -57,25 +54,10 @@ public class TestPOGenerate {
     public void setUp() throws Exception {
         Tuple [] inputA = new Tuple[4];
         Tuple [] inputB = new Tuple[4];
-        Tuple [] inputC = new Tuple[4];
         for(int i = 0; i < 4; i++) {
             inputA[i] = tf.newTuple(2);
             inputB[i] = tf.newTuple(1);
-            inputC[i] = tf.newTuple(2);
         }
-        Map map0 = new HashMap<String,String>();
-        Map map1 = new HashMap<String,String>();
-        Map map2 = new HashMap<String,String>();
-        Map map3 = new HashMap<String,String>();
-        map0.put("A","");
-        map0.put("B","");
-        map1.put("A","a");
-        map1.put("B","b");
-        map2.put("A","aa");
-        map2.put("B","bb");
-        map3.put("A","aaa");
-        map3.put("B","bbb");
-
         inputA[0].set(0, 'a');
         inputA[0].set(1, '1');
         inputA[1].set(0, 'b');
@@ -88,15 +70,6 @@ public class TestPOGenerate {
         inputB[1].set(0, 'b');
         inputB[2].set(0, 'a');
         inputB[3].set(0, 'd');
-        inputC[0].set(0, 0);
-        inputC[0].set(1, map0);
-        inputC[1].set(0, 1);
-        inputC[1].set(1, map1);
-        inputC[2].set(0, 2);
-        inputC[2].set(1, map2);
-        inputC[3].set(0, 3);
-        inputC[3].set(1, map3);
-
         DataBag cg11 = bf.newDefaultBag();
         cg11.add(inputA[0]);
         cg11.add(inputA[2]);
@@ -146,21 +119,14 @@ public class TestPOGenerate {
         tPartial[3].append(emptyBag);
 
         partialFlatten = bf.newDefaultBag();
-        for (int i = 0; i < 4; ++i) {
+        for(int i = 0; i < 4; ++i) {
             partialFlatten.add(tPartial[i]);
         }
 
         simpleGenerate = bf.newDefaultBag();
-        for (int i = 0; i < 4; ++i) {
+        for(int i = 0; i < 4; ++i) {
             simpleGenerate.add(inputA[i]);
         }
-
-
-        mapFlatten = bf.newDefaultBag();
-        for (int i = 0; i < inputC.length; ++i) {
-            mapFlatten.add(inputC[i]);
-        }
-
 
         //System.out.println("Cogroup : " + cogroup);
         //System.out.println("Partial : " + partialFlatten);
@@ -280,51 +246,6 @@ public class TestPOGenerate {
             ++count;
         }
         assertEquals(simpleGenerate.size(), count);
-
-    }
-
-    @Test
-    public void testMapFlattenGenerate() throws Exception {
-        ExpressionOperator prj1 = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
-        ExpressionOperator prj2 = new POProject(new OperatorKey("", r.nextLong()), -1, 1);
-        prj1.setResultType(DataType.INTEGER);
-        prj2.setResultType(DataType.MAP);
-        List<Boolean> toBeFlattened = new LinkedList<Boolean>();
-        toBeFlattened.add(false);
-        toBeFlattened.add(true);
-        PhysicalPlan plan1 = new PhysicalPlan();
-        plan1.add(prj1);
-        PhysicalPlan plan2 = new PhysicalPlan();
-        plan2.add(prj2);
-        List<PhysicalPlan> inputs = new LinkedList<PhysicalPlan>();
-        inputs.add(plan1);
-        inputs.add(plan2);
-        PhysicalOperator poGen = new POForEach(new OperatorKey("", r.nextLong()), 1, inputs, toBeFlattened);
-
-        List<String> obtained = new LinkedList<String>();
-        for (Tuple t : mapFlatten) {
-            poGen.attachInput(t);
-            Result output = poGen.getNextTuple();
-            while(output.result != null && output.returnStatus != POStatus.STATUS_EOP) {
-                //System.out.println(output.result);
-                obtained.add(((Tuple) output.result).toString());
-                output = poGen.getNextTuple();
-            }
-        }
-
-        int count = 0;
-        for (Tuple t : mapFlatten) {
-            Tuple expected = tf.newTuple(3);
-            expected.set(0, t.get(0));
-            for (Object entryObj : ((Map)t.get(1)).entrySet()){
-                Map.Entry entry = ((Map.Entry)entryObj);
-                expected.set(1, entry.getKey());
-                expected.set(2, entry.getValue());
-                assertTrue(obtained.contains(expected.toString()));
-                ++count;
-            }
-        }
-        assertEquals(mapFlatten.size()*2, count);
 
     }
 }

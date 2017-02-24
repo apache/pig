@@ -150,39 +150,6 @@ public class LogicalSchema {
             }
             return true;
         }
-
-        // Check if fs1 is equal to fs2 with regard to type
-        public static boolean typeMatch(LogicalFieldSchema fs1, LogicalFieldSchema fs2) {
-            if (fs1==null && fs2==null) {
-                return true;
-            }
-            if (fs1==null || fs2==null) {
-                return false;
-            }
-            if (fs1.type!=fs2.type) {
-                return false;
-            }
-            if (DataType.isComplex(fs1.type)) {
-                LogicalSchema s1 = fs1.schema;
-                LogicalSchema s2 = fs2.schema;
-                if (s1==null && s2==null) {
-                    return true;
-                }
-                if (fs1==null || fs2==null) {
-                    return false;
-                }
-                if (s1.size()!=s2.size()) {
-                    return false;
-                }
-                for (int i=0;i<s1.size();i++) {
-                    if (!typeMatch(s1.getField(i), s2.getField(i))) {
-                        return false;
-                    }
-                }
-            }
-            return true;
-        }
-
         /**
          * Adds the uid from FieldSchema argument to this FieldSchema
          * If the argument is null, it stamps this FieldSchema with uid
@@ -480,23 +447,7 @@ public class LogicalSchema {
             LogicalFieldSchema mergedFS = new LogicalFieldSchema(mergedAlias, mergedSubSchema, mergedType);
             return mergedFS;
         }
-
-        public static boolean isEqualUnlessUnknown(LogicalFieldSchema fs1, LogicalFieldSchema fs2) throws FrontendException {
-            if (fs1.type == DataType.BYTEARRAY) {
-                return true;
-            } else if (fs2.type == DataType.BYTEARRAY) {
-                return true;
-            } else if (fs1.type == fs2.type) {
-                if (DataType.isComplex(fs1.type)) {
-                    return LogicalSchema.isEqualUnlessUnknown(fs1.schema, fs2.schema);
-                } else {
-                    return true;
-                }
-            } else {
-                return false;
-            }
-        }
-
+        
         /***
          * Old Pig field schema does not require a tuple schema inside a bag;
          * Now it is required to have that; this method is to fill the gap
@@ -819,24 +770,7 @@ public class LogicalSchema {
         }
         return mergedSchema;
     }
-
-    public static boolean isEqualUnlessUnknown(LogicalSchema s1, LogicalSchema s2) throws FrontendException {
-        if (s1 == null) {
-            return true;
-        } else if (s2 == null) {
-            return true;
-        } else if (s1.size() != s2.size()) {
-            return false;
-        } else {
-            for (int i=0;i<s1.size();i++) {
-                if (!LogicalFieldSchema.isEqualUnlessUnknown(s1.getField(i), s1.getField(i))) {
-                    return false;
-                }
-            }
-            return true;
-        }
-    }
-
+    
     public String toString(boolean verbose) {
         StringBuilder str = new StringBuilder();
         

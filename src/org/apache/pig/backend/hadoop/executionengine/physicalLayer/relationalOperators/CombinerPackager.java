@@ -49,7 +49,7 @@ public class CombinerPackager extends Packager {
     private Map<Integer, Integer> keyLookup;
 
     private int numBags;
-
+    
     private transient boolean initialized;
     private transient boolean useDefaultBag;
 
@@ -75,15 +75,6 @@ public class CombinerPackager extends Packager {
         for (int i = 0; i < mBags.length; i++) {
             if (mBags[i]) numBags++;
         }
-    }
-
-    @Override
-    public void attachInput(Object key, DataBag[] bags, boolean[] readOnce)
-            throws ExecException {
-        this.key = key;
-        this.bags = bags;
-        this.readOnce = readOnce;
-        // Bag can be read directly and need not be materialized again
     }
 
     /**

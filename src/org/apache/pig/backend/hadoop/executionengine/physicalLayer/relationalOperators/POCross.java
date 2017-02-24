@@ -256,9 +256,4 @@ public class POCross extends PhysicalOperator {
         data = null;
     }
 
-    @Override
-    public void reset() {
-        clearMemory();
-    }
-
 }

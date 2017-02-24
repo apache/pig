@@ -62,6 +62,7 @@ import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
  */
 public class TezOperDependencyParallelismEstimator implements TezParallelismEstimator {
 
+    static private int maxTaskCount;
     static final double DEFAULT_FLATTEN_FACTOR = 10;
     static final double DEFAULT_FILTER_FACTOR = 0.7;
     static final double DEFAULT_LIMIT_FACTOR = 0.1;
@@ -75,8 +76,6 @@ public class TezOperDependencyParallelismEstimator implements TezParallelismEsti
     static final double DEFAULT_AGGREGATION_FACTOR = 0.7;
 
     private PigContext pc;
-    private int maxTaskCount;
-    private long bytesPerReducer;
 
     @Override
     public void setPigContext(PigContext pc) {
@@ -95,16 +94,14 @@ public class TezOperDependencyParallelismEstimator implements TezParallelismEsti
         maxTaskCount = conf.getInt(PigReducerEstimator.MAX_REDUCER_COUNT_PARAM,
                 PigReducerEstimator.DEFAULT_MAX_REDUCER_COUNT_PARAM);
 
-        bytesPerReducer = conf.getLong(PigReducerEstimator.BYTES_PER_REDUCER_PARAM, PigReducerEstimator.DEFAULT_BYTES_PER_REDUCER);
-
-        // If we have already estimated parallelism, use that one
-        if (tezOper.getEstimatedParallelism() != -1) {
-            return tezOper.getEstimatedParallelism();
-        }
-
         // If parallelism is set explicitly, respect it
         if (!tezOper.isIntermediateReducer() && tezOper.getRequestedParallelism()!=-1) {
             return tezOper.getRequestedParallelism();
+        }
+
+        // If we have already estimated parallelism, use that one
+        if (tezOper.getEstimatedParallelism()!=-1) {
+            return tezOper.getEstimatedParallelism();
         }
 
         List<TezOperator> preds = plan.getPredecessors(tezOper);
@@ -133,12 +130,6 @@ public class TezOperDependencyParallelismEstimator implements TezParallelismEsti
                 boolean applyFactor = !tezOper.isUnion();
                 if (!pred.isVertexGroup() && applyFactor) {
                     predParallelism = predParallelism * pred.getParallelismFactor(tezOper);
-                    if (pred.getTotalInputFilesSize() > 0) {
-                        // Estimate similar to mapreduce and use the maximum of two
-                        int parallelismBySize = (int) Math.ceil((double) pred
-                                .getTotalInputFilesSize() / bytesPerReducer);
-                        predParallelism = Math.max(predParallelism, parallelismBySize);
-                    }
                 }
                 estimatedParallelism += predParallelism;
             }
@@ -166,7 +157,9 @@ public class TezOperDependencyParallelismEstimator implements TezParallelismEsti
         }
 
         if (roundedEstimatedParallelism == 0) {
-            roundedEstimatedParallelism = 1; // We need to produce empty output file
+            throw new IOException("Estimated parallelism for "
+                    + tezOper.getOperatorKey().toString()
+                    + " is 0 which is unexpected");
         }
 
         return roundedEstimatedParallelism;
@@ -203,7 +196,7 @@ public class TezOperDependencyParallelismEstimator implements TezParallelismEsti
             if (successor != null) {
                 // Map side combiner
                 TezEdgeDescriptor edge = tezOp.outEdges.get(successor.getOperatorKey());
-                if (!edge.combinePlan.isEmpty() || edge.needsDistinctCombiner()) {
+                if (!edge.combinePlan.isEmpty()) {
                     if (successor.isDistinct()) {
                         factor = DEFAULT_DISTINCT_FACTOR;
                     } else {

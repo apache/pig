@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.DistinctCombiner;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PlanPrinter;
@@ -81,9 +80,6 @@ public class TezPrinter extends TezOpPlanVisitor {
                     printer.setVerbose(isVerbose);
                     printer.visit();
                     mStream.println();
-                } else if (edgeDesc.needsDistinctCombiner()) {
-                    mStream.println("# Combine plan on edge <" + inEdge + ">");
-                    mStream.println(DistinctCombiner.Combine.class.getName());
                 }
             }
         }

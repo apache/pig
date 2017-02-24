@@ -580,7 +580,7 @@ public class CSVExcelStorage extends PigStorage implements StoreFuncInterface, L
                 }
             } else if (b == DOUBLE_QUOTE) {
                 // Does a double quote immediately follow?                  
-                if ((i < recordLen-1) && (buf[i+1] == DOUBLE_QUOTE) && (fieldBuffer.position() != 0)) {
+                if ((i < recordLen-1) && (buf[i+1] == DOUBLE_QUOTE)) {
                     fieldBuffer.put(b);
                     nextTupleSkipChar = true;
                     continue;

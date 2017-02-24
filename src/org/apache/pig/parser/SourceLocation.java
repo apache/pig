@@ -75,11 +75,12 @@ public class SourceLocation {
         if (node != null) {
             InvocationPoint pt = node.getNextInvocationPoint();
             while (pt != null) {
+                sb.append("\n");
                 sb.append("at expanding macro '" + pt.getMacro() + "' ("
                         + pt.getFile() + ":" + pt.getLine() + ")");
                 pt = node.getNextInvocationPoint();
-                sb.append("\n");
             }
+            sb.append("\n");
         }
         sb.append( "<" );
         if( file != null && !file.isEmpty() )

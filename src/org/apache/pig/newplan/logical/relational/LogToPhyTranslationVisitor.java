@@ -1414,7 +1414,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
 
             return;
         }
-        else if (loj.getJoinType() == LOJoin.JOINTYPE.HASH || loj.getJoinType() == LOJoin.JOINTYPE.BLOOM){
+        else if (loj.getJoinType() == LOJoin.JOINTYPE.HASH){
             POPackage poPackage = compileToLR_GR_PackTrio(loj, loj.getCustomPartitioner(), innerFlags, loj.getExpressionPlans());
             POForEach fe = compileFE4Flattening(innerFlags,  scope, parallel, alias, location, inputs);
             currentPlan.add(fe);
@@ -1425,20 +1425,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                         e.getErrorCode(),e.getErrorSource(),e);
             }
             logToPhyMap.put(loj, fe);
-            if (loj.getJoinType() == LOJoin.JOINTYPE.BLOOM) {
-                if (innerFlags.length == 2) {
-                    if (innerFlags[0] == false && innerFlags[1] == false) {
-                        throw new LogicalToPhysicalTranslatorException(
-                                "Error at " + loj.getLocation() + " with alias "+ loj.getAlias() +
-                                        ". Bloom join cannot be used with a FULL OUTER join.",
-                                1109,
-                                PigException.INPUT);
-                    }
-                }
-                poPackage.getPkgr().setPackageType(PackageType.BLOOMJOIN);
-            } else {
-                poPackage.getPkgr().setPackageType(PackageType.JOIN);
-            }
+            poPackage.getPkgr().setPackageType(PackageType.JOIN);
         }
         translateSoftLinks(loj);
     }

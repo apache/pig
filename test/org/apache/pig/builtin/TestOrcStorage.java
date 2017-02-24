@@ -195,7 +195,7 @@ public class TestOrcStorage {
         Reader reader = OrcFile.createReader(fs, Util.getFirstPartFile(new Path(OUTPUT1)));
         assertEquals(reader.getNumberOfRows(), 2);
 
-        RecordReader rows = reader.rows();
+        RecordReader rows = reader.rows(null);
         Object row = rows.next(null);
         StructObjectInspector soi = (StructObjectInspector)reader.getObjectInspector();
         IntWritable intWritable = (IntWritable)soi.getStructFieldData(row,
@@ -291,7 +291,7 @@ public class TestOrcStorage {
         ObjectInspector oi = orcReader.getObjectInspector();
         StructObjectInspector soi = (StructObjectInspector) oi;
 
-        RecordReader reader = orcReader.rows();
+        RecordReader reader = orcReader.rows(null);
         Object row = null;
 
         while (reader.hasNext()) {
@@ -326,9 +326,9 @@ public class TestOrcStorage {
         Reader orcReaderActual = OrcFile.createReader(fs, orcFile);
         StructObjectInspector soiActual = (StructObjectInspector) orcReaderActual.getObjectInspector();
 
-        RecordReader readerExpected = orcReaderExpected.rows();
+        RecordReader readerExpected = orcReaderExpected.rows(null);
         Object expectedRow = null;
-        RecordReader readerActual = orcReaderActual.rows();
+        RecordReader readerActual = orcReaderActual.rows(null);
         Object actualRow = null;
 
         while (readerExpected.hasNext()) {

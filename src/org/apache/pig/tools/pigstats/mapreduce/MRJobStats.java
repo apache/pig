@@ -32,16 +32,15 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.Counters;
 import org.apache.hadoop.mapred.Counters.Counter;
 import org.apache.hadoop.mapred.JobID;
-import org.apache.hadoop.mapreduce.Cluster;
-import org.apache.hadoop.mapreduce.TaskReport;
+import org.apache.hadoop.mapred.TaskReport;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapreduce.TaskType;
-import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigCounters;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.impl.io.FileSpec;
@@ -53,8 +52,6 @@ import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.apache.pig.tools.pigstats.PigStats.JobGraphPrinter;
-
-import org.python.google.common.collect.Lists;
 
 
 /**
@@ -284,7 +281,7 @@ public final class MRJobStats extends JobStats {
 
     void addCounters(Job job) {
         try {
-            counters = getCounters(job);
+            counters = HadoopShims.getCounters(job);
         } catch (IOException e) {
             LOG.warn("Unable to get job counters", e);
         }
@@ -352,13 +349,13 @@ public final class MRJobStats extends JobStats {
     void addMapReduceStatistics(Job job) {
         Iterator<TaskReport> maps = null;
         try {
-            maps = getTaskReports(job, TaskType.MAP);
+            maps = HadoopShims.getTaskReports(job, TaskType.MAP);
         } catch (IOException e) {
             LOG.warn("Failed to get map task report", e);
         }
         Iterator<TaskReport> reduces = null;
         try {
-            reduces = getTaskReports(job, TaskType.REDUCE);
+            reduces = HadoopShims.getTaskReports(job, TaskType.REDUCE);
         } catch (IOException e) {
             LOG.warn("Failed to get reduce task report", e);
         }
@@ -516,37 +513,6 @@ public final class MRJobStats extends JobStats {
         InputStats is = new InputStats(fileName, -1, records, (state == JobState.SUCCESS));
         is.setConf(conf);
         inputs.add(is);
-    }
-
-    public static Iterator<TaskReport> getTaskReports(Job job, TaskType type) throws IOException {
-        if (job.getJobConf().getBoolean(PigConfiguration.PIG_NO_TASK_REPORT, false)) {
-            LOG.info("TaskReports are disabled for job: " + job.getAssignedJobID());
-            return null;
-        }
-        Cluster cluster = new Cluster(job.getJobConf());
-        try {
-            org.apache.hadoop.mapreduce.Job mrJob = cluster.getJob(job.getAssignedJobID());
-            if (mrJob == null) { // In local mode, mrJob will be null
-                mrJob = job.getJob();
-            }
-            org.apache.hadoop.mapreduce.TaskReport[] reports = mrJob.getTaskReports(type);
-            return Lists.newArrayList(reports).iterator();
-        } catch (InterruptedException ir) {
-            throw new IOException(ir);
-        }
-    }
-
-    public static Counters getCounters(Job job) throws IOException {
-        try {
-            Cluster cluster = new Cluster(job.getJobConf());
-            org.apache.hadoop.mapreduce.Job mrJob = cluster.getJob(job.getAssignedJobID());
-            if (mrJob == null) { // In local mode, mrJob will be null
-                mrJob = job.getJob();
-            }
-            return new Counters(mrJob.getCounters());
-        } catch (Exception ir) {
-            throw new IOException(ir);
-        }
     }
 
 }

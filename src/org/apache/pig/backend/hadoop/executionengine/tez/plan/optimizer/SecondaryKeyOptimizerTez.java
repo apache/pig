@@ -75,7 +75,7 @@ public class SecondaryKeyOptimizerTez extends TezOpPlanVisitor implements Second
         POLocalRearrangeTez connectingLR = null;
         PhysicalPlan rearrangePlan = from.plan;
         for (POLocalRearrangeTez lr : rearranges) {
-            if (lr.containsOutputKey(to.getOperatorKey().toString())) {
+            if (lr.getOutputKey().equals(to.getOperatorKey().toString())) {
                 connectingLR = lr;
                 break;
             }

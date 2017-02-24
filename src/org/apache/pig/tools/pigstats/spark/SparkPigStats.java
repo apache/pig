@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -39,6 +40,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.tools.pigstats.InputStats;
 import org.apache.pig.tools.pigstats.JobStats;
+import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.ScriptState;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -113,35 +115,29 @@ public class SparkPigStats extends PigStats {
     }
 
     private void display() {
-        LOG.info(getDisplayString());
-    }
-
-    public String getDisplayString() {
-        StringBuilder sb = new StringBuilder();
         Iterator<JobStats> iter = jobPlan.iterator();
         while (iter.hasNext()) {
-            SparkJobStats js = (SparkJobStats) iter.next();
+            SparkJobStats js = (SparkJobStats)iter.next();
             if (jobSparkOperatorMap.containsKey(js)) {
                 SparkOperator sparkOperator = jobSparkOperatorMap.get(js);
                 js.setAlias(sparkOperator);
             }
-            sb.append("Spark Job [" + js.getJobId() + "] Metrics");
+            LOG.info( "Spark Job [" + js.getJobId() + "] Metrics");
             Map<String, Long> stats = js.getStats();
             if (stats == null) {
-                sb.append("No statistics found for job " + js.getJobId());
-                return sb.toString();
+                LOG.info("No statistics found for job " + js.getJobId());
+                return;
             }
 
             Iterator statIt = stats.entrySet().iterator();
             while (statIt.hasNext()) {
-                Map.Entry pairs = (Map.Entry) statIt.next();
-                sb.append("\t" + pairs.getKey() + " : " + pairs.getValue());
+                Map.Entry pairs = (Map.Entry)statIt.next();
+                LOG.info("\t" + pairs.getKey() + " : " + pairs.getValue());
             }
-            for (InputStats inputStat : js.getInputs()) {
-                sb.append("\t" + inputStat.getDisplayString());
+            for (InputStats inputStat : js.getInputs()){
+                LOG.info("\t"+inputStat.getDisplayString());
             }
         }
-        return sb.toString();
     }
 
     @Override

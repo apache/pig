@@ -15,7 +15,7 @@ Tez vertex scope-43
 # Plan on vertex
 e: Split - scope-61
 |   |
-|   e: Store(file:///tmp/pigoutput1:org.apache.pig.builtin.PigStorage) - scope-62	->	 scope-29
+|   e: Store(file:///tmp/output1:org.apache.pig.builtin.PigStorage) - scope-62	->	 scope-29
 |   |
 |   f: Local Rearrange[tuple]{int}(false) - scope-63	->	 scope-53
 |   |   |
@@ -36,7 +36,7 @@ Tez vertex scope-37
 # Plan on vertex
 e: Split - scope-66
 |   |
-|   e: Store(file:///tmp/pigoutput1:org.apache.pig.builtin.PigStorage) - scope-67	->	 scope-29
+|   e: Store(file:///tmp/output1:org.apache.pig.builtin.PigStorage) - scope-67	->	 scope-29
 |   |
 |   f: Local Rearrange[tuple]{int}(false) - scope-68	->	 scope-53
 |   |   |
@@ -57,7 +57,7 @@ Tez vertex scope-38
 # Plan on vertex
 e: Split - scope-70
 |   |
-|   e: Store(file:///tmp/pigoutput1:org.apache.pig.builtin.PigStorage) - scope-71	->	 scope-29
+|   e: Store(file:///tmp/output1:org.apache.pig.builtin.PigStorage) - scope-71	->	 scope-29
 |   |
 |   f: Local Rearrange[tuple]{int}(false) - scope-72	->	 scope-53
 |   |   |
@@ -78,7 +78,7 @@ Tez vertex group scope-56	<-	 [scope-43, scope-37, scope-38]	->	 scope-53
 # No plan on vertex group
 Tez vertex scope-53
 # Plan on vertex
-f: Store(file:///tmp/pigoutput2:org.apache.pig.builtin.PigStorage) - scope-36
+f: Store(file:///tmp/output2:org.apache.pig.builtin.PigStorage) - scope-36
 |
 |---f: Package(Packager)[tuple]{int} - scope-33
 Tez vertex group scope-55	<-	 [scope-43, scope-37, scope-38]	->	 null

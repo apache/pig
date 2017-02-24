@@ -58,7 +58,7 @@ Local Rearrange[tuple]{int}(false) - scope-71	->	 scope-77
     |---d: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-58
 Tez vertex scope-77
 # Plan on vertex
-e: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-74
+e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-74
 |
 |---e: FRJoin[tuple] - scope-68	<-	 scope-81
     |   |

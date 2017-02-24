@@ -60,6 +60,7 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.util.StorageUtil;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.DataByteArray;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 
 /**
  * <code>IndexedStorage</code> is a form of <code>PigStorage</code> that supports a

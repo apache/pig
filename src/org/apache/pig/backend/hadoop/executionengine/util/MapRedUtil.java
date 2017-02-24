@@ -70,7 +70,7 @@ public class MapRedUtil {
     private static Log log = LogFactory.getLog(MapRedUtil.class);
     private static final TupleFactory tf = TupleFactory.getInstance();
 
-    public static final String FILE_SYSTEM_NAME = FileSystem.FS_DEFAULT_NAME_KEY;
+    public static final String FILE_SYSTEM_NAME = "fs.default.name";
 
     /**
      * Loads the key distribution sampler file
@@ -301,7 +301,7 @@ public class MapRedUtil {
     /**
      * Returns the total number of bytes for this file, or if a directory all
      * files in the directory.
-     *
+     * 
      * @param fs FileSystem
      * @param status FileStatus
      * @param max Maximum value of total length that will trigger exit. Many

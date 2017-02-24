@@ -33,7 +33,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -50,7 +49,6 @@ import java.util.Map;
 public final class AvroTupleWrapper <T extends IndexedRecord>
     implements Tuple {
     private static final Log LOG = LogFactory.getLog(AvroTupleWrapper.class);
-    private TupleFactory mTupleFactory = TupleFactory.getInstance();
 
   /**
    * The Avro object wrapped in the pig Tuple.
@@ -66,9 +64,9 @@ public final class AvroTupleWrapper <T extends IndexedRecord>
   }
 
   @Override
-  public void write(DataOutput out) throws IOException {
-      Tuple t = mTupleFactory.newTupleNoCopy(getAll());
-      t.write(out);
+  public void write(final DataOutput o) throws IOException {
+    throw new IOException(
+        this.getClass().toString() + ".write called, but not implemented yet");
   }
 
   @SuppressWarnings("rawtypes")

@@ -207,18 +207,13 @@ public final class SimplePigStats extends PigStats {
     }
 
     void display() {
-        LOG.info(getDisplayString());
-    }
-
-    @Override
-    public String getDisplayString() {
         if (returnCode == ReturnCode.UNKNOWN) {
             LOG.warn("unknown return code, can't display the results");
-            return "";
+            return;
         }
         if (pigContext == null) {
             LOG.warn("unknown exec type, don't display the results");
-            return "";
+            return;
         }
 
         SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT);
@@ -281,7 +276,7 @@ public final class SimplePigStats extends PigStats {
 
         sb.append("\nJob DAG:\n").append(jobPlan.toString());
 
-        return "Script Statistics: \n" + sb.toString();
+        LOG.info("Script Statistics: \n" + sb.toString());
     }
 
     void mapMROperToJob(MapReduceOper mro, Job job) {

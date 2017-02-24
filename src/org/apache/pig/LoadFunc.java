@@ -108,7 +108,7 @@ public abstract class LoadFunc {
     public abstract InputFormat getInputFormat() throws IOException;
 
     /**
-     * This will be called on both the front end and the back
+     * This will be called on the front end during planning and not on the back 
      * end during execution.
      * @return the {@link LoadCaster} associated with this loader. Returning null 
      * indicates that casts from byte array are not supported for this loader. 

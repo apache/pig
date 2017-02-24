@@ -70,7 +70,7 @@ b: Local Rearrange[tuple]{int}(false) - scope-55	->	 scope-37
     |
     |---b: Package(CombinerPackager)[tuple]{int} - scope-50
 # Plan on vertex
-d: Store(file:///tmp/pigoutput/e:org.apache.pig.builtin.PigStorage) - scope-35
+d: Store(file:///tmp/output/e:org.apache.pig.builtin.PigStorage) - scope-35
 |
 |---d: FRJoin[tuple] - scope-29	<-	 scope-38
     |   |

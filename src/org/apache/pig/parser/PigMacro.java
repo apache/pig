@@ -168,9 +168,14 @@ class PigMacro {
 
             Map<String, String> paramVal = pc.getParamVal();
             for (Map.Entry<String, String> e : pigContext.getParamVal().entrySet()) {
-                // overwrite=false since macro parameters should have precedence
-                // over commandline parameters (if keys overlap)
-                pc.processOrdLine(e.getKey(), e.getValue(), false);
+                if (paramVal.containsKey(e.getKey())) {
+                    throw new ParserException(
+                        "Macro contains argument or return value " + e.getKey() + " which conflicts " +
+                        "with a Pig parameter of the same name."
+                    );
+                } else {
+                    paramVal.put(e.getKey(), e.getValue());
+                }
             }
             
             ParameterSubstitutionPreprocessor psp = new ParameterSubstitutionPreprocessor(pc);
@@ -214,7 +219,6 @@ class PigMacro {
         try {
             result = parser.query();
         } catch (RecognitionException e) {
-            e.line += startLine -1;
             String msg = (fileName == null) ? parser.getErrorHeader(e)
                     : QueryParserUtils.generateErrorHeader(e, fileName);
             msg += " " + parser.getErrorMessage(e, parser.getTokenNames());
@@ -232,7 +236,7 @@ class PigMacro {
         if (!macroDefNodes.isEmpty()) {
             String fname = ((PigParserNode)ast).getFileName();
             String msg = getErrorMessage(fname, ast.getLine(),
-                    "Invalid macro definition", "macro '" + name
+                    "Invalide macro definition", "macro '" + name
                             + "' contains macro definition.\nmacro content: "
                             + body);
             throw new ParserException(msg);
@@ -269,7 +273,6 @@ class PigMacro {
         try {
             result2 = walker.query();
         } catch (RecognitionException e) {
-            e.line += startLine - 1;
             String msg = walker.getErrorHeader(e) + " "
                     + walker.getErrorMessage(e, walker.getTokenNames());
             String msg2 = getErrorMessage(file, line, "Failed to mask macro '"

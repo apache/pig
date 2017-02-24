@@ -29,14 +29,9 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezResourceManager;
-import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POStoreTez;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
-import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.PlanException;
@@ -165,178 +160,100 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
             return;
         }
 
-        List<TezOperator> opersToSegment = null;
+        TezOperator operToSegment = null;
+        List<TezOperator> succs = new ArrayList<TezOperator>();
         try {
             // Split top down from root to leaves
-            // Get list of operators closer to the root that can be segmented together
-            FirstLevelSegmentOperatorsFinder finder = new FirstLevelSegmentOperatorsFinder(tezOperPlan);
+            SegmentOperatorFinder finder = new SegmentOperatorFinder(tezOperPlan);
             finder.visit();
-            opersToSegment = finder.getOperatorsToSegment();
+            operToSegment = finder.getOperatorToSegment();
         } catch (VisitorException e) {
             throw new PlanException(e);
         }
-        if (!opersToSegment.isEmpty()) {
-            Set<TezOperator> commonSplitterPredecessors = new HashSet<>();
-            for (TezOperator operToSegment : opersToSegment) {
-                for (TezOperator succ : tezOperPlan.getSuccessors(operToSegment)) {
-                    commonSplitterPredecessors
-                            .addAll(getCommonSplitterPredecessors(tezOperPlan,
-                                    operToSegment, succ));
-                }
-            }
 
-            if (commonSplitterPredecessors.isEmpty()) {
-                List<TezOperator> allSuccs = new ArrayList<TezOperator>();
-                // Disconnect all the successors and move them to a new plan
-                for (TezOperator operToSegment : opersToSegment) {
-                    List<TezOperator> succs = new ArrayList<TezOperator>();
-                    succs.addAll(tezOperPlan.getSuccessors(operToSegment));
-                    allSuccs.addAll(succs);
-                    for (TezOperator succ : succs) {
-                        tezOperPlan.disconnect(operToSegment, succ);
+        if (operToSegment != null && tezOperPlan.getSuccessors(operToSegment) != null) {
+            succs.addAll(tezOperPlan.getSuccessors(operToSegment));
+            for (TezOperator succ : succs) {
+                tezOperPlan.disconnect(operToSegment, succ);
+            }
+            for (TezOperator succ : succs) {
+                try {
+                    if (tezOperPlan.getOperator(succ.getOperatorKey()) == null) {
+                        // Has already been moved to a new plan by previous successor
+                        // as part of dependency. It could have been further split.
+                        // So walk the full plan to find the new plan and connect
+                        TezOperatorFinder finder = new TezOperatorFinder(this, succ);
+                        finder.visit();
+                        connect(planNode, finder.getPlanContainerNode());
+                        continue;
                     }
-                }
-                TezOperPlan newOperPlan = new TezOperPlan();
-                for (TezOperator succ : allSuccs) {
+                    TezOperPlan newOperPlan = new TezOperPlan();
                     tezOperPlan.moveTree(succ, newOperPlan);
-                }
-                TezPlanContainerNode newPlanNode = new TezPlanContainerNode(
-                        generateNodeOperatorKey(), newOperPlan);
-                add(newPlanNode);
-                connect(planNode, newPlanNode);
-                split(newPlanNode);
-            } else {
-                // If there is a common splitter predecessor between operToSegment and the successor,
-                // we have to separate out that split to be able to segment.
-                // So we store the output of split to a temp store and then change the
-                // splittees to load from it.
-                String scope = opersToSegment.get(0).getOperatorKey().getScope();
-                for (TezOperator splitter : commonSplitterPredecessors) {
-                    try {
-                        List<TezOperator> succs = new ArrayList<TezOperator>();
-                        succs.addAll(tezOperPlan.getSuccessors(splitter));
-                        FileSpec fileSpec = TezCompiler.getTempFileSpec(pigContext);
-                        POStore tmpStore = getTmpStore(scope, fileSpec);
-                        // Replace POValueOutputTez with POStore
-                        splitter.plan.remove(splitter.plan.getLeaves().get(0));
-                        splitter.plan.addAsLeaf(tmpStore);
-                        splitter.segmentBelow = true;
-                        splitter.setSplitter(false);
-                        for (TezOperator succ : succs) {
-                            // Replace POValueInputTez with POLoad
-                            POLoad tmpLoad = getTmpLoad(scope, fileSpec);
-                            succ.plan.replace(succ.plan.getRoots().get(0), tmpLoad);
-                        }
-                    } catch (Exception e) {
-                        throw new PlanException(e);
+                    TezPlanContainerNode newPlanNode = new TezPlanContainerNode(
+                            generateNodeOperatorKey(), newOperPlan);
+                    add(newPlanNode);
+                    connect(planNode, newPlanNode);
+                    split(newPlanNode);
+                    if (newPlanNode.getTezOperPlan().getOperator(succ.getOperatorKey()) == null) {
+                        // On further split, the successor moved to a new plan container.
+                        // Connect to that
+                        TezOperatorFinder finder = new TezOperatorFinder(this, succ);
+                        finder.visit();
+                        disconnect(planNode, newPlanNode);
+                        connect(planNode, finder.getPlanContainerNode());
                     }
+                } catch (VisitorException e) {
+                    throw new PlanException(e);
                 }
             }
             split(planNode);
         }
     }
 
-    private static class FirstLevelSegmentOperatorsFinder extends TezOpPlanVisitor {
+    private static class SegmentOperatorFinder extends TezOpPlanVisitor {
 
-        private List<TezOperator> opersToSegment = new ArrayList<>();
+        private TezOperator operToSegment;
 
-        public FirstLevelSegmentOperatorsFinder(TezOperPlan plan) {
+        public SegmentOperatorFinder(TezOperPlan plan) {
             super(plan, new DependencyOrderWalker<TezOperator, TezOperPlan>(plan));
         }
 
-        public List<TezOperator> getOperatorsToSegment() {
-            return opersToSegment;
+        public TezOperator getOperatorToSegment() {
+            return operToSegment;
         }
 
         @Override
-        public void visitTezOp(TezOperator tezOp) throws VisitorException {
-            if (tezOp.needSegmentBelow() && getPlan().getSuccessors(tezOp) != null) {
-                if (opersToSegment.isEmpty()) {
-                    opersToSegment.add(tezOp);
-                } else {
-                    // If the operator does not have dependency on previous
-                    // operators chosen for segmenting then add it to the
-                    // operators to be segmented together
-                    if (!hasPredecessor(tezOp, opersToSegment)) {
-                        opersToSegment.add(tezOp);
-                    }
-                }
+        public void visitTezOp(TezOperator tezOperator) throws VisitorException {
+            if (tezOperator.needSegmentBelow() && operToSegment == null) {
+                operToSegment = tezOperator;
             }
-        }
-
-        /**
-         * Check if the tezOp has one of the opsToCheck as a predecessor.
-         * It can be a immediate predecessor or multiple levels up.
-         */
-        private boolean hasPredecessor(TezOperator tezOp, List<TezOperator> opsToCheck) {
-            List<TezOperator> predecessors = getPlan().getPredecessors(tezOp);
-            if (predecessors != null) {
-                for (TezOperator pred : predecessors) {
-                    if (opersToSegment.contains(pred)) {
-                        return true;
-                    } else {
-                        if (hasPredecessor(pred, opsToCheck)) {
-                            return true;
-                        }
-                    }
-                }
-            }
-            return false;
         }
 
     }
 
-    private Set<TezOperator> getCommonSplitterPredecessors(TezOperPlan plan, TezOperator operToSegment, TezOperator successor) {
-        Set<TezOperator> splitters1 = new HashSet<>();
-        Set<TezOperator> splitters2 = new HashSet<>();
-        Set<TezOperator> processedPredecessors = new HashSet<>();
-        // Find predecessors which are splitters
-        fetchSplitterPredecessors(plan, operToSegment, processedPredecessors, splitters1);
-        if (!splitters1.isEmpty()) {
-            // For the successor, traverse rest of the plan below it and
-            // search the predecessors of its successors to find any predecessor that might be a splitter.
-            Set<TezOperator> allSuccs = new HashSet<>();
-            getAllSuccessors(plan, successor, allSuccs);
-            processedPredecessors.clear();
-            processedPredecessors.add(successor);
-            for (TezOperator succ : allSuccs) {
-                fetchSplitterPredecessors(plan, succ, processedPredecessors, splitters2);
-            }
-            // Find the common ones
-            splitters1.retainAll(splitters2);
-        }
-        return splitters1;
-    }
+    private static class TezOperatorFinder extends TezPlanContainerVisitor {
 
-    private void fetchSplitterPredecessors(TezOperPlan plan, TezOperator tezOp,
-            Set<TezOperator> processedPredecessors, Set<TezOperator> splitters) {
-        List<TezOperator> predecessors = plan.getPredecessors(tezOp);
-        if (predecessors != null) {
-            for (TezOperator pred : predecessors) {
-                // Skip processing already processed predecessor to avoid loops
-                if (processedPredecessors.contains(pred)) {
-                    continue;
-                }
-                if (pred.isSplitter()) {
-                    splitters.add(pred);
-                } else if (!pred.needSegmentBelow()) {
-                    processedPredecessors.add(pred);
-                    fetchSplitterPredecessors(plan, pred, processedPredecessors, splitters);
-                }
-            }
-        }
-    }
+        private TezPlanContainerNode planContainerNode;
+        private TezOperator operatorToFind;
 
-    private void getAllSuccessors(TezOperPlan plan, TezOperator tezOp, Set<TezOperator> allSuccs) {
-        List<TezOperator> successors = plan.getSuccessors(tezOp);
-        if (successors != null) {
-            for (TezOperator succ : successors) {
-                if (!allSuccs.contains(succ)) {
-                    allSuccs.add(succ);
-                    getAllSuccessors(plan, succ, allSuccs);
-                }
+        public TezOperatorFinder(TezPlanContainer plan, TezOperator operatorToFind) {
+            super(plan, new DependencyOrderWalker<TezPlanContainerNode, TezPlanContainer>(plan));
+            this.operatorToFind = operatorToFind;
+        }
+
+        public TezPlanContainerNode getPlanContainerNode() {
+            return planContainerNode;
+        }
+
+        @Override
+        public void visitTezPlanContainerNode(
+                TezPlanContainerNode tezPlanContainerNode)
+                throws VisitorException {
+            if (tezPlanContainerNode.getTezOperPlan().getOperatorKey(operatorToFind) != null) {
+                planContainerNode = tezPlanContainerNode;
             }
         }
+
     }
 
     private synchronized OperatorKey generateNodeOperatorKey() {
@@ -348,21 +265,6 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
 
     public static void resetScope() {
         scopeId = 0;
-    }
-
-    private POLoad getTmpLoad(String scope, FileSpec fileSpec){
-        POLoad ld = new POLoad(new OperatorKey(scope, NodeIdGenerator.getGenerator().getNextNodeId(scope)));
-        ld.setPc(pigContext);
-        ld.setIsTmpLoad(true);
-        ld.setLFile(fileSpec);
-        return ld;
-    }
-
-    private POStore getTmpStore(String scope, FileSpec fileSpec){
-        POStore st = new POStore(new OperatorKey(scope, NodeIdGenerator.getGenerator().getNextNodeId(scope)));
-        st.setIsTmpStore(true);
-        st.setSFile(fileSpec);
-        return new POStoreTez(st);
     }
 
     @Override

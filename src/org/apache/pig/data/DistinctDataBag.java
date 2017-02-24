@@ -67,17 +67,17 @@ public class DistinctDataBag extends DefaultAbstractBag {
     public boolean isSorted() {
         return false;
     }
-
+    
     @Override
     public boolean isDistinct() {
         return true;
     }
-
-
+    
+    
     @Override
     public long size() {
         if (mSpillFiles != null && mSpillFiles.size() > 0){
-            //We need to racalculate size to guarantee a count of unique
+            //We need to racalculate size to guarantee a count of unique 
             //entries including those on disk
             Iterator<Tuple> iter = iterator();
             int newSize = 0;
@@ -85,7 +85,7 @@ public class DistinctDataBag extends DefaultAbstractBag {
                 newSize++;
                 iter.next();
             }
-
+            
             synchronized(mContents) {
                 //we don't want adds to change our numbers
                 //the lock may need to cover more of the method
@@ -94,8 +94,8 @@ public class DistinctDataBag extends DefaultAbstractBag {
         }
         return mSize;
     }
-
-
+    
+    
     @Override
     public Iterator<Tuple> iterator() {
         return new DistinctDataBagIterator();
@@ -155,15 +155,12 @@ public class DistinctDataBag extends DefaultAbstractBag {
                     }
                 }
                 out.flush();
-                out.close();
-                out = null;
-                mContents.clear();
-            } catch (Throwable e) {
+            } catch (IOException ioe) {
                 // Remove the last file from the spilled array, since we failed to
                 // write to it.
                 mSpillFiles.remove(mSpillFiles.size() - 1);
                 warn(
-                    "Unable to spill contents to disk", PigWarning.UNABLE_TO_SPILL, e);
+                    "Unable to spill contents to disk", PigWarning.UNABLE_TO_SPILL, ioe);
                 return 0;
             } finally {
                 if (out != null) {
@@ -174,6 +171,7 @@ public class DistinctDataBag extends DefaultAbstractBag {
                     }
                 }
             }
+            mContents.clear();
         }
         // Increment the spill count
         incSpillCount(PigCounters.SPILLABLE_MEMORY_MANAGER_SPILL_COUNT);
@@ -210,7 +208,7 @@ public class DistinctDataBag extends DefaultAbstractBag {
 
             @Override
             public int hashCode() {
-                return tuple.hashCode();
+                return tuple.hashCode(); 
             }
         }
 
@@ -239,7 +237,7 @@ public class DistinctDataBag extends DefaultAbstractBag {
         }
 
         @Override
-        public boolean hasNext() {
+        public boolean hasNext() { 
             // See if we can find a tuple.  If so, buffer it.
             mBuf = next();
             return mBuf != null;
@@ -297,7 +295,7 @@ public class DistinctDataBag extends DefaultAbstractBag {
                 } catch (FileNotFoundException fnfe) {
                     // We can't find our own spill file?  That should never
                     // happen.
-                    String msg = "Unable to find our spill file.";
+                    String msg = "Unable to find our spill file."; 
                     log.fatal(msg, fnfe);
                     throw new RuntimeException(msg, fnfe);
                 }
@@ -348,7 +346,7 @@ public class DistinctDataBag extends DefaultAbstractBag {
                 Iterator<File> i = mSpillFiles.iterator();
                 while (i.hasNext()) {
                     try {
-                        DataInputStream in =
+                        DataInputStream in = 
                             new DataInputStream(new BufferedInputStream(
                                 new FileInputStream(i.next())));
                         mStreams.add(in);
@@ -504,7 +502,7 @@ public class DistinctDataBag extends DefaultAbstractBag {
                             addToQueue(null, mStreams.size() - 1);
                             i.remove();
                             filesToDelete.add(f);
-
+                            
                         } catch (FileNotFoundException fnfe) {
                             // We can't find our own spill file?  That should
                             // neer happen.
@@ -547,7 +545,7 @@ public class DistinctDataBag extends DefaultAbstractBag {
                         log.warn("Failed to delete spill file: " + f.getPath());
                     }
                 }
-
+                
                 // clear the list, so that finalize does not delete any files,
                 // when mSpillFiles is assigned a new value
                 mSpillFiles.clear();
@@ -562,6 +560,6 @@ public class DistinctDataBag extends DefaultAbstractBag {
             }
         }
     }
-
+    
 }
 

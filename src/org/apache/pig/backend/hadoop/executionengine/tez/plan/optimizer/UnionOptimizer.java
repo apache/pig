@@ -29,7 +29,6 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigConfiguration;
-import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -45,7 +44,6 @@ import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperator.Vertex
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POStoreTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POValueOutputTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.ReadScalarsTez;
-import org.apache.pig.backend.hadoop.executionengine.tez.runtime.HashValuePartitioner;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.TezInput;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.TezOutput;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.TezCompilerUtil;
@@ -54,6 +52,7 @@ import org.apache.pig.builtin.AvroStorage;
 import org.apache.pig.builtin.JsonStorage;
 import org.apache.pig.builtin.OrcStorage;
 import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.builtin.RoundRobinPartitioner;
 import org.apache.pig.builtin.mock.Storage;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
@@ -109,12 +108,6 @@ public class UnionOptimizer extends TezOpPlanVisitor {
         if((tezOp.isLimit() || tezOp.isLimitAfterSort()) && tezOp.getRequestedParallelism() == 1) {
             return false;
         }
-
-        // If user has specified a PARALLEL clause with the union operator
-        // turn off union optimization
-        if (tezOp.getRequestedParallelism() != -1) {
-            return false;
-        }
         // Two vertices separately ranking with 1 to n and writing to output directly
         // will make each rank repeate twice which is wrong. Rank always needs to be
         // done from single vertex to have the counting correct.
@@ -127,25 +120,10 @@ public class UnionOptimizer extends TezOpPlanVisitor {
     public static boolean isOptimizableStoreFunc(TezOperator tezOp,
             List<String> supportedStoreFuncs, List<String> unsupportedStoreFuncs)
             throws VisitorException {
-        List<POStoreTez> stores = PlanHelper.getPhysicalOperators(tezOp.plan, POStoreTez.class);
-
-        for (POStoreTez store : stores) {
-            String name = store.getStoreFunc().getClass().getName();
-            if (store.getStoreFunc() instanceof StoreFunc) {
-                StoreFunc func = (StoreFunc) store.getStoreFunc();
-                if (func.supportsParallelWriteToStoreLocation() != null) {
-                    if (func.supportsParallelWriteToStoreLocation()) {
-                        continue;
-                    } else {
-                        LOG.warn(name + " does not support union optimization."
-                                + " Disabling it. There will be some performance degradation.");
-                        return false;
-                    }
-                }
-            }
-            // If StoreFunc does not explicitly state support, then check supported and
-            // unsupported config settings.
-            if (supportedStoreFuncs != null || unsupportedStoreFuncs != null) {
+        if (supportedStoreFuncs != null || unsupportedStoreFuncs != null) {
+            List<POStoreTez> stores = PlanHelper.getPhysicalOperators(tezOp.plan, POStoreTez.class);
+            for (POStoreTez store : stores) {
+                String name = store.getStoreFunc().getClass().getName();
                 if (unsupportedStoreFuncs != null
                         && unsupportedStoreFuncs.contains(name)) {
                     return false;
@@ -259,22 +237,7 @@ public class UnionOptimizer extends TezOpPlanVisitor {
                 for (TezOperator succ : successors) {
                     if (succ.isVertexGroup() && unionStoreOutputs.get(i).getSFile().equals(succ.getVertexGroupInfo().getSFile())) {
                         existingVertexGroup = succ;
-                        break;
                     }
-                }
-            }
-            if (existingVertexGroup == null) {
-                // In the case of union + split + union + store, the different stores in the Split
-                // will be writing to same location after second union operator is optimized.
-                // So while optimizing the first union, we should just make it write to one vertex group
-                for (int j = 0; j < i; j++) {
-                    if (unionStoreOutputs.get(i).getSFile().equals(storeVertexGroupOps[j].getVertexGroupInfo().getSFile())) {
-                        storeVertexGroupOps[i] = storeVertexGroupOps[j];
-                        break;
-                    }
-                }
-                if (storeVertexGroupOps[i] != null) {
-                    continue;
                 }
             }
             if (existingVertexGroup != null) {
@@ -307,15 +270,6 @@ public class UnionOptimizer extends TezOpPlanVisitor {
         TezOperator[] outputVertexGroupOps = new TezOperator[unionOutputKeys.size()];
         String[] newOutputKeys = new String[unionOutputKeys.size()];
         for (int i=0; i < outputVertexGroupOps.length; i++) {
-            for (int j = 0; j < i; j++) {
-                if (unionOutputKeys.get(i).equals(unionOutputKeys.get(j))) {
-                    outputVertexGroupOps[i] = outputVertexGroupOps[j];
-                    break;
-                }
-            }
-            if (outputVertexGroupOps[i] != null) {
-                continue;
-            }
             outputVertexGroupOps[i] = new TezOperator(OperatorKey.genOpKey(scope));
             outputVertexGroupOps[i].setVertexGroupInfo(new VertexGroupInfo());
             outputVertexGroupOps[i].getVertexGroupInfo().setOutput(unionOutputKeys.get(i));
@@ -561,24 +515,15 @@ public class UnionOptimizer extends TezOpPlanVisitor {
         // Connect predecessor to the storeVertexGroups
         int i = 0;
         for (TezOperator storeVertexGroup : storeVertexGroupOps) {
-            // Skip connecting if they are already connected. Can happen in case of
-            // union + split + union + store. Because of the split all the stores
-            // will be writing to same location
-            List<OperatorKey> inputs = storeVertexGroup.getVertexGroupInfo().getInputs();
-            if (inputs == null || !inputs.contains(pred.getOperatorKey())) {
-                tezPlan.connect(pred, storeVertexGroup);
-            }
             storeVertexGroup.getVertexGroupInfo().addInput(pred.getOperatorKey());
             pred.addVertexGroupStore(clonedUnionStoreOutputs.get(i++).getOperatorKey(),
                     storeVertexGroup.getOperatorKey());
+            tezPlan.connect(pred, storeVertexGroup);
         }
 
         for (TezOperator outputVertexGroup : outputVertexGroupOps) {
-            List<OperatorKey> inputs = outputVertexGroup.getVertexGroupInfo().getInputs();
-            if (inputs == null || !inputs.contains(pred.getOperatorKey())) {
-                tezPlan.connect(pred, outputVertexGroup);
-            }
             outputVertexGroup.getVertexGroupInfo().addInput(pred.getOperatorKey());
+            tezPlan.connect(pred, outputVertexGroup);
         }
 
         copyOperatorProperties(pred, unionOp);
@@ -623,7 +568,7 @@ public class UnionOptimizer extends TezOpPlanVisitor {
             // more union predecessors. Change it to SCATTER_GATHER
             if (edge.dataMovementType == DataMovementType.ONE_TO_ONE) {
                 edge.dataMovementType = DataMovementType.SCATTER_GATHER;
-                edge.partitionerClass = HashValuePartitioner.class;
+                edge.partitionerClass = RoundRobinPartitioner.class;
                 edge.outputClassName = UnorderedPartitionedKVOutput.class.getName();
                 edge.inputClassName = UnorderedKVInput.class.getName();
             }

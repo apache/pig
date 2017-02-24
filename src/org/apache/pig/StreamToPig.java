@@ -57,7 +57,7 @@ public interface StreamToPig {
     public Tuple deserialize(byte[] bytes) throws IOException;
 
     /**
-     * This will be called on both the front end and the back
+     * This will be called on the front end during planning and not on the back
      * end during execution.
      *
      * @return the {@link LoadCaster} associated with this object, or null if

@@ -48,7 +48,7 @@ Local Rearrange[tuple]{int}(false) - scope-158	->	 scope-162
 |---POShuffledValueInputTez - scope-166	<-	 [scope-163, scope-164]
 Tez vertex scope-162
 # Plan on vertex
-e: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-161
+e: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-161
 |
 |---e: FRJoin[tuple] - scope-155	<-	 scope-165
     |   |

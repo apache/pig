@@ -27,7 +27,6 @@ import java.util.Map;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.mapred.TaskID;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -36,7 +35,6 @@ import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapBase;
@@ -77,9 +75,9 @@ import org.apache.pig.pen.util.LineageTracer;
  *
  */
 public class LocalMapReduceSimulator {
-
+    
     private MapReduceLauncher launcher = new MapReduceLauncher();
-
+    
     private Map<PhysicalOperator, PhysicalOperator> phyToMRMap = new HashMap<PhysicalOperator, PhysicalOperator>();;
 
     @SuppressWarnings("unchecked")
@@ -90,12 +88,12 @@ public class LocalMapReduceSimulator {
                               PigContext pc) throws PigException, IOException, InterruptedException {
         phyToMRMap.clear();
         MROperPlan mrp = launcher.compile(php, pc);
-
+                
         ConfigurationValidator.validatePigProperties(pc.getProperties());
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
-
+        
         JobControlCompiler jcc = new JobControlCompiler(pc, conf);
-
+        
         JobControl jc;
         int numMRJobsCompl = 0;
         DataBag input;
@@ -108,8 +106,6 @@ public class LocalMapReduceSimulator {
         boolean needFileInput;
         final ArrayList<OperatorKey> emptyInpTargets = new ArrayList<OperatorKey>();
         pc.getProperties().setProperty("pig.illustrating", "true");
-        String jtIdentifier = "" + System.currentTimeMillis();
-        int jobId = 0;
         while(mrp.size() != 0) {
             jc = jcc.compile(mrp, "Illustrator");
             if(jc == null) {
@@ -117,7 +113,6 @@ public class LocalMapReduceSimulator {
             }
             List<Job> jobs = jc.getWaitingJobs();
             for (Job job : jobs) {
-                jobId++;
                 jobConf = job.getJobConf();
                 FileLocalizer.setInitialized(false);
                 ArrayList<ArrayList<OperatorKey>> inpTargets =
@@ -128,14 +123,14 @@ public class LocalMapReduceSimulator {
                 PigSplit split = null;
                 List<POStore> stores = null;
                 PhysicalOperator pack = null;
-                // revisit as there are new physical operators from MR compilation
+                // revisit as there are new physical operators from MR compilation 
                 if (!mro.mapPlan.isEmpty())
                     attacher.revisit(mro.mapPlan);
                 if (!mro.reducePlan.isEmpty()) {
                     attacher.revisit(mro.reducePlan);
                     pack = mro.reducePlan.getRoots().get(0);
                 }
-
+                
                 List<POLoad> lds = PlanHelper.getPhysicalOperators(mro.mapPlan, POLoad.class);
                 if (!mro.mapPlan.isEmpty()) {
                     stores = PlanHelper.getPhysicalOperators(mro.mapPlan, POStore.class);
@@ -150,10 +145,10 @@ public class LocalMapReduceSimulator {
                 for (POStore store : stores) {
                     output.put(store.getSFile().getFileName(), attacher.getDataMap().get(store));
                 }
-
+               
                 OutputAttacher oa = new OutputAttacher(mro.mapPlan, output);
                 oa.visit();
-
+                
                 if (!mro.reducePlan.isEmpty()) {
                     oa = new OutputAttacher(mro.reducePlan, output);
                     oa.visit();
@@ -173,7 +168,6 @@ public class LocalMapReduceSimulator {
                     if (input != null)
                         mro.mapPlan.remove(ld);
                 }
-                int mapTaskId = 0;
                 for (POLoad ld : lds) {
                     // check newly generated data first
                     input = output.get(ld.getLFile().getFileName());
@@ -186,7 +180,7 @@ public class LocalMapReduceSimulator {
                                      break;
                                 }
                             }
-                        }
+                        } 
                     }
                     needFileInput = (input == null);
                     split = new PigSplit(null, index, needFileInput ? emptyInpTargets : inpTargets.get(index), 0);
@@ -205,7 +199,6 @@ public class LocalMapReduceSimulator {
                             context = ((PigMapReduceCounter.PigMapCounter) map).getIllustratorContext(jobConf, input, intermediateData, split);
                         }
                         ((PigMapBase) map).setMapPlan(mro.mapPlan);
-                        context.getConfiguration().set(MRConfiguration.TASK_ID, new TaskID(jtIdentifier, jobId, true, mapTaskId++).toString());
                         map.run(context);
                     } else {
                         if ("true".equals(jobConf.get("pig.usercomparator")))
@@ -217,11 +210,10 @@ public class LocalMapReduceSimulator {
                         Mapper<Text, Tuple, PigNullableWritable, Writable>.Context context = ((PigMapBase) map)
                           .getIllustratorContext(jobConf, input, intermediateData, split);
                         ((PigMapBase) map).setMapPlan(mro.mapPlan);
-                        context.getConfiguration().set(MRConfiguration.TASK_ID, new TaskID(jtIdentifier, jobId, true, mapTaskId++).toString());
                         map.run(context);
                     }
                 }
-
+                
                 if (!mro.reducePlan.isEmpty())
                 {
                     if (pack instanceof POPackage)
@@ -241,20 +233,19 @@ public class LocalMapReduceSimulator {
                     }
 
                     ((PigMapReduce.Reduce) reduce).setReducePlan(mro.reducePlan);
-                    context.getConfiguration().set(MRConfiguration.TASK_ID, new TaskID(jtIdentifier, jobId, false, 0).toString());
                     reduce.run(context);
                 }
                 for (PhysicalOperator key : mro.phyToMRMap.keySet())
                     for (PhysicalOperator value : mro.phyToMRMap.get(key))
                         phyToMRMap.put(key, value);
             }
-
-
+            
+            
             int removedMROp = jcc.updateMROpPlan(new LinkedList<Job>());
-
+            
             numMRJobsCompl += removedMROp;
         }
-
+                
         jcc.reset();
     }
 
@@ -265,7 +256,7 @@ public class LocalMapReduceSimulator {
                     plan));
             this.outputBuffer = output;
         }
-
+        
         @Override
         public void visitUserFunc(POUserFunc userFunc) throws VisitorException {
             if (userFunc.getFunc() != null && userFunc.getFunc() instanceof ReadScalars) {

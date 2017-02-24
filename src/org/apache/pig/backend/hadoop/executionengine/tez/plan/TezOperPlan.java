@@ -25,9 +25,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -218,12 +217,8 @@ public class TezOperPlan extends OperatorPlan<TezOperator> {
             newPlan.add(node);
         }
 
-        // Using a LinkedHashSet and doing a sort so that
-        // test plan printed remains same between jdk7 and jdk8
-        Set<Pair<TezOperator, TezOperator>> toReconnect = new LinkedHashSet<Pair<TezOperator, TezOperator>>();
-        List<TezOperator> fromEdges = new ArrayList<>(mFromEdges.keySet());
-        Collections.sort(fromEdges);
-        for (TezOperator from : fromEdges) {
+        Set<Pair<TezOperator, TezOperator>> toReconnect = new HashSet<Pair<TezOperator, TezOperator>>();
+        for (TezOperator from : mFromEdges.keySet()) {
             List<TezOperator> tos = mFromEdges.get(from);
             for (TezOperator to : tos) {
                 if (list.contains(from) || list.contains(to)) {

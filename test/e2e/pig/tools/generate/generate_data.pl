@@ -41,6 +41,7 @@ our @lastName = ("allen", "brown", "carson", "davidson", "ellison", "falkner",
 #	rankaacd: RANK BY a ASC , c DESC
 #	rankaaba: RANK BY a ASC , b ASC
 #	a,b,c:    values
+#	tail:     long value in order to create multiple mappers
 ############################################################################
 our @rankedTuples = (
 	"1,21,5,7,1,1,0,8,8","2,26,2,3,2,5,1,9,10","3,30,24,21,2,3,1,3,10","4,6,10,8,3,4,1,7,2",
@@ -500,10 +501,22 @@ sub getBulkCopyCmd(){
             my $randf = rand(10);
             printf HDFS "%d:%d:%d:%d:%d:%dL:%.2ff:%.2f\n", $tid, $i, $rand5, $rand100, $rand1000, $rand1000, $randf, $randf;
         }
-    } elsif ($filetype eq "ranking") {
+    }  elsif ($filetype eq "ranking") {
         for (my $i = 0; $i < $numRows; $i++) {
             my $tuple = $rankedTuples[int($i)];
-            printf HDFS "$tuple\n";
+            printf HDFS "$tuple,";
+            for my $j ( 0 .. 1000000) {
+				printf HDFS "%d",$j;
+			}
+			printf HDFS "\n";
+        }
+    } elsif ($filetype eq "biggish") {
+        for (my $i = 1; $i < $numRows; $i++) {
+            printf HDFS "$i,$i,";
+            for my $j ( 0 .. 1000) {
+				printf HDFS "%d",$j;
+            }
+            printf HDFS "\n";
         }
     } elsif ($filetype eq "utf8Student") {
         srand(3.14159 + $numRows);

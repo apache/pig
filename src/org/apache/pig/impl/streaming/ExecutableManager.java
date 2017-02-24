@@ -150,13 +150,12 @@ public class ExecutableManager {
 
         LOG.debug("Process exited with: " + exitCode);
         if (exitCode != SUCCESS) {
-            String errMsg = "'" + command.toString() + "'" + " failed with exit status: " + exitCode;
-            LOG.error(errMsg);
-            Result res = new Result(POStatus.STATUS_ERR, errMsg);
-            sendOutput(poStream.getBinaryOutputQueue(), res);
+            LOG.error(command + " failed with exit status: "
+                    + exitCode);
         }
 
-        if (exitCode == SUCCESS && outputHandler.getOutputType() == OutputType.ASYNCHRONOUS) {
+        if (outputHandler.getOutputType() == OutputType.ASYNCHRONOUS) {
+
             // Trigger the outputHandler
             outputHandler.bindTo("", null, 0, -1);
 
@@ -179,18 +178,10 @@ public class ExecutableManager {
      * @param process the process to be killed
      * @throws IOException
      */
-    private void killProcess(Process process) {
+    private void killProcess(Process process) throws IOException {
         if (process != null) {
-            try {
-                inputHandler.close(process);
-            } catch (Exception e) {
-                LOG.info("Exception in killProcess while closing inputHandler. Ignoring:" + e.getMessage());
-            }
-            try {
-                outputHandler.close();
-            } catch (Exception e) {
-                LOG.info("Exception in killProcess while closing outputHandler. Ignoring:" + e.getMessage());
-            }
+            inputHandler.close(process);
+            outputHandler.close();
             process.destroy();
         }
     }
@@ -343,7 +334,7 @@ public class ExecutableManager {
                                 // we will only call close() here and not
                                 // worry about deducing whether the process died
                                 // normally or abnormally - if there was any real
-                                // issue we should see
+                                // issue the ProcessOutputThread should see
                                 // a non zero exit code from the process and send
                                 // a POStatus.STATUS_ERR back - what if we got
                                 // an IOException because there was only an issue with
@@ -353,6 +344,14 @@ public class ExecutableManager {
                                 return;
                             } else {
                                 // asynchronous case - then this is a real exception
+                                LOG.error("Exception while trying to write to stream binary's input", e);
+                                // send POStatus.STATUS_ERR to POStream to signal the error
+                                // Generally the ProcessOutputThread would do this but now
+                                // we should do it here since neither the process nor the
+                                // ProcessOutputThread will ever be spawned
+                                Result res = new Result(POStatus.STATUS_ERR,
+                                        "Exception while trying to write to stream binary's input" + e.getMessage());
+                                sendOutput(poStream.getBinaryOutputQueue(), res);
                                 throw e;
                             }
                         }
@@ -363,13 +362,13 @@ public class ExecutableManager {
             } catch (Throwable t) {
                 // Note that an error occurred
                 outerrThreadsError = t;
-                Result res = new Result(POStatus.STATUS_ERR,
-                                        "Error while reading from POStream and " +
-                                        "passing it to the streaming process:" + t.getMessage());
-                LOG.error("Error while reading from POStream and " +
-                          "passing it to the streaming process:", t);
-                sendOutput(poStream.getBinaryOutputQueue(), res);
-                killProcess(process);
+                LOG.error( "Error while reading from POStream and " +
+                           "passing it to the streaming process", t);
+                try {
+                    killProcess(process);
+                } catch (IOException ioe) {
+                    LOG.warn(ioe);
+                }
             }
         }
     }
@@ -453,7 +452,13 @@ public class ExecutableManager {
                 try {
                     exitCode = process.waitFor();
                 } catch (InterruptedException ie) {
-                    killProcess(process);
+                    try {
+                        killProcess(process);
+                    } catch (IOException e) {
+                        LOG.warn("Exception trying to kill process while processing null output " +
+                                "from binary", e);
+
+                    }
                     // signal error
                     String errMsg = "Failure while waiting for process (" + command.toString() + ")" +
                             ie.getMessage();

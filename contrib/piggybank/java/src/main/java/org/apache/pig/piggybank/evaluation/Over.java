@@ -23,13 +23,10 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.pig.EvalFunc;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.AVG;
-import org.apache.pig.builtin.BigDecimalAvg;
-import org.apache.pig.builtin.BigDecimalMax;
-import org.apache.pig.builtin.BigDecimalMin;
-import org.apache.pig.builtin.BigDecimalSum;
 import org.apache.pig.builtin.COUNT;
 import org.apache.pig.builtin.DoubleAvg;
 import org.apache.pig.builtin.DoubleMax;
@@ -57,7 +54,6 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 
 /**
  * Given an aggregate function, a bag, and possibly a window definition,
@@ -77,27 +73,23 @@ import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
  *           <li>sum(int)</li>
  *           <li>sum(long)</li>
  *           <li>sum(bytearray)</li>
- *           <li>sum(bigdecimal)</li>
  *           <li>avg(double)</li>
  *           <li>avg(float)</li>
  *           <li>avg(long)</li>
  *           <li>avg(int)</li>
  *           <li>avg(bytearray)</li>
- *           <li>avg(bigdecimal)</li>
  *           <li>min(double)</li>
  *           <li>min(float)</li>
  *           <li>min(long)</li>
  *           <li>min(int)</li>
  *           <li>min(chararray)</li>
  *           <li>min(bytearray)</li>
- *           <li>min(bigdecimal)</li>
  *           <li>max(double)</li>
  *           <li>max(float)</li>
  *           <li>max(long)</li>
  *           <li>max(int)</li>
  *           <li>max(chararray)</li>
  *           <li>max(bytearray)</li>
- *           <li>max(bigdecimal)</li>
  *           <li>row_number</li>
  *           <li>first_value</li>
  *           <li>last_value</li>
@@ -161,8 +153,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
  * current row and 3 following) over T;</tt>
  *
  * <p>Over accepts a constructor argument specifying the name and type,
- * colon-separated, of its return schema. If the argument option is 'true' use the inner-search,
- * take the name and type of bag and return a schema with alias+'_over' and the same type</p>
+ * colon-separated, of its return schema.</p>
  *
  * <p><pre>
  * DEFINE IOver org.apache.pig.piggybank.evaluation.Over('state_rk:int');
@@ -197,14 +188,12 @@ public class Over extends EvalFunc<DataBag> {
     private Object[] udfArgs;
     private byte   returnType;
     private String returnName;
-    private boolean searchInnerType;
 
     public Over() {
         initialized = false;
         udfArgs = null;
         func = null;
         returnType = DataType.UNKNOWN;
-        searchInnerType = false;
     }
 
     public Over(String typespec) {
@@ -213,15 +202,11 @@ public class Over extends EvalFunc<DataBag> {
             String[] fn_tn = typespec.split(":", 2);
             this.returnName = fn_tn[0];
             this.returnType = DataType.findTypeByName(fn_tn[1]);
-        } else if(Boolean.parseBoolean(typespec)) {
-            searchInnerType = Boolean.parseBoolean(typespec);
-        }else{
+        } else {
             this.returnName = "result";
             this.returnType = DataType.findTypeByName(typespec);
-        }       
+        }
     }
-
-
 
     @Override
     public DataBag exec(Tuple input) throws IOException {
@@ -270,42 +255,19 @@ public class Over extends EvalFunc<DataBag> {
     @Override
     public Schema outputSchema(Schema inputSch) {
         try {
-            FieldSchema field;
-
-            if (searchInnerType) {
-                field = new FieldSchema(inputSch.getField(0));
-                while (searchInnerType) {
-                    if (field.schema != null
-                            && field.schema.getFields().size() > 1) {
-                        searchInnerType = false;
-                    } else {
-                        if (field.type == DataType.TUPLE
-                                || field.type == DataType.BAG) {
-                            field = new FieldSchema(field.schema.getField(0));
-                        } else {
-                            field.alias = field.alias + "_over";
-                            searchInnerType = false;
-                        }
-                    }
-                }
-
-                searchInnerType = true;
-            } else if (returnType == DataType.UNKNOWN) {
+            if (returnType == DataType.UNKNOWN) {
                 return Schema.generateNestedSchema(DataType.BAG, DataType.NULL);
             } else {
-                field = new Schema.FieldSchema(returnName, returnType);
+                Schema outputTupleSchema = new Schema(new Schema.FieldSchema(returnName, returnType));
+                return new Schema(new Schema.FieldSchema(
+                        getSchemaName(this.getClass().getName().toLowerCase(), inputSch),
+                            outputTupleSchema, 
+                            DataType.BAG));
             }
-
-            Schema outputTupleSchema = new Schema(field);
-            return new Schema(new Schema.FieldSchema(getSchemaName(this
-                    .getClass().getName().toLowerCase(), inputSch),
-                    outputTupleSchema, DataType.BAG));
-
         } catch (FrontendException fe) {
             throw new RuntimeException("Unable to create nested schema", fe);
         }
     }
-    
 
     private void init(Tuple input) throws IOException {
         initialized = true;
@@ -367,8 +329,6 @@ public class Over extends EvalFunc<DataBag> {
             func = new LongSum();
         } else if ("sum(bytearray)".equalsIgnoreCase(agg)) {
             func = new SUM();
-        } else if ("sum(bigdecimal)".equalsIgnoreCase(agg)) {
-            func = new BigDecimalSum();
         } else if ("avg(double)".equalsIgnoreCase(agg)) {
             func = new DoubleAvg();
         } else if ("avg(float)".equalsIgnoreCase(agg)) {
@@ -379,8 +339,6 @@ public class Over extends EvalFunc<DataBag> {
             func = new IntAvg();
         } else if ("avg(bytearray)".equalsIgnoreCase(agg)) {
             func = new AVG();
-        } else if ("avg(bigdecimal)".equalsIgnoreCase(agg)) {
-            func = new BigDecimalAvg();
         } else if ("min(double)".equalsIgnoreCase(agg)) {
             func = new DoubleMin();
         } else if ("min(float)".equalsIgnoreCase(agg)) {
@@ -393,8 +351,6 @@ public class Over extends EvalFunc<DataBag> {
             func = new StringMin();
         } else if ("min(bytearray)".equalsIgnoreCase(agg)) {
             func = new MIN();
-        } else if ("min(bigdecimal)".equalsIgnoreCase(agg)) {
-            func = new BigDecimalMin();
         } else if ("max(double)".equalsIgnoreCase(agg)) {
             func = new DoubleMax();
         } else if ("max(float)".equalsIgnoreCase(agg)) {
@@ -407,8 +363,6 @@ public class Over extends EvalFunc<DataBag> {
             func = new StringMax();
         } else if ("max(bytearray)".equalsIgnoreCase(agg)) {
             func = new MAX();
-        } else if ("max(bigdecimal)".equalsIgnoreCase(agg)) {
-            func = new BigDecimalMax();
         } else if ("row_number".equalsIgnoreCase(agg)) {
             func = new RowNumber();
         } else if ("first_value".equalsIgnoreCase(agg)) {

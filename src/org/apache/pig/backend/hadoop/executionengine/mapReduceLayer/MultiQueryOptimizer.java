@@ -18,7 +18,6 @@
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -581,17 +580,18 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
     }
 
     private boolean hasSameMapKeyType(List<MapReduceOper> splittees) {
-        Set<Byte> keyTypes = new HashSet<Byte>();
-        for (MapReduceOper splittee : splittees) {
-            keyTypes.add(splittee.mapKeyType);
-            if (splittee.mapKeyTypeOfSplittees != null) {
-                for (int i = 0; i < splittee.mapKeyTypeOfSplittees.length; i++) {
-                    keyTypes.add(splittee.mapKeyTypeOfSplittees[i]);
+        boolean sameKeyType = true;
+        for (MapReduceOper outer : splittees) {
+            for (MapReduceOper inner : splittees) {
+                if (inner.mapKeyType != outer.mapKeyType) {
+                    sameKeyType = false;
+                    break;
                 }
             }
-
+            if (!sameKeyType) break;
         }
-        return keyTypes.size() == 1;
+
+        return sameKeyType;
     }
 
     private int setIndexOnLRInSplit(int initial, POSplit splitOp, boolean sameKeyType)
@@ -1035,18 +1035,8 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         splitter.mapKeyType = sameKeyType ?
                 mergeList.get(0).mapKeyType : DataType.TUPLE;
 
-
-        setMapKeyTypeForSplitter(splitter,mergeList);
-
         log.info("Requested parallelism of splitter: "
                 + splitter.getRequestedParallelism());
-    }
-
-    private void setMapKeyTypeForSplitter(MapReduceOper splitter, List<MapReduceOper> mergeList) {
-        splitter.mapKeyTypeOfSplittees = new byte[mergeList.size()];
-        for (int i = 0; i < mergeList.size(); i++) {
-            splitter.mapKeyTypeOfSplittees[i] = mergeList.get(i).mapKeyType;
-        }
     }
 
     private void mergeSingleMapReduceSplittee(MapReduceOper mapReduce,

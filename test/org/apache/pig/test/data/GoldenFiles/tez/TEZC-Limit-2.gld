@@ -88,7 +88,7 @@ POValueOutputTez - scope-50	->	 [scope-51]
         |---Package(LitePackager)[tuple]{tuple} - scope-46
 Tez vertex scope-51
 # Plan on vertex
-c: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-11
+c: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-11
 |
 |---Limit - scope-53
     |

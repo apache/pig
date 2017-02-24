@@ -363,15 +363,6 @@ public class SearchEngineExtractor extends EvalFunc<String> {
         searchEngines.put("search.lycos.com", "Lycos");
         searchEngines.put("search.msn.co.uk", "MSN UK");
         searchEngines.put("search.msn.com", "MSN");
-        searchEngines.put("bing.com", "Bing");
-        searchEngines.put("ssl.bing.com", "Bing");
-        searchEngines.put("cn.bing.com", "Bing China");
-        searchEngines.put("br.bing.com", "Bing Brazil");
-        searchEngines.put("it.bing.com", "Bing Italy");
-        searchEngines.put("be.bing.com", "Bing Netherlands");
-        searchEngines.put("uk.bing.com", "Bing UK");
-        searchEngines.put("hk.bing.com", "Bing Hong Kong");
-        searchEngines.put("nz.bing.com", "Bing New Zeland");
         searchEngines.put("search.myway.com", "MyWay");
         searchEngines.put("search.mywebsearch.com", "My Web Search");
         searchEngines.put("search.ntlworld.com", "NTLWorld");

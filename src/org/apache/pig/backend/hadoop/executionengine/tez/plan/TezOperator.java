@@ -181,11 +181,7 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         // Indicate if this job is a native job
         NATIVE,
         // Indicate if this job does rank counter
-        RANK_COUNTER,
-        // Indicate if this job constructs bloom filter
-        BUILDBLOOM,
-        // Indicate if this job applies bloom filter
-        FILTERBLOOM;
+        RANK_COUNTER;
     };
 
     // Features in the job/vertex. Mostly will be only one feature.
@@ -239,7 +235,6 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     }
 
     private LoaderInfo loaderInfo = new LoaderInfo();
-    private long totalInputFilesSize = -1;
 
     public TezOperator(OperatorKey k) {
         super(k);
@@ -457,22 +452,6 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         feature.set(OPER_FEATURE.RANK_COUNTER.ordinal());
     }
 
-    public boolean isBuildBloom() {
-        return feature.get(OPER_FEATURE.BUILDBLOOM.ordinal());
-    }
-
-    public void markBuildBloom() {
-        feature.set(OPER_FEATURE.BUILDBLOOM.ordinal());
-    }
-
-    public boolean isFilterBloom() {
-        return feature.get(OPER_FEATURE.FILTERBLOOM.ordinal());
-    }
-
-    public void markFilterBloom() {
-        feature.set(OPER_FEATURE.FILTERBLOOM.ordinal());
-    }
-
     public void copyFeatures(TezOperator copyFrom, List<OPER_FEATURE> excludeFeatures) {
         for (OPER_FEATURE opf : OPER_FEATURE.values()) {
             if (excludeFeatures != null && excludeFeatures.contains(opf)) {
@@ -670,14 +649,6 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     public LoaderInfo getLoaderInfo() {
         return loaderInfo;
-    }
-
-    public long getTotalInputFilesSize() {
-        return totalInputFilesSize;
-    }
-
-    public void setTotalInputFilesSize(long totalInputFilesSize) {
-        this.totalInputFilesSize = totalInputFilesSize;
     }
 
     public void setUseGraceParallelism(boolean useGraceParallelism) {

@@ -95,7 +95,7 @@ public class JsFunction extends EvalFunc<Object> {
 
     private void debugConvertPigToJS(int depth, String pigType, Object value, Schema schema) {
         if (LOG.isDebugEnabled()) {
-            LOG.debug(indent(depth)+"converting from Pig " + pigType + " " + toString(value) + " using " + stringify(schema));
+            LOG.debug(indent(depth)+"converting from Pig " + pigType + " " + value + " using " + stringify(schema));
         }
     }
 
