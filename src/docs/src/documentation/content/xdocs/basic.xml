@@ -5409,7 +5409,9 @@ DUMP X;
 <section id="disambiguate">
 <title>Disambiguate Operator</title>
 
-<p>Use the disambiguate operator ( :: ) to identify field names after JOIN, COGROUP, CROSS, or FLATTEN operators.</p>
+<p>After JOIN, COGROUP, CROSS, or FLATTEN operations, the field names have the orginial alias and the disambiguate
+   operator ( :: ) prepended in the schema. The disambiguate operator is used to identify field names in case there
+   is a ambiguity.</p>
 
 <p>In this example, to disambiguate y,  use A::y or B::y.  In cases where there is no ambiguity, such as z, the :: is not necessary but is still supported.</p>
 
@@ -5417,8 +5419,14 @@ DUMP X;
 A = load 'data1' as (x, y);
 B = load 'data2' as (x, y, z);
 C = join A by x, B by x;
-D = foreach C generate y; -- which y?
+D = foreach C generate A::y, z; -- Cannot simply refer to y as it can refer to A::y or B::y
 </source>
+<p> In cases where the schema is stored as part of the StoreFunc like PigStorage, JsonStorage, AvroStorage or OrcStorage,
+   users generally have to use an extra FOREACH before STORE to rename the field names and remove the disambiguate
+   operator from the names. To automatically remove the disambiguate operator from the schema for the STORE operation,
+   the <i>pig.store.schema.disambiguate</i> Pig property can be set to "false". It is the responsibility of the user
+   to make sure that there is no conflict in the field names when using this setting.
+</p>
 </section>
 
     <!-- =================================================================== -->  
@@ -5444,7 +5452,7 @@ D = foreach C generate y; -- which y?
       to bags. For example, if we apply the expression GENERATE $0, FLATTEN($1) to the input tuple (a, m[k1#1, k2#2, k3#3]),
       we will see (a,k1,1), (a,k2,2) and (a,k3,3) as the result.
    </p>
-   
+
    <p>Also note that the flatten of empty bag will result in that row being discarded; no output is generated. 
    (See also <a href="perf.html#nulls">Drop Nulls Before a Join</a>.) </p>
    
@@ -6537,7 +6545,7 @@ B = FOREACH A GENERATE a, FLATTEN(m);
 C = FILTER B by m::value == 5;
 ……
 </source>
-   
+
    </section>
    
    <section id="nestedblock">

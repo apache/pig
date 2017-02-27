@@ -1003,8 +1003,10 @@ public class LogicalPlanBuilder {
                 fileNameMap.put(fileNameKey, absolutePath);
             }
             FileSpec fileSpec = new FileSpec(absolutePath, funcSpec);
+            boolean disambiguationEnabled = Boolean.parseBoolean(pigContext.getProperties().
+                    getProperty(PigConfiguration.PIG_STORE_SCHEMA_DISAMBIGUATE,PigConfiguration.PIG_STORE_SCHEMA_DISAMBIGUATE_DEFAULT));
 
-            LOStore op = new LOStore(plan, fileSpec, stoFunc, signature);
+            LOStore op = new LOStore(plan, fileSpec, stoFunc, signature, disambiguationEnabled);
             return buildOp(loc, op, alias, inputAlias, null);
         } catch(Exception ex) {
             throw new ParserValidationException(intStream, loc, ex);
