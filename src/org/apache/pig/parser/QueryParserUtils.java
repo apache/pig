@@ -70,8 +70,10 @@ public class QueryParserUtils {
         fileName = removeQuotes( fileName );
         FileSpec fileSpec = new FileSpec( fileName, funcSpec );
         String sig = alias + "_" + LogicalPlanBuilder.newOperatorKey(scope);
+        boolean disambiguationEnabled = Boolean.parseBoolean(pigContext.getProperties().
+                getProperty(PigConfiguration.PIG_STORE_SCHEMA_DISAMBIGUATE,PigConfiguration.PIG_STORE_SCHEMA_DISAMBIGUATE_DEFAULT));
         stoFunc.setStoreFuncUDFContextSignature(sig);
-        LOStore store = new LOStore(lp, fileSpec, stoFunc, sig);
+        LOStore store = new LOStore(lp, fileSpec, stoFunc, sig, disambiguationEnabled);
         store.setAlias(alias);
 
         try {

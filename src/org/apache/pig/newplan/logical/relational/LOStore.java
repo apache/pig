@@ -36,12 +36,19 @@ public class LOStore extends LogicalRelationalOperator {
     private boolean isTmpStore;
     private SortInfo sortInfo;
     private final StoreFuncInterface storeFunc;
+    private boolean disambiguationEnabled = true;
 
     public LOStore(LogicalPlan plan, FileSpec outputFileSpec, StoreFuncInterface storeFunc, String signature) {
         super("LOStore", plan);
         this.output = outputFileSpec;
         this.storeFunc = storeFunc;
         this.signature = signature;
+    }
+
+    public LOStore(LogicalPlan plan, FileSpec outputFileSpec, StoreFuncInterface storeFunc, String signature,
+                   boolean disambiguationEnabled) {
+        this(plan, outputFileSpec, storeFunc, signature);
+        this.disambiguationEnabled = disambiguationEnabled;
     }
     
     public FileSpec getOutputSpec() {
@@ -55,6 +62,17 @@ public class LOStore extends LogicalRelationalOperator {
     @Override
     public LogicalSchema getSchema() throws FrontendException {
         schema = ((LogicalRelationalOperator)plan.getPredecessors(this).get(0)).getSchema();
+
+        if (!disambiguationEnabled && schema != null && schema.getFields() != null) {
+            //If requested try and remove parent alias substring including colon(s)
+            for (LogicalSchema.LogicalFieldSchema field : schema.getFields()) {
+                if (field.alias == null || !field.alias.contains(":")) {
+                    continue;
+                }
+                field.alias = field.alias.substring(field.alias.lastIndexOf(":") + 1);
+            }
+        }
+
         return schema;
     }
 

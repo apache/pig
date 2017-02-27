@@ -501,6 +501,13 @@ public class PigConfiguration {
      */
     public static final String PIG_TEZ_CONFIGURE_AM_MEMORY = "pig.tez.configure.am.memory";
 
+    /**
+     * If set to false, automatic schema disambiguation gets disabled i.e. group::name will be just name
+     */
+    public static final String PIG_STORE_SCHEMA_DISAMBIGUATE = "pig.store.schema.disambiguate";
+
+    public static final String PIG_STORE_SCHEMA_DISAMBIGUATE_DEFAULT = "true";
+
     // Deprecated settings of Pig 0.13
 
     /**
