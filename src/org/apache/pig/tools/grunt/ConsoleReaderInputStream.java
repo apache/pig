@@ -23,6 +23,7 @@ import java.io.SequenceInputStream;
 import java.util.Enumeration;
 
 import jline.console.ConsoleReader;
+import jline.console.history.FileHistory;
 
 /** Borrowed from jline.console.internal.ConsoleReaderInputStream. However,
  *  we cannot use ConsoleReaderInputStream directly since:
@@ -104,6 +105,9 @@ public class ConsoleReaderInputStream extends SequenceInputStream {
 
             if (buffer == null) {
                 buffer = reader.readLine().getBytes();
+
+                //Write current grunt buffer to pig history file
+                ((FileHistory)reader.getHistory()).flush();
             }
 
             if (buffer == null) {
