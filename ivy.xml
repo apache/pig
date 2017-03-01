@@ -40,7 +40,7 @@
     <conf name="buildJar" extends="compile,test" visibility="private"/>
     <conf name="hadoop2" visibility="private"/>
     <conf name="hbase1" visibility="private"/>
-      <conf name="spark" visibility="private" />
+    <conf name="spark" visibility="private" />
   </configurations>
   <publications>
     <artifact name="pig" conf="master"/>
@@ -424,33 +424,33 @@
     <dependency org="javax.servlet" name="javax.servlet-api" rev="3.0.1" conf="spark->default"/>
     <dependency org="org.scala-lang.modules" name="scala-xml_2.11" rev="${scala-xml.version}" conf="spark->default"/>
 
-      <!-- for Tez integration -->
-      <dependency org="org.apache.tez" name="tez" rev="${tez.version}"
-                  conf="hadoop2->master"/>
-      <dependency org="org.apache.tez" name="tez-common" rev="${tez.version}"
-                  conf="hadoop2->master"/>
-      <dependency org="org.apache.tez" name="tez-api" rev="${tez.version}"
-                  conf="hadoop2->master"/>
-      <dependency org="org.apache.tez" name="tez-dag" rev="${tez.version}"
-                  conf="hadoop2->master"/>
-      <dependency org="org.apache.tez" name="tez-runtime-internals" rev="${tez.version}"
-                  conf="hadoop2->master"/>
-      <dependency org="org.apache.tez" name="tez-runtime-library" rev="${tez.version}"
-                  conf="hadoop2->master"/>
-      <dependency org="org.apache.tez" name="tez-mapreduce" rev="${tez.version}"
-                  conf="hadoop2->master"/>
-      <dependency org="org.apache.tez" name="tez-yarn-timeline-history-with-acls" rev="${tez.version}"
-                  conf="hadoop2->master"/>
-      <dependency org="org.apache.commons" name="commons-collections4" rev="${commons-collections4.version}"
-                  conf="hadoop2->master"/>
-      <dependency org="org.codehaus.jettison" name="jettison" rev="${jettison.version}"
-                  conf="hadoop2->master"/>
-      <dependency org="org.apache.commons" name="commons-math3" rev="${commons-math3.version}"
-                  conf="hadoop2->master"/>
-      <dependency org="org.apache.curator" name="curator-framework" rev="${curator.version}"
-                  conf="hadoop2->master"/>
-      <dependency org="org.apache.curator" name="curator-client" rev="${curator.version}"
-                  conf="hadoop2->master"/>
+    <!-- for Tez integration -->
+    <dependency org="org.apache.tez" name="tez" rev="${tez.version}"
+       conf="hadoop2->master"/>
+    <dependency org="org.apache.tez" name="tez-common" rev="${tez.version}"
+       conf="hadoop2->master"/>
+    <dependency org="org.apache.tez" name="tez-api" rev="${tez.version}"
+       conf="hadoop2->master"/>
+    <dependency org="org.apache.tez" name="tez-dag" rev="${tez.version}"
+       conf="hadoop2->master"/>
+    <dependency org="org.apache.tez" name="tez-runtime-internals" rev="${tez.version}"
+       conf="hadoop2->master"/>
+    <dependency org="org.apache.tez" name="tez-runtime-library" rev="${tez.version}"
+       conf="hadoop2->master"/>
+    <dependency org="org.apache.tez" name="tez-mapreduce" rev="${tez.version}"
+       conf="hadoop2->master"/>
+    <dependency org="org.apache.tez" name="tez-yarn-timeline-history-with-acls" rev="${tez.version}"
+       conf="hadoop2->master"/>
+    <dependency org="org.apache.commons" name="commons-collections4" rev="${commons-collections4.version}"
+      conf="hadoop2->master"/>
+    <dependency org="org.codehaus.jettison" name="jettison" rev="${jettison.version}"
+      conf="hadoop2->master"/>
+    <dependency org="org.apache.commons" name="commons-math3" rev="${commons-math3.version}"
+      conf="hadoop2->master"/>
+    <dependency org="org.apache.curator" name="curator-framework" rev="${curator.version}"
+      conf="hadoop2->master"/>
+    <dependency org="org.apache.curator" name="curator-client" rev="${curator.version}"
+      conf="hadoop2->master"/>
   </dependencies>
 </ivy-module>
 

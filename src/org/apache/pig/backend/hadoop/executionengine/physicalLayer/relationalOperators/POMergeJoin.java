@@ -432,14 +432,14 @@ public class POMergeJoin extends PhysicalOperator {
 
         case POStatus.STATUS_EOP:
             if(this.parentPlan.endOfAllInput || isEndOfInput()){
-                // We hit the end on left input. 
+                // We hit the end on left input.
                 // Tuples in bag may still possibly join with right side.
                 curJoinKey = prevLeftKey;
                 curLeftKey = null;
                 if (isEndOfInput()) {
                     leftInputConsumedInSpark = true;
                 }
-                break;                
+                break;
             }
             else    // Fetch next left input.
                 return curLeftInp;
@@ -464,7 +464,7 @@ public class POMergeJoin extends PhysicalOperator {
         // Accumulated tuples with same key on left side.
         // But since we are reading ahead we still haven't checked the read ahead right tuple.
         // Accumulated left tuples may potentially join with that. So, lets check that first.
-        
+
         if((null != prevRightKey) && prevRightKey.equals(prevLeftKey)){
 
             curJoiningRightTup = (Tuple)prevRightInp.result;
