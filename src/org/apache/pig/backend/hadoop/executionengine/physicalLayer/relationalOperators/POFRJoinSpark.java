@@ -61,7 +61,7 @@ public class POFRJoinSpark extends POFRJoin {
             SchemaTupleFactory keySchemaTupleFactory = keySchemaTupleFactories[i];
 
             if (i == fragment) {
-                replicates.set(fragment, null);
+                replicates.set(i, null);
                 continue;
             }
 
@@ -80,8 +80,7 @@ public class POFRJoinSpark extends POFRJoin {
                 }
                 Tuple tuple = (Tuple) res.result;
                 if (isKeyNull(tuple.get(1))) continue;
-                Tuple key = mTupleFactory.newTuple(1);
-                key.set(0, tuple.get(1));
+                Object key = tuple.get(1);
                 Tuple value = getValueTuple(localRearrange, tuple);
 
                 if (replicate.get(key) == null) {
