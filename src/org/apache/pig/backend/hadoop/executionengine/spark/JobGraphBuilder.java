@@ -69,6 +69,7 @@ import com.google.common.collect.Lists;
 public class JobGraphBuilder extends SparkOpPlanVisitor {
 
     private static final Log LOG = LogFactory.getLog(JobGraphBuilder.class);
+    public static final int NULLPART_JOB_ID = -1;
 
     private Map<Class<? extends PhysicalOperator>, RDDConverter> convertMap = null;
     private SparkPigStats sparkStats = null;
@@ -203,6 +204,21 @@ public class JobGraphBuilder extends SparkOpPlanVisitor {
                 if (!isFail) {
                     List<Integer> jobIDs = getJobIDs(seenJobIDs);
                     for (POStore poStore : poStores) {
+                        if (jobIDs.size() == 0) {
+                            /**
+                             * Spark internally misses information about its jobs that mapped 0 partitions.
+                             * Although these have valid jobIds, Spark itself is unable to tell anything about them.
+                             * If the store rdd had 0 partitions we return a dummy success stat with jobId =
+                             * NULLPART_JOB_ID, in any other cases we throw exception if no new jobId was seen.
+                             */
+                            if (physicalOpRdds.get(poStore.getOperatorKey()).partitions().length == 0) {
+                                sparkStats.addJobStats(poStore, sparkOperator, NULLPART_JOB_ID, null, sparkContext);
+                                return;
+                            } else {
+                                throw new RuntimeException("Expected at least one unseen jobID "
+                                        + " in this call to getJobIdsForGroup, but got 0");
+                            }
+                        }
                         SparkStatsUtil.waitForJobAddStats(jobIDs.get(i++), poStore, sparkOperator,
                                 jobMetricsListener, sparkContext, sparkStats);
                     }
@@ -351,11 +367,6 @@ public class JobGraphBuilder extends SparkOpPlanVisitor {
                         .getJobIdsForGroup(jobGroupID))));
         groupjobIDs.removeAll(seenJobIDs);
         List<Integer> unseenJobIDs = new ArrayList<Integer>(groupjobIDs);
-        if (unseenJobIDs.size() == 0) {
-            throw new RuntimeException("Expected at least one unseen jobID "
-                    + " in this call to getJobIdsForGroup, but got "
-                    + unseenJobIDs.size());
-        }
         seenJobIDs.addAll(unseenJobIDs);
         return unseenJobIDs;
     }

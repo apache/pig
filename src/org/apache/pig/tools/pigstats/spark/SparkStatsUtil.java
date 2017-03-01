@@ -25,6 +25,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.spark.JobGraphBuilder;
 import org.apache.pig.backend.hadoop.executionengine.spark.JobMetricsListener;
 import org.apache.pig.backend.hadoop.executionengine.spark.operator.NativeSparkOperator;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperator;
@@ -120,6 +121,9 @@ public class SparkStatsUtil {
 
     public static boolean isJobSuccess(int jobID,
                                        JavaSparkContext sparkContext) {
+        if (jobID == JobGraphBuilder.NULLPART_JOB_ID) {
+            return true;
+        }
         JobExecutionStatus status = getJobInfo(jobID, sparkContext).status();
         if (status == JobExecutionStatus.SUCCEEDED) {
             return true;
