@@ -89,6 +89,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5159: Fix Pig not saving grunt history (szita via rohini)
+
 PIG-5127: Test fail when running test-core-mrtez (daijy)
 
 PIG-5083: CombinerPackager and LitePackager should not materialize bags (rohini)
