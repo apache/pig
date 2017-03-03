@@ -291,7 +291,7 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
         Set<TezOperator> splitters2 = new HashSet<>();
         Set<TezOperator> processedPredecessors = new HashSet<>();
         // Find predecessors which are splitters
-        fetchSplitterPredecessors(plan, operToSegment, processedPredecessors, splitters1);
+        fetchSplitterPredecessors(plan, operToSegment, processedPredecessors, splitters1, false);
         if (!splitters1.isEmpty()) {
             // For the successor, traverse rest of the plan below it and
             // search the predecessors of its successors to find any predecessor that might be a splitter.
@@ -300,7 +300,7 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
             processedPredecessors.clear();
             processedPredecessors.add(successor);
             for (TezOperator succ : allSuccs) {
-                fetchSplitterPredecessors(plan, succ, processedPredecessors, splitters2);
+                fetchSplitterPredecessors(plan, succ, processedPredecessors, splitters2, true);
             }
             // Find the common ones
             splitters1.retainAll(splitters2);
@@ -309,7 +309,7 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
     }
 
     private void fetchSplitterPredecessors(TezOperPlan plan, TezOperator tezOp,
-            Set<TezOperator> processedPredecessors, Set<TezOperator> splitters) {
+            Set<TezOperator> processedPredecessors, Set<TezOperator> splitters, boolean stopAtSplit) {
         List<TezOperator> predecessors = plan.getPredecessors(tezOp);
         if (predecessors != null) {
             for (TezOperator pred : predecessors) {
@@ -319,9 +319,13 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
                 }
                 if (pred.isSplitter()) {
                     splitters.add(pred);
+                    if (!stopAtSplit) {
+                        processedPredecessors.add(pred);
+                        fetchSplitterPredecessors(plan, pred, processedPredecessors, splitters, stopAtSplit);
+                    }
                 } else if (!pred.needSegmentBelow()) {
                     processedPredecessors.add(pred);
-                    fetchSplitterPredecessors(plan, pred, processedPredecessors, splitters);
+                    fetchSplitterPredecessors(plan, pred, processedPredecessors, splitters, stopAtSplit);
                 }
             }
         }

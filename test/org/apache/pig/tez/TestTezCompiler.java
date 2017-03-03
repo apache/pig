@@ -203,6 +203,25 @@ public class TestTezCompiler {
         resetScope();
         resetFileLocalizer();
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-LoadStore-6.gld");
+
+        // Three levels of splits - a, a1 and a2.
+        // One split above and one split below a1 which is the split to be replaced with tmp store.
+        query =
+                "a = load 'file:///tmp/input';" +
+                "store a into 'file:///tmp/pigoutput/Dir0';" +
+                "a1 = filter a by $0 == 5;" +
+                "store a1 into 'file:///tmp/pigoutput/Dir1';" +
+                "a2 = distinct a1;" +
+                "store a2 into 'file:///tmp/pigoutput/Dir2';" +
+                "a3 = group a2 by $0;" +
+                "store a3 into 'file:///tmp/pigoutput/Dir3';" +
+                "b = load 'file:///tmp/pigoutput/Dir3';" +
+                "c = join a1 by $0, b by $0;" +
+                "store c into 'file:///tmp/pigoutput/Dir4';";
+
+        resetScope();
+        resetFileLocalizer();
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-LoadStore-7.gld");
     }
 
     @Test
