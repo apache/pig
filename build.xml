@@ -350,7 +350,6 @@
     <!-- ====================================================== -->
     <!-- setup the classpath -->
     <path id="classpath">
-        <path refid="compile.classpath"/>
         <fileset file="${ivy.lib.dir}/${zookeeper.jarfile}"/>
         <fileset dir="${ivy.lib.dir}" includes="*.jar"/>
     </path>
@@ -894,9 +893,6 @@
             <env key="PATH" path="${build.path}"/>
             <classpath>
                 <pathelement location="${output.jarfile.core}" />
-                <fileset dir="lib">
-                    <include name="**/*.jar"/>
-                </fileset>
                 <pathelement location="${test.build.classes}" />
                 <pathelement location="." />
                 <pathelement path="${clover.jar}"/>
