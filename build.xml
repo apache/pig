@@ -879,15 +879,9 @@
     </target>
 	
     <target name="test-spark" depends="setSparkEnv,setWindowsPath,setLinuxPath,compile-test,jar,debugger.check,jackson-pig-3039-test-download" description="Run Spark unit tests in Spark cluster-local mode">
-        <macro-test-runner test.file="${test.spark.file}" tests.failed="test-spark.failed"/>
+        <macro-test-runner test.file="${test.all.file}" tests.failed="test-spark.failed"/>
         <fail if="test-spark.failed">Tests failed!</fail>
-     </target>
-
-    <target name="test-spark-local" depends="setSparkEnv,setWindowsPath,setLinuxPath,compile-test,jar,debugger.check,jackson-pig-3039-test-download" description="Run spark unit tests in Spark local mode">
-        <macro-test-runner test.file="${test.spark_local.file}" tests.failed="test-spark.failed"/>
-        <fail if="test-spark.failed">Tests failed!</fail>
-     </target>
-
+    </target>
 
     <target name="debugger.check" depends="debugger.set,debugger.unset"/>
     <target name="debugger.set" if="debugPort">
