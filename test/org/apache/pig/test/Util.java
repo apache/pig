@@ -1342,6 +1342,64 @@ public class Util {
         return false;
     }
 
+    public static void sortQueryOutputsIfNeed(List<Tuple> actualResList, boolean toSort){
+        if( toSort == true) {
+            for (Tuple t : actualResList) {
+                Util.convertBagToSortedBag(t);
+            }
+            Collections.sort(actualResList);
+        }
+    }
+
+    public static void checkQueryOutputs(Iterator<Tuple> actualResults, List<Tuple> expectedResults, boolean checkAfterSort) {
+        if (checkAfterSort) {
+            checkQueryOutputsAfterSort(actualResults, expectedResults);
+        } else {
+            checkQueryOutputs(actualResults, expectedResults);
+        }
+    }
+
+    static public void checkQueryOutputs(Iterator<Tuple> actualResultsIt,
+                                         String[] expectedResArray, LogicalSchema schema, boolean
+            checkAfterSort) throws IOException {
+        if (checkAfterSort) {
+            checkQueryOutputsAfterSortRecursive(actualResultsIt,
+                    expectedResArray, schema);
+        } else {
+            checkQueryOutputs(actualResultsIt,
+                    expectedResArray, schema);
+        }
+    }
+
+    static void checkQueryOutputs(Iterator<Tuple> actualResultsIt,
+                                         String[] expectedResArray, LogicalSchema schema) throws IOException {
+        LogicalFieldSchema fs = new LogicalFieldSchema("tuple", schema, DataType.TUPLE);
+        ResourceFieldSchema rfs = new ResourceFieldSchema(fs);
+
+        LoadCaster caster = new Utf8StorageConverter();
+        List<Tuple> actualResList = new ArrayList<Tuple>();
+        while (actualResultsIt.hasNext()) {
+            actualResList.add(actualResultsIt.next());
+        }
+
+        List<Tuple> expectedResList = new ArrayList<Tuple>();
+        for (String str : expectedResArray) {
+            Tuple newTuple = caster.bytesToTuple(str.getBytes(), rfs);
+            expectedResList.add(newTuple);
+        }
+
+        for (Tuple t : actualResList) {
+            convertBagToSortedBag(t);
+        }
+
+        for (Tuple t : expectedResList) {
+            convertBagToSortedBag(t);
+        }
+
+        Assert.assertEquals("Comparing actual and expected results. ",
+                expectedResList, actualResList);
+    }
+
     public static void assertParallelValues(long defaultParallel,
                                              long requestedParallel,
                                              long estimatedParallel,

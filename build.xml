@@ -331,7 +331,7 @@
             <fileset dir="${ivy.lib.dir}">
                 <include name="**.*jar"/>
             </fileset>
-            <fileset dir="${build.ivy.spark.lib.dir}/${ant.project.name}">
+            <fileset dir="${build.ivy.spark.lib.dir}">
                 <include name="**.*jar"/>
             </fileset>
         </path>
@@ -364,7 +364,7 @@
     <path id="classpath">
         <fileset file="${ivy.lib.dir}/${zookeeper.jarfile}"/>
         <fileset dir="${ivy.lib.dir}" includes="*.jar"/>
-        <fileset dir="${build.ivy.spark.lib.dir}/${ant.project.name}" includes="*.jar"/>
+        <fileset dir="${build.ivy.spark.lib.dir}" includes="*.jar"/>
     </path>
 
     <!-- javadoc-classpath -->
@@ -734,7 +734,7 @@
     <target name="copySparkDependencies">
         <mkdir dir="${spark.lib.dir}" />
         <copy todir="${spark.lib.dir}">
-            <fileset dir="${build.ivy.spark.lib.dir}/${ant.project.name}" includes="*.jar"/>
+            <fileset dir="${build.ivy.spark.lib.dir}" includes="*.jar"/>
         </copy>
     </target>
     
@@ -1654,7 +1654,7 @@
        <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings" log="${loglevel}"
                  pattern="${build.ivy.lib.dir}/${ivy.artifact.retrieve.pattern}" conf="compile"/>
        <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings" log="${loglevel}"
-                 pattern="${build.ivy.spark.lib.dir}/${ivy.artifact.retrieve.pattern}" conf="spark"/>
+                 pattern="${build.ivy.spark.lib.dir}/[artifact]-[revision](-[classifier]).[ext]" conf="spark"/>
        <ivy:cachepath pathid="compile.classpath" conf="compile"/>
      </target>
 

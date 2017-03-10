@@ -95,47 +95,43 @@ Test the Pig installation with this simple command: <code>$ pig -help</code>
 	<table>
 	<tr>
 	<td></td>
-    <td><strong>Interactive Mode </strong></td>
-    <td><strong>Batch Mode</strong> </td>
-	</tr>
-	<tr>
     <td><strong>Local Mode</strong></td>
-    <td>yes</td>
-    <td>yes</td>
-	</tr>
-  <tr>
-     <td><strong>Mapreduce Mode</strong></td>
-     <td>yes</td>
-     <td>yes</td>
-  </tr>
-	<tr>
     <td><strong>Tez Local Mode</strong></td>
-    <td>experimental</td>
-    <td>experimental</td>
-	</tr>
-	<tr>
+    <td><strong>Spark Local Mode</strong></td>
+    <td><strong>Mapreduce Mode</strong></td>
     <td><strong>Tez Mode</strong></td>
+    <td><strong>Spark Mode</strong></td>
+	</tr>
+	<tr>
+	<td><strong>Interactive Mode </strong></td>
+    <td>yes</td>
+    <td>experimental</td>
     <td>yes</td>
     <td>yes</td>
 	</tr>
 	<tr>
-    <td><strong>Spark Mode</strong></td>
+	<td><strong>Batch Mode</strong> </td>
+    <td>yes</td>
     <td>experimental</td>
-    <td>experimental</td>
+    <td>yes</td>
+    <td>yes</td>
 	</tr>
 	</table>
 
 	<!-- ++++++++++++++++++++++++++++++++++ -->
 	   <section id="execution-modes">
 	<title>Execution Modes</title>
-<p>Pig has five execution modes or exectypes: </p>
+<p>Pig has six execution modes or exectypes: </p>
 <ul>
 <li><strong>Local Mode</strong> - To run Pig in local mode, you need access to a single machine; all files are installed and run using your local host and file system. Specify local mode using the -x flag (pig -x local).
 </li>
-<li><strong>Mapreduce Mode</strong> - To run Pig in mapreduce mode, you need access to a Hadoop cluster and HDFS installation. Mapreduce mode is the default mode; you can, <em>but don't need to</em>, specify it using the -x flag (pig OR pig -x mapreduce).
-</li>
 <li><strong>Tez Local Mode</strong> - To run Pig in tez local mode. It is similar to local mode, except internally Pig will invoke tez runtime engine. Specify Tez local mode using the -x flag (pig -x tez_local).
 <p><strong>Note:</strong> Tez local mode is experimental. There are some queries which just error out on bigger data in local mode.</p>
+</li>
+<li><strong>Spark Local Mode</strong> - To run Pig in spark local mode. It is similar to local mode, except internally Pig will invoke spark runtime engine. Specify Spark local mode using the -x flag (pig -x spark_local).
+<p><strong>Note:</strong> Spark local mode is experimental. There are some queries which just error out on bigge data in local mode.</p>
+</li>
+<li><strong>Mapreduce Mode</strong> - To run Pig in mapreduce mode, you need access to a Hadoop cluster and HDFS installation. Mapreduce mode is the default mode; you can, <em>but don't need to</em>, specify it using the -x flag (pig OR pig -x mapreduce).
 </li>
 <li><strong>Tez Mode</strong> - To run Pig in Tez mode, you need access to a Hadoop cluster and HDFS installation. Specify Tez mode using the -x flag (-x tez).
 </li>
@@ -159,6 +155,9 @@ $ pig -x local ...
 /* Tez local mode */
 $ pig -x tez_local ...
  
+/* Spark local mode */
+$ pig -x spark_local ...
+
 /* mapreduce mode */
 $ pig ...
 or
@@ -199,6 +198,13 @@ grunt>
 <p><strong>Tez Local Mode</strong></p>
 <source>
 $ pig -x tez_local
+... - Connecting to ...
+grunt> 
+</source>
+
+<p><strong>Spark Local Mode</strong></p>
+<source>
+$ pig -x spark_local
 ... - Connecting to ...
 grunt> 
 </source>
@@ -258,6 +264,10 @@ $ pig -x local id.pig
 <p><strong>Tez Local Mode</strong></p>
 <source>
 $ pig -x tez_local id.pig
+</source>
+<p><strong>Spark Local Mode</strong></p>
+<source>
+$ pig -x spark_local id.pig
 </source>
 <p><strong>Mapreduce Mode</strong> </p>
 <source>
@@ -549,7 +559,7 @@ However, in a production environment you always want to use the STORE operator t
   <section id="tutorial">
 <title>Pig Tutorial </title>
 
-<p>The Pig tutorial shows you how to run Pig scripts using Pig's local mode, mapreduce mode and Tez mode (see <a href="#execution-modes">Execution Modes</a>).</p>
+<p>The Pig tutorial shows you how to run Pig scripts using Pig's local mode, mapreduce mode, Tez mode and Spark mode (see <a href="#execution-modes">Execution Modes</a>).</p>
 
 <p>To get started, do the following preliminary tasks:</p>
 
@@ -600,6 +610,10 @@ Or if you are using Tez local mode:
 <source>
 $ pig -x tez_local script1-local.pig
 </source>
+Or if you are using Spark local mode:
+<source>
+$ pig -x spark_local script1-local.pig
+</source>
 </li>
 <li>Review the result files, located in the script1-local-results.txt directory.
 <p>The output may contain a few Hadoop warnings which can be ignored:</p>
@@ -613,7 +627,7 @@ $ pig -x tez_local script1-local.pig
 
  <!-- ++++++++++++++++++++++++++++++++++ --> 
 <section>
-<title> Running the Pig Scripts in Mapreduce Mode or Tez Mode</title>
+<title> Running the Pig Scripts in Mapreduce Mode, Tez Mode or Spark Mode</title>
 
 <p>To run the Pig scripts in mapreduce mode, do the following: </p>
 <ol>
@@ -632,6 +646,8 @@ export PIG_CLASSPATH=/mycluster/conf
 <source>
 export PIG_CLASSPATH=/mycluster/conf:/tez/conf
 </source>
+<p>If you are using Spark, you will also need to specify SPARK_HOME and specify SPARK_JAR which is the hdfs location where you upload $SPARK_HOME/lib/spark-assembly*.jar:</p>
+<source>export SPARK_HOME=/mysparkhome/; export SPARK_JAR=hdfs://example.com:8020/spark-assembly*.jar</source>
 <p><strong>Note:</strong> The PIG_CLASSPATH can also be used to add any other 3rd party dependencies or resource files a pig script may require. If there is also a need to make the added entries take the highest precedence in the Pig JVM's classpath order, one may also set the env-var PIG_USER_CLASSPATH_FIRST to any value, such as 'true' (and unset the env-var to disable).</p></li>
 <li>Set the HADOOP_CONF_DIR environment variable to the location of the cluster configuration directory:
 <source>
@@ -645,6 +661,10 @@ $ pig script1-hadoop.pig
 Or if you are using Tez:
 <source>
 $ pig -x tez script1-hadoop.pig
+</source>
+Or if you are using Spark:
+<source>
+$ pig -x spark script1-hadoop.pig
 </source>
 </li>
 

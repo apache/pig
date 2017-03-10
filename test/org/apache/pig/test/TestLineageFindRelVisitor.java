@@ -259,8 +259,10 @@ public class TestLineageFindRelVisitor {
         pig.registerQuery("E = FOREACH D GENERATE (chararray) tupleD.a1;\n");
         Iterator<Tuple> iter  = pig.openIterator("E");
 
-        Util.checkQueryOutputsAfterSortRecursive(iter, new String[]{"(123)","(456)","(789)"},
-                org.apache.pig.newplan.logical.Util.translateSchema(pig.dumpSchema("E")));
+        Util.checkQueryOutputs(iter,
+                new String[]{"(123)", "(456)", "(789)"},
+                org.apache.pig.newplan.logical.Util.translateSchema(pig.dumpSchema("E")), Util.isSparkExecType(Util
+                .getLocalTestMode()));
     }
 
     @Test

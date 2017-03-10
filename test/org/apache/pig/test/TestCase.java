@@ -275,7 +275,8 @@ public class TestCase {
                 "(3,3n,{(c,x),(c,y)})"
         };
         Schema s = pigServer.dumpSchema("C");
-        Util.checkQueryOutputsAfterSortRecursive(out.iterator(), expected, org.apache.pig.newplan.logical.Util.translateSchema(s));
+        Util.checkQueryOutputs(out.iterator(), expected, org.apache.pig.newplan.logical.Util.translateSchema(s),
+                Util.isSparkExecType(Util.getLocalTestMode()));
     }
 
     /**

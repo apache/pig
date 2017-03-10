@@ -935,14 +935,14 @@ public class TestGrunt {
         // in spark mode, the output file 'baz' will not be automatically deleted even the job fails(see SPARK-7953)
         // when "cat baz;" is executed, it does not throw exception and the variable "caught" is false
         // TODO: Enable this for Spark when SPARK-7953 is resolved
-        if(!Util.isSparkExecType(cluster.getExecType())) {
-            try {
-                grunt.exec();
-            } catch (Exception e) {
-                caught = true;
-                assertTrue(e.getMessage().contains("baz does not exist"));
-            }
-            assertTrue(caught);
+        Assume.assumeTrue(
+                "Skip this test for Spark until SPARK-7953 is resolved!",
+                !Util.isSparkExecType(cluster.getExecType()));
+        try {
+            grunt.exec();
+        } catch (Exception e) {
+            caught = true;
+            assertTrue(e.getMessage().contains("baz does not exist"));
         }
     }
 

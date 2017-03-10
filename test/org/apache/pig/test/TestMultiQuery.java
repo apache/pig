@@ -114,7 +114,8 @@ public class TestMultiQuery {
                         "(2,3)"
         };
         Schema s = myPig.dumpSchema("E");
-        Util.checkQueryOutputsAfterSortRecursive(iter, expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(s));
+        Util.checkQueryOutputs(iter, expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(s), Util
+                .isSparkExecType(Util.getLocalTestMode()));
 
 
         myPig.registerQuery("E = load 'output2' as (a:int, b:int);");
@@ -125,7 +126,8 @@ public class TestMultiQuery {
                         "(3,4)"
         };
         s = myPig.dumpSchema("E");
-        Util.checkQueryOutputsAfterSortRecursive(iter, expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(s));
+        Util.checkQueryOutputs(iter, expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(s), Util
+                .isSparkExecType(Util.getLocalTestMode()));
     }
 
     @Test
@@ -165,7 +167,8 @@ public class TestMultiQuery {
                         "(5,6)"
         };
         Schema s = myPig.dumpSchema("F");
-        Util.checkQueryOutputsAfterSortRecursive(iter, expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(s));
+        Util.checkQueryOutputs(iter, expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(s), Util
+                .isSparkExecType(Util.getLocalTestMode()));
     }
 
     @Test
@@ -292,7 +295,8 @@ public class TestMultiQuery {
                 "(3L,persimmon,5,3L,persimmon,3L,{(3L)})"
         };
         Schema s = myPig.dumpSchema("E");
-        Util.checkQueryOutputsAfterSortRecursive(iter, expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(s));
+        Util.checkQueryOutputs(iter, expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(s), Util
+                .isSparkExecType(Util.getLocalTestMode()));
     }
 
     @Test
@@ -332,7 +336,8 @@ public class TestMultiQuery {
                 "(strawberry,{(30,strawberry,quit,bot)},{})"};
 
         Schema s = myPig.dumpSchema("joined_session_info");
-        Util.checkQueryOutputsAfterSortRecursive(iter, expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(s));
+        Util.checkQueryOutputs(iter, expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(s), Util
+                .isSparkExecType(Util.getLocalTestMode()));
     }
 
     @Test
@@ -930,20 +935,24 @@ public class TestMultiQuery {
 
         List<Tuple> actualResults = data.get("output1");
         String[] expectedResults = new String[]{"(12, 1)"};
-        Util.checkQueryOutputsAfterSortRecursive(actualResults.iterator(), expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(myPig.dumpSchema("B1")));
+        Util.checkQueryOutputs(actualResults.iterator(), expectedResults, org.apache.pig.newplan
+                .logical.Util.translateSchema(myPig.dumpSchema("B1")), Util.isSparkExecType(Util.getLocalTestMode()));
 
 
         actualResults = data.get("output2");
         expectedResults = new String[]{"(c,1)"};
-        Util.checkQueryOutputsAfterSortRecursive(actualResults.iterator(), expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(myPig.dumpSchema("B2")));
+        Util.checkQueryOutputs(actualResults.iterator(), expectedResults, org.apache.pig.newplan.logical.Util
+                .translateSchema(myPig.dumpSchema("B2")), Util.isSparkExecType(Util.getLocalTestMode()));
 
         actualResults = data.get("output3");
         expectedResults = new String[]{"(-12, 1)"};
-        Util.checkQueryOutputsAfterSortRecursive(actualResults.iterator(), expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(myPig.dumpSchema("C1")));
+        Util.checkQueryOutputs(actualResults.iterator(), expectedResults, org.apache.pig.newplan.logical.Util
+                .translateSchema(myPig.dumpSchema("C1")), Util.isSparkExecType(Util.getLocalTestMode()));
 
         actualResults = data.get("output4");
         expectedResults = new String[]{"(d,1)"};
-        Util.checkQueryOutputsAfterSortRecursive(actualResults.iterator(), expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(myPig.dumpSchema("C2")));
+        Util.checkQueryOutputs(actualResults.iterator(), expectedResults, org.apache.pig.newplan.logical.Util
+                .translateSchema(myPig.dumpSchema("C2")), Util.isSparkExecType(Util.getLocalTestMode()));
     }
 
     // --------------------------------------------------------------------------

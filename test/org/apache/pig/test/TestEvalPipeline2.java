@@ -143,12 +143,7 @@ public class TestEvalPipeline2 {
             actualResList.add(iter.next());
         }
 
-        if (Util.isSparkExecType(cluster.getExecType())) {
-            for (Tuple t : actualResList) {
-                Util.convertBagToSortedBag(t);
-            }
-            Collections.sort(actualResList);
-        }
+        Util.sortQueryOutputsIfNeed(actualResList,Util.isSparkExecType(cluster.getExecType()));
 
         int numIdentity = 0;
         for (Tuple tuple : actualResList) {
@@ -490,8 +485,8 @@ public class TestEvalPipeline2 {
         if (Util.isSparkExecType(cluster.getExecType())) {
             String[] expectedResults =
                 new String[] {"(2,{(2,2)},{(2,5,2)})", "(1,{(1,1)},{(1,2,3)})" };
-            Util.checkQueryOutputsAfterSortRecursive(iter, expectedResults,
-                org.apache.pig.newplan.logical.Util.translateSchema(pigServer.dumpSchema("D")));
+            Util.checkQueryOutputs(iter, expectedResults,
+                org.apache.pig.newplan.logical.Util.translateSchema(pigServer.dumpSchema("D")), Util.isSparkExecType(cluster.getExecType()));
         } else {
             Assert.assertTrue(iter.hasNext());
             Tuple t = iter.next();
@@ -760,15 +755,7 @@ public class TestEvalPipeline2 {
         List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
             new String[]{"(60000L,2L,3L)", "(120000L,2L,2L)", "(240000L,1L,1L)"});
 
-        if (Util.isSparkExecType(cluster.getExecType())) {
-            Util.checkQueryOutputsAfterSort(iter, expectedResults);
-        } else {
-            // Even though GROUP BY does not return results sorted by key, that
-            // is the current behavior for MR, which some users rely on. Let's
-            // not sort the results for MR and Tez so that we can catch it when
-            // current MR/Tez behavior changes.
-            Util.checkQueryOutputs(iter, expectedResults);
-        }
+        Util.checkQueryOutputs(iter, expectedResults, Util.isSparkExecType(cluster.getExecType()));
     }
 
     // See PIG-1729
@@ -1610,8 +1597,9 @@ public class TestEvalPipeline2 {
 
         String[] expected = new String[] {"(1,A)", "(1,B)", "(2,C)"};
 
-        Util.checkQueryOutputsAfterSortRecursive(iter, expected,
-            org.apache.pig.newplan.logical.Util.translateSchema(pigServer.dumpSchema("flattened")));
+        Util.checkQueryOutputs(iter, expected,
+            org.apache.pig.newplan.logical.Util.translateSchema(pigServer.dumpSchema("flattened")), 
+            Util.isSparkExecType(cluster.getExecType()));
     }
 
     // See PIG-2237

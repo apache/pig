@@ -897,7 +897,7 @@ public class TestEvalPipelineLocal {
         }
 
         numIdentity = resList.size();
-        Collections.sort(resList);
+        Util.sortQueryOutputsIfNeed(resList, Util.isSparkExecType(Util.getLocalTestMode()));
         Assert.assertEquals(LOOP_COUNT, numIdentity);
         // Since delta differences in some cases are allowed, utility function 
         // to compare tuple-lists cannot be used here.
@@ -937,7 +937,7 @@ public class TestEvalPipelineLocal {
                 expectedList.add(t);
             }
         }
-        Collections.sort(expectedList);  
+        Util.sortQueryOutputsIfNeed(expectedList, Util.isSparkExecType(Util.getLocalTestMode()));
         ps.close();
 
         pigServer.registerQuery("A = LOAD '"
@@ -961,7 +961,7 @@ public class TestEvalPipelineLocal {
             resList.add(iter.next());
         }
 
-        Collections.sort(resList);
+        Util.sortQueryOutputsIfNeed(resList, Util.isSparkExecType(Util.getLocalTestMode()));
         Assert.assertEquals((LOOP_COUNT * LOOP_COUNT)/2, resList.size());
 
         // Since delta difference in some cases is allowed, utility function 
@@ -1014,7 +1014,7 @@ public class TestEvalPipelineLocal {
         if(!iter.hasNext()) Assert.fail("No output found");
         // When ruuning with spark, output can be in a different order than that
         // when running in mr mode.
-        Util.checkQueryOutputsAfterSort(iter, expectedList);
+        Util.checkQueryOutputs(iter, expectedList, Util.isSparkExecType(Util.getLocalTestMode()));
     }
 
     @Test
@@ -1141,7 +1141,7 @@ public class TestEvalPipelineLocal {
                                 "((1,2),{((1,2),3)})",
                                 "((4,5),{((4,5),6)})"
                         });
-        Util.checkQueryOutputsAfterSort(iter, expectedRes);
+        Util.checkQueryOutputs(iter, expectedRes, Util.isSparkExecType(Util.getLocalTestMode()));
     }
     
     @Test

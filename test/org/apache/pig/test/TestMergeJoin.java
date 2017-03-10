@@ -634,13 +634,6 @@ public class TestMergeJoin {
     
     @Test
     public void testExpressionFail() throws IOException{
-        // This test validates that join keys are not expressions.
-        // Expressions cannot be handled when the storage function
-        // implements IndexableLoadFunc.
-        // TODO: Enable this test when Spark engine implements Merge Join algorithm.
-        if (Util.isSparkExecType(cluster.getExecType()))
-            return;
-
         pigServer.registerQuery("A = LOAD 'leftinput' as (a:int);");
         pigServer.registerQuery("B = LOAD 'temp_file*' using " +
                 DummyIndexableLoader.class.getName() + "() as (a:int);");
@@ -684,11 +677,6 @@ public class TestMergeJoin {
     
     @Test
     public void testMergeJoinWithCommaSeparatedFilePaths() throws IOException{
-
-        // Spark engine currently implements merge join as regular join
-        // TODO: Enable this test when Spark engine implements Merge Join algorithm.
-        if (Util.isSparkExecType(cluster.getExecType()))
-            return;
 
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "';");
         pigServer.registerQuery("B = LOAD 'temp_file,righinput_file' using " +

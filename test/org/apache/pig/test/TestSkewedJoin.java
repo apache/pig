@@ -53,6 +53,7 @@ import org.apache.pig.impl.builtin.PartitionSkewedKeys;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -309,8 +310,7 @@ public class TestSkewedJoin {
         // Spark engine currently implements skew join as regular join, and hence does
         // not control key distribution.
         // TODO: Enable this test when Spark engine implements Skew Join algorithm.
-        if (Util.isSparkExecType(cluster.getExecType()))
-            return;
+        Assume.assumeTrue("Skip this test for Spark until PIG-4858 is resolved!",!Util.isSparkExecType(cluster.getExecType()));
 
         String outputDir = "testSkewedJoinKeyPartition";
         try{

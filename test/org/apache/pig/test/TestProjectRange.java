@@ -650,7 +650,8 @@ public class TestProjectRange  {
                         "(11,{(11,21,31,41,51)})",
                 };
         Schema s = pigServer.dumpSchema("f");
-        Util.checkQueryOutputsAfterSortRecursive(it, expectedRes,org.apache.pig.newplan.logical.Util.translateSchema(s));
+        Util.checkQueryOutputs(it, expectedRes,org.apache.pig.newplan.logical.Util.translateSchema(s),
+        		Util.isSparkExecType(cluster.getExecType()));
     }
 
     /**
@@ -737,7 +738,8 @@ public class TestProjectRange  {
                         "(1,{(11,21,31,41,51),(10,20,30,40,50)})",
                 };
         Schema s = pigServer.dumpSchema("f");
-        Util.checkQueryOutputsAfterSortRecursive(it, expectedRes,org.apache.pig.newplan.logical.Util.translateSchema(s));
+        Util.checkQueryOutputs(it, expectedRes,org.apache.pig.newplan.logical.Util.translateSchema(s), 
+        		Util.isSparkExecType(cluster.getExecType()));
 
     }
 
@@ -946,7 +948,8 @@ public class TestProjectRange  {
                 };
         Iterator<Tuple> it = pigServer.openIterator("g");
         Schema s = pigServer.dumpSchema("g");
-        Util.checkQueryOutputsAfterSortRecursive(it, expectedRes,org.apache.pig.newplan.logical.Util.translateSchema(s));
+        Util.checkQueryOutputs(it, expectedRes,org.apache.pig.newplan.logical.Util.translateSchema(s), 
+        		Util.isSparkExecType(cluster.getExecType()));
     }
 
     /**
@@ -1013,7 +1016,8 @@ public class TestProjectRange  {
                 };
         Iterator<Tuple> it = pigServer.openIterator("g");
         Schema s = pigServer.dumpSchema("g");
-        Util.checkQueryOutputsAfterSortRecursive(it,expectedRes, org.apache.pig.newplan.logical.Util.translateSchema(s));
+        Util.checkQueryOutputs(it,expectedRes, org.apache.pig.newplan.logical.Util.translateSchema(s),
+        		Util.isSparkExecType(cluster.getExecType()));
     }
 
     @Test
@@ -1064,7 +1068,8 @@ public class TestProjectRange  {
                 };
         Iterator<Tuple> it = pigServer.openIterator("lim");
         Schema s = pigServer.dumpSchema("lim");
-        Util.checkQueryOutputsAfterSortRecursive(it, expectedRes,org.apache.pig.newplan.logical.Util.translateSchema(s));
+        Util.checkQueryOutputs(it, expectedRes,org.apache.pig.newplan.logical.Util.translateSchema(s), 
+        		Util.isSparkExecType(cluster.getExecType()));
     }
 
 
@@ -1126,7 +1131,8 @@ public class TestProjectRange  {
                 };
         Iterator<Tuple> it = pigServer.openIterator("g");
         Schema s = pigServer.dumpSchema("g");
-        Util.checkQueryOutputsAfterSortRecursive(it, expectedRes, org.apache.pig.newplan.logical.Util.translateSchema(s));
+        Util.checkQueryOutputs(it, expectedRes, org.apache.pig.newplan.logical.Util.translateSchema(s),
+        		Util.isSparkExecType(cluster.getExecType()));
     }
 
     private void setAliasesToNull(Schema schema) {
@@ -1165,7 +1171,8 @@ public class TestProjectRange  {
                 };
         Iterator<Tuple> it = pigServer.openIterator("j");
         Schema s = pigServer.dumpSchema("j");
-        Util.checkQueryOutputsAfterSortRecursive(it, expectedRes,org.apache.pig.newplan.logical.Util.translateSchema(s));
+        Util.checkQueryOutputs(it, expectedRes,org.apache.pig.newplan.logical.Util.translateSchema(s), 
+        		Util.isSparkExecType(cluster.getExecType()));
     }
 
     @Test
@@ -1193,7 +1200,8 @@ public class TestProjectRange  {
                 };
         Iterator<Tuple> it = pigServer.openIterator("j");
         Schema s = pigServer.dumpSchema("j");
-        Util.checkQueryOutputsAfterSortRecursive(it, expectedRes, org.apache.pig.newplan.logical.Util.translateSchema(s));
+        Util.checkQueryOutputs(it, expectedRes, org.apache.pig.newplan.logical.Util.translateSchema(s), 
+        		Util.isSparkExecType(cluster.getExecType()));
     }
 
     @Test

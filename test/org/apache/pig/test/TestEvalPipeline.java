@@ -428,12 +428,7 @@ public class TestEvalPipeline {
             actualResList.add(iter.next());
         }
 
-        if (Util.isSparkExecType(cluster.getExecType())) {
-            for (Tuple t : actualResList) {
-                Util.convertBagToSortedBag(t);
-            }
-            Collections.sort(actualResList);
-        }
+        Util.sortQueryOutputsIfNeed(actualResList, Util.isSparkExecType(cluster.getExecType()));
 
         int numIdentity = 0;
         for (Tuple t : actualResList) {
@@ -484,12 +479,7 @@ public class TestEvalPipeline {
             actualResList.add(iter.next());
         }
 
-        if (Util.isSparkExecType(cluster.getExecType())) {
-            for (Tuple t : actualResList) {
-                Util.convertBagToSortedBag(t);
-            }
-            Collections.sort(actualResList);
-        }
+        Util.sortQueryOutputsIfNeed(actualResList, Util.isSparkExecType(cluster.getExecType()));
 
         int numIdentity = 0;
         for (Tuple t : actualResList) {
@@ -870,12 +860,7 @@ public class TestEvalPipeline {
             actualResList.add(iter.next());
         }
 
-        if (Util.isSparkExecType(cluster.getExecType())) {
-            for (Tuple t : actualResList) {
-                Util.convertBagToSortedBag(t);
-            }
-            Collections.sort(actualResList);
-        }
+        Util.sortQueryOutputsIfNeed(actualResList, Util.isSparkExecType(cluster.getExecType()));
 
         int numIdentity = 0;
         for (Tuple t : actualResList) {

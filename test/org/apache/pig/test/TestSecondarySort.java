@@ -238,8 +238,9 @@ public abstract class TestSecondarySort {
         Iterator<Tuple> iter = pigServer.openIterator("D");
         String[] expectedRes = new String[]{"(2,1)","(1,2)"};
         Schema s = pigServer.dumpSchema("D");
-        Util.checkQueryOutputsAfterSortRecursive(iter,expectedRes,org.apache
-                .pig.newplan.logical.Util.translateSchema(s));
+        Util.checkQueryOutputs(iter,expectedRes,org.apache
+                .pig.newplan.logical.Util.translateSchema(s),
+                Util.isSparkExecType(cluster.getExecType()));
         Util.deleteFile(cluster, file1ClusterPath);
         Util.deleteFile(cluster, file2ClusterPath);
     }
@@ -268,8 +269,9 @@ public abstract class TestSecondarySort {
                 "(2,{(2,3,4)})",
                 "(1,{(1,2,3),(1,2,4),(1,3,4)})"
         };
-        Util.checkQueryOutputsAfterSortRecursive(iter, expected, org.apache
-                .pig.newplan.logical.Util.translateSchema(s));
+        Util.checkQueryOutputs(iter, expected, org.apache
+                .pig.newplan.logical.Util.translateSchema(s), 
+                Util.isSparkExecType(Util.getLocalTestMode()));
         Util.deleteFile(cluster, clusterPath);
     }
 
@@ -361,7 +363,8 @@ public abstract class TestSecondarySort {
         Iterator<Tuple> iter = pigServer.openIterator("E");
         Schema s = pigServer.dumpSchema("E");
         String[] expectedRes = new String[]{"((1,2),4)","((1,3),1)","((1,4),0)","((2,3),1)"};
-        Util.checkQueryOutputsAfterSortRecursive(iter, expectedRes,org.apache.pig.newplan.logical.Util.translateSchema(s) );
+        Util.checkQueryOutputs(iter, expectedRes,org.apache.pig.newplan.logical.Util.translateSchema(s),
+        		Util.isSparkExecType(cluster.getExecType()));
         Util.deleteFile(cluster, clusterPath1);
         Util.deleteFile(cluster, clusterPath2);
     }

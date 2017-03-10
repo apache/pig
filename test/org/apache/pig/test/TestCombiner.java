@@ -406,12 +406,12 @@ public class TestCombiner {
         pigServer.shutdown();
     }
 
-    private void checkCombinerUsed(PigServer pigServer, String variable, boolean combineExpected)
+    private void checkCombinerUsed(PigServer pigServer, String alias, boolean combineExpected)
             throws IOException {
         // make sure there is a combine plan in the explain output
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(baos);
-        pigServer.explain(variable, ps);
+        pigServer.explain(alias, ps);
         boolean combinerFound;
         if (pigServer.getPigContext().getExecType().name().equalsIgnoreCase("spark")) {
             combinerFound = baos.toString().contains("Reduce By");
