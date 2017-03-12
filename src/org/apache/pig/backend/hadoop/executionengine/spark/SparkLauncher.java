@@ -194,7 +194,7 @@ public class SparkLauncher extends Launcher {
         convertMap.put(POLoad.class, new LoadConverter(pigContext,
                 physicalPlan, sparkContext.sc(), jobConf, sparkEngineConf));
         convertMap.put(POStore.class, new StoreConverter(jobConf));
-        convertMap.put(POForEach.class, new ForEachConverter());
+        convertMap.put(POForEach.class, new ForEachConverter(jobConf));
         convertMap.put(POFilter.class, new FilterConverter());
         convertMap.put(POPackage.class, new PackageConverter());
         convertMap.put(POLocalRearrange.class, new LocalRearrangeConverter());
