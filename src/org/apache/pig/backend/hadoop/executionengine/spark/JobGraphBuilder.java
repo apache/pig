@@ -59,6 +59,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.tools.pigstats.spark.SparkPigStats;
 import org.apache.pig.tools.pigstats.spark.SparkStatsUtil;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -121,7 +122,9 @@ public class JobGraphBuilder extends SparkOpPlanVisitor {
         if (poMergeJoins.size() > 0) {
             for (POMergeJoin poMergeJoin : poMergeJoins) {
                 String idxFileName = poMergeJoin.getIndexFile();
-                filesForMoreReplication.add(new Path(idxFileName));
+                if (idxFileName != null) {
+                    filesForMoreReplication.add(new Path(idxFileName));
+                }
                 // in spark mode, set as null so that PoMergeJoin won't use hadoop distributed cache
                 // see POMergeJoin.seekInRightStream()
                 poMergeJoin.setIndexFile(null);
