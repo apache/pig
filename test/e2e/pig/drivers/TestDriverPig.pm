@@ -425,6 +425,11 @@ sub getPigCmd($$$)
         }
         TestDriver::dbg("Additional java parameters: [$additionalJavaParams].\n");
     }
+
+    # Several OutOfMemoryErrors - Perm space issues were seen during running E2E tests, here max Perm size is adjusted
+    if ($testCmd->{'exectype'} eq "spark") {
+        $additionalJavaParams = "-XX:MaxPermSize=512m";
+    }
     
     push(@pigCmd, ("-x", $testCmd->{'exectype'}));
 
