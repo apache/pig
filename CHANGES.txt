@@ -91,6 +91,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5183: We shall mention NATIVE instead of MAPREDUCE operator in document (daijy)
+
 PIG-5182: ant docs target is broken by PIG-5110 (daijy)
 
 PIG-5156: Duplicate jars in CLASSPATH when running test (daijy)

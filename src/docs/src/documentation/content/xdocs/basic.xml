@@ -7629,16 +7629,16 @@ ILLUSTRATE A;
       
 
 <!-- =================================================================== -->
-<section id="mapreduce">
-   <title>MAPREDUCE</title>
-   <p>Executes native MapReduce jobs inside a Pig script.</p>      
+<section id="native">
+   <title>NATIVE</title>
+   <p>Executes native MapReduce/Tez jobs inside a Pig script.</p>
    
    <section>
    <title>Syntax</title>
       <table>
       <tr> 
             <td>
-               <p>alias1 = MAPREDUCE 'mr.jar' STORE alias2 INTO 
+               <p>alias1 = NATIVE 'native.jar' STORE alias2 INTO
 'inputLocation' USING storeFunc LOAD 'outputLocation' USING loadFunc AS schema [`params, ... `];</p>
             </td>
          </tr> 
@@ -7658,11 +7658,11 @@ ILLUSTRATE A;
      </tr>
      <tr>
             <td>
-               <p>mr.jar</p>
+               <p>native.jar</p>
             </td>
             <td>
-                <p>The MapReduce jar file (enclosed in single quotes).</p>
-               <p>You can specify any MapReduce jar file that can be run through the <code>hadoop jar mymr.jar params</code> command. </p>
+                <p>The jar file containing MapReduce or Tez program (enclosed in single quotes).</p>
+               <p>You can specify any MapReduce/Tez jar file that can be run through the <code>hadoop jar native.jar params</code> command. </p>
                <p>The values for inputLocation and outputLocation can be passed in the params. </p>
             </td>
      </tr>
@@ -7673,7 +7673,7 @@ ILLUSTRATE A;
             </td>
             <td>
                <p>See <a href="basic.html#store">STORE</a></p>
-               <p>Store alias2 into the inputLocation using storeFunc, which is then used by the MapReduce job to read its data.</p>
+               <p>Store alias2 into the inputLocation using storeFunc, which is then used by the MapReduce/Tez job to read its data.</p>
                 
             </td>
      </tr>
@@ -7684,7 +7684,7 @@ ILLUSTRATE A;
             </td>
             <td>
                <p>See <a href="basic.html#load">LOAD</a></p>
-               <p>After running mr.jar's MapReduce job, load back the data from outputLocation into alias1 using loadFunc as schema.</p>
+               <p>After running native.jar's MapReduce/Tez job, load back the data from outputLocation into alias1 using loadFunc as schema.</p>
             </td>
      </tr>
 
@@ -7693,7 +7693,7 @@ ILLUSTRATE A;
                <p>`params, ...`</p>
             </td>
             <td>
-               <p>Extra parameters required for the mapreduce job (enclosed in back tics). </p>
+               <p>Extra parameters required for the mapreduce/tez job (enclosed in back tics). </p>
             </td>
      </tr>
        
@@ -7702,20 +7702,20 @@ ILLUSTRATE A;
 
 <section>
 <title>Usage</title>
-<p>Use the MAPREDUCE operator to run native MapReduce jobs from inside a Pig script.</p>
+<p>Use the NATIVE operator to run native MapReduce/Tez jobs from inside a Pig script.</p>
 
-<p>The input and output locations for the MapReduce program are conveyed to Pig using the STORE/LOAD clauses.  
-Pig, however, does not pass this information (nor require that this information be passed) to the MapReduce program. 
-If you want to pass the input and output locations to the MapReduce program you can use the params clause or you can hardcode the locations in the MapReduce program.</p>
+<p>The input and output locations for the MapReduce/Tez program are conveyed to Pig using the STORE/LOAD clauses.
+Pig, however, does not pass this information (nor require that this information be passed) to the MapReduce/Tez program.
+If you want to pass the input and output locations to the MapReduce/Tez program you can use the params clause or you can hardcode the locations in the MapReduce/Tez program.</p>
 </section>
 
 <section>
 <title>Example</title>
 <p>This example demonstrates how to run the wordcount MapReduce progam from Pig.
-Note that the files specified as input and output locations in the MAPREDUCE statement will NOT be deleted by Pig automatically. You will need to delete them manually. </p>
+Note that the files specified as input and output locations in the NATIVE statement will NOT be deleted by Pig automatically. You will need to delete them manually. </p>
 <source>
 A = LOAD 'WordcountInput.txt';
-B = MAPREDUCE 'wordcount.jar' STORE A INTO 'inputDir' LOAD 'outputDir' 
+B = NATIVE 'wordcount.jar' STORE A INTO 'inputDir' LOAD 'outputDir'
     AS (word:chararray, count: int) `org.myorg.WordCount inputDir outputDir`;
 </source>
 </section>
