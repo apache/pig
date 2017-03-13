@@ -588,8 +588,6 @@
 
 <p><a href="start.html#execution-modes">mapreduce mode</a></p>
 
-<p><a href="basic.html#mapreduce">MAPREDUCE</a> operator</p>
-
 <p>maps (data type)
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#map-schema">and schemas</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#schema-multi">schemas for multiple types</a>
@@ -625,6 +623,8 @@
 <p id="n-index"><strong>N</strong> (<a href="#top">top</a>) ----------------------------------------------</p>
 
 <p>names (for fields, relations). <em>See</em> referencing.</p>
+
+<p><a href="basic.html#native">NATIVE</a> operator</p>
 
 <p><a href="basic.html#nested-block">nested blocks</a> (FOREACH operator) </p>
 
