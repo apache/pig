@@ -5424,7 +5424,7 @@ D = foreach C generate A::y, z; -- Cannot simply refer to y as it can refer to A
 <p> In cases where the schema is stored as part of the StoreFunc like PigStorage, JsonStorage, AvroStorage or OrcStorage,
    users generally have to use an extra FOREACH before STORE to rename the field names and remove the disambiguate
    operator from the names. To automatically remove the disambiguate operator from the schema for the STORE operation,
-   the <i>pig.store.schema.disambiguate</i> Pig property can be set to "false". It is the responsibility of the user
+   the pig.store.schema.disambiguate Pig property can be set to "false". It is the responsibility of the user
    to make sure that there is no conflict in the field names when using this setting.
 </p>
 </section>

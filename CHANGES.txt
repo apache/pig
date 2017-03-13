@@ -89,6 +89,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5182: ant docs target is broken by PIG-5110 (daijy)
+
 PIG-5156: Duplicate jars in CLASSPATH when running test (daijy)
 
 PIG-5173: Script with multiple splits fails with Invalid dag containing 0 vertices (rohini)
