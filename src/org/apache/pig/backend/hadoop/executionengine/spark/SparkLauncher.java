@@ -377,10 +377,12 @@ public class SparkLauncher extends Launcher {
 
     private void cacheFiles(String cacheFiles) throws IOException {
         if (cacheFiles != null) {
+            File tmpFolder = Files.createTempDirectory("cache").toFile();
+            tmpFolder.deleteOnExit();
             for (String file : cacheFiles.split(",")) {
                 String fileName = extractFileName(file.trim());
                 Path src = new Path(extractFileUrl(file.trim()));
-                File tmpFile = File.createTempFile(fileName, ".tmp");
+                File tmpFile = new File(tmpFolder, fileName);
                 Path tmpFilePath = new Path(tmpFile.getAbsolutePath());
                 FileSystem fs = tmpFilePath.getFileSystem(jobConf);
                 fs.copyToLocalFile(src, tmpFilePath);
