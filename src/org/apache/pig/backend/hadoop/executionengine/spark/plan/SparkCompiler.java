@@ -997,6 +997,13 @@ public class SparkCompiler extends PhyPlanVisitor {
 					ret.scalars.add(physOp);
 				}
 			}
+			
+			if(removeSparkOp.getCrossKeys()!=null){
+				for(String crossKey: removeSparkOp.getCrossKeys())
+				   ret.addCrossKey(crossKey);
+			}
+			
+			
 			Set<PhysicalOperator> opsToChange = new HashSet<PhysicalOperator>();
 			for (Map.Entry<PhysicalOperator, SparkOperator> entry : phyToSparkOpMap
 					.entrySet()) {
