@@ -232,7 +232,7 @@ public class SparkLauncher extends Launcher {
     }
 
     private void uploadResources(SparkOperPlan sparkPlan) throws IOException {
-        addFilesToSparkJob();
+        addFilesToSparkJob(sparkPlan);
         addJarsToSparkJob(sparkPlan);
     }
 
@@ -350,7 +350,7 @@ public class SparkLauncher extends Launcher {
         }
     }
 
-    private void addFilesToSparkJob() throws IOException {
+    private void addFilesToSparkJob(SparkOperPlan sparkPlan) throws IOException {
         LOG.info("add files Spark Job");
         String shipFiles = pigContext.getProperties().getProperty(
                 "pig.streaming.ship.files");
@@ -358,12 +358,22 @@ public class SparkLauncher extends Launcher {
         String cacheFiles = pigContext.getProperties().getProperty(
                 "pig.streaming.cache.files");
         cacheFiles(cacheFiles);
+        addUdfResourcesToSparkJob(sparkPlan);
     }
 
+    private void addUdfResourcesToSparkJob(SparkOperPlan sparkPlan) throws IOException {
+        SparkPOUserFuncVisitor sparkPOUserFuncVisitor = new SparkPOUserFuncVisitor(sparkPlan);
+        sparkPOUserFuncVisitor.visit();
+        Joiner joiner = Joiner.on(",");
+        String shipFiles = joiner.join(sparkPOUserFuncVisitor.getShipFiles());
+        shipFiles(shipFiles);
+        String cacheFiles = joiner.join(sparkPOUserFuncVisitor.getCacheFiles());
+        cacheFiles(cacheFiles);
+    }
 
     private void shipFiles(String shipFiles)
             throws IOException {
-        if (shipFiles != null) {
+        if (shipFiles != null && !shipFiles.isEmpty()) {
             for (String file : shipFiles.split(",")) {
                 File shipFile = new File(file.trim());
                 if (shipFile.exists()) {
@@ -376,7 +386,7 @@ public class SparkLauncher extends Launcher {
     }
 
     private void cacheFiles(String cacheFiles) throws IOException {
-        if (cacheFiles != null) {
+        if (cacheFiles != null && !cacheFiles.isEmpty()) {
             File tmpFolder = Files.createTempDirectory("cache").toFile();
             tmpFolder.deleteOnExit();
             for (String file : cacheFiles.split(",")) {
