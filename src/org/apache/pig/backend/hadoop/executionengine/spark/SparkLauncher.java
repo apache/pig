@@ -417,6 +417,12 @@ public class SparkLauncher extends Launcher {
             allJars.add(udfJar);
         }
 
+        File scriptUDFJarFile = JarManager.createPigScriptUDFJar(pigContext);
+        if (scriptUDFJarFile != null) {
+            LOG.info("add script udf jar to Spark job");
+            allJars.add(scriptUDFJarFile.getAbsolutePath().toString());
+        }
+
         //Upload all jars to spark working directory
         for (String jar : allJars) {
             File jarFile = new File(jar);
