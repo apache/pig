@@ -241,7 +241,8 @@ public class POSplit extends PhysicalOperator {
             }
         }
 
-        return (res.returnStatus == POStatus.STATUS_OK) ? res : RESULT_EMPTY;
+        return (res.returnStatus == POStatus.STATUS_OK ||
+                res.returnStatus == POStatus.STATUS_ERR ) ? res : RESULT_EMPTY;
     }
 
     private Result runPipeline(PhysicalOperator leaf) throws ExecException {
