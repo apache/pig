@@ -91,6 +91,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5198: streaming job stuck with script failure when combined with split (knoguchi)
+
 PIG-5183: We shall mention NATIVE instead of MAPREDUCE operator in document (daijy)
 
 PIG-5182: ant docs target is broken by PIG-5110 (daijy)
