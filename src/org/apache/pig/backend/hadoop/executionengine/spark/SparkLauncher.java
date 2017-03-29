@@ -257,7 +257,7 @@ public class SparkLauncher extends Launcher {
             skOptimizer.visit();
         }
 
-        boolean isAccum = conf.getBoolean("opt.accumulator", true);
+        boolean isAccum = conf.getBoolean(PigConfiguration.PIG_OPT_ACCUMULATOR, true);
         if (isAccum) {
             AccumulatorOptimizer accum = new AccumulatorOptimizer(plan);
             accum.visit();

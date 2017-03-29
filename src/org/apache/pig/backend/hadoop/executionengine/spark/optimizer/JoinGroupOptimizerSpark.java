@@ -37,8 +37,10 @@ import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperator;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.DepthFirstWalker;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.MultiMap;
 
 /**
  * Collapse LocalRearrange,GlobalRearrange,Package to POJoinGroupSpark to reduce unnecessary
@@ -57,18 +59,18 @@ public class JoinGroupOptimizerSpark extends SparkOpPlanVisitor {
             GlobalRearrangeDiscover glrDiscover = new GlobalRearrangeDiscover(sparkOp.physicalPlan);
             glrDiscover.visit();
             List<PhysicalPlan> plans = glrDiscover.getPlansWithJoinAndGroup();
-            handlePlans(plans);
+            handlePlans(plans, sparkOp);
         }
 
     }
 
-    private void handlePlans(List<PhysicalPlan> plans) throws VisitorException {
+    private void handlePlans(List<PhysicalPlan> plans, SparkOperator sparkOp) throws VisitorException {
         for(int i=0;i<plans.size();i++){
             PhysicalPlan planWithJoinAndGroup = plans.get(i);
             POGlobalRearrangeSpark glrSpark = PlanHelper.getPhysicalOperators(planWithJoinAndGroup,POGlobalRearrangeSpark.class).get(0);
             if (verifyJoinOrGroupCase(plans.get(i), glrSpark)) {
                 try {
-                    restructSparkOp(planWithJoinAndGroup, glrSpark);
+                    restructSparkOp(planWithJoinAndGroup, glrSpark, sparkOp);
                 } catch (PlanException e) {
                     throw new RuntimeException("GlobalRearrangeDiscover#visitSparkOp fails: ", e);
                 }
@@ -100,7 +102,7 @@ public class JoinGroupOptimizerSpark extends SparkOpPlanVisitor {
     }
 
     //collapse LRA,GRA,PKG to POJoinGroupSpark
-    private void restructSparkOp(PhysicalPlan plan,POGlobalRearrangeSpark glaOp) throws PlanException {
+    private void restructSparkOp(PhysicalPlan plan,POGlobalRearrangeSpark glaOp, SparkOperator sparkOp) throws PlanException {
 
         List<PhysicalOperator> predes = plan.getPredecessors(glaOp);
         if (predes != null) {
@@ -158,10 +160,20 @@ public class JoinGroupOptimizerSpark extends SparkOpPlanVisitor {
             plan.disconnect(pkgOp, pkgSuccessor);
             plan.connect(joinSpark, pkgSuccessor);
             for (POLocalRearrange lra : lraOps) {
+                replaceMultiqueryMapping(sparkOp, lra, joinSpark);
                 plan.remove(lra);
             }
             plan.remove(glaOp);
             plan.remove(pkgOp);
+        }
+    }
+
+    private void replaceMultiqueryMapping(SparkOperator sparkOperator, PhysicalOperator from, PhysicalOperator to) {
+        MultiMap<OperatorKey, OperatorKey> multiQueryOptimizeConnectionItems = sparkOperator.getMultiQueryOptimizeConnectionItem();
+        if (multiQueryOptimizeConnectionItems.containsKey(from.getOperatorKey())) {
+            List<OperatorKey> value = multiQueryOptimizeConnectionItems.get(from.getOperatorKey());
+            multiQueryOptimizeConnectionItems.removeKey(from.getOperatorKey());
+            multiQueryOptimizeConnectionItems.put(to.getOperatorKey(), value);
         }
     }
 
