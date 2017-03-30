@@ -91,6 +91,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4677: Display failure information on stop on failure (rohini)
+
 PIG-5198: streaming job stuck with script failure when combined with split (knoguchi)
 
 PIG-5183: We shall mention NATIVE instead of MAPREDUCE operator in document (daijy)

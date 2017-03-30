@@ -38,6 +38,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.tools.pigstats.InputStats;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
@@ -201,6 +202,14 @@ public class TezPigScriptStats extends PigStats {
                 String diagnostics = tezJob.getDiagnostics();
                 tezDAGStats.setErrorMsg(diagnostics);
                 tezDAGStats.setBackendException(new TezException(diagnostics));
+                boolean stop_on_failure =
+                        Boolean.valueOf(pigContext.getProperties().getProperty("stop.on.failure", "false"));
+                if (stop_on_failure) {
+                    LogUtils.writeLog("Backend error message",
+                            diagnostics, pigContext.getProperties()
+                                    .getProperty("pig.logfile"),
+                            LOG);
+                }
                 tezScriptState.emitJobFailedNotification(tezDAGStats);
             }
             tezScriptState.dagCompletedNotification(tezJob.getName(), tezDAGStats);
