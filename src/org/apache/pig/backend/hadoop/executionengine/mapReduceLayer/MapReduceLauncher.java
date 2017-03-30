@@ -46,6 +46,7 @@ import org.apache.hadoop.mapreduce.Cluster;
 import org.apache.hadoop.mapreduce.TaskReport;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapreduce.TaskType;
+import org.apache.hadoop.mapreduce.lib.jobcontrol.ControlledJob;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.PigRunner.ReturnCode;
@@ -213,9 +214,10 @@ public class MapReduceLauncher extends Launcher {
 
         boolean stop_on_failure =
             Boolean.valueOf(pc.getProperties().getProperty("stop.on.failure", "false"));
+        boolean stoppedOnFailure = false;
 
         // jc is null only when mrp.size == 0
-        while(mrp.size() != 0) {
+        while(mrp.size() != 0 && !stoppedOnFailure) {
             jc = jcc.compile(mrp, grpName);
             if(jc == null) {
                 List<MapReduceOper> roots = new LinkedList<MapReduceOper>();
@@ -377,9 +379,9 @@ public class MapReduceLauncher extends Launcher {
                     MRPigStatsUtil.accumulateStats(jc);
 
                     // if stop_on_failure is enabled, we need to stop immediately when any job has failed
-                    checkStopOnFailure(stop_on_failure);
+                    stoppedOnFailure = stopJobsOnFailure(stop_on_failure);
                     // otherwise, we just display a warning message if there's any failure
-                    if (warn_failure && !jc.getFailedJobs().isEmpty()) {
+                    if (!stop_on_failure && warn_failure && !jc.getFailedJobs().isEmpty()) {
                         // we don't warn again for this group of jobs
                         warn_failure = false;
                         log.warn("Ooops! Some job has failed! Specify -stop_on_failure if you "
@@ -409,13 +411,15 @@ public class MapReduceLauncher extends Launcher {
 
                 if (!jc.getFailedJobs().isEmpty() ) {
                     // stop if stop_on_failure is enabled
-                    checkStopOnFailure(stop_on_failure);
+                    stoppedOnFailure = stopJobsOnFailure(stop_on_failure);
 
-                    // If we only have one store and that job fail, then we sure
-                    // that the job completely fail, and we shall stop dependent jobs
-                    for (Job job : jc.getFailedJobs()) {
-                        completeFailedJobsInThisRun.add(job);
-                        log.info("job " + job.getAssignedJobID() + " has failed! Stop running all dependent jobs");
+                    if (!stoppedOnFailure) {
+                        // If we only have one store and that job fail, then we sure
+                        // that the job completely fail, and we shall stop dependent jobs
+                        for (Job job : jc.getFailedJobs()) {
+                            completeFailedJobsInThisRun.add(job);
+                            log.info("job " + job.getAssignedJobID() + " has failed! Stop running all dependent jobs");
+                        }
                     }
                     failedJobs.addAll(jc.getFailedJobs());
                 }
@@ -552,33 +556,38 @@ public class MapReduceLauncher extends Launcher {
                 // this method.
             }
         }
+
+        if (stoppedOnFailure) {
+            throw new ExecException("Stopping execution on job failure with -stop_on_failure option", 6017,
+                    PigException.REMOTE_ENVIRONMENT);
+        }
         return pigStats;
     }
 
     /**
-     * If stop_on_failure is enabled and any job has failed, an ExecException is thrown.
+     * If stop_on_failure is enabled and any job has failed, it stops other jobs.
      * @param stop_on_failure whether it's enabled.
-     * @throws ExecException If stop_on_failure is enabled and any job is failed
+     * @return true if there were failed jobs and stop_on_failure is enabled
      */
-    private void checkStopOnFailure(boolean stop_on_failure) throws ExecException{
+    private boolean stopJobsOnFailure(boolean stop_on_failure) throws IOException, InterruptedException {
         if (jc.getFailedJobs().isEmpty())
-            return;
+            return false;
 
-        if (stop_on_failure){
-            int errCode = 6017;
-            StringBuilder msg = new StringBuilder();
-
-            for (int i=0; i<jc.getFailedJobs().size(); i++) {
-                Job j = jc.getFailedJobs().get(i);
-                msg.append("JobID: " + j.getAssignedJobID() + " Reason: " + j.getMessage());
-                if (i!=jc.getFailedJobs().size()-1) {
-                    msg.append("\n");
+        if (stop_on_failure) {
+            List<ControlledJob> readyJobsList = jc.getReadyJobsList();
+            List<ControlledJob> runningJobList = jc.getRunningJobList();
+            if (readyJobsList.size() > 0 || runningJobList.size() > 0) {
+                log.info("Some job(s) failed. Failing other ready and running jobs as -stop_on_failure is on");
+                for (ControlledJob job : readyJobsList) {
+                    job.failJob("Failing ready job for -stop_on_failure: " + job.getMapredJobId());
+                }
+                for (ControlledJob job : runningJobList) {
+                    job.failJob("Failing running job for -stop_on_failure: " + job.getMapredJobId());
                 }
             }
-
-            throw new ExecException(msg.toString(), errCode,
-                    PigException.REMOTE_ENVIRONMENT);
+            return true;
         }
+        return false;
     }
 
     /**

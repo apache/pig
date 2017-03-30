@@ -29,11 +29,13 @@ import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
@@ -41,6 +43,7 @@ import org.apache.log4j.Appender;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.PatternLayout;
+import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
@@ -48,6 +51,7 @@ import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -55,6 +59,10 @@ import org.apache.pig.impl.util.JavaCompilerHelper;
 import org.apache.pig.test.Util.ProcessReturnInfo;
 import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.tools.pigscript.parser.ParseException;
+import org.apache.pig.tools.pigstats.JobStats;
+import org.apache.pig.tools.pigstats.JobStats.JobState;
+import org.apache.pig.tools.pigstats.PigStats;
+import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.Before;
@@ -967,6 +975,7 @@ public class TestGrunt {
         PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
         context.getProperties().setProperty("stop.on.failure", ""+true);
+        context.getProperties().setProperty("mapreduce.map.maxattempts", "2");
 
         String strCmd =
             "rmf bar;\n"
@@ -977,6 +986,10 @@ public class TestGrunt {
             + Util.generateURI("file:test/org/apache/pig/test/data/passwd", context) + "';\n"
             +"B = stream A through `false`;\n"
             +"store B into 'bar' using BinStorage();\n"
+            +"A1 = load '"
+            + Util.generateURI("file:test/org/apache/pig/test/data/passwd", context) + "';\n"
+            + "A1 = foreach A1 generate org.apache.pig.test.TestGrunt$SleepUDF();\n"
+            +"store A1 into 'bar1' using BinStorage();\n"
             +"A = load 'bar';\n"
             +"store A into 'foo';\n"
             +"cp pre done;\n";
@@ -994,8 +1007,63 @@ public class TestGrunt {
             assertTrue(e.getErrorCode() == 6017);
         }
 
+        if (Util.isMapredExecType(cluster.getExecType())) {
+            JobGraph jobGraph = PigStats.get().getJobGraph();
+            List<JobStats> failedJobs = jobGraph.getFailedJobs();
+            assertEquals(2, failedJobs.size());
+            // First job should have failed because of streaming error
+            assertTrue(failedJobs.get(0).getException().getMessage().contains(
+                    "Received Error while processing the map plan: "
+                    + "'false (stdin-org.apache.pig.builtin.PigStreaming/stdout-org.apache.pig.builtin.PigStreaming)'"
+                    + " failed with exit status: 1"));
+            // Second job with sleep should be killed as a result of stop on failure
+            assertTrue(failedJobs.get(1).getErrorMessage().startsWith("Failing running job for -stop_on_failure"));
+            // Third job which is dependent on first should not have started
+            assertEquals(1, getUnknownJobs(jobGraph).size());
+        } else {
+            // Tez
+            JobGraph jobGraph = PigStats.get().getJobGraph();
+            List<JobStats> failedJobs = jobGraph.getFailedJobs();
+            assertEquals(1, failedJobs.size());
+            // First job should have failed because of streaming error. Sleep is also part of same job
+            assertTrue(failedJobs.get(0).getException().getMessage().contains(
+                    "Received Error while processing the map plan: "
+                    + "'false (stdin-org.apache.pig.builtin.PigStreaming/stdout-org.apache.pig.builtin.PigStreaming)'"
+                    + " failed with exit status: 1"));
+            // Second job which is dependent on first should not have started
+            assertEquals(1, getUnknownJobs(jobGraph).size());
+        }
+
+        // Parallel job (sleep udf) should have not succeeded and been killed
+        assertFalse(server.existsFile("bar1"));
+        // fs cp command at the end should not have been executed
         assertFalse(server.existsFile("done"));
         assertTrue(caught);
+    }
+
+    private ArrayList<JobStats> getUnknownJobs(JobGraph jobGraph) {
+        ArrayList<JobStats> unknown = new ArrayList<JobStats>();
+        Iterator<JobStats> iter = jobGraph.iterator();
+        while (iter.hasNext()) {
+            JobStats js = iter.next();
+            if (js.getState() == JobState.UNKNOWN) {
+                unknown.add(js);
+            }
+        }
+        return unknown;
+    }
+
+    public static class SleepUDF extends EvalFunc<Integer> {
+
+        @Override
+        public Integer exec(Tuple input) throws IOException {
+            try {
+                Thread.sleep(50000);
+            } catch (InterruptedException e) {
+                throw new IOException(e);
+            }
+            return null;
+        }
     }
 
     @Test
@@ -1565,7 +1633,8 @@ public class TestGrunt {
         System.setIn(new ByteArrayInputStream(command.getBytes()));
         org.apache.pig.PigRunner.run(new String[] {"-x", "local"}, null);
         File[] partFiles = new File(".").listFiles(new FilenameFilter() {
-            public boolean accept(File dir, String name) { 
+            @Override
+            public boolean accept(File dir, String name) {
             return name.equals("测试");
         }
         });
