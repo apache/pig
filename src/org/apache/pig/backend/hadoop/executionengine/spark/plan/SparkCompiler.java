@@ -25,8 +25,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
+import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 import org.apache.commons.logging.Log;
@@ -111,7 +112,7 @@ public class SparkCompiler extends PhyPlanVisitor {
     private static final Log LOG = LogFactory.getLog(SparkCompiler.class);
 
     private PigContext pigContext;
-    private Properties pigProperties;
+	private Properties pigProperties;
 
 	// The physicalPlan that is being compiled
 	private PhysicalPlan physicalPlan;
@@ -138,6 +139,7 @@ public class SparkCompiler extends PhyPlanVisitor {
 						physicalPlan));
 		this.physicalPlan = physicalPlan;
 		this.pigContext = pigContext;
+		this.pigProperties = pigContext.getProperties();
 		this.sparkPlan = new SparkOperPlan();
 		this.phyToSparkOpMap = new HashMap<PhysicalOperator, SparkOperator>();
 		this.udfFinder = new UDFFinder();
@@ -695,7 +697,23 @@ public class SparkCompiler extends PhyPlanVisitor {
     @Override
     public void visitSkewedJoin(POSkewedJoin op) throws VisitorException {
         try {
+            Random r = new Random();
+            String pigKeyDistFile = "pig.keyDistFile" + r.nextInt();
+            // firstly, build sample job
+            SparkOperator sampleSparkOp = getSkewedJoinSampleJob(op);
+
+            buildBroadcastForSkewedJoin(sampleSparkOp, pigKeyDistFile);
+
+            sampleSparkOp.markSampler();
+            sparkPlan.add(sampleSparkOp);
+
+            // secondly, build the join job.
             addToPlan(op);
+            curSparkOp.setSkewedJoinPartitionFile(pigKeyDistFile);
+
+            // do sampling job before join job
+            sparkPlan.connect(sampleSparkOp, curSparkOp);
+
             phyToSparkOpMap.put(op, curSparkOp);
         } catch (Exception e) {
             int errCode = 2034;
@@ -704,50 +722,6 @@ public class SparkCompiler extends PhyPlanVisitor {
             throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
         }
     }
-
-//    /**
-//     * currently use regular join to replace skewedJoin
-//     * Skewed join currently works with two-table inner join.
-//     * More info about pig SkewedJoin, See https://wiki.apache.org/pig/PigSkewedJoinSpec
-//     *
-//     * @param op
-//     * @throws VisitorException
-//     */
-//    @Override
-//    public void visitSkewedJoin(POSkewedJoin op) throws VisitorException {
-//        try {
-//			Random r = new Random();
-//			String pigKeyDistFile = "pig.keyDistFile" + r.nextInt();
-//            // firstly, build sample job
-//            SparkOperator sampleSparkOp = getSkewedJoinSampleJob(op);
-//
-//			buildBroadcastForSkewedJoin(sampleSparkOp, pigKeyDistFile);
-//
-//			sampleSparkOp.markSampler();
-//			sparkPlan.add(sampleSparkOp);
-//
-//			// secondly, build the join job.
-//			addToPlan(op);
-//			curSparkOp.setSkewedJoinPartitionFile(pigKeyDistFile);
-//
-//			// do sampling job before join job
-//			sparkPlan.connect(sampleSparkOp, curSparkOp);
-//
-//			phyToSparkOpMap.put(op, curSparkOp);
-//        } catch (Exception e) {
-//            int errCode = 2034;
-//            String msg = "Error compiling operator " +
-//                    op.getClass().getSimpleName();
-//            throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
-//        }
-//    }
-
-/*    private void buildBroadcastForSkewedJoin(SparkOperator sampleSparkOp, String pigKeyDistFile) throws PlanException {
-
-        POBroadcastSpark poBroadcast = new POBroadcastSpark(new OperatorKey(scope, nig.getNextNodeId(scope)));
-        poBroadcast.setBroadcastedVariableName(pigKeyDistFile);
-        sampleSparkOp.physicalPlan.addAsLeaf(poBroadcast);
-    }*/
 
     @Override
     public void visitFRJoin(POFRJoin op) throws VisitorException {
@@ -1505,6 +1479,18 @@ public class SparkCompiler extends PhyPlanVisitor {
         String msg = "No expression plan found in POSort.";
         throw new PlanException(msg, errCode, PigException.BUG);
     }
+
+	/**
+	 * Add POBroadcastSpark operator to broadcast key distribution for SkewedJoin's sampling job
+	 * @param sampleSparkOp
+	 * @throws PlanException
+	 */
+	private void buildBroadcastForSkewedJoin(SparkOperator sampleSparkOp, String pigKeyDistFile) throws PlanException {
+
+		POBroadcastSpark poBroadcast = new POBroadcastSpark(new OperatorKey(scope, nig.getNextNodeId(scope)));
+		poBroadcast.setBroadcastedVariableName(pigKeyDistFile);
+		sampleSparkOp.physicalPlan.addAsLeaf(poBroadcast);
+	}
 
     /**
      * Create Sampling job for skewed join.

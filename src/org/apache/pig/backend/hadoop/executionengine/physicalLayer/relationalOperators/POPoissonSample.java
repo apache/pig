@@ -36,38 +36,38 @@ public class POPoissonSample extends PhysicalOperator {
     // minimum number of samples) and the confidence set to 95%
     public static final int DEFAULT_SAMPLE_RATE = 17;
 
-    private int sampleRate = 0;
+    protected int sampleRate = 0;
 
-    private float heapPerc = 0f;
+    protected float heapPerc = 0f;
 
-    private Long totalMemory;
+    protected Long totalMemory;
 
-    private transient boolean initialized;
+    protected transient boolean initialized;
 
     // num of rows skipped so far
-    private transient int numSkipped;
+    protected transient int numSkipped;
 
     // num of rows sampled so far
-    private transient int numRowsSampled;
+    protected transient int numRowsSampled;
 
     // average size of tuple in memory, for tuples sampled
-    private transient long avgTupleMemSz;
+    protected transient long avgTupleMemSz;
 
     // current row number
-    private transient long rowNum;
+    protected transient long rowNum;
 
     // number of tuples to skip after each sample
-    private transient long skipInterval;
+    protected transient long skipInterval;
 
     // bytes in input to skip after every sample.
     // divide this by avgTupleMemSize to get skipInterval
-    private transient long memToSkipPerSample;
+    protected transient long memToSkipPerSample;
 
     // has the special row with row number information been returned
-    private transient boolean numRowSplTupleReturned;
+    protected transient boolean numRowSplTupleReturned;
 
     // new Sample result
-    private transient Result newSample;
+    protected transient Result newSample;
 
     public POPoissonSample(OperatorKey k, int rp, int sr, float hp, long tm) {
         super(k, rp, null);
@@ -204,7 +204,7 @@ public class POPoissonSample extends PhysicalOperator {
      * and recalculate skipInterval
      * @param t - tuple
      */
-    private void updateSkipInterval(Tuple t) {
+    protected void updateSkipInterval(Tuple t) {
         avgTupleMemSz =
             ((avgTupleMemSz*numRowsSampled) + t.getMemorySize())/(numRowsSampled + 1);
         skipInterval = memToSkipPerSample/avgTupleMemSz;
@@ -224,7 +224,7 @@ public class POPoissonSample extends PhysicalOperator {
      * @return - Tuple appended with special marker string column, num-rows column
      * @throws ExecException
      */
-    private Result createNumRowTuple(Tuple sample) throws ExecException {
+    protected Result createNumRowTuple(Tuple sample) throws ExecException {
         int sz = (sample == null) ? 0 : sample.size();
         Tuple t = mTupleFactory.newTuple(sz + 2);
 
