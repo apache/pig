@@ -1011,14 +1011,20 @@ public class TestGrunt {
             JobGraph jobGraph = PigStats.get().getJobGraph();
             List<JobStats> failedJobs = jobGraph.getFailedJobs();
             assertEquals(2, failedJobs.size());
-            // First job should have failed because of streaming error
-            assertTrue(failedJobs.get(0).getException().getMessage().contains(
-                    "Received Error while processing the map plan: "
-                    + "'false (stdin-org.apache.pig.builtin.PigStreaming/stdout-org.apache.pig.builtin.PigStreaming)'"
-                    + " failed with exit status: 1"));
-            // Second job with sleep should be killed as a result of stop on failure
-            assertTrue(failedJobs.get(1).getErrorMessage().startsWith("Failing running job for -stop_on_failure"));
-            // Third job which is dependent on first should not have started
+            for (JobStats stats : failedJobs) {
+                if (stats.getAlias().equals("A,B")) {
+                    // Job with alias A,B should have failed because of streaming error
+                    assertTrue(stats.getException().getMessage().contains(
+                            "Received Error while processing the map plan: "
+                            + "'false (stdin-org.apache.pig.builtin.PigStreaming/stdout-org.apache.pig.builtin.PigStreaming)'"
+                            + " failed with exit status: 1"));
+                } else {
+                    // Job with alias A1 with sleep should be killed as a result of stop on failure
+                    assertTrue(stats.getErrorMessage().startsWith("Failing running job for -stop_on_failure"));
+                }
+            }
+
+            // Third job which is dependent on alias A,B should not have started
             assertEquals(1, getUnknownJobs(jobGraph).size());
         } else {
             // Tez
