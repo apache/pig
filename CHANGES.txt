@@ -22,6 +22,8 @@ Trunk (unreleased changes)
  
 INCOMPATIBLE CHANGES
 
+PIG-5085: Support FLATTEN of maps (szita via rohini)
+
 PIG-4728: Compilation against hbase 1.x fails with hbase-hadoop1-compat not found (szita via rohini)
 
 PIG-4897: Scope of param substitution for run/exec commands (knoguchi)
@@ -37,8 +39,6 @@ IMPROVEMENTS
 PIG-5175: Upgrade jruby to 1.7.26 (daijy)
 
 PIG-5110: Removing schema alias and :: coming from parent relation (szita via rohini)
-
-PIG-5085: Support FLATTEN of maps (szita via rohini)
 
 PIG-5126. Add doc about pig in zeppelin (zjffdu)
 
@@ -90,6 +90,8 @@ PIG-2768: Fix org.apache.hadoop.conf.Configuration deprecation warnings for Hado
 OPTIMIZATIONS
  
 BUG FIXES
+
+PIG-5153: Change of behavior in FLATTEN(map) (szita via rohini)
 
 PIG-4677: Display failure information on stop on failure (rohini)
 
