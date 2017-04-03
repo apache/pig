@@ -511,7 +511,11 @@ public class POForEach extends PhysicalOperator {
                             // when the first index which needs to be flattened has reached the
                             // last element in its iterator, we won't come here - instead, we reset
                             // all iterators at the beginning of this method.
-                            its[index] = ((DataBag)bags[index]).iterator();
+                            if(bags[index] instanceof DataBag) {
+                                its[index] = ((DataBag)bags[index]).iterator();
+                            } else { // if (bags[i] instanceof Map)) {
+                                its[index] = ((Map)bags[index]).entrySet().iterator();
+                            }
                             data[index] = its[index].next();
                         }
                     }

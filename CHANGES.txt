@@ -91,6 +91,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5209: Cross product on flatten(map) fails with ClassCastException (knoguchi)
+
 PIG-5153: Change of behavior in FLATTEN(map) (szita via rohini)
 
 PIG-4677: Display failure information on stop on failure (rohini)
