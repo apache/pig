@@ -7,5 +7,3 @@
 **/TestAvroStorage.java
 #TODO: PIG-5135 fix for Spark mode
 **/TestOrcStoragePushdown.java
-#TODO: PIG-5136 fix for Spark mode
-**/TestPigTest.java
