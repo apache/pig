@@ -36,6 +36,8 @@ PIG-5067: Revisit union on numeric type and chararray to bytearray (knoguchi)
  
 IMPROVEMENTS
 
+PIG-5210: Option to print MR/Tez plan before launching (ly16 via daijy)
+
 PIG-5175: Upgrade jruby to 1.7.26 (daijy)
 
 PIG-5110: Removing schema alias and :: coming from parent relation (szita via rohini)

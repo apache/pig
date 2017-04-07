@@ -321,6 +321,12 @@ public class JobControlCompiler{
                 if(mro instanceof NativeMapReduceOper) {
                     return null;
                 }
+
+                //Print MR plan before launching if needed
+                if (conf.getBoolean(PigConfiguration.PIG_PRINT_EXEC_PLAN, false)) {
+                    log.info(mro.toString());
+                }
+
                 Job job = getJob(plan, mro, conf, pigContext);
                 jobMroMap.put(job, mro);
                 jobCtrl.addJob(job);

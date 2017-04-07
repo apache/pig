@@ -17,6 +17,8 @@
  */
 package org.apache.pig.test;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -25,6 +27,7 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -37,6 +40,12 @@ import java.util.StringTokenizer;
 import junit.framework.Assert;
 
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.log4j.Appender;
+import org.apache.log4j.FileAppender;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.SimpleLayout;
+import org.apache.log4j.WriterAppender;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
@@ -58,6 +67,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.util.Utils;
+import org.apache.pig.newplan.logical.rules.ColumnPruneVisitor;
 import org.apache.pig.test.utils.Identity;
 import org.junit.Assume;
 import org.junit.Before;
@@ -1251,7 +1261,17 @@ public class TestEvalPipelineLocal {
     @Test
     public void testBytesRawComparatorDesc() throws Exception{
         File f1 = createFile(new String[]{"2", "1", "4", "3"});
-        
+
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        Logger logger = Logger.getRootLogger();
+
+        logger.setLevel(Level.INFO);
+        SimpleLayout layout = new SimpleLayout();
+        Appender appender = new WriterAppender(layout, new PrintStream(bos));
+        logger.addAppender(appender);
+
+        // Also test PIG-5210 here in the same test
+        pigServer.getPigContext().getProperties().setProperty("pig.print.exec.plan", "true");
         pigServer.registerQuery("a = load '" + Util.generateURI(f1.toString(), pigServer.getPigContext())
                 + "' as (value:long);");
         pigServer.registerQuery("b = foreach a generate " + TOTUPLENOINNERSCHEMA.class.getName() + "(value);");
@@ -1264,5 +1284,9 @@ public class TestEvalPipelineLocal {
         Assert.assertEquals(iter.next().toString(), "(2)");
         Assert.assertEquals(iter.next().toString(), "(1)");
         Assert.assertFalse(iter.hasNext());
+
+        logger.removeAppender(appender);
+
+        Assert.assertTrue(bos.toString().contains("New For Each(false,false)[tuple]"));
     }
 }

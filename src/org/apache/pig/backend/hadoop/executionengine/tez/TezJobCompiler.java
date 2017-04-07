@@ -30,6 +30,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.hadoop.PigATSClient;
 import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
@@ -110,6 +111,12 @@ public class TezJobCompiler {
             for (Map.Entry<String, LocalResource> entry : localResources.entrySet()) {
                 log.info("Local resource: " + entry.getKey());
             }
+
+            // Print Tez plan before launching if needed
+            if (conf.getBoolean(PigConfiguration.PIG_PRINT_EXEC_PLAN, false)) {
+                log.info(tezPlanNode.getTezOperPlan());
+            }
+
             DAG tezDag = buildDAG(tezPlanNode, localResources);
             tezDag.setDAGInfo(createDagInfo(TezScriptState.get().getScript()));
             // set Tez caller context
