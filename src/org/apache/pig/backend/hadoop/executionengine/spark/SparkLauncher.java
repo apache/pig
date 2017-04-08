@@ -574,6 +574,7 @@ public class SparkLauncher extends Launcher {
                 }
             }
 
+            sparkConf.set("spark.executor.userClassPathFirst", "true");
             checkAndConfigureDynamicAllocation(master, sparkConf);
 
             sparkContext = new JavaSparkContext(sparkConf);
