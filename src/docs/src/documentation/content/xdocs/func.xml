@@ -4352,7 +4352,74 @@ REGEX_EXTRACT_ALL('192.168.1.5:8020', '(.*)\:(.*)');
 </section>
 
 
-<!-- ======================================================== -->  
+<!-- ======================================================== -->
+ <section id="regex-search">
+   <title>REGEX_SEARCH</title>
+   <p>Performs regular expression matching and searches all matched characters in a string.</p>
+
+<section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>REGEX_SEARCH(string, 'regExp');</p>
+            </td>
+       </tr>
+   </table>
+ </section>
+
+<section>
+   <title>Terms</title>
+   <table>
+         <tr>
+            <td>
+               <p>string</p>
+            </td>
+            <td>
+               <p>The string in which to perform the match.</p>
+            </td>
+         </tr>
+               <tr>
+            <td>
+               <p>'regExp'</p>
+            </td>
+            <td>
+               <p>The regular expression to which the string is to be matched, in quotes.</p>
+            </td>
+         </tr>
+   </table>
+</section>
+
+<section>
+   <title>Usage</title>
+   <p>
+Use the REGEX_SEARCH function to perform regular expression matching and to find all matched characters in a string.
+   </p>
+   <p>
+The function returns tuples which are placed in a bag. Each tuple only contains one field which represents a matched expression.
+   </p>
+</section>
+
+<section>
+   <title>Example</title>
+   <p>
+This is example will return the bag {(=04 ),(=06 ),(=96 )}.
+   </p>
+<source>
+REGEX_SEARCH('a=04 b=06 c=96 or more', '(=\\d+\\s)');
+</source>
+   <p>
+And this is example will return the bag {(04),(06),(96)}.
+   </p>
+<source>
+REGEX_SEARCH('a=04 b=06 c=96 or more', '=(\\d+)\\s');
+</source>
+
+ </section>
+</section>
+
+
+<!-- ======================================================== -->
  <section id="replace">
    <title>REPLACE</title>
    <p>Replaces existing characters in a string with new characters.</p>
