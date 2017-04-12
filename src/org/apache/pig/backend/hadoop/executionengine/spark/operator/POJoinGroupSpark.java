@@ -43,11 +43,11 @@ public class POJoinGroupSpark extends PhysicalOperator {
         this.pkgOp = pkgOp;
     }
 
-    public List<POLocalRearrange> getLraOps() {
+    public List<POLocalRearrange> getLROps() {
         return lraOps;
     }
 
-    public POGlobalRearrangeSpark getGlaOp() {
+    public POGlobalRearrangeSpark getGROp() {
         return glaOp;
     }
 

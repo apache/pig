@@ -21,6 +21,7 @@ package org.apache.pig.tools.pigstats.spark;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.pig.tools.pigstats.*;
 import scala.Option;
 
 import org.apache.hadoop.conf.Configuration;
@@ -31,11 +32,6 @@ import org.apache.pig.backend.hadoop.executionengine.spark.JobMetricsListener;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperator;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.PlanVisitor;
-import org.apache.pig.tools.pigstats.InputStats;
-import org.apache.pig.tools.pigstats.JobStats;
-import org.apache.pig.tools.pigstats.OutputStats;
-import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil;
 import org.apache.spark.executor.ShuffleReadMetrics;
 import org.apache.spark.executor.ShuffleWriteMetrics;
 import org.apache.spark.executor.TaskMetrics;
@@ -72,7 +68,7 @@ public class SparkJobStats extends JobStats {
             long bytes = getOutputSize(poStore, conf);
             long recordsCount = -1;
             if (disableCounter == false) {
-                recordsCount = SparkStatsUtil.getStoreSparkCounterValue(poStore);
+                recordsCount = SparkStatsUtil.getRecordCount(poStore);
             }
             OutputStats outputStats = new OutputStats(poStore.getSFile().getFileName(),
                     bytes, recordsCount, success);
@@ -88,7 +84,7 @@ public class SparkJobStats extends JobStats {
 
         long recordsCount = -1;
         if (disableCounter == false) {
-            recordsCount = SparkStatsUtil.getLoadSparkCounterValue(po);
+            recordsCount = SparkStatsUtil.getRecordCount(po);
         }
         long bytesRead = -1;
         if (singleInput && stats.get("BytesRead") != null) {
@@ -190,13 +186,13 @@ public class SparkJobStats extends JobStats {
         if (inputMetricExist) {
             results.put("BytesRead", bytesRead);
             hdfsBytesRead = bytesRead;
-            counters.incrCounter(FS_COUNTER_GROUP, MRPigStatsUtil.HDFS_BYTES_READ, hdfsBytesRead);
+            counters.incrCounter(FS_COUNTER_GROUP, PigStatsUtil.HDFS_BYTES_READ, hdfsBytesRead);
         }
 
         if (outputMetricExist) {
             results.put("BytesWritten", bytesWritten);
             hdfsBytesWritten = bytesWritten;
-            counters.incrCounter(FS_COUNTER_GROUP, MRPigStatsUtil.HDFS_BYTES_WRITTEN, hdfsBytesWritten);
+            counters.incrCounter(FS_COUNTER_GROUP, PigStatsUtil.HDFS_BYTES_WRITTEN, hdfsBytesWritten);
         }
 
         if (shuffleReadMetricExist) {
@@ -331,7 +327,7 @@ public class SparkJobStats extends JobStats {
     private void initializeHadoopCounter() {
         counters = new Counters();
         Counters.Group fsGrp = counters.addGroup(FS_COUNTER_GROUP, FS_COUNTER_GROUP);
-        fsGrp.addCounter(MRPigStatsUtil.HDFS_BYTES_READ, MRPigStatsUtil.HDFS_BYTES_READ, 0);
-        fsGrp.addCounter(MRPigStatsUtil.HDFS_BYTES_WRITTEN, MRPigStatsUtil.HDFS_BYTES_WRITTEN, 0);
+        fsGrp.addCounter(PigStatsUtil.HDFS_BYTES_READ, PigStatsUtil.HDFS_BYTES_READ, 0);
+        fsGrp.addCounter(PigStatsUtil.HDFS_BYTES_WRITTEN, PigStatsUtil.HDFS_BYTES_WRITTEN, 0);
     }
 }

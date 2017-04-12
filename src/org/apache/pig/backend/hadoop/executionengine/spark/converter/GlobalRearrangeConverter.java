@@ -23,15 +23,10 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import scala.Product2;
-import scala.Tuple2;
-import scala.collection.JavaConversions;
-import scala.collection.Seq;
-import scala.runtime.AbstractFunction1;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.spark.SparkPigContext;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.backend.hadoop.executionengine.spark.operator.POGlobalRearrangeSpark;
 import org.apache.pig.data.Tuple;
@@ -43,6 +38,12 @@ import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.rdd.CoGroupedRDD;
 import org.apache.spark.rdd.RDD;
+
+import scala.Product2;
+import scala.Tuple2;
+import scala.collection.JavaConversions;
+import scala.collection.Seq;
+import scala.runtime.AbstractFunction1;
 
 @SuppressWarnings({ "serial" })
 public class GlobalRearrangeConverter implements
@@ -57,7 +58,7 @@ public class GlobalRearrangeConverter implements
                               POGlobalRearrangeSpark op) throws IOException {
         SparkUtil.assertPredecessorSizeGreaterThan(predecessors,
                 op, 0);
-        int parallelism = SparkUtil.getParallelism(predecessors,
+        int parallelism = SparkPigContext.get().getParallelism(predecessors,
                 op);
 
 //         TODO: Figure out the tradeoff of using CoGroupRDD (even for 1 input),
@@ -322,7 +323,6 @@ public class GlobalRearrangeConverter implements
                             try {
                                 Tuple tuple = tf.newTuple(3);
                                 tuple.set(0, index);
-                                tuple.set(1, key);
                                 tuple.set(2, next);
                                 return tuple;
                             } catch (ExecException e) {

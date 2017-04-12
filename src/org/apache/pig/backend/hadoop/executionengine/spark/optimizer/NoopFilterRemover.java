@@ -21,6 +21,7 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.NoopFilterRemoverUtil;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -30,7 +31,6 @@ import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOpPlanVisit
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperator;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
-import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 
 /**
@@ -61,28 +61,10 @@ public class NoopFilterRemover extends SparkOpPlanVisitor {
                     if (value instanceof Boolean) {
                         Boolean filterValue = (Boolean) value;
                         if (filterValue) {
-                            removeFilter(filter, sparkOp.physicalPlan);
+                            NoopFilterRemoverUtil.removeFilter(filter, sparkOp.physicalPlan);
                         }
                     }
                 }
-            }
-        }
-    }
-
-    private void removeFilter(POFilter filter, PhysicalPlan plan) {
-        if (plan.size() > 1) {
-            try {
-                List<PhysicalOperator> fInputs = filter.getInputs();
-                List<PhysicalOperator> sucs = plan.getSuccessors(filter);
-
-                plan.removeAndReconnect(filter);
-                if (sucs != null && sucs.size() != 0) {
-                    for (PhysicalOperator suc : sucs) {
-                        suc.setInputs(fInputs);
-                    }
-                }
-            } catch (PlanException pe) {
-                log.info("Couldn't remove a filter in optimizer: " + pe.getMessage());
             }
         }
     }

@@ -53,12 +53,12 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 
-@InterfaceAudience.Private
+@InterfaceAudience.Public
 public class SecondaryKeyOptimizerUtil {
     private static Log log = LogFactory.getLog(SecondaryKeyOptimizerUtil.class.getName());
     private static boolean isSparkMode;
 
-    private SecondaryKeyOptimizerUtil() {
+    public SecondaryKeyOptimizerUtil() {
 
     }
 
@@ -186,7 +186,7 @@ public class SecondaryKeyOptimizerUtil {
         return result;
     }
 
-    public static SecondaryKeyOptimizerInfo applySecondaryKeySort(PhysicalPlan mapPlan, PhysicalPlan reducePlan) throws VisitorException {
+    public SecondaryKeyOptimizerInfo applySecondaryKeySort(PhysicalPlan mapPlan, PhysicalPlan reducePlan) throws VisitorException {
         log.trace("Entering SecondaryKeyOptimizerUtil.addSecondaryKeySort");
         SecondaryKeyOptimizerInfo secKeyOptimizerInfo = new SecondaryKeyOptimizerInfo();
         List<SortKeyInfo> sortKeyInfos = new ArrayList<SortKeyInfo>();
@@ -245,29 +245,7 @@ public class SecondaryKeyOptimizerUtil {
         }
 
         PhysicalOperator root = reduceRoots.get(0);
-        PhysicalOperator currentNode = null;
-        if (!isSparkMode) {
-            if (!(root instanceof POPackage)) {
-                log.debug("Expected reduce root to be a POPackage, skip secondary key optimizing");
-                return null;
-            } else {
-                currentNode = root;
-            }
-        } else {
-            if (!(root instanceof POGlobalRearrange)) {
-                log.debug("Expected reduce root to be a POGlobalRearrange, skip secondary key optimizing");
-                return null;
-            } else {
-                List<PhysicalOperator> globalRearrangeSuccs = reducePlan
-                        .getSuccessors(root);
-                if (globalRearrangeSuccs.size() == 1) {
-                    currentNode = globalRearrangeSuccs.get(0);
-                } else {
-                    log.debug("Expected successor of a POGlobalRearrange is POPackage, skip secondary key optimizing");
-                    return null;
-                }
-            }
-        }
+        PhysicalOperator currentNode = getCurrentNode(root,reducePlan);
 
         // visit the POForEach of the reduce plan. We can have Limit and Filter
         // in the middle
@@ -440,6 +418,16 @@ public class SecondaryKeyOptimizerUtil {
             }
         }
         return secKeyOptimizerInfo;
+    }
+
+    protected PhysicalOperator getCurrentNode(PhysicalOperator root, PhysicalPlan reducePlan) {
+        PhysicalOperator currentNode = null;
+        if (!(root instanceof POPackage)) {
+            log.debug("Expected reduce root to be a POPackage, skip secondary key optimizing");
+        } else {
+            currentNode = root;
+        }
+        return currentNode;
     }
 
     private static void setSecondaryPlan(PhysicalPlan plan, POLocalRearrange rearrange,

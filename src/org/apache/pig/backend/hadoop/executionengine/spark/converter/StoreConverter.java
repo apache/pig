@@ -71,7 +71,7 @@ public class StoreConverter implements
         RDD<Tuple> rdd = predecessors.get(0);
 
         SparkPigStatusReporter.getInstance().createCounter(SparkStatsUtil.SPARK_STORE_COUNTER_GROUP,
-                SparkStatsUtil.getStoreSparkCounterName(op));
+                SparkStatsUtil.getCounterName(op));
 
         // convert back to KV pairs
         JavaRDD<Tuple2<Text, Tuple>> rddPairs = rdd.toJavaRDD().map(
@@ -166,7 +166,7 @@ public class StoreConverter implements
         if (!op.isTmpStore() && !disableCounter) {
             ftf.setDisableCounter(disableCounter);
             ftf.setCounterGroupName(SparkStatsUtil.SPARK_STORE_COUNTER_GROUP);
-            ftf.setCounterName(SparkStatsUtil.getStoreSparkCounterName(op));
+            ftf.setCounterName(SparkStatsUtil.getCounterName(op));
             SparkPigStatusReporter counterReporter = SparkPigStatusReporter.getInstance();
             ftf.setSparkCounters(counterReporter.getCounters());
         }

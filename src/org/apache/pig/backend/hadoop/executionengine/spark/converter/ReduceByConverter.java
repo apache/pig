@@ -31,6 +31,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
+import org.apache.pig.backend.hadoop.executionengine.spark.SparkPigContext;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.backend.hadoop.executionengine.spark.operator.POReduceBySpark;
 import org.apache.pig.data.DataBag;
@@ -54,14 +55,14 @@ public class ReduceByConverter implements RDDConverter<Tuple, Tuple, POReduceByS
     @Override
     public RDD<Tuple> convert(List<RDD<Tuple>> predecessors, POReduceBySpark op) throws IOException {
         SparkUtil.assertPredecessorSize(predecessors, op, 1);
-        int parallelism = SparkUtil.getParallelism(predecessors, op);
+        int parallelism = SparkPigContext.get().getParallelism(predecessors, op);
 
         RDD<Tuple> rdd = predecessors.get(0);
         RDD<Tuple2<IndexedKey, Tuple>> rddPair
-                = rdd.map(new LocalRearrangeFunction(op.getLgr(), op.isUseSecondaryKey(), op.getSecondarySortOrder())
+                = rdd.map(new LocalRearrangeFunction(op.getLROp(), op.isUseSecondaryKey(), op.getSecondarySortOrder())
                 , SparkUtil.<IndexedKey, Tuple>getTuple2Manifest());
         if (op.isUseSecondaryKey()) {
-            return SecondaryKeySortUtil.handleSecondarySort(rddPair, op.getPkg());
+            return SecondaryKeySortUtil.handleSecondarySort(rddPair, op.getPKGOp());
         } else {
             PairRDDFunctions<IndexedKey, Tuple> pairRDDFunctions
                     = new PairRDDFunctions<>(rddPair,
@@ -189,8 +190,8 @@ public class ReduceByConverter implements RDDConverter<Tuple, Tuple, POReduceByS
                 t.append(key);
                 t.append(bag);
 
-                poReduce.getPkg().getPkgr().attachInput(key, new DataBag[]{(DataBag) t.get(1)}, new boolean[]{true});
-                Tuple packagedTuple = (Tuple) poReduce.getPkg().getPkgr().getNext().result;
+                poReduce.getPKGOp().getPkgr().attachInput(key, new DataBag[]{(DataBag) t.get(1)}, new boolean[]{true});
+                Tuple packagedTuple = (Tuple) poReduce.getPKGOp().getPkgr().getNext().result;
 
                 // Perform the operation
                 LOG.debug("MergeValuesFunction packagedTuple : " + t);
@@ -242,8 +243,8 @@ public class ReduceByConverter implements RDDConverter<Tuple, Tuple, POReduceByS
                 bag.add((Tuple) v1._2().get(1));
                 t.append(key);
                 t.append(bag);
-                poReduce.getPkg().getPkgr().attachInput(key, new DataBag[]{(DataBag) t.get(1)}, new boolean[]{true});
-                packagedTuple = (Tuple) poReduce.getPkg().getPkgr().getNext().result;
+                poReduce.getPKGOp().getPkgr().attachInput(key, new DataBag[]{(DataBag) t.get(1)}, new boolean[]{true});
+                packagedTuple = (Tuple) poReduce.getPKGOp().getPkgr().getNext().result;
             } catch (ExecException e) {
                 throw new RuntimeException(e);
             }

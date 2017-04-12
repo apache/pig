@@ -23,18 +23,14 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.pig.backend.executionengine.ExecException;
-import scala.Product2;
-import scala.Tuple2;
-import scala.collection.JavaConversions;
-import scala.collection.Seq;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
+import org.apache.pig.backend.hadoop.executionengine.spark.SparkPigContext;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.backend.hadoop.executionengine.spark.operator.POGlobalRearrangeSpark;
 import org.apache.pig.backend.hadoop.executionengine.spark.operator.POJoinGroupSpark;
@@ -44,6 +40,11 @@ import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.rdd.CoGroupedRDD;
 import org.apache.spark.rdd.RDD;
+
+import scala.Product2;
+import scala.Tuple2;
+import scala.collection.JavaConversions;
+import scala.collection.Seq;
 import scala.runtime.AbstractFunction1;
 
 public class JoinGroupSparkConverter implements RDDConverter<Tuple, Tuple, POJoinGroupSpark> {
@@ -54,10 +55,10 @@ public class JoinGroupSparkConverter implements RDDConverter<Tuple, Tuple, POJoi
     public RDD<Tuple> convert(List<RDD<Tuple>> predecessors, POJoinGroupSpark op) throws IOException {
         SparkUtil.assertPredecessorSizeGreaterThan(predecessors,
                 op, 0);
-        List<POLocalRearrange> lraOps = op.getLraOps();
-        POGlobalRearrangeSpark glaOp = op.getGlaOp();
+        List<POLocalRearrange> lraOps = op.getLROps();
+        POGlobalRearrangeSpark glaOp = op.getGROp();
         POPackage pkgOp = op.getPkgOp();
-        int parallelism = SparkUtil.getParallelism(predecessors, glaOp);
+        int parallelism = SparkPigContext.get().getParallelism(predecessors, glaOp);
         List<RDD<Tuple2<IndexedKey, Tuple>>> rddAfterLRA = new ArrayList<RDD<Tuple2<IndexedKey, Tuple>>>();
         boolean useSecondaryKey = glaOp.isUseSecondaryKey();
 

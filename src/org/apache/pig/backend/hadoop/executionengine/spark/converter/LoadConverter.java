@@ -119,7 +119,7 @@ public class LoadConverter implements RDDConverter<Tuple, Tuple, POLoad> {
         //create SparkCounter and set it for ToTupleFunction
         boolean disableCounter = jobConf.getBoolean("pig.disable.counter", false);
         if (!op.isTmpLoad() && !disableCounter) {
-            String counterName = SparkStatsUtil.getLoadSparkCounterName(op);
+            String counterName = SparkStatsUtil.getCounterName(op);
             SparkPigStatusReporter counterReporter = SparkPigStatusReporter.getInstance();
             if (counterReporter.getCounters() != null) {
                 counterReporter.getCounters().createCounter(

@@ -28,6 +28,7 @@ import java.util.HashMap;
 import com.google.common.collect.Maps;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.backend.hadoop.executionengine.spark.SparkPigContext;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.impl.builtin.PartitionSkewedKeys;
 import org.apache.pig.impl.util.Pair;
@@ -84,10 +85,10 @@ public class SkewedJoinConverter implements
         RDD<Tuple> rdd1 = predecessors.get(0);
         RDD<Tuple> rdd2 = predecessors.get(1);
 
-        Broadcast<List<Tuple>> keyDist = SparkUtil.getBroadcastedVars().get(skewedJoinPartitionFile);
+        Broadcast<List<Tuple>> keyDist = SparkPigContext.get().getBroadcastedVars().get(skewedJoinPartitionFile);
 
         // if no keyDist,  we need  defaultParallelism
-        Integer defaultParallelism = SparkUtil.getParallelism(predecessors, poSkewedJoin);
+        Integer defaultParallelism = SparkPigContext.get().getParallelism(predecessors, poSkewedJoin);
 
         // with partition id
         SkewPartitionIndexKeyFunction skewFun = new SkewPartitionIndexKeyFunction(this, keyDist, defaultParallelism);

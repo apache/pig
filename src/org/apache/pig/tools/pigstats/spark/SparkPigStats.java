@@ -93,9 +93,7 @@ public class SparkPigStats extends PigStats {
         addInputInfoForSparkOper(sparkOperator, jobStats, isSuccess, jobMetricsListener, conf);
         jobSparkOperatorMap.put(jobStats, sparkOperator);
         jobPlan.add(jobStats);
-        if (e != null) {
-            jobStats.setBackendException(e);
-        }
+        jobStats.setBackendException(e);
     }
 
     public void addNativeJobStats(NativeSparkOperator sparkOperator, String jobId, boolean isSuccess, Exception e) {
@@ -103,9 +101,7 @@ public class SparkPigStats extends PigStats {
         jobStats.setSuccessful(isSuccess);
         jobSparkOperatorMap.put(jobStats, sparkOperator);
         jobPlan.add(jobStats);
-        if (e != null) {
-            jobStats.setBackendException(e);
-        }
+        jobStats.setBackendException(e);
     }
 
     public void finish() {

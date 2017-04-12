@@ -51,7 +51,7 @@ public class UDFJarsFinder extends SparkOpPlanVisitor {
                     }
                 }
             } catch (IOException e) {
-                throw new RuntimeException("pigContext.getClassForAlias(udf) fail, ", e);
+                throw new VisitorException(e);
             }
         }
     }

@@ -123,7 +123,7 @@ public class POMergeCogroup extends PhysicalOperator {
     }
 
     //For Spark
-    private boolean endOfInput = false;
+    private transient boolean endOfInput = false;
     public boolean isEndOfInput() {
         return endOfInput;
     }

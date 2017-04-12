@@ -45,101 +45,101 @@ import org.apache.pig.impl.util.Pair;
  * stitched in to the "value"
  */
 public class SparkPOPackageAnnotator extends SparkOpPlanVisitor {
-	private static final Log LOG = LogFactory.getLog(SparkPOPackageAnnotator.class);
+    private static final Log LOG = LogFactory.getLog(SparkPOPackageAnnotator.class);
 
-	public SparkPOPackageAnnotator(SparkOperPlan plan) {
-		super(plan, new DepthFirstWalker<SparkOperator, SparkOperPlan>(plan));
-	}
+    public SparkPOPackageAnnotator(SparkOperPlan plan) {
+        super(plan, new DepthFirstWalker<SparkOperator, SparkOperPlan>(plan));
+    }
 
-	@Override
-	public void visitSparkOp(SparkOperator sparkOp) throws VisitorException {
-		if (!sparkOp.physicalPlan.isEmpty()) {
-			PackageDiscoverer pkgDiscoverer = new PackageDiscoverer(
-					sparkOp.physicalPlan);
-			pkgDiscoverer.visit();
-		}
-	}
+    @Override
+    public void visitSparkOp(SparkOperator sparkOp) throws VisitorException {
+        if (!sparkOp.physicalPlan.isEmpty()) {
+            PackageDiscoverer pkgDiscoverer = new PackageDiscoverer(
+                    sparkOp.physicalPlan);
+            pkgDiscoverer.visit();
+        }
+    }
 
-	static class PackageDiscoverer extends PhyPlanVisitor {
-		private POPackage pkg;
-		private PhysicalPlan plan;
+    static class PackageDiscoverer extends PhyPlanVisitor {
+        private POPackage pkg;
+        private PhysicalPlan plan;
 
-		public PackageDiscoverer(PhysicalPlan plan) {
-			super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(
-					plan));
-			this.plan = plan;
-		}
+        public PackageDiscoverer(PhysicalPlan plan) {
+            super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(
+                    plan));
+            this.plan = plan;
+        }
 
-		@Override
-		public void visitPackage(POPackage pkg) throws VisitorException {
-			this.pkg = pkg;
+        @Override
+        public void visitPackage(POPackage pkg) throws VisitorException {
+            this.pkg = pkg;
 
-			// Find POLocalRearrange(s) corresponding to this POPackage
-			PhysicalOperator graOp = plan.getPredecessors(pkg).get(0);
-			if (! (graOp instanceof POGlobalRearrange)) {
-				  throw new OptimizerException("Package operator is not preceded by " +
-					    "GlobalRearrange operator in Spark Plan", 2087, PigException.BUG);
-			}
+            // Find POLocalRearrange(s) corresponding to this POPackage
+            PhysicalOperator graOp = plan.getPredecessors(pkg).get(0);
+            if (! (graOp instanceof POGlobalRearrange)) {
+                  throw new OptimizerException("Package operator is not preceded by " +
+                        "GlobalRearrange operator in Spark Plan", 2087, PigException.BUG);
+            }
 
-			List<PhysicalOperator> lraOps = plan.getPredecessors(graOp);
-			if (pkg.getNumInps() != lraOps.size()) {
+            List<PhysicalOperator> lraOps = plan.getPredecessors(graOp);
+            if (pkg.getNumInps() != lraOps.size()) {
           throw new OptimizerException("Unexpected problem during optimization. " +
-							"Could not find all LocalRearrange operators. Expected " + pkg.getNumInps() +
-					    ". Got " + lraOps.size() + ".", 2086, PigException.BUG);
-			}
-			Collections.sort(lraOps);
-			for (PhysicalOperator op : lraOps) {
-				if (! (op instanceof POLocalRearrange)) {
-					throw new OptimizerException("GlobalRearrange operator can only be preceded by " +
-							"LocalRearrange operator(s) in Spark Plan", 2087, PigException.BUG);
-				}
-				annotatePkgWithLRA((POLocalRearrange)op);
-			}
-		};
+                            "Could not find all LocalRearrange operators. Expected " + pkg.getNumInps() +
+                        ". Got " + lraOps.size() + ".", 2086, PigException.BUG);
+            }
+            Collections.sort(lraOps);
+            for (PhysicalOperator op : lraOps) {
+                if (! (op instanceof POLocalRearrange)) {
+                    throw new OptimizerException("GlobalRearrange operator can only be preceded by " +
+                            "LocalRearrange operator(s) in Spark Plan", 2087, PigException.BUG);
+                }
+                annotatePkgWithLRA((POLocalRearrange)op);
+            }
+        };
 
-		private void annotatePkgWithLRA(POLocalRearrange lrearrange)
-				throws VisitorException {
+        private void annotatePkgWithLRA(POLocalRearrange lrearrange)
+                throws VisitorException {
 
-			Map<Integer, Pair<Boolean, Map<Integer, Integer>>> keyInfo;
-			if (LOG.isDebugEnabled())
-			     LOG.debug("Annotating package " + pkg + " with localrearrange operator "
+            Map<Integer, Pair<Boolean, Map<Integer, Integer>>> keyInfo;
+            if (LOG.isDebugEnabled())
+                 LOG.debug("Annotating package " + pkg + " with localrearrange operator "
                + lrearrange + " with index " + lrearrange.getIndex());
 
-			if (pkg.getPkgr() instanceof LitePackager) {
-				if (lrearrange.getIndex() != 0) {
-					throw new RuntimeException(
-							"POLocalRearrange for POPackageLite cannot have index other than 0, but has index - "
-									+ lrearrange.getIndex());
-				}
-			}
+            if (pkg.getPkgr() instanceof LitePackager) {
+                if (lrearrange.getIndex() != 0) {
+                    throw new RuntimeException(
+                            "POLocalRearrange for POPackageLite cannot have index other than 0, but has index - "
+                                    + lrearrange.getIndex());
+                }
+            }
 
-			// annotate the package with information from the LORearrange
-			// update the keyInfo information if already present in the
-			// POPackage
-			keyInfo = pkg.getPkgr().getKeyInfo();
-			if (keyInfo == null)
-				keyInfo = new HashMap<Integer, Pair<Boolean, Map<Integer, Integer>>>();
+            // annotate the package with information from the LORearrange
+            // update the keyInfo information if already present in the
+            // POPackage
+            keyInfo = pkg.getPkgr().getKeyInfo();
+            if (keyInfo == null)
+                keyInfo = new HashMap<Integer, Pair<Boolean, Map<Integer, Integer>>>();
 
-			if (keyInfo.get(Integer.valueOf(lrearrange.getIndex())) != null) {
-				// something is wrong - we should not be getting key info
-				// for the same index from two different Local Rearranges
-				int errCode = 2087;
-				String msg = "Unexpected problem during optimization."
-						+ " Found index:" + lrearrange.getIndex()
-						+ " in multiple LocalRearrange operators.";
-				throw new OptimizerException(msg, errCode, PigException.BUG);
+            if (keyInfo.get(Integer.valueOf(lrearrange.getIndex())) != null) {
+                // something is wrong - we should not be getting key info
+                // for the same index from two different Local Rearranges
+                int errCode = 2087;
+                String msg = "Unexpected problem during optimization."
+                        + " Found index:" + lrearrange.getIndex()
+                        + " in multiple LocalRearrange operators.";
+                throw new OptimizerException(msg, errCode, PigException.BUG);
 
-			}
-			keyInfo.put(
-					Integer.valueOf(lrearrange.getIndex()),
-					new Pair<Boolean, Map<Integer, Integer>>(lrearrange
-							.isProjectStar(), lrearrange.getProjectedColsMap()));
-			if (LOG.isDebugEnabled())
+            }
+            keyInfo.put(
+                    Integer.valueOf(lrearrange.getIndex()),
+                    new Pair<Boolean, Map<Integer, Integer>>(lrearrange
+                            .isProjectStar(), lrearrange.getProjectedColsMap()));
+            if (LOG.isDebugEnabled())
           LOG.debug("KeyInfo for packager for package operator " + pkg + " is "
               + keyInfo );
-			pkg.getPkgr().setKeyInfo(keyInfo);
-			pkg.getPkgr().setKeyTuple(lrearrange.isKeyTuple());
-			pkg.getPkgr().setKeyCompound(lrearrange.isKeyCompound());
-		}
-	}
+            pkg.getPkgr().setKeyInfo(keyInfo);
+            pkg.getPkgr().setKeyTuple(lrearrange.isKeyTuple());
+            pkg.getPkgr().setKeyCompound(lrearrange.isKeyCompound());
+        }
+    }
 }

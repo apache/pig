@@ -34,20 +34,20 @@ import org.apache.pig.impl.plan.VisitorException;
  */
 public class SparkPrinter extends SparkOpPlanVisitor {
 
-	private PrintStream mStream = null;
-	private boolean isVerbose = true;
+    private PrintStream mStream = null;
+    private boolean isVerbose = true;
 
-	public SparkPrinter(PrintStream ps, SparkOperPlan plan) {
-		super(plan, new DepthFirstWalker<SparkOperator, SparkOperPlan>(plan));
-		mStream = ps;
-		mStream.println("#--------------------------------------------------");
-		mStream.println("# Spark Plan                                  ");
-		mStream.println("#--------------------------------------------------");
-	}
+    public SparkPrinter(PrintStream ps, SparkOperPlan plan) {
+        super(plan, new DepthFirstWalker<SparkOperator, SparkOperPlan>(plan));
+        mStream = ps;
+        mStream.println("#--------------------------------------------------");
+        mStream.println("# Spark Plan                                  ");
+        mStream.println("#--------------------------------------------------");
+    }
 
-	public void setVerbose(boolean verbose) {
-		isVerbose = verbose;
-	}
+    public void setVerbose(boolean verbose) {
+        isVerbose = verbose;
+    }
 
     @Override
     public void visitSparkOp(SparkOperator sparkOp) throws VisitorException {

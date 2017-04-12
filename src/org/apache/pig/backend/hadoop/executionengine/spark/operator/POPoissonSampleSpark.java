@@ -32,11 +32,10 @@ import org.apache.pig.impl.plan.VisitorException;
 
 public class POPoissonSampleSpark extends POPoissonSample {
     private static final Log LOG = LogFactory.getLog(POPoissonSampleSpark.class);
-    private static final long serialVersionUID = 1L;
-
-
+    //TODO verify can be removed?
+    //private static final long serialVersionUID = 1L;
     // Only for Spark
-    private boolean endOfInput = false;
+    private transient boolean endOfInput = false;
 
     public boolean isEndOfInput() {
         return endOfInput;
@@ -48,12 +47,6 @@ public class POPoissonSampleSpark extends POPoissonSample {
 
     public POPoissonSampleSpark(OperatorKey k, int rp, int sr, float hp, long tm) {
         super(k, rp, sr, hp, tm);
-    }
-
-
-    @Override
-    public void visit(PhyPlanVisitor v) throws VisitorException {
-        v.visitPoissonSampleSpark(this);
     }
 
     @Override
@@ -115,10 +108,12 @@ public class POPoissonSampleSpark extends POPoissonSample {
         Result pickedSample = newSample;
         updateSkipInterval((Tuple) pickedSample.result);
 
-        LOG.debug("pickedSample:");
-        if(pickedSample.result!=null){
-            for(int i=0;i<((Tuple) pickedSample.result).size();i++) {
-                LOG.debug("the "+i+" ele:"+((Tuple) pickedSample.result).get(i));
+        if( LOG.isDebugEnabled()) {
+            LOG.debug("pickedSample:");
+            if (pickedSample.result != null) {
+                for (int i = 0; i < ((Tuple) pickedSample.result).size(); i++) {
+                    LOG.debug("the " + i + " ele:" + ((Tuple) pickedSample.result).get(i));
+                }
             }
         }
         return pickedSample;

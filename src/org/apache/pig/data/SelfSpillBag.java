@@ -22,6 +22,8 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 
+import java.io.Serializable;
+
 /**
  * Class to hold code common to self spilling bags such as InternalCachedBag
  */
@@ -30,8 +32,7 @@ import org.apache.pig.classification.InterfaceStability;
 public abstract class SelfSpillBag extends DefaultAbstractBag {
     private static final long serialVersionUID = 1L;
     // SelfSpillBag$MemoryLimits is not serializable
-    //in spark mode, if we don't set memLimit transient, it will throw NotSerializableExecption(See PIG-4611)
-    protected transient MemoryLimits memLimit;
+    protected MemoryLimits memLimit;
 
     public SelfSpillBag(int bagCount) {
         memLimit = new MemoryLimits(bagCount, -1);
@@ -49,10 +50,11 @@ public abstract class SelfSpillBag extends DefaultAbstractBag {
      * The number of objects that will fit into this memory limit is computed
      * using the average memory size of the objects whose size is given to this
      * class.
+     * In spark mode, MemoryLimits needs implement Serializable interface otherwise NotSerializableExecption will be thrown (See PIG-4611)
      */
     @InterfaceAudience.Private
     @InterfaceStability.Evolving
-    public static class MemoryLimits {
+    public static class MemoryLimits implements Serializable {
 
         private long maxMemUsage;
         private long cacheLimit = Integer.MAX_VALUE;

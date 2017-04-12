@@ -37,10 +37,10 @@ import org.apache.spark.api.java.JavaSparkContext;
 
 public class SparkStatsUtil {
 
-    public static final String SPARK_STORE_COUNTER_GROUP = "Spark Store Counters";
-    public static final String SPARK_STORE_RECORD_COUNTER = "Output records in ";
-    public static final String SPARK_INPUT_COUNTER_GROUP = "Spark Input Counters";
-    public static final String SPARK_INPUT_RECORD_COUNTER = "Input records from ";
+    public static final String SPARK_STORE_COUNTER_GROUP = PigStatsUtil.MULTI_STORE_COUNTER_GROUP;
+    public static final String SPARK_STORE_RECORD_COUNTER = PigStatsUtil.MULTI_STORE_RECORD_COUNTER;
+    public static final String SPARK_INPUT_COUNTER_GROUP = PigStatsUtil.MULTI_INPUTS_COUNTER_GROUP;
+    public static final String SPARK_INPUT_RECORD_COUNTER = PigStatsUtil.MULTI_INPUTS_RECORD_COUNTER;
 
     public static void waitForJobAddStats(int jobID,
                                           POStore poStore, SparkOperator sparkOperator,
@@ -71,7 +71,7 @@ public class SparkStatsUtil {
                 sparkContext, e);
     }
 
-    public static String getStoreSparkCounterName(POStore store) {
+    public static String getCounterName(POStore store) {
         String shortName = PigStatsUtil.getShortName(store.getSFile().getFileName());
 
         StringBuffer sb = new StringBuffer(SPARK_STORE_RECORD_COUNTER);
@@ -84,7 +84,7 @@ public class SparkStatsUtil {
         return sb.toString();
     }
 
-    public static String getLoadSparkCounterName(POLoad load) {
+    public static String getCounterName(POLoad load) {
         String shortName = PigStatsUtil.getShortName(load.getLFile().getFileName());
 
         StringBuffer sb = new StringBuffer(SPARK_INPUT_RECORD_COUNTER);
@@ -95,15 +95,15 @@ public class SparkStatsUtil {
         return sb.toString();
     }
 
-    public static long getStoreSparkCounterValue(POStore store) {
+    public static long getRecordCount(POStore store) {
         SparkPigStatusReporter reporter = SparkPigStatusReporter.getInstance();
-        return reporter.getCounters().getValue(SPARK_STORE_COUNTER_GROUP, getStoreSparkCounterName(store));
+        return reporter.getCounters().getValue(SPARK_STORE_COUNTER_GROUP, getCounterName(store));
     }
 
-    public static long getLoadSparkCounterValue(POLoad load) {
+    public static long getRecordCount(POLoad load) {
         SparkPigStatusReporter reporter = SparkPigStatusReporter.getInstance();
         int loadersCount = countCoLoadsIfInSplit(load,load.getParentPlan());
-        return reporter.getCounters().getValue(SPARK_INPUT_COUNTER_GROUP, getLoadSparkCounterName(load))/loadersCount;
+        return reporter.getCounters().getValue(SPARK_INPUT_COUNTER_GROUP, getCounterName(load))/loadersCount;
     }
 
     private static int countCoLoadsIfInSplit(PhysicalOperator op, PhysicalPlan pp){

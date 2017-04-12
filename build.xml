@@ -260,8 +260,10 @@
     <property name="build.dir" location="build" />
     <property name="build.ivy.dir" location="${build.dir}/ivy" />
     <property name="build.ivy.lib.dir" location="${build.ivy.dir}/lib" />
-    <property name="build.ivy.spark.lib.dir" location="${build.ivy.dir}/lib/spark" />
     <property name="ivy.lib.dir" location="${build.ivy.lib.dir}/${ant.project.name}"/>
+    <!-- if we set ivy.lib.dir.spark as "${ivy.lib.dir}/spark", org.apache.pig.test.TestRegisteredJarVisibility.testRegisterJarOverridePigJarPackages will fail  -->
+    <!--<property name="ivy.lib.dir.spark" location="${ivy.lib.dir}/spark" />-->
+    <property name="ivy.lib.dir.spark" location="${build.ivy.dir}/lib/spark" />
     <property name="build.ivy.report.dir" location="${build.ivy.dir}/report" />
     <property name="build.ivy.maven.dir" location="${build.ivy.dir}/maven" />
     <property name="pom.xml" location="${build.ivy.maven.dir}/pom.xml"/>
@@ -331,7 +333,7 @@
             <fileset dir="${ivy.lib.dir}">
                 <include name="**.*jar"/>
             </fileset>
-            <fileset dir="${build.ivy.spark.lib.dir}">
+            <fileset dir="${ivy.lib.dir.spark}">
                 <include name="**.*jar"/>
             </fileset>
         </path>
@@ -364,7 +366,7 @@
     <path id="classpath">
         <fileset file="${ivy.lib.dir}/${zookeeper.jarfile}"/>
         <fileset dir="${ivy.lib.dir}" includes="*.jar"/>
-        <fileset dir="${build.ivy.spark.lib.dir}" includes="*.jar"/>
+        <fileset dir="${ivy.lib.dir.spark}" includes="*.jar"/>
     </path>
 
     <!-- javadoc-classpath -->
@@ -734,7 +736,7 @@
     <target name="copySparkDependencies">
         <mkdir dir="${spark.lib.dir}" />
         <copy todir="${spark.lib.dir}">
-            <fileset dir="${build.ivy.spark.lib.dir}" includes="*.jar"/>
+            <fileset dir="${ivy.lib.dir.spark}" includes="*.jar"/>
         </copy>
     </target>
     
@@ -876,7 +878,7 @@
         <macro-test-runner test.file="${test.all.file}" tests.failed="test-tez.failed"/>
         <fail if="test-tez.failed">Tests failed!</fail>
     </target>
-	
+
     <target name="test-spark" depends="setSparkEnv,setWindowsPath,setLinuxPath,compile-test,jar,debugger.check,jackson-pig-3039-test-download" description="Run Spark unit tests in Spark cluster-local mode">
         <macro-test-runner test.file="${test.all.file}" tests.failed="test-spark.failed"/>
         <fail if="test-spark.failed">Tests failed!</fail>
@@ -1003,9 +1005,9 @@
         <ant dir="${test.e2e.dir}" target="test-tez"/>
     </target>
 
-	<target name="test-e2e-spark" depends="jar, piggybank" description="run end-to-end tests in spark mode">
-	        <ant dir="${test.e2e.dir}" target="test-spark"/>
-	</target>
+    <target name="test-e2e-spark" depends="jar, piggybank" description="run end-to-end tests in spark mode">
+            <ant dir="${test.e2e.dir}" target="test-spark"/>
+    </target>
 
     <target name="test-e2e-deploy" depends="jar" description="deploy end-to-end tests to existing cluster">
         <ant dir="${test.e2e.dir}" target="deploy"/>
@@ -1654,7 +1656,7 @@
        <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings" log="${loglevel}"
                  pattern="${build.ivy.lib.dir}/${ivy.artifact.retrieve.pattern}" conf="compile"/>
        <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings" log="${loglevel}"
-                 pattern="${build.ivy.spark.lib.dir}/[artifact]-[revision](-[classifier]).[ext]" conf="spark"/>
+                 pattern="${ivy.lib.dir.spark}/[artifact]-[revision](-[classifier]).[ext]" conf="spark"/>
        <ivy:cachepath pathid="compile.classpath" conf="compile"/>
      </target>
 

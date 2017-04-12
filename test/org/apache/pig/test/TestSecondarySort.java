@@ -270,7 +270,7 @@ public abstract class TestSecondarySort {
                 "(1,{(1,2,3),(1,2,4),(1,3,4)})"
         };
         Util.checkQueryOutputs(iter, expected, org.apache
-                .pig.newplan.logical.Util.translateSchema(s), 
+                .pig.newplan.logical.Util.translateSchema(s),
                 Util.isSparkExecType(Util.getLocalTestMode()));
         Util.deleteFile(cluster, clusterPath);
     }

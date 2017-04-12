@@ -41,8 +41,8 @@ public class DotSparkPrinter extends DotPlanDumper<SparkOperator, SparkOperPlan,
         DotSparkPrinter.InnerOperator,
         DotSparkPrinter.InnerPlan> {
 
-    static int counter = 0;
-    boolean isVerboseNesting = true;
+    private static int counter = 0;
+    private boolean isVerboseNesting = true;
 
     public DotSparkPrinter(SparkOperPlan plan, PrintStream ps) {
         this(plan, ps, false, new HashSet<Operator>(), new HashSet<Operator>(),

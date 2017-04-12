@@ -60,7 +60,28 @@ public class JobMetricsListener implements SparkListener {
 
     @Override
     public void onStageCompleted(SparkListenerStageCompleted stageCompleted) {
-
+//        uncomment and remove the code onTaskEnd until we fix PIG-5157. It is better to update taskMetrics of stage when stage completes
+//        if we update taskMetrics in onTaskEnd(), it consumes lot of memory.
+//        int stageId = stageCompleted.stageInfo().stageId();
+//        int stageAttemptId = stageCompleted.stageInfo().attemptId();
+//        String stageIdentifier = stageId + "_" + stageAttemptId;
+//        Integer jobId = stageIdToJobId.get(stageId);
+//        if (jobId == null) {
+//            LOG.warn("Cannot find job id for stage[" + stageId + "].");
+//        } else {
+//            Map<String, List<TaskMetrics>> jobMetrics = allJobMetrics.get(jobId);
+//            if (jobMetrics == null) {
+//                jobMetrics = Maps.newHashMap();
+//                allJobMetrics.put(jobId, jobMetrics);
+//            }
+//            List<TaskMetrics> stageMetrics = jobMetrics.get(stageIdentifier);
+//            if (stageMetrics == null) {
+//                stageMetrics = Lists.newLinkedList();
+//                jobMetrics.put(stageIdentifier, stageMetrics);
+//            }
+//            // uncomment until we fix PIG-5157. after we upgrade to spark2.0 StageInfo().taskMetrics() api is available
+//            // stageMetrics.add(stageCompleted.stageInfo().taskMetrics());
+//        }
     }
 
     @Override

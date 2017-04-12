@@ -308,7 +308,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         //so we need check whether UDFContext.getUDFContext().getClientSystemProps()
         //is null or not, if is null, defaultCaster =STRING_CASTER, otherwise is
         //UDFContext.getUDFContext().getClientSystemProps().getProperty(CASTER_PROPERTY, STRING_CASTER)
-        //Detail see PIG-4611
+        //Detail see PIG-4920
         String defaultCaster = UDFContext.getUDFContext().getClientSystemProps() != null ? UDFContext.getUDFContext().getClientSystemProps().getProperty(CASTER_PROPERTY, STRING_CASTER) : STRING_CASTER;
         String casterOption = configuredOptions_.getOptionValue("caster", defaultCaster);
         if (STRING_CASTER.equalsIgnoreCase(casterOption)) {

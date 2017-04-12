@@ -43,7 +43,7 @@ public class POReduceBySpark extends POForEach {
         this.addOriginalLocation(lr.getAlias(), lr.getOriginalLocations());
     }
 
-    public POPackage getPkg() {
+    public POPackage getPKGOp() {
         return pkg;
     }
 
@@ -98,7 +98,7 @@ public class POReduceBySpark extends POForEach {
         this.customPartitioner = customPartitioner;
     }
 
-    public POLocalRearrange getLgr() {
+    public POLocalRearrange getLROp() {
         return lr;
     }
 

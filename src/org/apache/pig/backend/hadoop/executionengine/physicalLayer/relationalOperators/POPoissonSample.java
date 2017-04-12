@@ -29,7 +29,7 @@ import org.apache.pig.impl.plan.VisitorException;
 
 public class POPoissonSample extends PhysicalOperator {
 
-    private static final long serialVersionUID = 1L;
+    protected static final long serialVersionUID = 1L;
 
     // 17 is not a magic number. It can be obtained by using a poisson
     // cumulative distribution function with the mean set to 10 (empirically,

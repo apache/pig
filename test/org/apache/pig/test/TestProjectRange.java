@@ -651,7 +651,7 @@ public class TestProjectRange  {
                 };
         Schema s = pigServer.dumpSchema("f");
         Util.checkQueryOutputs(it, expectedRes,org.apache.pig.newplan.logical.Util.translateSchema(s),
-        		Util.isSparkExecType(cluster.getExecType()));
+                Util.isSparkExecType(cluster.getExecType()));
     }
 
     /**
@@ -738,8 +738,8 @@ public class TestProjectRange  {
                         "(1,{(11,21,31,41,51),(10,20,30,40,50)})",
                 };
         Schema s = pigServer.dumpSchema("f");
-        Util.checkQueryOutputs(it, expectedRes,org.apache.pig.newplan.logical.Util.translateSchema(s), 
-        		Util.isSparkExecType(cluster.getExecType()));
+        Util.checkQueryOutputs(it, expectedRes,org.apache.pig.newplan.logical.Util.translateSchema(s),
+                Util.isSparkExecType(cluster.getExecType()));
 
     }
 
@@ -928,8 +928,8 @@ public class TestProjectRange  {
             "  g = group l1 by   .. c,  l2 by .. c;"
             ;
         String expectedSchStr = "grp: (a: int,b: long,c: int)," +
-        		"l1: {t : (a: int,b: long,c: int,d: int,e: int)}," +
-        		"l2: {t : (a: int,b: long,c: int,d: int,e: int)}";
+                "l1: {t : (a: int,b: long,c: int,d: int,e: int)}," +
+                "l2: {t : (a: int,b: long,c: int,d: int,e: int)}";
 
         Schema expectedSch = getCleanedGroupSchema(expectedSchStr);
         compileAndCompareSchema(expectedSch, query, "g");
@@ -948,8 +948,8 @@ public class TestProjectRange  {
                 };
         Iterator<Tuple> it = pigServer.openIterator("g");
         Schema s = pigServer.dumpSchema("g");
-        Util.checkQueryOutputs(it, expectedRes,org.apache.pig.newplan.logical.Util.translateSchema(s), 
-        		Util.isSparkExecType(cluster.getExecType()));
+        Util.checkQueryOutputs(it, expectedRes,org.apache.pig.newplan.logical.Util.translateSchema(s),
+                Util.isSparkExecType(cluster.getExecType()));
     }
 
     /**
@@ -1017,7 +1017,7 @@ public class TestProjectRange  {
         Iterator<Tuple> it = pigServer.openIterator("g");
         Schema s = pigServer.dumpSchema("g");
         Util.checkQueryOutputs(it,expectedRes, org.apache.pig.newplan.logical.Util.translateSchema(s),
-        		Util.isSparkExecType(cluster.getExecType()));
+                Util.isSparkExecType(cluster.getExecType()));
     }
 
     @Test
@@ -1068,8 +1068,8 @@ public class TestProjectRange  {
                 };
         Iterator<Tuple> it = pigServer.openIterator("lim");
         Schema s = pigServer.dumpSchema("lim");
-        Util.checkQueryOutputs(it, expectedRes,org.apache.pig.newplan.logical.Util.translateSchema(s), 
-        		Util.isSparkExecType(cluster.getExecType()));
+        Util.checkQueryOutputs(it, expectedRes,org.apache.pig.newplan.logical.Util.translateSchema(s),
+                Util.isSparkExecType(cluster.getExecType()));
     }
 
 
@@ -1132,7 +1132,7 @@ public class TestProjectRange  {
         Iterator<Tuple> it = pigServer.openIterator("g");
         Schema s = pigServer.dumpSchema("g");
         Util.checkQueryOutputs(it, expectedRes, org.apache.pig.newplan.logical.Util.translateSchema(s),
-        		Util.isSparkExecType(cluster.getExecType()));
+                Util.isSparkExecType(cluster.getExecType()));
     }
 
     private void setAliasesToNull(Schema schema) {
@@ -1171,8 +1171,8 @@ public class TestProjectRange  {
                 };
         Iterator<Tuple> it = pigServer.openIterator("j");
         Schema s = pigServer.dumpSchema("j");
-        Util.checkQueryOutputs(it, expectedRes,org.apache.pig.newplan.logical.Util.translateSchema(s), 
-        		Util.isSparkExecType(cluster.getExecType()));
+        Util.checkQueryOutputs(it, expectedRes, org.apache.pig.newplan.logical.Util.translateSchema(s),
+                Util.isSparkExecType(cluster.getExecType()));
     }
 
     @Test
@@ -1200,8 +1200,8 @@ public class TestProjectRange  {
                 };
         Iterator<Tuple> it = pigServer.openIterator("j");
         Schema s = pigServer.dumpSchema("j");
-        Util.checkQueryOutputs(it, expectedRes, org.apache.pig.newplan.logical.Util.translateSchema(s), 
-        		Util.isSparkExecType(cluster.getExecType()));
+        Util.checkQueryOutputs(it, expectedRes, org.apache.pig.newplan.logical.Util.translateSchema(s),
+                Util.isSparkExecType(cluster.getExecType()));
     }
 
     @Test
@@ -1213,7 +1213,7 @@ public class TestProjectRange  {
             "  l2 = load '" + INP_FILE_5FIELDS +  "';" +
             "  g = cogroup l1 by  ($0 ..  ),  l2 by ($0 .. );";
         Util.checkExceptionMessage(query, "g", "Cogroup/Group by '*' or 'x..' " +
-        		"(range of columns to the end) " +
+                "(range of columns to the end) " +
                         "is only allowed if the input has a schema");
     }
 

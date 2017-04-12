@@ -1003,7 +1003,7 @@ public class TestGrunt {
             } else {
                 //In spark mode, We wrap ExecException to RunTimeException and is thrown out in JobGraphBuilder#sparkOperToRDD,
                 //So unwrap the exception here
-                assertTrue(((ExecException) e.getCause().getCause()).getErrorCode() == 6017);
+                assertTrue(((ExecException) e.getCause()).getErrorCode() == 6017);
             }
         }
 

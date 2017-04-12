@@ -71,7 +71,7 @@ public class POCollectedGroup extends PhysicalOperator {
     private transient boolean useDefaultBag;
 
     //For Spark
-    private boolean endOfInput = false;
+    private transient boolean endOfInput = false;
     public boolean isEndOfInput() {
         return endOfInput;
     }

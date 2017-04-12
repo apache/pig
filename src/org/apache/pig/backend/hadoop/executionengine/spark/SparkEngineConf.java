@@ -45,10 +45,10 @@ import com.google.common.collect.Lists;
  */
 public class SparkEngineConf implements Serializable {
 
-    private static final Log log = LogFactory.getLog(SparkEngineConf.class);
-    private static String SPARK_UDF_IMPORT_LIST= "spark.udf.import.list";
-    private static String SPARK_UDFCONTEXT_UDFCONFS="spark.udfcontext.udfConfs";
-    private static String SPARK_UDFCONTEXT_CLIENTSYSPROPS= "spark.udfcontext.clientSysProps";
+    private static final Log LOG = LogFactory.getLog(SparkEngineConf.class);
+    private static String SPARK_UDF_IMPORT_LIST = "pig.spark.udf.import.list";
+    private static String SPARK_UDFCONTEXT_UDFCONFS = "pig.spark.udfcontext.udfConfs";
+    private static String SPARK_UDFCONTEXT_CLIENTSYSPROPS = "pig.spark.udfcontext.clientSysProps";
 
     private Properties properties = new Properties();
 
@@ -82,8 +82,8 @@ public class SparkEngineConf implements Serializable {
             //jobs(at that time, UDFContext#udfConfs and UDFContext#clientSysProps is null so we need to save their
             //value in SparkEngineConf#properties after these two variables are correctly initialized in
             //SparkUtil#newJobConf, More detailed see PIG-4920
-            String udfConfsStr = ObjectSerializer.serialize(UDFContext.getUDFContext().getUdfConfs());
-            String clientSysPropsStr = ObjectSerializer.serialize(UDFContext.getUDFContext().getClientSysProps());
+            String udfConfsStr = UDFContext.getUDFContext().serialize();
+            String clientSysPropsStr = ObjectSerializer.serialize(UDFContext.getUDFContext().getClientSystemProps());
             this.properties.setProperty(SPARK_UDFCONTEXT_UDFCONFS, udfConfsStr);
             this.properties.setProperty(SPARK_UDFCONTEXT_CLIENTSYSPROPS, clientSysPropsStr);
             out.writeObject(udfConfsStr);

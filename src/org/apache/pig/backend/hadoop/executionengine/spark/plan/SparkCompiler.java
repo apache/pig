@@ -25,8 +25,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Properties;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 
@@ -112,53 +112,53 @@ public class SparkCompiler extends PhyPlanVisitor {
     private static final Log LOG = LogFactory.getLog(SparkCompiler.class);
 
     private PigContext pigContext;
-	private Properties pigProperties;
+    private Properties pigProperties;
 
-	// The physicalPlan that is being compiled
-	private PhysicalPlan physicalPlan;
+    // The physicalPlan that is being compiled
+    private PhysicalPlan physicalPlan;
 
-	// The physicalPlan of Spark Operators
-	private SparkOperPlan sparkPlan;
+    // The physicalPlan of Spark Operators
+    private SparkOperPlan sparkPlan;
 
-	private SparkOperator curSparkOp;
+    private SparkOperator curSparkOp;
 
-	private String scope;
+    private String scope;
 
-	private SparkOperator[] compiledInputs = null;
+    private SparkOperator[] compiledInputs = null;
 
-	private Map<OperatorKey, SparkOperator> splitsSeen;
+    private Map<OperatorKey, SparkOperator> splitsSeen;
 
-	private NodeIdGenerator nig;
+    private NodeIdGenerator nig;
 
-	private Map<PhysicalOperator, SparkOperator> phyToSparkOpMap;
-	private UDFFinder udfFinder;
+    private Map<PhysicalOperator, SparkOperator> phyToSparkOpMap;
+    private UDFFinder udfFinder;
 
-	public SparkCompiler(PhysicalPlan physicalPlan, PigContext pigContext) {
-		super(physicalPlan,
-				new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(
-						physicalPlan));
-		this.physicalPlan = physicalPlan;
-		this.pigContext = pigContext;
-		this.pigProperties = pigContext.getProperties();
-		this.sparkPlan = new SparkOperPlan();
-		this.phyToSparkOpMap = new HashMap<PhysicalOperator, SparkOperator>();
-		this.udfFinder = new UDFFinder();
-		this.nig = NodeIdGenerator.getGenerator();
-		this.splitsSeen = new HashMap<OperatorKey, SparkOperator>();
+    public SparkCompiler(PhysicalPlan physicalPlan, PigContext pigContext) {
+        super(physicalPlan,
+                new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(
+                        physicalPlan));
+        this.physicalPlan = physicalPlan;
+        this.pigContext = pigContext;
+        this.pigProperties = pigContext.getProperties();
+        this.sparkPlan = new SparkOperPlan();
+        this.phyToSparkOpMap = new HashMap<PhysicalOperator, SparkOperator>();
+        this.udfFinder = new UDFFinder();
+        this.nig = NodeIdGenerator.getGenerator();
+        this.splitsSeen = new HashMap<OperatorKey, SparkOperator>();
 
-	}
+    }
 
-	public void compile() throws IOException, PlanException, VisitorException {
-		List<PhysicalOperator> roots = physicalPlan.getRoots();
-		if ((roots == null) || (roots.size() <= 0)) {
-			int errCode = 2053;
-			String msg = "Internal error. Did not find roots in the physical physicalPlan.";
-			throw new SparkCompilerException(msg, errCode, PigException.BUG);
-		}
-		scope = roots.get(0).getOperatorKey().getScope();
-		List<PhysicalOperator> leaves = physicalPlan.getLeaves();
+    public void compile() throws IOException, PlanException, VisitorException {
+        List<PhysicalOperator> roots = physicalPlan.getRoots();
+        if ((roots == null) || (roots.size() <= 0)) {
+            int errCode = 2053;
+            String msg = "Internal error. Did not find roots in the physical physicalPlan.";
+            throw new SparkCompilerException(msg, errCode, PigException.BUG);
+        }
+        scope = roots.get(0).getOperatorKey().getScope();
+        List<PhysicalOperator> leaves = physicalPlan.getLeaves();
 
-		if (!pigContext.inIllustrator) {
+        if (!pigContext.inIllustrator) {
             for (PhysicalOperator op : leaves) {
                 if (!(op instanceof POStore)) {
                     int errCode = 2025;
@@ -171,321 +171,321 @@ public class SparkCompiler extends PhyPlanVisitor {
             }
         }
 
-		// get all stores and nativeSpark operators, sort them in order(operator
-		// id)
-		// and compile their plans
-		List<POStore> stores = PlanHelper.getPhysicalOperators(physicalPlan,
-				POStore.class);
-		List<PONative> nativeSparks = PlanHelper.getPhysicalOperators(
-				physicalPlan, PONative.class);
-		List<PhysicalOperator> ops;
-		if (!pigContext.inIllustrator) {
-			ops = new ArrayList<PhysicalOperator>(stores.size()
-					+ nativeSparks.size());
-			ops.addAll(stores);
-		} else {
-			ops = new ArrayList<PhysicalOperator>(leaves.size()
-					+ nativeSparks.size());
-			ops.addAll(leaves);
-		}
-		ops.addAll(nativeSparks);
-		Collections.sort(ops);
+        // get all stores and nativeSpark operators, sort them in order(operator
+        // id)
+        // and compile their plans
+        List<POStore> stores = PlanHelper.getPhysicalOperators(physicalPlan,
+                POStore.class);
+        List<PONative> nativeSparks = PlanHelper.getPhysicalOperators(
+                physicalPlan, PONative.class);
+        List<PhysicalOperator> ops;
+        if (!pigContext.inIllustrator) {
+            ops = new ArrayList<PhysicalOperator>(stores.size()
+                    + nativeSparks.size());
+            ops.addAll(stores);
+        } else {
+            ops = new ArrayList<PhysicalOperator>(leaves.size()
+                    + nativeSparks.size());
+            ops.addAll(leaves);
+        }
+        ops.addAll(nativeSparks);
+        Collections.sort(ops);
 
-		for (PhysicalOperator op : ops) {
+        for (PhysicalOperator op : ops) {
             if (LOG.isDebugEnabled())
                 LOG.debug("Starting compile of leaf-level operator " + op);
             compile(op);
-		}
-	}
+        }
+    }
 
-	/**
-	 * Compiles the physicalPlan below op into a Spark Operator and stores it in
-	 * curSparkOp.
-	 * 
-	 * @param op
-	 * @throws IOException
-	 * @throws PlanException
-	 * @throws VisitorException
-	 */
-	private void compile(PhysicalOperator op) throws IOException,
-			PlanException, VisitorException {
-		SparkOperator[] prevCompInp = compiledInputs;
+    /**
+     * Compiles the physicalPlan below op into a Spark Operator and stores it in
+     * curSparkOp.
+     * 
+     * @param op
+     * @throws IOException
+     * @throws PlanException
+     * @throws VisitorException
+     */
+    private void compile(PhysicalOperator op) throws IOException,
+            PlanException, VisitorException {
+        SparkOperator[] prevCompInp = compiledInputs;
 
         if (LOG.isDebugEnabled())
             LOG.debug("Compiling physical operator " + op +
                 ". Current spark operator is " + curSparkOp);
 
-		List<PhysicalOperator> predecessors = physicalPlan.getPredecessors(op);
-		if (op instanceof PONative) {
-			// the predecessor (store) has already been processed
-			// don't process it again
-		} else if (predecessors != null && predecessors.size() > 0) {
-			// When processing an entire script (multiquery), we can
-			// get into a situation where a load has
-			// predecessors. This means that it depends on some store
-			// earlier in the physicalPlan. We need to take that dependency
-			// and connect the respective Spark operators, while at the
-			// same time removing the connection between the Physical
-			// operators. That way the jobs will run in the right
-			// order.
-			if (op instanceof POLoad) {
+        List<PhysicalOperator> predecessors = physicalPlan.getPredecessors(op);
+        if (op instanceof PONative) {
+            // the predecessor (store) has already been processed
+            // don't process it again
+        } else if (predecessors != null && predecessors.size() > 0) {
+            // When processing an entire script (multiquery), we can
+            // get into a situation where a load has
+            // predecessors. This means that it depends on some store
+            // earlier in the physicalPlan. We need to take that dependency
+            // and connect the respective Spark operators, while at the
+            // same time removing the connection between the Physical
+            // operators. That way the jobs will run in the right
+            // order.
+            if (op instanceof POLoad) {
 
-				if (predecessors.size() != 1) {
-					int errCode = 2125;
-					String msg = "Expected at most one predecessor of load. Got "
-							+ predecessors.size();
-					throw new PlanException(msg, errCode, PigException.BUG);
-				}
+                if (predecessors.size() != 1) {
+                    int errCode = 2125;
+                    String msg = "Expected at most one predecessor of load. Got "
+                            + predecessors.size();
+                    throw new PlanException(msg, errCode, PigException.BUG);
+                }
 
-				PhysicalOperator p = predecessors.get(0);
-				SparkOperator oper = null;
-				if (p instanceof POStore || p instanceof PONative) {
-					oper = phyToSparkOpMap.get(p);
-				} else {
-					int errCode = 2126;
-					String msg = "Predecessor of load should be a store or spark operator. Got "
-							+ p.getClass();
-					throw new PlanException(msg, errCode, PigException.BUG);
-				}
+                PhysicalOperator p = predecessors.get(0);
+                SparkOperator oper = null;
+                if (p instanceof POStore || p instanceof PONative) {
+                    oper = phyToSparkOpMap.get(p);
+                } else {
+                    int errCode = 2126;
+                    String msg = "Predecessor of load should be a store or spark operator. Got "
+                            + p.getClass();
+                    throw new PlanException(msg, errCode, PigException.BUG);
+                }
 
-				// Need new operator
-				curSparkOp = getSparkOp();
-				curSparkOp.add(op);
-				sparkPlan.add(curSparkOp);
-				physicalPlan.disconnect(op, p);
-				sparkPlan.connect(oper, curSparkOp);
-				phyToSparkOpMap.put(op, curSparkOp);
-				return;
-			}
+                // Need new operator
+                curSparkOp = getSparkOp();
+                curSparkOp.add(op);
+                sparkPlan.add(curSparkOp);
+                physicalPlan.disconnect(op, p);
+                sparkPlan.connect(oper, curSparkOp);
+                phyToSparkOpMap.put(op, curSparkOp);
+                return;
+            }
 
-			Collections.sort(predecessors);
-			compiledInputs = new SparkOperator[predecessors.size()];
-			int i = -1;
-			for (PhysicalOperator pred : predecessors) {
-				if (pred instanceof POSplit
-						&& splitsSeen.containsKey(pred.getOperatorKey())) {
-					compiledInputs[++i] = startNew(
-							((POSplit) pred).getSplitStore(),
-							splitsSeen.get(pred.getOperatorKey()));
-					continue;
-				}
-				compile(pred);
-				compiledInputs[++i] = curSparkOp;
-			}
-		} else {
-			// No predecessors. Mostly a load. But this is where
-			// we start. We create a new sparkOp and add its first
-			// operator op. Also this should be added to the sparkPlan.
-			curSparkOp = getSparkOp();
-			curSparkOp.add(op);
-			if (op != null && op instanceof POLoad) {
-				if (((POLoad) op).getLFile() != null
-						&& ((POLoad) op).getLFile().getFuncSpec() != null)
-					curSparkOp.UDFs.add(((POLoad) op).getLFile().getFuncSpec()
-							.toString());
-			}
-			sparkPlan.add(curSparkOp);
-			phyToSparkOpMap.put(op, curSparkOp);
-			return;
-		}
-		op.visit(this);
-		compiledInputs = prevCompInp;
-	}
+            Collections.sort(predecessors);
+            compiledInputs = new SparkOperator[predecessors.size()];
+            int i = -1;
+            for (PhysicalOperator pred : predecessors) {
+                if (pred instanceof POSplit
+                        && splitsSeen.containsKey(pred.getOperatorKey())) {
+                    compiledInputs[++i] = startNew(
+                            ((POSplit) pred).getSplitStore(),
+                            splitsSeen.get(pred.getOperatorKey()));
+                    continue;
+                }
+                compile(pred);
+                compiledInputs[++i] = curSparkOp;
+            }
+        } else {
+            // No predecessors. Mostly a load. But this is where
+            // we start. We create a new sparkOp and add its first
+            // operator op. Also this should be added to the sparkPlan.
+            curSparkOp = getSparkOp();
+            curSparkOp.add(op);
+            if (op != null && op instanceof POLoad) {
+                if (((POLoad) op).getLFile() != null
+                        && ((POLoad) op).getLFile().getFuncSpec() != null)
+                    curSparkOp.UDFs.add(((POLoad) op).getLFile().getFuncSpec()
+                            .toString());
+            }
+            sparkPlan.add(curSparkOp);
+            phyToSparkOpMap.put(op, curSparkOp);
+            return;
+        }
+        op.visit(this);
+        compiledInputs = prevCompInp;
+    }
 
-	private SparkOperator getSparkOp() {
-		SparkOperator op = new SparkOperator(OperatorKey.genOpKey(scope));
+    private SparkOperator getSparkOp() {
+        SparkOperator op = new SparkOperator(OperatorKey.genOpKey(scope));
         if (LOG.isDebugEnabled())
             LOG.debug("Created new Spark operator " + op);
         return op;
-	}
+    }
 
-	public SparkOperPlan getSparkPlan() {
-		return sparkPlan;
-	}
+    public SparkOperPlan getSparkPlan() {
+        return sparkPlan;
+    }
 
-	public void connectSoftLink() throws PlanException, IOException {
-		for (PhysicalOperator op : physicalPlan) {
-			if (physicalPlan.getSoftLinkPredecessors(op) != null) {
-				for (PhysicalOperator pred : physicalPlan
-						.getSoftLinkPredecessors(op)) {
-					SparkOperator from = phyToSparkOpMap.get(pred);
-					SparkOperator to = phyToSparkOpMap.get(op);
-					if (from == to)
-						continue;
-					if (sparkPlan.getPredecessors(to) == null
-							|| !sparkPlan.getPredecessors(to).contains(from)) {
-						sparkPlan.connect(from, to);
-					}
-				}
-			}
-		}
-	}
+    public void connectSoftLink() throws PlanException, IOException {
+        for (PhysicalOperator op : physicalPlan) {
+            if (physicalPlan.getSoftLinkPredecessors(op) != null) {
+                for (PhysicalOperator pred : physicalPlan
+                        .getSoftLinkPredecessors(op)) {
+                    SparkOperator from = phyToSparkOpMap.get(pred);
+                    SparkOperator to = phyToSparkOpMap.get(op);
+                    if (from == to)
+                        continue;
+                    if (sparkPlan.getPredecessors(to) == null
+                            || !sparkPlan.getPredecessors(to).contains(from)) {
+                        sparkPlan.connect(from, to);
+                    }
+                }
+            }
+        }
+    }
 
-	private SparkOperator startNew(FileSpec fSpec, SparkOperator old)
-			throws PlanException {
-		POLoad ld = getLoad();
-		ld.setLFile(fSpec);
-		SparkOperator ret = getSparkOp();
-		ret.add(ld);
-		sparkPlan.add(ret);
-		sparkPlan.connect(old, ret);
-		return ret;
-	}
+    private SparkOperator startNew(FileSpec fSpec, SparkOperator old)
+            throws PlanException {
+        POLoad ld = getLoad();
+        ld.setLFile(fSpec);
+        SparkOperator ret = getSparkOp();
+        ret.add(ld);
+        sparkPlan.add(ret);
+        sparkPlan.connect(old, ret);
+        return ret;
+    }
 
-	private POLoad getLoad() {
-		POLoad ld = new POLoad(new OperatorKey(scope, nig.getNextNodeId(scope)));
-		ld.setPc(pigContext);
-		ld.setIsTmpLoad(true);
-		return ld;
-	}
+    private POLoad getLoad() {
+        POLoad ld = new POLoad(new OperatorKey(scope, nig.getNextNodeId(scope)));
+        ld.setPc(pigContext);
+        ld.setIsTmpLoad(true);
+        return ld;
+    }
 
-	@Override
-	public void visitSplit(POSplit op) throws VisitorException {
-		try {
-			FileSpec fSpec = op.getSplitStore();
-			SparkOperator sparkOp = endSingleInputPlanWithStr(fSpec);
-			sparkOp.setSplitter(true);
-			splitsSeen.put(op.getOperatorKey(), sparkOp);
-			curSparkOp = startNew(fSpec, sparkOp);
-			phyToSparkOpMap.put(op, curSparkOp);
-		} catch (Exception e) {
-			int errCode = 2034;
-			String msg = "Error compiling operator "
-					+ op.getClass().getSimpleName();
-			throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
-		}
-	}
-
-	public void visitDistinct(PODistinct op) throws VisitorException {
-		try {
-			addToPlan(op);
+    @Override
+    public void visitSplit(POSplit op) throws VisitorException {
+        try {
+            FileSpec fSpec = op.getSplitStore();
+            SparkOperator sparkOp = endSingleInputPlanWithStr(fSpec);
+            sparkOp.setSplitter(true);
+            splitsSeen.put(op.getOperatorKey(), sparkOp);
+            curSparkOp = startNew(fSpec, sparkOp);
             phyToSparkOpMap.put(op, curSparkOp);
-		} catch (Exception e) {
-			int errCode = 2034;
-			String msg = "Error compiling operator "
-					+ op.getClass().getSimpleName();
-			throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
-		}
-	}
+        } catch (Exception e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator "
+                    + op.getClass().getSimpleName();
+            throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
+        }
+    }
 
-	private SparkOperator endSingleInputPlanWithStr(FileSpec fSpec)
-			throws PlanException {
-		if (compiledInputs.length > 1) {
-			int errCode = 2023;
-			String msg = "Received a multi input physicalPlan when expecting only a single input one.";
-			throw new PlanException(msg, errCode, PigException.BUG);
-		}
-		SparkOperator sparkOp = compiledInputs[0]; // Load
-		POStore str = getStore();
-		str.setSFile(fSpec);
-		sparkOp.physicalPlan.addAsLeaf(str);
-		return sparkOp;
-	}
+    public void visitDistinct(PODistinct op) throws VisitorException {
+        try {
+            addToPlan(op);
+            phyToSparkOpMap.put(op, curSparkOp);
+        } catch (Exception e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator "
+                    + op.getClass().getSimpleName();
+            throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
+        }
+    }
 
-	private POStore getStore() {
-		POStore st = new POStore(new OperatorKey(scope,
-				nig.getNextNodeId(scope)));
-		// mark store as tmp store. These could be removed by the
-		// optimizer, because it wasn't the user requesting it.
-		st.setIsTmpStore(true);
-		return st;
-	}
+    private SparkOperator endSingleInputPlanWithStr(FileSpec fSpec)
+            throws PlanException {
+        if (compiledInputs.length > 1) {
+            int errCode = 2023;
+            String msg = "Received a multi input physicalPlan when expecting only a single input one.";
+            throw new PlanException(msg, errCode, PigException.BUG);
+        }
+        SparkOperator sparkOp = compiledInputs[0]; // Load
+        POStore str = getStore();
+        str.setSFile(fSpec);
+        sparkOp.physicalPlan.addAsLeaf(str);
+        return sparkOp;
+    }
 
-	@Override
-	public void visitLoad(POLoad op) throws VisitorException {
-		try {
-			addToPlan(op);
-			phyToSparkOpMap.put(op, curSparkOp);
-		} catch (Exception e) {
-			int errCode = 2034;
-			String msg = "Error compiling operator "
-					+ op.getClass().getSimpleName();
-			throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
-		}
-	}
+    private POStore getStore() {
+        POStore st = new POStore(new OperatorKey(scope,
+                nig.getNextNodeId(scope)));
+        // mark store as tmp store. These could be removed by the
+        // optimizer, because it wasn't the user requesting it.
+        st.setIsTmpStore(true);
+        return st;
+    }
 
-	@Override
-	public void visitNative(PONative op) throws VisitorException {
-		try {
-			SparkOperator nativesparkOpper = getNativeSparkOp(
-					op.getNativeMRjar(), op.getParams());
+    @Override
+    public void visitLoad(POLoad op) throws VisitorException {
+        try {
+            addToPlan(op);
+            phyToSparkOpMap.put(op, curSparkOp);
+        } catch (Exception e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator "
+                    + op.getClass().getSimpleName();
+            throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
+        }
+    }
+
+    @Override
+    public void visitNative(PONative op) throws VisitorException {
+        try {
+            SparkOperator nativesparkOpper = getNativeSparkOp(
+                    op.getNativeMRjar(), op.getParams());
             nativesparkOpper.markNative();
-			sparkPlan.add(nativesparkOpper);
-			sparkPlan.connect(curSparkOp, nativesparkOpper);
-			phyToSparkOpMap.put(op, nativesparkOpper);
-			curSparkOp = nativesparkOpper;
-		} catch (Exception e) {
-			int errCode = 2034;
-			String msg = "Error compiling operator "
-					+ op.getClass().getSimpleName();
-			throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
-		}
-	}
+            sparkPlan.add(nativesparkOpper);
+            sparkPlan.connect(curSparkOp, nativesparkOpper);
+            phyToSparkOpMap.put(op, nativesparkOpper);
+            curSparkOp = nativesparkOpper;
+        } catch (Exception e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator "
+                    + op.getClass().getSimpleName();
+            throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
+        }
+    }
 
-	private NativeSparkOperator getNativeSparkOp(String sparkJar,
-			String[] parameters) {
-		return new NativeSparkOperator(new OperatorKey(scope,
-				nig.getNextNodeId(scope)), sparkJar, parameters);
-	}
+    private NativeSparkOperator getNativeSparkOp(String sparkJar,
+            String[] parameters) {
+        return new NativeSparkOperator(new OperatorKey(scope,
+                nig.getNextNodeId(scope)), sparkJar, parameters);
+    }
 
-	@Override
-	public void visitStore(POStore op) throws VisitorException {
-		try {
-			addToPlan(op);
-			phyToSparkOpMap.put(op, curSparkOp);
-			if (op.getSFile() != null && op.getSFile().getFuncSpec() != null)
-				curSparkOp.UDFs.add(op.getSFile().getFuncSpec().toString());
-		} catch (Exception e) {
-			int errCode = 2034;
-			String msg = "Error compiling operator "
-					+ op.getClass().getSimpleName();
-			throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
-		}
-	}
+    @Override
+    public void visitStore(POStore op) throws VisitorException {
+        try {
+            addToPlan(op);
+            phyToSparkOpMap.put(op, curSparkOp);
+            if (op.getSFile() != null && op.getSFile().getFuncSpec() != null)
+                curSparkOp.UDFs.add(op.getSFile().getFuncSpec().toString());
+        } catch (Exception e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator "
+                    + op.getClass().getSimpleName();
+            throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
+        }
+    }
 
-	@Override
-	public void visitFilter(POFilter op) throws VisitorException {
-		try {
-			addToPlan(op);
-			processUDFs(op.getPlan());
-			phyToSparkOpMap.put(op, curSparkOp);
-		} catch (Exception e) {
-			int errCode = 2034;
-			String msg = "Error compiling operator "
-					+ op.getClass().getSimpleName();
-			throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
-		}
-	}
+    @Override
+    public void visitFilter(POFilter op) throws VisitorException {
+        try {
+            addToPlan(op);
+            processUDFs(op.getPlan());
+            phyToSparkOpMap.put(op, curSparkOp);
+        } catch (Exception e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator "
+                    + op.getClass().getSimpleName();
+            throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
+        }
+    }
 
-	@Override
-	public void visitCross(POCross op) throws VisitorException {
-		try {
-			addToPlan(op);
-			phyToSparkOpMap.put(op, curSparkOp);
-		} catch (Exception e) {
-			int errCode = 2034;
-			String msg = "Error compiling operator "
-					+ op.getClass().getSimpleName();
-			throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
-		}
-	}
+    @Override
+    public void visitCross(POCross op) throws VisitorException {
+        try {
+            addToPlan(op);
+            phyToSparkOpMap.put(op, curSparkOp);
+        } catch (Exception e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator "
+                    + op.getClass().getSimpleName();
+            throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
+        }
+    }
 
-	@Override
-	public void visitStream(POStream op) throws VisitorException {
-		try {
-			addToPlan(op);
-			phyToSparkOpMap.put(op, curSparkOp);
-		} catch (Exception e) {
-			int errCode = 2034;
-			String msg = "Error compiling operator "
-					+ op.getClass().getSimpleName();
-			throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
-		}
-	}
+    @Override
+    public void visitStream(POStream op) throws VisitorException {
+        try {
+            addToPlan(op);
+            phyToSparkOpMap.put(op, curSparkOp);
+        } catch (Exception e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator "
+                    + op.getClass().getSimpleName();
+            throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
+        }
+    }
 
-	@Override
-	public void visitSort(POSort op) throws VisitorException {
-		try {
+    @Override
+    public void visitSort(POSort op) throws VisitorException {
+        try {
             addToPlan(op);
             POSort sort = op;
             long limit = sort.getLimit();
@@ -496,143 +496,143 @@ public class SparkCompiler extends PhyPlanVisitor {
                 curSparkOp.markLimitAfterSort();
             }
             phyToSparkOpMap.put(op, curSparkOp);
-		} catch (Exception e) {
-			int errCode = 2034;
-			String msg = "Error compiling operator "
-					+ op.getClass().getSimpleName();
-			throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
-		}
-	}
+        } catch (Exception e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator "
+                    + op.getClass().getSimpleName();
+            throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
+        }
+    }
 
-	@Override
-	public void visitLimit(POLimit op) throws VisitorException {
-		try {
-			addToPlan(op);
+    @Override
+    public void visitLimit(POLimit op) throws VisitorException {
+        try {
+            addToPlan(op);
             curSparkOp.markLimit();
             phyToSparkOpMap.put(op, curSparkOp);
         } catch (Exception e) {
-			int errCode = 2034;
-			String msg = "Error compiling operator "
-					+ op.getClass().getSimpleName();
-			throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
-		}
-	}
+            int errCode = 2034;
+            String msg = "Error compiling operator "
+                    + op.getClass().getSimpleName();
+            throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
+        }
+    }
 
-	@Override
-	public void visitLocalRearrange(POLocalRearrange op)
-			throws VisitorException {
-		try {
-			addToPlan(op);
-			List<PhysicalPlan> plans = op.getPlans();
-			if (plans != null)
-				for (PhysicalPlan ep : plans)
-					processUDFs(ep);
-			phyToSparkOpMap.put(op, curSparkOp);
-		} catch (Exception e) {
-			int errCode = 2034;
-			String msg = "Error compiling operator "
-					+ op.getClass().getSimpleName();
-			throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
-		}
-	}
+    @Override
+    public void visitLocalRearrange(POLocalRearrange op)
+            throws VisitorException {
+        try {
+            addToPlan(op);
+            List<PhysicalPlan> plans = op.getPlans();
+            if (plans != null)
+                for (PhysicalPlan ep : plans)
+                    processUDFs(ep);
+            phyToSparkOpMap.put(op, curSparkOp);
+        } catch (Exception e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator "
+                    + op.getClass().getSimpleName();
+            throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
+        }
+    }
 
-	@Override
-	public void visitCollectedGroup(POCollectedGroup op)
-			throws VisitorException {
-		List<PhysicalOperator> roots = curSparkOp.physicalPlan.getRoots();
-		if (roots.size() != 1) {
-			int errCode = 2171;
-			String errMsg = "Expected one but found more then one root physical operator in physical physicalPlan.";
-			throw new SparkCompilerException(errMsg, errCode, PigException.BUG);
-		}
+    @Override
+    public void visitCollectedGroup(POCollectedGroup op)
+            throws VisitorException {
+        List<PhysicalOperator> roots = curSparkOp.physicalPlan.getRoots();
+        if (roots.size() != 1) {
+            int errCode = 2171;
+            String errMsg = "Expected one but found more then one root physical operator in physical physicalPlan.";
+            throw new SparkCompilerException(errMsg, errCode, PigException.BUG);
+        }
 
-		PhysicalOperator phyOp = roots.get(0);
-		if (!(phyOp instanceof POLoad)) {
-			int errCode = 2172;
-			String errMsg = "Expected physical operator at root to be POLoad. Found : "
-					+ phyOp.getClass().getCanonicalName();
-			throw new SparkCompilerException(errMsg, errCode, PigException.BUG);
-		}
+        PhysicalOperator phyOp = roots.get(0);
+        if (!(phyOp instanceof POLoad)) {
+            int errCode = 2172;
+            String errMsg = "Expected physical operator at root to be POLoad. Found : "
+                    + phyOp.getClass().getCanonicalName();
+            throw new SparkCompilerException(errMsg, errCode, PigException.BUG);
+        }
 
-		LoadFunc loadFunc = ((POLoad) phyOp).getLoadFunc();
-		try {
-			if (!(CollectableLoadFunc.class.isAssignableFrom(loadFunc
-					.getClass()))) {
-				int errCode = 2249;
-				throw new SparkCompilerException(
-						"While using 'collected' on group; data must be loaded via loader implementing CollectableLoadFunc.",
-						errCode);
-			}
-			((CollectableLoadFunc) loadFunc).ensureAllKeyInstancesInSameSplit();
-		} catch (SparkCompilerException e) {
-			throw (e);
-		} catch (IOException e) {
-			int errCode = 2034;
-			String msg = "Error compiling operator "
-					+ op.getClass().getSimpleName();
-			throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
-		}
+        LoadFunc loadFunc = ((POLoad) phyOp).getLoadFunc();
+        try {
+            if (!(CollectableLoadFunc.class.isAssignableFrom(loadFunc
+                    .getClass()))) {
+                int errCode = 2249;
+                throw new SparkCompilerException(
+                        "While using 'collected' on group; data must be loaded via loader implementing CollectableLoadFunc.",
+                        errCode);
+            }
+            ((CollectableLoadFunc) loadFunc).ensureAllKeyInstancesInSameSplit();
+        } catch (SparkCompilerException e) {
+            throw (e);
+        } catch (IOException e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator "
+                    + op.getClass().getSimpleName();
+            throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
+        }
 
-		try {
-			addToPlan(op);
-			phyToSparkOpMap.put(op, curSparkOp);
-		} catch (Exception e) {
-			int errCode = 2034;
-			String msg = "Error compiling operator "
-					+ op.getClass().getSimpleName();
-			throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
-		}
-	}
+        try {
+            addToPlan(op);
+            phyToSparkOpMap.put(op, curSparkOp);
+        } catch (Exception e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator "
+                    + op.getClass().getSimpleName();
+            throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
+        }
+    }
 
-	@Override
-	public void visitPOForEach(POForEach op) throws VisitorException {
-		try {
-			addToPlan(op);
-			List<PhysicalPlan> plans = op.getInputPlans();
-			if (plans != null) {
-				for (PhysicalPlan ep : plans) {
-					processUDFs(ep);
-				}
-			}
-			phyToSparkOpMap.put(op, curSparkOp);
-		} catch (Exception e) {
-			int errCode = 2034;
-			String msg = "Error compiling operator "
-					+ op.getClass().getSimpleName();
-			throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
-		}
-	}
+    @Override
+    public void visitPOForEach(POForEach op) throws VisitorException {
+        try {
+            addToPlan(op);
+            List<PhysicalPlan> plans = op.getInputPlans();
+            if (plans != null) {
+                for (PhysicalPlan ep : plans) {
+                    processUDFs(ep);
+                }
+            }
+            phyToSparkOpMap.put(op, curSparkOp);
+        } catch (Exception e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator "
+                    + op.getClass().getSimpleName();
+            throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
+        }
+    }
 
-	@Override
-	public void visitCounter(POCounter op) throws VisitorException {
-		try {
-			addToPlan(op);
-			phyToSparkOpMap.put(op, curSparkOp);
-		} catch (Exception e) {
-			int errCode = 2034;
-			String msg = "Error compiling operator "
-					+ op.getClass().getSimpleName();
-			throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
-		}
-	}
+    @Override
+    public void visitCounter(POCounter op) throws VisitorException {
+        try {
+            addToPlan(op);
+            phyToSparkOpMap.put(op, curSparkOp);
+        } catch (Exception e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator "
+                    + op.getClass().getSimpleName();
+            throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
+        }
+    }
 
-	@Override
-	public void visitRank(PORank op) throws VisitorException {
-		try {
-			addToPlan(op);
-			phyToSparkOpMap.put(op, curSparkOp);
-		} catch (Exception e) {
-			int errCode = 2034;
-			String msg = "Error compiling operator "
-					+ op.getClass().getSimpleName();
-			throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
-		}
-	}
+    @Override
+    public void visitRank(PORank op) throws VisitorException {
+        try {
+            addToPlan(op);
+            phyToSparkOpMap.put(op, curSparkOp);
+        } catch (Exception e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator "
+                    + op.getClass().getSimpleName();
+            throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
+        }
+    }
 
-	@Override
-	public void visitGlobalRearrange(POGlobalRearrange op)
-			throws VisitorException {
-		try {
+    @Override
+    public void visitGlobalRearrange(POGlobalRearrange op)
+            throws VisitorException {
+        try {
             POGlobalRearrangeSpark glbOp = new POGlobalRearrangeSpark(op);
             addToPlan(glbOp);
             if (op.isCross()) {
@@ -641,50 +641,50 @@ public class SparkCompiler extends PhyPlanVisitor {
 
             curSparkOp.customPartitioner = op.getCustomPartitioner();
             phyToSparkOpMap.put(op, curSparkOp);
-		} catch (Exception e) {
-			int errCode = 2034;
-			String msg = "Error compiling operator "
-					+ op.getClass().getSimpleName();
-			throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
-		}
-	}
+        } catch (Exception e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator "
+                    + op.getClass().getSimpleName();
+            throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
+        }
+    }
 
-	@Override
-	public void visitPackage(POPackage op) throws VisitorException {
-		try {
-			addToPlan(op);
-			phyToSparkOpMap.put(op, curSparkOp);
-			if (op.getPkgr().getPackageType() == Packager.PackageType.JOIN) {
-				curSparkOp.markRegularJoin();
-			} else if (op.getPkgr().getPackageType() == Packager.PackageType.GROUP) {
-				if (op.getNumInps() == 1) {
-					curSparkOp.markGroupBy();
-				} else if (op.getNumInps() > 1) {
-					curSparkOp.markCogroup();
-				}
-			}
+    @Override
+    public void visitPackage(POPackage op) throws VisitorException {
+        try {
+            addToPlan(op);
+            phyToSparkOpMap.put(op, curSparkOp);
+            if (op.getPkgr().getPackageType() == Packager.PackageType.JOIN) {
+                curSparkOp.markRegularJoin();
+            } else if (op.getPkgr().getPackageType() == Packager.PackageType.GROUP) {
+                if (op.getNumInps() == 1) {
+                    curSparkOp.markGroupBy();
+                } else if (op.getNumInps() > 1) {
+                    curSparkOp.markCogroup();
+                }
+            }
 
-		} catch (Exception e) {
-			int errCode = 2034;
-			String msg = "Error compiling operator "
-					+ op.getClass().getSimpleName();
-			throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
-		}
-	}
+        } catch (Exception e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator "
+                    + op.getClass().getSimpleName();
+            throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
+        }
+    }
 
-	@Override
-	public void visitUnion(POUnion op) throws VisitorException {
-		try {
-			addToPlan(op);
-			phyToSparkOpMap.put(op, curSparkOp);
+    @Override
+    public void visitUnion(POUnion op) throws VisitorException {
+        try {
+            addToPlan(op);
+            phyToSparkOpMap.put(op, curSparkOp);
             curSparkOp.markUnion();
-		} catch (Exception e) {
-			int errCode = 2034;
-			String msg = "Error compiling operator "
-					+ op.getClass().getSimpleName();
-			throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
-		}
-	}
+        } catch (Exception e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator "
+                    + op.getClass().getSimpleName();
+            throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
+        }
+    }
 
     /**
      * currently use regular join to replace skewedJoin
@@ -725,292 +725,292 @@ public class SparkCompiler extends PhyPlanVisitor {
 
     @Override
     public void visitFRJoin(POFRJoin op) throws VisitorException {
-		try {
-			curSparkOp = phyToSparkOpMap.get(op.getInputs().get(op.getFragment()));
-			for (int i = 0; i < compiledInputs.length; i++) {
-				SparkOperator sparkOperator = compiledInputs[i];
-				if (curSparkOp.equals(sparkOperator)) {
-					continue;
-				}
+        try {
+            curSparkOp = phyToSparkOpMap.get(op.getInputs().get(op.getFragment()));
+            for (int i = 0; i < compiledInputs.length; i++) {
+                SparkOperator sparkOperator = compiledInputs[i];
+                if (curSparkOp.equals(sparkOperator)) {
+                    continue;
+                }
 
-				OperatorKey broadcastKey = new OperatorKey(scope, nig.getNextNodeId(scope));
-				POBroadcastSpark poBroadcastSpark = new POBroadcastSpark(broadcastKey);
-				poBroadcastSpark.setBroadcastedVariableName(broadcastKey.toString());
+                OperatorKey broadcastKey = new OperatorKey(scope, nig.getNextNodeId(scope));
+                POBroadcastSpark poBroadcastSpark = new POBroadcastSpark(broadcastKey);
+                poBroadcastSpark.setBroadcastedVariableName(broadcastKey.toString());
 
-				sparkOperator.physicalPlan.addAsLeaf(poBroadcastSpark);
-			}
+                sparkOperator.physicalPlan.addAsLeaf(poBroadcastSpark);
+            }
 
-			POFRJoinSpark poFRJoinSpark = new POFRJoinSpark(op);
-			addToPlan(poFRJoinSpark);
-			phyToSparkOpMap.put(op, curSparkOp);
-		} catch (Exception e) {
-			int errCode = 2034;
-			String msg = "Error compiling operator " + op.getClass().getSimpleName();
-			throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
-		}
+            POFRJoinSpark poFRJoinSpark = new POFRJoinSpark(op);
+            addToPlan(poFRJoinSpark);
+            phyToSparkOpMap.put(op, curSparkOp);
+        } catch (Exception e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator " + op.getClass().getSimpleName();
+            throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
+        }
     }
 
-	@Override
-	public void visitMergeJoin(POMergeJoin joinOp) throws VisitorException {
-		try {
-			if (compiledInputs.length != 2 || joinOp.getInputs().size() != 2){
-				int errCode=1101;
-				throw new SparkCompilerException("Merge Join must have exactly two inputs. Found : "+compiledInputs.length, errCode);
-			}
+    @Override
+    public void visitMergeJoin(POMergeJoin joinOp) throws VisitorException {
+        try {
+            if (compiledInputs.length != 2 || joinOp.getInputs().size() != 2){
+                int errCode=1101;
+                throw new SparkCompilerException("Merge Join must have exactly two inputs. Found : "+compiledInputs.length, errCode);
+            }
 
-			curSparkOp = phyToSparkOpMap.get(joinOp.getInputs().get(0));
-			SparkOperator rightSparkOp;
-			if(curSparkOp.equals(compiledInputs[0])) {
-				rightSparkOp = compiledInputs[1];
-			} else {
-				rightSparkOp = compiledInputs[0];
-			}
+            curSparkOp = phyToSparkOpMap.get(joinOp.getInputs().get(0));
+            SparkOperator rightSparkOp;
+            if(curSparkOp.equals(compiledInputs[0])) {
+                rightSparkOp = compiledInputs[1];
+            } else {
+                rightSparkOp = compiledInputs[0];
+            }
 
-			PhysicalPlan rightPipelinePlan;
-			PhysicalPlan rightPhyPlan = rightSparkOp.physicalPlan;
-			if (rightPhyPlan.getRoots().size() != 1) {
-				int errCode = 2171;
-				String errMsg = "Expected one but found more then one root physical operator in physical plan.";
-				throw new SparkCompilerException(errMsg,errCode);
-			}
-			PhysicalOperator rightPhyLoader = rightPhyPlan.getRoots().get(0);
-			if (!(rightPhyLoader instanceof POLoad)) {
-				int errCode = 2172;
-				String errMsg = "Expected physical operator at root to be POLoad. Found : "+rightPhyLoader.getClass().getCanonicalName();
-				throw new SparkCompilerException(errMsg,errCode);
-			}
-			if (rightPhyPlan.getSuccessors(rightPhyLoader) == null || rightPhyPlan.getSuccessors(rightPhyLoader).isEmpty()) {
-				// Load - Join case.
-				rightPipelinePlan = null;
-			} else{ // We got something on right side. Yank it and set it as inner plan of right input.
-				rightPipelinePlan = rightPhyPlan.clone();
-				PhysicalOperator root = rightPipelinePlan.getRoots().get(0);
-				rightPipelinePlan.disconnect(root, rightPipelinePlan.getSuccessors(root).get(0));
-				rightPipelinePlan.remove(root);
-				rightPhyPlan.trimBelow(rightPhyLoader);
-			}
+            PhysicalPlan rightPipelinePlan;
+            PhysicalPlan rightPhyPlan = rightSparkOp.physicalPlan;
+            if (rightPhyPlan.getRoots().size() != 1) {
+                int errCode = 2171;
+                String errMsg = "Expected one but found more then one root physical operator in physical plan.";
+                throw new SparkCompilerException(errMsg,errCode);
+            }
+            PhysicalOperator rightPhyLoader = rightPhyPlan.getRoots().get(0);
+            if (!(rightPhyLoader instanceof POLoad)) {
+                int errCode = 2172;
+                String errMsg = "Expected physical operator at root to be POLoad. Found : "+rightPhyLoader.getClass().getCanonicalName();
+                throw new SparkCompilerException(errMsg,errCode);
+            }
+            if (rightPhyPlan.getSuccessors(rightPhyLoader) == null || rightPhyPlan.getSuccessors(rightPhyLoader).isEmpty()) {
+                // Load - Join case.
+                rightPipelinePlan = null;
+            } else{ // We got something on right side. Yank it and set it as inner plan of right input.
+                rightPipelinePlan = rightPhyPlan.clone();
+                PhysicalOperator root = rightPipelinePlan.getRoots().get(0);
+                rightPipelinePlan.disconnect(root, rightPipelinePlan.getSuccessors(root).get(0));
+                rightPipelinePlan.remove(root);
+                rightPhyPlan.trimBelow(rightPhyLoader);
+            }
 
-			joinOp.setupRightPipeline(rightPipelinePlan);
-			rightSparkOp.setRequestedParallelism(1); // for indexing job
+            joinOp.setupRightPipeline(rightPipelinePlan);
+            rightSparkOp.setRequestedParallelism(1); // for indexing job
 
-			POLoad rightLoader = (POLoad)rightSparkOp.physicalPlan.getRoots().get(0);
-			joinOp.setSignature(rightLoader.getSignature());
-			LoadFunc rightLoadFunc = rightLoader.getLoadFunc();
+            POLoad rightLoader = (POLoad)rightSparkOp.physicalPlan.getRoots().get(0);
+            joinOp.setSignature(rightLoader.getSignature());
+            LoadFunc rightLoadFunc = rightLoader.getLoadFunc();
 
-			if(IndexableLoadFunc.class.isAssignableFrom(rightLoadFunc.getClass())) {
-				joinOp.setRightLoaderFuncSpec(rightLoader.getLFile().getFuncSpec());
-				joinOp.setRightInputFileName(rightLoader.getLFile().getFileName());
-				curSparkOp.UDFs.add(rightLoader.getLFile().getFuncSpec().toString());
+            if(IndexableLoadFunc.class.isAssignableFrom(rightLoadFunc.getClass())) {
+                joinOp.setRightLoaderFuncSpec(rightLoader.getLFile().getFuncSpec());
+                joinOp.setRightInputFileName(rightLoader.getLFile().getFileName());
+                curSparkOp.UDFs.add(rightLoader.getLFile().getFuncSpec().toString());
 
-				// we don't need the right rightSparkOp since
-				// the right loader is an IndexableLoadFunc which can handle the index itself
-				sparkPlan.remove(rightSparkOp);
-				if(rightSparkOp == compiledInputs[0]) {
-					compiledInputs[0] = null;
-				} else if(rightSparkOp == compiledInputs[1]) {
-					compiledInputs[1] = null;
-				}
+                // we don't need the right rightSparkOp since
+                // the right loader is an IndexableLoadFunc which can handle the index itself
+                sparkPlan.remove(rightSparkOp);
+                if(rightSparkOp == compiledInputs[0]) {
+                    compiledInputs[0] = null;
+                } else if(rightSparkOp == compiledInputs[1]) {
+                    compiledInputs[1] = null;
+                }
 
-				// validate that the join keys in merge join are only
-				// simple column projections or '*' and not expression - expressions
-				// cannot be handled when the index is built by the storage layer on the sorted
-				// data when the sorted data (and corresponding index) is written.
-				// So merge join will be restricted not have expressions as join keys
-				int numInputs = mPlan.getPredecessors(joinOp).size(); // should be 2
-				for(int i = 0; i < numInputs; i++) {
-					List<PhysicalPlan> keyPlans = joinOp.getInnerPlansOf(i);
-					for (PhysicalPlan keyPlan : keyPlans) {
-						for(PhysicalOperator op : keyPlan) {
-							if(!(op instanceof POProject)) {
-								int errCode = 1106;
-								String errMsg = "Merge join is possible only for simple column or '*' join keys when using " +
-										rightLoader.getLFile().getFuncSpec() + " as the loader";
-								throw new SparkCompilerException(errMsg, errCode, PigException.INPUT);
-							}
-						}
-					}
-				}
+                // validate that the join keys in merge join are only
+                // simple column projections or '*' and not expression - expressions
+                // cannot be handled when the index is built by the storage layer on the sorted
+                // data when the sorted data (and corresponding index) is written.
+                // So merge join will be restricted not have expressions as join keys
+                int numInputs = mPlan.getPredecessors(joinOp).size(); // should be 2
+                for(int i = 0; i < numInputs; i++) {
+                    List<PhysicalPlan> keyPlans = joinOp.getInnerPlansOf(i);
+                    for (PhysicalPlan keyPlan : keyPlans) {
+                        for(PhysicalOperator op : keyPlan) {
+                            if(!(op instanceof POProject)) {
+                                int errCode = 1106;
+                                String errMsg = "Merge join is possible only for simple column or '*' join keys when using " +
+                                        rightLoader.getLFile().getFuncSpec() + " as the loader";
+                                throw new SparkCompilerException(errMsg, errCode, PigException.INPUT);
+                            }
+                        }
+                    }
+                }
 
-			} else {
-				//Replacing POLoad with indexer is disabled for 'merge-sparse' joins.  While
-				//this feature would be useful, the current implementation of DefaultIndexableLoader
-				//is not designed to handle multiple calls to seekNear.  Specifically, it rereads the entire index
-				//for each call.  Some refactoring of this class is required - and then the check below could be removed.
-				if (joinOp.getJoinType() == LOJoin.JOINTYPE.MERGESPARSE) {
-					int errCode = 1104;
-					String errMsg = "Right input of merge-join must implement IndexableLoadFunc. " +
-							"The specified loader " + rightLoadFunc + " doesn't implement it";
-					throw new SparkCompilerException(errMsg,errCode);
-				}
+            } else {
+                //Replacing POLoad with indexer is disabled for 'merge-sparse' joins.  While
+                //this feature would be useful, the current implementation of DefaultIndexableLoader
+                //is not designed to handle multiple calls to seekNear.  Specifically, it rereads the entire index
+                //for each call.  Some refactoring of this class is required - and then the check below could be removed.
+                if (joinOp.getJoinType() == LOJoin.JOINTYPE.MERGESPARSE) {
+                    int errCode = 1104;
+                    String errMsg = "Right input of merge-join must implement IndexableLoadFunc. " +
+                            "The specified loader " + rightLoadFunc + " doesn't implement it";
+                    throw new SparkCompilerException(errMsg,errCode);
+                }
 
-				// Replace POLoad with  indexer.
-				if (! (OrderedLoadFunc.class.isAssignableFrom(rightLoadFunc.getClass()))){
-					int errCode = 1104;
-					String errMsg = "Right input of merge-join must implement " +
-							"OrderedLoadFunc interface. The specified loader "
-							+ rightLoadFunc + " doesn't implement it";
-					throw new SparkCompilerException(errMsg,errCode);
-				}
+                // Replace POLoad with  indexer.
+                if (! (OrderedLoadFunc.class.isAssignableFrom(rightLoadFunc.getClass()))){
+                    int errCode = 1104;
+                    String errMsg = "Right input of merge-join must implement " +
+                            "OrderedLoadFunc interface. The specified loader "
+                            + rightLoadFunc + " doesn't implement it";
+                    throw new SparkCompilerException(errMsg,errCode);
+                }
 
-				String[] indexerArgs = new String[6];
-				List<PhysicalPlan> rightInpPlans = joinOp.getInnerPlansOf(1);
-				FileSpec origRightLoaderFileSpec = rightLoader.getLFile();
+                String[] indexerArgs = new String[6];
+                List<PhysicalPlan> rightInpPlans = joinOp.getInnerPlansOf(1);
+                FileSpec origRightLoaderFileSpec = rightLoader.getLFile();
 
-				indexerArgs[0] = origRightLoaderFileSpec.getFuncSpec().toString();
-				indexerArgs[1] = ObjectSerializer.serialize((Serializable)rightInpPlans);
-				indexerArgs[2] = ObjectSerializer.serialize(rightPipelinePlan);
-				indexerArgs[3] = rightLoader.getSignature();
-				indexerArgs[4] = rightLoader.getOperatorKey().scope;
-				indexerArgs[5] = Boolean.toString(true);
+                indexerArgs[0] = origRightLoaderFileSpec.getFuncSpec().toString();
+                indexerArgs[1] = ObjectSerializer.serialize((Serializable)rightInpPlans);
+                indexerArgs[2] = ObjectSerializer.serialize(rightPipelinePlan);
+                indexerArgs[3] = rightLoader.getSignature();
+                indexerArgs[4] = rightLoader.getOperatorKey().scope;
+                indexerArgs[5] = Boolean.toString(true);
 
-				FileSpec lFile = new FileSpec(rightLoader.getLFile().getFileName(),new FuncSpec(MergeJoinIndexer.class.getName(), indexerArgs));
-				rightLoader.setLFile(lFile);
+                FileSpec lFile = new FileSpec(rightLoader.getLFile().getFileName(),new FuncSpec(MergeJoinIndexer.class.getName(), indexerArgs));
+                rightLoader.setLFile(lFile);
 
-				// (keyFirst1, keyFirst2, .. , position, splitIndex) See MergeJoinIndexer
-				rightSparkOp.useTypedComparator(true);
-				POStore idxStore = getStore();
-				FileSpec idxStrFile = getTempFileSpec();
-				idxStore.setSFile(idxStrFile);
-				rightSparkOp.physicalPlan.addAsLeaf(idxStore);
-				rightSparkOp.markIndexer();
+                // (keyFirst1, keyFirst2, .. , position, splitIndex) See MergeJoinIndexer
+                rightSparkOp.useTypedComparator(true);
+                POStore idxStore = getStore();
+                FileSpec idxStrFile = getTempFileSpec();
+                idxStore.setSFile(idxStrFile);
+                rightSparkOp.physicalPlan.addAsLeaf(idxStore);
+                rightSparkOp.markIndexer();
 
-				curSparkOp.UDFs.add(origRightLoaderFileSpec.getFuncSpec().toString());
+                curSparkOp.UDFs.add(origRightLoaderFileSpec.getFuncSpec().toString());
 
-				// We want to ensure indexing job runs prior to actual join job.
-				// So, connect them in order.
-				sparkPlan.connect(rightSparkOp, curSparkOp);
+                // We want to ensure indexing job runs prior to actual join job.
+                // So, connect them in order.
+                sparkPlan.connect(rightSparkOp, curSparkOp);
 
-				// set up the DefaultIndexableLoader for the join operator
-				String[] defaultIndexableLoaderArgs = new String[5];
-				defaultIndexableLoaderArgs[0] = origRightLoaderFileSpec.getFuncSpec().toString();
-				defaultIndexableLoaderArgs[1] = idxStrFile.getFileName();
-				defaultIndexableLoaderArgs[2] = idxStrFile.getFuncSpec().toString();
-				defaultIndexableLoaderArgs[3] = joinOp.getOperatorKey().scope;
-				defaultIndexableLoaderArgs[4] = origRightLoaderFileSpec.getFileName();
-				joinOp.setRightLoaderFuncSpec((new FuncSpec(DefaultIndexableLoader.class.getName(), defaultIndexableLoaderArgs)));
-				joinOp.setRightInputFileName(origRightLoaderFileSpec.getFileName());
+                // set up the DefaultIndexableLoader for the join operator
+                String[] defaultIndexableLoaderArgs = new String[5];
+                defaultIndexableLoaderArgs[0] = origRightLoaderFileSpec.getFuncSpec().toString();
+                defaultIndexableLoaderArgs[1] = idxStrFile.getFileName();
+                defaultIndexableLoaderArgs[2] = idxStrFile.getFuncSpec().toString();
+                defaultIndexableLoaderArgs[3] = joinOp.getOperatorKey().scope;
+                defaultIndexableLoaderArgs[4] = origRightLoaderFileSpec.getFileName();
+                joinOp.setRightLoaderFuncSpec((new FuncSpec(DefaultIndexableLoader.class.getName(), defaultIndexableLoaderArgs)));
+                joinOp.setRightInputFileName(origRightLoaderFileSpec.getFileName());
 
-				joinOp.setIndexFile(idxStrFile.getFileName());
-			}
+                joinOp.setIndexFile(idxStrFile.getFileName());
+            }
 
-			curSparkOp.physicalPlan.addAsLeaf(joinOp);
-			phyToSparkOpMap.put(joinOp, curSparkOp);
+            curSparkOp.physicalPlan.addAsLeaf(joinOp);
+            phyToSparkOpMap.put(joinOp, curSparkOp);
 
-		} catch (Exception e) {
-			int errCode = 2034;
-			String msg = "Error compiling operator "
-					+ joinOp.getClass().getSimpleName();
-			throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
-		}
-	}
+        } catch (Exception e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator "
+                    + joinOp.getClass().getSimpleName();
+            throw new SparkCompilerException(msg, errCode, PigException.BUG, e);
+        }
+    }
 
-	private void processUDFs(PhysicalPlan plan) throws VisitorException {
-		if (plan != null) {
-			// Process Scalars (UDF with referencedOperators)
-			ScalarPhyFinder scalarPhyFinder = new ScalarPhyFinder(plan);
-			scalarPhyFinder.visit();
-			curSparkOp.scalars.addAll(scalarPhyFinder.getScalars());
+    private void processUDFs(PhysicalPlan plan) throws VisitorException {
+        if (plan != null) {
+            // Process Scalars (UDF with referencedOperators)
+            ScalarPhyFinder scalarPhyFinder = new ScalarPhyFinder(plan);
+            scalarPhyFinder.visit();
+            curSparkOp.scalars.addAll(scalarPhyFinder.getScalars());
 
-			// Process UDFs
-			udfFinder.setPlan(plan);
-			udfFinder.visit();
-			curSparkOp.UDFs.addAll(udfFinder.getUDFs());
-		}
-	}
+            // Process UDFs
+            udfFinder.setPlan(plan);
+            udfFinder.visit();
+            curSparkOp.UDFs.addAll(udfFinder.getUDFs());
+        }
+    }
 
-	private void addToPlan(PhysicalOperator op) throws PlanException,
-			IOException {
-		SparkOperator sparkOp = null;
-		if (compiledInputs.length == 1) {
-			sparkOp = compiledInputs[0];
-		} else {
-			sparkOp = merge(compiledInputs);
-		}
-		sparkOp.physicalPlan.addAsLeaf(op);
-		curSparkOp = sparkOp;
-	}
+    private void addToPlan(PhysicalOperator op) throws PlanException,
+            IOException {
+        SparkOperator sparkOp = null;
+        if (compiledInputs.length == 1) {
+            sparkOp = compiledInputs[0];
+        } else {
+            sparkOp = merge(compiledInputs);
+        }
+        sparkOp.physicalPlan.addAsLeaf(op);
+        curSparkOp = sparkOp;
+    }
 
-	private SparkOperator merge(SparkOperator[] compiledInputs)
-			throws PlanException {
-		SparkOperator ret = getSparkOp();
-		sparkPlan.add(ret);
+    private SparkOperator merge(SparkOperator[] compiledInputs)
+            throws PlanException {
+        SparkOperator ret = getSparkOp();
+        sparkPlan.add(ret);
 
         Set<SparkOperator> toBeConnected = new HashSet<SparkOperator>();
-		List<SparkOperator> toBeRemoved = new ArrayList<SparkOperator>();
+        List<SparkOperator> toBeRemoved = new ArrayList<SparkOperator>();
 
-		List<PhysicalPlan> toBeMerged = new ArrayList<PhysicalPlan>();
+        List<PhysicalPlan> toBeMerged = new ArrayList<PhysicalPlan>();
 
-		for (SparkOperator sparkOp : compiledInputs) {
+        for (SparkOperator sparkOp : compiledInputs) {
             if (LOG.isDebugEnabled())
                 LOG.debug("Merging Spark operator" + sparkOp);
-			toBeRemoved.add(sparkOp);
-			toBeMerged.add(sparkOp.physicalPlan);
-			List<SparkOperator> predecessors = sparkPlan
-					.getPredecessors(sparkOp);
-			if (predecessors != null) {
-				for (SparkOperator predecessorSparkOp : predecessors) {
-					toBeConnected.add(predecessorSparkOp);
-				}
-			}
-		}
-		merge(ret.physicalPlan, toBeMerged);
+            toBeRemoved.add(sparkOp);
+            toBeMerged.add(sparkOp.physicalPlan);
+            List<SparkOperator> predecessors = sparkPlan
+                    .getPredecessors(sparkOp);
+            if (predecessors != null) {
+                for (SparkOperator predecessorSparkOp : predecessors) {
+                    toBeConnected.add(predecessorSparkOp);
+                }
+            }
+        }
+        merge(ret.physicalPlan, toBeMerged);
 
-		Iterator<SparkOperator> it = toBeConnected.iterator();
-		while (it.hasNext())
-			sparkPlan.connect(it.next(), ret);
-		for (SparkOperator removeSparkOp : toBeRemoved) {
-			if (removeSparkOp.requestedParallelism > ret.requestedParallelism)
-				ret.requestedParallelism = removeSparkOp.requestedParallelism;
-			for (String udf : removeSparkOp.UDFs) {
-				if (!ret.UDFs.contains(udf))
-					ret.UDFs.add(udf);
-			}
-			// We also need to change scalar marking
-			for (PhysicalOperator physOp : removeSparkOp.scalars) {
-				if (!ret.scalars.contains(physOp)) {
-					ret.scalars.add(physOp);
-				}
-			}
-			
-			if(removeSparkOp.getCrossKeys()!=null){
-				for(String crossKey: removeSparkOp.getCrossKeys())
-				   ret.addCrossKey(crossKey);
-			}
-			
-			
-			Set<PhysicalOperator> opsToChange = new HashSet<PhysicalOperator>();
-			for (Map.Entry<PhysicalOperator, SparkOperator> entry : phyToSparkOpMap
-					.entrySet()) {
-				if (entry.getValue() == removeSparkOp) {
-					opsToChange.add(entry.getKey());
-				}
-			}
-			for (PhysicalOperator op : opsToChange) {
-				phyToSparkOpMap.put(op, ret);
-			}
+        Iterator<SparkOperator> it = toBeConnected.iterator();
+        while (it.hasNext())
+            sparkPlan.connect(it.next(), ret);
+        for (SparkOperator removeSparkOp : toBeRemoved) {
+            if (removeSparkOp.requestedParallelism > ret.requestedParallelism)
+                ret.requestedParallelism = removeSparkOp.requestedParallelism;
+            for (String udf : removeSparkOp.UDFs) {
+                if (!ret.UDFs.contains(udf))
+                    ret.UDFs.add(udf);
+            }
+            // We also need to change scalar marking
+            for (PhysicalOperator physOp : removeSparkOp.scalars) {
+                if (!ret.scalars.contains(physOp)) {
+                    ret.scalars.add(physOp);
+                }
+            }
+            
+            if(removeSparkOp.getCrossKeys()!=null){
+                for(String crossKey: removeSparkOp.getCrossKeys())
+                   ret.addCrossKey(crossKey);
+            }
+            
+            
+            Set<PhysicalOperator> opsToChange = new HashSet<PhysicalOperator>();
+            for (Map.Entry<PhysicalOperator, SparkOperator> entry : phyToSparkOpMap
+                    .entrySet()) {
+                if (entry.getValue() == removeSparkOp) {
+                    opsToChange.add(entry.getKey());
+                }
+            }
+            for (PhysicalOperator op : opsToChange) {
+                phyToSparkOpMap.put(op, ret);
+            }
 
-			sparkPlan.remove(removeSparkOp);
-		}
-		return ret;
-	}
+            sparkPlan.remove(removeSparkOp);
+        }
+        return ret;
+    }
 
-	/**
-	 * The merge of a list of plans into a single physicalPlan
-	 * 
-	 * @param <O>
-	 * @param <E>
-	 * @param finPlan
-	 *            - Final Plan into which the list of plans is merged
-	 * @param plans
-	 *            - list of plans to be merged
-	 * @throws PlanException
-	 */
-	private <O extends Operator<?>, E extends OperatorPlan<O>> void merge(
-			E finPlan, List<E> plans) throws PlanException {
-		for (E e : plans) {
-			finPlan.merge(e);
-		}
-	}
+    /**
+     * The merge of a list of plans into a single physicalPlan
+     * 
+     * @param <O>
+     * @param <E>
+     * @param finPlan
+     *            - Final Plan into which the list of plans is merged
+     * @param plans
+     *            - list of plans to be merged
+     * @throws PlanException
+     */
+    private <O extends Operator<?>, E extends OperatorPlan<O>> void merge(
+            E finPlan, List<E> plans) throws PlanException {
+        for (E e : plans) {
+            finPlan.merge(e);
+        }
+    }
 
     @Override
     public void visitMergeCoGroup(POMergeCogroup poCoGrp) throws VisitorException {
@@ -1200,24 +1200,24 @@ public class SparkCompiler extends PhyPlanVisitor {
     /**
      * build a POPoissonSampleSpark operator for SkewedJoin's sampling job
      */
-	private void addSampleOperatorForSkewedJoin(SparkOperator sampleSparkOp)
-			throws PlanException {
-		Configuration conf = ConfigurationUtil.toConfiguration(pigProperties);
-		int sampleRate = conf.getInt(
-				PigConfiguration.PIG_POISSON_SAMPLER_SAMPLE_RATE,
-				POPoissonSampleSpark.DEFAULT_SAMPLE_RATE);
-		float heapPerc = conf.getFloat(
-				PigConfiguration.PIG_SKEWEDJOIN_REDUCE_MEMUSAGE,
-				PartitionSkewedKeys.DEFAULT_PERCENT_MEMUSAGE);
-		long totalMemory = conf.getLong(
-				PigConfiguration.PIG_SKEWEDJOIN_REDUCE_MEM, -1);
+    private void addSampleOperatorForSkewedJoin(SparkOperator sampleSparkOp)
+            throws PlanException {
+        Configuration conf = ConfigurationUtil.toConfiguration(pigProperties);
+        int sampleRate = conf.getInt(
+                PigConfiguration.PIG_POISSON_SAMPLER_SAMPLE_RATE,
+                POPoissonSampleSpark.DEFAULT_SAMPLE_RATE);
+        float heapPerc = conf.getFloat(
+                PigConfiguration.PIG_SKEWEDJOIN_REDUCE_MEMUSAGE,
+                PartitionSkewedKeys.DEFAULT_PERCENT_MEMUSAGE);
+        long totalMemory = conf.getLong(
+                PigConfiguration.PIG_SKEWEDJOIN_REDUCE_MEM, -1);
 
-		POPoissonSampleSpark poSample = new POPoissonSampleSpark(
-				new OperatorKey(scope, nig.getNextNodeId(scope)), -1,
-				sampleRate, heapPerc, totalMemory);
+        POPoissonSampleSpark poSample = new POPoissonSampleSpark(
+                new OperatorKey(scope, nig.getNextNodeId(scope)), -1,
+                sampleRate, heapPerc, totalMemory);
 
-		sampleSparkOp.physicalPlan.addAsLeaf(poSample);
-	}
+        sampleSparkOp.physicalPlan.addAsLeaf(poSample);
+    }
 
     private SparkOperator getSortJob(
             POSort sort,
@@ -1480,17 +1480,17 @@ public class SparkCompiler extends PhyPlanVisitor {
         throw new PlanException(msg, errCode, PigException.BUG);
     }
 
-	/**
-	 * Add POBroadcastSpark operator to broadcast key distribution for SkewedJoin's sampling job
-	 * @param sampleSparkOp
-	 * @throws PlanException
-	 */
-	private void buildBroadcastForSkewedJoin(SparkOperator sampleSparkOp, String pigKeyDistFile) throws PlanException {
+    /**
+     * Add POBroadcastSpark operator to broadcast key distribution for SkewedJoin's sampling job
+     * @param sampleSparkOp
+     * @throws PlanException
+     */
+    private void buildBroadcastForSkewedJoin(SparkOperator sampleSparkOp, String pigKeyDistFile) throws PlanException {
 
-		POBroadcastSpark poBroadcast = new POBroadcastSpark(new OperatorKey(scope, nig.getNextNodeId(scope)));
-		poBroadcast.setBroadcastedVariableName(pigKeyDistFile);
-		sampleSparkOp.physicalPlan.addAsLeaf(poBroadcast);
-	}
+        POBroadcastSpark poBroadcast = new POBroadcastSpark(new OperatorKey(scope, nig.getNextNodeId(scope)));
+        poBroadcast.setBroadcastedVariableName(pigKeyDistFile);
+        sampleSparkOp.physicalPlan.addAsLeaf(poBroadcast);
+    }
 
     /**
      * Create Sampling job for skewed join.

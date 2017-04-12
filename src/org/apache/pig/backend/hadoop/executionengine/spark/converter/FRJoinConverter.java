@@ -32,6 +32,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin;
+import org.apache.pig.backend.hadoop.executionengine.spark.SparkPigContext;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.data.Tuple;
 import org.apache.spark.api.java.function.FlatMapFunction;
@@ -59,7 +60,7 @@ public class FRJoinConverter implements
         Map<String, List<Tuple>> replicatedInputMap = new HashMap<>();
 
         for (String replicatedInput : replicatedInputs) {
-            replicatedInputMap.put(replicatedInput, SparkUtil.getBroadcastedVars().get(replicatedInput).value());
+            replicatedInputMap.put(replicatedInput, SparkPigContext.get().getBroadcastedVars().get(replicatedInput).value());
         }
 
         poFRJoin.attachInputs(replicatedInputMap);

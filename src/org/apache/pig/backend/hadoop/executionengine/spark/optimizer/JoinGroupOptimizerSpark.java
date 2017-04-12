@@ -72,7 +72,7 @@ public class JoinGroupOptimizerSpark extends SparkOpPlanVisitor {
                 try {
                     restructSparkOp(planWithJoinAndGroup, glrSpark, sparkOp);
                 } catch (PlanException e) {
-                    throw new RuntimeException("GlobalRearrangeDiscover#visitSparkOp fails: ", e);
+                    throw new VisitorException("GlobalRearrangeDiscover#visitSparkOp fails: ", e);
                 }
             }
         }
@@ -90,10 +90,7 @@ public class JoinGroupOptimizerSpark extends SparkOpPlanVisitor {
             PhysicalPlan currentPlan = this.mCurrentWalker.getPlan();//If there are POSplit, we need traverse the POSplit.getPlans(), so use mCurrentWalker.getPlan()
             if( currentPlan != null) {
                 plansWithJoinAndGroup.add(currentPlan);
-            }else{
-                LOG.info("GlobalRearrangeDiscover#currentPlan is null");
             }
-
         }
 
         public List<PhysicalPlan> getPlansWithJoinAndGroup() {

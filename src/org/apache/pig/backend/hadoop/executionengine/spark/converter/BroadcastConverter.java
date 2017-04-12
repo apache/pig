@@ -18,6 +18,7 @@
 package org.apache.pig.backend.hadoop.executionengine.spark.converter;
 
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POBroadcastSpark;
+import org.apache.pig.backend.hadoop.executionengine.spark.SparkPigContext;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.data.Tuple;
 import org.apache.spark.api.java.JavaRDD;
@@ -46,7 +47,7 @@ public class BroadcastConverter implements RDDConverter<Tuple, Tuple, POBroadcas
 
         // Save the broadcast variable to broadcastedVars map, so that this
         // broadcasted variable can be referenced by the driver client.
-        SparkUtil.getBroadcastedVars().put(po.getBroadcastedVariableName(), broadcastedRDD);
+        SparkPigContext.get().getBroadcastedVars().put(po.getBroadcastedVariableName(), broadcastedRDD);
 
         return rdd;
     }

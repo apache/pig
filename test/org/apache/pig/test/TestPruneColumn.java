@@ -611,7 +611,7 @@ public class TestPruneColumn {
                 "({(5)},{})"
         };
         Util.checkQueryOutputs(iter, expected, org.apache.pig.newplan.logical.Util.translateSchema(pigServer.dumpSchema("D")),
-        		Util.isSparkExecType(Util.getLocalTestMode()));
+                Util.isSparkExecType(Util.getLocalTestMode()));
 
         assertTrue(emptyLogFileMessage());
     }
@@ -963,7 +963,7 @@ public class TestPruneColumn {
                 "((2,5,2))"
         };
         Util.checkQueryOutputs(iter, expected, org.apache.pig.newplan.logical.Util.translateSchema(pigServer.dumpSchema("C")),
-        		Util.isSparkExecType(Util.getLocalTestMode()));
+                Util.isSparkExecType(Util.getLocalTestMode()));
 
         assertTrue(emptyLogFileMessage());
     }
@@ -1513,7 +1513,7 @@ public class TestPruneColumn {
                 "({(3),(3),(3)},3)"
         };
         Util.checkQueryOutputs(iter, expected, org.apache.pig.newplan.logical.Util.translateSchema(pigServer.dumpSchema("G")),
-        		Util.isSparkExecType(Util.getLocalTestMode()));
+                Util.isSparkExecType(Util.getLocalTestMode()));
 
         assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1"}));
         pigServer.getPigContext().getProperties().remove(PigImplConstants.PIG_OPTIMIZER_RULES_KEY);
@@ -1535,7 +1535,7 @@ public class TestPruneColumn {
                 "(5,{(2,5,2)})"
         };
         Util.checkQueryOutputs(iter, expected, org.apache.pig.newplan.logical.Util.translateSchema(pigServer.dumpSchema("D"))
-        		,Util.isSparkExecType(Util.getLocalTestMode()));
+                , Util.isSparkExecType(Util.getLocalTestMode()));
 
         assertTrue(checkLogFileMessage(new String[]{"Columns pruned for B: $0"}));
     }
@@ -1865,7 +1865,7 @@ public class TestPruneColumn {
                 "(2,5,2,2)"
         };
         Util.checkQueryOutputs(iter, expected, org.apache.pig.newplan.logical.Util.translateSchema(pigServer.dumpSchema("C")),
-        		Util.isSparkExecType(Util.getLocalTestMode()));
+                Util.isSparkExecType(Util.getLocalTestMode()));
 
 
         assertTrue(emptyLogFileMessage());

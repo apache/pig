@@ -163,8 +163,7 @@ public class SparkLauncher extends Launcher {
         this.pigContext = pigContext;
         initialize(physicalPlan);
         SparkOperPlan sparkplan = compile(physicalPlan, pigContext);
-        if (LOG.isDebugEnabled())
-            explain(sparkplan, System.out, "text", true);
+        LOG.info(sparkplan);
         SparkPigStats sparkStats = (SparkPigStats) pigContext
                 .getExecutionEngine().instantiatePigStats();
         sparkStats.initialize(pigContext, sparkplan, jobConf);
@@ -199,7 +198,7 @@ public class SparkLauncher extends Launcher {
         convertMap.put(POPackage.class, new PackageConverter());
         convertMap.put(POLocalRearrange.class, new LocalRearrangeConverter());
         convertMap.put(POGlobalRearrangeSpark.class, new GlobalRearrangeConverter());
-	    convertMap.put(POJoinGroupSpark.class, new JoinGroupSparkConverter());
+        convertMap.put(POJoinGroupSpark.class, new JoinGroupSparkConverter());
         convertMap.put(POLimit.class, new LimitConverter());
         convertMap.put(PODistinct.class, new DistinctConverter());
         convertMap.put(POUnion.class, new UnionConverter(sparkContext.sc()));
@@ -246,8 +245,8 @@ public class SparkLauncher extends Launcher {
             CombinerOptimizer combinerOptimizer = new CombinerOptimizer(plan);
             combinerOptimizer.visit();
             if (LOG.isDebugEnabled()) {
-                System.out.println("after combiner optimization:");
-                explain(plan, System.out, "text", true);
+                LOG.debug("After combiner optimization:");
+                LOG.debug(plan);
             }
         }
 
@@ -271,8 +270,8 @@ public class SparkLauncher extends Launcher {
         boolean isMultiQuery = conf.getBoolean(PigConfiguration.PIG_OPT_MULTIQUERY, true);
 
         if (LOG.isDebugEnabled()) {
-            System.out.println("before multiquery optimization:");
-            explain(plan, System.out, "text", true);
+            LOG.debug("Before multiquery optimization:");
+            LOG.debug(plan);
         }
 
         if (isMultiQuery) {
@@ -289,13 +288,13 @@ public class SparkLauncher extends Launcher {
         joinOptimizer.visit();
 
         if (LOG.isDebugEnabled()) {
-            System.out.println("after multiquery optimization:");
-            explain(plan, System.out, "text", true);
+            LOG.debug("After multiquery optimization:");
+            LOG.debug(plan);
         }
     }
 
     private void cleanUpSparkJob(SparkPigStats sparkStats) throws ExecException {
-        LOG.info("clean up Spark Job");
+        LOG.info("Clean up Spark Job");
         boolean isLocal = System.getenv("SPARK_MASTER") != null ? System
                 .getenv("SPARK_MASTER").equalsIgnoreCase("LOCAL") : true;
         if (isLocal) {
@@ -307,7 +306,7 @@ public class SparkLauncher extends Launcher {
                     File deleteFile = new File(currentDirectoryPath + "/"
                             + shipFile.getName());
                     if (deleteFile.exists()) {
-                        LOG.info(String.format("delete ship file result: %b",
+                        LOG.info(String.format("Delete ship file result: %b",
                                 deleteFile.delete()));
                     }
                 }
@@ -320,7 +319,7 @@ public class SparkLauncher extends Launcher {
                     File deleteFile = new File(currentDirectoryPath + "/"
                             + fileName);
                     if (deleteFile.exists()) {
-                        LOG.info(String.format("delete cache file result: %b",
+                        LOG.info(String.format("Delete cache file result: %b",
                                 deleteFile.delete()));
                     }
                 }
@@ -351,7 +350,7 @@ public class SparkLauncher extends Launcher {
     }
 
     private void addFilesToSparkJob(SparkOperPlan sparkPlan) throws IOException {
-        LOG.info("add files Spark Job");
+        LOG.info("Add files Spark Job");
         String shipFiles = pigContext.getProperties().getProperty(
                 "pig.streaming.ship.files");
         shipFiles(shipFiles);
@@ -377,7 +376,6 @@ public class SparkLauncher extends Launcher {
             for (String file : shipFiles.split(",")) {
                 File shipFile = new File(file.trim());
                 if (shipFile.exists()) {
-                    LOG.info(String.format("shipFile:%s", shipFile));
                     addResourceToSparkJobWorkingDirectory(shipFile,
                             shipFile.getName(), ResourceType.FILE);
                 }
@@ -397,7 +395,7 @@ public class SparkLauncher extends Launcher {
                 FileSystem fs = tmpFilePath.getFileSystem(jobConf);
                 fs.copyToLocalFile(src, tmpFilePath);
                 tmpFile.deleteOnExit();
-                LOG.info(String.format("cacheFile:%s", fileName));
+                LOG.info(String.format("CacheFile:%s", fileName));
                 addResourceToSparkJobWorkingDirectory(tmpFile, fileName,
                         ResourceType.FILE);
             }
@@ -412,14 +410,14 @@ public class SparkLauncher extends Launcher {
 
     private void addJarsToSparkJob(SparkOperPlan sparkPlan) throws IOException {
         Set<String> allJars = new HashSet<String>();
-        LOG.info("add default jars to Spark Job");
+        LOG.info("Add default jars to Spark Job");
         allJars.addAll(JarManager.getDefaultJars());
-        LOG.info("add extra jars to Spark Job");
+        LOG.info("Add extra jars to Spark Job");
         for (String scriptJar : pigContext.scriptJars) {
             allJars.add(scriptJar);
         }
 
-        LOG.info("add udf jars to Spark Job");
+        LOG.info("Add udf jars to Spark Job");
         UDFJarsFinder udfJarsFinder = new UDFJarsFinder(sparkPlan, pigContext);
         udfJarsFinder.visit();
         Set<String> udfJars = udfJarsFinder.getUdfJars();
@@ -429,7 +427,7 @@ public class SparkLauncher extends Launcher {
 
         File scriptUDFJarFile = JarManager.createPigScriptUDFJar(pigContext);
         if (scriptUDFJarFile != null) {
-            LOG.info("add script udf jar to Spark job");
+            LOG.info("Add script udf jar to Spark job");
             allJars.add(scriptUDFJarFile.getAbsolutePath().toString());
         }
 
@@ -461,11 +459,11 @@ public class SparkLauncher extends Launcher {
             synchronized(SparkLauncher.class) {
                 if (localFile.exists()) {
                     LOG.info(String.format(
-                            "jar file %s exists, ready to delete",
+                            "Jar file %s exists, ready to delete",
                             localFile.getAbsolutePath()));
                     localFile.delete();
                 } else {
-                    LOG.info(String.format("jar file %s not exists,",
+                    LOG.info(String.format("Jar file %s not exists,",
                             localFile.getAbsolutePath()));
                 }
                 Files.copy(Paths.get(new Path(resourcePath.getAbsolutePath()).toString()),
@@ -490,7 +488,7 @@ public class SparkLauncher extends Launcher {
             throw new RuntimeException("cache file is invalid format, file:"
                     + cacheFileUrl);
         } else {
-            LOG.debug("cache file name is valid:" + cacheFileUrl);
+            LOG.debug("Cache file name is valid:" + cacheFileUrl);
             return fileName;
         }
     }
@@ -503,12 +501,12 @@ public class SparkLauncher extends Launcher {
             throw new RuntimeException("cache file is invalid format, file:"
                     + cacheFileUrl);
         } else {
-            LOG.debug("cache file name is valid:" + cacheFileUrl);
+            LOG.debug("Cache file name is valid:" + cacheFileUrl);
             return fileName;
         }
     }
 
-    public SparkOperPlan compile(PhysicalPlan physicalPlan,
+    private SparkOperPlan compile(PhysicalPlan physicalPlan,
                                   PigContext pigContext) throws PlanException, IOException,
             VisitorException {
         SparkCompiler sparkCompiler = new SparkCompiler(physicalPlan,
@@ -558,13 +556,7 @@ public class SparkLauncher extends Launcher {
             Properties pigCtxtProperties = pc.getProperties();
 
             sparkConf.setMaster(master);
-            sparkConf.setAppName("PigOnSpark:" + pigCtxtProperties.getProperty(PigContext.JOB_NAME));
-            // On Spark 1.6, Netty file server doesn't allow adding the same file with the same name twice
-            // This is a problem for streaming using a script + explicit ship the same script combination (PIG-5134)
-            // HTTP file server doesn't have this restriction, it overwrites the file if added twice
-            String useNettyFileServer = pigCtxtProperties.getProperty(PigConfiguration.PIG_SPARK_USE_NETTY_FILESERVER, "false");
-            sparkConf.set("spark.rpc.useNettyFileServer", useNettyFileServer);
-
+            sparkConf.setAppName(pigCtxtProperties.getProperty(PigContext.JOB_NAME,"pig"));
             if (sparkHome != null && !sparkHome.isEmpty()) {
                 sparkConf.setSparkHome(sparkHome);
             } else {
@@ -575,11 +567,12 @@ public class SparkLauncher extends Launcher {
             for (String key : pigCtxtProperties.stringPropertyNames()) {
                 if (key.startsWith("spark.")) {
                     LOG.debug("Copying key " + key + " with value " +
-                        pigCtxtProperties.getProperty(key) + " to SparkConf");
+                            pigCtxtProperties.getProperty(key) + " to SparkConf");
                     sparkConf.set(key, pigCtxtProperties.getProperty(key));
                 }
             }
 
+            //see PIG-5200 why need to set spark.executor.userClassPathFirst as true
             sparkConf.set("spark.executor.userClassPathFirst", "true");
             checkAndConfigureDynamicAllocation(master, sparkConf);
 
@@ -594,11 +587,11 @@ public class SparkLauncher extends Launcher {
         if (sparkConf.getBoolean("spark.dynamicAllocation.enabled", false)) {
             if (!master.startsWith("yarn")) {
                 LOG.warn("Dynamic allocation is enabled, but " +
-                    "script isn't running on yarn. Ignoring ...");
+                        "script isn't running on yarn. Ignoring ...");
             }
             if (!sparkConf.getBoolean("spark.shuffle.service.enabled", false)) {
                 LOG.info("Spark shuffle service is being enabled as dynamic " +
-                    "allocation is enabled");
+                        "allocation is enabled");
                 sparkConf.set("spark.shuffle.service.enabled", "true");
             }
         }
@@ -624,7 +617,7 @@ public class SparkLauncher extends Launcher {
                          String format, boolean verbose)
             throws IOException {
         Map<OperatorKey, SparkOperator> allOperKeys = sparkPlan.getKeys();
-        List<OperatorKey> operKeyList = new ArrayList(allOperKeys.keySet());
+        List<OperatorKey> operKeyList = new ArrayList<>(allOperKeys.keySet());
         Collections.sort(operKeyList);
 
         if (format.equals("text")) {
@@ -671,15 +664,19 @@ public class SparkLauncher extends Launcher {
 
     @Override
     public void kill() throws BackendException {
-        // TODO Auto-generated method stub
-
+        if (sparkContext != null) {
+            sparkContext.stop();
+            sparkContext = null;
+        }
     }
 
     @Override
     public void killJob(String jobID, Configuration conf)
             throws BackendException {
-        // TODO Auto-generated method stub
-
+        if (sparkContext != null) {
+            sparkContext.stop();
+            sparkContext = null;
+        }
     }
 
     /**
@@ -700,7 +697,7 @@ public class SparkLauncher extends Launcher {
         PigMapReduce.sJobConfInternal.set(jobConf);
         String parallelism = pigContext.getProperties().getProperty("spark.default.parallelism");
         if (parallelism != null) {
-            SparkUtil.setSparkDefaultParallelism(Integer.parseInt(parallelism));
+            SparkPigContext.get().setPigDefaultParallelism(Integer.parseInt(parallelism));
         }
     }
 }

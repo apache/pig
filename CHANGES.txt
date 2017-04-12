@@ -34,6 +34,8 @@ PIG-5067: Revisit union on numeric type and chararray to bytearray (knoguchi)
  
 IMPROVEMENTS
 
+PIG-5110: Removing schema alias and :: coming from parent relation (szita via rohini)
+
 PIG-5085: Support FLATTEN of maps (szita via rohini)
 
 PIG-5126. Add doc about pig in zeppelin (zjffdu)
@@ -86,6 +88,10 @@ PIG-2768: Fix org.apache.hadoop.conf.Configuration deprecation warnings for Hado
 OPTIMIZATIONS
  
 BUG FIXES
+
+PIG-5173: Script with multiple splits fails with Invalid dag containing 0 vertices (rohini)
+
+PIG-5159: Fix Pig not saving grunt history (szita via rohini)
 
 PIG-5127: Test fail when running test-core-mrtez (daijy)
 

@@ -64,13 +64,13 @@ public class SecondaryKeyOptimizerSpark extends SparkOpPlanVisitor implements Se
         List<POLocalRearrange> rearranges = PlanHelper.getPhysicalOperators(sparkOperator.physicalPlan, POLocalRearrange.class);
         if (rearranges.isEmpty()) {
             if (LOG.isDebugEnabled()) {
-                LOG.debug("No POLocalRearranges found in the sparkOperator.Secondary key optimization is no need");
+                LOG.debug("No POLocalRearranges found in the spark operator" + sparkOperator.getOperatorKey() + ". Skipping secondary key optimization.");
             }
             return;
         }
 
         /**
-         * When every POLocalRearrange is encounted in the sparkOperator.physicalPlan,
+         * When ever POLocalRearrange is encountered in the sparkOperator.physicalPlan,
          * the sub-physicalplan between the previousLR(or root) to currentLR is considered as mapPlan(like what
          * we call in mapreduce) and the sub-physicalplan between the POGlobalRearrange(the successor of currentLR) and
          * nextLR(or leaf) is considered as reducePlan(like what we call in mapreduce).  After mapPlan and reducePlan are got,
@@ -109,9 +109,8 @@ public class SecondaryKeyOptimizerSpark extends SparkOpPlanVisitor implements Se
                 // The POLocalRearrange is sub-plan of a POSplit
                 mapPlan = PlanHelper.getLocalRearrangePlanFromSplit(mapPlan, currentLR.getOperatorKey());
             }
-
-            SecondaryKeyOptimizerUtil.setIsSparkMode(true);
-            SecondaryKeyOptimizerUtil.SecondaryKeyOptimizerInfo info = SecondaryKeyOptimizerUtil.applySecondaryKeySort(mapPlan, reducePlan);
+            SparkSecondaryKeyOptimizerUtil sparkSecondaryKeyOptUtil = new SparkSecondaryKeyOptimizerUtil();
+            SecondaryKeyOptimizerUtil.SecondaryKeyOptimizerInfo info = sparkSecondaryKeyOptUtil.applySecondaryKeySort(mapPlan, reducePlan);
             if (info != null) {
                 numSortRemoved += info.getNumSortRemoved();
                 numDistinctChanged += info.getNumDistinctChanged();

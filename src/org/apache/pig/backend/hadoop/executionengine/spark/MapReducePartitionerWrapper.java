@@ -118,28 +118,10 @@ public class MapReducePartitionerWrapper extends Partitioner {
             int partition = (Integer) getPartitionMethod.invoke(mapredPartitioner,
                     writeableKey, null, numPartitions);
 
-            if (LOG.isDebugEnabled())
-                LOG.debug("MapReduce Partitioner partition number for key " + key +
-                        " is " + partition);
             return partition;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    public boolean equals(Object other) {
-        boolean var4;
-        if(other instanceof MapReducePartitionerWrapper) {
-            MapReducePartitionerWrapper var3 = (MapReducePartitionerWrapper)other;
-            var4 = var3.numPartitions() == this.numPartitions();
-        } else {
-            var4 = false;
-        }
-
-        return var4;
-    }
-
-    public int hashCode() {
-        return this.numPartitions();
-    }
 }

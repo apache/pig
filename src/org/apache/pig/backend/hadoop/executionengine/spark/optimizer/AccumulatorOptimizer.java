@@ -17,12 +17,18 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.spark.optimizer;
 
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POGlobalRearrange;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperator;
 import org.apache.pig.backend.hadoop.executionengine.util.AccumulatorOptimizerUtil;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.VisitorException;
+
+import java.util.List;
 
 /**
  * A visitor to optimize plans that determines if a vertex plan can run in
@@ -31,13 +37,24 @@ import org.apache.pig.impl.plan.VisitorException;
 public class AccumulatorOptimizer extends SparkOpPlanVisitor {
 
     public AccumulatorOptimizer(SparkOperPlan plan) {
-		super(plan, new DepthFirstWalker<SparkOperator, SparkOperPlan>(plan));
+        super(plan, new DepthFirstWalker<SparkOperator, SparkOperPlan>(plan));
     }
 
     @Override
     public void visitSparkOp(SparkOperator sparkOperator) throws
-			VisitorException {
-        AccumulatorOptimizerUtil.addAccumulatorSpark(sparkOperator
-                .physicalPlan);
+            VisitorException {
+        PhysicalPlan plan = sparkOperator.physicalPlan;
+        List<PhysicalOperator> pos = plan.getRoots();
+        if (pos == null || pos.size() == 0) {
+            return;
+        }
+
+        List<POGlobalRearrange> glrs = PlanHelper.getPhysicalOperators(plan,
+                POGlobalRearrange.class);
+
+        for (POGlobalRearrange glr : glrs) {
+            List<PhysicalOperator> successors = plan.getSuccessors(glr);
+            AccumulatorOptimizerUtil.addAccumulator(plan, successors);
+        }
     }
 }

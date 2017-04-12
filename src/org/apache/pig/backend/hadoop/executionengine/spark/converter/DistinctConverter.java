@@ -21,17 +21,18 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.List;
 
-import scala.Tuple2;
-import scala.runtime.AbstractFunction1;
-import scala.runtime.AbstractFunction2;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODistinct;
+import org.apache.pig.backend.hadoop.executionengine.spark.SparkPigContext;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.data.Tuple;
 import org.apache.spark.rdd.PairRDDFunctions;
 import org.apache.spark.rdd.RDD;
+
+import scala.Tuple2;
+import scala.runtime.AbstractFunction1;
+import scala.runtime.AbstractFunction2;
 
 @SuppressWarnings({ "serial" })
 public class DistinctConverter implements RDDConverter<Tuple, Tuple, PODistinct> {
@@ -51,7 +52,7 @@ public class DistinctConverter implements RDDConverter<Tuple, Tuple, PODistinct>
           = new PairRDDFunctions<Tuple, Object>(keyValRDD,
                 SparkUtil.getManifest(Tuple.class),
                 SparkUtil.getManifest(Object.class), null);
-        int parallelism = SparkUtil.getParallelism(predecessors, op);
+        int parallelism = SparkPigContext.get().getParallelism(predecessors, op);
         return pairRDDFunctions.reduceByKey(
                 SparkUtil.getPartitioner(op.getCustomPartitioner(), parallelism),
                 new MergeValuesFunction())
@@ -66,15 +67,9 @@ public class DistinctConverter implements RDDConverter<Tuple, Tuple, PODistinct>
             Serializable {
         @Override
         public Tuple2<Tuple, Object> apply(Tuple t) {
-            if (LOG.isDebugEnabled())
-                LOG.debug("DistinctConverter.ToKeyValueFunction in " + t);
-
             Tuple key = t;
             Object value = null;
             Tuple2<Tuple, Object> out = new Tuple2<Tuple, Object>(key, value);
-
-            if (LOG.isDebugEnabled())
-                LOG.debug("DistinctConverter.ToKeyValueFunction out " + out);
             return out;
         }
     }

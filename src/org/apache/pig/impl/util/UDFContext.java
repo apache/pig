@@ -23,11 +23,14 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Properties;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 
 public class UDFContext {
 
+    private static final Log LOG = LogFactory.getLog(UDFContext.class);
     private Configuration jconf = null;
     private HashMap<UDFContextKey, Properties> udfConfs;
     private Properties clientSysProps;
@@ -204,6 +207,17 @@ public class UDFContext {
         conf.set(CLIENT_SYS_PROPS, ObjectSerializer.serialize(clientSysProps));
     }
 
+    /*
+     called by SparkEngineConf#writeObject
+     */
+    public String serialize() {
+        try {
+            return ObjectSerializer.serialize(udfConfs);
+        } catch (IOException e) {
+            LOG.error("UDFContext#serialize throws error ",e);
+            return null;
+        }
+    }
 
     /**
      * Populate the udfConfs field.  This function is intended to

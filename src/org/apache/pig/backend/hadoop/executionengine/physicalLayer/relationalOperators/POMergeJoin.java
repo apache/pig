@@ -136,7 +136,7 @@ public class POMergeJoin extends PhysicalOperator {
     // The old flag parentPlan.endOfAllInput doesn't work in spark mode, because it is shared
     // between operators in the same plan, so it could be set by preceding operators even
     // current operator does not reach at its end. (see PIG-4876)
-    private boolean endOfInput = false;
+    private transient boolean endOfInput = false;
     public boolean isEndOfInput() {
         return endOfInput;
     }

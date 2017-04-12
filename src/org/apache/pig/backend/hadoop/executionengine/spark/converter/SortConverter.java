@@ -28,6 +28,7 @@ import scala.runtime.AbstractFunction1;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
+import org.apache.pig.backend.hadoop.executionengine.spark.SparkPigContext;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.data.Tuple;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -46,7 +47,7 @@ public class SortConverter implements RDDConverter<Tuple, Tuple, POSort> {
             throws IOException {
         SparkUtil.assertPredecessorSize(predecessors, sortOperator, 1);
         RDD<Tuple> rdd = predecessors.get(0);
-        int parallelism = SparkUtil.getParallelism(predecessors, sortOperator);
+        int parallelism = SparkPigContext.get().getParallelism(predecessors, sortOperator);
         RDD<Tuple2<Tuple, Object>> rddPair = rdd.map(new ToKeyValueFunction(),
                 SparkUtil.<Tuple, Object> getTuple2Manifest());
 

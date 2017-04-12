@@ -61,9 +61,8 @@ public class AccumulatorOptimizerUtil {
         return batchSize;
     }
 
-    public static void addAccumulator(PhysicalPlan plan) {
+    public static void addAccumulator(PhysicalPlan plan, List<PhysicalOperator> pos) {
         // See if this is a map-reduce job
-        List<PhysicalOperator> pos = plan.getRoots();
         if (pos == null || pos.size() == 0) {
             return;
         }
@@ -289,92 +288,5 @@ public class AccumulatorOptimizerUtil {
         }
 
         return false;
-    }
-
-    public static void addAccumulatorSpark(PhysicalPlan plan) throws
-        VisitorException {
-        List<PhysicalOperator> pos = plan.getRoots();
-        if (pos == null || pos.size() == 0) {
-            return;
-        }
-
-        List<POGlobalRearrangeSpark> gras = PlanHelper.getPhysicalOperators(plan,
-                POGlobalRearrangeSpark.class);
-
-        for (POGlobalRearrange gra : gras) {
-            addAccumulatorSparkForGRASubDAG(plan, gra);
-        }
-    }
-
-
-    private static void addAccumulatorSparkForGRASubDAG(PhysicalPlan plan,
-        POGlobalRearrange gra) throws VisitorException {
-
-        List<PhysicalOperator> poPackages = plan.getSuccessors(gra);
-
-        if (poPackages == null || poPackages.size() == 0) {
-            return;
-        }
-        // See if this is a POPackage
-        PhysicalOperator po_package = poPackages.get(0);
-        if (!po_package.getClass().equals(POPackage.class)) {
-            return;
-        }
-
-        Packager pkgr = ((POPackage) po_package).getPkgr();
-        // Check that this is a standard package, not a subclass
-        if (!pkgr.getClass().equals(Packager.class)) {
-            return;
-        }
-
-        // if POPackage is for distinct, just return
-        if (pkgr.isDistinct()) {
-            return;
-        }
-
-        // if any input to POPackage is inner, just return
-        boolean[] isInner = pkgr.getInner();
-        for (boolean b : isInner) {
-            if (b) {
-                return;
-            }
-        }
-
-        List<PhysicalOperator> l = plan.getSuccessors(po_package);
-        // there should be only one POForEach
-        if (l == null || l.size() == 0 || l.size() > 1) {
-            return;
-        }
-
-        PhysicalOperator po_foreach = l.get(0);
-        if (!(po_foreach instanceof POForEach)) {
-            return;
-        }
-
-        boolean foundUDF = false;
-        List<PhysicalPlan> list = ((POForEach) po_foreach).getInputPlans();
-        for (PhysicalPlan p : list) {
-            PhysicalOperator po = p.getLeaves().get(0);
-
-            // only expression operators are allowed
-            if (!(po instanceof ExpressionOperator)) {
-                return;
-            }
-
-            if (((ExpressionOperator) po).containUDF()) {
-                foundUDF = true;
-            }
-
-            if (!check(po)) {
-                return;
-            }
-        }
-
-        if (foundUDF) {
-            // if all tests are passed, reducer can run in accumulative mode
-            LOG.info("Reducer is to run in accumulative mode.");
-            po_package.setAccumulative();
-            po_foreach.setAccumulative();
-        }
     }
 }

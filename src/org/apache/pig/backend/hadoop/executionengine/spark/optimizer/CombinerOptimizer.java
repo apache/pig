@@ -325,7 +325,7 @@ public class CombinerOptimizer extends SparkOpPlanVisitor {
 
     // Update the ReduceBy Operator with the packaging used by Local rearrange.
     private void updatePackager(POReduceBySpark reduceOperator, POLocalRearrange lrearrange) throws OptimizerException {
-        Packager pkgr = reduceOperator.getPkg().getPkgr();
+        Packager pkgr = reduceOperator.getPKGOp().getPkgr();
         // annotate the package with information from the LORearrange
         // update the keyInfo information if already present in the POPackage
         Map<Integer, Pair<Boolean, Map<Integer, Integer>>> keyInfo = pkgr.getKeyInfo();
