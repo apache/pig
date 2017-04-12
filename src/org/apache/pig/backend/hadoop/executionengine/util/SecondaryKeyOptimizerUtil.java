@@ -569,6 +569,12 @@ public class SecondaryKeyOptimizerUtil {
 
         // We see POSort, check which key it is using
         public boolean processSort(POSort sort) throws FrontendException{
+
+            // if sort has a limit, it is already optimized by NestedLimitedSort optimizer
+            if (sort.isLimited()) {
+                return true;
+            }
+
             SortKeyInfo keyInfo = new SortKeyInfo();
             for (int i = 0; i < sort.getSortPlans().size(); i++) {
                 PhysicalPlan sortPlan = sort.getSortPlans().get(i);

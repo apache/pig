@@ -542,5 +542,21 @@ public abstract class TestSecondarySort {
 
         Util.deleteFile(cluster, clusterPath);
     }
-}
 
+    @Test
+    // Once NestedLimitedOptimizer is used, we cannot use secondary key optimizer
+    public void testNestedLimitedSort() throws Exception {
+        String query = "a = load 'studenttab10k' as (name:chararray, age:int, gpa:double);" +
+                       "b = group a by name;" +
+                       "c = foreach b {" +
+                       "c1 = order a by age;" +
+                       "c2 = limit c1 5;" +
+                       "generate c2;}" +
+                       "store c in 'empty';";
+
+        SecondaryKeyOptimizer so = visitSecondaryKeyOptimizer(query);
+
+        assertEquals(0, so.getNumUseSecondaryKey());
+        assertEquals(0, so.getNumSortRemoved());
+    }
+}

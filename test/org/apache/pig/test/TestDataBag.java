@@ -34,6 +34,7 @@ import java.util.PriorityQueue;
 import java.util.Random;
 import java.util.TreeSet;
 
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DefaultDataBag;
@@ -42,6 +43,7 @@ import org.apache.pig.data.DistinctDataBag;
 import org.apache.pig.data.InternalCachedBag;
 import org.apache.pig.data.InternalDistinctBag;
 import org.apache.pig.data.InternalSortedBag;
+import org.apache.pig.data.LimitedSortedDataBag;
 import org.apache.pig.data.NonSpillableDataBag;
 import org.apache.pig.data.SingleTupleBag;
 import org.apache.pig.data.SortedDataBag;
@@ -741,10 +743,13 @@ public class TestDataBag  {
 
         DataBag bag = f.newDefaultBag();
         DataBag sorted = f.newSortedBag(null);
+        DataBag limitedSorted = f.newLimitedSortedBag(null, 1);
         DataBag distinct = f.newDistinctBag();
 
         assertTrue("Expected a default bag", (bag instanceof DefaultDataBag));
         assertTrue("Expected a sorted bag", (sorted instanceof SortedDataBag));
+        assertTrue("Expected a limited sorted bag",
+                (limitedSorted instanceof LimitedSortedDataBag));
         assertTrue("Expected a distinct bag", (distinct instanceof DistinctDataBag));
     }
 
@@ -1231,7 +1236,42 @@ public class TestDataBag  {
         assertFalse(iter.hasNext());
         assertFalse("hasNext should be idempotent", iter.hasNext());
     }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testLimitedSortedBag() throws ExecException {
+        DataBag bag = new LimitedSortedDataBag(null, 2);
+        Tuple t;
+        t = TupleFactory.getInstance().newTuple(1);
+        t.set(0, 2);
+        bag.add(t);
+        t = TupleFactory.getInstance().newTuple(1);
+        t.set(0, 0);
+        bag.add(t);
+        t = TupleFactory.getInstance().newTuple(1);
+        t.set(0, 1);
+        bag.add(t);
+
+        // test size()
+        assertEquals(bag.size(), 2);
+        // test isSorted()
+        assertTrue(bag.isSorted());
+        // test isDistinct()
+        assertFalse(bag.isDistinct());
+        // test iterator()
+        Iterator<Tuple> it = bag.iterator();
+        assertEquals(it.next().get(0), 0);
+        assertEquals(it.next().get(0), 1);
+        assertEquals(it.hasNext(), false);
+        // test addAll()
+        DataBag bag1 = new LimitedSortedDataBag(null, 1);
+        bag1.addAll(bag);
+        assertEquals(bag1.size(), 1);
+        // test compareTo()
+        assertEquals(bag.compareTo(bag), 0);
+        assertEquals(bag.compareTo(bag1), 1);
+        // test clear()
+        bag1.clear();
+        assertEquals(bag1.size(), 0);
+    }
 }
-
-
-

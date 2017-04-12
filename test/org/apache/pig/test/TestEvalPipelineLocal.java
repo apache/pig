@@ -35,9 +35,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
+import java.util.Set;
 import java.util.StringTokenizer;
-
-import junit.framework.Assert;
 
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.log4j.Appender;
@@ -73,8 +72,10 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
+import junit.framework.Assert;
+
 public class TestEvalPipelineLocal {
-    
+
     private PigServer pigServer;
 
     static final int MAX_SIZE = 100000;
@@ -1288,5 +1289,39 @@ public class TestEvalPipelineLocal {
         logger.removeAppender(appender);
 
         Assert.assertTrue(bos.toString().contains("New For Each(false,false)[tuple]"));
+    }
+
+    @Test
+    public void testNestedLimitedSort() throws Exception {
+
+        File f1 = createFile(new String[]{
+                "katie carson\t25\t3.65",
+                "katie carson\t65\t0.73",
+                "katie carson\t57\t2.43",
+                "katie carson\t55\t3.77",
+                "holly white\t43\t0.24"});
+
+        String query = "a = load '" + Util.generateURI(f1.toString(), pigServer.getPigContext()) +
+                       "' as (name:chararray,age:int, gpa:double);" +
+                       "b = group a by name;" +
+                       "c = foreach b {" +
+                       "c1 = a.(age, gpa);" +
+                       "c2 = order c1 by age;" +
+                       "c3 = limit c2 3;" +
+                       "generate c3;}";
+
+        pigServer.registerQuery(query);
+        Iterator<Tuple> iter = pigServer.openIterator("c");
+
+        Set<String> expectedResultSet = new HashSet<>();
+        expectedResultSet.add("({(25,3.65),(55,3.77),(57,2.43)})");
+        expectedResultSet.add("({(43,0.24)})");
+
+        Set<String> resultSet = new HashSet<>();
+        resultSet.add(iter.next().toString());
+        resultSet.add(iter.next().toString());
+
+        assertTrue(resultSet.equals(expectedResultSet));
+        assertFalse(iter.hasNext());
     }
 }

@@ -259,6 +259,7 @@ public class LogicalPlan extends BaseOperatorPlan {
             disabledOptimizerRules.add("MergeForEach");
             disabledOptimizerRules.add("PartitionFilterOptimizer");
             disabledOptimizerRules.add("LimitOptimizer");
+            disabledOptimizerRules.add("NestedLimitOptimizer");
             disabledOptimizerRules.add("SplitFilter");
             disabledOptimizerRules.add("PushUpFilter");
             disabledOptimizerRules.add("MergeFilter");
