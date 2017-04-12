@@ -40,6 +40,7 @@ import org.apache.pig.newplan.logical.rules.LimitOptimizer;
 import org.apache.pig.newplan.logical.rules.LoadTypeCastInserter;
 import org.apache.pig.newplan.logical.rules.MergeFilter;
 import org.apache.pig.newplan.logical.rules.MergeForEach;
+import org.apache.pig.newplan.logical.rules.NestedLimitOptimizer;
 import org.apache.pig.newplan.logical.rules.PartitionFilterOptimizer;
 import org.apache.pig.newplan.logical.rules.PredicatePushdownOptimizer;
 import org.apache.pig.newplan.logical.rules.PushDownForEachFlatten;
@@ -199,6 +200,15 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
         s = new HashSet<Rule>();
         // Optimize limit
         r = new LimitOptimizer("LimitOptimizer");
+        checkAndAddRule(s, r);
+        if (!s.isEmpty())
+            ls.add(s);
+
+        // Nested Limit Set
+        // This set of rules push up nested limit
+        s = new HashSet<Rule>();
+        // Optimize limit
+        r = new NestedLimitOptimizer("NestedLimitOptimizer");
         checkAndAddRule(s, r);
         if (!s.isEmpty())
             ls.add(s);

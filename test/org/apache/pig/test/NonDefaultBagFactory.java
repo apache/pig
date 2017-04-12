@@ -33,6 +33,7 @@ public class NonDefaultBagFactory extends BagFactory {
     public DataBag newDefaultBag(List<Tuple> listOfTuples) {
         return null;
     }
+    public DataBag newLimitedSortedBag(Comparator<Tuple> comp, long limit) { return null; }
     public DataBag newSortedBag(Comparator<Tuple> comp) { return null; }
     public DataBag newDistinctBag() { return null; }
 

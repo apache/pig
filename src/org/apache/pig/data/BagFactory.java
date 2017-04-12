@@ -98,7 +98,17 @@ public abstract class BagFactory {
      * @return default data bag.
      */
     public abstract DataBag newDefaultBag(List<Tuple> listOfTuples);
-    
+
+    /**
+     * Get a limited sorted data bag.  Limited sorted bags are sorted bags
+     * with number of elements no more than limit.
+     * @param comp Comparator that controls how the data is sorted.
+     * If null, default comparator will be used.
+     * @param limit max number of tuples in bag
+     * @return a sorted data bag
+     */
+    public abstract DataBag newLimitedSortedBag(Comparator<Tuple> comp, long limit);
+
     /**
      * Get a sorted data bag.  Sorted bags guarantee that when an iterator
      * is opened on the bag the tuples will be returned in sorted order.

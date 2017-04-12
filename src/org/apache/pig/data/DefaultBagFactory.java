@@ -46,6 +46,17 @@ public class DefaultBagFactory extends BagFactory {
     }
 
     /**
+     * Get a limited sorted data bag.
+     * @param comp Comparator that controls how the data is sorted.
+     * If null, default comparator will be used.
+     */
+    @Override
+    public DataBag newLimitedSortedBag(Comparator<Tuple> comp, long limit) {
+        DataBag b = new LimitedSortedDataBag(comp, limit);
+        return b;
+    }
+
+    /**
      * Get a sorted data bag.
      * @param comp Comparator that controls how the data is sorted.
      * If null, default comparator will be used.

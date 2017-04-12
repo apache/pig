@@ -267,10 +267,15 @@ public class POSort extends PhysicalOperator {
                     }
                 }
             }
-			// by default, we create InternalSortedBag, unless user configures
-            // explicitly to use old bag
-            sortedBag = useDefaultBag ? mBagFactory.newSortedBag(mComparator)
-                    : new InternalSortedBag(3, mComparator);
+
+            if (isLimited()) {
+                sortedBag = mBagFactory.newLimitedSortedBag(mComparator, limit);
+            } else {
+                // by default, we create InternalSortedBag, unless user configures
+                // explicitly to use old bag
+	            sortedBag = useDefaultBag ? mBagFactory.newSortedBag(mComparator)
+	                    : new InternalSortedBag(3, mComparator);
+            }
 
             while (inp.returnStatus != POStatus.STATUS_EOP) {
 				if (inp.returnStatus == POStatus.STATUS_ERR) {

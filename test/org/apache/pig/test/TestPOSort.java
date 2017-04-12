@@ -593,6 +593,62 @@ public class TestPOSort {
     }
 
     @Test
+    public void testPOSortWithLimit() throws ExecException {
+
+        DataBag input = DefaultBagFactory.getInstance().newDefaultBag();
+
+        Tuple t1 = TupleFactory.getInstance().newTuple() ;
+        t1.append(1);
+        t1.append(8);
+        input.add(t1);
+
+        Tuple t2 = TupleFactory.getInstance().newTuple() ;
+        t2.append(2);
+        t2.append(8);
+        input.add(t2);
+
+        Tuple t3 = TupleFactory.getInstance().newTuple() ;
+        t3.append(3);
+        t3.append(8);
+        input.add(t3);
+
+        List<PhysicalPlan> sortPlans = new LinkedList<PhysicalPlan>();
+
+        POProject pr1 = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
+        pr1.setResultType(DataType.INTEGER);
+        PhysicalPlan expPlan1 = new PhysicalPlan();
+        expPlan1.add(pr1);
+        sortPlans.add(expPlan1);
+
+        POProject pr2 = new POProject(new OperatorKey("", r.nextLong()), -1, 1);
+        pr2.setResultType(DataType.INTEGER);
+        PhysicalPlan expPlan2 = new PhysicalPlan();
+        expPlan2.add(pr2);
+        sortPlans.add(expPlan2);
+
+        List<Boolean> mAscCols = new LinkedList<Boolean>();
+        mAscCols.add(false);
+        mAscCols.add(true);
+
+        PORead read = new PORead(new OperatorKey("", r.nextLong()), input);
+        List<PhysicalOperator> inputs = new LinkedList<PhysicalOperator>();
+        inputs.add(read);
+
+        POSort sort = new POSort(new OperatorKey("", r.nextLong()), -1, inputs,
+                                 sortPlans, mAscCols, null);
+
+        sort.setLimit(1);
+
+        Result res;
+        res = sort.getNextTuple();
+        assertEquals(((Tuple) res.result).get(0), 3);
+        assertEquals(((Tuple) res.result).get(1), 8);
+
+        res = sort.getNextTuple();
+        assertEquals(res.returnStatus, POStatus.STATUS_EOP);
+    }
+
+    @Test
     public void testPOSortUDF() throws ExecException {
         DataBag input = (DataBag) GenRandomData.genRandSmallTupDataBag(r,
                 MAX_TUPLES, 100);
