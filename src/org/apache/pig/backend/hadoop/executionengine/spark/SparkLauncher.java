@@ -559,6 +559,12 @@ public class SparkLauncher extends Launcher {
 
             sparkConf.setMaster(master);
             sparkConf.setAppName("PigOnSpark:" + pigCtxtProperties.getProperty(PigContext.JOB_NAME));
+            // On Spark 1.6, Netty file server doesn't allow adding the same file with the same name twice
+            // This is a problem for streaming using a script + explicit ship the same script combination (PIG-5134)
+            // HTTP file server doesn't have this restriction, it overwrites the file if added twice
+            String useNettyFileServer = pigCtxtProperties.getProperty(PigConfiguration.PIG_SPARK_USE_NETTY_FILESERVER, "false");
+            sparkConf.set("spark.rpc.useNettyFileServer", useNettyFileServer);
+
             if (sparkHome != null && !sparkHome.isEmpty()) {
                 sparkConf.setSparkHome(sparkHome);
             } else {
