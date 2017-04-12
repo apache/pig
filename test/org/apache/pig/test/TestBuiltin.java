@@ -96,6 +96,7 @@ import org.apache.pig.builtin.ROUND_TO;
 import org.apache.pig.builtin.RTRIM;
 import org.apache.pig.builtin.SIZE;
 import org.apache.pig.builtin.SPRINTF;
+import org.apache.pig.builtin.REGEX_SEARCH;
 import org.apache.pig.builtin.STRSPLIT;
 import org.apache.pig.builtin.SUBSTRING;
 import org.apache.pig.builtin.SecondsBetween;
@@ -1993,6 +1994,32 @@ public class TestBuiltin {
 
         re = funce.exec(te3);
         assertTrue(re==null);
+
+        // *** REGEX_SEARCH *** start
+        String matchSearch = "(=\\d+\\s)";
+        tupleFactory = TupleFactory.getInstance();
+        Tuple ts1 = tupleFactory.newTuple(2);
+        ts1.set(0, "a=04 b=06 c=96 or more");
+        ts1.set(1, matchSearch);
+
+        Tuple ts2 = tupleFactory.newTuple(2);
+        ts2.set(0, "a is 04 b is 06");
+        ts2.set(1, matchSearch);
+
+        Tuple ts3 = tupleFactory.newTuple(2);
+        ts3.set(0, null);
+        ts3.set(1, matchSearch);
+
+        REGEX_SEARCH funcs = new REGEX_SEARCH();
+        DataBag reb = funcs.exec(ts1);
+        DataBag b = Util.createBag(new Tuple[]{Util.buildTuple("=04 "), Util.buildTuple("=06 "), Util.buildTuple("=96 ")});
+        assertEquals(b, reb);
+
+        reb = funcs.exec(ts2);
+        assertTrue(reb==null);
+
+        reb = funcs.exec(ts3);
+        assertTrue(reb==null);
     }
 
     @Test
