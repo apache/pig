@@ -1,0 +1,49 @@
+<sparkPlan>
+  <sparkNode scope="38">
+    <POStore scope="28">
+      <alias>a</alias>
+      <storeFile>file:///tmp/pigoutput</storeFile>
+      <isTmpStore>false</isTmpStore>
+      <POForEach scope="27">
+        <alias>a</alias>
+        <POCast scope="22">
+          <alias>x</alias>
+          <POProject scope="21"/>
+        </POCast>
+        <POCast scope="25">
+          <alias>y</alias>
+          <POProject scope="24"/>
+        </POCast>
+        <POLoad scope="20">
+          <alias>a</alias>
+          <loadFile>file:///tmp/input</loadFile>
+          <isTmpLoad>false</isTmpLoad>
+        </POLoad>
+      </POForEach>
+    </POStore>
+  </sparkNode>
+  <sparkNode scope="39">
+    <POStore scope="37">
+      <alias>b</alias>
+      <storeFile>file:///tmp/pigoutput1</storeFile>
+      <isTmpStore>false</isTmpStore>
+      <POForEach scope="36">
+        <alias>b</alias>
+        <POCast scope="31">
+          <alias>x</alias>
+          <POProject scope="30"/>
+        </POCast>
+        <POCast scope="34">
+          <alias>y</alias>
+          <POProject scope="33"/>
+        </POCast>
+        <POLoad scope="29">
+          <alias>b</alias>
+          <loadFile>file:///tmp/pigoutput</loadFile>
+          <isTmpLoad>false</isTmpLoad>
+        </POLoad>
+      </POForEach>
+    </POStore>
+  </sparkNode>
+</sparkPlan>
+
