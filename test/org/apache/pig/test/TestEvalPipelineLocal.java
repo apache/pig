@@ -1321,7 +1321,7 @@ public class TestEvalPipelineLocal {
         resultSet.add(iter.next().toString());
         resultSet.add(iter.next().toString());
 
-        assertTrue(resultSet.equals(expectedResultSet));
-        assertFalse(iter.hasNext());
+        Assert.assertTrue(resultSet.equals(expectedResultSet));
+        Assert.assertFalse(iter.hasNext());
     }
 }
