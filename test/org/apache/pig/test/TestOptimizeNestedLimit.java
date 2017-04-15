@@ -58,6 +58,7 @@ import org.junit.Test;
 public class TestOptimizeNestedLimit {
 
     LogicalPlan lp;
+    LogicalPlan lp1;
     PhysicalPlan php;
     MROperPlan mrp;
 
@@ -76,6 +77,18 @@ public class TestOptimizeNestedLimit {
         lp = optimizePlan(Util.buildLp(pigServer, query));
         php = Util.buildPp(pigServer, query);
         mrp = Util.buildMRPlanWithOptimizer(php, pc);
+
+        query = "a = load 'myfile' as (id:int, num:int);" +
+                "b = group a by num;" +
+                "c = foreach b generate COUNT(a) as ntup;" +
+                "d = group c all;" +
+                "e = foreach d generate MIN(c.ntup) AS min;" +
+                "f = foreach b {" +
+                "g = order a by id ASC;" +
+                "h = limit g e.min;" +
+                "generate FLATTEN(h);}" +
+                "store f into 'empty';";
+        lp1 = optimizePlan(Util.buildLp(pigServer, query));
     }
 
     @After
@@ -112,6 +125,43 @@ public class TestOptimizeNestedLimit {
         }
         assertNotNull("LOSort is missing", sort);
         assertEquals(sort.getLimit(), 5);
+    }
+
+    @Test
+    // Test logical plan not being optimized with LOLimit.mLimit = -1
+    public void testLogicalPlan1() throws Exception {
+
+        Iterator<Operator> it = lp1.getOperators();
+
+        LOForEach forEach = null;
+        LOSort sort = null;
+        LOLimit limit = null;
+
+        while(it.hasNext()) {
+            Operator op = it.next();
+            if (op instanceof LOForEach) {
+                forEach = (LOForEach) op;
+
+                Iterator<Operator> innerIt = forEach.getInnerPlan().getOperators();
+
+                while(innerIt.hasNext()) {
+                    Operator innerOp = innerIt.next();
+                    if (innerOp instanceof LOSort) {
+                        assertNull("There should be only one LOSort", sort);
+                        sort = (LOSort) innerOp;
+                    } else if (innerOp instanceof LOLimit) {
+                        assertNull("There should be only one LOLimit", limit);
+                        limit = (LOLimit) innerOp;
+                    }
+                }
+            }
+        }
+
+        assertNotNull("ForEach is missing", forEach);
+        assertNotNull("LOSort is missing", sort);
+        assertNotNull("LOLimit is missing", limit);
+        assertEquals(sort.getLimit(), -1);
+        assertEquals(limit.getLimit(), -1);
     }
 
     @Test

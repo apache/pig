@@ -65,8 +65,11 @@ public class NestedLimitOptimizer extends Rule {
                 Operator op = it.next();
                 if (op instanceof LOLimit) {
                     List<Operator> preds = innerPlan.getPredecessors(op);
+                    LOLimit limitOp = (LOLimit) op;
+                    boolean useExpressionPlan = limitOp.getLimit() == -1 &&
+                            limitOp.getLimitPlan() != null;
                     // Limit should always have exactly 1 predecessor
-                    if (preds.get(0) instanceof LOSort) {
+                    if (!useExpressionPlan && preds.get(0) instanceof LOSort) {
                         return true;
                     }
                 }
@@ -94,8 +97,11 @@ public class NestedLimitOptimizer extends Rule {
                 Operator op = it.next();
                 if (op instanceof LOLimit) {
                     List<Operator> preds = innerPlan.getPredecessors(op);
+                    LOLimit limitOp = (LOLimit) op;
+                    boolean useExpressionPlan = limitOp.getLimit() == -1 &&
+                            limitOp.getLimitPlan() != null;
                     // Limit should always have exactly 1 predecessor
-                    if (preds.get(0) instanceof LOSort) {
+                    if (!useExpressionPlan && preds.get(0) instanceof LOSort) {
                         limit = (LOLimit) op;
                         sort = (LOSort) (preds.get(0));
                         break;

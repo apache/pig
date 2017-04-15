@@ -552,7 +552,7 @@ public abstract class TestSecondarySort {
                        "c1 = order a by age;" +
                        "c2 = limit c1 5;" +
                        "generate c2;}" +
-                       "store c in 'empty';";
+                       "store c into 'empty';";
 
         SecondaryKeyOptimizer so = visitSecondaryKeyOptimizer(query);
 
