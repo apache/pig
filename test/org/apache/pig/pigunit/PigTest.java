@@ -32,7 +32,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.Iterables;
-import junit.framework.Assert;
+import org.junit.Assert;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;

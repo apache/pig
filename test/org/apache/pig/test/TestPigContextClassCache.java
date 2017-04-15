@@ -18,7 +18,7 @@ package org.apache.pig.test;
 
 import java.io.IOException;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 
 import org.apache.pig.builtin.REPLACE;
 import org.apache.pig.builtin.TOMAP;

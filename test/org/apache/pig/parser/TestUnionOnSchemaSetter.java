@@ -18,7 +18,7 @@
 
 package org.apache.pig.parser;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;

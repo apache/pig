@@ -25,7 +25,7 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.PigException;

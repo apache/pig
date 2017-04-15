@@ -17,7 +17,7 @@
  */
 package org.apache.pig.test;
 
-import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.assertEquals;
 import static org.apache.pig.builtin.mock.Storage.bag;
 import static org.apache.pig.builtin.mock.Storage.resetData;
 import static org.apache.pig.builtin.mock.Storage.tuple;

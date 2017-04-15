@@ -17,7 +17,7 @@
  */
 package org.apache.pig.test;
 
-import static junit.framework.Assert.*;
+import static org.junit.Assert.*;
 
 import java.util.Iterator;
 import java.util.List;

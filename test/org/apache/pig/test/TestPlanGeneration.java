@@ -22,7 +22,7 @@ import static org.junit.Assert.assertNull;
 import java.io.IOException;
 import java.util.List;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.ExecType;

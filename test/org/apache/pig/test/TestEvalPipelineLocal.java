@@ -72,7 +72,7 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 
 public class TestEvalPipelineLocal {
 
@@ -124,7 +124,11 @@ public class TestEvalPipelineLocal {
         Iterator<Tuple> iter  = pigServer.openIterator("b");
         
         for (int i=0 ;i<3; i++){
-            Assert.assertEquals(DataType.toDouble(iter.next().get(0)), 0.0);
+            // have to cast the double so the compiler finds the right method to call; 
+            // otherwise, we get a compiler error
+            // error: reference to assertEquals is ambiguous
+            // both method assertEquals(Object,Object) in Assert and method assertEquals(double,double) in Assert match
+            Assert.assertEquals((double) DataType.toDouble(iter.next().get(0)), 0.0);
         }
         
     }
@@ -208,7 +212,12 @@ public class TestEvalPipelineLocal {
         Iterator<Tuple> iter = pigServer.openIterator("b");
         t = iter.next();
         Assert.assertEquals(t.get(0).toString(), "red");
-        Assert.assertEquals(DataType.toDouble(t.get(1)), 0.3);
+
+        // have to cast the double so the compiler finds the right method to call; 
+        // otherwise, we get a compiler error:
+        // error: reference to assertEquals is ambiguous
+        // both method assertEquals(Object,Object) in Assert and method assertEquals(double,double) in Assert match
+        Assert.assertEquals((double) DataType.toDouble(t.get(1)), 0.3);
         Assert.assertFalse(iter.hasNext());
     }
     
