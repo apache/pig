@@ -17,7 +17,7 @@ import java.io.StringReader;
 import java.util.HashMap;
 import java.util.Map;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 
 import org.apache.pig.pigunit.pig.GruntParser;
 import org.apache.pig.pigunit.pig.PigServer;

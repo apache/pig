@@ -21,7 +21,7 @@ package org.apache.pig.test;
 
 import java.io.IOException;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.pig.LoadFunc;

@@ -20,7 +20,7 @@ package org.apache.pig.parser;
 
 import java.io.IOException;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 
 import org.antlr.runtime.RecognitionException;
 import org.apache.pig.impl.plan.PlanValidationException;

@@ -97,6 +97,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5222: Fix Junit Deprecations (wattsinabox via daijy)
+
 PIG-5223: TestLimitVariable.testNestedLimitVariable1 and TestSecondarySortMR.testNestedLimitedSort failing (jins via daijy)
 
 PIG-5209: Cross product on flatten(map) fails with ClassCastException (knoguchi)

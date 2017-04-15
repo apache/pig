@@ -21,7 +21,7 @@ package org.apache.pig.parser;
 import java.io.IOException;
 import java.util.Properties;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;

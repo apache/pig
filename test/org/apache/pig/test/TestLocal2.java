@@ -29,7 +29,7 @@ import java.io.PrintStream;
 import java.text.DecimalFormat;
 import java.util.Iterator;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.PigServer;

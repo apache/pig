@@ -18,7 +18,7 @@
 
 package org.apache.pig.test;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 import org.apache.pig.PigException;
 import org.apache.pig.impl.util.LogUtils;
 import org.junit.Test;

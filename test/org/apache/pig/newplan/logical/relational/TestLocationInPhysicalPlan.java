@@ -21,7 +21,7 @@ package org.apache.pig.newplan.logical.relational;
 import java.io.File;
 import java.util.List;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecJob;
