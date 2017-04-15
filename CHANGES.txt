@@ -97,6 +97,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5221: More fs.default.name deprecation warnings (wattsinabox via daijy)
+
 PIG-5222: Fix Junit Deprecations (wattsinabox via daijy)
 
 PIG-5223: TestLimitVariable.testNestedLimitVariable1 and TestSecondarySortMR.testNestedLimitedSort failing (jins via daijy)

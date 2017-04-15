@@ -95,10 +95,11 @@ public class QueryParserUtils {
     }
 
     static void setHdfsServers(String absolutePath, PigContext pigContext) throws URISyntaxException {
-        // Get native host
-        String defaultFS = (String)pigContext.getProperties().get("fs.default.name");
+        // First check for the file system via the new property
+        String defaultFS = (String)pigContext.getProperties().get("fs.defaultFS");
         if (defaultFS==null)
-            defaultFS = (String)pigContext.getProperties().get("fs.defaultFS");
+            // check the deprecated property if we must
+            defaultFS = (String)pigContext.getProperties().get("fs.default.name");
 
         URI defaultFSURI = new URI(defaultFS);
 

@@ -119,7 +119,7 @@ public class TestIndexedStorage {
     public void testGetNext() throws IOException, InterruptedException {
         IndexedStorage storage = new IndexedStorage("\t","0,1");
         Configuration conf = new Configuration();
-        conf.set("fs.default.name", "file:///");
+        conf.set("fs.defaultFS", "file:///");
         LocalFileSystem fs = FileSystem.getLocal(conf);
 
         TaskAttemptID taskId = HadoopShims.createTaskAttemptID("jt", 1, true, 1, 1);
@@ -151,7 +151,7 @@ public class TestIndexedStorage {
     public void testSeek() throws IOException, InterruptedException {
         IndexedStorage storage = new IndexedStorage("\t","0,1");
         Configuration conf = new Configuration();
-        conf.set("fs.default.name", "file:///");
+        conf.set("fs.defaultFS", "file:///");
         LocalFileSystem fs = FileSystem.getLocal(conf);
 
         TaskAttemptID taskId =  HadoopShims.createTaskAttemptID("jt", 2, true, 2, 2);
