@@ -42,7 +42,7 @@ public class TestQueryParserUtils {
     @Test
     public void testSetHDFSServers() throws Exception {
         Properties props = new Properties();
-        props.setProperty("fs.default.name", "hdfs://nn1:8020/tmp");
+        props.setProperty("fs.defaultFS", "hdfs://nn1:8020/tmp");
         PigContext pc = new PigContext(ExecType.LOCAL, props);
 
         //No scheme/host

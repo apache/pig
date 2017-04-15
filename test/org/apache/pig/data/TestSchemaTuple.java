@@ -534,7 +534,7 @@ public class TestSchemaTuple {
         writer.close(null);
 
         Configuration conf = new Configuration();
-        conf.set("fs.default.name", "file:///");
+        conf.set("fs.defaultFS", "file:///");
 
         TaskAttemptID taskId = HadoopShims.createTaskAttemptID("jt", 1, true, 1, 1);
         conf.set(MRConfiguration.TASK_ID, taskId.toString());

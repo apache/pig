@@ -85,7 +85,7 @@ public class TestParser {
         for (ExecType execType : execTypes) {
             setUp(execType);
             Properties pigProperties = pigServer.getPigContext().getProperties();
-            pigProperties.setProperty("fs.default.name", "hdfs://a.com:8020");
+            pigProperties.setProperty("fs.defaultFS", "hdfs://a.com:8020");
             Configuration conf;
 
             Data data = Storage.resetData(pigServer.getPigContext());
@@ -94,19 +94,19 @@ public class TestParser {
             pigServer.registerQuery("a = load '/user/pig/1.txt' using mock.Storage;");
             conf = ConfigurationUtil.toConfiguration(pigProperties);
             assertTrue(conf.get(MRConfiguration.JOB_HDFS_SERVERS) == null ||
-                    conf.get(MRConfiguration.JOB_HDFS_SERVERS).equals(pigProperties.get("fs.default.name"))||
+                    conf.get(MRConfiguration.JOB_HDFS_SERVERS).equals(pigProperties.get("fs.defaultFS"))||
                     conf.get(MRConfiguration.JOB_HDFS_SERVERS).equals(pigProperties.get("fs.defaultFS")));
 
             pigServer.registerQuery("a = load 'hdfs://a.com/user/pig/1.txt' using mock.Storage;");
             conf = ConfigurationUtil.toConfiguration(pigProperties);
             assertTrue(pigProperties.getProperty(MRConfiguration.JOB_HDFS_SERVERS) == null ||
-                    conf.get(MRConfiguration.JOB_HDFS_SERVERS).equals(pigProperties.get("fs.default.name"))||
+                    conf.get(MRConfiguration.JOB_HDFS_SERVERS).equals(pigProperties.get("fs.defaultFS"))||
                     conf.get(MRConfiguration.JOB_HDFS_SERVERS).equals(pigProperties.get("fs.defaultFS")));
 
             pigServer.registerQuery("a = load 'har:///1.txt' using mock.Storage;");
             conf = ConfigurationUtil.toConfiguration(pigProperties);
             assertTrue(pigProperties.getProperty(MRConfiguration.JOB_HDFS_SERVERS) == null ||
-                    conf.get(MRConfiguration.JOB_HDFS_SERVERS).equals(pigProperties.get("fs.default.name"))||
+                    conf.get(MRConfiguration.JOB_HDFS_SERVERS).equals(pigProperties.get("fs.defaultFS"))||
                     conf.get(MRConfiguration.JOB_HDFS_SERVERS).equals(pigProperties.get("fs.defaultFS")));
 
             pigServer.registerQuery("a = load 'hdfs://b.com/user/pig/1.txt' using mock.Storage;");
@@ -130,7 +130,7 @@ public class TestParser {
     public void testRemoteServerList2() throws Exception {
         pigServer = new PigServer(Util.getLocalTestMode());
         Properties pigProperties = pigServer.getPigContext().getProperties();
-        pigProperties.setProperty("fs.default.name", "hdfs://a.com:8020");
+        pigProperties.setProperty("fs.defaultFS", "hdfs://a.com:8020");
         Configuration conf;
 
         pigServer.setBatchOn();
@@ -145,7 +145,7 @@ public class TestParser {
                 + pigProperties.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
         conf = ConfigurationUtil.toConfiguration(pigProperties);
         assertTrue(conf.get(MRConfiguration.JOB_HDFS_SERVERS) == null ||
-                conf.get(MRConfiguration.JOB_HDFS_SERVERS).equals(pigProperties.get("fs.default.name"))||
+                conf.get(MRConfiguration.JOB_HDFS_SERVERS).equals(pigProperties.get("fs.defaultFS"))||
                 conf.get(MRConfiguration.JOB_HDFS_SERVERS).equals(pigProperties.get("fs.defaultFS")));
 
         pigServer.registerQuery("store a into 'hdfs://b.com/user/pig/1.txt' using mock.Storage;");

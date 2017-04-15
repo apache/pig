@@ -241,7 +241,7 @@ public class TestPigContext {
     private static Properties getProperties() {
         Properties props = new Properties();
         props.put(MRConfiguration.JOB_TRACKER, JOB_TRACKER);
-        props.put("fs.default.name", FS_NAME);
+        props.put("fs.defaultFS", FS_NAME);
         props.put("hadoop.tmp.dir", TMP_DIR_PROP);
         return props;
     }

@@ -380,7 +380,7 @@ public class TestTmpFileCompression {
         tFile.delete();
         Configuration conf = new Configuration();
         conf.set("tfile.io.chunk.size","100");
-        conf.set("fs.default.name", "file:///");
+        conf.set("fs.defaultFS", "file:///");
 
         for (String codec: new String [] {"none", "gz"} ) {
             System.err.println("Testing RecordWriter/Reader with codec: "

@@ -32,7 +32,7 @@
 <source>
   &lt;property&gt;
     &lt;name&gt;tez.lib.uris&lt;/name&gt;
-    &lt;value&gt;${fs.default.name}/apps/tez/tez-0.5.2.tar.gz&lt;/value&gt;
+    &lt;value&gt;${fs.defaultFS}/apps/tez/tez-0.5.2.tar.gz&lt;/value&gt;
   &lt;/property&gt;
 </source>
   </section>
