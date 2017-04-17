@@ -506,7 +506,7 @@ public class SparkLauncher extends Launcher {
         }
     }
 
-    private SparkOperPlan compile(PhysicalPlan physicalPlan,
+    public SparkOperPlan compile(PhysicalPlan physicalPlan,
                                   PigContext pigContext) throws PlanException, IOException,
             VisitorException {
         SparkCompiler sparkCompiler = new SparkCompiler(physicalPlan,
