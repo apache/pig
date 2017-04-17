@@ -128,7 +128,7 @@ public class TestEvalPipelineLocal {
             // otherwise, we get a compiler error
             // error: reference to assertEquals is ambiguous
             // both method assertEquals(Object,Object) in Assert and method assertEquals(double,double) in Assert match
-            Assert.assertEquals((double) DataType.toDouble(iter.next().get(0)), 0.0);
+            Assert.assertEquals((double) DataType.toDouble(iter.next().get(0)), 0.0, Double.MIN_VALUE);
         }
         
     }
@@ -217,7 +217,7 @@ public class TestEvalPipelineLocal {
         // otherwise, we get a compiler error:
         // error: reference to assertEquals is ambiguous
         // both method assertEquals(Object,Object) in Assert and method assertEquals(double,double) in Assert match
-        Assert.assertEquals((double) DataType.toDouble(t.get(1)), 0.3);
+        Assert.assertEquals((double) DataType.toDouble(t.get(1)), 0.3, Double.MIN_VALUE);
         Assert.assertFalse(iter.hasNext());
     }
     
@@ -377,7 +377,7 @@ public class TestEvalPipelineLocal {
             Tuple t = iter.next();
             Assert.assertEquals(
                     expectedResults.get(t.get(1).toString()).doubleValue(),
-                    (DataType.toDouble(t.get(0))).doubleValue());
+                    (DataType.toDouble(t.get(0))).doubleValue(), Double.MIN_VALUE);
         }
     }
     
