@@ -74,8 +74,9 @@ public class TestSparkCompiler {
         public void doPrint(PrintStream ps, SparkOperPlan plan) throws VisitorException, ParserConfigurationException, TransformerException {
             switch (this) {
                 case DOT:
-                    (new DotSparkPrinter(plan, ps)).dump();
-                    break;
+                    throw new RuntimeException("Testing in DOT format not supported yet");
+                    //(new DotSparkPrinter(plan, ps)).dump();
+                    //break;
                 case XML:
                     XMLSparkPrinter printer = new XMLSparkPrinter(ps, plan);
                     printer.visit();
@@ -134,7 +135,8 @@ public class TestSparkCompiler {
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/spark/SPARKC-LoadStore-1-text.gld", PlanPrinter.TEXT);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/spark/SPARKC-LoadStore-1-xml.gld", PlanPrinter.XML);
-        run(query, "test/org/apache/pig/test/data/GoldenFiles/spark/SPARKC-LoadStore-1-dot.gld", PlanPrinter.DOT);
+        //TODO: enable this when DOT file comparison is supported
+        //run(query, "test/org/apache/pig/test/data/GoldenFiles/spark/SPARKC-LoadStore-1-dot.gld", PlanPrinter.DOT);
     }
 
     private void run(String query, String expectedFile, PlanPrinter planPrinter) throws Exception {
