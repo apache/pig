@@ -39,6 +39,9 @@ class PigSecondaryKeyComparatorSpark implements Comparator, Serializable {
         secondarySortOrder = pSecondarySortOrder;
     }
 
+    //IndexedKeyPartitioner will put the tuple with same mainKey together, in PigSecondaryKeyComparatorSpark#compare
+    // (Object o1, Object o2)
+    //we only compare the secondaryKey
     @Override
     public int compare(Object o1, Object o2) {
         Tuple t1 = (Tuple) o1;
@@ -56,7 +59,7 @@ class PigSecondaryKeyComparatorSpark implements Comparator, Serializable {
             }
             Object secondaryKey1 = compoundKey1.get(1);
             Object secondaryKey2 = compoundKey2.get(1);
-            int res = compareSecondaryKeys(secondaryKey1, secondaryKey2, secondarySortOrder);
+            int res = compareKeys(secondaryKey1, secondaryKey2, secondarySortOrder);
             if (LOG.isDebugEnabled()) {
                 LOG.debug("t1:" + t1 + "t2:" + t2 + " res:" + res);
             }
@@ -66,11 +69,33 @@ class PigSecondaryKeyComparatorSpark implements Comparator, Serializable {
         }
     }
 
-    private int compareSecondaryKeys(Object o1, Object o2, boolean[] asc){
-        return compareKeys(o1, o2, asc);
+    //compare the mainKey and secondaryKey
+    public int compareCompoundKey(Tuple compoundKey1, Tuple compoundKey2){
+        try {
+            if ((compoundKey1.size() < 2) || (compoundKey2.size() < 2)) {
+                throw new RuntimeException("compoundKey size must bigger than, compoundKey[0] stands for firstKey," +
+                        "compoundKey[1] stands for secondaryKey");
+            }
+            Object mainKey1 = compoundKey1.get(0);
+            Object mainKey2 = compoundKey2.get(0);
+            int res = compareKeys(mainKey1,mainKey2, null);
+            if ( res !=0 ){
+                return res;
+            } else {
+                Object secondaryKey1 = compoundKey1.get(1);
+                Object secondaryKey2 = compoundKey2.get(1);
+                res = compareKeys(secondaryKey1, secondaryKey2, secondarySortOrder);
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("compoundKey1:" + compoundKey1 + "compoundKey2:" + compoundKey2 + " res:" + res);
+                }
+                return res;
+            }
+        } catch (ExecException e) {
+            throw new RuntimeException("Fail to get the compoundKey", e);
+        }
     }
 
-    public static int compareKeys(Object o1, Object o2, boolean[] asc) {
+    private int compareKeys(Object o1, Object o2, boolean[] asc) {
         int rc = 0;
         if (o1 != null && o2 != null && o1 instanceof Tuple && o2 instanceof Tuple) {
             // objects are Tuples, we may need to apply sort order inside them

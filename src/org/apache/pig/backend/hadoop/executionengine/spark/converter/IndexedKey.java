@@ -161,8 +161,8 @@ public class IndexedKey implements Serializable, Comparable {
             if (useSecondaryKey) {
                 Tuple thisCompoundKey = (Tuple) key;
                 Tuple thatCompoundKey = (Tuple)that.getKey();
-                return PigSecondaryKeyComparatorSpark.compareKeys(thisCompoundKey, thatCompoundKey,
-                        secondarySortOrder);
+                PigSecondaryKeyComparatorSpark comparator = new PigSecondaryKeyComparatorSpark(secondarySortOrder);
+                return comparator.compareCompoundKey(thisCompoundKey, thatCompoundKey);
             } else {
                 return DataType.compare(key, that.getKey());
             }
