@@ -603,7 +603,7 @@ sub postProcessSingleOutputFile
     if (defined $testCmd->{'floatpostprocess'} &&
             defined $testCmd->{'delimiter'}) {
         $fppCmd .= " | perl $toolpath/floatpostprocessor.pl \"" .
-            $testCmd->{'delimiter'} . "\"";
+            $testCmd->{'delimiter'} . "\" " . $testCmd->{'decimals'};
     }
     
     $fppCmd .= " > $localdir/out_original";
