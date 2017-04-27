@@ -74,6 +74,7 @@ public class SecondaryKeySortUtil {
             return new Iterable<Tuple>() {
                 Object curKey = null;
                 ArrayList curValues = new ArrayList();
+                boolean initialized = false;
 
                 @Override
                 public Iterator<Tuple> iterator() {
@@ -92,7 +93,11 @@ public class SecondaryKeySortUtil {
                                 Object tMainKey = null;
                                 try {
                                     tMainKey = ((Tuple) (t._1()).getKey()).get(0);
-                                    if (curKey != null && !curKey.equals(tMainKey)) {
+
+                                    //If the key has changed and we've seen at least 1 already
+                                    if (initialized &&
+                                            ((curKey == null && tMainKey != null) ||
+                                                    (curKey != null && !curKey.equals(tMainKey)))){
                                         Tuple result = restructTuple(curKey, new ArrayList(curValues));
                                         curValues.clear();
                                         curKey = tMainKey;
@@ -102,6 +107,7 @@ public class SecondaryKeySortUtil {
                                     curKey = tMainKey;
                                     //if key does not change, just append the value to the same key
                                     curValues.add(t._2());
+                                    initialized = true;
 
                                 } catch (ExecException e) {
                                     throw new RuntimeException("AccumulateByKey throw exception: ", e);
