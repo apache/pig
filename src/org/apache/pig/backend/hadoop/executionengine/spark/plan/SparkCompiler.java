@@ -1028,6 +1028,7 @@ public class SparkCompiler extends PhyPlanVisitor {
         for (E e : plans) {
             finPlan.merge(e);
         }
+        Collections.sort(finPlan.getLeaves());
     }
 
     @Override

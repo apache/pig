@@ -311,7 +311,7 @@ public class JobGraphBuilder extends SparkOpPlanVisitor {
         List preds = null;
         if (!(op instanceof POJoinGroupSpark)) {
             preds = plan.getPredecessors(op);
-            if (preds != null && preds.size() > 1) {
+            if (preds != null && preds.size() > 1 && !(op instanceof POSkewedJoin)) {
                 Collections.sort(preds);
             }
         } else {
