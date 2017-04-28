@@ -113,8 +113,8 @@ public class SecondaryKeySortUtil {
                                     throw new RuntimeException("AccumulateByKey throw exception: ", e);
                                 }
                             }
-                            if (curKey == null) {
-                                throw new RuntimeException("AccumulateByKey curKey is null");
+                            if (!initialized) {
+                                throw new RuntimeException("No tuples seen");
                             }
 
                             //if we get here, this should be the last record
