@@ -28,8 +28,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import junit.framework.ComparisonFailure;
-
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -41,6 +39,7 @@ import org.apache.pig.test.Util;
 import org.apache.pig.tools.parameters.ParseException;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.junit.BeforeClass;
+import org.junit.ComparisonFailure;
 import org.junit.Ignore;
 import org.junit.Test;
 
