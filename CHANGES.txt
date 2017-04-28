@@ -97,6 +97,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5229: TestPigTest.testSpecificOrderOutput and testSpecificOrderOutputForAlias failing (knoguchi)
+
 PIG-5226: PreprocessorContext.java can deadlock forever with large stderr (jtolar via knoguchi)
 
 PIG-5221: More fs.default.name deprecation warnings (wattsinabox via daijy)
