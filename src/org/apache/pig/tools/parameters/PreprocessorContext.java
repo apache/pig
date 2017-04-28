@@ -25,16 +25,22 @@ package org.apache.pig.tools.parameters;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.io.StringReader;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.util.Shell;
@@ -203,6 +209,27 @@ public class PreprocessorContext {
         paramval_put(key, sub_val);
     }
 
+    /**
+     * Slurp in an entire input stream and close it.
+     */
+    public static class CallableStreamReader implements Callable<String> {
+        private final InputStream inputStream;
+
+        public CallableStreamReader(InputStream stream) {
+            inputStream = stream;
+        }
+
+        @Override
+        public String call() {
+            try {
+                return IOUtils.toString(inputStream);
+            } catch (IOException e) {
+                throw new RuntimeException("IO Exception while executing shell command: " + e.getMessage() , e);
+            } finally {
+                IOUtils.closeQuietly(inputStream);
+            }
+        }
+    }
 
     /*
      * executes the 'cmd' in shell and returns result
@@ -235,40 +262,21 @@ public class PreprocessorContext {
             throw rte;
         }
 
-        BufferedReader br = null;
-        try{
-            InputStreamReader isr = new InputStreamReader(p.getInputStream());
-            br = new BufferedReader(isr);
-            String line=null;
-            StringBuilder sb = new StringBuilder();
-            while ( (line = br.readLine()) != null){
-                sb.append(line);
-                sb.append("\n");
-            }
-            streamData = sb.toString();
-        } catch (IOException e){
-            RuntimeException rte = new RuntimeException("IO Exception while executing shell command : "+e.getMessage() , e);
-            throw rte;
-        } finally {
-            if (br != null) try {br.close();} catch(Exception e) {}
-        }
+        // Read stdout and stderr in separate threads to avoid deadlock due to pipe buffer size
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
+        Future<String> futureOut = executorService.submit(new CallableStreamReader(p.getInputStream()));
+        Future<String> futureErr = executorService.submit(new CallableStreamReader(p.getErrorStream()));
 
         try {
-            InputStreamReader isr = new InputStreamReader(p.getErrorStream());
-            br = new BufferedReader(isr);
-            String line=null;
-            StringBuilder sb = new StringBuilder();
-            while ( (line = br.readLine()) != null ) {
-                sb.append(line);
-                sb.append("\n");
-            }
-            streamError = sb.toString();
+            streamData = futureOut.get();
+            streamError = futureErr.get();
             log.debug("Error stream while executing shell command : " + streamError);
-        } catch (Exception e) {
-            RuntimeException rte = new RuntimeException("IO Exception while executing shell command : "+e.getMessage() , e);
-            throw rte;
+        } catch (InterruptedException e) {
+            throw new RuntimeException("InterruptedException while executing shell command : " + e.getMessage() , e);
+        } catch (ExecutionException e) {
+            throw new RuntimeException("ExecutionException while executing shell command : " + e.getMessage(), e);
         } finally {
-            if (br != null) try {br.close();} catch(Exception e) {}
+            executorService.shutdownNow();
         }
 
         int exitVal;
