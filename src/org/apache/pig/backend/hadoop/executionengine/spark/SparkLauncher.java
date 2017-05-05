@@ -389,15 +389,20 @@ public class SparkLauncher extends Launcher {
             tmpFolder.deleteOnExit();
             for (String file : cacheFiles.split(",")) {
                 String fileName = extractFileName(file.trim());
-                Path src = new Path(extractFileUrl(file.trim()));
-                File tmpFile = new File(tmpFolder, fileName);
-                Path tmpFilePath = new Path(tmpFile.getAbsolutePath());
-                FileSystem fs = tmpFilePath.getFileSystem(jobConf);
-                fs.copyToLocalFile(src, tmpFilePath);
-                tmpFile.deleteOnExit();
-                LOG.info(String.format("CacheFile:%s", fileName));
-                addResourceToSparkJobWorkingDirectory(tmpFile, fileName,
-                        ResourceType.FILE);
+                if( fileName != null) {
+                    String fileUrl = extractFileUrl(file.trim());
+                    if( fileUrl != null) {
+                        Path src = new Path(fileUrl);
+                        File tmpFile = new File(tmpFolder, fileName);
+                        Path tmpFilePath = new Path(tmpFile.getAbsolutePath());
+                        FileSystem fs = tmpFilePath.getFileSystem(jobConf);
+                        fs.copyToLocalFile(src, tmpFilePath);
+                        tmpFile.deleteOnExit();
+                        LOG.info(String.format("CacheFile:%s", fileName));
+                        addResourceToSparkJobWorkingDirectory(tmpFile, fileName,
+                                ResourceType.FILE);
+                    }
+                }
             }
         }
     }
@@ -484,26 +489,14 @@ public class SparkLauncher extends Launcher {
         String[] tmpAry = cacheFileUrl.split("#");
         String fileName = tmpAry != null && tmpAry.length == 2 ? tmpAry[1]
                 : null;
-        if (fileName == null) {
-            throw new RuntimeException("cache file is invalid format, file:"
-                    + cacheFileUrl);
-        } else {
-            LOG.debug("Cache file name is valid:" + cacheFileUrl);
-            return fileName;
-        }
+        return fileName;
     }
 
     private String extractFileUrl(String cacheFileUrl) {
         String[] tmpAry = cacheFileUrl.split("#");
         String fileName = tmpAry != null && tmpAry.length == 2 ? tmpAry[0]
                 : null;
-        if (fileName == null) {
-            throw new RuntimeException("cache file is invalid format, file:"
-                    + cacheFileUrl);
-        } else {
-            LOG.debug("Cache file name is valid:" + cacheFileUrl);
-            return fileName;
-        }
+        return fileName;
     }
 
     public SparkOperPlan compile(PhysicalPlan physicalPlan,

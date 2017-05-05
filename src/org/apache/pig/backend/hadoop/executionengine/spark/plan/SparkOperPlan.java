@@ -28,19 +28,19 @@ import org.apache.pig.impl.plan.VisitorException;
  */
 public class SparkOperPlan extends OperatorPlan<SparkOperator> {
 
-	@Override
-	public String toString() {
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		PrintStream ps = new PrintStream(baos);
-		SparkPrinter printer = new SparkPrinter(ps, this);
-		printer.setVerbose(true);
-		try {
-			printer.visit();
-		} catch (VisitorException e) {
-			// TODO Auto-generated catch block
-			throw new RuntimeException(
-					"Unable to get String representation of plan:" + e, e);
-		}
-		return baos.toString();
-	}
+    @Override
+    public String toString() {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(baos);
+        SparkPrinter printer = new SparkPrinter(ps, this);
+        printer.setVerbose(true);
+        try {
+            printer.visit();
+        } catch (VisitorException e) {
+            // TODO Auto-generated catch block
+            throw new RuntimeException(
+                    "Unable to get String representation of plan:" + e, e);
+        }
+        return baos.toString();
+    }
 }

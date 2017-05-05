@@ -32,8 +32,6 @@ import org.apache.pig.impl.plan.VisitorException;
 
 public class POPoissonSampleSpark extends POPoissonSample {
     private static final Log LOG = LogFactory.getLog(POPoissonSampleSpark.class);
-    //TODO verify can be removed?
-    //private static final long serialVersionUID = 1L;
     // Only for Spark
     private transient boolean endOfInput = false;
 

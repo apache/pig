@@ -107,7 +107,7 @@ public class SparkPOPackageAnnotator extends SparkOpPlanVisitor {
 
             if (pkg.getPkgr() instanceof LitePackager) {
                 if (lrearrange.getIndex() != 0) {
-                    throw new RuntimeException(
+                    throw new VisitorException(
                             "POLocalRearrange for POPackageLite cannot have index other than 0, but has index - "
                                     + lrearrange.getIndex());
                 }

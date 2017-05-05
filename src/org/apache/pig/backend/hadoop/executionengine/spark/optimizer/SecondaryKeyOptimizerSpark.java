@@ -84,12 +84,12 @@ public class SecondaryKeyOptimizerSpark extends SparkOpPlanVisitor implements Se
             try {
                 mapPlan = getMapPlan(sparkOperator.physicalPlan, currentLR);
             } catch (PlanException e) {
-                throw new RuntimeException(e);
+                throw new VisitorException(e);
             }
             try {
                 reducePlan = getReducePlan(sparkOperator.physicalPlan, currentLR);
             } catch (PlanException e) {
-                throw new RuntimeException(e);
+                throw new VisitorException(e);
             }
 
             // Current code does not enable secondarykey optimization when join case is encounted

@@ -1352,11 +1352,7 @@ public class SparkCompiler extends PhyPlanVisitor {
         // if transform plans are not specified, project the columns of sorting keys
         if (transformPlans == null) {
             Pair<POProject, Byte>[] sortProjs = null;
-            try {
-                sortProjs = getSortCols(sort.getSortPlans());
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
+            sortProjs = getSortCols(sort.getSortPlans());
             // Set up the projections of the key columns
             if (sortProjs == null) {
                 PhysicalPlan ep = new PhysicalPlan();

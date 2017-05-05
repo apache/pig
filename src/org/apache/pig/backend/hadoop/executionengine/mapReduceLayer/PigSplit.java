@@ -224,7 +224,7 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
                             else
                                 locMap.put(loc, lenInMap + split.getLength());
                         } catch (InterruptedException e) {
-                            throw new RuntimeException("InputSplit.getLength throws exception: ", e);
+                            throw new IOException("InputSplit.getLength throws exception: ", e);
                         }
                     }
                 }

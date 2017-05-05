@@ -138,17 +138,12 @@ public class LoadConverter implements RDDConverter<Tuple, Tuple, POLoad> {
                 SparkUtil.getManifest(Tuple.class));
     }
 
-    private void registerUdfFiles() {
+    private void registerUdfFiles() throws MalformedURLException{
         Map<String, File> scriptFiles = pigContext.getScriptFiles();
         for (Map.Entry<String, File> scriptFile : scriptFiles.entrySet()) {
-            try {
-                File script = scriptFile.getValue();
-                if (script.exists()) {
-                    sparkContext.addFile(script.toURI().toURL().toExternalForm());
-                }
-            } catch (MalformedURLException e) {
-                String msg = "Problem while registering UDF jars and files in LoadConverter.";
-                throw new RuntimeException(msg, e);
+            File script = scriptFile.getValue();
+            if (script.exists()) {
+                sparkContext.addFile(script.toURI().toURL().toExternalForm());
             }
         }
     }
