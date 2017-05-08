@@ -415,6 +415,11 @@ if [ "$isSparkMode"  == "true" ]; then
         CLASSPATH=${CLASSPATH}:$SPARK_ASSEMBLY_JAR
     fi
 fi
+
+#spark-assembly.jar contains jcl-over-slf4j which would create a LogFactory implementation that is incompatible
+if [ "$isSparkMode"  == "true" ]; then
+    PIG_OPTS="$PIG_OPTS -Dorg.apache.commons.logging.LogFactory=org.apache.commons.logging.impl.LogFactoryImpl"
+fi
 ################# ADDING SPARK DEPENDENCIES ##################
 
 # run it
