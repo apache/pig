@@ -97,13 +97,23 @@ public class SparkStatsUtil {
 
     public static long getRecordCount(POStore store) {
         SparkPigStatusReporter reporter = SparkPigStatusReporter.getInstance();
-        return reporter.getCounters().getValue(SPARK_STORE_COUNTER_GROUP, getCounterName(store));
+        Object value = reporter.getCounters().getValue(SPARK_STORE_COUNTER_GROUP, getCounterName(store));
+        if (value == null) {
+            return 0L;
+        } else {
+            return (Long)value;
+        }
     }
 
     public static long getRecordCount(POLoad load) {
         SparkPigStatusReporter reporter = SparkPigStatusReporter.getInstance();
         int loadersCount = countCoLoadsIfInSplit(load,load.getParentPlan());
-        return reporter.getCounters().getValue(SPARK_INPUT_COUNTER_GROUP, getCounterName(load))/loadersCount;
+        Object value = reporter.getCounters().getValue(SPARK_INPUT_COUNTER_GROUP, getCounterName(load));
+        if (value == null) {
+            return 0L;
+        } else {
+            return (Long)value/loadersCount;
+        }
     }
 
     private static int countCoLoadsIfInSplit(PhysicalOperator op, PhysicalPlan pp){

@@ -43,6 +43,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
+import org.apache.pig.PigWarning;
 import org.apache.pig.backend.BackendException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
@@ -123,10 +124,12 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.JarManager;
+import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
+import org.apache.pig.tools.pigstats.spark.SparkCounterGroup;
 import org.apache.pig.tools.pigstats.spark.SparkCounters;
 import org.apache.pig.tools.pigstats.spark.SparkPigStats;
 import org.apache.pig.tools.pigstats.spark.SparkPigStatusReporter;
@@ -154,6 +157,7 @@ public class SparkLauncher extends Launcher {
     private JobConf jobConf = null;
     private String currentDirectoryPath = null;
     private SparkEngineConf sparkEngineConf = new SparkEngineConf();
+    private static final String PIG_WARNING_FQCN = PigWarning.class.getCanonicalName();
 
     @Override
     public PigStats launchPig(PhysicalPlan physicalPlan, String grpName,
@@ -185,7 +189,7 @@ public class SparkLauncher extends Launcher {
 
         new ParallelismSetter(sparkplan, jobConf).visit();
 
-        SparkPigStatusReporter.getInstance().setCounters(new SparkCounters(sparkContext));
+        prepareSparkCounters(jobConf);
 
         // Create conversion map, mapping between pig operator and spark convertor
         Map<Class<? extends PhysicalOperator>, RDDConverter> convertMap
@@ -698,5 +702,26 @@ public class SparkLauncher extends Launcher {
         if (parallelism != null) {
             SparkPigContext.get().setPigDefaultParallelism(Integer.parseInt(parallelism));
         }
+    }
+
+    /**
+     * Creates new SparkCounters instance for the job, initializes aggregate warning counters if required
+     * @param jobConf
+     * @throws IOException
+     */
+    private static void prepareSparkCounters(JobConf jobConf) throws IOException {
+        SparkPigStatusReporter statusReporter = SparkPigStatusReporter.getInstance();
+        SparkCounters counters = new SparkCounters(sparkContext);
+
+        if ("true".equalsIgnoreCase(jobConf.get("aggregate.warning"))) {
+            SparkCounterGroup pigWarningGroup = new SparkCounterGroup.MapSparkCounterGroup(
+                    PIG_WARNING_FQCN, PIG_WARNING_FQCN,sparkContext
+            );
+            pigWarningGroup.createCounter(PigWarning.SPARK_WARN.name(), new HashMap<String,Long>());
+            pigWarningGroup.createCounter(PigWarning.SPARK_CUSTOM_WARN.name(), new HashMap<String,Long>());
+            counters.getSparkCounterGroups().put(PIG_WARNING_FQCN, pigWarningGroup);
+        }
+        statusReporter.setCounters(counters);
+        jobConf.set("pig.spark.counters", ObjectSerializer.serialize(counters));
     }
 }

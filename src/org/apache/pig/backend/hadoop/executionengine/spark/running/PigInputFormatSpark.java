@@ -38,47 +38,44 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.UDFContext;
-import org.apache.pig.tools.pigstats.PigStatusReporter;
+import org.apache.pig.tools.pigstats.spark.SparkCounters;
 
 public class PigInputFormatSpark extends PigInputFormat {
 
-@Override
-public RecordReader<Text, Tuple> createRecordReader(InputSplit split,
-                                                    TaskAttemptContext context) throws IOException,
-        InterruptedException {
-    initLogger();
-    resetUDFContext();
-    //PigSplit#conf is the default hadoop configuration, we need get the configuration
-    //from context.getConfigration() to retrieve pig properties
-    PigSplit pigSplit = (PigSplit) split;
-    Configuration conf = context.getConfiguration();
-    pigSplit.setConf(conf);
-    //Set current splitIndex in PigMapReduce.sJobContext.getConfiguration.get(PigImplConstants.PIG_SPLIT_INDEX)
-    //which will be used in POMergeCogroup#setup
-    if (PigMapReduce.sJobContext == null) {
-        PigMapReduce.sJobContext = HadoopShims.createJobContext(conf, new JobID());
+	@Override
+	public RecordReader<Text, Tuple> createRecordReader(InputSplit split,
+			TaskAttemptContext context) throws IOException,
+			InterruptedException {
+        resetUDFContext();
+        //PigSplit#conf is the default hadoop configuration, we need get the configuration
+        //from context.getConfigration() to retrieve pig properties
+        PigSplit pigSplit = (PigSplit) split;
+        Configuration conf = context.getConfiguration();
+        pigSplit.setConf(conf);
+        //Set current splitIndex in PigMapReduce.sJobContext.getConfiguration.get(PigImplConstants.PIG_SPLIT_INDEX)
+        //which will be used in POMergeCogroup#setup
+        if (PigMapReduce.sJobContext == null) {
+            PigMapReduce.sJobContext = HadoopShims.createJobContext(conf, new JobID());
+        }
+        PigMapReduce.sJobContext.getConfiguration().setInt(PigImplConstants.PIG_SPLIT_INDEX, pigSplit.getSplitIndex());
+        // Here JobConf is first available in spark Executor thread, we initialize PigContext,UDFContext and
+        // SchemaTupleBackend by reading properties from JobConf
+        initialize(conf);
+        return super.createRecordReader(split, context);
     }
-    PigMapReduce.sJobContext.getConfiguration().setInt(PigImplConstants.PIG_SPLIT_INDEX, pigSplit.getSplitIndex());
-    // Here JobConf is first available in spark Executor thread, we initialize PigContext,UDFContext and
-    // SchemaTupleBackend by reading properties from JobConf
-    initialize(conf);
-    return super.createRecordReader(split, context);
-}
 
     private void initialize(Configuration jobConf) throws IOException {
         MapRedUtil.setupUDFContext(jobConf);
         PigContext pc = (PigContext) ObjectSerializer.deserialize(jobConf.get("pig.pigContext"));
         SchemaTupleBackend.initialize(jobConf, pc);
         PigMapReduce.sJobConfInternal.set(jobConf);
+        PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
+        pigHadoopLogger.setAggregate("true".equalsIgnoreCase(jobConf.get("aggregate.warning")));
+        pigHadoopLogger.setReporter((SparkCounters)ObjectSerializer.deserialize(jobConf.get("pig.spark.counters")));
+        PhysicalOperator.setPigLogger(pigHadoopLogger);
     }
 
     private void resetUDFContext() {
-        UDFContext.getUDFContext().reset();
-    }
-
-    private void initLogger() {
-        PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
-        pigHadoopLogger.setReporter(PigStatusReporter.getInstance());
-        PhysicalOperator.setPigLogger(pigHadoopLogger);
-    }
+		UDFContext.getUDFContext().reset();
+	}
 }

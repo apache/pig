@@ -25,12 +25,12 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
-public class SparkCounterGroup implements Serializable {
-    private String groupName;
-    private String groupDisplayName;
-    private Map<String, SparkCounter> sparkCounters;
+public abstract class SparkCounterGroup<T> implements Serializable {
+    protected String groupName;
+    protected String groupDisplayName;
+    protected Map<String, SparkCounter<T>> sparkCounters;
 
-    private transient JavaSparkContext javaSparkContext;
+    protected transient JavaSparkContext javaSparkContext;
 
     private SparkCounterGroup() {
         // For serialization.
@@ -43,13 +43,10 @@ public class SparkCounterGroup implements Serializable {
         this.groupName = groupName;
         this.groupDisplayName = groupDisplayName;
         this.javaSparkContext = javaSparkContext;
-        this.sparkCounters = new HashMap<String, SparkCounter>();
+        this.sparkCounters = new HashMap<String, SparkCounter<T>>();
     }
 
-    public void createCounter(String name, long initValue) {
-        SparkCounter counter = new SparkCounter(name, name, groupName, initValue, javaSparkContext);
-        sparkCounters.put(name, counter);
-    }
+    public abstract void createCounter(String name, T initValue);
 
     public SparkCounter getCounter(String name) {
         return sparkCounters.get(name);
@@ -67,7 +64,35 @@ public class SparkCounterGroup implements Serializable {
         this.groupDisplayName = groupDisplayName;
     }
 
-    public Map<String, SparkCounter> getSparkCounters() {
+    public Map<String, SparkCounter<T>> getSparkCounters() {
         return sparkCounters;
+    }
+
+    public static class LongSparkCounterGroup extends SparkCounterGroup<Long> {
+
+        public LongSparkCounterGroup(
+                String groupName,
+                String groupDisplayName,
+                JavaSparkContext javaSparkContext) {
+            super(groupName,groupDisplayName,javaSparkContext);
+        }
+        public void createCounter(String name, Long initValue){
+            SparkCounter counter = new SparkCounter.LongSparkCounter(name, name, groupName, initValue, javaSparkContext);
+            sparkCounters.put(name,counter);
+        }
+    }
+
+    public static class MapSparkCounterGroup extends SparkCounterGroup<Map<String,Long>> {
+
+        public MapSparkCounterGroup(
+                String groupName,
+                String groupDisplayName,
+                JavaSparkContext javaSparkContext) {
+            super(groupName,groupDisplayName,javaSparkContext);
+        }
+        public void createCounter(String name, Map<String,Long> initValue){
+            SparkCounter counter = new SparkCounter.MapSparkCounter(name, name, groupName, initValue, javaSparkContext);
+            sparkCounters.put(name,counter);
+        }
     }
 }

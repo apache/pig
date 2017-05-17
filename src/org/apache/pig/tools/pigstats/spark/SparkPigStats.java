@@ -23,12 +23,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobClient;
+import org.apache.pig.PigWarning;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
@@ -37,6 +37,7 @@ import org.apache.pig.backend.hadoop.executionengine.spark.operator.NativeSparkO
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperator;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.tools.pigstats.InputStats;
 import org.apache.pig.tools.pigstats.JobStats;
@@ -76,7 +77,9 @@ public class SparkPigStats extends PigStats {
         jobStats.collectStats(jobMetricsListener);
         jobStats.addOutputInfo(poStore, isSuccess, jobMetricsListener);
         addInputInfoForSparkOper(sparkOperator, jobStats, isSuccess, jobMetricsListener, conf);
+        jobStats.initWarningCounters();
         jobSparkOperatorMap.put(jobStats, sparkOperator);
+
         jobPlan.add(jobStats);
     }
 
@@ -110,7 +113,35 @@ public class SparkPigStats extends PigStats {
     }
 
     private void display() {
-       LOG.info(getDisplayString());
+        LOG.info(getDisplayString());
+        handleAggregateWarnings();
+    }
+
+    private void handleAggregateWarnings() {
+        Map<Enum, Long> warningAggMap = new HashMap<Enum, Long>();
+
+        Iterator<JobStats> iter = jobPlan.iterator();
+        while (iter.hasNext()) {
+            SparkJobStats js = (SparkJobStats) iter.next();
+            Map<String, SparkCounter<Map<String,Long>>> counterMap = js.getWarningCounters();
+            if (counterMap == null) {
+                continue;
+            }
+            Map<String, Long> warningCounters = counterMap.get(PigWarning.SPARK_WARN.name()).getValue();
+            if (warningCounters == null) {
+                continue;
+            }
+            for (String warnKey : warningCounters.keySet()) {
+                Long val = warningAggMap.get(warnKey);
+                if (val != null) {
+                    val += (Long)warningCounters.get(warnKey);
+                } else {
+                    val = (Long)warningCounters.get(warnKey);
+                }
+                warningAggMap.put(PigWarning.valueOf(warnKey), val);
+            }
+        }
+        CompilationMessageCollector.logAggregate(warningAggMap, CompilationMessageCollector.MessageType.Warning, LOG);
     }
 
     @Override
@@ -218,5 +249,4 @@ public class SparkPigStats extends PigStats {
 
         sparkOperatorsSet.add(sparkOperator);
     }
-
 }

@@ -26,6 +26,7 @@ import scala.Option;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.Counters;
+import org.apache.pig.PigWarning;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.spark.JobMetricsListener;
@@ -45,6 +46,7 @@ public class SparkJobStats extends JobStats {
     private boolean disableCounter;
     private Counters counters = null;
     public static String FS_COUNTER_GROUP = "FS_GROUP";
+    private Map<String, SparkCounter<Map<String, Long>>> warningCounters = null;
 
     protected SparkJobStats(int jobId, PigStats.JobGraph plan, Configuration conf) {
         this(String.valueOf(jobId), plan, conf);
@@ -329,5 +331,19 @@ public class SparkJobStats extends JobStats {
         Counters.Group fsGrp = counters.addGroup(FS_COUNTER_GROUP, FS_COUNTER_GROUP);
         fsGrp.addCounter(PigStatsUtil.HDFS_BYTES_READ, PigStatsUtil.HDFS_BYTES_READ, 0);
         fsGrp.addCounter(PigStatsUtil.HDFS_BYTES_WRITTEN, PigStatsUtil.HDFS_BYTES_WRITTEN, 0);
+    }
+
+
+    public Map<String, SparkCounter<Map<String, Long>>> getWarningCounters() {
+        return warningCounters;
+    }
+
+    public void initWarningCounters() {
+        SparkCounters counters = SparkPigStatusReporter.getInstance().getCounters();
+        SparkCounterGroup<Map<String, Long>> sparkCounterGroup = counters.getSparkCounterGroups().get(
+                PigWarning.class.getCanonicalName());
+        if (sparkCounterGroup != null) {
+            this.warningCounters = sparkCounterGroup.getSparkCounters();
+        }
     }
 }

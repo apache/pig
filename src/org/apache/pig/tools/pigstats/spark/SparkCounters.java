@@ -21,13 +21,15 @@ package org.apache.pig.tools.pigstats.spark;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.PigWarning;
+import org.apache.pig.tools.pigstats.PigWarnCounter;
 import org.apache.spark.api.java.JavaSparkContext;
 
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
-public class SparkCounters implements Serializable {
+public class SparkCounters implements Serializable, PigWarnCounter {
     private static final long serialVersionUID = 1L;
 
     private static final Log LOG = LogFactory.getLog(SparkCounters.class);
@@ -57,7 +59,7 @@ public class SparkCounters implements Serializable {
         createCounter(groupName, counterName, 0L);
     }
 
-    public void createCounter(String groupName, String counterName, long initValue) {
+    public void createCounter(String groupName, String counterName, Object initValue) {
         getGroup(groupName).createCounter(counterName, initValue);
     }
 
@@ -74,11 +76,11 @@ public class SparkCounters implements Serializable {
         }
     }
 
-    public long getValue(String groupName, String counterName) {
+    public Object getValue(String groupName, String counterName) {
         SparkCounter counter = getGroup(groupName).getCounter(counterName);
         if (counter == null) {
             LOG.error(String.format("counter[%s, %s] has not initialized before.", groupName, counterName));
-            return 0;
+            return null;
         } else {
             return counter.getValue();
         }
@@ -95,7 +97,7 @@ public class SparkCounters implements Serializable {
     private SparkCounterGroup getGroup(String groupName) {
         SparkCounterGroup group = sparkCounterGroups.get(groupName);
         if (group == null) {
-            group = new SparkCounterGroup(groupName, groupName, javaSparkContext);
+            group = new SparkCounterGroup.LongSparkCounterGroup(groupName, groupName, javaSparkContext);
             sparkCounterGroups.put(groupName, group);
         }
         return group;
@@ -103,5 +105,28 @@ public class SparkCounters implements Serializable {
 
     public Map<String, SparkCounterGroup> getSparkCounterGroups() {
         return sparkCounterGroups;
+    }
+
+
+    @Override
+    public boolean incrWarnCounter(Enum<?> name, Object incr) {
+        SparkCounter counter = getCounter(PigWarning.SPARK_WARN);
+        return _incrWarnCounter(counter, name.name(), (Long) incr);
+    }
+
+    @Override
+    public boolean incrWarnCounter(String group, String name, Object incr) {
+        SparkCounter counter = getCounter(PigWarning.SPARK_CUSTOM_WARN);
+        return _incrWarnCounter(counter, group+"::"+name, (Long) incr);
+    }
+
+    private static boolean _incrWarnCounter(SparkCounter counter, String name, Long incr) {
+        if (counter == null){
+            return false;
+        }
+        Map<String,Long> map = new HashMap<String,Long>();
+        map.put(name, incr);
+        counter.increment(map);
+        return true;
     }
 }
