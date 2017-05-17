@@ -3,7 +3,5 @@
 **/TestNativeMapReduce.java
 **/TestCounters.java
 
-#TODO: PIG-5134 fix for Spark mode
-**/TestAvroStorage.java
 #TODO: PIG-5135 fix for Spark mode
 **/TestOrcStoragePushdown.java
