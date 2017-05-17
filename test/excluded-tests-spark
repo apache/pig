@@ -2,6 +2,3 @@
 **/tez/*.java
 **/TestNativeMapReduce.java
 **/TestCounters.java
-
-#TODO: PIG-5135 fix for Spark mode
-**/TestOrcStoragePushdown.java

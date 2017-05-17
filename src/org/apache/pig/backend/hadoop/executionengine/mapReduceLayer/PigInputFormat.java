@@ -61,14 +61,6 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
     public static final String PIG_INPUT_SIGNATURES = "pig.inpSignatures";
     public static final String PIG_INPUT_LIMITS = "pig.inpLimits";
 
-    /**
-     * @deprecated Use {@link UDFContext} instead in the following way to get
-     * the job's {@link Configuration}:
-     * <pre>UdfContext.getUdfContext().getJobConf()</pre>
-     */
-    @Deprecated
-    public static Configuration sJob;
-
     /* (non-Javadoc)
      * @see org.apache.hadoop.mapreduce.InputFormat#createRecordReader(org.apache.hadoop.mapreduce.InputSplit, org.apache.hadoop.mapreduce.TaskAttemptContext)
      */
@@ -78,43 +70,66 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
             org.apache.hadoop.mapreduce.InputSplit split,
             TaskAttemptContext context) throws IOException,
             InterruptedException {
-        // We need to create a TaskAttemptContext based on the Configuration which
-        // was used in the getSplits() to produce the split supplied here. For
-        // this, let's find out the input of the script which produced the split
-        // supplied here and then get the corresponding Configuration and setup
-        // TaskAttemptContext based on it and then call the real InputFormat's
-        // createRecordReader() method
+        RecordReaderFactory factory = new RecordReaderFactory(split, context);
+        return factory.createRecordReader();
+    }
 
-        PigSplit pigSplit = (PigSplit)split;
-        activeSplit = pigSplit;
-        // XXX hadoop 20 new API integration: get around a hadoop 20 bug by
-        // passing total # of splits to each split so it can be retrieved
-        // here and set it to the configuration object. This number is needed
-        // by PoissonSampleLoader to compute the number of samples
-        int n = pigSplit.getTotalSplits();
-        context.getConfiguration().setInt("pig.mapsplits.count", n);
-        Configuration conf = context.getConfiguration();
-        PigContext.setPackageImportList((ArrayList<String>) ObjectSerializer
-                .deserialize(conf.get("udf.import.list")));
-        MapRedUtil.setupUDFContext(conf);
-        LoadFunc loadFunc = getLoadFunc(pigSplit.getInputIndex(), conf);
-        // Pass loader signature to LoadFunc and to InputFormat through
-        // the conf
-        passLoadSignature(loadFunc, pigSplit.getInputIndex(), conf);
 
-        // merge entries from split specific conf into the conf we got
-        PigInputFormat.mergeSplitSpecificConf(loadFunc, pigSplit, conf);
+    /**
+     * Helper class to create record reader
+     */
+    protected static class RecordReaderFactory {
+        protected InputFormat inputFormat;
+        protected PigSplit pigSplit;
+        protected LoadFunc loadFunc;
+        protected TaskAttemptContext context;
+        protected long limit;
 
-        // for backward compatibility
-        PigInputFormat.sJob = conf;
+        public RecordReaderFactory(org.apache.hadoop.mapreduce.InputSplit split,
+                                   TaskAttemptContext context) throws IOException {
 
-        InputFormat inputFormat = loadFunc.getInputFormat();
+            // We need to create a TaskAttemptContext based on the Configuration which
+            // was used in the getSplits() to produce the split supplied here. For
+            // this, let's find out the input of the script which produced the split
+            // supplied here and then get the corresponding Configuration and setup
+            // TaskAttemptContext based on it and then call the real InputFormat's
+            // createRecordReader() method
 
-        List<Long> inpLimitLists =
-                (ArrayList<Long>)ObjectSerializer.deserialize(
-                        conf.get(PIG_INPUT_LIMITS));
+            PigSplit pigSplit = (PigSplit)split;
+            // XXX hadoop 20 new API integration: get around a hadoop 20 bug by
+            // passing total # of splits to each split so it can be retrieved
+            // here and set it to the configuration object. This number is needed
+            // by PoissonSampleLoader to compute the number of samples
+            int n = pigSplit.getTotalSplits();
+            context.getConfiguration().setInt("pig.mapsplits.count", n);
+            Configuration conf = context.getConfiguration();
+            PigContext.setPackageImportList((ArrayList<String>) ObjectSerializer
+                    .deserialize(conf.get("udf.import.list")));
+            MapRedUtil.setupUDFContext(conf);
+            LoadFunc loadFunc = getLoadFunc(pigSplit.getInputIndex(), conf);
+            // Pass loader signature to LoadFunc and to InputFormat through
+            // the conf
+            passLoadSignature(loadFunc, pigSplit.getInputIndex(), conf);
 
-        return new PigRecordReader(inputFormat, pigSplit, loadFunc, context, inpLimitLists.get(pigSplit.getInputIndex()));
+            // merge entries from split specific conf into the conf we got
+            PigInputFormat.mergeSplitSpecificConf(loadFunc, pigSplit, conf);
+
+            InputFormat inputFormat = loadFunc.getInputFormat();
+
+            List<Long> inpLimitLists =
+                    (ArrayList<Long>)ObjectSerializer.deserialize(
+                            conf.get(PIG_INPUT_LIMITS));
+
+            this.inputFormat = inputFormat;
+            this.pigSplit = pigSplit;
+            this.loadFunc = loadFunc;
+            this.context = context;
+            this.limit = inpLimitLists.get(pigSplit.getInputIndex());
+        }
+
+        public org.apache.hadoop.mapreduce.RecordReader<Text, Tuple> createRecordReader() throws IOException, InterruptedException {
+            return new PigRecordReader(inputFormat, pigSplit, loadFunc, context, limit);
+        }
     }
 
 
@@ -338,11 +353,5 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
         pigSplit.setConf(conf);
         return pigSplit;
     }
-
-    public static PigSplit getActiveSplit() {
-        return activeSplit;
-    }
-
-    private static PigSplit activeSplit;
 
 }
