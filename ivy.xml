@@ -415,6 +415,7 @@
         <exclude org="org.eclipse.jetty.orbit" module="javax.activation"/>
         <exclude org="org.apache.hadoop" />
         <exclude org="com.esotericsoftware.kryo" />
+        <exclude org="jline" module="jline"/>
         <exclude org="com.google.guava" />
     </dependency>
     <dependency org="org.apache.spark" name="spark-yarn_2.11" rev="${spark.version}" conf="spark->default">

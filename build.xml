@@ -261,9 +261,7 @@
     <property name="build.ivy.dir" location="${build.dir}/ivy" />
     <property name="build.ivy.lib.dir" location="${build.ivy.dir}/lib" />
     <property name="ivy.lib.dir" location="${build.ivy.lib.dir}/${ant.project.name}"/>
-    <!-- if we set ivy.lib.dir.spark as "${ivy.lib.dir}/spark", org.apache.pig.test.TestRegisteredJarVisibility.testRegisterJarOverridePigJarPackages will fail  -->
-    <!--<property name="ivy.lib.dir.spark" location="${ivy.lib.dir}/spark" />-->
-    <property name="ivy.lib.dir.spark" location="${build.ivy.dir}/lib/spark" />
+    <property name="ivy.lib.dir.spark" location="${ivy.lib.dir}/spark" />
     <property name="build.ivy.report.dir" location="${build.ivy.dir}/report" />
     <property name="build.ivy.maven.dir" location="${build.ivy.dir}/maven" />
     <property name="pom.xml" location="${build.ivy.maven.dir}/pom.xml"/>
@@ -385,6 +383,7 @@
 
     <fileset dir="${ivy.lib.dir}" id="core.dependencies.jar">
         <exclude name="**.*jar"/>
+        <exclude name="spark/**.*jar"/>
     </fileset>
 
     <fileset dir="${ivy.lib.dir}" id="runtime.dependencies-withouthadoop.jar">
