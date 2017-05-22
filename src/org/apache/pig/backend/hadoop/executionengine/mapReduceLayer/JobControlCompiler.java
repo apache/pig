@@ -70,6 +70,7 @@ import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.DateTimeWritable;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.PigJobControl;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
@@ -532,6 +533,9 @@ public class JobControlCompiler{
             log.info(MRConfiguration.JOB_REDUCE_MARKRESET_BUFFER_PERCENT + " is set to " +
                      conf.get(MRConfiguration.JOB_REDUCE_MARKRESET_BUFFER_PERCENT));
         }
+
+
+        DateTimeWritable.setupAvailableZoneIds();
 
         configureCompression(conf);
 

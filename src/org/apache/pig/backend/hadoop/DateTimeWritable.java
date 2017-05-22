@@ -21,20 +21,27 @@ package org.apache.pig.backend.hadoop;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Properties;
+import java.util.TreeSet;
 
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
+import org.apache.hadoop.util.StringUtils;
+import org.apache.pig.impl.PigImplConstants;
+import org.apache.pig.impl.util.UDFContext;
 
 /**
- * Writable for Double values.
+ * Writable for DateTime values.
  */
 public class DateTimeWritable implements WritableComparable {
-    
-    private static final int ONE_MINUTE = 60000;
 
+    private static List<String> availableZoneIDs = null;
     private DateTime value = null;
 
     public DateTimeWritable() {
@@ -46,12 +53,32 @@ public class DateTimeWritable implements WritableComparable {
     }
 
     public void readFields(DataInput in) throws IOException {
-        value = new DateTime(in.readLong(), DateTimeZone.forOffsetMillis(in.readShort() * ONE_MINUTE));
+        retrieveAvailableZoneList();
+
+        long instant = in.readLong();
+        int offsetInMillis = in.readInt();
+        int zoneListPos = in.readInt();
+
+        DateTimeZone timeZone = null;
+        if (zoneListPos != -1){
+            timeZone = DateTimeZone.forID(availableZoneIDs.get(zoneListPos));
+        } else  {
+            timeZone = DateTimeZone.forOffsetMillis(offsetInMillis);
+        }
+
+        value = new DateTime(instant, timeZone);
     }
 
     public void write(DataOutput out) throws IOException {
+        retrieveAvailableZoneList();
+
+        String zoneId = value.getZone().getID();
+        int offsetInMillis = value.getZone().getOffset(0L);
+        int zoneListPos = availableZoneIDs.indexOf(zoneId);
+
         out.writeLong(value.getMillis());
-        out.writeShort(value.getZone().getOffset(value) / ONE_MINUTE);
+        out.writeInt(offsetInMillis);
+        out.writeInt(zoneListPos);
     }
 
     public void set(DateTime dt) {
@@ -60,6 +87,26 @@ public class DateTimeWritable implements WritableComparable {
 
     public DateTime get() {
         return value;
+    }
+
+    private void retrieveAvailableZoneList() throws IOException {
+        if (availableZoneIDs != null){
+            return;
+        }
+        Properties props = UDFContext.getUDFContext().getUDFProperties(PigImplConstants.PIG_DATETIME_ZONES_LIST.getClass());
+        Collection<String> zoneList = StringUtils.getStringCollection(props.getProperty(PigImplConstants.PIG_DATETIME_ZONES_LIST));
+        if (zoneList == null || zoneList.size() == 0){
+            throw new IOException("Datetime zone information not set");
+        }
+        availableZoneIDs = new ArrayList<>(zoneList);
+    }
+
+    public static void setupAvailableZoneIds() {
+        TreeSet<String> sortedZoneIDs = new TreeSet<>(DateTimeZone.getAvailableIDs());
+        Properties props = UDFContext.getUDFContext().getUDFProperties(
+                PigImplConstants.PIG_DATETIME_ZONES_LIST.getClass());
+        props.setProperty(PigImplConstants.PIG_DATETIME_ZONES_LIST,  StringUtils.arrayToString(
+                sortedZoneIDs.toArray(new String[0])));
     }
 
     /**
