@@ -55,6 +55,7 @@ import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.DateTimeWritable;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
@@ -635,6 +636,8 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         payloadConf.set("exectype", "TEZ");
         payloadConf.setBoolean(PigImplConstants.PIG_EXECTYPE_MODE_LOCAL, pc.getExecType().isLocal());
         payloadConf.set(PigImplConstants.PIG_LOG4J_PROPERTIES, ObjectSerializer.serialize(pc.getLog4jProperties()));
+
+        DateTimeWritable.setupAvailableZoneIds();
 
         // Process stores
         LinkedList<POStore> stores = processStores(tezOp, payloadConf, job);

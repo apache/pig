@@ -97,6 +97,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4748: DateTimeWritable forgets Chronology (szita)
+
 PIG-5229: TestPigTest.testSpecificOrderOutput and testSpecificOrderOutputForAlias failing (knoguchi)
 
 PIG-5226: PreprocessorContext.java can deadlock forever with large stderr (jtolar via knoguchi)
