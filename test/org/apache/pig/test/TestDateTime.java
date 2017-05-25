@@ -159,11 +159,16 @@ public class TestDateTime {
      */
     @Test
     public void testDateTimeZoneOnCluster() throws Exception {
+
+        String localDateTime = "2001-01-01T01:00:00.000";
+        String localDateTimeDST = "2002-07-01T01:00:00.000";
+
         String inputFileName = "testDateTime-input.txt";
         String[] inputData = new String[]{  "1\t1990-01-04T12:30:00.000+01:00",
                 "2\t1990-01-04T11:30:00.000Z",
-                "3\t2001-01-01T01:00:00.000",
-                "4\t2017-02-02T15:19:00.000+01:00"
+                "3\t"+localDateTime,
+                "4\t"+localDateTimeDST,
+                "5\t2017-02-02T15:19:00.000+01:00"
         };
         Util.createInputFile(cluster, inputFileName, inputData);
 
@@ -175,14 +180,19 @@ public class TestDateTime {
 
         Iterator<Tuple> it = pigServer.openIterator("C");
 
-        //Should return last 3 rows from input
-        String sysTZOffset = DateTimeZone.forOffsetMillis(DateTime.now().getZone().getOffset(0L)).toString();
+        //Should return last 4 rows from input
+        String tzOffsetForLocal = DateTimeZone.forOffsetMillis(DateTime.now().getZone().getOffset(new DateTime(localDateTime))).toString();
+        String tzOffsetDSTForLocal = DateTimeZone.forOffsetMillis(DateTime.now().getZone().getOffset(new DateTime(localDateTimeDST))).toString();
+        tzOffsetForLocal = tzOffsetForLocal.replaceAll("UTC","Z");
+        tzOffsetDSTForLocal = tzOffsetDSTForLocal.replaceAll("UTC","Z");
+
         Util.checkQueryOutputsAfterSortRecursive(
                 it,
                 new String[]{
                         "(1990-01-04T11:30:00.000Z,2)",
-                        "(2001-01-01T01:00:00.000"+sysTZOffset+",3)",
-                        "(2017-02-02T15:19:00.000+01:00,4)"
+                        "(2001-01-01T01:00:00.000"+tzOffsetForLocal+",3)",
+                        "(2002-07-01T01:00:00.000"+tzOffsetDSTForLocal+",4)",
+                        "(2017-02-02T15:19:00.000+01:00,5)"
                 },
                 org.apache.pig.newplan.logical.Util.translateSchema(pigServer.dumpSchema("C")));
     }

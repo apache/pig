@@ -101,6 +101,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5238: Fix datetime related test issues after PIG-4748 (szita)
+
 PIG-5185: Job name show "DefaultJobName" when running a Python script (daijy)
 
 PIG-4748: DateTimeWritable forgets Chronology (szita)
