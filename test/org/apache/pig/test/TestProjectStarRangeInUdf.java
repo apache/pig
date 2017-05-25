@@ -301,7 +301,7 @@ public class TestProjectStarRangeInUdf  {
             ; 
         Schema sch = Utils.getSchemaFromString("tt : {(NullALias)}");
         sch.getField(0).schema.getField(0).schema.getField(0).alias = null;
-        sch.getField(0).schema.getField(0).schema.getField(0).type = DataType.NULL;
+        sch.getField(0).schema.getField(0).schema.getField(0).type = DataType.BYTEARRAY;
         
         compileAndCompareSchema(sch, query, "f");
         Iterator<Tuple> it = pigServer.openIterator("f");

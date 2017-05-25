@@ -217,6 +217,10 @@ public class ForEachUserSchemaVisitor extends LogicalRelationalNodesVisitor {
             for( LogicalSchema mUserDefinedSchema : mUserDefinedSchemas ) {
                 resetTypeToNull( mUserDefinedSchema );
             }
+
+            // Given mUserDefinedSchema was changed, we should drop the cached schema
+            foreach.resetSchema();
+            generate.resetSchema();
         }
     }
 

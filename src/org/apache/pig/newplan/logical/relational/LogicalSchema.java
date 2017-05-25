@@ -168,7 +168,7 @@ public class LogicalSchema {
                 if (s1==null && s2==null) {
                     return true;
                 }
-                if (fs1==null || fs2==null) {
+                if (s1==null || s2==null) {
                     return false;
                 }
                 if (s1.size()!=s2.size()) {
