@@ -739,12 +739,13 @@ public class TestAccumulator {
     public void testAccumAfterNestedOp() throws IOException, ParserException{
         // test group by
         pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (id:int, fruit);");
-        pigServer.registerQuery("B = group A by id;");
-        pigServer.registerQuery("C = foreach B " +
-                        "{ o = order A by id; " +
+        pigServer.registerQuery("B = foreach A generate id;"); //additional test to enable columnprune(PIG-5224)
+        pigServer.registerQuery("C = group B by id;");
+        pigServer.registerQuery("D = foreach C " +
+                        "{ o = order B by id; " +
                         "  generate org.apache.pig.test.utils.AccumulatorBagCount(o);}; ");
 
-        Iterator<Tuple> iter = pigServer.openIterator("C");
+        Iterator<Tuple> iter = pigServer.openIterator("D");
         List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {

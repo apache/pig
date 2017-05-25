@@ -101,6 +101,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5224: Extra foreach from ColumnPrune preventing Accumulator usage (knoguchi)
+
 PIG-5235: Typecast with as-clause fails for tuple/bag with an empty schema (knoguchi)
 
 PIG-5238: Fix datetime related test issues after PIG-4748 (szita)
