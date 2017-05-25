@@ -31,6 +31,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.pig.PigRunner;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
@@ -248,6 +249,8 @@ public class TestScriptLanguage {
         assertEquals("simple_out", name);
         assertEquals(12, stats.getBytesWritten());
         assertEquals(3, stats.getRecordWritten());
+        String jobName = stats.getPigProperties().getProperty(PigContext.JOB_NAME);
+        assertTrue(jobName.contains("pigRunnerTest"));
     }
 
     @Test
@@ -260,6 +263,7 @@ public class TestScriptLanguage {
                 "Pig.fs(\"rmr simple_out2\")",
                 "output1 = 'simple_out'",
                 "output2 = 'simple_out2'",
+                "P.set(\"jobName\", \"myjob\")",
                 "P = Pig.compile(\"mypipeline\", \"\"\"a = load '$input';store a into '$output';\"\"\")",
                 "Q = P.bind([{'input':input, 'output':output1}, {'input':input, 'output':output2}])",
                 "stats = Q.run()"
@@ -284,6 +288,8 @@ public class TestScriptLanguage {
             assertEquals(1, stats.getNumberJobs());
             assertEquals(12, stats.getBytesWritten());
             assertEquals(3, stats.getRecordWritten());
+            String jobName = stats.getPigProperties().getProperty(PigContext.JOB_NAME);
+            assertTrue(jobName.contains("myjob"));
         }
     }
 

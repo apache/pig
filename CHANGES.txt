@@ -97,6 +97,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5185: Job name show "DefaultJobName" when running a Python script (daijy)
+
 PIG-4748: DateTimeWritable forgets Chronology (szita)
 
 PIG-5229: TestPigTest.testSpecificOrderOutput and testSpecificOrderOutputForAlias failing (knoguchi)
