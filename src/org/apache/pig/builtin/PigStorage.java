@@ -334,6 +334,18 @@ LoadPushDown, LoadMetadata, StoreMetadata, OverwritableStoreFunc {
                     tupleIdx++;
                 }
             }
+            // If input record somehow has more fields than the provided schema
+            // drop the extra fields
+            if( tup.size() > fieldSchemas.length ) {
+                int lastindex = tup.size() - 1;
+                List<Object> list = tup.getAll();
+                for(int i = lastindex; i >= fieldSchemas.length ; i--) {
+                    list.remove(i);
+                }
+                // Tuple.getAll() may not return reference to the interal List
+                // so creating a new Tuple.
+                tup =  mTupleFactory.newTupleNoCopy(list);
+            }
         }
         return tup;
     }

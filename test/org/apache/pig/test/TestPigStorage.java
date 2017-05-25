@@ -789,4 +789,35 @@ public class TestPigStorage  {
         pig.store("a", datadir + "aout", "PigStorage(',')");
     }
 
+    @Test
+    public void testPigStroageSchemaWithMultipleSchema() throws Exception {
+        pigContext.connect();
+        String query = "A = LOAD '" + datadir + "originput' using PigStorage(',') as (f1:chararray, f2:int);"
+                + "B = FOREACH A generate f1, f2, 3 as (f3:int);";
+        pig.registerQuery(query);
+        pig.store("A", datadir + "aout", "PigStorage('\\t', '-schema')");
+        pig.store("B", datadir + "bout", "PigStorage('\\t', '-schema')");
+
+        // We want to test the case when aout/.pig_schema is chosen for loading
+        // aout AND bout.
+        // Picking of schema is not deterministic given it's picked from a SET.
+        // For this test, we simply delete the other schema.
+        new File(datadir + "bout/.pig_schema" ).delete();
+
+        // Loading from 2 directories, each containing 2 fields and 3 fields
+        // respectively.
+        pig.registerQuery("C = LOAD '" + datadir + "aout," + datadir + "bout ' using PigStorage('\\t', '-schema');");
+        Schema a_schema = pig.dumpSchema("A");
+        Schema c_schema = pig.dumpSchema("C");
+        Assert.assertEquals("PigStorage schema should pick up the .pig_schema from A", a_schema, c_schema);
+        Iterator<Tuple> iter = pig.openIterator("C");
+        int counter = 0;
+        while (iter.hasNext()) {
+            Assert.assertEquals("All tuples should only contain 2 fields defined in schema",
+                                2, iter.next().size());
+            counter++;
+        }
+        Assert.assertEquals(20, counter);
+    }
+
 }
