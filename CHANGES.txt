@@ -101,6 +101,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5231: PigStorage with -schema may produce inconsistent outputs with more fields (knoguchi)
+
 PIG-5224: Extra foreach from ColumnPrune preventing Accumulator usage (knoguchi)
 
 PIG-5235: Typecast with as-clause fails for tuple/bag with an empty schema (knoguchi)
