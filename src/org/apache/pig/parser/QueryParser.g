@@ -496,7 +496,7 @@ split_clause : SPLIT^ rel INTO! split_branch split_branches
 split_branch : identifier_plus IF cond -> ^( SPLIT_BRANCH identifier_plus cond )
 ;
 
-split_otherwise : identifier_plus OTHERWISE^
+split_otherwise : identifier_plus OTHERWISE ALL? -> ^( OTHERWISE identifier_plus ALL? )
 ;
 
 split_branches : COMMA! split_branch split_branches?

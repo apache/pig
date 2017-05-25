@@ -312,7 +312,7 @@
     </target>
 
     <target name="eclipse-files"
-            depends="init,ant-eclipse-download,ivy-compile,ivy-test"
+            depends="compile-test,ant-eclipse-download"
             description="Create eclipse project files">
         <pathconvert property="eclipse.project">
             <path path="${basedir}"/>
@@ -336,7 +336,7 @@
                 <source path="${src.shims.dir}"/>
                 <source path="${src.shims.test.dir}"/>
                 <source path="tutorial/src"/>
-                <source path="${test.src.dir}" excluding="e2e/pig/udfs/java/|resources/"/>
+                <source path="${test.src.dir}" excluding="e2e/pig/udfs/java/|resources/|perf/"/>
                 <output path="${build.dir.eclipse-main-classes}" />
                 <library pathref="eclipse.classpath" exported="true" />
                 <!--library pathref="classpath" exported="false"/-->
@@ -391,7 +391,6 @@
         <mkdir dir="${test.build.classes}" />
         <mkdir dir="${src.gen.dot.parser.dir}" />
         <mkdir dir="${src.gen.textdata.parser.dir}" />
-        <move file="${ivy.lib.dir}/javacc-${javacc.version}.jar" tofile="${javacc.home}/javacc.jar"/>
         <tstamp>
             <format property="timestamp" pattern="MMM dd yyyy, HH:mm:ss" />
         </tstamp>
@@ -474,11 +473,13 @@
     <!-- Java Compiler Compiler, generate Parsers                           -->
     <!-- ================================================================== -->
     <target name="cc-compile" depends="init, ivy-compile" description="Create and Compile Parser">
+        <move file="${ivy.lib.dir}/javacc-${javacc.version}.jar" tofile="${javacc.home}/javacc.jar"/>
         <javacc target="${src.dir}/org/apache/pig/tools/pigscript/parser/PigScriptParser.jj" outputdirectory="${src.gen.script.parser.dir}" javacchome="${javacc.home}" />
         <javacc target="${src.dir}/org/apache/pig/tools/parameters/PigFileParser.jj" outputdirectory="${src.gen.param.parser.dir}" javacchome="${javacc.home}" />
         <javacc target="${src.dir}/org/apache/pig/tools/parameters/ParamLoader.jj" outputdirectory="${src.gen.param.parser.dir}" javacchome="${javacc.home}" />
         <jjtree target="${test.src.dir}/org/apache/pig/test/utils/dotGraph/DOTParser.jjt" outputdirectory="${src.gen.dot.parser.dir}" javacchome="${javacc.home}" />
         <javacc target="${src.gen.dot.parser.dir}/DOTParser.jj" outputdirectory="${src.gen.dot.parser.dir}" javacchome="${javacc.home}" />
+        <move file="${javacc.home}/javacc.jar" tofile="${ivy.lib.dir}/javacc-${javacc.version}.jar"/>
     </target>
 
     <target name="gen" depends="genTreeParser"

@@ -1716,13 +1716,14 @@ scope GScope;
 split_otherwise throws PlanGenerationFailureException
 scope GScope;
 @init {
+	boolean allowNulls = false;
     $GScope::currentOp = builder.createSplitOutputOp();
 }
- : ^( OTHERWISE alias )
+ : ^( OTHERWISE alias ( ALL { allowNulls = true; } )? )
   {
        SourceLocation loc = new SourceLocation( (PigParserNode)$alias.start );
        builder.buildSplitOtherwiseOp( loc, (LOSplitOutput)$GScope::currentOp, $alias.name,
-           $statement::inputAlias);
+           $statement::inputAlias, allowNulls);
   }
 ;
 

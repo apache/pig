@@ -36,6 +36,8 @@ PIG-5067: Revisit union on numeric type and chararray to bytearray (knoguchi)
  
 IMPROVEMENTS
 
+PIG-3021: Split results missing records when there is null values in the column comparison (jeffjee617, cheolsoo via daijy)
+
 PIG-5211: Optimize Nested Limited Sort (jins via daijy)
 
 PIG-5214: search any substring in the input string (rainer-46 via daijy)
