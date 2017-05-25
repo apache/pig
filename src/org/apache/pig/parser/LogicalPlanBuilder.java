@@ -64,6 +64,7 @@ import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.logical.expression.BinCondExpression;
 import org.apache.pig.newplan.logical.expression.ConstantExpression;
+import org.apache.pig.newplan.logical.expression.IsNullExpression;
 import org.apache.pig.newplan.logical.expression.LessThanExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
@@ -276,7 +277,7 @@ public class LogicalPlanBuilder {
         return buildOp ( loc, op, alias, inputAlias, null );
     }
 
-    String buildSplitOtherwiseOp(SourceLocation loc, LOSplitOutput op, String alias, String inputAlias)
+    String buildSplitOtherwiseOp(SourceLocation loc, LOSplitOutput op, String alias, String inputAlias, boolean allowNulls)
             throws ParserValidationException, PlanGenerationFailureException {
         LogicalExpressionPlan splitPlan = new LogicalExpressionPlan();
         Operator losplit = lookupOperator(inputAlias);
@@ -314,7 +315,12 @@ public class LogicalPlanBuilder {
         }
         // using De Morgan's law (!A && !B) == !(A || B)
         currentExpr = new NotExpression(splitPlan, currentExpr);
-
+        if (allowNulls) {
+            // add IsNull expression to the condition: i.e. (A || B) IS NULL OR !(A || B).
+            // this is needed to catch null values in otherwise branch.
+            LogicalExpression isNull = new IsNullExpression( splitPlan, currentExpr );
+            currentExpr = new OrExpression(splitPlan, isNull, currentExpr);
+        }
         try {
             // Going through all the ProjectExpressions that were cloned
             // and updating the attached operators from its original

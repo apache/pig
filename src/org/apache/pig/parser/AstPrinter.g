@@ -601,7 +601,7 @@ split_branch
 ;
 
 split_otherwise
-    : ^( OTHERWISE alias { sb.append(" " + $OTHERWISE.text); } )
+    : ^( OTHERWISE alias { sb.append(" " + $OTHERWISE.text); } ( ALL { sb.append(" " + $ALL.text); } )? )
 ;
 
 col_ref : alias_col_ref | dollar_col_ref

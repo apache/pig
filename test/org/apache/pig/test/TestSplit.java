@@ -17,12 +17,17 @@
  */
 package org.apache.pig.test;
 
-import java.io.File;
+import static org.junit.Assert.assertEquals;
+import static org.apache.pig.builtin.mock.Storage.resetData;
+import static org.apache.pig.builtin.mock.Storage.tuple;
+
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.List;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.junit.Before;
@@ -30,46 +35,77 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestSplit {
-    private static final String[] data = new String[] { "1", "2", "3", "4", "5", "6" };
-    private static File file;
-    private PigServer pig;
+    static private PigServer pig;
+    static private Data data;
 
     @BeforeClass
-    public static void oneTimeSetUp() throws IOException {
-        file = Util.createLocalInputFile("split_input", data);
+    public static void setup() throws ExecException, IOException {
+        pig = new PigServer(ExecType.LOCAL);
     }
 
     @Before
     public void setUp() throws Exception {
-        pig = new PigServer(Util.getLocalTestMode());
+        data = resetData(pig);
+        data.set("input",
+                tuple(1),
+                tuple(2),
+                tuple(3),
+                tuple(4),
+                tuple((Integer)null),
+                tuple(5),
+                tuple(6)
+        );
     }
 
     @Test
     public void testSplit1() throws IOException {
         String query = 
-            "a = load '" + Util.encodeEscape(file.getAbsolutePath()) + "' as (id:int);" + 
-            "split a into b if id > 3, c if id < 3, d otherwise;"
+            "a = load 'input' using mock.Storage() as (id:int);" +
+            "split a into b if id > 3, c if id < 3, d otherwise;" +
+            "d_sorted = order d by id;" +
+            "store d_sorted into 'output' using mock.Storage();"
             ;
 
         Util.registerMultiLineQuery(pig, query);
-        Iterator<Tuple> it = pig.openIterator("d");
-
-        List<Tuple> expectedRes = Util.getTuplesFromConstantTupleStrings(new String[] { "(3)" });
-        Util.checkQueryOutputs(it, expectedRes);
+        List<Tuple> out = data.get("output");
+        assertEquals(1, out.size());
+        assertEquals(tuple(3), out.get(0));
     }
     
     @Test
     public void testSplit2() throws IOException {
         String query = 
-            "a = load '" + Util.encodeEscape(file.getAbsolutePath()) + "' as (id:int);" + 
-            "split a into b if id % 2 == 0, d otherwise;"
+            "a = load 'input' using mock.Storage() as (id:int);" +
+            "split a into b if id % 2 == 0, d otherwise;" +
+            "d_sorted = order d by id;" +
+            "store d_sorted into 'output' using mock.Storage();"
             ;
 
-        Util.registerMultiLineQuery(pig, query);
-        Iterator<Tuple> it = pig.openIterator("d");
+         Util.registerMultiLineQuery(pig, query);
+         List<Tuple> out = data.get("output");
+         assertEquals(3, out.size());
+         assertEquals(tuple(1), out.get(0));
+         assertEquals(tuple(3), out.get(1));
+         assertEquals(tuple(5), out.get(2));
+    }
 
-        List<Tuple> expectedRes = Util.getTuplesFromConstantTupleStrings(new String[] { "(1)", "(3)", "(5)" });
-        Util.checkQueryOutputsAfterSort(it, expectedRes);
+    @Test
+    public void testOtherwiseAll() throws IOException {
+    String query =
+        "a = load 'input' using mock.Storage() as (id:int);" +
+        "split a into b if id % 2 == 0, d otherwise all;" +
+        "d_sorted = order d by id;" +
+        "store d_sorted into 'output' using mock.Storage();"
+        ;
+        Util.registerMultiLineQuery(pig, query);
+        List<Tuple> out = data.get("output");
+        // Null should be passed through since the ALL keyword was specified in
+        // the otherwise branch
+        assertEquals(4, out.size());
+        assertEquals(tuple((Integer)null), out.get(0));
+        assertEquals(tuple(1), out.get(1));
+        assertEquals(tuple(3), out.get(2));
+        assertEquals(tuple(5), out.get(3));
     }
     
     @Test
@@ -77,26 +113,33 @@ public class TestSplit {
         String query =
             "define split_into_two (A,key) returns B, C {" +
             "    SPLIT $A INTO $B IF $key<4, $C OTHERWISE;" +
-            "};"  +
-            "a = load '" + Util.encodeEscape(file.getAbsolutePath()) + "' as (id:int);" +
-            "B, C = split_into_two(a, id);"
+            "};" +
+            "a = load 'input' using mock.Storage() as (id:int);" +
+            "b, c = split_into_two(a, id);" +
+            "b_sorted = order b by id;" +
+            "c_sorted = order c by id;" +
+            "store b_sorted into 'output1' using mock.Storage();" +
+            "store c_sorted into 'output2' using mock.Storage();"
             ;
 
         Util.registerMultiLineQuery(pig, query);
-        Iterator<Tuple> it = pig.openIterator("B");
+        List<Tuple> out = data.get("output1");
+        assertEquals(3, out.size());
+        assertEquals(tuple(1), out.get(0));
+        assertEquals(tuple(2), out.get(1));
+        assertEquals(tuple(3), out.get(2));
 
-        List<Tuple> expectedRes = Util.getTuplesFromConstantTupleStrings(new String[] { "(1)", "(2)", "(3)" });
-        Util.checkQueryOutputsAfterSort(it, expectedRes);
-
-        it = pig.openIterator("C");
-        expectedRes = Util.getTuplesFromConstantTupleStrings(new String[] { "(4)", "(5)", "(6)" });
-        Util.checkQueryOutputsAfterSort(it, expectedRes);
+        out = data.get("output2");
+        assertEquals(3, out.size());
+        assertEquals(tuple(4), out.get(0));
+        assertEquals(tuple(5), out.get(1));
+        assertEquals(tuple(6), out.get(2));
     }
 
     @Test(expected=FrontendException.class)
     public void testSplitNondeterministic() throws IOException {
         String query = 
-            "a = load '" + Util.encodeEscape(file.getAbsolutePath()) + "' as (id:int);" + 
+            "a = load 'input' using mock.Storage() as (id:int);" +
             "split a into b if RANDOM() < 0.5, d otherwise;"
             ;
 
