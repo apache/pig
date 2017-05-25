@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Random;
 
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.DateTimeWritable;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -171,6 +172,7 @@ public class TestPackage {
             runTest(r.nextLong(), inner, DataType.LONG);
             break;
         case DataType.DATETIME:
+            DateTimeWritable.setupAvailableZoneIds();
             runTest(new DateTime(r.nextLong()), inner, DataType.DATETIME);
             break;
         case DataType.MAP:
