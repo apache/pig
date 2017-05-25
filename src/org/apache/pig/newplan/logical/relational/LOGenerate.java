@@ -168,10 +168,8 @@ public class LOGenerate extends LogicalRelationalOperator {
                     mergedSchema.mergeUid(expSchema);
 
                 }
+                setNullTypeToByteArrayType(mergedSchema);
                 for (LogicalFieldSchema fs : mergedSchema.getFields()) {
-                    if (fs.type==DataType.NULL) {
-                        fs.type = DataType.BYTEARRAY;
-                    }
                     planSchema.addField(fs);
                 }
             } else {
@@ -322,5 +320,17 @@ public class LOGenerate extends LogicalRelationalOperator {
 
     public List<LogicalSchema> getExpSchemas() {
         return expSchemas;
+    }
+
+    private void setNullTypeToByteArrayType (LogicalSchema s1) {
+        if( s1 != null ) {
+            for (LogicalFieldSchema fs : s1.getFields()) {
+                if( DataType.isSchemaType(fs.type) ) {
+                    setNullTypeToByteArrayType(fs.schema);
+                } else if(fs.type == DataType.NULL) {
+                    fs.type = DataType.BYTEARRAY;
+                }
+            }
+        }
     }
 }

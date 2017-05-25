@@ -535,4 +535,45 @@ public class TestPlanGeneration {
             Assert.assertEquals(expectedRes[i], list.get(i).toString());
         }
     }
+
+    @Test
+    public void testAsWithTypeTuple() throws Exception {
+        Data data = Storage.resetData(ps);
+        data.set("input_testAsWithTypeTuple", "t1:tuple(), f2:chararray",
+                 tuple(tuple(1.1,1.2), "a"), tuple(tuple(2.8, 3.1), "b"));
+
+        String query =
+            "A = load 'input_testAsWithTypeTuple' USING mock.Storage(); \n"
+            + "B = FOREACH A GENERATE t1 as (newt1:tuple(f1_1:int, f1_2:double));\n"
+            + "store B into 'out' using mock.Storage;" ;
+
+        Util.registerMultiLineQuery(ps, query);
+        List<Tuple> list = data.get("out");
+        // making sure typecast from double to int worked.
+        // first field is 1 instead of 1.1, and 2 instead of 2.8.
+        List<Tuple> expectedRes =
+                Util.getTuplesFromConstantTupleStrings(
+                        new String[] {"((1,1.2))", "((2,3.1))"});
+        Util.checkQueryOutputsAfterSort(list, expectedRes);
+    }
+
+    @Test
+    public void testAsWithTypeBag() throws Exception {
+        Data data = Storage.resetData(ps);
+        data.set("input_testAsWithTypeBag", "b1:bag{}, f2:chararray",
+                 tuple(bag(tuple(1.1),tuple(1.2)), "a"), tuple(bag(tuple(2.8), tuple(3.1)), "b"));
+
+        String query =
+            "A = load 'input_testAsWithTypeBag' USING mock.Storage(); \n"
+            + "B = FOREACH A GENERATE b1 as (newbag:bag{tuple(f1:int)}); \n"
+            + "store B into 'out' using mock.Storage;" ;
+
+        Util.registerMultiLineQuery(ps, query);
+        List<Tuple> list = data.get("out");
+        // making sure typecast from double to int worked.
+        List<Tuple> expectedRes =
+                Util.getTuplesFromConstantTupleStrings(
+                        new String[] {"({(1),(1)})","({(2),(3)})"});
+        Util.checkQueryOutputsAfterSort(list, expectedRes);
+    }
 }
