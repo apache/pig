@@ -17,6 +17,7 @@
  */
 package org.apache.pig.scripting;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.StringReader;
@@ -264,13 +265,18 @@ public class BoundScript {
         LOG.info("Query to run:\n" + query);
         List<PigProgressNotificationListener> listeners = ScriptState.get().getAllListeners();
         PigContext pc = scriptContext.getPigContext();
+        String scriptName = new File(ScriptState.get().getFileName()).getName();
         ScriptState scriptState = pc.getExecutionEngine().instantiateScriptState();
+        scriptState.setFileName(scriptName);
         ScriptState.start(scriptState);
         ScriptState.get().setScript(query);
         for (PigProgressNotificationListener listener : listeners) {
             ScriptState.get().registerListener(listener);
         }
         PigServer pigServer = new PigServer(scriptContext.getPigContext(), false);
+        if (!pigServer.getPigContext().getProperties().containsKey("jobName")) {
+            pigServer.setJobName(scriptName);
+        }
         GruntParser grunt = new GruntParser(new StringReader(query), pigServer);
         grunt.setInteractive(false);
         try {
