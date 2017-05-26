@@ -36,6 +36,8 @@ PIG-5067: Revisit union on numeric type and chararray to bytearray (knoguchi)
  
 IMPROVEMENTS
 
+PIG-5236: json simple jar not included automatically with piggybank AvroStorage (satishsaley via rohini)
+
 PIG-3103: make mockito a test dependency (instead of compile) (nkollar via szita)
 
 PIG-3021: Split results missing records when there is null values in the column comparison (jeffjee617, cheolsoo via daijy)
