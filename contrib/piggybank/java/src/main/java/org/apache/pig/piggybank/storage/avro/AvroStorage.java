@@ -55,7 +55,9 @@ import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceStatistics;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.StoreFuncInterface;
+import org.apache.pig.StoreResources;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
+import org.apache.pig.builtin.FuncUtils;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.UDFContext;
@@ -67,7 +69,7 @@ import org.json.simple.parser.ParseException;
  * AvroStorage is used to load/store Avro data <br/>
  * Document can be found <a href='https://cwiki.apache.org/PIG/avrostorage.html'>here</a>
  */
-public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface, LoadMetadata {
+public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface, LoadMetadata, StoreResources {
 
     private static final Log LOG = LogFactory.getLog(AvroStorage.class);
     /* storeFunc parameters */
@@ -811,5 +813,12 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public List<String> getShipFiles() {
+        ArrayList<Class> classList = new ArrayList<Class>();
+        classList.add(JSONParser.class);
+        return FuncUtils.getShipFiles(classList);
     }
 }
