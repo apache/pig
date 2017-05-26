@@ -53,10 +53,9 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 
-@InterfaceAudience.Public
+@InterfaceAudience.Private
 public class SecondaryKeyOptimizerUtil {
     private static Log log = LogFactory.getLog(SecondaryKeyOptimizerUtil.class.getName());
-    private static boolean isSparkMode;
 
     public SecondaryKeyOptimizerUtil() {
 
@@ -678,9 +677,5 @@ public class SecondaryKeyOptimizerUtil {
             currentNode = succs.get(0);
         }
         return false;
-    }
-
-    public static void setIsSparkMode(boolean isSparkMode) {
-        SecondaryKeyOptimizerUtil.isSparkMode = isSparkMode;
     }
 }

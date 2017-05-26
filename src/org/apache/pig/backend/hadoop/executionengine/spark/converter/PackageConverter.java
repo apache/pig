@@ -89,7 +89,7 @@ public class PackageConverter implements RDDConverter<Tuple, Tuple, POPackage> {
                             // we want the value and index only
                             Tuple next = bagIterator.next();
                             NullableTuple nullableTuple = new NullableTuple(
-                                    (Tuple) next.get(2));
+                                    (Tuple) next.get(1));
                             nullableTuple.setIndex(((Number) next.get(0))
                                     .byteValue());
                             if (LOG.isDebugEnabled())

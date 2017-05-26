@@ -36,6 +36,7 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.VisitorException;
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -512,9 +513,8 @@ public abstract class TestSecondarySort {
     @Test
     // Once custom partitioner is used, we cannot use secondary key optimizer, see PIG-3827
     public void testCustomPartitionerWithSort() throws Exception {
-        if( Util.isSparkExecType(cluster.getExecType())){
-            return;
-        }
+        Assume.assumeFalse("Skip this test for Spark", Util.isSparkExecType(cluster.getExecType()));
+
         File tmpFile1 = Util.createTempFileDelOnExit("test", "txt");
         PrintStream ps1 = new PrintStream(new FileOutputStream(tmpFile1));
         ps1.println("1\t2\t3");

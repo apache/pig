@@ -210,17 +210,13 @@ public class TestPigRunner {
             PigStats stats = PigRunner.run(args, new TestNotificationListener(execType));
 
             assertTrue(stats.isSuccessful());
-            if (execType.toString().startsWith("tez")) {
-                assertEquals(1, stats.getNumberJobs());
-                assertEquals(stats.getJobGraph().size(), 1);
-            } else if (execType.toString().startsWith("spark")) {
-                // In spark mode,the number of spark job is calculated by the number of POStore.
-                // 1 POStore generates 1 spark job.
-                assertEquals(1, stats.getNumberJobs());
-                assertEquals(stats.getJobGraph().size(), 1);
-            } else {
+            if (execType.equals("mapreduce")) {
                 assertEquals(2, stats.getNumberJobs());
                 assertEquals(stats.getJobGraph().size(), 2);
+            } else {
+                // Tez and Spark
+                assertEquals(1, stats.getNumberJobs());
+                assertEquals(stats.getJobGraph().size(), 1);
             }
 
             Configuration conf = ConfigurationUtil.toConfiguration(stats.getPigProperties());
@@ -460,18 +456,13 @@ public class TestPigRunner {
         w.close();
 
         try {
-            String[] args = null;
-            if (execType.toUpperCase().equals((new SparkExecType()).name())) {
-                args = new String[]{"-no_multiquery", "-x", execType, PIG_FILE};
-
-            } else {
-                args = new String[]{"-x", execType, PIG_FILE};
-            }
-            PigStats stats =  PigRunner.run(args, new TestNotificationListener(execType));
+          String[] args = null;
+          args = new String[]{"-x", execType, PIG_FILE};
+          PigStats stats =  PigRunner.run(args, new TestNotificationListener(execType));
             assertTrue(stats.isSuccessful());
             if (Util.isMapredExecType(cluster.getExecType())) {
                 assertEquals(3, stats.getJobGraph().size());
-            } if (Util.isSparkExecType(cluster.getExecType())) {
+            } else if (Util.isSparkExecType(cluster.getExecType())) {
                 // One for each store and 3 for join.
                 assertEquals(4, stats.getJobGraph().size());
             } else {
@@ -514,11 +505,14 @@ public class TestPigRunner {
             });
             assertEquals(5, inputStats.get(0).getNumberRecords());
             assertEquals(3, inputStats.get(1).getNumberRecords());
-            // For mapreduce, since hdfs bytes read includes replicated tables bytes read is wrong
             // Since Tez does has only one load per job its values are correct
-            // By pass the check for spark due to PIG-4788
-            if (!Util.isMapredExecType(cluster.getExecType()) && !Util.isSparkExecType(cluster.getExecType())) {
+            // the result of inputStats in spark mode is also correct
+            if (!Util.isMapredExecType(cluster.getExecType())) {
                 assertEquals(30, inputStats.get(0).getBytes());
+            }
+
+            //TODO PIG-5240:Fix TestPigRunner#simpleMultiQueryTest3 in spark mode for wrong inputStats
+            if (!Util.isMapredExecType(cluster.getExecType()) && !Util.isSparkExecType(cluster.getExecType())) {
                 assertEquals(18, inputStats.get(1).getBytes());
             }
         } finally {
@@ -545,17 +539,15 @@ public class TestPigRunner {
             Iterator<JobStats> iter = stats.getJobGraph().iterator();
             while (iter.hasNext()) {
                 JobStats js=iter.next();
-                if (execType.equals("tez")) {
-                    assertEquals(js.getState().name(), "FAILED");
-                } else if (execType.equals("spark")) {
-                    assertEquals(js.getState().name(), "FAILED");
-                } else {
-                    if(js.getState().name().equals("FAILED")) {
-                        List<Operator> ops=stats.getJobGraph().getSuccessors(js);
-                        for(Operator op : ops ) {
-                            assertEquals(((JobStats)op).getState().toString(), "UNKNOWN");
+                if (execType.equals("mapreduce")) {
+                    if (js.getState().name().equals("FAILED")) {
+                        List<Operator> ops = stats.getJobGraph().getSuccessors(js);
+                        for (Operator op : ops) {
+                            assertEquals(((JobStats) op).getState().toString(), "UNKNOWN");
                         }
                     }
+                } else {
+                    assertEquals(js.getState().name(), "FAILED");
                 }
             }
         } finally {

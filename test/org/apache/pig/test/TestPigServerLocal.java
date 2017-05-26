@@ -263,6 +263,8 @@ public class TestPigServerLocal {
             // 3 = 1 (registerQuery) + 2 (SortConverter, PigRecordReader)
             // 1 (registerQuery)
             _testSkipParseInRegisterForBatch(true, 3, 1);
+
+            _testParseBatchWithScripting(3, 1);
         } else {
             // numTimesInitiated = 10. 4 (once per registerQuery) + 6 (launchPlan->RandomSampleLoader,
             // InputSizeReducerEstimator, getSplits->RandomSampleLoader,

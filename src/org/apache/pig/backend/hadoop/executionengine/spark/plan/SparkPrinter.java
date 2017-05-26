@@ -41,7 +41,7 @@ public class SparkPrinter extends SparkOpPlanVisitor {
         super(plan, new DepthFirstWalker<SparkOperator, SparkOperPlan>(plan));
         mStream = ps;
         mStream.println("#--------------------------------------------------");
-        mStream.println("# Spark Plan                                  ");
+        mStream.println("# Spark Plan");
         mStream.println("#--------------------------------------------------");
     }
 

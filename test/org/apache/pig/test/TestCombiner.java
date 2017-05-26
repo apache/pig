@@ -116,17 +116,17 @@ public class TestCombiner {
         inputLines.add("a,c,1");
         String inputFileName = loadWithTestLoadFunc("A", pig, inputLines);
 
-        pig.registerQuery("B = group A by ($0, $1);");
-        pig.registerQuery("C = foreach B generate flatten(group), COUNT($1);");
+        pig.registerQuery("B = foreach A generate $0 as (c0:chararray), $1 as (c1:chararray), $2 as (c2:int);");
+        pig.registerQuery("C = group B by ($0, $1);");
+        pig.registerQuery("D = foreach C generate flatten(group), COUNT($1) as int;");
         // Since the input has no schema, using Util.getTuplesFromConstantTupleStrings fails assert.
-        List<String> resultTuples = new ArrayList<>();
-        resultTuples.add("(a,b,2)");
-        resultTuples.add("(a,c,1)");
-        Iterator<Tuple> resultIterator = pig.openIterator("C");
-        Tuple tuple = resultIterator.next();
-        assertTrue(resultTuples.contains(tuple.toString()));
-        tuple = resultIterator.next();
-        assertTrue(resultTuples.contains(tuple.toString()));
+        List<Tuple> resultTuples = Util.getTuplesFromConstantTupleStrings(
+            new String[]{
+                "('a','b',2)",
+                "('a','c',1)",
+            });
+        Iterator<Tuple> resultIterator = pig.openIterator("D");
+        Util.checkQueryOutputsAfterSort(resultIterator, resultTuples);
 
         return inputFileName;
     }

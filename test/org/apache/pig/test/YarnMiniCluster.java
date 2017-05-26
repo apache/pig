@@ -26,6 +26,7 @@ import org.apache.commons.lang.ArrayUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
+import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.mapreduce.v2.MiniMRYarnCluster;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.pig.ExecType;
@@ -79,8 +80,15 @@ public abstract class YarnMiniCluster extends MiniGenericCluster {
             m_mr.init(m_dfs_conf);
             m_mr.start();
             m_mr_conf = m_mr.getConfig();
-            m_mr_conf.set(YarnConfiguration.YARN_APPLICATION_CLASSPATH,
-                    System.getProperty("java.class.path"));
+            File libDir = new File(System.getProperty("ivy.lib.dir", "build/ivy/lib/Pig"));
+            File classesDir = new File(System.getProperty("build.classes", "build/classes"));
+            File testClassesDir = new File(System.getProperty("test.build.classes", "test/build/classes"));
+            String classpath = libDir.getAbsolutePath() + "/*"
+                + File.pathSeparator + classesDir.getAbsolutePath()
+                + File.pathSeparator + testClassesDir.getAbsolutePath();
+            m_mr_conf.set(YarnConfiguration.YARN_APPLICATION_CLASSPATH, classpath);
+            m_mr_conf.set(MRJobConfig.MAP_JAVA_OPTS, "-Xmx512m");
+            m_mr_conf.set(MRJobConfig.REDUCE_JAVA_OPTS, "-Xmx512m");
 
             Configuration mapred_site = new Configuration(false);
             Configuration yarn_site = new Configuration(false);

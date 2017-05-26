@@ -513,6 +513,8 @@ public class PigConfiguration {
 
     public static final String PIG_STORE_SCHEMA_DISAMBIGUATE_DEFAULT = "true";
 
+    public static final String PIG_PRINT_EXEC_PLAN = "pig.print.exec.plan";
+
     // Deprecated settings of Pig 0.13
 
     /**

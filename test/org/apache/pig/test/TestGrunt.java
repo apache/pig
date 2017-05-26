@@ -906,6 +906,15 @@ public class TestGrunt {
 
     @Test
     public void testKeepGoigFailed() throws Throwable {
+        // in mr mode, the output file 'baz' will be automatically deleted if the mr job fails
+        // when "cat baz;" is executed, it throws "Encountered IOException. Directory baz does not exist"
+        // in GruntParser#processCat() and variable "caught" is true
+        // in spark mode, the output file 'baz' will not be automatically deleted even the job fails(see SPARK-7953)
+        // when "cat baz;" is executed, it does not throw exception and the variable "caught" is false
+        // TODO: Enable this for Spark when SPARK-7953 is resolved
+        Assume.assumeTrue(
+            "Skip this test for Spark until SPARK-7953 is resolved!",
+            !Util.isSparkExecType(cluster.getExecType()));
         PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
         Util.copyFromLocalToCluster(cluster, "test/org/apache/pig/test/data/passwd", "passwd");
@@ -927,23 +936,14 @@ public class TestGrunt {
         InputStreamReader reader = new InputStreamReader(cmd);
 
         Grunt grunt = new Grunt(new BufferedReader(reader), context);
-
         boolean caught = false;
-        // in mr mode, the output file 'baz' will be automatically deleted if the mr job fails
-        // when "cat baz;" is executed, it throws "Encountered IOException. Directory baz does not exist"
-        // in GruntParser#processCat() and variable "caught" is true
-        // in spark mode, the output file 'baz' will not be automatically deleted even the job fails(see SPARK-7953)
-        // when "cat baz;" is executed, it does not throw exception and the variable "caught" is false
-        // TODO: Enable this for Spark when SPARK-7953 is resolved
-        Assume.assumeTrue(
-                "Skip this test for Spark until SPARK-7953 is resolved!",
-                !Util.isSparkExecType(cluster.getExecType()));
         try {
             grunt.exec();
         } catch (Exception e) {
             caught = true;
             assertTrue(e.getMessage().contains("baz does not exist"));
         }
+        assertTrue(caught);
     }
 
     @Test

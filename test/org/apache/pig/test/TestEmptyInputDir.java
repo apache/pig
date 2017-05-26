@@ -88,6 +88,7 @@ public class TestEmptyInputDir {
 
             //Spark doesn't create an empty result file part-*, only a _SUCCESS file if input dir was empty
             Assume.assumeTrue("Skip this test for Spark. See PIG-5140", !Util.isSparkExecType(cluster.getExecType()));
+            assertEmptyOutputFile();
         } finally {
             new File(PIG_FILE).delete();
             Util.deleteFile(cluster, OUTPUT_FILE);

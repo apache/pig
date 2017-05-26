@@ -208,7 +208,7 @@ public class UDFContext {
     }
 
     /*
-     called by SparkEngineConf#writeObject
+     * Internal pig use
      */
     public String serialize() {
         try {

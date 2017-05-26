@@ -63,6 +63,7 @@ public class TestLocationInPhysicalPlan {
         if (Util.getLocalTestMode().toString().equals("TEZ_LOCAL")) {
             Assert.assertEquals("A[1,4],A[3,4],B[2,4]", jStats.getAliasLocation());
         } else if (Util.getLocalTestMode().toString().equals("SPARK_LOCAL")) {
+            //TODO PIG-5239:Investigate why there are duplicated A[3,4]
             Assert.assertEquals("A[1,4],A[3,4],B[2,4],A[3,4]", jStats.getAliasLocation());
         } else {
             Assert.assertEquals("M: A[1,4],A[3,4],B[2,4] C: A[3,4],B[2,4] R: A[3,4]", jStats.getAliasLocation());

@@ -31,7 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SparkPigContext {
 
     private static SparkPigContext context =  null;
-    private static ThreadLocal<Integer> PIG_DEFAULT_PARALLELISM = null;
+    private static ThreadLocal<Integer> defaultParallelism = null;
     private static ConcurrentHashMap<String, Broadcast<List<Tuple>>> broadcastedVars = new ConcurrentHashMap() ;
 
     public static SparkPigContext get(){
@@ -40,15 +40,15 @@ public class SparkPigContext {
         }
         return context;
     }
-    public static int getPigDefaultParallelism() {
-        return PIG_DEFAULT_PARALLELISM.get();
+    public static int getDefaultParallelism() {
+        return defaultParallelism.get();
     }
 
 
     public static int getParallelism(List<RDD<Tuple>> predecessors,
                                      PhysicalOperator physicalOperator) {
-        if (PIG_DEFAULT_PARALLELISM != null) {
-           return getPigDefaultParallelism();
+        if (defaultParallelism != null) {
+           return getDefaultParallelism();
         }
 
         int parallelism = physicalOperator.getRequestedParallelism();
@@ -69,8 +69,8 @@ public class SparkPigContext {
         return parallelism;
     }
 
-    public static void setPigDefaultParallelism(int pigDefaultParallelism) {
-        PIG_DEFAULT_PARALLELISM.set(pigDefaultParallelism);
+    public static void setDefaultParallelism(int defaultParallelism) {
+        SparkPigContext.defaultParallelism.set(defaultParallelism);
     }
 
      public static ConcurrentHashMap<String, Broadcast<List<Tuple>>> getBroadcastedVars() {

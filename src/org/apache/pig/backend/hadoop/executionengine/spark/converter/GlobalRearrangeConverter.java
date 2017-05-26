@@ -323,7 +323,7 @@ public class GlobalRearrangeConverter implements
                             try {
                                 Tuple tuple = tf.newTuple(3);
                                 tuple.set(0, index);
-                                tuple.set(2, next);
+                                tuple.set(1, next);
                                 return tuple;
                             } catch (ExecException e) {
                                 throw new RuntimeException(e);

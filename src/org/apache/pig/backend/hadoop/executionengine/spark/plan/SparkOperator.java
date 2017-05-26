@@ -269,9 +269,9 @@ public class SparkOperator extends Operator<SparkOpPlanVisitor> {
         }
     }
 
-	public boolean isSkewedJoin() {
-		return (skewedJoinPartitionFile != null);
-	}
+    public boolean isSkewedJoin() {
+        return (skewedJoinPartitionFile != null);
+    }
 
     public void setRequestedParallelism(int requestedParallelism) {
         this.requestedParallelism = requestedParallelism;

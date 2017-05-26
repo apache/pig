@@ -167,7 +167,9 @@ public class SparkLauncher extends Launcher {
         this.pigContext = pigContext;
         initialize(physicalPlan);
         SparkOperPlan sparkplan = compile(physicalPlan, pigContext);
-        LOG.info(sparkplan);
+        if (LOG.isDebugEnabled()) {
+            LOG.debug(sparkplan);
+        }
         SparkPigStats sparkStats = (SparkPigStats) pigContext
                 .getExecutionEngine().instantiatePigStats();
         sparkStats.initialize(pigContext, sparkplan, jobConf);
@@ -221,8 +223,13 @@ public class SparkLauncher extends Launcher {
         convertMap.put(POBroadcastSpark.class, new BroadcastConverter(sparkContext));
         convertMap.put(POSampleSortSpark.class, new SparkSampleSortConverter());
         convertMap.put(POPoissonSampleSpark.class, new PoissonSampleConverter());
-
+        //Print SPARK plan before launching if needed
+        Configuration conf = ConfigurationUtil.toConfiguration(pigContext.getProperties());
+        if (conf.getBoolean(PigConfiguration.PIG_PRINT_EXEC_PLAN, false)) {
+            LOG.info(sparkplan);
+        }
         uploadResources(sparkplan);
+
         new JobGraphBuilder(sparkplan, convertMap, sparkStats, sparkContext, jobMetricsListener, jobGroupID, jobConf, pigContext).visit();
         cleanUpSparkJob(sparkStats);
         sparkStats.finish();
@@ -239,13 +246,13 @@ public class SparkLauncher extends Launcher {
         addJarsToSparkJob(sparkPlan);
     }
 
-    private void optimize(PigContext pc, SparkOperPlan plan) throws IOException {
+    private void optimize(SparkOperPlan plan, PigContext pigContext) throws IOException {
 
-        Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
+        Configuration conf = ConfigurationUtil.toConfiguration(pigContext.getProperties());
 
         // Should be the first optimizer as it introduces new operators to the plan.
         boolean noCombiner = conf.getBoolean(PigConfiguration.PIG_EXEC_NO_COMBINER, false);
-        if (!pc.inIllustrator && !noCombiner)  {
+        if (!pigContext.inIllustrator && !noCombiner)  {
             CombinerOptimizer combinerOptimizer = new CombinerOptimizer(plan);
             combinerOptimizer.visit();
             if (LOG.isDebugEnabled()) {
@@ -255,7 +262,7 @@ public class SparkLauncher extends Launcher {
         }
 
         boolean noSecondaryKey = conf.getBoolean(PigConfiguration.PIG_EXEC_NO_SECONDARY_KEY, false);
-        if (!pc.inIllustrator && !noSecondaryKey) {
+        if (!pigContext.inIllustrator && !noSecondaryKey) {
             SecondaryKeyOptimizerSpark skOptimizer = new SecondaryKeyOptimizerSpark(plan);
             skOptimizer.visit();
         }
@@ -400,6 +407,7 @@ public class SparkLauncher extends Launcher {
                         File tmpFile = new File(tmpFolder, fileName);
                         Path tmpFilePath = new Path(tmpFile.getAbsolutePath());
                         FileSystem fs = tmpFilePath.getFileSystem(jobConf);
+                        //TODO:PIG-5241 Specify the hdfs path directly to spark and avoid the unnecessary download and upload in SparkLauncher.java
                         fs.copyToLocalFile(src, tmpFilePath);
                         tmpFile.deleteOnExit();
                         LOG.info(String.format("CacheFile:%s", fileName));
@@ -476,7 +484,7 @@ public class SparkLauncher extends Launcher {
                             localFile.getAbsolutePath()));
                 }
                 Files.copy(Paths.get(new Path(resourcePath.getAbsolutePath()).toString()),
-                        Paths.get(localFile.getAbsolutePath()));
+                    Paths.get(localFile.getAbsolutePath()));
             }
         } else {
             if(resourceType == ResourceType.JAR){
@@ -517,7 +525,7 @@ public class SparkLauncher extends Launcher {
                 sparkPlan);
         pkgAnnotator.visit();
 
-        optimize(pigContext, sparkPlan);
+        optimize(sparkPlan, pigContext);
         return sparkPlan;
     }
 
@@ -641,7 +649,7 @@ public class SparkLauncher extends Launcher {
             printer.visit();
         } else if (format.equals("dot")) {
             ps.println("#--------------------------------------------------");
-            ps.println("# Spark Plan                                  ");
+            ps.println("# Spark Plan");
             ps.println("#--------------------------------------------------");
 
             DotSparkPrinter printer = new DotSparkPrinter(sparkPlan, ps);
@@ -700,7 +708,7 @@ public class SparkLauncher extends Launcher {
         PigMapReduce.sJobConfInternal.set(jobConf);
         String parallelism = pigContext.getProperties().getProperty("spark.default.parallelism");
         if (parallelism != null) {
-            SparkPigContext.get().setPigDefaultParallelism(Integer.parseInt(parallelism));
+            SparkPigContext.get().setDefaultParallelism(Integer.parseInt(parallelism));
         }
     }
 

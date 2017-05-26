@@ -241,7 +241,7 @@ public class JobGraphBuilder extends SparkOpPlanVisitor {
             throws IOException {
         RDD<Tuple> nextRDD = null;
         List<PhysicalOperator> predecessorsOfCurrentPhysicalOp = getPredecessors(plan, physicalOperator);
-        Set<OperatorKey> operatorKeysOfAllPreds = new LinkedHashSet<OperatorKey>();
+        LinkedHashSet<OperatorKey> operatorKeysOfAllPreds = new LinkedHashSet<OperatorKey>();
         addPredsFromPrevoiousSparkOp(sparkOperator, physicalOperator, operatorKeysOfAllPreds);
         if (predecessorsOfCurrentPhysicalOp != null) {
             for (PhysicalOperator predecessor : predecessorsOfCurrentPhysicalOp) {
@@ -260,14 +260,13 @@ public class JobGraphBuilder extends SparkOpPlanVisitor {
 
         if (physicalOperator instanceof POSplit) {
             List<PhysicalPlan> successorPlans = ((POSplit) physicalOperator).getPlans();
-            for (PhysicalPlan succcessorPlan : successorPlans) {
-                List<PhysicalOperator> leavesOfSuccessPlan = succcessorPlan.getLeaves();
+            for (PhysicalPlan successorPlan : successorPlans) {
+                List<PhysicalOperator> leavesOfSuccessPlan = successorPlan.getLeaves();
                 if (leavesOfSuccessPlan.size() != 1) {
-                    LOG.error("the size of leaves of successorPlan should be 1");
                     throw new RuntimeException("the size of the leaves of successorPlan should be 1");
                 }
                 PhysicalOperator leafOfSuccessPlan = leavesOfSuccessPlan.get(0);
-                physicalToRDD(sparkOperator, succcessorPlan, leafOfSuccessPlan, operatorKeysOfAllPreds);
+                physicalToRDD(sparkOperator, successorPlan, leafOfSuccessPlan, operatorKeysOfAllPreds);
             }
         } else {
             RDDConverter converter = convertMap.get(physicalOperator.getClass());
@@ -328,12 +327,8 @@ public class JobGraphBuilder extends SparkOpPlanVisitor {
     }
 
     //get all rdds of predecessors sorted by the OperatorKey
-    private List<RDD<Tuple>> sortPredecessorRDDs(Set<OperatorKey> operatorKeysOfAllPreds) {
+    private List<RDD<Tuple>> sortPredecessorRDDs(LinkedHashSet <OperatorKey> operatorKeysOfAllPreds) {
         List<RDD<Tuple>> predecessorRDDs = Lists.newArrayList();
-//        List<OperatorKey> operatorKeyOfAllPreds = Lists.newArrayList(operatorKeysOfAllPreds);
-//        Collections.sort(operatorKeyOfAllPreds);
-        //We need not sort operatorKeyOfAllPreds any more because operatorKeyOfAllPreds is LinkedHashSet
-        //which provides the order of insertion, before we insert element which is sorted by OperatorKey
         for (OperatorKey operatorKeyOfAllPred : operatorKeysOfAllPreds) {
             predecessorRDDs.add(physicalOpRdds.get(operatorKeyOfAllPred));
         }

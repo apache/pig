@@ -62,6 +62,7 @@ import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.util.Utils;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -548,9 +549,7 @@ public class TestPigServer {
         // TODO: Explain XML output is not supported in non-MR mode. Remove the
         // following condition once it's implemented in Tez.
         String execType = cluster.getExecType().toString().toLowerCase();
-        if (!execType.equals(ExecType.MAPREDUCE.name().toLowerCase()) && !execType.equals(MiniGenericCluster.EXECTYPE_SPARK)) {
-            return;
-        }
+        Assume.assumeTrue("Skip this test for TEZ", Util.isMapredExecType(cluster.getExecType()) || Util.isSparkExecType(cluster.getExecType()));
         PigServer pig = new PigServer(cluster.getExecType(), properties);
         pig.registerQuery("a = load 'a' as (site: chararray, count: int, itemCounts: bag { itemCountsTuple: tuple (type: chararray, typeCount: int, f: float, m: map[]) } ) ;") ;
         pig.registerQuery("b = foreach a generate site, count, FLATTEN(itemCounts);") ;
