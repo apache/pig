@@ -152,6 +152,8 @@
 
 <p><a href="func.html#binstorage">BinStorage</a> function</p>
 
+<p><a href="perf.html#bloom-joins">Bloom</a> join</p>
+
 <p><a href="basic.html#bexp">Boolean expressions</a></p>
 
 <p>Boolean operators
@@ -426,6 +428,8 @@
 
 <p><a href="cont.html#import-macros">IMPORT (macros)</a> operator</p>
 
+<p><a href="func.html#in">IN</a> function</p>
+
 <p><a href="func.html#indexof">INDEXOF</a> function</p>
 
 <p>installing Pig
@@ -491,6 +495,7 @@
 <p><a href="basic.html#join-outer">JOIN (outer)</a> operator</p>
 
 <p>joins
+<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#bloom-joins">bloom joins</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#join-inner">inner joins</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#join-optimizations">join optimizations</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#merge-joins">merge joins</a>
@@ -625,6 +630,8 @@
 <p>names (for fields, relations). <em>See</em> referencing.</p>
 
 <p><a href="basic.html#native">NATIVE</a> operator</p>
+
+<p><a href="udf.html#nonfsloadfunc">NonFSLoadFunc</a> interface </p>
 
 <p><a href="basic.html#nested-block">nested blocks</a> (FOREACH operator) </p>
 
@@ -820,6 +827,8 @@
 <p><a href="func.html#regex-extract">REGEX_EXTRACT</a> function</p>
 
 <p><a href="func.html#regex-extract-all">REGEX_EXTRACT_ALL</a> function</p>
+
+<p><a href="func.html#regex-search">REGEX_SEARCH</a> function</p>
 
 <p><a href="basic.html#register-jar">REGISTER</a> statement</p>
 
@@ -1069,8 +1078,9 @@
    
 <!-- ==== Z ================================================================== -->
 <p></p>
-<p id="z-index"><strong>Z</strong> (<a href="#top">top</a>)</p>   
+<p id="z-index"><strong>Z</strong> (<a href="#top">top</a>)</p>
 
+<p><a href="v_editors.html#zeppelin">Zeppelin</a></p>
 
   </body>
 </document>
