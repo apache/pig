@@ -902,6 +902,11 @@ public class PigContext implements Serializable {
     {
         defaultLogLevel = l;
     }
+ 
+   public int getDefaultParallel() {
+        return defaultParallel;
+    }
+
     public static ClassLoader getClassLoader() {
         return classloader;
     }

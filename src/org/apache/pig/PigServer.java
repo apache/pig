@@ -43,6 +43,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -1983,4 +1984,21 @@ public class PigServer {
     public String getLastRel() {
         return currDAG.getLastRel();
     }
+
+    public boolean isDebugOn() {
+        if (Logger.getLogger("org.apache.pig").getLevel() == Level.DEBUG) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public String getJobName() {
+        return jobName;
+    }
+
+    public String getJobPriority() {
+        return jobPriority;
+    }
+
 }
