@@ -296,8 +296,13 @@ public class CombinerOptimizer extends SparkOpPlanVisitor {
             );
             newProj.setResultType(DataType.BAG);
 
-            PhysicalOperator udfInput = pplan.getPredecessors(combineUdf).get(0);
-            pplan.disconnect(udfInput, combineUdf);
+            for (PhysicalOperator originalUdfInput : pplan.getPredecessors(combineUdf).toArray(new PhysicalOperator[0])) {
+                if (pplan.getPredecessors(originalUdfInput) != null) {
+                    pplan.trimAbove(originalUdfInput);
+                }
+                pplan.remove(originalUdfInput);
+            }
+
             pplan.add(newProj);
             pplan.connect(newProj, combineUdf);
             i++;

@@ -24,6 +24,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +40,8 @@ import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.MultiMap;
+
+import com.google.common.collect.HashBiMap;
 
 /**
  *
@@ -304,6 +307,16 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
             }
         }
 
+        //Fix order of edges in mToEdges lists
+        Map<PhysicalOperator, PhysicalOperator> invertedMatches = HashBiMap.create(matches).inverse();
+        for (PhysicalOperator newOp : clone.mToEdges.keySet()) {
+            List<PhysicalOperator> newList = clone.mToEdges.get(newOp);
+            if (newList.size() > 1) {
+                List<PhysicalOperator> originalList = this.mToEdges.get(invertedMatches.get(newOp));
+                Collections.sort(newList, new EdgeOrderHelper(originalList,invertedMatches));
+            }
+        }
+
         return clone;
     }
 
@@ -314,5 +327,22 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
     public void resetOpMap()
     {
         opmap = null;
+    }
+
+
+    private static class EdgeOrderHelper implements Comparator<PhysicalOperator> {
+
+        private final Map<PhysicalOperator, PhysicalOperator> invertedMatches;
+        private final List<PhysicalOperator> originalList;
+
+        public EdgeOrderHelper(List<PhysicalOperator> originalList, Map<PhysicalOperator, PhysicalOperator> invertedMatches) {
+            this.originalList = originalList;
+            this.invertedMatches = invertedMatches;
+        }
+
+        @Override
+        public int compare(PhysicalOperator o1, PhysicalOperator o2) {
+            return originalList.indexOf(invertedMatches.get(o1)) - originalList.indexOf(invertedMatches.get(o2));
+        }
     }
 }
