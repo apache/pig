@@ -27,7 +27,7 @@ import org.apache.pig.classification.InterfaceStability;
 
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
-public class PigStatusReporter extends StatusReporter implements Progressable {
+public class PigStatusReporter extends StatusReporter implements Progressable, PigWarnCounter {
 
     private static PigStatusReporter reporter = null;
 
@@ -83,6 +83,16 @@ public class PigStatusReporter extends StatusReporter implements Progressable {
 
     public boolean incrCounter(String group, String name, long incr) {
         return context == null ? false : context.incrCounter(group, name, incr);
+    }
+
+    @Override
+    public boolean incrWarnCounter(Enum<?> name, Object incr) {
+        return incrCounter(name, (Long)incr);
+    }
+
+    @Override
+    public boolean incrWarnCounter(String group, String name, Object incr) {
+        return incrCounter(group, name, (Long)incr);
     }
 
     @Override

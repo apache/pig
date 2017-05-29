@@ -33,6 +33,7 @@ import org.apache.pig.PigRunner;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.mapreduce.MRJobStats;
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -85,6 +86,8 @@ public class TestEmptyInputDir {
                 assertEquals(0, js.getNumberMaps());
             }
 
+            //Spark doesn't create an empty result file part-*, only a _SUCCESS file if input dir was empty
+            Assume.assumeTrue("Skip this test for Spark. See PIG-5140", !Util.isSparkExecType(cluster.getExecType()));
             assertEmptyOutputFile();
         } finally {
             new File(PIG_FILE).delete();

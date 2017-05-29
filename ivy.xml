@@ -40,6 +40,7 @@
     <conf name="buildJar" extends="compile,test" visibility="private"/>
     <conf name="hadoop2" visibility="private"/>
     <conf name="hbase1" visibility="private"/>
+    <conf name="spark" visibility="private" />
   </configurations>
   <publications>
     <artifact name="pig" conf="master"/>
@@ -405,6 +406,24 @@
     <dependency org="org.mockito" name="mockito-all" rev="${mockito.version}" conf="test->default"/>
 
     <dependency org="com.twitter" name="parquet-pig-bundle" rev="${parquet-pig-bundle.version}" conf="compile->master"/>
+
+    <!-- for Spark integration -->
+    <dependency org="org.apache.spark" name="spark-core_2.11" rev="${spark.version}" conf="spark->default">
+        <exclude org="org.eclipse.jetty.orbit" module="javax.servlet"/>
+        <exclude org="org.eclipse.jetty.orbit" module="javax.transaction"/>
+        <exclude org="org.eclipse.jetty.orbit" module="javax.mail.glassfish"/>
+        <exclude org="org.eclipse.jetty.orbit" module="javax.activation"/>
+        <exclude org="org.apache.hadoop" />
+        <exclude org="com.esotericsoftware.kryo" />
+        <exclude org="jline" module="jline"/>
+        <exclude org="com.google.guava" />
+    </dependency>
+    <dependency org="org.apache.spark" name="spark-yarn_2.11" rev="${spark.version}" conf="spark->default">
+        <exclude org="org.apache.hadoop" />
+    </dependency>
+    <dependency org="asm" name="asm" rev="${asm.version}" conf="compile->master"/>
+    <dependency org="javax.servlet" name="javax.servlet-api" rev="3.0.1" conf="spark->default"/>
+    <dependency org="org.scala-lang.modules" name="scala-xml_2.11" rev="${scala-xml.version}" conf="spark->default"/>
 
     <!-- for Tez integration -->
     <dependency org="org.apache.tez" name="tez" rev="${tez.version}"

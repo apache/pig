@@ -23,7 +23,7 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigLogger;
-import org.apache.pig.tools.pigstats.PigStatusReporter;
+import org.apache.pig.tools.pigstats.PigWarnCounter;
 
 /**
  *
@@ -36,7 +36,7 @@ public final class PigHadoopLogger implements PigLogger {
     private static Log log = LogFactory.getLog(PigHadoopLogger.class);
     private static PigHadoopLogger logger = null;
 
-    private PigStatusReporter reporter = null;
+    private PigWarnCounter reporter = null;
     private boolean aggregate = false;
 
     private PigHadoopLogger() {
@@ -52,7 +52,7 @@ public final class PigHadoopLogger implements PigLogger {
         return logger;
     }
 
-    public void setReporter(PigStatusReporter reporter) {
+    public void setReporter(PigWarnCounter reporter) {
         this.reporter = reporter;
     }
 
@@ -65,10 +65,10 @@ public final class PigHadoopLogger implements PigLogger {
         if (getAggregate()) {
             if (reporter != null) {
                 if (o instanceof EvalFunc || o instanceof LoadFunc || o instanceof StoreFunc) {
-                    reporter.incrCounter(className, warningEnum.name(), 1);
+                    reporter.incrWarnCounter(className, warningEnum.name(), 1L);
                 }
                 // For backwards compatibility, always report with warningEnum, see PIG-3739
-                reporter.incrCounter(warningEnum, 1);
+                reporter.incrWarnCounter(warningEnum, 1L);
             } else {
                 //TODO:
                 //in local mode of execution if the PigHadoopLogger is used initially,

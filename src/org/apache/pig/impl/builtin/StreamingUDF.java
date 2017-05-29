@@ -242,8 +242,11 @@ public class StreamingUDF extends EvalFunc<Object> {
             }
             InputStream udfFileStream = this.getClass().getResourceAsStream(
                     absolutePath + getUserFileExtension());
-            command[PATH_TO_FILE_CACHE] = "\"" + userUdfFile.getParentFile().getAbsolutePath()
-                    + "\"";
+            if (udfFileStream == null) {
+                //Try loading the script from other locally available jars (needed for Spark mode)
+                udfFileStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(filePath+getUserFileExtension());
+            }
+            command[PATH_TO_FILE_CACHE] = "\"" + userUdfFile.getParentFile().getAbsolutePath() + "\"";
 
             try {
                 FileUtils.copyInputStreamToFile(udfFileStream, userUdfFile);

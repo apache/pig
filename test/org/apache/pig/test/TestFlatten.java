@@ -95,6 +95,6 @@ public class TestFlatten {
         List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
                 new String[] {
                 "('a', 'b', '1', '2')", "('a', 'b', '3', '4')", "('c', 'd', '1', '2')", "('c', 'd', '3', '4')" });
-        Util.checkQueryOutputs(actualResults.iterator(), expectedResults);
+        Util.checkQueryOutputsAfterSort(actualResults.iterator(), expectedResults);
     }
 }

@@ -487,6 +487,7 @@ public class TestMultiQueryLocal {
     public void testMultiQueryWithIllustrate() throws Exception {
 
         Assume.assumeTrue("illustrate does not work in tez (PIG-3993)", !Util.getLocalTestMode().toString().startsWith("TEZ"));
+        Assume.assumeTrue("illustrate does not work in spark (PIG-4621)", !Util.getLocalTestMode().toString().startsWith("SPARK"));
         System.out.println("===== test multi-query with illustrate =====");
 
         try {

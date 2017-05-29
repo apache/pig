@@ -37,6 +37,6 @@ public class AccumulatorOptimizer extends TezOpPlanVisitor {
 
     @Override
     public void visitTezOp(TezOperator tezOp) throws VisitorException {
-        AccumulatorOptimizerUtil.addAccumulator(tezOp.plan);
+        AccumulatorOptimizerUtil.addAccumulator(tezOp.plan, tezOp.plan.getRoots());
     }
 }

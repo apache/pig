@@ -1,0 +1,71 @@
+digraph plan {
+compound=true;
+node [shape=rect];
+s487399236_in [label="", style=invis, height=0, width=0];
+s487399236_out [label="", style=invis, height=0, width=0];
+subgraph cluster_487399236 {
+label="Spark(-1,PigStorage)"; style="filled"; fillcolor="#EEEEEE"labelloc=b;
+s0_in [label="", style=invis, height=0, width=0];
+s0_out [label="", style=invis, height=0, width=0];
+subgraph cluster_0 {
+label="spark"; style="filled"; fillcolor="white"labelloc=b;
+487399275 [label="a: Load(file:///tmp/input,\norg.apache.pig.builtin.PigStorage)", style="filled", fillcolor="gray"];
+s487399268_in [label="", style=invis, height=0, width=0];
+s487399268_out [label="", style=invis, height=0, width=0];
+subgraph cluster_487399268 {
+label="a: New For Each(false,false)[bag]"labelloc=b;
+487399274 [label="Project[bytearray][0]"];
+487399273 [label="Cast[int]"];
+487399274 -> 487399273
+s487399268_in -> 487399274 [style=invis];
+487399270 [label="Cast[int]"];
+487399271 [label="Project[bytearray][1]"];
+487399271 -> 487399270
+s487399268_in -> 487399271 [style=invis];
+};
+487399273 -> s487399268_out [style=invis];
+487399270 -> s487399268_out [style=invis];
+487399267 [label="a: Store(file:///tmp/pigoutput,\norg.apache.pig.builtin.PigStorage)", style="filled", fillcolor="gray"];
+487399275 -> s487399268_in [lhead=cluster_487399268]
+s487399268_out -> 487399267
+s0_in -> 487399275 [style=invis];
+};
+487399267 -> s0_out [style=invis];
+s487399236_in -> s0_in [style=invis];
+};
+s0_out -> s487399236_out [style=invis];
+s487399235_in [label="", style=invis, height=0, width=0];
+s487399235_out [label="", style=invis, height=0, width=0];
+subgraph cluster_487399235 {
+label="Spark(-1,PigStorage)"; style="filled"; fillcolor="#EEEEEE"labelloc=b;
+s1_in [label="", style=invis, height=0, width=0];
+s1_out [label="", style=invis, height=0, width=0];
+subgraph cluster_1 {
+label="spark"; style="filled"; fillcolor="white"labelloc=b;
+s487399238_in [label="", style=invis, height=0, width=0];
+s487399238_out [label="", style=invis, height=0, width=0];
+subgraph cluster_487399238 {
+label="b: New For Each(false,false)[bag]"labelloc=b;
+487399244 [label="Project[bytearray][0]"];
+487399243 [label="Cast[int]"];
+487399244 -> 487399243
+s487399238_in -> 487399244 [style=invis];
+487399241 [label="Project[bytearray][1]"];
+487399240 [label="Cast[int]"];
+487399241 -> 487399240
+s487399238_in -> 487399241 [style=invis];
+};
+487399243 -> s487399238_out [style=invis];
+487399240 -> s487399238_out [style=invis];
+487399237 [label="b: Store(file:///tmp/pigoutput1,\norg.apache.pig.builtin.PigStorage)", style="filled", fillcolor="gray"];
+487399266 [label="b: Load(file:///tmp/pigoutput,\norg.apache.pig.builtin.PigStorage)", style="filled", fillcolor="gray"];
+s487399238_out -> 487399237
+487399266 -> s487399238_in [lhead=cluster_487399238]
+s1_in -> 487399266 [style=invis];
+};
+487399237 -> s1_out [style=invis];
+s487399235_in -> s1_in [style=invis];
+};
+s1_out -> s487399235_out [style=invis];
+s487399236_out -> s487399235_in [lhead=cluster_487399235]
+}

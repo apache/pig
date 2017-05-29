@@ -26,8 +26,17 @@ import org.apache.avro.Schema.Field;
 import org.apache.avro.Schema.Type;
 import org.apache.avro.generic.GenericArray;
 import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericEnumSymbol;
 import org.apache.avro.generic.IndexedRecord;
+import org.apache.avro.io.DatumReader;
+import org.apache.avro.io.DatumWriter;
+import org.apache.avro.io.Decoder;
+import org.apache.avro.io.DecoderFactory;
+import org.apache.avro.io.Encoder;
+import org.apache.avro.io.EncoderFactory;
+import org.apache.avro.util.Utf8;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -38,6 +47,8 @@ import org.apache.pig.data.TupleFactory;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.List;
@@ -50,12 +61,12 @@ import java.util.Map;
 public final class AvroTupleWrapper <T extends IndexedRecord>
     implements Tuple {
     private static final Log LOG = LogFactory.getLog(AvroTupleWrapper.class);
-    private TupleFactory mTupleFactory = TupleFactory.getInstance();
+    private transient TupleFactory mTupleFactory = TupleFactory.getInstance();
 
   /**
    * The Avro object wrapped in the pig Tuple.
    */
-  private T avroObject;
+  private transient T avroObject;
 
   /**
    * Creates a new AvroTupleWrapper object.
@@ -205,7 +216,14 @@ public final class AvroTupleWrapper <T extends IndexedRecord>
       case NULL:
         break;
       case STRING:
-        total += ((String) r.get(f.pos())).length()
+        Object val = r.get(f.pos());
+        String value;
+        if (val instanceof Utf8) {
+          value = val.toString();
+        } else {
+          value = (String) val;
+        }
+        total += value.length()
            * (Character.SIZE << bitsPerByte);
         break;
       case BYTES:
@@ -291,4 +309,21 @@ public final class AvroTupleWrapper <T extends IndexedRecord>
         );
   }
 
+  // Required for Java serialization used by Spark: PIG-5134
+  private void writeObject(ObjectOutputStream out) throws IOException {
+    out.writeObject(avroObject.getSchema().toString());
+    DatumWriter<T> writer = new GenericDatumWriter<>();
+    writer.setSchema(avroObject.getSchema());
+    Encoder encoder = EncoderFactory.get().binaryEncoder(out, null);
+    writer.write(avroObject, encoder);
+    encoder.flush();
+  }
+
+  // Required for Java serialization used by Spark: PIG-5134
+  private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+    Schema schema = new Schema.Parser().parse((String) in.readObject());
+    DatumReader<T> reader = new GenericDatumReader<>(schema);
+    Decoder decoder = DecoderFactory.get().binaryDecoder(in, null);
+    avroObject = reader.read(avroObject, decoder);
+  }
 }

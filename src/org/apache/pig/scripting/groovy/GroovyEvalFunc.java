@@ -74,6 +74,10 @@ public class GroovyEvalFunc<T> extends EvalFunc<T> {
               resource = ScriptEngine.class.getResource(File.separator + path);
           }
           if (resource == null) {
+            //Try loading the script from other locally available jars (needed for Spark mode)
+              resource = Thread.currentThread().getContextClassLoader().getResource(path);
+          }
+          if (resource == null) {
               throw new IOException("Cannot find " + path);
           }
       } else {

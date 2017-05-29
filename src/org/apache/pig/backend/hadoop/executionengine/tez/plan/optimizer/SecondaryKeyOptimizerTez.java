@@ -102,7 +102,8 @@ public class SecondaryKeyOptimizerTez extends TezOpPlanVisitor implements Second
             rearrangePlan = PlanHelper.getLocalRearrangePlanFromSplit(from.plan, connectingLR.getOperatorKey());
         }
 
-        SecondaryKeyOptimizerInfo info = SecondaryKeyOptimizerUtil.applySecondaryKeySort(rearrangePlan, to.plan);
+        SecondaryKeyOptimizerUtil secondaryKeyOptUtil = new SecondaryKeyOptimizerUtil();
+        SecondaryKeyOptimizerInfo info = secondaryKeyOptUtil.applySecondaryKeySort(rearrangePlan, to.plan);
         if (info != null) {
             numSortRemoved += info.getNumSortRemoved();
             numDistinctChanged += info.getNumDistinctChanged();

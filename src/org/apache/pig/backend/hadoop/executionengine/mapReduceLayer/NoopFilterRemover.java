@@ -28,7 +28,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFilter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
-import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.Pair;
@@ -69,7 +68,7 @@ class NoopFilterRemover extends MROpPlanVisitor {
         public void visit() throws VisitorException {
             super.visit();
             for (Pair<POFilter, PhysicalPlan> pair: removalQ) {
-                removeFilter(pair.first, pair.second);
+                NoopFilterRemoverUtil.removeFilter(pair.first, pair.second);
             }
             removalQ.clear();
         }
@@ -88,24 +87,6 @@ class NoopFilterRemover extends MROpPlanVisitor {
                             removalQ.add(new Pair<POFilter, PhysicalPlan>(fl, mCurrentWalker.getPlan()));
                         }
                     }
-                }
-            }
-        }
-        
-        private void removeFilter(POFilter filter, PhysicalPlan plan) {
-            if (plan.size() > 1) {
-                try {
-                    List<PhysicalOperator> fInputs = filter.getInputs();
-                    List<PhysicalOperator> sucs = plan.getSuccessors(filter);
-
-                    plan.removeAndReconnect(filter);
-                    if(sucs!=null && sucs.size()!=0){
-                        for (PhysicalOperator suc : sucs) {
-                            suc.setInputs(fInputs);
-                        }
-                    }
-                } catch (PlanException pe) {
-                    log.info("Couldn't remove a filter in optimizer: "+pe.getMessage());
                 }
             }
         }

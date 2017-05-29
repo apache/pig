@@ -333,7 +333,7 @@ public class CombinerOptimizerUtil {
      * @return null if plan is not combinable, otherwise list of combinable operators
      * @throws VisitorException
      */
-    private static List<Pair<PhysicalOperator, PhysicalPlan>> findAlgebraicOps(List<PhysicalPlan> feInners)
+    public static List<Pair<PhysicalOperator, PhysicalPlan>> findAlgebraicOps(List<PhysicalPlan> feInners)
             throws VisitorException {
         List<Pair<PhysicalOperator, PhysicalPlan>> algebraicOps = Lists.newArrayList();
 
@@ -447,7 +447,7 @@ public class CombinerOptimizerUtil {
      * @param keyType type for group-by key
      * @return new POForeach
      */
-    private static POForEach createForEachWithGrpProj(POForEach foreach, byte keyType) {
+    public static POForEach createForEachWithGrpProj(POForEach foreach, byte keyType) {
         String scope = foreach.getOperatorKey().scope;
         POForEach newFE = new POForEach(createOperatorKey(scope), new ArrayList<PhysicalPlan>());
         newFE.addOriginalLocation(foreach.getAlias(), foreach.getOriginalLocations());
@@ -471,7 +471,7 @@ public class CombinerOptimizerUtil {
      * @throws CloneNotSupportedException
      * @throws PlanException
      */
-    private static PhysicalPlan createPlanWithPredecessors(PhysicalOperator algeOp, PhysicalPlan pplan)
+    public static PhysicalPlan createPlanWithPredecessors(PhysicalOperator algeOp, PhysicalPlan pplan)
             throws CloneNotSupportedException, PlanException {
         PhysicalPlan newplan = new PhysicalPlan();
         addPredecessorsToPlan(algeOp, pplan, newplan);
@@ -508,7 +508,7 @@ public class CombinerOptimizerUtil {
      * @throws CloneNotSupportedException
      * @throws PlanException
      */
-    private static void addAlgebraicFuncToCombineFE(POForEach cfe, Map<PhysicalOperator, Integer> op2newpos)
+    public static void addAlgebraicFuncToCombineFE(POForEach cfe, Map<PhysicalOperator, Integer> op2newpos)
             throws CloneNotSupportedException, PlanException {
         // an array that we will first populate with physical operators in order
         // of their position in input. Used while adding plans to combine
@@ -578,7 +578,7 @@ public class CombinerOptimizerUtil {
      * @param rearrange
      * @return
      */
-    private static POPreCombinerLocalRearrange getPreCombinerLR(POLocalRearrange rearrange) {
+    public static POPreCombinerLocalRearrange getPreCombinerLR(POLocalRearrange rearrange) {
         String scope = rearrange.getOperatorKey().scope;
         POPreCombinerLocalRearrange pclr = new POPreCombinerLocalRearrange(
                 createOperatorKey(scope),
@@ -587,7 +587,7 @@ public class CombinerOptimizerUtil {
         return pclr;
     }
 
-    private static OperatorKey createOperatorKey(String scope) {
+    public static OperatorKey createOperatorKey(String scope) {
         return new OperatorKey(scope, NodeIdGenerator.getGenerator().getNextNodeId(scope));
     }
 
@@ -619,7 +619,7 @@ public class CombinerOptimizerUtil {
      * @param type
      * @throws PlanException
      */
-    private static void changeFunc(POForEach fe, byte type) throws PlanException {
+    public static void changeFunc(POForEach fe, byte type) throws PlanException {
         for (PhysicalPlan plan : fe.getInputPlans()) {
             List<PhysicalOperator> leaves = plan.getLeaves();
             if (leaves == null || leaves.size() != 1) {
@@ -657,7 +657,7 @@ public class CombinerOptimizerUtil {
      * @throws PlanException
      * @throws CloneNotSupportedException
      */
-    private static POLocalRearrange getNewRearrange(POLocalRearrange rearrange)
+    public static POLocalRearrange getNewRearrange(POLocalRearrange rearrange)
             throws PlanException, CloneNotSupportedException {
         POLocalRearrange newRearrange = rearrange.clone();
 
@@ -835,7 +835,7 @@ public class CombinerOptimizerUtil {
      * with
      * POUserFunc(org.apache.pig.builtin.Distinct)[DataBag]
      */
-    private static class DistinctPatcher extends PhyPlanVisitor {
+    public static class DistinctPatcher extends PhyPlanVisitor {
         private POUserFunc distinct = null;
         /**
          * @param plan
@@ -901,12 +901,12 @@ public class CombinerOptimizerUtil {
             }
         }
 
-        POUserFunc getDistinct() {
+        public POUserFunc getDistinct() {
             return distinct;
         }
     }
 
-    private static class fixMapProjects extends PhyPlanVisitor {
+    public static class fixMapProjects extends PhyPlanVisitor {
         public fixMapProjects(PhysicalPlan plan) {
             this(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(plan));
         }

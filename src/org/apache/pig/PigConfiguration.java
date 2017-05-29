@@ -482,6 +482,11 @@ public class PigConfiguration {
     public static final String PIG_LOG_TRACE_ID = "pig.log.trace.id";
 
     /**
+     * Use Netty file server for Pig on Spark, true or false, default value is false
+     */
+    public static final String PIG_SPARK_USE_NETTY_FILESERVER = "pig.spark.rpc.useNettyFileServer";
+
+    /**
      * @deprecated use {@link #PIG_LOG_TRACE_ID} instead. Will be removed in Pig 0.18
      */
     public static final String CALLER_ID = PIG_LOG_TRACE_ID;

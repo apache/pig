@@ -18,6 +18,7 @@ package org.apache.pig.test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +46,7 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -1443,23 +1445,20 @@ public class TestHBaseStorage {
 
         Iterator<Tuple> it = pig.openIterator("c");
         int index = 0;
-        while (it.hasNext()) {
-            Tuple t = it.next();
-            String rowKey = (String) t.get(0);
-            int col_a = (Integer) t.get(1);
-            Assert.assertNotNull(t.get(2));
-            double col_b = (Double) t.get(2);
-            String col_c = (String) t.get(3);
-
-            Assert.assertEquals("00".substring((index + "").length()) + index,
-                    rowKey);
-            Assert.assertEquals(index, col_a);
-            Assert.assertEquals(index + 0.0, col_b, 1e-6);
-            Assert.assertEquals("Text_" + index, col_c);
+        List<Tuple> expected = new ArrayList<Tuple>();
+        while (index<TEST_ROW_COUNT) {
+            Tuple t = TupleFactory.getInstance().newTuple();
+            t.append("00".substring((index + "").length()) + index);
+            t.append(index);
+            t.append(index + 0.0);
+            t.append("Text_" + index);
+            t.append(index);
+            t.append(new DataByteArray("Text_" + index));
             index++;
+            expected.add(t);
         }
-        Assert.assertEquals(index, TEST_ROW_COUNT);
-    }
+        Util.checkQueryOutputsAfterSort(it, expected);
+}
 
     @Test
     // See PIG-4151

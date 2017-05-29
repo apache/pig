@@ -116,7 +116,8 @@ public class TestAssert {
       try {
           pigServer.openIterator("A");
       } catch (FrontendException fe) {
-          if (pigServer.getPigContext().getExecType().toString().startsWith("TEZ")) {
+          if (pigServer.getPigContext().getExecType().toString().startsWith("TEZ")
+                  || pigServer.getPigContext().getExecType().toString().startsWith("SPARK")) {
               Assert.assertTrue(fe.getCause().getMessage().contains(
                       "Assertion violated: i should be greater than 1"));
           } else {
@@ -147,7 +148,8 @@ public class TestAssert {
       try {
           pigServer.openIterator("A");
       } catch (FrontendException fe) {
-          if (pigServer.getPigContext().getExecType().toString().startsWith("TEZ")) {
+          if (pigServer.getPigContext().getExecType().toString().startsWith("TEZ")
+                  || pigServer.getPigContext().getExecType().toString().startsWith("SPARK")) {
               Assert.assertTrue(fe.getCause().getMessage().contains(
                       "Assertion violated: i should be greater than 1"));
           } else {

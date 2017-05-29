@@ -120,6 +120,10 @@ public class POUserFunc extends ExpressionOperator {
         instantiateFunc(funcSpec);
     }
 
+    public void setFuncInputSchema(){
+        setFuncInputSchema(signature);
+    }
+
     private void instantiateFunc(FuncSpec fSpec) {
         this.func = (EvalFunc) PigContext.instantiateFuncFromSpec(fSpec);
         this.setSignature(signature);

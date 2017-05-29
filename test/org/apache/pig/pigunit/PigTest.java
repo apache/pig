@@ -142,6 +142,12 @@ public class PigTest {
           } else if (System.getProperties().getProperty(EXEC_CLUSTER).equalsIgnoreCase("tez_local")) {
             LOG.info("Using tez local mode");
             execType = ExecTypeProvider.fromString("tez_local");
+          } else if (System.getProperties().getProperty(EXEC_CLUSTER).equalsIgnoreCase("spark")) {
+              LOG.info("Using spark cluster mode");
+              execType = ExecTypeProvider.fromString("spark");
+          } else if (System.getProperties().getProperty(EXEC_CLUSTER).equalsIgnoreCase("spark_local")) {
+              LOG.info("Using spark local cluster mode");
+              execType = ExecTypeProvider.fromString("spark_local");
           } else {
             LOG.info("Using default local mode");
           }

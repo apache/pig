@@ -35,6 +35,6 @@ public class AccumulatorOptimizer extends MROpPlanVisitor {
     }
 
     public void visitMROp(MapReduceOper mr) throws VisitorException {
-        AccumulatorOptimizerUtil.addAccumulator(mr.reducePlan);
+        AccumulatorOptimizerUtil.addAccumulator(mr.reducePlan, mr.reducePlan.getRoots());
     }
 }

@@ -122,6 +122,15 @@ public class POMergeCogroup extends PhysicalOperator {
         this.endOfRecordMark = endOfRecordMark;
     }
 
+    //For Spark
+    private transient boolean endOfInput = false;
+    public boolean isEndOfInput() {
+        return endOfInput;
+    }
+    public void setEndOfInput (boolean isEndOfInput) {
+        endOfInput = isEndOfInput;
+    }
+
     @Override
     public Result getNextTuple() throws ExecException {
 
@@ -145,7 +154,7 @@ public class POMergeCogroup extends PhysicalOperator {
                 break;
 
             case POStatus.STATUS_EOP:
-                if(!this.parentPlan.endOfAllInput)
+                if(!(this.parentPlan.endOfAllInput || isEndOfInput()))
                     return baseInp;
 
                 if(lastTime)

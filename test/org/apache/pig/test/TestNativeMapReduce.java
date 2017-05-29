@@ -29,6 +29,7 @@ import java.util.List;
 
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
 import org.apache.pig.PigServer;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
 import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
@@ -210,6 +211,13 @@ public class TestNativeMapReduce  {
         } catch (JobCreationException e) {
             // Running in Tez mode throw exception
             assertTrue(e.getCause() instanceof FileAlreadyExistsException);
+        } catch (ExecException e) {
+            // Running in spark mode throw exception
+            if (e.getCause() instanceof RuntimeException) {
+                RuntimeException re = (RuntimeException) e.getCause();
+                JobCreationException jce = (JobCreationException) re.getCause();
+                assertTrue(jce.getCause() instanceof FileAlreadyExistsException);
+            }
         }
         finally{
             // We have to manually delete intermediate mapreduce files

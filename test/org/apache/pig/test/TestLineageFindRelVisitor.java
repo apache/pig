@@ -259,9 +259,10 @@ public class TestLineageFindRelVisitor {
         pig.registerQuery("E = FOREACH D GENERATE (chararray) tupleD.a1;\n");
         Iterator<Tuple> iter  = pig.openIterator("E");
 
-        Assert.assertEquals("123", iter.next().get(0));
-        Assert.assertEquals("456", iter.next().get(0));
-        Assert.assertEquals("789", iter.next().get(0));
+        Util.checkQueryOutputs(iter,
+                new String[]{"(123)", "(456)", "(789)"},
+                org.apache.pig.newplan.logical.Util.translateSchema(pig.dumpSchema("E")), Util.isSparkExecType(Util
+                .getLocalTestMode()));
     }
 
     @Test

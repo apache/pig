@@ -301,8 +301,15 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         }
 
         columnInfo_ = parseColumnList(columnList, delimiter_, ignoreWhitespace_);
-
-        String defaultCaster = UDFContext.getUDFContext().getClientSystemProps().getProperty(CASTER_PROPERTY, STRING_CASTER);
+        //In mr,  UDFContext.deserialize is first called and then UDFContext.getUDFContext().getClientSystemProps() is called,
+        //the value is not null.
+        //In spark mode, when spark executor first initializes all
+        //the object,UDFContext.getUDFContext().getClientSystemProps() is null and then UDFContext.deserialize is called.
+        //so we need check whether UDFContext.getUDFContext().getClientSystemProps()
+        //is null or not, if is null, defaultCaster =STRING_CASTER, otherwise is
+        //UDFContext.getUDFContext().getClientSystemProps().getProperty(CASTER_PROPERTY, STRING_CASTER)
+        //Detail see PIG-4920
+        String defaultCaster = UDFContext.getUDFContext().getClientSystemProps() != null ? UDFContext.getUDFContext().getClientSystemProps().getProperty(CASTER_PROPERTY, STRING_CASTER) : STRING_CASTER;
         String casterOption = configuredOptions_.getOptionValue("caster", defaultCaster);
         if (STRING_CASTER.equalsIgnoreCase(casterOption)) {
             caster_ = new Utf8StorageConverter();

@@ -48,6 +48,7 @@ import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.serializer.Deserializer;
 import org.apache.hadoop.io.serializer.SerializationFactory;
 import org.apache.hadoop.io.serializer.Serializer;
+import org.apache.hadoop.mapred.SplitLocationInfo;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
@@ -125,6 +126,12 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
      */
     String[] locations = null;
 
+
+    /**
+     * overall splitLocationInfos
+     */
+    SplitLocationInfo[] splitLocationInfos = null;
+
     // this seems necessary for Hadoop to instatiate this split on the
     // backend
     public PigSplit() {}
@@ -200,6 +207,51 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
         }
         return locations;
     }
+
+
+    @Override
+    public SplitLocationInfo[] getLocationInfo() throws IOException {
+        if (splitLocationInfos == null) {
+            HashMap<SplitLocationInfo, Long> locMap = new HashMap<SplitLocationInfo, Long>();
+            Long lenInMap;
+            for (InputSplit split : wrappedSplits) {
+                SplitLocationInfo[] locs = split.getLocationInfo();
+                if( locs != null) {
+                    for (SplitLocationInfo loc : locs) {
+                        try {
+                            if ((lenInMap = locMap.get(loc)) == null)
+                                locMap.put(loc, split.getLength());
+                            else
+                                locMap.put(loc, lenInMap + split.getLength());
+                        } catch (InterruptedException e) {
+                            throw new IOException("InputSplit.getLength throws exception: ", e);
+                        }
+                    }
+                }
+            }
+            Set<Map.Entry<SplitLocationInfo, Long>> entrySet = locMap.entrySet();
+            Map.Entry<SplitLocationInfo, Long>[] hostSize =
+                    entrySet.toArray(new Map.Entry[entrySet.size()]);
+            Arrays.sort(hostSize, new Comparator<Map.Entry<SplitLocationInfo, Long>>() {
+
+                @Override
+                public int compare(Entry<SplitLocationInfo, Long> o1, Entry<SplitLocationInfo, Long> o2) {
+                    long diff = o1.getValue() - o2.getValue();
+                    if (diff < 0) return 1;
+                    if (diff > 0) return -1;
+                    return 0;
+                }
+            });
+            // maximum 5 locations are in list: refer to PIG-1648 for more details
+            int nHost = Math.min(hostSize.length, 5);
+            splitLocationInfos = new SplitLocationInfo[nHost];
+            for (int i = 0; i < nHost; ++i) {
+                splitLocationInfos[i] = hostSize[i].getKey();
+            }
+        }
+        return splitLocationInfos;
+    }
+
 
     @Override
     public long getLength() throws IOException, InterruptedException {

@@ -45,7 +45,7 @@ public class TestFinish {
     BagFactory mBf = BagFactory.getInstance();
     File f1;
 
-    static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
+    private static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
 
     static public class MyEvalFunction extends EvalFunc<Tuple> {
         String execType;

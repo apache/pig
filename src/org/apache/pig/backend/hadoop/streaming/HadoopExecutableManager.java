@@ -172,7 +172,7 @@ public class HadoopExecutableManager extends ExecutableManager {
      * @return <code>true</code> if stderr data of task should be persisted on 
      *         HDFS, <code>false</code> otherwise
      */
-    private boolean writeErrorToHDFS(int limit, String taskId) {
+    protected boolean writeErrorToHDFS(int limit, String taskId) {
         if (command.getPersistStderr() && taskId != null) {
             int tipId = TaskAttemptID.forName(taskId).getTaskID().getId();
             return tipId < command.getLogFilesLimit();

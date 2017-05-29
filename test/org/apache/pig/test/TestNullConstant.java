@@ -109,16 +109,7 @@ public class TestNullConstant {
         pigServer.registerQuery("d = foreach c generate flatten((SIZE(a) == 0 ? null: a)), flatten((SIZE(b) == 0 ? null : b));");
         Iterator<Tuple> it = pigServer.openIterator("d");
         Object[][] results = new Object[][]{{10, "will_join", 10, "will_join"}, {11, "will_not_join", null}, {null, 12, "will_not_join"}};
-        int i = 0;
-        while(it.hasNext()) {
-
-            Tuple t = it.next();
-            Object[] result = results[i++];
-            assertEquals(result.length, t.size());
-            for (int j = 0; j < result.length; j++) {
-                assertEquals(result[j], t.get(j));
-            }
-        }
+        Util.checkQueryOutputsAfterSort(it,results);
     }
 
     @Test

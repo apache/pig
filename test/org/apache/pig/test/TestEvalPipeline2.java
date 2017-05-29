@@ -138,9 +138,15 @@ public class TestEvalPipeline2 {
         pigServer.registerQuery(query);
         Iterator<Tuple> iter = pigServer.openIterator("C");
         if(!iter.hasNext()) Assert.fail("No output found");
-        int numIdentity = 0;
+        List<Tuple> actualResList = new ArrayList<Tuple>();
         while(iter.hasNext()){
-            Tuple tuple = iter.next();
+            actualResList.add(iter.next());
+        }
+
+        Util.sortQueryOutputsIfNeed(actualResList,Util.isSparkExecType(cluster.getExecType()));
+
+        int numIdentity = 0;
+        for (Tuple tuple : actualResList) {
             Tuple t = (Tuple)tuple.get(0);
             Assert.assertEquals(DataByteArray.class, t.get(0).getClass());
             int group = Integer.parseInt(new String(((DataByteArray)t.get(0)).get()));
@@ -476,17 +482,24 @@ public class TestEvalPipeline2 {
         pigServer.registerQuery("D = COGROUP C BY b0, A BY a0 PARALLEL 2;");
         Iterator<Tuple> iter = pigServer.openIterator("D");
 
-        Assert.assertTrue(iter.hasNext());
-        Tuple t = iter.next();
+        if (Util.isSparkExecType(cluster.getExecType())) {
+            String[] expectedResults =
+                new String[] {"(2,{(2,2)},{(2,5,2)})", "(1,{(1,1)},{(1,2,3)})" };
+            Util.checkQueryOutputs(iter, expectedResults,
+                org.apache.pig.newplan.logical.Util.translateSchema(pigServer.dumpSchema("D")), Util.isSparkExecType(cluster.getExecType()));
+        } else {
+            Assert.assertTrue(iter.hasNext());
+            Tuple t = iter.next();
 
-        Assert.assertTrue(t.toString().equals("(2,{(2,2)},{(2,5,2)})"));
+            Assert.assertTrue(t.toString().equals("(2,{(2,2)},{(2,5,2)})"));
 
-        Assert.assertTrue(iter.hasNext());
-        t = iter.next();
+            Assert.assertTrue(iter.hasNext());
+            t = iter.next();
 
-        Assert.assertTrue(t.toString().equals("(1,{(1,1)},{(1,2,3)})"));
+            Assert.assertTrue(t.toString().equals("(1,{(1,1)},{(1,2,3)})"));
 
-        Assert.assertFalse(iter.hasNext());
+            Assert.assertFalse(iter.hasNext());
+        }
     }
 
     // See PIG-1195
@@ -739,16 +752,10 @@ public class TestEvalPipeline2 {
         pigServer.registerQuery(query);
         Iterator<Tuple> iter = pigServer.openIterator("EventsPerMinute");
 
-        Tuple t = iter.next();
-        Assert.assertTrue( (Long)t.get(0) == 60000 && (Long)t.get(1) == 2 && (Long)t.get(2) == 3 );
+        List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
+            new String[]{"(60000L,2L,3L)", "(120000L,2L,2L)", "(240000L,1L,1L)"});
 
-        t = iter.next();
-        Assert.assertTrue( (Long)t.get(0) == 120000 && (Long)t.get(1) == 2 && (Long)t.get(2) == 2 );
-
-        t = iter.next();
-        Assert.assertTrue( (Long)t.get(0) == 240000 && (Long)t.get(1) == 1 && (Long)t.get(2) == 1 );
-
-        Assert.assertFalse(iter.hasNext());
+        Util.checkQueryOutputs(iter, expectedResults, Util.isSparkExecType(cluster.getExecType()));
     }
 
     // See PIG-1729
@@ -1580,6 +1587,9 @@ public class TestEvalPipeline2 {
 
         pigServer.registerQuery("data = load 'table_testLimitFlatten' as (k,v);");
         pigServer.registerQuery("grouped = GROUP data BY k;");
+        if (Util.isSparkExecType(cluster.getExecType())) {
+            pigServer.registerQuery("grouped = ORDER grouped BY group;");
+        }
         pigServer.registerQuery("selected = LIMIT grouped 2;");
         pigServer.registerQuery("flattened = FOREACH selected GENERATE FLATTEN (data);");
 
@@ -1587,7 +1597,9 @@ public class TestEvalPipeline2 {
 
         String[] expected = new String[] {"(1,A)", "(1,B)", "(2,C)"};
 
-        Util.checkQueryOutputsAfterSortRecursive(iter, expected, org.apache.pig.newplan.logical.Util.translateSchema(pigServer.dumpSchema("flattened")));
+        Util.checkQueryOutputs(iter, expected,
+            org.apache.pig.newplan.logical.Util.translateSchema(pigServer.dumpSchema("flattened")), 
+            Util.isSparkExecType(cluster.getExecType()));
     }
 
     // See PIG-2237
@@ -1650,8 +1662,14 @@ public class TestEvalPipeline2 {
                     return false;
                 }
             });
-            // auto-parallelism is 2 in MR, 20 in Tez, so check >=2
-            Assert.assertTrue(partFiles.length >= 2);
+
+            if (Util.isSparkExecType(cluster.getExecType())) {
+                // TODO: Fix this when we implement auto-parallelism in Spark
+                Assert.assertTrue(partFiles.length == 1);
+            } else {
+                // auto-parallelism is 2 in MR, 20 in Tez, so check >=2
+                Assert.assertTrue(partFiles.length >= 2);
+            }
             // Check the output
             Iterator<Tuple> iter = job.getResults();
             List<Tuple> results = new ArrayList<Tuple>();

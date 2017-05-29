@@ -57,6 +57,21 @@ remaining=()
 includeHCatalog="";
 addJarString=-Dpig.additional.jars.uris\=;
 additionalJars="";
+prevArgExecType=false;
+isSparkMode=false;
+isSparkLocalMode=false;
+
+#verify the execType is SPARK or SPARK_LOCAL or not
+function processExecType(){
+    execType=$1
+    execTypeUpperCase=$(echo $execType |tr [a-z] [A-Z])
+    if [[ "$execTypeUpperCase" == "SPARK" ]]; then
+       isSparkMode=true
+    elif [[ "$execTypeUpperCase" == "SPARK_LOCAL" ]]; then
+       isSparkLocalMode=true
+    fi
+}
+
 # filter command line parameter
 for f in "$@"; do
      if [[ $f == "-secretDebugCmd" || $f == "-printCmdDebug" ]]; then
@@ -70,6 +85,13 @@ for f in "$@"; do
         includeHCatalog=true;
       elif [[ "$includeHCatalog" == "true" && $f == $addJarString* ]]; then
         additionalJars=`echo $f | sed s/$addJarString//`
+      elif [[ "$f" == "-x" || "$f" == "-exectype" ]]; then
+        prevArgExecType=true;
+        remaining[${#remaining[@]}]="$f"
+      elif [[ "$prevArgExecType" == "true" ]]; then
+        prevArgExecType=false;
+        processExecType $f
+        remaining[${#remaining[@]}]="$f"
       else
         remaining[${#remaining[@]}]="$f"
      fi
@@ -361,6 +383,44 @@ if [ "$includeHCatalog" == "true" ]; then
   fi
   PIG_OPTS="$PIG_OPTS -Dpig.additional.jars.uris=$ADDITIONAL_CLASSPATHS"
 fi
+
+################# ADDING SPARK DEPENDENCIES ##################
+# For spark_local mode:
+if [ "$isSparkLocalMode" == "true" ]; then
+#SPARK_MASTER is forced to be "local" in spark_local mode
+        SPARK_MASTER="local"
+    for f in $PIG_HOME/lib/spark/*.jar; do
+            CLASSPATH=${CLASSPATH}:$f;
+    done
+fi
+
+# For spark mode:
+# Please specify SPARK_HOME first so that we can locate $SPARK_HOME/lib/spark-assembly*.jar,
+# we will add spark-assembly*.jar to the classpath.
+if [ "$isSparkMode"  == "true" ]; then
+    if [ -z "$SPARK_HOME" ]; then
+       echo "Error: SPARK_HOME is not set!"
+       exit 1
+    fi
+
+    # Please specify SPARK_JAR which is the hdfs path of spark-assembly*.jar to allow YARN to cache spark-assembly*.jar on nodes so that it doesn't need to be distributed each time an application runs.
+    if [ -z "$SPARK_JAR" ]; then
+       echo "Error: SPARK_JAR is not set, SPARK_JAR stands for the hdfs location of spark-assembly*.jar. This allows YARN to cache spark-assembly*.jar on nodes so that it doesn't need to be distributed each time an application runs."
+       exit 1
+    fi
+
+    if [ -n "$SPARK_HOME" ]; then
+        echo "Using Spark Home: " ${SPARK_HOME}
+        SPARK_ASSEMBLY_JAR=`ls ${SPARK_HOME}/lib/spark-assembly*`
+        CLASSPATH=${CLASSPATH}:$SPARK_ASSEMBLY_JAR
+    fi
+fi
+
+#spark-assembly.jar contains jcl-over-slf4j which would create a LogFactory implementation that is incompatible
+if [ "$isSparkMode"  == "true" ]; then
+    PIG_OPTS="$PIG_OPTS -Dorg.apache.commons.logging.LogFactory=org.apache.commons.logging.impl.LogFactoryImpl"
+fi
+################# ADDING SPARK DEPENDENCIES ##################
 
 # run it
 if [ -n "$HADOOP_BIN" ]; then

@@ -26,6 +26,7 @@ use strict;
 
 our @floats;
 our $delim;
+our $decimals;
 
 sub parseLine($)
 {
@@ -41,7 +42,7 @@ sub postprocess($)
 	for (my $i = 0; $i < @fields; $i++) {
 		if ($i != 0) { print($delim); }
 		if ($floats[$i]) {
-			printf("%.3f", $fields[$i]);
+			printf("%." . $decimals . "f", $fields[$i]);
 		} else {
 			print($fields[$i]);
 		}
@@ -71,6 +72,10 @@ sub is_float {
 	$delim = shift;
 	if (!defined($delim)) {
 		die "Usage: $0 delimiter\n";
+	}
+	$decimals = shift;
+	if (!defined($decimals)) {
+		$decimals = 3;
 	}
 
 	my @sampled;
