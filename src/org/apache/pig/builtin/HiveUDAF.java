@@ -135,11 +135,11 @@ public class HiveUDAF extends HiveUDFBase implements Algebraic {
                     return;
                 }
 
-                if (m == Mode.PARTIAL1 || m == Mode.FINAL) {
+                if (m == Mode.PARTIAL1 || m == Mode.PARTIAL2 || m == Mode.FINAL) {
                     intermediateOutputObjectInspector = evaluator.init(Mode.PARTIAL1, inputObjectInspectorAsArray);
                     intermediateOutputTypeInfo = TypeInfoUtils.getTypeInfoFromObjectInspector(intermediateOutputObjectInspector);
 
-                    if (m == Mode.FINAL) {
+                    if (m == Mode.PARTIAL2 || m == Mode.FINAL) {
                         intermediateInputObjectInspector = HiveUtils.createObjectInspector(intermediateOutputTypeInfo);
                         intermediateInputObjectInspectorAsArray = new ObjectInspector[] {intermediateInputObjectInspector};
                         outputObjectInspector = evaluator.init(Mode.FINAL, intermediateInputObjectInspectorAsArray);
@@ -208,20 +208,41 @@ public class HiveUDAF extends HiveUDFBase implements Algebraic {
     }
 
     static public class Initial extends EvalFunc<Tuple> {
+
+        private boolean inited = false;
+        private String funcName;
+        ConstantObjectInspectInfo constantsInfo;
+        private SchemaAndEvaluatorInfo schemaAndEvaluatorInfo = new SchemaAndEvaluatorInfo();
+        private static TupleFactory tf = TupleFactory.getInstance();
+
         public Initial(String funcName) {
+            this.funcName = funcName;
         }
-        public Initial(String funcName, String params) {
+        public Initial(String funcName, String params) throws IOException {
+            this.funcName = funcName;
+            constantsInfo = ConstantObjectInspectInfo.parse(params);
         }
         @Override
         public Tuple exec(Tuple input) throws IOException {
-
-            DataBag bg = (DataBag) input.get(0);
-            Tuple tp = null;
-            if(bg.iterator().hasNext()) {
-                tp = bg.iterator().next();
+            try {
+                if (!inited) {
+                    schemaAndEvaluatorInfo.init(getInputSchema(), instantiateUDAF(funcName), Mode.PARTIAL1, constantsInfo);
+                    inited = true;
+                }
+                DataBag b = (DataBag)input.get(0);
+                AggregationBuffer agg = schemaAndEvaluatorInfo.evaluator.getNewAggregationBuffer();
+                for (Iterator<Tuple> it = b.iterator(); it.hasNext();) {
+                    Tuple t = it.next();
+                    List inputs = schemaAndEvaluatorInfo.inputObjectInspector.getStructFieldsDataAsList(t);
+                    schemaAndEvaluatorInfo.evaluator.iterate(agg, inputs.toArray());
+                }
+                Object returnValue = schemaAndEvaluatorInfo.evaluator.terminatePartial(agg);
+                Tuple result = tf.newTuple();
+                result.append(HiveUtils.convertHiveToPig(returnValue, schemaAndEvaluatorInfo.intermediateOutputObjectInspector, null));
+                return result;
+            } catch (Exception e) {
+                throw new IOException(e);
             }
-
-            return tp;
         }
     }
 
@@ -244,15 +265,14 @@ public class HiveUDAF extends HiveUDFBase implements Algebraic {
         public Tuple exec(Tuple input) throws IOException {
             try {
                 if (!inited) {
-                    schemaAndEvaluatorInfo.init(getInputSchema(), instantiateUDAF(funcName), Mode.PARTIAL1, constantsInfo);
+                    schemaAndEvaluatorInfo.init(getInputSchema(), instantiateUDAF(funcName), Mode.PARTIAL2, constantsInfo);
                     inited = true;
                 }
                 DataBag b = (DataBag)input.get(0);
                 AggregationBuffer agg = schemaAndEvaluatorInfo.evaluator.getNewAggregationBuffer();
                 for (Iterator<Tuple> it = b.iterator(); it.hasNext();) {
                     Tuple t = it.next();
-                    List inputs = schemaAndEvaluatorInfo.inputObjectInspector.getStructFieldsDataAsList(t);
-                    schemaAndEvaluatorInfo.evaluator.iterate(agg, inputs.toArray());
+                    schemaAndEvaluatorInfo.evaluator.merge(agg, t.get(0));
                 }
                 Object returnValue = schemaAndEvaluatorInfo.evaluator.terminatePartial(agg);
                 Tuple result = tf.newTuple();

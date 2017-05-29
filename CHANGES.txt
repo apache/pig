@@ -109,6 +109,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5194: HiveUDF fails with Spark exec type (szita)
+
 PIG-5231: PigStorage with -schema may produce inconsistent outputs with more fields (knoguchi)
 
 PIG-5224: Extra foreach from ColumnPrune preventing Accumulator usage (knoguchi)
