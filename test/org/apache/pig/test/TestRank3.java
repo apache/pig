@@ -23,7 +23,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;

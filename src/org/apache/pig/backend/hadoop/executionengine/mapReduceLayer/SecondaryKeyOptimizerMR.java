@@ -52,7 +52,8 @@ public class SecondaryKeyOptimizerMR extends MROpPlanVisitor implements Secondar
         if (mr.getCustomPartitioner()!=null)
             return;
 
-        info = SecondaryKeyOptimizerUtil.applySecondaryKeySort(mr.mapPlan, mr.reducePlan);
+        SecondaryKeyOptimizerUtil secondaryKeyOptUtil = new SecondaryKeyOptimizerUtil();
+        info = secondaryKeyOptUtil.applySecondaryKeySort(mr.mapPlan, mr.reducePlan);
         if (info != null && info.isUseSecondaryKey()) {
             mr.setUseSecondaryKey(true);
             mr.setSecondarySortOrder(info.getSecondarySortOrder());

@@ -585,6 +585,29 @@ public class Util {
          checkQueryOutputsAfterSort(actualResList, expectedResList);
      }
 
+    /**
+     * Helper function to check if the result of Pig Query is in line with expected results.
+     * It sorts actual and expected results before comparison.
+     * The tuple size in the tuple list can vary. Pass by a two-dimension array, it will be converted to be a tuple list.
+     * e.g.  expectedTwoDimensionObjects is [{{10, "will_join", 10, "will_join"}, {11, "will_not_join", null}, {null, 12, "will_not_join"}}],
+     * the field size of these 3 tuples are [4,3,3]
+     *
+     * @param actualResultsIt
+     * @param expectedTwoDimensionObjects represents a tuple list, in which the tuple can have variable size.
+     */
+    static public void checkQueryOutputsAfterSort(Iterator<Tuple> actualResultsIt,
+                                                  Object[][] expectedTwoDimensionObjects) {
+        List<Tuple> expectedResTupleList = new ArrayList<Tuple>();
+        for (int i = 0; i < expectedTwoDimensionObjects.length; ++i) {
+            Tuple t = TupleFactory.getInstance().newTuple();
+            for (int j = 0; j < expectedTwoDimensionObjects[i].length; ++j) {
+                t.append(expectedTwoDimensionObjects[i][j]);
+            }
+            expectedResTupleList.add(t);
+        }
+        checkQueryOutputsAfterSort(actualResultsIt, expectedResTupleList);
+    }
+
      static public void checkQueryOutputsAfterSort(
             List<Tuple> actualResList, List<Tuple> expectedResList) {
          Collections.sort(actualResList);
@@ -592,7 +615,7 @@ public class Util {
 
          Assert.assertEquals("Comparing actual and expected results. ",
                  expectedResList, actualResList);
-
+         
     }
 
     /**
@@ -757,7 +780,8 @@ public class Util {
         if(Util.WINDOWS){
             filename = filename.replace('\\','/');
         }
-        if (context.getExecType() == ExecType.MAPREDUCE || context.getExecType().name().equals("TEZ")) {
+        if (context.getExecType() == ExecType.MAPREDUCE || context.getExecType().name().equals("TEZ") ||
+                context.getExecType().name().equals("SPARK")) {
             return FileLocalizer.hadoopify(filename, context);
         } else if (context.getExecType().isLocal()) {
             return filename;
@@ -1195,7 +1219,7 @@ public class Util {
     }
 
 
-    static private void convertBagToSortedBag(Tuple t) {
+    static public void convertBagToSortedBag(Tuple t) {
         for (int i=0;i<t.size();i++) {
            Object obj = null;
            try {
@@ -1310,6 +1334,72 @@ public class Util {
         return false;
     }
 
+    public static boolean isSparkExecType(ExecType execType) {
+        if (execType.name().toLowerCase().startsWith("spark")) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public static void sortQueryOutputsIfNeed(List<Tuple> actualResList, boolean toSort){
+        if( toSort == true) {
+            for (Tuple t : actualResList) {
+                Util.convertBagToSortedBag(t);
+            }
+            Collections.sort(actualResList);
+        }
+    }
+
+    public static void checkQueryOutputs(Iterator<Tuple> actualResults, List<Tuple> expectedResults, boolean checkAfterSort) {
+        if (checkAfterSort) {
+            checkQueryOutputsAfterSort(actualResults, expectedResults);
+        } else {
+            checkQueryOutputs(actualResults, expectedResults);
+        }
+    }
+
+    static public void checkQueryOutputs(Iterator<Tuple> actualResultsIt,
+                                         String[] expectedResArray, LogicalSchema schema, boolean
+            checkAfterSort) throws IOException {
+        if (checkAfterSort) {
+            checkQueryOutputsAfterSortRecursive(actualResultsIt,
+                    expectedResArray, schema);
+        } else {
+            checkQueryOutputs(actualResultsIt,
+                    expectedResArray, schema);
+        }
+    }
+
+    static void checkQueryOutputs(Iterator<Tuple> actualResultsIt,
+                                         String[] expectedResArray, LogicalSchema schema) throws IOException {
+        LogicalFieldSchema fs = new LogicalFieldSchema("tuple", schema, DataType.TUPLE);
+        ResourceFieldSchema rfs = new ResourceFieldSchema(fs);
+
+        LoadCaster caster = new Utf8StorageConverter();
+        List<Tuple> actualResList = new ArrayList<Tuple>();
+        while (actualResultsIt.hasNext()) {
+            actualResList.add(actualResultsIt.next());
+        }
+
+        List<Tuple> expectedResList = new ArrayList<Tuple>();
+        for (String str : expectedResArray) {
+            Tuple newTuple = caster.bytesToTuple(str.getBytes(), rfs);
+            expectedResList.add(newTuple);
+        }
+
+        for (Tuple t : actualResList) {
+            convertBagToSortedBag(t);
+        }
+
+        for (Tuple t : expectedResList) {
+            convertBagToSortedBag(t);
+        }
+
+        Assert.assertEquals("Comparing actual and expected results. ",
+                expectedResList, actualResList);
+    }
+
     public static void assertParallelValues(long defaultParallel,
                                              long requestedParallel,
                                              long estimatedParallel,
@@ -1399,11 +1489,15 @@ public class Util {
 
     public static ExecType getLocalTestMode() throws Exception {
         String execType = System.getProperty("test.exec.type");
-        if (execType!=null && execType.equals("tez")) {
-            return ExecTypeProvider.fromString("tez_local");
-        } else {
-            return ExecTypeProvider.fromString("local");
+        if (execType != null) {
+            if (execType.equals("tez")) {
+                return ExecTypeProvider.fromString("tez_local");
+            } else if (execType.equals("spark")) {
+                return ExecTypeProvider.fromString("spark_local");
+            }
         }
+
+        return ExecTypeProvider.fromString("local");
     }
 
     public static void createLogAppender(String appenderName, Writer writer, Class...clazzes) {

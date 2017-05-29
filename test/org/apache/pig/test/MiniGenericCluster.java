@@ -48,6 +48,7 @@ abstract public class MiniGenericCluster {
 
     public static String EXECTYPE_MR = "mr";
     public static String EXECTYPE_TEZ = "tez";
+    public static String EXECTYPE_SPARK = "spark";
 
     /**
      * Returns the single instance of class MiniGenericCluster that represents
@@ -75,6 +76,8 @@ abstract public class MiniGenericCluster {
                 INSTANCE = new MiniCluster();
             } else if (execType.equalsIgnoreCase(EXECTYPE_TEZ)) {
                 INSTANCE = new TezMiniCluster();
+            } else if (execType.equalsIgnoreCase(EXECTYPE_SPARK)) {
+                INSTANCE = new SparkMiniCluster();
             } else {
                 throw new RuntimeException("Unknown test.exec.type: " + execType);
             }
@@ -157,7 +160,9 @@ abstract public class MiniGenericCluster {
             return MiniCluster.getLauncher();
         } else if (execType.equalsIgnoreCase(EXECTYPE_TEZ)) {
             return TezMiniCluster.getLauncher();
-        } else {
+        } else if(execType.equalsIgnoreCase(EXECTYPE_SPARK)){
+            return SparkMiniCluster.getLauncher();
+        } else{
             throw new RuntimeException("Unknown test.exec.type: " + execType);
         }
     }

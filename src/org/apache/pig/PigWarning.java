@@ -68,6 +68,8 @@ public enum PigWarning {
     DELETE_FAILED,
     PROJECTION_INVALID_RANGE,
     NO_LOAD_FUNCTION_FOR_CASTING_BYTEARRAY,
-    SKIP_UDF_CALL_FOR_NULL
+    SKIP_UDF_CALL_FOR_NULL,
+    SPARK_WARN, //bulk collection of warnings under Spark exec engine
+    SPARK_CUSTOM_WARN // same as above but for custom UDF warnings only, see PIG-2207
     ;
 }

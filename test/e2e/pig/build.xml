@@ -353,6 +353,12 @@
     </antcall>
   </target>
 
+  <target name="test-spark">
+    <antcall target="test-base">
+      <param name="harness.conf.file" value="${basedir}/conf/spark.conf"/>
+    </antcall>
+  </target>
+
   <target name="deploy-base" depends="property-check, tar, init-test">
     <exec executable="perl" dir="${test.location}" failonerror="true">
       <env key="HARNESS_ROOT" value="."/>

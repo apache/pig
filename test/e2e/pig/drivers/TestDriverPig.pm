@@ -270,7 +270,7 @@ sub runPigCmdLine
     my @cmd = @baseCmd;
 
     # Add option -l giving location for secondary logs
-    ##!!! Should that even be here? 
+    ##!!! Should that even be here?
     my $locallog = $testCmd->{'localpath'} . $testCmd->{'group'} . "_" . $testCmd->{'num'} . ".log";
     push(@cmd, "-logfile");
     push(@cmd, $locallog);
@@ -424,6 +424,11 @@ sub getPigCmd($$$)
            $additionalJavaParams .= " -Dmapred.local.dir=$hadoopTmpDir -Dmapreduce.cluster.local.dir=$hadoopTmpDir";
         }
         TestDriver::dbg("Additional java parameters: [$additionalJavaParams].\n");
+    }
+
+    # Several OutOfMemoryErrors - Perm space issues were seen during running E2E tests, here max Perm size is adjusted
+    if ($testCmd->{'exectype'} eq "spark") {
+        $additionalJavaParams = "-XX:MaxPermSize=512m";
     }
     
     push(@pigCmd, ("-x", $testCmd->{'exectype'}));
@@ -598,7 +603,7 @@ sub postProcessSingleOutputFile
     if (defined $testCmd->{'floatpostprocess'} &&
             defined $testCmd->{'delimiter'}) {
         $fppCmd .= " | perl $toolpath/floatpostprocessor.pl \"" .
-            $testCmd->{'delimiter'} . "\"";
+            $testCmd->{'delimiter'} . "\" " . $testCmd->{'decimals'};
     }
     
     $fppCmd .= " > $localdir/out_original";

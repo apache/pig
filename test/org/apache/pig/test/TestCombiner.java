@@ -116,13 +116,17 @@ public class TestCombiner {
         inputLines.add("a,c,1");
         String inputFileName = loadWithTestLoadFunc("A", pig, inputLines);
 
-        pig.registerQuery("B = group A by ($0, $1);");
-        pig.registerQuery("C = foreach B generate flatten(group), COUNT($1);");
-        Iterator<Tuple> resultIterator = pig.openIterator("C");
-        Tuple tuple = resultIterator.next();
-        assertEquals("(a,b,2)", tuple.toString());
-        tuple = resultIterator.next();
-        assertEquals("(a,c,1)", tuple.toString());
+        pig.registerQuery("B = foreach A generate $0 as (c0:chararray), $1 as (c1:chararray), $2 as (c2:int);");
+        pig.registerQuery("C = group B by ($0, $1);");
+        pig.registerQuery("D = foreach C generate flatten(group), COUNT($1) as int;");
+        // Since the input has no schema, using Util.getTuplesFromConstantTupleStrings fails assert.
+        List<Tuple> resultTuples = Util.getTuplesFromConstantTupleStrings(
+            new String[]{
+                "('a','b',2)",
+                "('a','c',1)",
+            });
+        Iterator<Tuple> resultIterator = pig.openIterator("D");
+        Util.checkQueryOutputsAfterSort(resultIterator, resultTuples);
 
         return inputFileName;
     }
@@ -185,7 +189,7 @@ public class TestCombiner {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(baos);
         pigServer.explain("c", ps);
-        assertTrue(baos.toString().matches("(?si).*combine plan.*"));
+        checkCombinerUsed(pigServer, "c", true);
 
         Iterator<Tuple> it = pigServer.openIterator("c");
         Tuple t = it.next();
@@ -235,7 +239,7 @@ public class TestCombiner {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(baos);
         pigServer.explain("c", ps);
-        assertTrue(baos.toString().matches("(?si).*combine plan.*"));
+        checkCombinerUsed(pigServer, "c", true);
 
         HashMap<String, Object[]> results = new HashMap<String, Object[]>();
         results.put("pig1", new Object[] { "pig1", 3L, 57L, 5.2, 75L, 9.4, 3L, 3L, 57L });
@@ -252,6 +256,56 @@ public class TestCombiner {
             }
         }
         Util.deleteFile(cluster, "distinctAggs1Input.txt");
+        pigServer.shutdown();
+    }
+
+    @Test
+    public void testGroupAndUnion() throws Exception {
+        // test use of combiner when group elements are accessed in the foreach
+        String input1[] = {
+                "ABC\t1\ta\t1",
+                "ABC\t1\tb\t2",
+                "ABC\t1\ta\t3",
+                "ABC\t2\tb\t4",
+        };
+
+        Util.createInputFile(cluster, "testGroupElements1.txt", input1);
+        PigServer pigServer = new PigServer(cluster.getExecType(), properties);
+        pigServer.debugOn();
+        pigServer.registerQuery("a1 = load 'testGroupElements1.txt' " +
+                "as (str:chararray, num1:int, alph : chararray, num2 : int);");
+        pigServer.registerQuery("b1 = group a1 by str;");
+
+        // check if combiner is present or not for various forms of foreach
+        pigServer.registerQuery("c1 = foreach b1  generate flatten(group), COUNT(a1.alph), SUM(a1.num2); ");
+
+        String input2[] = {
+                "DEF\t2\ta\t3",
+                "DEF\t2\td\t5",
+        };
+
+        Util.createInputFile(cluster, "testGroupElements2.txt", input2);
+        pigServer.registerQuery("a2 = load 'testGroupElements2.txt' " +
+                "as (str:chararray, num1:int, alph : chararray, num2 : int);");
+        pigServer.registerQuery("b2 = group a2 by str;");
+
+        // check if combiner is present or not for various forms of foreach
+        pigServer.registerQuery("c2 = foreach b2  generate flatten(group), COUNT(a2.alph), SUM(a2.num2); ");
+
+        pigServer.registerQuery("c = union c1, c2;");
+
+        List<Tuple> expectedRes =
+                Util.getTuplesFromConstantTupleStrings(
+                        new String[]{
+                                "('ABC',4L,10L)",
+                                "('DEF',2L,8L)",
+                        });
+
+        Iterator<Tuple> it = pigServer.openIterator("c");
+        Util.checkQueryOutputsAfterSort(it, expectedRes);
+
+        Util.deleteFile(cluster, "testGroupElements1.txt");
+        Util.deleteFile(cluster, "testGroupElements2.txt");
         pigServer.shutdown();
     }
 
@@ -352,13 +406,19 @@ public class TestCombiner {
         pigServer.shutdown();
     }
 
-    private void checkCombinerUsed(PigServer pigServer, String string, boolean combineExpected)
+    private void checkCombinerUsed(PigServer pigServer, String alias, boolean combineExpected)
             throws IOException {
         // make sure there is a combine plan in the explain output
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(baos);
-        pigServer.explain("c", ps);
-        boolean combinerFound = baos.toString().matches("(?si).*combine plan.*");
+        pigServer.explain(alias, ps);
+        boolean combinerFound;
+        if (pigServer.getPigContext().getExecType().name().equalsIgnoreCase("spark")) {
+            combinerFound = baos.toString().contains("Reduce By");
+        } else {
+            combinerFound = baos.toString().matches("(?si).*combine plan.*");
+        }
+
         System.out.println(baos.toString());
         assertEquals("is combiner present as expected", combineExpected, combinerFound);
     }

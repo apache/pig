@@ -80,15 +80,17 @@ public class TestLimitVariable {
         Iterator<Tuple> it = pigServer.openIterator("g");
 
         List<Tuple> expectedRes = Util.getTuplesFromConstantTupleStrings(new String[] {
-                "(5.0,36)"});
-        Util.checkQueryOutputs(it, expectedRes);
+                "(5.0,36L)"});
+        Util.checkQueryOutputsAfterSort(it, expectedRes);
         pigServer.getPigContext().getProperties().remove(PigConfiguration.PIG_EXEC_MAP_PARTAGG);
     }
 
     @Test
     public void testLimitVariable2() throws IOException {
+        //add field type here to use  Util.checkQueryOutputsAfterSort comparing the expected and actual
+        //results
         String query =
-            "a = load '" + inputFile.getName() + "' as (id, num);" +
+            "a = load '" + inputFile.getName() + "' as (id:int, num:int);" +
             "b = filter a by id == 2;" + // only 1 tuple returned (2,3)
             "c = order a by id ASC;" +
             "d = limit c b.num;" + // test bytearray to long implicit cast
@@ -99,18 +101,20 @@ public class TestLimitVariable {
         Iterator<Tuple> itD = pigServer.openIterator("d");
         List<Tuple> expectedResD = Util.getTuplesFromConstantTupleStrings(new String[] {
                 "(1,11)", "(2,3)", "(3,10)" });
-        Util.checkQueryOutputs(itD, expectedResD);
+        Util.checkQueryOutputsAfterSort(itD, expectedResD);
 
         Iterator<Tuple> itE = pigServer.openIterator("e");
         List<Tuple> expectedResE = Util.getTuplesFromConstantTupleStrings(new String[] {
                 "(1,11)", "(2,3)", "(3,10)", "(4,11)", "(5,10)", "(6,15)" });
-        Util.checkQueryOutputs(itE, expectedResE);
+        Util.checkQueryOutputsAfterSort(itE, expectedResE);
     }
 
     @Test
     public void testLimitVariable3() throws IOException {
+        //add field type here to use  Util.checkQueryOutputsAfterSort comparing the expected and actual
+        //results
         String query =
-            "a = load '" + inputFile.getName() + "' ;" +
+            "a = load '" + inputFile.getName() + "' as (id:int, num:int);" +
             "b = group a all;" +
             "c = foreach b generate COUNT(a) as sum;" +
             "d = order a by $0 ASC;" +
@@ -121,7 +125,7 @@ public class TestLimitVariable {
         Iterator<Tuple> itE = pigServer.openIterator("e");
         List<Tuple> expectedResE = Util.getTuplesFromConstantTupleStrings(new String[] {
                 "(1,11)", "(2,3)", "(3,10)", "(4,11)", "(5,10)", "(6,15)" });
-        Util.checkQueryOutputs(itE, expectedResE);
+        Util.checkQueryOutputsAfterSort(itE, expectedResE);
     }
 
     @Test

@@ -35,12 +35,15 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODistinct;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFilter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POGlobalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLimit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSortedDistinct;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
+import org.apache.pig.backend.hadoop.executionengine.spark.operator.POGlobalRearrangeSpark;
+import org.apache.pig.backend.hadoop.executionengine.spark.operator.POReduceBySpark;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.io.PigNullableWritable;
@@ -54,7 +57,7 @@ import org.apache.pig.impl.plan.VisitorException;
 public class SecondaryKeyOptimizerUtil {
     private static Log log = LogFactory.getLog(SecondaryKeyOptimizerUtil.class.getName());
 
-    private SecondaryKeyOptimizerUtil() {
+    public SecondaryKeyOptimizerUtil() {
 
     }
 
@@ -182,7 +185,7 @@ public class SecondaryKeyOptimizerUtil {
         return result;
     }
 
-    public static SecondaryKeyOptimizerInfo applySecondaryKeySort(PhysicalPlan mapPlan, PhysicalPlan reducePlan) throws VisitorException {
+    public SecondaryKeyOptimizerInfo applySecondaryKeySort(PhysicalPlan mapPlan, PhysicalPlan reducePlan) throws VisitorException {
         log.trace("Entering SecondaryKeyOptimizerUtil.addSecondaryKeySort");
         SecondaryKeyOptimizerInfo secKeyOptimizerInfo = new SecondaryKeyOptimizerInfo();
         List<SortKeyInfo> sortKeyInfos = new ArrayList<SortKeyInfo>();
@@ -241,14 +244,11 @@ public class SecondaryKeyOptimizerUtil {
         }
 
         PhysicalOperator root = reduceRoots.get(0);
-        if (!(root instanceof POPackage)) {
-            log.debug("Expected reduce root to be a POPackage, skip secondary key optimizing");
-            return null;
-        }
+        PhysicalOperator currentNode = getCurrentNode(root,reducePlan);
 
         // visit the POForEach of the reduce plan. We can have Limit and Filter
         // in the middle
-        PhysicalOperator currentNode = root;
+
         POForEach foreach = null;
         while (currentNode != null) {
             if (currentNode instanceof POPackage
@@ -402,10 +402,31 @@ public class SecondaryKeyOptimizerUtil {
                     throw new VisitorException("Cannot find POLocalRearrange to set secondary plan", errorCode);
                 }
             }
-            POPackage pack = (POPackage) root;
-            pack.getPkgr().setUseSecondaryKey(true);
+
+            if (root instanceof POGlobalRearrangeSpark) {
+                POGlobalRearrangeSpark plg = (POGlobalRearrangeSpark) root;
+                plg.setUseSecondaryKey(true);
+                plg.setSecondarySortOrder(secondarySortKeyInfo.getAscs());
+            } else if (root instanceof POPackage) {
+                POPackage pack = (POPackage) root;
+                pack.getPkgr().setUseSecondaryKey(true);
+            } else if (root instanceof POReduceBySpark) {
+                POReduceBySpark reduceBySpark = (POReduceBySpark) root;
+                reduceBySpark.setUseSecondaryKey(true);
+                reduceBySpark.setSecondarySortOrder(secondarySortKeyInfo.getAscs());
+            }
         }
         return secKeyOptimizerInfo;
+    }
+
+    protected PhysicalOperator getCurrentNode(PhysicalOperator root, PhysicalPlan reducePlan) {
+        PhysicalOperator currentNode = null;
+        if (!(root instanceof POPackage)) {
+            log.debug("Expected reduce root to be a POPackage, skip secondary key optimizing");
+        } else {
+            currentNode = root;
+        }
+        return currentNode;
     }
 
     private static void setSecondaryPlan(PhysicalPlan plan, POLocalRearrange rearrange,
@@ -663,5 +684,4 @@ public class SecondaryKeyOptimizerUtil {
         }
         return false;
     }
-
 }

@@ -31,6 +31,9 @@ import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.builtin.mock.Storage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.tools.pigstats.InputStats;
+
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -106,33 +109,25 @@ public class TestMultiQuery {
         myPig.registerQuery("E = load 'output1' as (a:int, b:int);");
         Iterator<Tuple> iter = myPig.openIterator("E");
 
-        List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
-                new String[] {
+        String[] expectedResults = new String[]{
                         "(1,2)",
                         "(2,3)"
-                });
+        };
+        Schema s = myPig.dumpSchema("E");
+        Util.checkQueryOutputs(iter, expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(s), Util
+                .isSparkExecType(Util.getLocalTestMode()));
 
-        int counter = 0;
-        while (iter.hasNext()) {
-            assertEquals(expectedResults.get(counter++).toString(), iter.next().toString());
-        }
-        assertEquals(expectedResults.size(), counter);
 
         myPig.registerQuery("E = load 'output2' as (a:int, b:int);");
         iter = myPig.openIterator("E");
 
-        expectedResults = Util.getTuplesFromConstantTupleStrings(
-                new String[] {
+        expectedResults = new String[]{
                         "(2,3)",
                         "(3,4)"
-                });
-
-        counter = 0;
-        while (iter.hasNext()) {
-            assertEquals(expectedResults.get(counter++).toString(), iter.next().toString());
-        }
-
-        assertEquals(expectedResults.size(), counter);
+        };
+        s = myPig.dumpSchema("E");
+        Util.checkQueryOutputs(iter, expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(s), Util
+                .isSparkExecType(Util.getLocalTestMode()));
     }
 
     @Test
@@ -165,20 +160,15 @@ public class TestMultiQuery {
 
         Iterator<Tuple> iter = myPig.openIterator("F");
 
-        List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
-                new String[] {
+        String[] expectedResults = new String[]{
                         "(1,2)",
                         "(2,3)",
                         "(3,5)",
                         "(5,6)"
-                });
-
-        int counter = 0;
-        while (iter.hasNext()) {
-            assertEquals(expectedResults.get(counter++).toString(), iter.next().toString());
-        }
-
-        assertEquals(expectedResults.size(), counter);
+        };
+        Schema s = myPig.dumpSchema("F");
+        Util.checkQueryOutputs(iter, expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(s), Util
+                .isSparkExecType(Util.getLocalTestMode()));
     }
 
     @Test
@@ -299,19 +289,14 @@ public class TestMultiQuery {
 
         Iterator<Tuple> iter = myPig.openIterator("E");
 
-        List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
-                new String[] {
-                        "(1L,'apple',3,1L,'apple',1L,{(1L)})",
-                        "(2L,'orange',4,2L,'orange',2L,{(2L)})",
-                        "(3L,'persimmon',5,3L,'persimmon',3L,{(3L)})"
-                });
-
-        int counter = 0;
-        while (iter.hasNext()) {
-            assertEquals(expectedResults.get(counter++).toString(), iter.next().toString());
-        }
-
-        assertEquals(expectedResults.size(), counter);
+        String[] expectedResults = new String[]{
+                "(1L,apple,3,1L,apple,1L,{(1L)})",
+                "(2L,orange,4,2L,orange,2L,{(2L)})",
+                "(3L,persimmon,5,3L,persimmon,3L,{(3L)})"
+        };
+        Schema s = myPig.dumpSchema("E");
+        Util.checkQueryOutputs(iter, expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(s), Util
+                .isSparkExecType(Util.getLocalTestMode()));
     }
 
     @Test
@@ -345,19 +330,14 @@ public class TestMultiQuery {
 
         Iterator<Tuple> iter = myPig.openIterator("joined_session_info");
 
-        List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
-                new String[] {
-                        "('apple',{},{('apple','jar',1L)})",
-                        "('orange',{},{('orange','box',1L)})",
-                        "('strawberry',{(30,'strawberry','quit','bot')},{})"
-                });
+        String[] expectedResults = new String[]{
+                "(apple,{},{(apple,jar,1L)})",
+                "(orange,{},{(orange,box,1L)})",
+                "(strawberry,{(30,strawberry,quit,bot)},{})"};
 
-        int counter = 0;
-        while (iter.hasNext()) {
-            assertEquals(expectedResults.get(counter++).toString(), iter.next().toString());
-        }
-
-        assertEquals(expectedResults.size(), counter);
+        Schema s = myPig.dumpSchema("joined_session_info");
+        Util.checkQueryOutputs(iter, expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(s), Util
+                .isSparkExecType(Util.getLocalTestMode()));
     }
 
     @Test
@@ -861,12 +841,12 @@ public class TestMultiQuery {
         List<Tuple> actualResults = data.get("output1");
         List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
                 new String[] {"(1)", "(2)"});
-        Util.checkQueryOutputs(actualResults.iterator(), expectedResults);
+        Util.checkQueryOutputsAfterSort(actualResults.iterator(), expectedResults);
 
         actualResults = data.get("output2");
         expectedResults = Util.getTuplesFromConstantTupleStrings(
                 new String[] {"(1, 'world')", "(2, 'world')"});
-        Util.checkQueryOutputs(actualResults.iterator(), expectedResults);
+        Util.checkQueryOutputsAfterSort(actualResults.iterator(), expectedResults);
     }
 
     @Test
@@ -908,6 +888,27 @@ public class TestMultiQuery {
     }
 
     @Test
+    public void testMultiQueryJiraPig4899() throws Exception {
+        myPig.setBatchOn();
+
+        myPig.registerQuery("a = load 'passwd' "
+                + "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
+        myPig.registerQuery("b1 = foreach a generate uname;");
+        myPig.registerQuery("b2 = foreach a generate uid;");
+        myPig.registerQuery("store b1 into 'output1';");
+        myPig.registerQuery("store b2 into 'output2';");
+
+        List<ExecJob> jobs = myPig.executeBatch();
+        for (ExecJob job : jobs) {
+            assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
+            List<InputStats> stats = job.getStatistics().getInputStats();
+            assertEquals(1,stats.size());
+            InputStats stat = stats.get(0);
+            assertEquals("Number of records in passwd file is 14",14,stat.getNumberRecords());
+        }
+    }
+
+    @Test
     public void testMultiQueryJiraPig4883() throws Exception {
         Storage.Data data = Storage.resetData(myPig);
         data.set("inputLocation",
@@ -934,20 +935,24 @@ public class TestMultiQuery {
 
         List<Tuple> actualResults = data.get("output1");
         String[] expectedResults = new String[]{"(12, 1)"};
-        Util.checkQueryOutputsAfterSortRecursive(actualResults.iterator(), expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(myPig.dumpSchema("B1")));
+        Util.checkQueryOutputs(actualResults.iterator(), expectedResults, org.apache.pig.newplan
+                .logical.Util.translateSchema(myPig.dumpSchema("B1")), Util.isSparkExecType(Util.getLocalTestMode()));
 
 
         actualResults = data.get("output2");
         expectedResults = new String[]{"(c,1)"};
-        Util.checkQueryOutputsAfterSortRecursive(actualResults.iterator(), expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(myPig.dumpSchema("B2")));
+        Util.checkQueryOutputs(actualResults.iterator(), expectedResults, org.apache.pig.newplan.logical.Util
+                .translateSchema(myPig.dumpSchema("B2")), Util.isSparkExecType(Util.getLocalTestMode()));
 
         actualResults = data.get("output3");
         expectedResults = new String[]{"(-12, 1)"};
-        Util.checkQueryOutputsAfterSortRecursive(actualResults.iterator(), expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(myPig.dumpSchema("C1")));
+        Util.checkQueryOutputs(actualResults.iterator(), expectedResults, org.apache.pig.newplan.logical.Util
+                .translateSchema(myPig.dumpSchema("C1")), Util.isSparkExecType(Util.getLocalTestMode()));
 
         actualResults = data.get("output4");
         expectedResults = new String[]{"(d,1)"};
-        Util.checkQueryOutputsAfterSortRecursive(actualResults.iterator(), expectedResults, org.apache.pig.newplan.logical.Util.translateSchema(myPig.dumpSchema("C2")));
+        Util.checkQueryOutputs(actualResults.iterator(), expectedResults, org.apache.pig.newplan.logical.Util
+                .translateSchema(myPig.dumpSchema("C2")), Util.isSparkExecType(Util.getLocalTestMode()));
     }
 
     // --------------------------------------------------------------------------

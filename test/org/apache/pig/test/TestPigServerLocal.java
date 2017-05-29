@@ -255,6 +255,16 @@ public class TestPigServerLocal {
             _testSkipParseInRegisterForBatch(false, 8, 4);
             _testSkipParseInRegisterForBatch(true, 5, 1);
             _testParseBatchWithScripting(5, 1);
+        } else if (Util.getLocalTestMode().toString().startsWith("SPARK")) {
+            // 6 = 4 (Once per registerQuery) + 2 (SortConverter , PigRecordReader)
+            // 4 (Once per registerQuery)
+            _testSkipParseInRegisterForBatch(false, 6, 4);
+
+            // 3 = 1 (registerQuery) + 2 (SortConverter, PigRecordReader)
+            // 1 (registerQuery)
+            _testSkipParseInRegisterForBatch(true, 3, 1);
+
+            _testParseBatchWithScripting(3, 1);
         } else {
             // numTimesInitiated = 10. 4 (once per registerQuery) + 6 (launchPlan->RandomSampleLoader,
             // InputSizeReducerEstimator, getSplits->RandomSampleLoader,

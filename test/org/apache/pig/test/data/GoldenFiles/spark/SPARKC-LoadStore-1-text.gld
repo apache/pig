@@ -1,0 +1,33 @@
+#--------------------------------------------------
+# Spark Plan
+#--------------------------------------------------
+
+Spark node scope-18
+a: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-8
+|
+|---a: New For Each(false,false)[bag] - scope-7
+    |   |
+    |   Cast[int] - scope-2
+    |   |
+    |   |---Project[bytearray][0] - scope-1
+    |   |
+    |   Cast[int] - scope-5
+    |   |
+    |   |---Project[bytearray][1] - scope-4
+    |
+    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0--------
+
+Spark node scope-19
+b: Store(file:///tmp/pigoutput1:org.apache.pig.builtin.PigStorage) - scope-17
+|
+|---b: New For Each(false,false)[bag] - scope-16
+    |   |
+    |   Cast[int] - scope-11
+    |   |
+    |   |---Project[bytearray][0] - scope-10
+    |   |
+    |   Cast[int] - scope-14
+    |   |
+    |   |---Project[bytearray][1] - scope-13
+    |
+    |---b: Load(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-9--------

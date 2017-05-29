@@ -36,6 +36,8 @@ PIG-5067: Revisit union on numeric type and chararray to bytearray (knoguchi)
  
 IMPROVEMENTS
 
+PIG-4059: Pig On Spark
+
 PIG-5188: Review pig-index.xml (szita)
 
 PIG-4924: Translate failures.maxpercent MR setting to Tez Tez (rohini)
