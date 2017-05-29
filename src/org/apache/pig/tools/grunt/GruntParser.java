@@ -44,6 +44,7 @@ import java.util.Set;
 import jline.console.ConsoleReader;
 
 import org.apache.commons.io.output.NullOutputStream;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FileSystem;
@@ -575,41 +576,69 @@ public class GruntParser extends PigScriptParser {
         value = parameterSubstitutionInGrunt(value);
         if (key.equals("debug"))
         {
-            if (value.equals("on"))
-                mPigServer.debugOn();
-            else if (value.equals("off"))
-                mPigServer.debugOff();
-            else
-                throw new ParseException("Invalid value " + value + " provided for " + key);
+            if (value != null) {
+                if (value.equals("on"))
+                    mPigServer.debugOn();
+                else if (value.equals("off"))
+                    mPigServer.debugOff();
+                else
+                    throw new ParseException("Invalid value " + value + " provided for " + key);
+            } else {
+                System.out.println(key + "=" + mPigServer.isDebugOn());
+            }
         }
         else if (key.equals("job.name"))
         {
-            mPigServer.setJobName(value);
+            if (value != null) {
+                mPigServer.setJobName(value);
+            } else {
+                System.out.println(key + "=" + mPigServer.getJobName());
+            }
         }
         else if (key.equals("job.priority"))
         {
-            mPigServer.setJobPriority(value);
+            if (value != null) {
+                mPigServer.setJobPriority(value);
+            } else {
+                System.out.println(key + "=" + mPigServer.getJobPriority());
+            }
         }
         else if (key.equals("stream.skippath")) {
-            // Validate
-            File file = new File(value);
-            if (!file.exists() || file.isDirectory()) {
-                throw new IOException("Invalid value for stream.skippath:" +
-                                      value);
+            if (value != null) {
+                // Validate
+                File file = new File(value);
+                if (!file.exists() || file.isDirectory()) {
+                    throw new IOException("Invalid value for stream.skippath:" +
+                                          value);
+                }
+                mPigServer.addPathToSkip(value);
+            } else {
+                System.out.println(key + "=" + StringUtils.join(mPigServer.getPigContext().getPathsToSkip(), ","));
             }
-            mPigServer.addPathToSkip(value);
         }
         else if (key.equals("default_parallel")) {
-            // Validate
-            try {
-                mPigServer.setDefaultParallel(Integer.parseInt(value));
-            } catch (NumberFormatException e) {
-                throw new ParseException("Invalid value for default_parallel");
+            if (value != null) {
+                // Validate
+                try {
+                    mPigServer.setDefaultParallel(Integer.parseInt(value));
+                } catch (NumberFormatException e) {
+                    throw new ParseException("Invalid value for default_parallel");
+                }
+            } else {
+                System.out.println(key + "=" + mPigServer.getPigContext().getDefaultParallel());
             }
         }
         else
         {
-           mPigServer.getPigContext().getExecutionEngine().setProperty(key, value);
+            if (value != null) {
+                mPigServer.getPigContext().getExecutionEngine().setProperty(key, value);
+            } else {
+                if (mPigServer.getPigContext().getProperties().containsKey(key)) {
+                    System.out.println(key + "=" + mPigServer.getPigContext().getProperties().getProperty(key));
+                } else {
+                    System.out.println(key + " is not defined");
+                }
+            }
         }
     }
 

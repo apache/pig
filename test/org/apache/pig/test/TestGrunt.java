@@ -24,6 +24,7 @@ import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
@@ -32,6 +33,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -1517,6 +1519,14 @@ public class TestGrunt {
         new Grunt(new BufferedReader(reader), pc).exec();
 
         assertEquals("my.arbitrary.value",  pc.getProperties().getProperty("my.arbitrary.key"));
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(baos));
+        strCmd = "set my.arbitrary.key\n";
+        reader = new InputStreamReader(new ByteArrayInputStream(strCmd.getBytes()));
+        new Grunt(new BufferedReader(reader), pc).exec();
+
+        assertEquals(baos.toString(), "my.arbitrary.key=my.arbitrary.value\n");
     }
 
     @Test

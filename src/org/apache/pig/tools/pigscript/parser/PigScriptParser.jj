@@ -132,6 +132,13 @@ public abstract class PigScriptParser
 		else
 			return s;
 	}
+	static boolean eolOrSemicolon(int kind) {
+	    if (kind == EOL || kind == SEMICOLON) {
+	        return true;
+	    } else {
+	        return false;
+	    }
+	}
 
 }
 PARSER_END(PigScriptParser)
@@ -626,8 +633,8 @@ void parse() throws IOException:
 	<SET>
 	(
 		t1 = GetKey()
-		t2 = GetValue()
-		{processSet(t1.image, unquote(t2.image));}
+		t2 = GetValueOrNull()
+        {processSet(t1.image, eolOrSemicolon(t2.kind)?null:unquote(t2.image));}
     	|
 		{processSet();}
 	)
@@ -825,6 +832,22 @@ Token GetKey() :
 }
 {
 	t = GetPath()
+	{return t;}
+}
+
+Token GetValueOrNull() :
+{
+	Token t;
+}
+{
+	(
+	t = GetValue()
+	|
+	t = <EOL>
+	|
+	t = <SEMICOLON>
+	)
+
 	{return t;}
 }
 
