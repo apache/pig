@@ -20,6 +20,7 @@ package org.apache.pig.backend.hadoop.executionengine.spark;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -387,8 +388,8 @@ public class SparkLauncher extends Launcher {
             for (String file : shipFiles.split(",")) {
                 File shipFile = new File(file.trim());
                 if (shipFile.exists()) {
-                    addResourceToSparkJobWorkingDirectory(shipFile,
-                            shipFile.getName(), ResourceType.FILE);
+                    addResourceToSparkJobWorkingDirectory(shipFile, shipFile.getName(),
+                            shipFile.getName().endsWith(".jar") ? ResourceType.JAR : ResourceType.FILE );
                 }
             }
         }
@@ -429,7 +430,7 @@ public class SparkLauncher extends Launcher {
         Set<String> allJars = new HashSet<String>();
         LOG.info("Add default jars to Spark Job");
         allJars.addAll(JarManager.getDefaultJars());
-        LOG.info("Add extra jars to Spark Job");
+        LOG.info("Add script jars to Spark Job");
         for (String scriptJar : pigContext.scriptJars) {
             allJars.add(scriptJar);
         }
@@ -446,6 +447,11 @@ public class SparkLauncher extends Launcher {
         if (scriptUDFJarFile != null) {
             LOG.info("Add script udf jar to Spark job");
             allJars.add(scriptUDFJarFile.getAbsolutePath().toString());
+        }
+
+        LOG.info("Add extra jars to Spark job");
+        for (URL extraJarUrl : pigContext.extraJars) {
+            allJars.add(extraJarUrl.getFile());
         }
 
         //Upload all jars to spark working directory
