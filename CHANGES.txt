@@ -111,6 +111,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5244: Several unit tests are failing in Tez mode after merging spark branch (nkollar via szita)
+
 PIG-5207: BugFix e2e tests fail on spark (szita)
 
 PIG-5194: HiveUDF fails with Spark exec type (szita)
