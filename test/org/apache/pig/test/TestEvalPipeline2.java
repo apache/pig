@@ -1597,9 +1597,8 @@ public class TestEvalPipeline2 {
 
         String[] expected = new String[] {"(1,A)", "(1,B)", "(2,C)"};
 
-        Util.checkQueryOutputs(iter, expected,
-            org.apache.pig.newplan.logical.Util.translateSchema(pigServer.dumpSchema("flattened")), 
-            Util.isSparkExecType(cluster.getExecType()));
+        Util.checkQueryOutputsAfterSortRecursive(iter, expected,
+            org.apache.pig.newplan.logical.Util.translateSchema(pigServer.dumpSchema("flattened")));
     }
 
     // See PIG-2237
