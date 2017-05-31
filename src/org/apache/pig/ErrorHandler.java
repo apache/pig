@@ -43,5 +43,5 @@ public interface ErrorHandler {
      * @param inputTuple
      *            the tuple to store.
      */
-    public void onError(String uniqueSignature, Exception e, Tuple inputTuple);
+    public void onError(String uniqueSignature, Exception e);
 }

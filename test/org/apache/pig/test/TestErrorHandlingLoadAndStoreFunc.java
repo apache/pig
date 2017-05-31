@@ -19,6 +19,7 @@ package org.apache.pig.test;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Collection;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
@@ -43,11 +44,11 @@ import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 
 /**
- * This class contains Unit tests for store func which has a certain error
+ * This class contains Unit tests for load func and store func which has a certain error
  * threshold set.
- * 
+ *
  */
-public class TestErrorHandlingStoreFunc {
+public class TestErrorHandlingLoadAndStoreFunc {
 
     private static PigServer pigServer;
     private File tempDir;
@@ -103,14 +104,54 @@ public class TestErrorHandlingStoreFunc {
         }
     }
 
+    public static class TestErroroneousLoadFunc extends PigStorage implements
+            ErrorHandling {
+        protected static AtomicLong COUNTER = new AtomicLong();
+
+        @Override
+        public Tuple getNext() throws IOException {
+            long count = COUNTER.incrementAndGet();
+            Tuple t = super.getNext();
+            if (count % 3 == 0) {
+                throw new RuntimeException("Throw error for test");
+            }
+            return t;
+        }
+
+        @Override
+        public ErrorHandler getErrorHandler() {
+            return new CounterBasedErrorHandler();
+        }
+    }
+
+    public static class TestErroroneousLoadFunc2 extends PigStorage implements
+            ErrorHandling {
+        protected static AtomicLong COUNTER = new AtomicLong();
+
+        @Override
+        public Tuple getNext() throws IOException {
+            long count = COUNTER.incrementAndGet();
+            Tuple t = super.getNext();
+            if (count % 3 == 0) {
+                throw new RuntimeException("Throw error for test");
+            }
+            return t;
+        }
+
+        @Override
+        public ErrorHandler getErrorHandler() {
+            return new CounterBasedErrorHandler();
+        }
+    }
+
     /**
      * Test Pig job succeeds even with errors within threshold
-     * 
+     *
      */
     @Test
     public void testStorerWithErrorInLimit() throws Exception {
         updatePigProperties(true, 3L, 0.4);
-        runTest(JOB_STATUS.COMPLETED);
+        runTestStore(JOB_STATUS.COMPLETED);
     }
 
     /**
@@ -119,23 +160,53 @@ public class TestErrorHandlingStoreFunc {
     @Test
     public void testStorerWithErrorOutExceedingLimit() throws Exception {
         updatePigProperties(true, 2L, 0.3);
-        runTest(JOB_STATUS.FAILED);
+        runTestStore(JOB_STATUS.FAILED);
     }
 
     /**
      * Test Pig Job fails on error if the config is set to false
-     * 
+     *
      * @throws Exception
      */
     @Test
     public void testStorerWithConfigNotEnabled() throws Exception {
         updatePigProperties(false, 3L, 0.3);
-        runTest(JOB_STATUS.FAILED);
+        runTestStore(JOB_STATUS.FAILED);
+    }
+
+    /**
+     * Test Pig job succeeds even with errors within threshold
+     *
+     */
+    @Test
+    public void testLoaderWithErrorInLimit() throws Exception {
+        updatePigProperties(true, 3L, 0.4);
+        runTestLoad(JOB_STATUS.COMPLETED);
+    }
+
+    /**
+     * Test Pig job fails if errors exceed min errors and threshold
+     */
+    @Test
+    public void testLoaderWithErrorOutExceedingLimit() throws Exception {
+        updatePigProperties(true, 1L, 0.1);
+        runTestLoad(JOB_STATUS.FAILED);
+    }
+
+    /**
+     * Test Pig Job fails on error if the config is set to false
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testLoaderWithConfigNotEnabled() throws Exception {
+        updatePigProperties(false, 3L, 0.3);
+        runTestLoad(JOB_STATUS.FAILED);
     }
 
     /**
      * Test Pig Job with multiple stores.
-     * 
+     *
      * @throws Exception
      */
     @Test
@@ -155,7 +226,8 @@ public class TestErrorHandlingStoreFunc {
         }
         data.set("in", "id:int,name:chararray", list);
         pigServer.setBatchOn();
-        pigServer.registerQuery("A = LOAD 'in' USING mock.Storage();");
+        String loadQuery = "A = LOAD 'in' using mock.Storage();";
+        pigServer.registerQuery(loadQuery);
         String storeAQuery = "store A into '" + tempDir.getAbsolutePath()
                 + "/output' using " + TestErroroneousStoreFunc.class.getName()
                 + "();";
@@ -171,7 +243,40 @@ public class TestErrorHandlingStoreFunc {
         }
     }
 
-    private void runTest(JOB_STATUS expectedJobStatus) throws Exception {
+    /**
+     * Test Pig Job with multiple loaders.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testMultiLoad() throws Exception {
+        updatePigProperties(true, 3L, 0.4);
+        pigServer.getPigContext().getProperties()
+              .put(PigConfiguration.PIG_OPT_MULTIQUERY, "" + true);
+        Storage.resetData(pigServer);
+
+        String inputLocation1 = tempDir.getAbsolutePath() + "/ina";
+        String inputLocation2 = tempDir.getAbsolutePath() + "/inb";
+        writeFile(inputLocation1);
+        writeFile(inputLocation2);
+
+        pigServer.setBatchOn();
+        String loadQuery1 = "A = LOAD '" + inputLocation1 + "' USING " + TestErroroneousLoadFunc.class.getName() + "();";
+        pigServer.registerQuery(loadQuery1);
+        String loadQuery2 = "B = LOAD '" + inputLocation2 + "' USING " + TestErroroneousLoadFunc2.class.getName() + "();";
+        pigServer.registerQuery(loadQuery2);
+        String storeQuery1 = "store A into '/output1' using mock.Storage();";
+        pigServer.registerQuery(storeQuery1);
+        String storeQuery2 = "store B into '/output2' using mock.Storage();";
+        pigServer.registerQuery(storeQuery2);
+
+        if (pigServer.executeBatch().get(0).getStatus() != JOB_STATUS.COMPLETED) {
+            throw new RuntimeException("Job did not reach the expected status"
+                    + pigServer.executeBatch().get(0).getStatus());
+        }
+    }
+
+    private void runTestStore(JOB_STATUS expectedJobStatus) throws Exception {
         Data data = Storage.resetData(pigServer);
         final Collection<Tuple> list = Lists.newArrayList();
         // Create input dataset
@@ -185,10 +290,28 @@ public class TestErrorHandlingStoreFunc {
         data.set("in", "id:int,name:chararray", list);
 
         pigServer.setBatchOn();
-        pigServer.registerQuery("A = LOAD 'in' USING mock.Storage();");
+        String loadQuery = "A = LOAD 'in' USING mock.Storage();";
+        pigServer.registerQuery(loadQuery);
         String storeQuery = "store A into '" + tempDir.getAbsolutePath()
                 + "/output' using " + TestErroroneousStoreFunc.class.getName()
                 + "();";
+        pigServer.registerQuery(storeQuery);
+
+        if (pigServer.executeBatch().get(0).getStatus() != expectedJobStatus) {
+            throw new RuntimeException("Job did not reach the expected status"
+                    + pigServer.executeBatch().get(0).getStatus());
+        }
+    }
+
+    private void runTestLoad(JOB_STATUS expectedJobStatus) throws Exception {
+        Storage.resetData(pigServer);
+        String inputLocation = tempDir.getAbsolutePath() + "/in";
+        writeFile(inputLocation);
+        pigServer.setBatchOn();
+        String loadQuery = "A = LOAD '" + inputLocation + "' USING " + TestErroroneousLoadFunc.class.getName() + "();";
+        pigServer.registerQuery(loadQuery);
+        String storeQuery = "store A into '" + tempDir.getAbsolutePath()
+                + "/output' using mock.Storage();";
         pigServer.registerQuery(storeQuery);
 
         if (pigServer.executeBatch().get(0).getStatus() != expectedJobStatus) {
@@ -206,5 +329,18 @@ public class TestErrorHandlingStoreFunc {
                 Long.toString(minErrors));
         properties.put(PigConfiguration.PIG_ERROR_HANDLING_THRESHOLD_PERCENT,
                 Double.toString(errorThreshold));
+    }
+
+    private void writeFile(String fileLocation) throws IOException {
+        try{
+            PrintWriter writer = new PrintWriter(fileLocation, "UTF-8");
+            int rows = 20;
+            for (int i = 0; i < rows; i++) {
+                writer.println("a" + i);
+            }
+            writer.close();
+        } catch (IOException e) {
+           throw new IOException(e);
+        }
     }
 }

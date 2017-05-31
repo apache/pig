@@ -201,15 +201,15 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     private boolean isVertexGroup = false;
 
     public static class LoaderInfo implements Serializable {
-        private List<POLoad> loads = null;
+        private ArrayList<POLoad> loads = null;
         private ArrayList<FileSpec> inp = new ArrayList<FileSpec>();
         private ArrayList<String> inpSignatureLists = new ArrayList<String>();
         private ArrayList<Long> inpLimits = new ArrayList<Long>();
         private transient InputSplitInfo inputSplitInfo = null;
-        public List<POLoad> getLoads() {
+        public ArrayList<POLoad> getLoads() {
             return loads;
         }
-        public void setLoads(List<POLoad> loads) {
+        public void setLoads(ArrayList<POLoad> loads) {
             this.loads = loads;
         }
         public ArrayList<FileSpec> getInp() {

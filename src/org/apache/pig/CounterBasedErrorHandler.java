@@ -19,15 +19,14 @@ package org.apache.pig;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.Counter;
-import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
 
 public class CounterBasedErrorHandler implements ErrorHandler {
 
-    public static final String STORER_ERROR_HANDLER_COUNTER_GROUP = "storer_Error_Handler";
-    public static final String STORER_ERROR_COUNT = "bad_record_count";
-    public static final String STORER_RECORD_COUNT = "record__count";
+    public static final String ERROR_HANDLER_COUNTER_GROUP = "error_Handler";
+    public static final String ERROR_COUNT = "bad_record_count";
+    public static final String RECORD_COUNT = "record__count";
 
     private final long minErrors;
     private final float errorThreshold; // fraction of errors allowed
@@ -42,18 +41,18 @@ public class CounterBasedErrorHandler implements ErrorHandler {
 
     @Override
     public void onSuccess(String uniqueSignature) {
-        incAndGetCounter(uniqueSignature, STORER_RECORD_COUNT);
+        incAndGetCounter(uniqueSignature, RECORD_COUNT);
     }
 
     @Override
-    public void onError(String uniqueSignature, Exception e, Tuple inputTuple) {
-        long numErrors = incAndGetCounter(uniqueSignature, STORER_ERROR_COUNT);
-        long numRecords = incAndGetCounter(uniqueSignature, STORER_RECORD_COUNT);
+    public void onError(String uniqueSignature, Exception e) {
+        long numErrors = incAndGetCounter(uniqueSignature, ERROR_COUNT);
+        long numRecords = incAndGetCounter(uniqueSignature, RECORD_COUNT);
         boolean exceedThreshold = hasErrorExceededThreshold(numErrors,
                 numRecords);
         if (exceedThreshold) {
             throw new RuntimeException(
-                    "Exceeded the error rate while writing records. The latest error seen  ",
+                    "Exceeded the error rate while processing records. The latest error seen  ",
                     e);
         }
     }
@@ -71,37 +70,37 @@ public class CounterBasedErrorHandler implements ErrorHandler {
         return false;
     }
 
-    public long getRecordCount(String storeSignature) {
-        Counter counter = getCounter(storeSignature, STORER_RECORD_COUNT);
+    public long getRecordCount(String signature) {
+        Counter counter = getCounter(signature, RECORD_COUNT);
         return counter.getValue();
     }
 
-    private long incAndGetCounter(String storeSignature, String counterName) {
-        Counter counter = getCounter(storeSignature, counterName);
+    private long incAndGetCounter(String signature, String counterName) {
+        Counter counter = getCounter(signature, counterName);
         counter.increment(1);
         return counter.getValue();
     }
 
     /**
-     * Get Counter for a given counterName and Store Signature
+     * Get Counter for a given counterName and signature
      * 
      * @param counterName
-     * @param storeSignature
+     * @param signature
      * @return
      */
-    private Counter getCounter(String storeSignature, String counterName) {
+    private Counter getCounter(String signature, String counterName) {
         PigStatusReporter reporter = PigStatusReporter.getInstance();
         @SuppressWarnings("deprecation")
         Counter counter = reporter.getCounter(
-                STORER_ERROR_HANDLER_COUNTER_GROUP,
-                getCounterNameForStore(counterName, storeSignature));
+                ERROR_HANDLER_COUNTER_GROUP,
+                getCounterNameForStore(counterName, signature));
         return counter;
     }
 
     private String getCounterNameForStore(String counterNamePrefix,
-            String storeSignature) {
+            String signature) {
         StringBuilder counterName = new StringBuilder()
-                .append(counterNamePrefix).append("_").append(storeSignature);
+                .append(counterNamePrefix).append("_").append(signature);
         return counterName.toString();
     }
 }

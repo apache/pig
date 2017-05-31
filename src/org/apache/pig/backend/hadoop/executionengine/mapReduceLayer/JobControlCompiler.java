@@ -508,7 +508,7 @@ public class JobControlCompiler{
 
         Configuration conf = nwJob.getConfiguration();
 
-        ArrayList<FileSpec> inp = new ArrayList<FileSpec>();
+        ArrayList<POLoad> inp = new ArrayList<POLoad>();
         ArrayList<List<OperatorKey>> inpTargets = new ArrayList<List<OperatorKey>>();
         ArrayList<String> inpSignatureLists = new ArrayList<String>();
         ArrayList<Long> inpLimits = new ArrayList<Long>();
@@ -548,8 +548,9 @@ public class JobControlCompiler{
                     LoadFunc lf = ld.getLoadFunc();
                     lf.setLocation(ld.getLFile().getFileName(), nwJob);
 
+                    ld.setParentPlan(null);
                     //Store the inp filespecs
-                    inp.add(ld.getLFile());
+                    inp.add(ld);
                 }
             }
 
@@ -704,7 +705,7 @@ public class JobControlCompiler{
             if(Utils.isLocal(pigContext, conf)) {
                 ConfigurationUtil.replaceConfigForLocalMode(conf);
             }
-            conf.set(PigInputFormat.PIG_INPUTS, ObjectSerializer.serialize(inp));
+            conf.set(PigInputFormat.PIG_LOADS, ObjectSerializer.serialize(inp));
             conf.set(PigInputFormat.PIG_INPUT_TARGETS, ObjectSerializer.serialize(inpTargets));
             conf.set(PigInputFormat.PIG_INPUT_SIGNATURES, ObjectSerializer.serialize(inpSignatureLists));
             conf.set(PigInputFormat.PIG_INPUT_LIMITS, ObjectSerializer.serialize(inpLimits));

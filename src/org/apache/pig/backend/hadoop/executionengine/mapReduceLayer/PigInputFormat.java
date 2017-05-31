@@ -41,6 +41,8 @@ import org.apache.pig.OrderedLoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.LoadFuncDecorator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.Tuple;
@@ -56,7 +58,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
     public static final Log log = LogFactory
             .getLog(PigInputFormat.class);
 
-    public static final String PIG_INPUTS = "pig.inputs";
+    public static final String PIG_LOADS = "pig.loads";
     public static final String PIG_INPUT_TARGETS = "pig.inpTargets";
     public static final String PIG_INPUT_SIGNATURES = "pig.inpSignatures";
     public static final String PIG_INPUT_LIMITS = "pig.inpLimits";
@@ -81,7 +83,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
     protected static class RecordReaderFactory {
         protected InputFormat inputFormat;
         protected PigSplit pigSplit;
-        protected LoadFunc loadFunc;
+        protected LoadFuncDecorator decorator;
         protected TaskAttemptContext context;
         protected long limit;
 
@@ -106,7 +108,9 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
             PigContext.setPackageImportList((ArrayList<String>) ObjectSerializer
                     .deserialize(conf.get("udf.import.list")));
             MapRedUtil.setupUDFContext(conf);
-            LoadFunc loadFunc = getLoadFunc(pigSplit.getInputIndex(), conf);
+            POLoad poLoad = getLoadFunc(pigSplit.getInputIndex(), conf);
+            LoadFunc loadFunc = poLoad.getLoadFunc();
+            LoadFuncDecorator decorator = poLoad.getLoadFuncDecorator();
             // Pass loader signature to LoadFunc and to InputFormat through
             // the conf
             passLoadSignature(loadFunc, pigSplit.getInputIndex(), conf);
@@ -122,13 +126,13 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
 
             this.inputFormat = inputFormat;
             this.pigSplit = pigSplit;
-            this.loadFunc = loadFunc;
+            this.decorator = decorator;
             this.context = context;
             this.limit = inpLimitLists.get(pigSplit.getInputIndex());
         }
 
         public org.apache.hadoop.mapreduce.RecordReader<Text, Tuple> createRecordReader() throws IOException, InterruptedException {
-            return new PigRecordReader(inputFormat, pigSplit, loadFunc, context, limit);
+            return new PigRecordReader(inputFormat, pigSplit, decorator, context, limit);
         }
     }
 
@@ -159,20 +163,19 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
      * @throws IOException
      */
     @SuppressWarnings("unchecked")
-    private static LoadFunc getLoadFunc(int inputIndex, Configuration conf) throws IOException {
-        ArrayList<FileSpec> inputs =
-                (ArrayList<FileSpec>) ObjectSerializer.deserialize(
-                        conf.get(PIG_INPUTS));
-        FuncSpec loadFuncSpec = inputs.get(inputIndex).getFuncSpec();
-        return (LoadFunc) PigContext.instantiateFuncFromSpec(loadFuncSpec);
+    private static POLoad getLoadFunc(int inputIndex, Configuration conf) throws IOException {
+        ArrayList<POLoad> inputs =
+            (ArrayList<POLoad>) ObjectSerializer.deserialize(
+                     conf.get(PIG_LOADS));
+        return inputs.get(inputIndex);
     }
 
     @SuppressWarnings("unchecked")
     private static String getLoadLocation(int inputIndex, Configuration conf) throws IOException {
-        ArrayList<FileSpec> inputs =
-                (ArrayList<FileSpec>) ObjectSerializer.deserialize(
-                        conf.get(PIG_INPUTS));
-        return inputs.get(inputIndex).getFileName();
+        ArrayList<POLoad> inputs =
+                (ArrayList<POLoad>) ObjectSerializer.deserialize(
+                        conf.get(PIG_LOADS));
+        return inputs.get(inputIndex).getLFile().getFileName();
     }
 
     /**
@@ -210,11 +213,11 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
 
         Configuration conf = jobcontext.getConfiguration();
 
-        ArrayList<FileSpec> inputs;
+        ArrayList<POLoad> inputs;
         ArrayList<ArrayList<OperatorKey>> inpTargets;
         try {
-            inputs = (ArrayList<FileSpec>) ObjectSerializer
-                    .deserialize(conf.get(PIG_INPUTS));
+            inputs = (ArrayList<POLoad>) ObjectSerializer
+                    .deserialize(conf.get(PIG_LOADS));
             inpTargets = (ArrayList<ArrayList<OperatorKey>>) ObjectSerializer
                     .deserialize(conf.get(PIG_INPUT_TARGETS));
             PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.deserialize(conf.get("udf.import.list")));
@@ -228,7 +231,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
         ArrayList<InputSplit> splits = new ArrayList<InputSplit>();
         for (int i = 0; i < inputs.size(); i++) {
             try {
-                Path path = new Path(inputs.get(i).getFileName());
+                Path path = new Path(inputs.get(i).getLFile().getFileName());
 
                 FileSystem fs;
                 boolean isFsPath = true;
@@ -257,7 +260,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
                 // FileInputFormat stores this in mapred.input.dir in the conf),
                 // then for different inputs, the loader's don't end up
                 // over-writing the same conf.
-                FuncSpec loadFuncSpec = inputs.get(i).getFuncSpec();
+                FuncSpec loadFuncSpec = inputs.get(i).getLFile().getFuncSpec();
                 LoadFunc loadFunc = (LoadFunc) PigContext.instantiateFuncFromSpec(
                         loadFuncSpec);
                 boolean combinable = !(loadFunc instanceof MergeJoinIndexer
@@ -270,7 +273,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
                 // Pass loader signature to LoadFunc and to InputFormat through
                 // the conf
                 passLoadSignature(loadFunc, i, inputSpecificJob.getConfiguration());
-                loadFunc.setLocation(inputs.get(i).getFileName(),
+                loadFunc.setLocation(inputs.get(i).getLFile().getFileName(),
                         inputSpecificJob);
                 // The above setLocation call could write to the conf within
                 // the inputSpecificJob - use this updated conf
@@ -289,7 +292,8 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
                 throw ee;
             } catch (Exception e) {
                 int errCode = 2118;
-                String msg = "Unable to create input splits for: " + inputs.get(i).getFileName();
+                String msg = "Unable to create input splits for: " +
+                        inputs.get(i).getLFile().getFileName();
                 if(e.getMessage() !=null && (!e.getMessage().isEmpty()) ){
                     throw new ExecException(e.getMessage(), errCode, PigException.BUG, e);
                 }else{

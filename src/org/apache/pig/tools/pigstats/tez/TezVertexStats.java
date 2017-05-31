@@ -36,6 +36,7 @@ import org.apache.hadoop.mapred.Counters;
 import org.apache.pig.PigCounters;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigInputFormat;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POStoreTez;
 import org.apache.pig.impl.io.FileSpec;
@@ -72,7 +73,7 @@ public class TezVertexStats extends JobStats {
     private Map<String, Map<String, Long>> counters = null;
 
     private List<POStore> stores = null;
-    private List<FileSpec> loads = null;
+    private List<POLoad> loads = null;
 
     private int numTasks = 0;
     private long numInputRecords = 0;
@@ -139,8 +140,8 @@ public class TezVertexStats extends JobStats {
             // tez. For now, we keep it since it's used in PigOutputFormat.
             this.stores = (List<POStore>) ObjectSerializer.deserialize(
                     conf.get(JobControlCompiler.PIG_REDUCE_STORES));
-            this.loads = (List<FileSpec>) ObjectSerializer.deserialize(
-                    conf.get(PigInputFormat.PIG_INPUTS));
+            this.loads = (List<POLoad>) ObjectSerializer.deserialize(
+                    conf.get(PigInputFormat.PIG_LOADS));
         } catch (IOException e) {
             LOG.warn("Failed to deserialize the store list", e);
         }
@@ -241,13 +242,13 @@ public class TezVertexStats extends JobStats {
         }
 
         // There is always only one load in a Tez vertex
-        for (FileSpec fs : loads) {
+        for (POLoad fs : loads) {
             long records = -1;
             long hdfsBytesRead = -1;
-            String filename = fs.getFileName();
+            String filename = fs.getLFile().getFileName();
             if (counters != null) {
                 if (mIGroup != null) {
-                    Long n = mIGroup.get(PigStatsUtil.getMultiInputsCounterName(fs.getFileName(), 0));
+                    Long n = mIGroup.get(PigStatsUtil.getMultiInputsCounterName(fs.getLFile().getFileName(), 0));
                     if (n != null) records = n;
                 }
                 if (records == -1) {

@@ -23,9 +23,9 @@ import java.io.IOException;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.pig.LoadFunc;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigRecordReader;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.LoadFuncDecorator;
 
 /**
  * Record reader for Spark mode - handles SparkPigSplit
@@ -40,8 +40,8 @@ public class SparkPigRecordReader extends PigRecordReader {
      * @param context
      * @param limit
      */
-    public SparkPigRecordReader(InputFormat<?, ?> inputformat, PigSplit pigSplit, LoadFunc loadFunc, TaskAttemptContext context, long limit) throws IOException, InterruptedException {
-        super(inputformat, pigSplit, loadFunc, context, limit);
+    public SparkPigRecordReader(InputFormat<?, ?> inputformat, PigSplit pigSplit, LoadFuncDecorator decorator, TaskAttemptContext context, long limit) throws IOException, InterruptedException {
+        super(inputformat, pigSplit, decorator, context, limit);
     }
 
     @Override

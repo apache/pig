@@ -19,29 +19,29 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOp
 
 import java.io.IOException;
 
-import org.apache.pig.ErrorHandling;
 import org.apache.pig.ErrorHandler;
+import org.apache.pig.ErrorHandling;
+import org.apache.pig.LoadFunc;
 import org.apache.pig.PigConfiguration;
-import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.util.UDFContext;
 
 /**
- * This class is used to decorate the {@code StoreFunc#putNext(Tuple)}. It
+ * This class is used to decorate the {@code LoadFunc#getNext(Tuple)}. It
  * handles errors by calling
  * {@code OutputErrorHandler#handle(String, long, Throwable)} if the
- * {@link StoreFunc} implements {@link ErrorHandling}
- * 
+ * {@link LoadFunc} implements {@link ErrorHandling}
+ *
  */
-public class StoreFuncDecorator {
 
-    private final StoreFuncInterface storer;
+public class LoadFuncDecorator {
+	private final LoadFunc loader;
     private final String udfSignature;
     private boolean shouldHandleErrors;
     private ErrorHandler errorHandler;
 
-    public StoreFuncDecorator(StoreFuncInterface storer, String udfSignature) {
-        this.storer = storer;
+    public LoadFuncDecorator(LoadFunc loader, String udfSignature) {
+        this.loader = loader;
         this.udfSignature = udfSignature;
         init();
     }
@@ -52,8 +52,8 @@ public class StoreFuncDecorator {
         if (UDFContext.getUDFContext().isFrontend()) {
             return;
         }
-        if (storer instanceof ErrorHandling && allowErrors()) {
-            errorHandler = ((ErrorHandling) storer).getErrorHandler();
+        if (loader instanceof ErrorHandling && allowErrors()) {
+            errorHandler = ((ErrorHandling) loader).getErrorHandler();
             shouldHandleErrors = true;
         }
     }
@@ -64,15 +64,14 @@ public class StoreFuncDecorator {
     }
 
     /**
-     * Call {@code StoreFunc#putNext(Tuple)} and handle errors
-     * 
-     * @param tuple
-     *            the tuple to store.
+     * Call {@code LoadFunc#getNext(Tuple)} and handle errors
+     *
      * @throws IOException
      */
-    public void putNext(Tuple tuple) throws IOException {
+    public Tuple getNext() throws IOException {
+        Tuple t = null;
         try {
-            storer.putNext(tuple);
+            t = loader.getNext();
             if (shouldHandleErrors) {
                 errorHandler.onSuccess(udfSignature);
             }
@@ -83,9 +82,14 @@ public class StoreFuncDecorator {
                 throw new IOException(e);
             }
         }
+		return t;
     }
 
-    public StoreFuncInterface getStorer() {
-        return storer;
+    public LoadFunc getLoader() {
+        return loader;
+    }
+
+    public boolean getErrorHandling() {
+        return shouldHandleErrors;
     }
 }
