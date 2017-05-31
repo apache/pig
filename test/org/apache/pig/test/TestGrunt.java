@@ -981,6 +981,7 @@ public class TestGrunt {
 
     @Test
     public void testStopOnFailure() throws Throwable {
+        Assume.assumeFalse("Skip this test for Spark", Util.isSparkExecType(cluster.getExecType()));
         PigServer server = new PigServer(cluster.getExecType(), cluster.getProperties());
         PigContext context = server.getPigContext();
         context.getProperties().setProperty("stop.on.failure", ""+true);
