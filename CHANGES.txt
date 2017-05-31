@@ -122,6 +122,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5248: Fix TestCombiner#testGroupByLimit after PigOnSpark merge (rohini)
+
 PIG-5245: TestGrunt.testStopOnFailure is flaky (rohini)
 
 PIG-5244: Several unit tests are failing in Tez mode after merging spark branch (nkollar via szita)

@@ -40,6 +40,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -372,6 +373,8 @@ public class TestCombiner {
 
     @Test
     public void testGroupByLimit() throws Exception {
+        Assume.assumeFalse("Skip this test for Tez till PIG-5249 is fixed",
+                Util.isTezExecType(cluster.getExecType()));
         // test use of combiner when group elements are accessed in the foreach
         String input[] = {
                         "ABC 1",
