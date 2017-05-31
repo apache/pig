@@ -54,6 +54,7 @@ public class POLoad extends PhysicalOperator {
     private static final long serialVersionUID = 1L;
     // The user defined load function or a default load function
     private transient LoadFunc loader = null;
+    private transient LoadFuncDecorator lDecorator;
     // The filespec on which the operator is based
     FileSpec lFile;
     // PigContext passed to us by the operator creator
@@ -100,6 +101,7 @@ public class POLoad extends PhysicalOperator {
                 PigContext.instantiateFuncFromSpec(lFile.getFuncSpec()), 
                 ConfigurationUtil.toConfiguration(pc.getProperties()), 
                 lFile.getFileName(),0, signature);
+        setLoadFuncDecorator(new LoadFuncDecorator(loader, signature));
     }
     
     /**
@@ -134,8 +136,8 @@ public class POLoad extends PhysicalOperator {
         }
         Result res = new Result();
         try {
-            res.result = loader.getNext();
-            if(res.result==null){
+            res.result = lDecorator.getNext();
+            if(res.result==null && !lDecorator.getErrorHandling()){
                 res.returnStatus = POStatus.STATUS_EOP;
                 tearDown();
             }
@@ -213,9 +215,20 @@ public class POLoad extends PhysicalOperator {
             this.loader = (LoadFunc)PigContext.instantiateFuncFromSpec(lFile.getFuncSpec());
             this.loader.setUDFContextSignature(signature);
         }
+        if (lDecorator == null) {
+            setLoadFuncDecorator(new LoadFuncDecorator(loader, signature));
+        }
         return this.loader;
     }
     
+    void setLoadFuncDecorator(LoadFuncDecorator lDecorator) {
+        this.lDecorator = lDecorator;
+    }
+
+    public LoadFuncDecorator getLoadFuncDecorator() {
+        return lDecorator;
+    }
+
     public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
         if(illustrator != null) {
           if (!illustrator.ceilingCheck()) {

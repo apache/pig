@@ -81,7 +81,7 @@ public class LoaderProcessor extends TezOpPlanVisitor {
      * @throws InterruptedException
      * @throws ClassNotFoundException
      */
-    private List<POLoad> processLoads(TezOperator tezOp
+    private ArrayList<POLoad> processLoads(TezOperator tezOp
             ) throws VisitorException, IOException, ClassNotFoundException, InterruptedException {
         ArrayList<FileSpec> inp = new ArrayList<FileSpec>();
         ArrayList<List<OperatorKey>> inpTargets = new ArrayList<List<OperatorKey>>();
@@ -90,6 +90,7 @@ public class LoaderProcessor extends TezOpPlanVisitor {
 
         List<POLoad> lds = PlanHelper.getPhysicalOperators(tezOp.plan,
                 POLoad.class);
+        ArrayList<POLoad> poLoads = new ArrayList<POLoad>();
 
         Job job = Job.getInstance(jobConf);
         Configuration conf = job.getConfiguration();
@@ -140,11 +141,13 @@ public class LoaderProcessor extends TezOpPlanVisitor {
                 for (PhysicalOperator sucs : ldSucs) {
                     tezOp.plan.connect(tezLoad, sucs);
                 }
+                poLoads.add(ld);
             }
             UDFContext.getUDFContext().serialize(conf);
             conf.set("udf.import.list",
                     ObjectSerializer.serialize(PigContext.getPackageImportList()));
-            conf.set(PigInputFormat.PIG_INPUTS, ObjectSerializer.serialize(inp));
+
+            conf.set(PigInputFormat.PIG_LOADS, ObjectSerializer.serialize(poLoads));
             conf.set(PigInputFormat.PIG_INPUT_TARGETS, ObjectSerializer.serialize(inpTargets));
             conf.set(PigInputFormat.PIG_INPUT_SIGNATURES, ObjectSerializer.serialize(inpSignatureLists));
             conf.set(PigInputFormat.PIG_INPUT_LIMITS, ObjectSerializer.serialize(inpLimits));
@@ -173,7 +176,7 @@ public class LoaderProcessor extends TezOpPlanVisitor {
             tezOp.setRequestedParallelism(parallelism);
             tezOp.setTotalInputFilesSize(InputSizeReducerEstimator.getTotalInputFileSize(conf, lds, job));
         }
-        return lds;
+        return poLoads;
     }
 
     @Override

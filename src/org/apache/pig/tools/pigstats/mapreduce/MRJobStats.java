@@ -41,6 +41,8 @@ import org.apache.pig.PigCounters;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigInputFormat;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
@@ -82,7 +84,7 @@ public final class MRJobStats extends JobStats {
 
     private List<POStore> reduceStores = null;
 
-    private List<FileSpec> loads = null;
+    private List<POLoad> loads = null;
 
     private Boolean disableCounter = false;
 
@@ -215,8 +217,8 @@ public final class MRJobStats extends JobStats {
                     .get(JobControlCompiler.PIG_MAP_STORES));
             this.reduceStores = (List<POStore>) ObjectSerializer.deserialize(conf
                     .get(JobControlCompiler.PIG_REDUCE_STORES));
-            this.loads = (ArrayList<FileSpec>) ObjectSerializer.deserialize(conf
-                    .get("pig.inputs"));
+            this.loads = (ArrayList<POLoad>) ObjectSerializer.deserialize(conf
+                    .get(PigInputFormat.PIG_LOADS));
             this.disableCounter = conf.getBoolean("pig.disable.counter", false);
         } catch (IOException e) {
             LOG.warn("Failed to deserialize the store list", e);
@@ -481,7 +483,7 @@ public final class MRJobStats extends JobStats {
         }
 
         if (loads.size() == 1) {
-            FileSpec fsp = loads.get(0);
+            FileSpec fsp = loads.get(0).getLFile();
             if (!MRPigStatsUtil.isTempFile(fsp.getFileName())) {
                 long records = mapInputRecords;
                 InputStats is = new InputStats(fsp.getFileName(),
@@ -493,7 +495,7 @@ public final class MRJobStats extends JobStats {
             }
         } else {
             for (int i=0; i<loads.size(); i++) {
-                FileSpec fsp = loads.get(i);
+                FileSpec fsp = loads.get(i).getLFile();
                 if (MRPigStatsUtil.isTempFile(fsp.getFileName())) continue;
                 addOneInputStats(fsp.getFileName(), i);
             }

@@ -34,8 +34,9 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.LoadFuncDecorator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.tools.pigstats.PigStatsUtil;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
@@ -72,6 +73,9 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
     // the loader object
     private LoadFunc loadfunc;
 
+    // the LoadFuncDecorator
+    private LoadFuncDecorator decorator;
+
     // the Hadoop counter name
     transient private String counterName = null;
 
@@ -107,10 +111,11 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
      *
      */
     public PigRecordReader(InputFormat<?, ?> inputformat, PigSplit pigSplit,
-            LoadFunc loadFunc, TaskAttemptContext context, long limit) throws IOException, InterruptedException {
+            LoadFuncDecorator decorator, TaskAttemptContext context, long limit) throws IOException, InterruptedException {
         this.inputformat = inputformat;
         this.pigSplit = pigSplit;
-        this.loadfunc = loadFunc;
+        this.decorator = decorator;
+        this.loadfunc = decorator.getLoader();
         this.context = context;
         this.reporter = PigStatusReporter.getInstance();
         this.inputSpecificConf = context.getConfiguration();
@@ -121,7 +126,7 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
         initNextRecordReader();
         doTiming = inputSpecificConf.getBoolean(PIG_UDF_PROFILE, false);
         if (doTiming) {
-            counterGroup = loadFunc.toString();
+            counterGroup = loadfunc.toString();
             timingFrequency = inputSpecificConf.getLong(PIG_UDF_PROFILE_FREQUENCY, 100L);
         }
     }
@@ -201,7 +206,7 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
         if (timeThis) {
             startNanos = System.nanoTime();
         }
-        while ((curReader == null) || (curValue = loadfunc.getNext()) == null) {
+        while ((curReader == null) || (curValue = decorator.getNext()) == null) {
             if (!initNextRecordReader()) {
               return false;
             }
@@ -217,10 +222,10 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
     @SuppressWarnings("unchecked")
     private static String getMultiInputsCounerName(PigSplit pigSplit,
             Configuration conf) throws IOException {
-        ArrayList<FileSpec> inputs =
-            (ArrayList<FileSpec>) ObjectSerializer.deserialize(
-                    conf.get(PigInputFormat.PIG_INPUTS));
-        String fname = inputs.get(pigSplit.getInputIndex()).getFileName();
+        ArrayList<POLoad> inputs =
+                (ArrayList<POLoad>) ObjectSerializer.deserialize(
+                        conf.get(PigInputFormat.PIG_LOADS));
+        String fname = inputs.get(pigSplit.getInputIndex()).getLFile().getFileName();
         return PigStatsUtil.getMultiInputsCounterName(fname, pigSplit.getInputIndex());
     }
 

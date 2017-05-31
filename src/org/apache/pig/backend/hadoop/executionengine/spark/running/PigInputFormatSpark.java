@@ -128,7 +128,7 @@ public class PigInputFormatSpark extends PigInputFormat {
 
         @Override
         public RecordReader<Text, Tuple> createRecordReader() throws IOException, InterruptedException {
-            return new SparkPigRecordReader(inputFormat, pigSplit, loadFunc, context, limit);
+            return new SparkPigRecordReader(inputFormat, pigSplit, decorator, context, limit);
         }
     }
 }

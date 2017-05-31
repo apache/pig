@@ -212,11 +212,6 @@ public class LoadConverter implements RDDConverter<Tuple, Tuple, POLoad> {
 
         loadFunc.setLocation(poLoad.getLFile().getFileName(), job);
 
-        // stolen from JobControlCompiler
-        ArrayList<FileSpec> pigInputs = new ArrayList<FileSpec>();
-        // Store the inp filespecs
-        pigInputs.add(poLoad.getLFile());
-
         ArrayList<List<OperatorKey>> inpTargets = Lists.newArrayList();
         ArrayList<String> inpSignatures = Lists.newArrayList();
         ArrayList<Long> inpLimits = Lists.newArrayList();
@@ -234,7 +229,13 @@ public class LoadConverter implements RDDConverter<Tuple, Tuple, POLoad> {
         inpSignatures.add(poLoad.getSignature());
         inpLimits.add(poLoad.getLimit());
 
-        jobConf.set(PigInputFormat.PIG_INPUTS, ObjectSerializer.serialize(pigInputs));
+        // stolen from JobControlCompiler
+        PhysicalPlan pp = poLoad.getParentPlan();
+        ArrayList<POLoad> pigLoads = new ArrayList<POLoad>();
+        poLoad.setParentPlan(null);
+        pigLoads.add(poLoad);
+        jobConf.set(PigInputFormat.PIG_LOADS, ObjectSerializer.serialize(pigLoads));
+        poLoad.setParentPlan(pp);
         jobConf.set(PigInputFormat.PIG_INPUT_TARGETS, ObjectSerializer.serialize(inpTargets));
         jobConf.set(PigInputFormat.PIG_INPUT_SIGNATURES,
                 ObjectSerializer.serialize(inpSignatures));
