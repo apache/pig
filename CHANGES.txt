@@ -111,6 +111,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5245: TestGrunt.testStopOnFailure is flaky (rohini)
+
 PIG-5244: Several unit tests are failing in Tez mode after merging spark branch (nkollar via szita)
 
 PIG-5207: BugFix e2e tests fail on spark (szita)

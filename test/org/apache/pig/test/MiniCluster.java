@@ -25,6 +25,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
+import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.mapreduce.filecache.DistributedCache;
 import org.apache.hadoop.mapreduce.v2.MiniMRYarnCluster;
 import org.apache.pig.ExecType;
@@ -79,6 +80,7 @@ public class MiniCluster extends MiniGenericCluster {
             Configuration config = new Configuration();
             config.set("yarn.scheduler.capacity.root.queues", "default");
             config.set("yarn.scheduler.capacity.root.default.capacity", "100");
+            config.set("yarn.scheduler.capacity.maximum-am-resource-percent", "0.1");
             m_dfs = new MiniDFSCluster(config, dataNodes, true, null);
             m_fileSys = m_dfs.getFileSystem();
             m_dfs_conf = m_dfs.getConfiguration(0);
@@ -97,8 +99,12 @@ public class MiniCluster extends MiniGenericCluster {
             m_conf.set(FileSystem.FS_DEFAULT_NAME_KEY, m_dfs_conf.get(FileSystem.FS_DEFAULT_NAME_KEY));
             m_conf.unset(MRConfiguration.JOB_CACHE_FILES);
 
-            m_conf.setInt(MRConfiguration.IO_SORT_MB, 200);
-            m_conf.set(MRConfiguration.CHILD_JAVA_OPTS, "-Xmx512m");
+            m_conf.setInt(MRConfiguration.IO_SORT_MB, 50);
+            m_conf.set(MRConfiguration.CHILD_JAVA_OPTS, "-Xmx384m");
+            m_conf.setInt(MRJobConfig.MAP_MEMORY_MB, 512);
+            m_conf.setInt(MRJobConfig.REDUCE_MEMORY_MB, 512);
+            m_conf.set(MRJobConfig.MR_AM_COMMAND_OPTS, "-Xmx384m");
+            m_conf.setInt(MRJobConfig.MR_AM_VMEM_MB, 512);
 
             m_conf.setInt(MRConfiguration.SUMIT_REPLICATION, 2);
             m_conf.setInt(MRConfiguration.MAP_MAX_ATTEMPTS, 2);

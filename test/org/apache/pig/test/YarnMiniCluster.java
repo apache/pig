@@ -75,20 +75,33 @@ public abstract class YarnMiniCluster extends MiniGenericCluster {
             }
             hdfs_site.writeXml(new FileOutputStream(HDFS_CONF_FILE));
 
+            m_dfs_conf.set("yarn.scheduler.capacity.root.queues", "default");
+            m_dfs_conf.set("yarn.scheduler.capacity.root.default.capacity", "100");
+            m_dfs_conf.set("yarn.scheduler.capacity.maximum-am-resource-percent", "0.1");
             // Build mini YARN cluster
             m_mr = new MiniMRYarnCluster("PigMiniCluster", 2);
             m_mr.init(m_dfs_conf);
             m_mr.start();
             m_mr_conf = m_mr.getConfig();
+
             File libDir = new File(System.getProperty("ivy.lib.dir", "build/ivy/lib/Pig"));
+            File sparkLibDir = new File(System.getProperty("ivy.lib.dir.spark", "build/ivy/lib/Pig/spark"));
             File classesDir = new File(System.getProperty("build.classes", "build/classes"));
             File testClassesDir = new File(System.getProperty("test.build.classes", "test/build/classes"));
+
             String classpath = libDir.getAbsolutePath() + "/*"
-                + File.pathSeparator + classesDir.getAbsolutePath()
-                + File.pathSeparator + testClassesDir.getAbsolutePath();
+                    + (Util.isSparkExecType(getExecType()) ? File.pathSeparator + sparkLibDir.getAbsolutePath() + "/*" : "")
+                    + File.pathSeparator + classesDir.getAbsolutePath()
+                    + File.pathSeparator + testClassesDir.getAbsolutePath();
+
             m_mr_conf.set(YarnConfiguration.YARN_APPLICATION_CLASSPATH, classpath);
-            m_mr_conf.set(MRJobConfig.MAP_JAVA_OPTS, "-Xmx512m");
-            m_mr_conf.set(MRJobConfig.REDUCE_JAVA_OPTS, "-Xmx512m");
+            m_mr_conf.setInt(MRJobConfig.IO_SORT_MB, 50);
+            m_mr_conf.set(MRJobConfig.MAP_JAVA_OPTS, "-Xmx384m");
+            m_mr_conf.set(MRJobConfig.REDUCE_JAVA_OPTS, "-Xmx384m");
+            m_mr_conf.setInt(MRJobConfig.MAP_MEMORY_MB, 512);
+            m_mr_conf.setInt(MRJobConfig.REDUCE_MEMORY_MB, 512);
+            m_mr_conf.set(MRJobConfig.MR_AM_COMMAND_OPTS, "-Xmx384m");
+            m_mr_conf.setInt(MRJobConfig.MR_AM_VMEM_MB, 512);
 
             Configuration mapred_site = new Configuration(false);
             Configuration yarn_site = new Configuration(false);
