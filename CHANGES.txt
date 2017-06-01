@@ -28,6 +28,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5225: Several unit tests are not annotated with @Test (nkollar via rohini)
+
 
 Release 0.17.0
  

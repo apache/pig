@@ -432,6 +432,7 @@ public class TestHBaseStorage {
         LOG.info("LoadFromHBase done");
     }
 
+    @Test
     public void testLoadWithFixedAndPrefixedCols3() throws IOException {
         prepareTable(TESTTABLE_1, true, DataFormat.UTF8PlainText);
 

@@ -862,6 +862,7 @@ public class TestDataBag  {
         assertEquals(bg1, bg2);
     }
 
+    @Test
     public void testInternalCachedBag() throws Exception {
     	// check adding empty tuple
     	DataBag bg0 = new InternalCachedBag();
@@ -924,6 +925,7 @@ public class TestDataBag  {
         assertEquals(bg4.size(), 0);
     }
 
+    @Test
     public void testInternalSortedBag() throws Exception {
 
     	// check adding empty tuple
@@ -1047,6 +1049,7 @@ public class TestDataBag  {
         assertEquals(bg6, bg7);
     }
 
+    @Test
     public void testInternalDistinctBag() throws Exception {
     	// check adding empty tuple
     	DataBag bg0 = new InternalDistinctBag();

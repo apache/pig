@@ -2006,6 +2006,7 @@ public class TestPruneColumn {
         }
     }
 
+    @Test
     public void testAliasInRequiredFieldList() throws Exception{
         pigServer.registerQuery("A = load '"+ Util.generateURI(tmpFile1.toString(), pigServer.getPigContext()) + "' using "
                 + PruneColumnEvalFunc.class.getName() +"() as (a0, a1, a2);");
