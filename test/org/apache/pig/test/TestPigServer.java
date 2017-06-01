@@ -368,6 +368,7 @@ public class TestPigServer {
         assertTrue(fs.delete(new Path(jarLocation), true));
     }
 
+    @Test
     public void testDescribeLoad() throws Throwable {
         PigServer pig = new PigServer(cluster.getExecType(), properties);
         pig.registerQuery("a = load 'a' as (field1: int, field2: float, field3: chararray );") ;

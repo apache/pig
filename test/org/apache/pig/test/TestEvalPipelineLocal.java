@@ -17,7 +17,6 @@
  */
 package org.apache.pig.test;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -27,7 +26,6 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -37,11 +35,9 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.StringTokenizer;
-import java.util.Collections;
 
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.log4j.Appender;
-import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.SimpleLayout;
@@ -67,7 +63,6 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.util.Utils;
-import org.apache.pig.newplan.logical.rules.ColumnPruneVisitor;
 import org.apache.pig.test.utils.Identity;
 import org.junit.Assume;
 import org.junit.Before;
@@ -390,7 +385,7 @@ public class TestEvalPipelineLocal {
         testSortDistinct(false, false);
     }
     */
-    
+
     @Test
     public void testSortWithUDF() throws Exception{
         testSortDistinct(false, true);
@@ -455,7 +450,8 @@ public class TestEvalPipelineLocal {
         }
         
     }
-    
+
+    @Test
     public void testNestedPlan() throws Exception{
         int LOOP_COUNT = 10;
         File tmpFile = Util.createTempFileDelOnExit("test", "txt");
@@ -496,6 +492,7 @@ public class TestEvalPipelineLocal {
         Assert.assertEquals(LOOP_COUNT, numIdentity);
     }
 
+    @Test
     public void testNestedPlanWithExpressionAssignment() throws Exception{
         int LOOP_COUNT = 10;
         File tmpFile = Util.createTempFileDelOnExit("test", "txt");
@@ -541,6 +538,7 @@ public class TestEvalPipelineLocal {
         Assert.assertEquals(LOOP_COUNT, numIdentity);
     }
 
+    @Test
     public void testLimit() throws Exception{
         int LOOP_COUNT = 20;
         File tmpFile = Util.createTempFileDelOnExit("test", "txt");
@@ -789,6 +787,7 @@ public class TestEvalPipelineLocal {
         
     }
 
+    @Test
     public void testMapUDF() throws Exception{
         int LOOP_COUNT = 2;
         File tmpFile = Util.createTempFileDelOnExit("test", "txt");
@@ -830,38 +829,6 @@ public class TestEvalPipelineLocal {
             ++numIdentity;
         }
         Assert.assertEquals(LOOP_COUNT * LOOP_COUNT, numIdentity);
-    }
-
-    public void testMapUDFFail() throws Exception{
-        int LOOP_COUNT = 2;
-        File tmpFile = File.createTempFile("test", "txt");
-        tmpFile.deleteOnExit();
-        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        for(int i = 0; i < LOOP_COUNT; i++) {
-            for(int j=0;j<LOOP_COUNT;j+=2){
-                ps.println(i+"\t"+j);
-                ps.println(i+"\t"+j);
-            }
-        }
-        ps.close();
-
-        pigServer.registerQuery("A = LOAD '"
-                + Util.generateURI(tmpFile.toString(), pigServer
-                        .getPigContext()) + "';");
-        pigServer.registerQuery("B = foreach A generate "
-                + MapUDF.class.getName() + "($0) as mymap;"); // the argument
-                                                              // does not matter
-        String query = "C = foreach B {"
-        + "generate mymap#'dba' * 10;"
-        + "};";
-
-        pigServer.registerQuery(query);
-        try {
-            Iterator<Tuple> iter = pigServer.openIterator("C");
-            Assert.fail("Error expected.");
-        } catch (Exception e) {
-            e.getMessage().contains("Cannot determine");
-        }
     }
 
     @Test

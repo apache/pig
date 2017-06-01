@@ -405,6 +405,7 @@ public class TestQueryParser {
     }
 
     //PIG-2267
+    @Test
     public void testThatColNameIsGeneratedProperly() throws IOException {
         String query = "a = load '1.txt' as (int,(long,[]),{([])});"
                      + "b = foreach a generate val_0, tuple_0, bag_0;"
