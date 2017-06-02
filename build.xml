@@ -1177,7 +1177,8 @@
                 <include name="conf/**"/>
                 <include name="contrib/**"/>
                 <include name="ivy/**"/>
-                <exclude name="ivy/*.jar"/>
+                <exclude name="ivy/ivy-*.jar"/>
+                <exclude name="ivy/maven-*.jar"/>
                 <include name="lib/**"/>
                 <include name="lib-src/**"/>
                 <include name="license/**"/>
