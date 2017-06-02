@@ -42,7 +42,7 @@
     <property name="pig.version.suffix" value="-SNAPSHOT" />
     <property name="version" value="${pig.version}${pig.version.suffix}" />
     <property name="final.name" value="${name}-${version}" />
-    <property name="year" value="2007-2016" />
+    <property name="year" value="2007-2017" />
 
     <!-- source properties -->
     <property name="lib.dir" value="${basedir}/lib" />
