@@ -18,6 +18,9 @@
 package org.apache.pig.backend.hadoop.executionengine.tez.runtime;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -65,6 +68,7 @@ import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.mapreduce.hadoop.MRConfig;
 import org.apache.tez.mapreduce.output.MROutput;
@@ -107,6 +111,7 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
 
     private Configuration conf;
     private PigHadoopLogger pigHadoopLogger;
+    private Object progressHelper;
 
     public static String sampleVertex;
     public static Map<String, Object> sampleMap;
@@ -203,6 +208,21 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
 
     @Override
     public void close() throws Exception {
+        /*
+         * if (progressHelper != null) {
+         * progressHelper.shutDownProgressTaskService(); }
+         */
+        try {
+            if (progressHelper != null) {
+                Class<?> clazz = Class.forName("org.apache.tez.common.ProgressHelper");
+                Method shutDownProgressTaskService = clazz.getMethod("shutDownProgressTaskService");
+                shutDownProgressTaskService.invoke(progressHelper);
+            }
+        }
+        catch (ClassNotFoundException | NoSuchMethodException | SecurityException | IllegalAccessException
+                | IllegalArgumentException | InvocationTargetException e) {
+            // ignore
+        }
         execPlan = null;
         fileOutputs = null;
         leaf = null;
@@ -221,6 +241,26 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
     @Override
     public void run(Map<String, LogicalInput> inputs,
             Map<String, LogicalOutput> outputs) throws Exception {
+        /*
+         * progressHelper = new ProgressHelper(inputs, getContext(),
+         * this.getClass().getSimpleName());
+         * progressHelper.scheduleProgressTaskService(100, Math.max(1000,
+         * conf.getInt(TezConfiguration.TEZ_TASK_AM_HEARTBEAT_INTERVAL_MS,
+         * TezConfiguration.TEZ_TASK_AM_HEARTBEAT_INTERVAL_MS_DEFAULT) - 50));
+         */
+        try {
+            Class<?> clazz = Class.forName("org.apache.tez.common.ProgressHelper");
+            Constructor<?> ctor = clazz.getConstructor(Map.class, ProcessorContext.class, String.class);
+            progressHelper = ctor.newInstance(inputs, getContext(), this.getClass().getSimpleName());
+            Method scheduleProgressTaskService = clazz.getMethod("scheduleProgressTaskService", long.class, long.class);
+            scheduleProgressTaskService.invoke(progressHelper, 100,
+                    Math.max(1000, conf.getInt(TezConfiguration.TEZ_TASK_AM_HEARTBEAT_INTERVAL_MS,
+                            TezConfiguration.TEZ_TASK_AM_HEARTBEAT_INTERVAL_MS_DEFAULT) - 50));
+        }
+        catch (IllegalAccessException | IllegalArgumentException | InstantiationException | InvocationTargetException
+                | ClassNotFoundException | NoSuchMethodException | SecurityException e) {
+            // ignore
+        }
 
         try {
             initializeInputs(inputs);
