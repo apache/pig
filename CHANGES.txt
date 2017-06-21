@@ -32,6 +32,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5262: Fix jdiff related issues: fail build upon error, correct xml character escaping (szita)
+
 PIG-5225: Several unit tests are not annotated with @Test (nkollar via rohini)
 
 
