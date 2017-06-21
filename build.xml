@@ -1574,6 +1574,8 @@
                 <pathelement path="${output.jarfile.core}" />
             </classpath>
         </javadoc>
+        <!-- For some Scala classes <any> is recorded in the jdiff xml as return type. Need to xml-escape this properly -->
+        <replace file="${jdiff.xml.dir}/${name}_${version}.xml" token="&quot;&lt;any&gt;&quot;" value="&quot;&amp;lt;any&amp;gt;&quot;" />
     </target>
 
     <target name="write-null">
@@ -1601,6 +1603,10 @@
               <pathelement path="${output.jarfile.core}" />
            </classpath>
         </javadoc>
+        <fail message="Failed to generate jdiff change docs">
+            <!-- JDiff errors don't fail the build, have to take care of it manually -->
+           <condition><not><available file="${jdiff.build.dir}/changes" type="dir" /></not></condition>
+        </fail>
      </target>
 
      <target name="ivy-init-dirs">
