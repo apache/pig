@@ -111,6 +111,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5262: Fix jdiff related issues: fail build upon error, correct xml character escaping (szita)
+
 PIG-5248: Fix TestCombiner#testGroupByLimit after PigOnSpark merge (rohini)
 
 PIG-5245: TestGrunt.testStopOnFailure is flaky (rohini)
