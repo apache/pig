@@ -272,7 +272,19 @@ public class PODemux extends PhysicalOperator {
                 }
             } else {
                 curLeaf = leaf;
-                res = leaf.getNextTuple();
+                while (true) {
+                    res = leaf.getNextTuple();
+
+                    if (res.returnStatus == POStatus.STATUS_OK ||
+                            res.returnStatus == POStatus.STATUS_EOP ||
+                            res.returnStatus == POStatus.STATUS_ERR) {
+                        break;
+                    } else if (res.returnStatus == POStatus.STATUS_NULL) {
+                        // this "else if" is unnecessary but keeping it to
+                        // be sync with runPipeline()
+                        continue;
+                    }
+                }
                
                 if (res.returnStatus == POStatus.STATUS_EOP)  {
                     processedSet.set(idx++);        
