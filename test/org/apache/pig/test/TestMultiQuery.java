@@ -65,6 +65,14 @@ public class TestMultiQuery {
         deleteOutputFiles();
     }
 
+    private static final String simpleEchoStreamingCommand;
+    static {
+        if (Util.WINDOWS)
+            simpleEchoStreamingCommand = "perl -ne 'print \\\"$_\\\"'";
+        else
+            simpleEchoStreamingCommand = "perl -ne 'print \"$_\"'";
+    }
+
     @Before
     public void setUp() throws Exception {
         deleteOutputFiles();
@@ -953,6 +961,40 @@ public class TestMultiQuery {
         expectedResults = new String[]{"(d,1)"};
         Util.checkQueryOutputs(actualResults.iterator(), expectedResults, org.apache.pig.newplan.logical.Util
                 .translateSchema(myPig.dumpSchema("C2")), Util.isSparkExecType(Util.getLocalTestMode()));
+    }
+
+    @Test
+    public void testMultiQueryJiraPig4548() throws Exception {
+        Storage.Data data = Storage.resetData(myPig);
+        data.set("inputLocation",
+                Storage.tuple("1", "f"),
+                Storage.tuple("2", "f"),
+                Storage.tuple("3", "f"),
+                Storage.tuple("4", "f"),
+                Storage.tuple("5", "f"),
+                Storage.tuple("6", "f"));
+        myPig.setBatchOn();
+        myPig.registerQuery("A = load 'inputLocation' using mock.Storage() as (f1:chararray, f2:chararray);");
+        myPig.registerQuery("SPLIT A into T if (f2 == 'T'), F otherwise;");
+        myPig.registerQuery("T2 = group T by f1;");
+        myPig.registerQuery("store T2 into 'output1' using mock.Storage();");
+        myPig.registerQuery("F2 = group F by f1;");
+        myPig.registerQuery("F3 = stream F2 through `" + simpleEchoStreamingCommand
+                            + "` as (group:chararray, F:bag{tuple(f1: chararray,f2: chararray)});");
+        myPig.registerQuery("store F3 into 'output2' using mock.Storage();");
+        myPig.executeBatch();
+
+        List<Tuple> actualResults = data.get("output1");
+        assertEquals("Number of records for output1 should be 0",0,actualResults.size());
+        actualResults = data.get("output2");
+        List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
+                                         new String[]{"('1',{('1','f')})",
+                                                      "('2',{('2','f')})",
+                                                      "('3',{('3','f')})",
+                                                      "('4',{('4','f')})",
+                                                      "('5',{('5','f')})",
+                                                      "('6',{('6','f')})"});
+        Util.checkQueryOutputsAfterSort(actualResults.iterator(), expectedResults);
     }
 
     // --------------------------------------------------------------------------
