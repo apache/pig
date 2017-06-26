@@ -18,6 +18,18 @@
 
 Pig Change Log
 
+Release 0.17.1 - Unreleased
+
+INCOMPATIBLE CHANGES
+
+IMPROVEMENTS
+
+OPTIMIZATIONS
+ 
+BUG FIXES
+
+PIG-4548: Records Lost With Specific Combination of Commands and Streaming Function (knoguchi)
+
 Release 0.17.0
  
 INCOMPATIBLE CHANGES
