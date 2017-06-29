@@ -125,7 +125,7 @@ public class TestOrcStorage {
 
     @Test
     public void testSimpleLoad() throws Exception {
-        pigServer.registerQuery("A = load '" + basedir + "orc-file-11-format.orc'" + " using OrcStorage();" );
+        pigServer.registerQuery("A = load '" + basedir + "*-file-11-format.orc'" + " using OrcStorage();");
         Schema s = pigServer.dumpSchema("A");
         assertEquals(s.toString(), "{boolean1: boolean,byte1: int,short1: int,int1: int,long1: long," +
                 "float1: float,double1: double,bytes1: bytearray,string1: chararray," +

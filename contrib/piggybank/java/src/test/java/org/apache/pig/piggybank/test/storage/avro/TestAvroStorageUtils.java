@@ -89,54 +89,6 @@ public class TestAvroStorageUtils {
         assertNull(realSchema);
     }
 
-    @Test
-    public void testGetPaths() throws IOException {
-        final String basedir = "file://" + System.getProperty("user.dir");
-        final String tempdir = Long.toString(System.currentTimeMillis());
-        final String nonexistentpath = basedir + "/" + tempdir + "/this_path_does_not_exist";
-
-        String locationStr = null;
-        Set<Path> paths;
-        Configuration conf = new Configuration();
-
-        // existent path
-        locationStr = basedir;
-        paths = AvroStorageUtils.getPaths(locationStr, conf, true);
-        assertFalse(paths.isEmpty());
-
-        // non-existent path
-        locationStr = nonexistentpath;
-        try {
-            paths = AvroStorageUtils.getPaths(locationStr, conf, true);
-            fail();
-        } catch (IOException e) {
-            assertTrue(e.getMessage().contains("matches 0 files"));
-        }
-
-        // empty glob pattern
-        locationStr = basedir + "/{}";
-        try {
-            paths = AvroStorageUtils.getPaths(locationStr, conf, true);
-            fail();
-        } catch (IOException e) {
-            assertTrue(e.getMessage().contains("matches 0 files"));
-        }
-
-        paths = AvroStorageUtils.getPaths(locationStr, conf, false);
-        assertTrue(paths.isEmpty());
-
-        // bad glob pattern
-        locationStr = basedir + "/{1,";
-        try {
-            AvroStorageUtils.getPaths(locationStr, conf, true);
-            Assert.fail("Negative test to test illegal file pattern. Should not be succeeding!");
-        } catch (IOException e) {
-            // The message of the exception for illegal file pattern is rather long,
-            // so we simply confirm if it contains 'illegal file pattern'.
-            assertTrue(e.getMessage().contains("Illegal file pattern"));
-        }
-    }
-
     // test merging null and non-null
     @Test
     public void testMergeSchema1() throws IOException {

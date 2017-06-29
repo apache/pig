@@ -19,10 +19,15 @@
 package org.apache.pig.test;
 
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.IOException;
+import java.util.Set;
 
 import org.junit.Assert;
-
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -150,6 +155,57 @@ public class TestLoadFunc {
         Assert.assertEquals("har:///user/pig/harfile",
                 LoadFunc.getAbsolutePath("har:///user/pig/harfile",
                         curHdfsDir));
-    }   
-    
+    }
+
+    @Test
+    public void testGlobPaths() throws IOException {
+        final String basedir = "file://" + System.getProperty("user.dir");
+        final String tempdir = Long.toString(System.currentTimeMillis());
+        final String nonexistentpath = basedir + "/" + tempdir + "/this_path_does_not_exist";
+
+        String locationStr = null;
+        Set<Path> paths;
+        Configuration conf = new Configuration();
+
+        // existent path
+        locationStr = basedir;
+        paths = LoadFunc.getGlobPaths(locationStr, conf, true);
+        assertFalse(paths.isEmpty());
+
+        // non-existent path
+        locationStr = nonexistentpath;
+        try {
+            paths = LoadFunc.getGlobPaths(locationStr, conf, true);
+            fail("Paths with pattern are not readable");
+        }
+        catch (IOException e) {
+            assertTrue(e.getMessage().contains("matches 0 files"));
+        }
+
+        // empty glob pattern
+        locationStr = basedir + "/{}";
+        try {
+            paths = LoadFunc.getGlobPaths(locationStr, conf, true);
+            fail();
+        }
+        catch (IOException e) {
+            assertTrue(e.getMessage().contains("matches 0 files"));
+        }
+
+        paths = LoadFunc.getGlobPaths(locationStr, conf, false);
+        assertTrue(paths.isEmpty());
+
+        // bad glob pattern
+        locationStr = basedir + "/{1,";
+        try {
+            LoadFunc.getGlobPaths(locationStr, conf, true);
+            Assert.fail("Negative test to test illegal file pattern. Should not be succeeding!");
+        }
+        catch (IOException e) {
+            // The message of the exception for illegal file pattern is rather
+            // long, so we simply confirm if it contains 'illegal file pattern'.
+            assertTrue(e.getMessage().contains("Illegal file pattern"));
+        }
+    }
+
 }

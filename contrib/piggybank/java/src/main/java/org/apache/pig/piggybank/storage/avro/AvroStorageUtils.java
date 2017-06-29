@@ -41,6 +41,7 @@ import org.apache.pig.LoadFunc;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.util.Utils;
 import org.codehaus.jackson.JsonNode;
 /**
  * This is utility class for this package
@@ -58,15 +59,6 @@ public class AvroStorageUtils {
 
     private static final String NONAME = "NONAME";
     private static final String PIG_TUPLE_WRAPPER = "PIG_WRAPPER";
-
-    /** ignore hdfs files with prefix "_" and "." */
-    public static PathFilter PATH_FILTER = new PathFilter() {
-        @Override
-        public boolean accept(Path path) {
-            return !path.getName().startsWith("_")
-                        && !path.getName().startsWith(".");
-        }
-    };
 
     static String getDummyFieldName(int index) {
         return NONAME + "_" + index;
@@ -93,33 +85,6 @@ public class AvroStorageUtils {
     }
 
     /**
-     * Gets the list of paths from the pathString specified which may contain
-     * comma-separated paths and glob style path
-     *
-     * @throws IOException
-     */
-    public static Set<Path> getPaths(String pathString, Configuration conf, boolean failIfNotFound)
-            throws IOException {
-        Set<Path> paths = new HashSet<Path>();
-        String[] pathStrs = LoadFunc.getPathStrings(pathString);
-        for (String pathStr : pathStrs) {
-            FileSystem fs = FileSystem.get(new Path(pathStr).toUri(), conf);
-            FileStatus[] matchedFiles = fs.globStatus(new Path(pathStr), PATH_FILTER);
-            if (matchedFiles == null || matchedFiles.length == 0) {
-                if (failIfNotFound) {
-                    throw new IOException("Input Pattern " + pathStr + " matches 0 files");
-                } else {
-                    continue;
-                }
-            }
-            for (FileStatus file : matchedFiles) {
-                paths.add(file.getPath());
-            }
-        }
-        return paths;
-    }
-
-    /**
      * Returns all non-hidden files recursively inside the base paths given
      *
      * @throws IOException
@@ -140,7 +105,7 @@ public class AvroStorageUtils {
 
     private static void getAllFilesInternal(FileStatus file, Configuration conf,
             Set<Path> paths, FileSystem fs) throws IOException {
-        for (FileStatus f : fs.listStatus(file.getPath(), PATH_FILTER)) {
+        for (FileStatus f : fs.listStatus(file.getPath(), Utils.VISIBLE_FILES)) {
             if (f.isDir()) {
                 getAllFilesInternal(f, conf, paths, fs);
             } else {
@@ -167,7 +132,7 @@ public class AvroStorageUtils {
         if (!status.isDir()) {
             return path;
         }
-        FileStatus[] statuses = fs.listStatus(path, PATH_FILTER);
+        FileStatus[] statuses = fs.listStatus(path, Utils.VISIBLE_FILES);
 
         if (statuses.length == 0) {
             return null;

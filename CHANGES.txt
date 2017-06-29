@@ -32,6 +32,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5263: Using wildcard doesn't work with OrcStorage (satishsaley via rohini)
+
 PIG-4548: Records Lost With Specific Combination of Commands and Streaming Function (knoguchi)
 
 PIG-5262: Fix jdiff related issues: fail build upon error, correct xml character escaping (szita)
