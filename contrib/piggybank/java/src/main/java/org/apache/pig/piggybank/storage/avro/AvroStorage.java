@@ -61,6 +61,7 @@ import org.apache.pig.builtin.FuncUtils;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.impl.util.Utils;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -190,7 +191,7 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
 
         if (inputAvroSchema == null || UDFContext.getUDFContext().isFrontend()) {
             Configuration conf = job.getConfiguration();
-            Set<Path> paths = AvroStorageUtils.getPaths(location, conf, true);
+            Set<Path> paths = getGlobPaths(location, conf, true);
             if (!paths.isEmpty()) {
                 // Set top level directories in input format. Adding all files will
                 // bloat configuration size
@@ -273,7 +274,7 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
      */
     @SuppressWarnings("deprecation")
     protected Schema getAvroSchema(Path path, FileSystem fs) throws IOException {
-        if (!fs.exists(path) || !AvroStorageUtils.PATH_FILTER.accept(path))
+        if (!fs.exists(path) || !Utils.VISIBLE_FILES.accept(path))
             return null;
 
         /* if path is first level directory or is a file */
@@ -281,7 +282,7 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
             return getSchema(path, fs);
         }
 
-        FileStatus[] ss = fs.listStatus(path, AvroStorageUtils.PATH_FILTER);
+        FileStatus[] ss = fs.listStatus(path, Utils.VISIBLE_FILES);
         Schema schema = null;
         if (ss.length > 0) {
             if (AvroStorageUtils.noDir(ss))
@@ -433,7 +434,7 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
             // getSchema is called during script parsing we don't want to fail
             // here if path not found
 
-            Set<Path> paths = AvroStorageUtils.getPaths(location, conf, false);
+            Set<Path> paths = getGlobPaths(location, conf, false);
             if (!paths.isEmpty()) {
                 setInputAvroSchema(paths, conf);
             }

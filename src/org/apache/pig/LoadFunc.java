@@ -21,9 +21,14 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.AbstractCollection;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.InputFormat;
@@ -38,6 +43,7 @@ import org.apache.pig.builtin.Utf8StorageConverter;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.impl.util.Utils;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
 
 
@@ -210,7 +216,38 @@ public abstract class LoadFunc {
 
         return pathStrings.toArray(new String[0]);
     }
-    
+
+    /**
+     * Return all the file paths in commaSeparatedPaths matching patterns if any
+     *
+     * @param commaSeparatedPaths
+     * @param conf
+     * @param failIfNotFound
+     * @return a set of paths
+     * @throws IOException
+     */
+    public static Set<Path> getGlobPaths(String commaSeparatedPaths, Configuration conf, boolean failIfNotFound)
+            throws IOException {
+        Set<Path> paths = new HashSet<Path>();
+        String[] pathStrs = LoadFunc.getPathStrings(commaSeparatedPaths);
+        for (String pathStr : pathStrs) {
+            FileSystem fs = FileSystem.get(new Path(pathStr).toUri(), conf);
+            FileStatus[] matchedFiles = fs.globStatus(new Path(pathStr), Utils.VISIBLE_FILES);
+            if (matchedFiles == null || matchedFiles.length == 0) {
+                if (failIfNotFound) {
+                    throw new IOException("Input Pattern " + pathStr + " matches 0 files");
+                }
+                else {
+                    continue;
+                }
+            }
+            for (FileStatus file : matchedFiles) {
+                paths.add(file.getPath());
+            }
+        }
+        return paths;
+    }
+
     /**
      * Construct the absolute path from the file location and the current
      * directory. The current directory is either of the form 
@@ -324,4 +361,5 @@ public abstract class LoadFunc {
     public List<String> getShipFiles() {
         return null;
     }
+
 }

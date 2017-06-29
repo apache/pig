@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -315,9 +316,14 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
             if (p.getProperty(signature + SearchArgsSuffix) != null) {
                 job.getConfiguration().set(SARG_PUSHDOWN, p.getProperty(signature + SearchArgsSuffix));
             }
-
         }
-        FileInputFormat.setInputPaths(job, location);
+        Set<Path> paths = getGlobPaths(location, job.getConfiguration(), true);
+        if (!paths.isEmpty()) {
+            FileInputFormat.setInputPaths(job, paths.toArray(new Path[paths.size()]));
+        }
+        else {
+            throw new IOException("Input path \'" + location + "\' is not found");
+        }
     }
 
     private String getReqiredColumnIdString(boolean[] requiredColumns) {
