@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-5237: Fix DOT file parsing to enable DOT-based physical plan testing (YaShock via szita)
+
 PIG-5269: MapReduceLauncher and MRJobStats imports org.python.google.common.collect.Lists instead of org.google.common.collect.Lists (nkollar via szita)
 
 PIG-4700: Enable progress reporting for Tasks in Tez (satishsaley via rohini)

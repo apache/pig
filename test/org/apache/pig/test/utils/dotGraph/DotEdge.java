@@ -18,11 +18,46 @@
 
 package org.apache.pig.test.utils.dotGraph;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * This represents an edge in DOT format.
  * An edge in DOT can have attributes but we're not interested
  */
 public class DotEdge {
-    public String fromNode ;
-    public String toNode ;
+    public DotNode fromNode;
+    public DotNode toNode;
+    public Map<String, String> attributes = new HashMap<String, String>();
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder(fromNode.name + " -> " + toNode.name);
+        if (attributes.size() > 0) {
+            int index = 0;
+            sb.append(" [");
+            for (Map.Entry<String, String> attr : attributes.entrySet()) {
+                sb.append(attr.getKey() + "=" + attr.getValue());
+                if (index < attributes.size() - 1)
+                    sb.append(", ");
+                index++;
+            }
+            sb.append("]");
+        }
+        return sb.toString();
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (other instanceof DotEdge) {
+            DotEdge edge = (DotEdge) other;
+            return fromNode.equals(edge.fromNode) && toNode.equals(edge.toNode);
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return fromNode.hashCode() * toNode.hashCode();
+    }
 }

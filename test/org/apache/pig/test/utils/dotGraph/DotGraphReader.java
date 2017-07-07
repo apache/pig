@@ -18,10 +18,14 @@
 
 package org.apache.pig.test.utils.dotGraph;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+
 import org.apache.pig.test.utils.dotGraph.parser.DOTParser;
 import org.apache.pig.test.utils.dotGraph.parser.ParseException;
-
-import java.io.*;
 
 /***
  * This class is responsible for loading textual Dot graph
@@ -36,19 +40,18 @@ public class DotGraphReader {
      * @return graph
      */
 
-    public DotGraph load(String dotContent) {
+    static public DotGraph load(String dotContent) {
         ByteArrayInputStream stream
-                = new ByteArrayInputStream(dotContent.getBytes()) ;
-        DOTParser dotParser = new DOTParser(stream) ;
-        DotGraph graph = null ;
+                = new ByteArrayInputStream(dotContent.getBytes());
+        DOTParser dotParser = new DOTParser(stream);
+        DotGraph graph = null;
         try {
-            graph = dotParser.Parse() ;
+            graph = dotParser.Parse();
+        } catch (ParseException pe) {
+            System.out.println(pe.getMessage());
+            throw new RuntimeException("Bad Dot file");
         }
-        catch (ParseException pe) {
-            System.out.println(pe.getMessage()) ;
-            throw new RuntimeException("Bad Dot file") ;
-        }
-        return graph ;
+        return graph;
     }
 
     /***
@@ -57,24 +60,22 @@ public class DotGraphReader {
      * @return graph
      */
 
-    public DotGraph loadFromFile(String file) {
-        StringBuilder sb = new StringBuilder() ;
-        BufferedReader br = null ;
+    static public DotGraph loadFromFile(String file) {
+        StringBuilder sb = new StringBuilder();
+        BufferedReader br = null;
         try {
-            br = new BufferedReader(new FileReader(file)) ;
-            String str ;
-            while((str=br.readLine())!=null) {
-                sb.append(str) ;
-                sb.append("\n") ;
+            br = new BufferedReader(new FileReader(file));
+            String str;
+            while ((str = br.readLine()) != null) {
+                sb.append(str);
+                sb.append("\n");
             }
-        }
-        catch (FileNotFoundException fnfe) {
-            throw new RuntimeException("file:" + file + " not found!") ;
-        }
-        catch (IOException ioe) {
-            throw new RuntimeException("Error while reading from:" + file) ;
+        } catch (FileNotFoundException fnfe) {
+            throw new RuntimeException("file:" + file + " not found!");
+        } catch (IOException ioe) {
+            throw new RuntimeException("Error while reading from:" + file);
         }
 
-        return load(sb.toString()) ;
+        return load(sb.toString());
     }
 }
