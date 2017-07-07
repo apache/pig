@@ -24,7 +24,6 @@ import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.Properties;
 import java.util.Random;
-
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 
@@ -44,13 +43,15 @@ import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.test.Util;
 import org.apache.pig.test.utils.TestHelper;
+import org.apache.pig.test.utils.dotGraph.DotGraph;
+import org.apache.pig.test.utils.dotGraph.DotGraphReader;
 
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Test cases to test the SparkCompiler. VERY IMPORTANT NOTE: The tests here
@@ -74,9 +75,8 @@ public class TestSparkCompiler {
         public void doPrint(PrintStream ps, SparkOperPlan plan) throws VisitorException, ParserConfigurationException, TransformerException {
             switch (this) {
                 case DOT:
-                    throw new RuntimeException("Testing in DOT format not supported yet");
-                    //(new DotSparkPrinter(plan, ps)).dump();
-                    //break;
+                    (new DotSparkPrinter(plan, ps)).dump();
+                    break;
                 case XML:
                     XMLSparkPrinter printer = new XMLSparkPrinter(ps, plan);
                     printer.visit();
@@ -86,6 +86,19 @@ public class TestSparkCompiler {
                 default:
                     (new SparkPrinter(ps, plan)).visit();
                     break;
+            }
+        }
+
+        public boolean compare(String goldenPlan, String compiledPlan) {
+            switch (this) {
+                case DOT:
+                    DotGraph a = DotGraphReader.load(goldenPlan);
+                    DotGraph b = DotGraphReader.load(compiledPlan);
+                    return a.isomorphic(b);
+                case XML:
+                case TEXT:
+                default:
+                    return TestHelper.sortUDFs(Util.removeSignature(goldenPlan)).equals(TestHelper.sortUDFs(Util.removeSignature(compiledPlan)));
             }
         }
     }
@@ -135,8 +148,7 @@ public class TestSparkCompiler {
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/spark/SPARKC-LoadStore-1-text.gld", PlanPrinter.TEXT);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/spark/SPARKC-LoadStore-1-xml.gld", PlanPrinter.XML);
-        //TODO: enable this when DOT file comparison is supported
-        //run(query, "test/org/apache/pig/test/data/GoldenFiles/spark/SPARKC-LoadStore-1-dot.gld", PlanPrinter.DOT);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/spark/SPARKC-LoadStore-1-dot.gld", PlanPrinter.DOT);
     }
 
     private void run(String query, String expectedFile, PlanPrinter planPrinter) throws Exception {
@@ -174,8 +186,8 @@ public class TestSparkCompiler {
 
         String goldenPlanClean = Util.standardizeNewline(goldenPlan).trim();
         String compiledPlanClean = Util.standardizeNewline(compiledPlan).trim();
-        assertEquals(TestHelper.sortUDFs(Util.removeSignature(goldenPlanClean)),
-                TestHelper.sortUDFs(Util.removeSignature(compiledPlanClean)));
+
+        assertTrue(planPrinter.compare(goldenPlanClean, compiledPlanClean));
     }
 
 }

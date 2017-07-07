@@ -25,23 +25,31 @@ options {
 
 PARSER_BEGIN(DOTParser)
 
-package org.apache.pig.test.utils.dotGraph.parser ;
+package org.apache.pig.test.utils.dotGraph.parser;
 
-import java.util.*;
-import java.io.*;
-import org.apache.pig.test.utils.dotGraph.* ;
+import java.util.Map;
+import java.util.HashMap;
+
+import org.apache.pig.test.utils.dotGraph.DotGraph;
+import org.apache.pig.test.utils.dotGraph.DotNode;
+import org.apache.pig.test.utils.dotGraph.DotEdge;
+import org.apache.pig.test.utils.dotGraph.DotGraphReader;
 
 public class DOTParser {
+    public static Map<String, DotNode> nodeMap = new HashMap<String, DotNode>();
 
     static String unquote(String s) {
         return s.substring(1, s.length()-1);
     }
-    
-    static class DotState {
-        public Map<String,String> nodeAttributes = new HashMap<String,String>() ;
-        public Map<String,String> edgeAttributes = new HashMap<String,String>() ;
-    }
 
+    public static DotNode getNodeByName(String name) {
+        DotNode node = nodeMap.get(name);
+        if (node == null) {
+            node = new DotNode(name);
+            nodeMap.put(name, node);
+        }
+        return node;
+    }
 }
 
 PARSER_END(DOTParser)
@@ -96,95 +104,132 @@ TOKEN:
     | <NODE: "node">
     | <GRAPH: "graph">
     | <DIGRAPH : "digraph">
+    | <SUBGRAPH : "subgraph">
     | <#LETTER : ["a"-"z", "A"-"Z"] >
     | <#DIGIT : ["0"-"9"] >
     | <#SPECIAL_CHAR : "_" | "$" >
     | <NAME :  <LETTER> ( <LETTER> | <DIGIT> | <SPECIAL_CHAR> )* >
+    | <NUMBER : ( <DIGIT> )+ >
     | <QUOTEDSTRING : "\"" (~["\""])* "\"">
 }
-
 
 DotGraph Parse() :
 {
     DotGraph dotGraph = null ;
-    DotState dotState = new DotState() ;
 	Token graphName ;
 }
 {
 	(
 		<DIGRAPH>
-		graphName = <NAME> { dotGraph = new DotGraph(graphName.image) ; }
+		(graphName = <NAME> { dotGraph = new DotGraph(graphName.image); dotGraph.topLevel = true; })?
 		<LPAREN>
-
-		(  LOOKAHEAD(2)
-		     EdgeStatement(dotGraph, dotState)
-		   | NodeStatement(dotGraph, dotState)
-		   | AttributeStatement(dotGraph, dotState)
-		)+
-
+        StatementList(dotGraph)
 		<RPAREN>
 	)
 	{ return dotGraph ; }
 }
 
-void AttributeStatement(DotGraph dotGraph, DotState dotState) :
+void StatementList(DotGraph dotGraph) :
+{
+    ;
+}
+{
+    (
+    Statement(dotGraph)
+    )+
+}
+
+void Statement(DotGraph dotGraph) :
+{
+    String[] attr;
+    DotGraph subGraph;
+}
+{
+    (
+         LOOKAHEAD(2) EdgeStatement(dotGraph)
+       | AttributeStatement(dotGraph)
+       | LOOKAHEAD(2) ( attr = Attribute() ) { dotGraph.attributes.put(attr[0], attr[1]); }
+       | LOOKAHEAD(2) NodeStatement(dotGraph)
+       | subGraph = SubGraph() { dotGraph.nodes.add(subGraph); }
+    )
+    ( <SEMICOLON> )?
+}
+
+DotGraph SubGraph() :
+{
+    DotGraph dotGraph = null ;
+    Token graphName ;
+}
+{
+    <SUBGRAPH>
+    graphName = <NAME> { dotGraph = new DotGraph(graphName.image); }
+    <LPAREN>
+    StatementList(dotGraph)
+    <RPAREN>
+    { return dotGraph; }
+}
+
+void AttributeStatement(DotGraph dotGraph) :
 {
     Map<String,String> attributes ;
 }
 {
     (
-      ( <EDGE> attributes = AttributeList() { dotState.edgeAttributes = attributes ; } )
-    | ( <NODE> attributes = AttributeList() { dotState.nodeAttributes = attributes ; } )
+      ( <EDGE> attributes = AttributeList() { dotGraph.edgeAttributes = attributes; } )
+    | ( <NODE> attributes = AttributeList() { dotGraph.nodeAttributes = attributes; } )
     | ( <GRAPH> attributes = AttributeList() { dotGraph.attributes = attributes ; } )
     )
-    <SEMICOLON>
 }
 
-void NodeStatement(DotGraph dotGraph, DotState dotState) :
+void NodeStatement(DotGraph dotGraph) :
 {
-    Token nodeName ;
-    DotNode node = new DotNode() ;
+    String nodeName ;
+    DotNode node ;
     Map<String,String> attributes ;
 }
 {
-    nodeName = <NAME> { node.name = nodeName.image ; }
+    ( nodeName = NodeName() ) { node = getNodeByName(nodeName); }
     ( attributes = AttributeList()  {
                                         node.attributes = new HashMap<String,String>() ;
-                                        if (dotState != null) {
-                                            node.attributes.putAll(dotState.nodeAttributes) ;
-                                        }
                                         node.attributes.putAll(attributes) ;
                                     }
     )?
-    <SEMICOLON>
     { dotGraph.nodes.add(node) ; }
 }
 
-void EdgeStatement(DotGraph dotGraph, DotState dotState) :
+void EdgeStatement(DotGraph dotGraph) :
 {
-    Token nodeName1 ;
-    Token nodeName2 ;
-    String startingNode ;
-    DotNode node = new DotNode() ;
+    String nodeName1 ;
+    String nodeName2 ;
+    DotNode startingNode ;
     Map<String,String> attributes ;
+    DotEdge edge = new DotEdge() ;
 }
 {
-    nodeName1 = <NAME> { startingNode = nodeName1.image ; }
+    nodeName1 = NodeName() { startingNode = getNodeByName(nodeName1) ; }
     (
      <DIRECTED_EDGE>
-     nodeName2 = <NAME>
+     nodeName2 = NodeName()
      {
-        DotEdge edge = new DotEdge() ;
         edge.fromNode = startingNode ;
-        edge.toNode = nodeName2.image ;
+        DotNode node2 = getNodeByName(nodeName2) ;
+        edge.toNode = node2 ;
 
+        dotGraph.nodes.add(startingNode);
+        dotGraph.nodes.add(node2);
         dotGraph.edges.add(edge) ;
 
-        startingNode = nodeName2.image ;
+        if (startingNode != node2)
+            startingNode.edgeTo.add(node2);
+
+        startingNode = node2 ;
      }
     )+
-    <SEMICOLON>
-
+    ( attributes = AttributeList()  {
+                                        edge.attributes = new HashMap<String,String>() ;
+                                        edge.attributes.putAll(attributes) ;
+                                    }
+    )?
 }
 
 Map<String,String> AttributeList() :
@@ -208,14 +253,39 @@ Map<String,String> AttributeList() :
 String[] Attribute() :
 {
     Token attName ;
-    Token value ;
+    String value ;
     String[] keyValuePair = new String[2] ;
 }
 {
     (
     attName = <NAME> { keyValuePair[0] = attName.image ; }
     <EQUAL>
-    value = <QUOTEDSTRING> { keyValuePair[1] = unquote(value.image) ; }
+    value = Value() { keyValuePair[1] = value; }
     )
     { return keyValuePair ; }
+}
+
+String Value() :
+{
+    Token value;
+}
+{
+    (
+      value = <QUOTEDSTRING>
+      | value = <NAME>
+      | value = <NUMBER>
+    )
+    { return value.image; }
+}
+
+String NodeName() :
+{
+    Token name ;
+}
+{
+    (
+          name = <NAME>
+        | name = <NUMBER>
+    )
+    { return name.image; }
 }
