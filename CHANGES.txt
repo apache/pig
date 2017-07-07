@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-5269: MapReduceLauncher and MRJobStats imports org.python.google.common.collect.Lists instead of org.google.common.collect.Lists (nkollar via szita)
+
 PIG-4700: Enable progress reporting for Tasks in Tez (satishsaley via rohini)
 
 PIG-5251: Bump joda-time to 2.9.9 (dbist13 via rohini)
