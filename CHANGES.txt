@@ -36,6 +36,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5270: Typo in Pig Logging (FromAlaska49 via daijy)
+
 PIG-5263: Using wildcard doesn't work with OrcStorage (satishsaley via rohini)
 
 PIG-4548: Records Lost With Specific Combination of Commands and Streaming Function (knoguchi)
