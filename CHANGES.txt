@@ -36,6 +36,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-4767: Partition filter not pushed down when filter clause references variable from another load path (knoguchi)
+
 PIG-5270: Typo in Pig Logging (FromAlaska49 via daijy)
 
 PIG-5263: Using wildcard doesn't work with OrcStorage (satishsaley via rohini)
