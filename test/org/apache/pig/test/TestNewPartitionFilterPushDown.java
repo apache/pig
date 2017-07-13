@@ -61,10 +61,12 @@ import org.apache.pig.newplan.logical.expression.NotEqualExpression;
 import org.apache.pig.newplan.logical.expression.NotExpression;
 import org.apache.pig.newplan.logical.expression.OrExpression;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
+import org.apache.pig.newplan.logical.expression.ScalarExpression;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
 import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LogToPhyTranslationVisitor;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.rules.LoadTypeCastInserter;
 import org.apache.pig.newplan.logical.rules.PartitionFilterOptimizer;
 import org.apache.pig.newplan.optimizer.PlanOptimizer;
@@ -467,10 +469,14 @@ public class TestNewPartitionFilterPushDown {
             Operator op = newLogicalPlan.getSinks().get(0);
             LOFilter filter = (LOFilter)newLogicalPlan.getPredecessors(op).get(0);
 
-            String actual = new PartitionFilterExtractor(null, new ArrayList<String>())
-                    .getExpression((LogicalExpression) filter.getFilterPlan().getSources().get(0)).toString();
-            Assert.assertEquals("checking trimmed filter expression:",
-                    filterExpr, actual);
+            if (unsupportedExpr) {
+                String actual = getTestExpression((LogicalExpression) filter.getFilterPlan().getSources().get(0));
+                Assert.assertEquals("checking trimmed filter expression:", filterExpr, actual);
+            } else {
+                String actual = new PartitionFilterExtractor(null, new ArrayList<String>())
+                                    .getExpression((LogicalExpression) filter.getFilterPlan().getSources().get(0)).toString();
+                Assert.assertEquals("checking trimmed filter expression:", filterExpr, actual);
+            }
         } else {
             Iterator<Operator> it = newLogicalPlan.getOperators();
             while( it.hasNext() ) {
@@ -707,6 +713,14 @@ public class TestNewPartitionFilterPushDown {
                 "(not (browser#'type' is null))", true);
     }
 
+    @Test
+    public void testScalarExpressions() throws Exception {
+        String q = "z = load '1line' as (z1:int); "  +
+                 query3 + "b = filter a by srcid != 10 and srcid == z.z1;" +
+                 "store b into 'out';";
+        testFull(q, "(srcid != 10)", "(srcid == z.z1)", true);
+    }
+
     //// helper methods ///////
     private PartitionFilterExtractor test(String query, List<String> partitionCols,
             String expPartFilterString, String expFilterString)
@@ -917,6 +931,10 @@ public class TestNewPartitionFilterPushDown {
             } else if (op instanceof NotExpression) {
                 String expr = getTestExpression(((NotExpression) op).getExpression());
                 return braketize("not " + expr);
+            } else if (op instanceof ScalarExpression) {
+                ScalarExpression scalar = (ScalarExpression) op;
+                return ((LogicalRelationalOperator)scalar.getImplicitReferencedOperator()).getAlias() +
+                       "." + scalar.getFieldSchema().alias;
             } else {
                 throw new FrontendException("Unsupported conversion of LogicalExpression to Expression: " + op.getName());
             }

@@ -116,10 +116,6 @@ public class PartitionFilterOptimizer extends Rule {
                 return false;
             loFilter =  (LOFilter)succeds.get(0);
 
-            // Filter has dependency other than load, skip optimization
-            if (currentPlan.getSoftLinkPredecessors(loFilter)!=null)
-                return false;
-
             // we have to check more only if LoadFunc implements LoadMetada
             loadFunc = loLoad.getLoadFunc();
             if(!( loadFunc instanceof LoadMetadata ) ) {
