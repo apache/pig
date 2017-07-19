@@ -29,13 +29,14 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
+import org.apache.pig.backend.hadoop.executionengine.spark.FlatMapFunctionAdapter;
 import org.apache.pig.backend.hadoop.executionengine.spark.KryoSerializer;
+import org.apache.pig.backend.hadoop.executionengine.spark.SparkShims;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.data.SchemaTupleBackend;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.ObjectSerializer;
-import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.rdd.RDD;
 
 /**
@@ -60,11 +61,11 @@ public class ForEachConverter implements RDDConverter<Tuple, Tuple, POForEach> {
         RDD<Tuple> rdd = predecessors.get(0);
         ForEachFunction forEachFunction = new ForEachFunction(physicalOperator, confBytes);
 
-        return rdd.toJavaRDD().mapPartitions(forEachFunction, true).rdd();
+        return rdd.toJavaRDD().mapPartitions(SparkShims.getInstance().flatMapFunction(forEachFunction), true).rdd();
     }
 
     private static class ForEachFunction implements
-            FlatMapFunction<Iterator<Tuple>, Tuple>, Serializable {
+            FlatMapFunctionAdapter<Iterator<Tuple>, Tuple>, Serializable {
 
         private POForEach poForEach;
         private byte[] confBytes;
@@ -75,7 +76,8 @@ public class ForEachConverter implements RDDConverter<Tuple, Tuple, POForEach> {
             this.confBytes = confBytes;
         }
 
-        public Iterable<Tuple> call(final Iterator<Tuple> input) {
+        @Override
+        public Iterator<Tuple> call(final Iterator<Tuple> input) {
 
             initialize();
 
@@ -90,29 +92,21 @@ public class ForEachConverter implements RDDConverter<Tuple, Tuple, POForEach> {
                     }
                 }
             }
-
-
-            return new Iterable<Tuple>() {
+            return new OutputConsumerIterator(input) {
 
                 @Override
-                public Iterator<Tuple> iterator() {
-                    return new OutputConsumerIterator(input) {
+                protected void attach(Tuple tuple) {
+                    poForEach.setInputs(null);
+                    poForEach.attachInput(tuple);
+                }
 
-                        @Override
-                        protected void attach(Tuple tuple) {
-                            poForEach.setInputs(null);
-                            poForEach.attachInput(tuple);
-                        }
+                @Override
+                protected Result getNextResult() throws ExecException {
+                    return poForEach.getNextTuple();
+                }
 
-                        @Override
-                        protected Result getNextResult() throws ExecException {
-                            return poForEach.getNextTuple();
-                        }
-
-                        @Override
-                        protected void endOfInput() {
-                        }
-                    };
+                @Override
+                protected void endOfInput() {
                 }
             };
         }

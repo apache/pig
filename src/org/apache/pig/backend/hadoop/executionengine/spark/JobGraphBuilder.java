@@ -81,7 +81,7 @@ public class JobGraphBuilder extends SparkOpPlanVisitor {
     private Map<Class<? extends PhysicalOperator>, RDDConverter> convertMap = null;
     private SparkPigStats sparkStats = null;
     private JavaSparkContext sparkContext = null;
-    private JobMetricsListener jobMetricsListener = null;
+    private JobStatisticCollector jobStatisticCollector = null;
     private String jobGroupID = null;
     private Set<Integer> seenJobIDs = new HashSet<Integer>();
     private SparkOperPlan sparkPlan = null;
@@ -91,14 +91,14 @@ public class JobGraphBuilder extends SparkOpPlanVisitor {
     private PigContext pc;
 
     public JobGraphBuilder(SparkOperPlan plan, Map<Class<? extends PhysicalOperator>, RDDConverter> convertMap,
-                           SparkPigStats sparkStats, JavaSparkContext sparkContext, JobMetricsListener
-            jobMetricsListener, String jobGroupID, JobConf jobConf, PigContext pc) {
+                           SparkPigStats sparkStats, JavaSparkContext sparkContext, JobStatisticCollector
+            jobStatisticCollector, String jobGroupID, JobConf jobConf, PigContext pc) {
         super(plan, new DependencyOrderWalker<SparkOperator, SparkOperPlan>(plan, true));
         this.sparkPlan = plan;
         this.convertMap = convertMap;
         this.sparkStats = sparkStats;
         this.sparkContext = sparkContext;
-        this.jobMetricsListener = jobMetricsListener;
+        this.jobStatisticCollector = jobStatisticCollector;
         this.jobGroupID = jobGroupID;
         this.jobConf = jobConf;
         this.pc = pc;
@@ -223,7 +223,7 @@ public class JobGraphBuilder extends SparkOpPlanVisitor {
                             }
                         }
                         SparkStatsUtil.waitForJobAddStats(jobIDs.get(i++), poStore, sparkOperator,
-                                jobMetricsListener, sparkContext, sparkStats);
+                                jobStatisticCollector, sparkContext, sparkStats);
                     }
                 } else {
                     for (POStore poStore : poStores) {

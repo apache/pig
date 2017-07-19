@@ -24,9 +24,10 @@ import java.util.List;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLimit;
+import org.apache.pig.backend.hadoop.executionengine.spark.FlatMapFunctionAdapter;
+import org.apache.pig.backend.hadoop.executionengine.spark.SparkShims;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.data.Tuple;
-import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.rdd.RDD;
 
 @SuppressWarnings({ "serial" })
@@ -38,11 +39,11 @@ public class LimitConverter implements RDDConverter<Tuple, Tuple, POLimit> {
         SparkUtil.assertPredecessorSize(predecessors, poLimit, 1);
         RDD<Tuple> rdd = predecessors.get(0);
         LimitFunction limitFunction = new LimitFunction(poLimit);
-        RDD<Tuple> rdd2 = rdd.coalesce(1, false, null);
-        return rdd2.toJavaRDD().mapPartitions(limitFunction, false).rdd();
+        RDD<Tuple> rdd2 = SparkShims.getInstance().coalesce(rdd, 1, false);
+        return rdd2.toJavaRDD().mapPartitions(SparkShims.getInstance().flatMapFunction(limitFunction), false).rdd();
     }
 
-    private static class LimitFunction implements FlatMapFunction<Iterator<Tuple>, Tuple> {
+    private static class LimitFunction implements FlatMapFunctionAdapter<Iterator<Tuple>, Tuple> {
 
         private final POLimit poLimit;
 
@@ -51,28 +52,22 @@ public class LimitConverter implements RDDConverter<Tuple, Tuple, POLimit> {
         }
 
         @Override
-        public Iterable<Tuple> call(final Iterator<Tuple> tuples) {
+        public Iterator<Tuple> call(final Iterator<Tuple> tuples) {
+            return new OutputConsumerIterator(tuples) {
 
-            return new Iterable<Tuple>() {
+                @Override
+                protected void attach(Tuple tuple) {
+                    poLimit.setInputs(null);
+                    poLimit.attachInput(tuple);
+                }
 
-                public Iterator<Tuple> iterator() {
-                    return new OutputConsumerIterator(tuples) {
+                @Override
+                protected Result getNextResult() throws ExecException {
+                    return poLimit.getNextTuple();
+                }
 
-                        @Override
-                        protected void attach(Tuple tuple) {
-                            poLimit.setInputs(null);
-                            poLimit.attachInput(tuple);
-                        }
-
-                        @Override
-                        protected Result getNextResult() throws ExecException {
-                            return poLimit.getNextTuple();
-                        }
-
-                        @Override
-                        protected void endOfInput() {
-                        }
-                    };
+                @Override
+                protected void endOfInput() {
                 }
             };
         }
