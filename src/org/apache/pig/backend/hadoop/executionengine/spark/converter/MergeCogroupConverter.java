@@ -24,9 +24,10 @@ import java.util.List;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeCogroup;
+import org.apache.pig.backend.hadoop.executionengine.spark.FlatMapFunctionAdapter;
+import org.apache.pig.backend.hadoop.executionengine.spark.SparkShims;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.data.Tuple;
-import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.rdd.RDD;
 
 
@@ -37,38 +38,32 @@ public class MergeCogroupConverter implements RDDConverter<Tuple, Tuple, POMerge
         SparkUtil.assertPredecessorSize(predecessors, physicalOperator, 1);
         RDD<Tuple> rdd = predecessors.get(0);
         MergeCogroupFunction mergeCogroupFunction = new MergeCogroupFunction(physicalOperator);
-        return rdd.toJavaRDD().mapPartitions(mergeCogroupFunction, true).rdd();
+        return rdd.toJavaRDD().mapPartitions(SparkShims.getInstance().flatMapFunction(mergeCogroupFunction), true).rdd();
     }
 
     private static class MergeCogroupFunction implements
-            FlatMapFunction<Iterator<Tuple>, Tuple>, Serializable {
+            FlatMapFunctionAdapter<Iterator<Tuple>, Tuple>, Serializable {
 
         private POMergeCogroup poMergeCogroup;
 
         @Override
-        public Iterable<Tuple> call(final Iterator<Tuple> input) throws Exception {
-            return new Iterable<Tuple>() {
+        public Iterator<Tuple> call(final Iterator<Tuple> input) {
+            return new OutputConsumerIterator(input) {
 
                 @Override
-                public Iterator<Tuple> iterator() {
-                    return new OutputConsumerIterator(input) {
+                protected void attach(Tuple tuple) {
+                    poMergeCogroup.setInputs(null);
+                    poMergeCogroup.attachInput(tuple);
+                }
 
-                        @Override
-                        protected void attach(Tuple tuple) {
-                            poMergeCogroup.setInputs(null);
-                            poMergeCogroup.attachInput(tuple);
-                        }
+                @Override
+                protected Result getNextResult() throws ExecException {
+                    return poMergeCogroup.getNextTuple();
+                }
 
-                        @Override
-                        protected Result getNextResult() throws ExecException {
-                            return poMergeCogroup.getNextTuple();
-                        }
-
-                        @Override
-                        protected void endOfInput() {
-                            poMergeCogroup.setEndOfInput(true);
-                        }
-                    };
+                @Override
+                protected void endOfInput() {
+                    poMergeCogroup.setEndOfInput(true);
                 }
             };
         }

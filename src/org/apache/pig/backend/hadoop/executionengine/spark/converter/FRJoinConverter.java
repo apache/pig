@@ -32,10 +32,11 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin;
+import org.apache.pig.backend.hadoop.executionengine.spark.FlatMapFunctionAdapter;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkPigContext;
+import org.apache.pig.backend.hadoop.executionengine.spark.SparkShims;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.data.Tuple;
-import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.rdd.RDD;
 
 @SuppressWarnings("serial")
@@ -53,7 +54,7 @@ public class FRJoinConverter implements
         attachReplicatedInputs((POFRJoinSpark) poFRJoin);
 
         FRJoinFunction frJoinFunction = new FRJoinFunction(poFRJoin);
-        return rdd.toJavaRDD().mapPartitions(frJoinFunction, true).rdd();
+        return rdd.toJavaRDD().mapPartitions(SparkShims.getInstance().flatMapFunction(frJoinFunction), true).rdd();
     }
 
     private void attachReplicatedInputs(POFRJoinSpark poFRJoin) {
@@ -67,7 +68,7 @@ public class FRJoinConverter implements
     }
 
     private static class FRJoinFunction implements
-            FlatMapFunction<Iterator<Tuple>, Tuple>, Serializable {
+            FlatMapFunctionAdapter<Iterator<Tuple>, Tuple>, Serializable {
 
         private POFRJoin poFRJoin;
         private FRJoinFunction(POFRJoin poFRJoin) {
@@ -75,29 +76,22 @@ public class FRJoinConverter implements
         }
 
         @Override
-        public Iterable<Tuple> call(final Iterator<Tuple> input) throws Exception {
-
-            return new Iterable<Tuple>() {
+        public Iterator<Tuple> call(final Iterator<Tuple> input) {
+            return new OutputConsumerIterator(input) {
 
                 @Override
-                public Iterator<Tuple> iterator() {
-                    return new OutputConsumerIterator(input) {
+                protected void attach(Tuple tuple) {
+                    poFRJoin.setInputs(null);
+                    poFRJoin.attachInput(tuple);
+                }
 
-                        @Override
-                        protected void attach(Tuple tuple) {
-                            poFRJoin.setInputs(null);
-                            poFRJoin.attachInput(tuple);
-                        }
+                @Override
+                protected Result getNextResult() throws ExecException {
+                    return poFRJoin.getNextTuple();
+                }
 
-                        @Override
-                        protected Result getNextResult() throws ExecException {
-                            return poFRJoin.getNextTuple();
-                        }
-
-                        @Override
-                        protected void endOfInput() {
-                        }
-                    };
+                @Override
+                protected void endOfInput() {
                 }
             };
         }

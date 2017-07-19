@@ -19,10 +19,11 @@ package org.apache.pig.backend.hadoop.executionengine.spark.converter;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.spark.operator.POPoissonSampleSpark;
+import org.apache.pig.backend.hadoop.executionengine.spark.FlatMapFunctionAdapter;
+import org.apache.pig.backend.hadoop.executionengine.spark.SparkShims;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
+import org.apache.pig.backend.hadoop.executionengine.spark.operator.POPoissonSampleSpark;
 import org.apache.pig.data.Tuple;
-import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.rdd.RDD;
 
 import java.io.IOException;
@@ -37,10 +38,10 @@ public class PoissonSampleConverter implements RDDConverter<Tuple, Tuple, POPois
         SparkUtil.assertPredecessorSize(predecessors, po, 1);
         RDD<Tuple> rdd = predecessors.get(0);
         PoissionSampleFunction poissionSampleFunction = new PoissionSampleFunction(po);
-        return rdd.toJavaRDD().mapPartitions(poissionSampleFunction, false).rdd();
+        return rdd.toJavaRDD().mapPartitions(SparkShims.getInstance().flatMapFunction(poissionSampleFunction), false).rdd();
     }
 
-    private static class PoissionSampleFunction implements FlatMapFunction<Iterator<Tuple>, Tuple> {
+    private static class PoissionSampleFunction implements FlatMapFunctionAdapter<Iterator<Tuple>, Tuple> {
 
         private final POPoissonSampleSpark po;
 
@@ -49,29 +50,23 @@ public class PoissonSampleConverter implements RDDConverter<Tuple, Tuple, POPois
         }
 
         @Override
-        public Iterable<Tuple> call(final Iterator<Tuple> tuples) {
+        public Iterator<Tuple> call(final Iterator<Tuple> tuples) {
+            return new OutputConsumerIterator(tuples) {
 
-            return new Iterable<Tuple>() {
+                @Override
+                protected void attach(Tuple tuple) {
+                    po.setInputs(null);
+                    po.attachInput(tuple);
+                }
 
-                public Iterator<Tuple> iterator() {
-                    return new OutputConsumerIterator(tuples) {
+                @Override
+                protected Result getNextResult() throws ExecException {
+                    return po.getNextTuple();
+                }
 
-                        @Override
-                        protected void attach(Tuple tuple) {
-                            po.setInputs(null);
-                            po.attachInput(tuple);
-                        }
-
-                        @Override
-                        protected Result getNextResult() throws ExecException {
-                            return po.getNextTuple();
-                        }
-
-                        @Override
-                        protected void endOfInput() {
-                            po.setEndOfInput(true);
-                        }
-                    };
+                @Override
+                protected void endOfInput() {
+                    po.setEndOfInput(true);
                 }
             };
         }

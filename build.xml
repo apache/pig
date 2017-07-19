@@ -207,8 +207,7 @@
     <property name="ivy.repo.dir" value="${user.home}/ivyrepo" />
     <property name="ivy.dir" location="ivy" />
     <property name="loglevel" value="quiet" />
-    <loadproperties srcfile="${ivy.dir}/libraries.properties"/>
-
+    <loadproperties srcfile="${ivy.dir}/libraries.properties" />
 
     <!--
       Hadoop master version
@@ -241,6 +240,11 @@
         </then>
     </if>
     <property name="hbaseversion" value="1" />
+    <property name="sparkversion" value="1" />
+
+    <condition property="src.exclude.dir" value="**/Spark2*.java" else="**/Spark1*.java">
+        <equals arg1="${sparkversion}" arg2="1"/>
+    </condition>
 
     <property name="src.shims.dir" value="${basedir}/shims/src/hadoop${hadoopversion}" />
     <property name="src.shims.test.dir" value="${basedir}/shims/test/hadoop${hadoopversion}" />
@@ -556,7 +560,7 @@
         <echo>*** Building Main Sources ***</echo>
         <echo>*** To compile with all warnings enabled, supply -Dall.warnings=1 on command line ***</echo>
         <echo>*** Else, you will only be warned about deprecations ***</echo>
-        <echo>*** Hadoop version used: ${hadoopversion} ; HBase version used: ${hbaseversion} ***</echo>
+        <echo>*** Hadoop version used: ${hadoopversion} ; HBase version used: ${hbaseversion} ; Spark version used: ${sparkversion} ***</echo>
         <compileSources sources="${src.dir};${src.gen.dir};${src.lib.dir}/bzip2;${src.shims.dir}"
             excludes="${src.exclude.dir}" dist="${build.classes}" cp="classpath" warnings="${javac.args.warnings}" />
         <copy todir="${build.classes}/META-INF">
@@ -688,7 +692,7 @@
     <!-- ================================================================== -->
     <!-- Make pig.jar                                                       -->
     <!-- ================================================================== -->
-    <target name="jar" depends="compile,ivy-buildJar" description="Create pig core jar">
+    <target name="jar-simple" depends="compile,ivy-buildJar" description="Create pig core jar">
         <buildJar svnString="${svn.revision}" outputFile="${output.jarfile.core}" includedJars="core.dependencies.jar"/>
         <buildJar svnString="${svn.revision}" outputFile="${output.jarfile.withouthadoop}" includedJars="runtime.dependencies-withouthadoop.jar"/>
         <antcall target="copyCommonDependencies"/>
@@ -787,6 +791,35 @@
             <propertyreset name="@{name}" value="${@{from}}"/>
         </sequential>
     </macrodef>
+
+    <target name="jar-core" depends="compile,ivy-buildJar" description="Create only pig core jar">
+        <buildJar svnString="${svn.revision}" outputFile="${output.jarfile.core}" includedJars="core.dependencies.jar"/>
+    </target>
+
+    <target name="jar" description="Create pig jar with Spark 1 and 2">
+        <echo>Compiling against Spark 2</echo>
+        <antcall target="clean" inheritRefs="true" inheritall="true"/>
+        <propertyreset name="sparkversion" value="2"/>
+        <propertyreset name="src.exclude.dir" value="**/Spark1*.java" />
+        <antcall target="jar-core" inheritRefs="true" inheritall="true"/>
+        <move file="${output.jarfile.core}" tofile="${basedir}/_pig-shims.jar"/>
+
+        <echo>Compiling against Spark 1</echo>
+        <antcall target="clean" inheritRefs="true" inheritall="true"/>
+        <propertyreset name="sparkversion" value="1"/>
+        <propertyreset name="src.exclude.dir" value="**/Spark2*.java" />
+        <antcall target="jar-simple" inheritRefs="true" inheritall="true"/>
+        <jar update="yes" jarfile="${output.jarfile.core}">
+            <zipfileset src="${basedir}/_pig-shims.jar" includes="**/Spark2*.class"/>
+        </jar>
+        <jar update="yes" jarfile="${output.jarfile.backcompat-core-h2}">
+            <zipfileset src="${basedir}/_pig-shims.jar" includes="**/Spark2*.class"/>
+        </jar>
+        <jar update="yes" jarfile="${output.jarfile.withouthadoop-h2}">
+            <zipfileset src="${basedir}/_pig-shims.jar" includes="**/Spark2*.class"/>
+        </jar>
+        <delete file="${basedir}/_pig-shims.jar"/>
+    </target>
 
     <!-- ================================================================== -->
     <!-- macrodef: buildJar                                                 -->
@@ -1655,7 +1688,7 @@
 
      <target name="ivy-resolve" depends="ivy-init" unless="ivy.resolved" description="Resolve Ivy dependencies">
        <property name="ivy.resolved" value="true"/>
-       <echo>*** Ivy resolve with Hadoop ${hadoopversion} and HBase ${hbaseversion} ***</echo>
+       <echo>*** Ivy resolve with Hadoop ${hadoopversion}, Spark ${sparkversion} and HBase ${hbaseversion} ***</echo>
        <ivy:resolve log="${loglevel}" settingsRef="${ant.project.name}.ivy.settings" conf="compile"/>
        <ivy:report toDir="build/ivy/report"/>
      </target>
@@ -1664,7 +1697,7 @@
        <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings" log="${loglevel}"
                  pattern="${build.ivy.lib.dir}/${ivy.artifact.retrieve.pattern}" conf="compile"/>
        <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings" log="${loglevel}"
-                 pattern="${ivy.lib.dir.spark}/[artifact]-[revision](-[classifier]).[ext]" conf="spark"/>
+                 pattern="${ivy.lib.dir.spark}/[artifact]-[revision](-[classifier]).[ext]" conf="spark${sparkversion}"/>
        <ivy:cachepath pathid="compile.classpath" conf="compile"/>
      </target>
 

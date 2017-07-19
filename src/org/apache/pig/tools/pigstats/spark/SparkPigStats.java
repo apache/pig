@@ -32,7 +32,8 @@ import org.apache.pig.PigWarning;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
-import org.apache.pig.backend.hadoop.executionengine.spark.JobMetricsListener;
+import org.apache.pig.backend.hadoop.executionengine.spark.JobStatisticCollector;
+import org.apache.pig.backend.hadoop.executionengine.spark.SparkShims;
 import org.apache.pig.backend.hadoop.executionengine.spark.operator.NativeSparkOperator;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperator;
@@ -69,14 +70,14 @@ public class SparkPigStats extends PigStats {
     }
 
     public void addJobStats(POStore poStore, SparkOperator sparkOperator, int jobId,
-                            JobMetricsListener jobMetricsListener,
+                            JobStatisticCollector jobStatisticCollector,
                             JavaSparkContext sparkContext) {
         boolean isSuccess = SparkStatsUtil.isJobSuccess(jobId, sparkContext);
-        SparkJobStats jobStats = new SparkJobStats(jobId, jobPlan, conf);
+        SparkJobStats jobStats = SparkShims.getInstance().sparkJobStats(jobId, jobPlan, conf);
         jobStats.setSuccessful(isSuccess);
-        jobStats.collectStats(jobMetricsListener);
-        jobStats.addOutputInfo(poStore, isSuccess, jobMetricsListener);
-        addInputInfoForSparkOper(sparkOperator, jobStats, isSuccess, jobMetricsListener, conf);
+        jobStats.collectStats(jobStatisticCollector);
+        jobStats.addOutputInfo(poStore, isSuccess, jobStatisticCollector);
+        addInputInfoForSparkOper(sparkOperator, jobStats, isSuccess, jobStatisticCollector, conf);
         jobStats.initWarningCounters();
         jobSparkOperatorMap.put(jobStats, sparkOperator);
 
@@ -85,22 +86,22 @@ public class SparkPigStats extends PigStats {
 
 
     public void addFailJobStats(POStore poStore, SparkOperator sparkOperator, String jobId,
-                                JobMetricsListener jobMetricsListener,
+                                JobStatisticCollector jobStatisticCollector,
                                 JavaSparkContext sparkContext,
                                 Exception e) {
         boolean isSuccess = false;
-        SparkJobStats jobStats = new SparkJobStats(jobId, jobPlan, conf);
+        SparkJobStats jobStats = SparkShims.getInstance().sparkJobStats(jobId, jobPlan, conf);
         jobStats.setSuccessful(isSuccess);
-        jobStats.collectStats(jobMetricsListener);
-        jobStats.addOutputInfo(poStore, isSuccess, jobMetricsListener);
-        addInputInfoForSparkOper(sparkOperator, jobStats, isSuccess, jobMetricsListener, conf);
+        jobStats.collectStats(jobStatisticCollector);
+        jobStats.addOutputInfo(poStore, isSuccess, jobStatisticCollector);
+        addInputInfoForSparkOper(sparkOperator, jobStats, isSuccess, jobStatisticCollector, conf);
         jobSparkOperatorMap.put(jobStats, sparkOperator);
         jobPlan.add(jobStats);
         jobStats.setBackendException(e);
     }
 
     public void addNativeJobStats(NativeSparkOperator sparkOperator, String jobId, boolean isSuccess, Exception e) {
-        SparkJobStats jobStats = new SparkJobStats(jobId, jobPlan, conf);
+        SparkJobStats jobStats = SparkShims.getInstance().sparkJobStats(jobId, jobPlan, conf);
         jobStats.setSuccessful(isSuccess);
         jobSparkOperatorMap.put(jobStats, sparkOperator);
         jobPlan.add(jobStats);
@@ -229,7 +230,7 @@ public class SparkPigStats extends PigStats {
     private void addInputInfoForSparkOper(SparkOperator sparkOperator,
                                           SparkJobStats jobStats,
                                           boolean isSuccess,
-                                          JobMetricsListener jobMetricsListener,
+                                          JobStatisticCollector jobStatisticCollector,
                                           Configuration conf) {
         //to avoid repetition
         if (sparkOperatorsSet.contains(sparkOperator)) {

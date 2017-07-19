@@ -25,11 +25,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.Maps;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.backend.hadoop.executionengine.spark.FlatMapFunctionAdapter;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkPigContext;
+import org.apache.pig.backend.hadoop.executionengine.spark.SparkShims;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.impl.builtin.PartitionSkewedKeys;
 import org.apache.pig.impl.util.Pair;
@@ -54,7 +55,6 @@ import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.rdd.RDD;
 
 public class SkewedJoinConverter implements
@@ -103,7 +103,7 @@ public class SkewedJoinConverter implements
 
         // with partition id
         StreamPartitionIndexKeyFunction streamFun = new StreamPartitionIndexKeyFunction(this, keyDist, defaultParallelism);
-        JavaRDD<Tuple2<PartitionIndexedKey, Tuple>> streamIdxKeyJavaRDD = rdd2.toJavaRDD().flatMap(streamFun);
+        JavaRDD<Tuple2<PartitionIndexedKey, Tuple>> streamIdxKeyJavaRDD = rdd2.toJavaRDD().flatMap(SparkShims.getInstance().flatMapFunction(streamFun));
 
         // Tuple2 RDD to Pair RDD
         JavaPairRDD<PartitionIndexedKey, Tuple> streamIndexedJavaPairRDD = new JavaPairRDD<PartitionIndexedKey, Tuple>(
@@ -146,7 +146,7 @@ public class SkewedJoinConverter implements
      * @param <R> be generic because it can be Optional<Tuple> or Tuple
      */
     private static class ToValueFunction<L, R> implements
-            FlatMapFunction<Iterator<Tuple2<PartitionIndexedKey, Tuple2<L, R>>>, Tuple>, Serializable {
+            FlatMapFunctionAdapter<Iterator<Tuple2<PartitionIndexedKey, Tuple2<L, R>>>, Tuple>, Serializable {
 
         private boolean[] innerFlags;
         private int[] schemaSize;
@@ -188,7 +188,7 @@ public class SkewedJoinConverter implements
                             Tuple leftTuple = tf.newTuple();
                             if (!innerFlags[0]) {
                                 // left should be Optional<Tuple>
-                                Optional<Tuple> leftOption = (Optional<Tuple>) left;
+                                SparkShims.OptionalWrapper<L> leftOption = SparkShims.getInstance().wrapOptional(left);
                                 if (!leftOption.isPresent()) {
                                     // Add an empty left record for RIGHT OUTER JOIN.
                                     // Notice: if it is a skewed, only join the first reduce key
@@ -200,7 +200,7 @@ public class SkewedJoinConverter implements
                                         return this.next();
                                     }
                                 } else {
-                                    leftTuple = leftOption.get();
+                                    leftTuple = (Tuple) leftOption.get();
                                 }
                             } else {
                                 leftTuple = (Tuple) left;
@@ -212,13 +212,13 @@ public class SkewedJoinConverter implements
                             Tuple rightTuple = tf.newTuple();
                             if (!innerFlags[1]) {
                                 // right should be Optional<Tuple>
-                                Optional<Tuple> rightOption = (Optional<Tuple>) right;
+                                SparkShims.OptionalWrapper<R> rightOption = SparkShims.getInstance().wrapOptional(right);
                                 if (!rightOption.isPresent()) {
                                     for (int i = 0; i < schemaSize[1]; i++) {
                                         rightTuple.append(null);
                                     }
                                 } else {
-                                    rightTuple = rightOption.get();
+                                    rightTuple = (Tuple) rightOption.get();
                                 }
                             } else {
                                 rightTuple = (Tuple) right;
@@ -234,17 +234,17 @@ public class SkewedJoinConverter implements
                             return result;
                         } catch (Exception e) {
                             log.warn(e);
+                            return null;
                         }
-                        return null;
                     }
                 };
             }
         }
 
         @Override
-        public Iterable<Tuple> call(
-                Iterator<Tuple2<PartitionIndexedKey, Tuple2<L, R>>> input) {
-            return new Tuple2TransformIterable(input);
+        public Iterator<Tuple> call(
+                Iterator<Tuple2<PartitionIndexedKey, Tuple2<L, R>>> input) throws Exception {
+            return new Tuple2TransformIterable(input).iterator();
         }
 
         private boolean isFirstReduceKey(PartitionIndexedKey pKey) {
@@ -413,7 +413,7 @@ public class SkewedJoinConverter implements
 
                 return tuple_KeyValue;
             } catch (Exception e) {
-                System.out.print(e);
+                log.warn(e);
                 return null;
             }
         }
@@ -469,7 +469,7 @@ public class SkewedJoinConverter implements
      * <p>
      * see: https://wiki.apache.org/pig/PigSkewedJoinSpec
      */
-    private static class StreamPartitionIndexKeyFunction implements FlatMapFunction<Tuple, Tuple2<PartitionIndexedKey, Tuple>> {
+    private static class StreamPartitionIndexKeyFunction implements FlatMapFunctionAdapter<Tuple, Tuple2<PartitionIndexedKey, Tuple>> {
 
         private SkewedJoinConverter poSkewedJoin;
         private final Broadcast<List<Tuple>> keyDist;
@@ -487,7 +487,8 @@ public class SkewedJoinConverter implements
             this.defaultParallelism = defaultParallelism;
         }
 
-        public Iterable<Tuple2<PartitionIndexedKey, Tuple>> call(Tuple tuple) throws Exception {
+        @Override
+        public Iterator<Tuple2<PartitionIndexedKey, Tuple>> call(Tuple tuple) throws Exception {
             if (!initialized) {
                 Integer[] reducers = new Integer[1];
                 reducerMap = loadKeyDistribution(keyDist, reducers);
@@ -526,12 +527,12 @@ public class SkewedJoinConverter implements
                 l.add(new Tuple2(pIndexKey, tuple));
             }
 
-            return l;
+            return l.iterator();
         }
     }
 
     /**
-     * user defined spark partitioner for skewed join
+     * User defined spark partitioner for skewed join
      */
     private static class SkewedJoinPartitioner extends Partitioner {
         private int numPartitions;
@@ -568,12 +569,8 @@ public class SkewedJoinConverter implements
     }
 
     /**
-     * use parallelism from keyDist or the default parallelism to
+     * Use parallelism from keyDist or the default parallelism to
      * create user defined partitioner
-     *
-     * @param keyDist
-     * @param defaultParallelism
-     * @return
      */
     private SkewedJoinPartitioner buildPartitioner(Broadcast<List<Tuple>> keyDist, Integer defaultParallelism) {
         Integer parallelism = -1;
@@ -588,12 +585,7 @@ public class SkewedJoinConverter implements
     }
 
     /**
-     * do all kinds of Join (inner, left outer, right outer, full outer)
-     *
-     * @param skewIndexedJavaPairRDD
-     * @param streamIndexedJavaPairRDD
-     * @param partitioner
-     * @return
+     * Do all kinds of Join (inner, left outer, right outer, full outer)
      */
     private JavaRDD<Tuple> doJoin(
             JavaPairRDD<PartitionIndexedKey, Tuple> skewIndexedJavaPairRDD,
@@ -616,25 +608,22 @@ public class SkewedJoinConverter implements
             JavaPairRDD<PartitionIndexedKey, Tuple2<Tuple, Tuple>> resultKeyValue = skewIndexedJavaPairRDD.
                     join(streamIndexedJavaPairRDD, partitioner);
 
-            return resultKeyValue.mapPartitions(toValueFun);
+            return resultKeyValue.mapPartitions(SparkShims.getInstance().flatMapFunction(toValueFun));
         } else if (innerFlags[0] && !innerFlags[1]) {
             // left outer join
-            JavaPairRDD<PartitionIndexedKey, Tuple2<Tuple, Optional<Tuple>>> resultKeyValue = skewIndexedJavaPairRDD.
-                    leftOuterJoin(streamIndexedJavaPairRDD, partitioner);
-
-            return resultKeyValue.mapPartitions(toValueFun);
+            return skewIndexedJavaPairRDD
+                    .leftOuterJoin(streamIndexedJavaPairRDD, partitioner)
+                    .mapPartitions(SparkShims.getInstance().flatMapFunction(toValueFun));
         } else if (!innerFlags[0] && innerFlags[1]) {
             // right outer join
-            JavaPairRDD<PartitionIndexedKey, Tuple2<Optional<Tuple>, Tuple>> resultKeyValue = skewIndexedJavaPairRDD.
-                    rightOuterJoin(streamIndexedJavaPairRDD, partitioner);
-
-            return resultKeyValue.mapPartitions(toValueFun);
+            return skewIndexedJavaPairRDD
+                    .rightOuterJoin(streamIndexedJavaPairRDD, partitioner)
+                    .mapPartitions(SparkShims.getInstance().flatMapFunction(toValueFun));
         } else {
             // full outer join
-            JavaPairRDD<PartitionIndexedKey, Tuple2<Optional<Tuple>, Optional<Tuple>>> resultKeyValue = skewIndexedJavaPairRDD.
-                    fullOuterJoin(streamIndexedJavaPairRDD, partitioner);
-
-            return resultKeyValue.mapPartitions(toValueFun);
+            return skewIndexedJavaPairRDD
+                    .fullOuterJoin(streamIndexedJavaPairRDD, partitioner)
+                    .mapPartitions(SparkShims.getInstance().flatMapFunction(toValueFun));
         }
     }
 

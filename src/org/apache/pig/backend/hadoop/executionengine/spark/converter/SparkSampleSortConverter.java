@@ -19,18 +19,18 @@ package org.apache.pig.backend.hadoop.executionengine.spark.converter;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.pig.backend.hadoop.executionengine.spark.PairFlatMapFunctionAdapter;
+import org.apache.pig.backend.hadoop.executionengine.spark.SparkShims;
+import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
+import org.apache.spark.api.java.function.Function2;
 import scala.Tuple2;
 import scala.runtime.AbstractFunction1;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
-import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.backend.hadoop.executionengine.spark.operator.POSampleSortSpark;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -40,12 +40,11 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
-import org.apache.spark.api.java.function.PairFlatMapFunction;
 import org.apache.spark.rdd.RDD;
-  /*
-   sort the sample data and convert the sample data to the format (all,{(sampleEle1),(sampleEle2),...})
 
-   */
+/*
+ sort the sample data and convert the sample data to the format (all,{(sampleEle1),(sampleEle2),...})
+ */
 @SuppressWarnings("serial")
 public class SparkSampleSortConverter implements RDDConverter<Tuple, Tuple, POSampleSortSpark> {
     private static final Log LOG = LogFactory.getLog(SparkSampleSortConverter.class);
@@ -66,14 +65,14 @@ public class SparkSampleSortConverter implements RDDConverter<Tuple, Tuple, POSa
          //sort sample data
         JavaPairRDD<Tuple, Object> sorted = r.sortByKey(true);
          //convert every element in sample data from element to (all, element) format
-        JavaPairRDD<String, Tuple> mapped = sorted.mapPartitionsToPair(new AggregateFunction());
+        JavaPairRDD<String, Tuple> mapped = sorted.mapPartitionsToPair(SparkShims.getInstance().pairFlatMapFunction(new AggregateFunction()));
         //use groupByKey to aggregate all values( the format will be ((all),{(sampleEle1),(sampleEle2),...} )
         JavaRDD<Tuple> groupByKey= mapped.groupByKey().map(new ToValueFunction());
         return  groupByKey.rdd();
     }
 
 
-    private static class MergeFunction implements org.apache.spark.api.java.function.Function2<Tuple, Tuple, Tuple>
+    private static class MergeFunction implements Function2<Tuple, Tuple, Tuple>
             , Serializable {
 
         @Override
@@ -89,7 +88,7 @@ public class SparkSampleSortConverter implements RDDConverter<Tuple, Tuple, POSa
     // input: Tuple2<Tuple,Object>
     // output: Tuple2("all", Tuple)
     private static class AggregateFunction implements
-            PairFlatMapFunction<Iterator<Tuple2<Tuple, Object>>, String,Tuple>, Serializable {
+            PairFlatMapFunctionAdapter<Iterator<Tuple2<Tuple, Object>>, String,Tuple>, Serializable {
 
         private class Tuple2TransformIterable implements Iterable<Tuple2<String,Tuple>> {
 
@@ -111,8 +110,8 @@ public class SparkSampleSortConverter implements RDDConverter<Tuple, Tuple, POSa
         }
 
         @Override
-        public Iterable<Tuple2<String, Tuple>> call(Iterator<Tuple2<Tuple, Object>> input) throws Exception {
-            return new Tuple2TransformIterable(input);
+        public Iterator<Tuple2<String, Tuple>> call(Iterator<Tuple2<Tuple, Object>> input) throws Exception {
+            return new Tuple2TransformIterable(input).iterator();
         }
 
     }

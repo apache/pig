@@ -25,9 +25,10 @@ import java.util.List;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
+import org.apache.pig.backend.hadoop.executionengine.spark.FlatMapFunctionAdapter;
+import org.apache.pig.backend.hadoop.executionengine.spark.SparkShims;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.data.Tuple;
-import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.rdd.RDD;
 
 
@@ -43,11 +44,11 @@ public class MergeJoinConverter implements
         RDD<Tuple> rdd = predecessors.get(0);
         MergeJoinFunction mergeJoinFunction = new MergeJoinFunction(poMergeJoin);
 
-        return rdd.toJavaRDD().mapPartitions(mergeJoinFunction, true).rdd();
+        return rdd.toJavaRDD().mapPartitions(SparkShims.getInstance().flatMapFunction(mergeJoinFunction), true).rdd();
     }
 
     private static class MergeJoinFunction implements
-            FlatMapFunction<Iterator<Tuple>, Tuple>, Serializable {
+            FlatMapFunctionAdapter<Iterator<Tuple>, Tuple>, Serializable {
 
         private POMergeJoin poMergeJoin;
 
@@ -55,29 +56,24 @@ public class MergeJoinConverter implements
             this.poMergeJoin = poMergeJoin;
         }
 
-        public Iterable<Tuple> call(final Iterator<Tuple> input) {
+        @Override
+        public Iterator<Tuple> call(final Iterator<Tuple> input) {
+            return new OutputConsumerIterator(input) {
 
-            return new Iterable<Tuple>() {
                 @Override
-                public Iterator<Tuple> iterator() {
-                    return new OutputConsumerIterator(input) {
+                protected void attach(Tuple tuple) {
+                    poMergeJoin.setInputs(null);
+                    poMergeJoin.attachInput(tuple);
+                }
 
-                        @Override
-                        protected void attach(Tuple tuple) {
-                            poMergeJoin.setInputs(null);
-                            poMergeJoin.attachInput(tuple);
-                        }
+                @Override
+                protected Result getNextResult() throws ExecException {
+                    return poMergeJoin.getNextTuple();
+                }
 
-                        @Override
-                        protected Result getNextResult() throws ExecException {
-                            return poMergeJoin.getNextTuple();
-                        }
-
-                        @Override
-                        protected void endOfInput() {
-                            poMergeJoin.setEndOfInput(true);
-                        }
-                    };
+                @Override
+                protected void endOfInput() {
+                    poMergeJoin.setEndOfInput(true);
                 }
             };
         }
