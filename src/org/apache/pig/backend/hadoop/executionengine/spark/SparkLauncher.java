@@ -175,7 +175,6 @@ public class SparkLauncher extends Launcher {
         SparkPigStats sparkStats = (SparkPigStats) pigContext
                 .getExecutionEngine().instantiatePigStats();
         sparkStats.initialize(pigContext, sparkplan, jobConf);
-        UDFContext.getUDFContext().addJobConf(jobConf);
         PigStats.start(sparkStats);
 
         startSparkIfNeeded(jobConf, pigContext);
