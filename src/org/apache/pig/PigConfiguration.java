@@ -40,6 +40,24 @@ public class PigConfiguration {
      */
     public static final String PIG_AUTO_LOCAL_INPUT_MAXBYTES = "pig.auto.local.input.maxbytes";
 
+
+    /**
+     * Sets the length of record markers in binary files produces by Pig between jobs
+     * The longer the byte sequence means less chance of collision with actual data,
+     * shorter sequence means less overhead
+     */
+    public static final String PIG_INTERSTORAGE_SYNCMARKER_SIZE = "pig.interstorage.syncmarker.size";
+    public static final int PIG_INTERSTORAGE_SYNCMARKER_SIZE_MAX = 16;
+    public static final int PIG_INTERSTORAGE_SYNCMARKER_SIZE_DEFAULT = 10;
+    public static final int PIG_INTERSTORAGE_SYNCMARKER_SIZE_MIN = 2;
+
+    /**
+     * Defines the interval (in bytes) when a sync marker should be written into the binary file
+     */
+    public static final String PIG_INTERSTORAGE_SYNCMARKER_INTERVAL = "pig.interstorage.syncmarker.interval";
+    public static final long PIG_INTERSTORAGE_SYNCMARKER_INTERVAL_DEFAULT = 2000;
+
+
     /**
      * Boolean value used to enable or disable fetching without a mapreduce job for DUMP. True by default
      */

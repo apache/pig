@@ -44,6 +44,7 @@ import java.util.Random;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
@@ -506,30 +507,20 @@ public class TestSchemaTuple {
         File temp = File.createTempFile("tmp", "tmp");
         temp.deleteOnExit();
         FileOutputStream fos = new FileOutputStream(temp);
-        DataOutputStream dos = new DataOutputStream(fos);
+        FSDataOutputStream dos = new FSDataOutputStream(fos, null);
 
-        InterRecordWriter writer = new InterRecordWriter(dos);
+        InterRecordWriter writer = new InterRecordWriter(dos,
+                PigConfiguration.PIG_INTERSTORAGE_SYNCMARKER_SIZE_DEFAULT,
+                PigConfiguration.PIG_INTERSTORAGE_SYNCMARKER_INTERVAL_DEFAULT);
 
-        // We add these lines because a part of the InterStorage logic
-        // is the ability to seek to the next Tuple based on a magic set
-        // of bytes. This emulates the random byes that will be present
-        // at the beginning of a split.
-        dos.writeByte(r.nextInt());
-        dos.writeByte(r.nextInt());
-        dos.writeByte(r.nextInt());
-        dos.writeByte(r.nextInt());
-        dos.writeByte(r.nextInt());
-        dos.writeByte(r.nextInt());
+        // This test does not cover the case of overlapping record bytes that may be present at the
+        // beginning of a split, for that see org.apache.pig.test.TestBinInterSedes#testInterStorageSyncMarker()
 
         for (int i = 0; i < sz; i++) {
             SchemaTuple<?> st = (SchemaTuple<?>)tf.newTuple();
             fillWithData(st);
             writer.write(null, st);
             written.add(st);
-
-            dos.writeByte(r.nextInt());
-            dos.writeByte(r.nextInt());
-            dos.writeByte(r.nextInt());
         }
         writer.close(null);
 
@@ -541,7 +532,8 @@ public class TestSchemaTuple {
 
         InputSplit is = new FileSplit(new Path(temp.getAbsolutePath()), 0, temp.length(), null);
 
-        InterRecordReader reader = new InterRecordReader();
+        InterRecordReader reader = new InterRecordReader(PigConfiguration.PIG_INTERSTORAGE_SYNCMARKER_SIZE_DEFAULT,
+                                                         PigConfiguration.PIG_INTERSTORAGE_SYNCMARKER_INTERVAL_DEFAULT);
         reader.initialize(is, HadoopShims.createTaskAttemptContext(conf, taskId));
 
         for (int i = 0; i < sz; i++) {

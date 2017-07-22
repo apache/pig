@@ -414,12 +414,18 @@ public class TestFRJoin2 {
         pigServer.registerQuery("C = foreach C generate MAX(B.x) as x;");
         pigServer.registerQuery("D = join A by x, B by x, C by x using 'repl';");
         {
-            // When the replicated input sizes=(12 + 5) is bigger than
-            // pig.join.replicated.max.bytes=16, we throw exception
+            // When the replicated input size is bigger than
+            // pig.join.replicated.max.bytes, we throw exception
+            // Expected replicated size below:
+            //  Alias B: sync marker + 2 records (1 tuple type byte + 2 integers (0 or 1))
+            //  Alias C: sync marker + 1 record (1 tuple type byte + 1 integer (1))
+            long expectedReplicateSize = PigConfiguration.PIG_INTERSTORAGE_SYNCMARKER_SIZE_DEFAULT + 2*(1 +1+1)
+                                       + PigConfiguration.PIG_INTERSTORAGE_SYNCMARKER_SIZE_DEFAULT + 1*(1 +1);
+
             try {
                 pigServer.getPigContext().getProperties().setProperty(
                         PigConfiguration.PIG_JOIN_REPLICATED_MAX_BYTES,
-                        String.valueOf(16));
+                        String.valueOf(expectedReplicateSize-1));
                 pigServer.openIterator("D");
                 Assert.fail();
             } catch (FrontendException e) {
@@ -428,10 +434,10 @@ public class TestFRJoin2 {
                         e.getCause().getCause().getCause().getMessage());
             }
 
-            // If we increase the size to 17, it should work
+            // If we increase the max size setting to the expected amount it works
             pigServer.getPigContext().getProperties().setProperty(
                         PigConfiguration.PIG_JOIN_REPLICATED_MAX_BYTES,
-                        String.valueOf(17));
+                        String.valueOf(expectedReplicateSize));
             pigServer.openIterator("D");
         }
     }

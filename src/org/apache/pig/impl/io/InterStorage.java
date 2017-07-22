@@ -39,6 +39,7 @@ import org.apache.pig.Expression;
 import org.apache.pig.FileInputLoadFunc;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.LoadMetadata;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceStatistics;
 import org.apache.pig.StoreFunc;
@@ -62,10 +63,10 @@ implements StoreFuncInterface, LoadMetadata {
 
     private static final Log mLog = LogFactory.getLog(InterStorage.class);
     public static final String useLog = "Pig Internal storage in use";
-    
+
     private InterRecordReader recReader = null;
     private InterRecordWriter recWriter = null;
-    
+
     /**
      * Simple binary nested reader format
      */
@@ -102,7 +103,9 @@ implements StoreFuncInterface, LoadMetadata {
         public RecordReader<Text, Tuple> createRecordReader(InputSplit split,
                 TaskAttemptContext context) throws IOException,
                 InterruptedException {
-            return new InterRecordReader();
+            return new InterRecordReader(retrieveMarkerLengthFromConf(context.getConfiguration()),
+                                         retrieveMarkerIntervalFromConf(context.getConfiguration())
+            );
         }
 
     }
@@ -141,7 +144,10 @@ implements StoreFuncInterface, LoadMetadata {
             Path file = getDefaultWorkFile(job, "");
             FileSystem fs = file.getFileSystem(conf);
             FSDataOutputStream fileOut = fs.create(file, false);
-            return new InterRecordWriter(fileOut);
+            return new InterRecordWriter(fileOut,
+                    retrieveMarkerLengthFromConf(job.getConfiguration()),
+                    retrieveMarkerIntervalFromConf(job.getConfiguration())
+            );
         }
     }
 
@@ -207,5 +213,23 @@ implements StoreFuncInterface, LoadMetadata {
     @Override
     public void cleanupOnSuccess(String location, Job job) throws IOException {
         // DEFAULT: do nothing
+    }
+
+    private static int retrieveMarkerLengthFromConf(Configuration conf) {
+        int requestedLength = conf.getInt(PigConfiguration.PIG_INTERSTORAGE_SYNCMARKER_SIZE,
+                PigConfiguration.PIG_INTERSTORAGE_SYNCMARKER_SIZE_DEFAULT);
+
+        if (requestedLength > PigConfiguration.PIG_INTERSTORAGE_SYNCMARKER_SIZE_MAX) {
+            requestedLength = PigConfiguration.PIG_INTERSTORAGE_SYNCMARKER_SIZE_MAX;
+        } else if (requestedLength < PigConfiguration.PIG_INTERSTORAGE_SYNCMARKER_SIZE_MIN) {
+            requestedLength = PigConfiguration.PIG_INTERSTORAGE_SYNCMARKER_SIZE_MIN;
+        }
+
+        return requestedLength;
+    }
+
+    private static long retrieveMarkerIntervalFromConf(Configuration conf) {
+        return conf.getLong(PigConfiguration.PIG_INTERSTORAGE_SYNCMARKER_INTERVAL,
+                PigConfiguration.PIG_INTERSTORAGE_SYNCMARKER_INTERVAL_DEFAULT);
     }
 }
