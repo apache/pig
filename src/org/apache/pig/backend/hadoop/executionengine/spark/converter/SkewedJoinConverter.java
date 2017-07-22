@@ -232,8 +232,8 @@ public class SkewedJoinConverter implements
                             }
 
                             return result;
-                        } catch (Exception e) {
-                            log.warn(e);
+                        } catch (ExecException e) {
+                            log.error(e);
                             return null;
                         }
                     }

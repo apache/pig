@@ -38,6 +38,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5274: TestEvalPipelineLocal#testSetLocationCalledInFE is failing in spark mode after PIG-5157 (nkollar via szita)
+
 PIG-4767: Partition filter not pushed down when filter clause references variable from another load path (knoguchi)
 
 PIG-5270: Typo in Pig Logging (FromAlaska49 via daijy)

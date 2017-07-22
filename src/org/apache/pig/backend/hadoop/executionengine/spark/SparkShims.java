@@ -60,7 +60,12 @@ public abstract class SparkShims implements Serializable {
 
     public static SparkShims getInstance() {
         if (sparkShims == null) {
-            String sparkVersion = UDFContext.getUDFContext().getJobConf().get(SPARK_VERSION, "");
+            String sparkVersion;
+            if (UDFContext.getUDFContext().isFrontend()) {
+                sparkVersion = SparkContext.getOrCreate().version();
+            } else {
+                sparkVersion = UDFContext.getUDFContext().getJobConf().get(SPARK_VERSION, "");
+            }
             LOG.info("Initializing SparkShims for Spark version: " + sparkVersion);
             String sparkMajorVersion = getSparkMajorVersion(sparkVersion);
             try {
