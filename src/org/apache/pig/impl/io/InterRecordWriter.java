@@ -17,12 +17,16 @@
  */
 package org.apache.pig.impl.io;
 
-import java.io.DataOutputStream;
 import java.io.IOException;
+import java.rmi.server.UID;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.util.Time;
 import org.apache.pig.data.InterSedes;
 import org.apache.pig.data.InterSedesFactory;
 import org.apache.pig.data.Tuple;
@@ -35,20 +39,34 @@ import org.apache.pig.data.Tuple;
 public class InterRecordWriter extends
         RecordWriter<org.apache.hadoop.io.WritableComparable, Tuple> {
 
-    public static final int RECORD_1 = 0x01;
-    public static final int RECORD_2 = 0x02;
-    public static final int RECORD_3 = 0x03;
     private static InterSedes sedes = InterSedesFactory.getInterSedesInstance();
+
+    private byte[] syncMarker;
+    private long lastSyncPos = -1;
+    private long syncMarkerInterval;
     /**
      * the outputstream to write out on
      */
-    private DataOutputStream out;
+    private FSDataOutputStream out;
     
     /**
      * 
      */
-    public InterRecordWriter(DataOutputStream out) {
+    public InterRecordWriter(FSDataOutputStream out, int syncMarkerLength, long syncMarkerInterval) {
         this.out = out;
+        this.syncMarkerInterval = syncMarkerInterval;
+        syncMarker = new byte[syncMarkerLength];
+
+        try {
+            MessageDigest digester = MessageDigest.getInstance("MD5");
+            long time = Time.now();
+            digester.update((new UID()+"@"+time).getBytes());
+            byte[] generatedMarker = digester.digest();
+            System.arraycopy(generatedMarker, 0, syncMarker, 0, syncMarkerLength);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+
     }
 
     /* (non-Javadoc)
@@ -66,10 +84,11 @@ public class InterRecordWriter extends
     @Override
     public void write(WritableComparable wc, Tuple t) throws IOException,
             InterruptedException {
-        // we really only want to write the tuple (value) out here
-        out.write(RECORD_1);
-        out.write(RECORD_2);
-        out.write(RECORD_3);
+        // we really only want to write the tuple (value) out here (and a sync syncMarker before that if necessary)
+        if (lastSyncPos == -1 || out.getPos() >= (lastSyncPos + syncMarkerInterval)) {
+            out.write(syncMarker);
+            lastSyncPos = out.getPos();
+        }
         sedes.writeDatum(out, t);
         
     }

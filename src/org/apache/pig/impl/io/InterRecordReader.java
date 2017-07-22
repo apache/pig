@@ -42,15 +42,22 @@ import org.apache.pig.data.Tuple;
 public class InterRecordReader extends RecordReader<Text, Tuple> {
 
   private long start;
-  private long pos;
+  private long lastDataPos;
   private long end;
   private BufferedPositionedInputStream in;
   private Tuple value = null;
-  public static final int RECORD_1 = 0x01;
-  public static final int RECORD_2 = 0x02;
-  public static final int RECORD_3 = 0x03;
   private DataInputStream inData = null;
   private static InterSedes sedes = InterSedesFactory.getInterSedesInstance();
+
+  private byte[] syncMarker;
+  private long lastSyncPos = -1;
+  private long syncMarkerInterval;
+  private long dataBytesSeen = 0;
+
+  public InterRecordReader(int syncMarkerLength, long syncMarkerInterval) {
+      this.syncMarker = new byte[syncMarkerLength];
+      this.syncMarkerInterval = syncMarkerInterval;
+  }
 
   public void initialize(InputSplit genericSplit,
                          TaskAttemptContext context) throws IOException {
@@ -60,63 +67,131 @@ public class InterRecordReader extends RecordReader<Text, Tuple> {
     end = start + split.getLength();
     final Path file = split.getPath();
 
-    // open the file and seek to the start of the split
+    // open the file
     FileSystem fs = file.getFileSystem(job);
     FSDataInputStream fileIn = fs.open(split.getPath());
-    if (start != 0) {
-        fileIn.seek(start);
+
+    // read the magic byte sequence serving as record marker but only if the file is not empty
+    if (!(start == 0 && end == 0)) {
+        fileIn.readFully(0, syncMarker, 0, syncMarker.length);
     }
+
+    //seek to the start of the split
+    fileIn.seek(start);
+
     in = new BufferedPositionedInputStream(fileIn, start);
     inData = new DataInputStream(in);
   }
-  
-  public boolean nextKeyValue() throws IOException {
+
+
+    /**
+     * Skips to next sync marker
+     * @return true if marker was observed, false if EOF or EndOfSplit was reached
+     * @throws IOException
+     */
+  private boolean skipUntilMarkerOrSplitEndOrEOF() throws IOException {
       int b = 0;
-      //    skip to next record
-      while (true) {
-          if (in == null || in.getPosition() >=end) {
-              return false;
-          }
-          // check if we saw RECORD_1 in our last attempt
-          // this can happen if we have the following 
-          // sequence RECORD_1-RECORD_1-RECORD_2-RECORD_3
-          // After reading the second RECORD_1 in the above
-          // sequence, we should not look for RECORD_1 again
-          if(b != RECORD_1) {
+outer:while (b != -1) {
+          if (b != syncMarker[0]) {
+
+              //There may be a case where we read through a whole split without a marker, then we shouldn't proceed
+              // because the records are from the next split which another reader would pick up too
+              if (in.getPosition() >= end) {
+                  return false;
+              }
               b = in.read();
-              if(b != RECORD_1 && b != -1) {
+              if ((byte) b != syncMarker[0] && b != -1) {
                   continue;
               }
-              if(b == -1) return false;
+              if (b == -1) return false;
           }
+          int i = 1;
+          while (i < syncMarker.length) {
+              b = in.read();
+              if (b == -1) return false;
+              if ((byte) b != syncMarker[i]) {
+                  continue outer;
+              }
+              ++i;
+          }
+          lastSyncPos = in.getPosition();
+          return true;
+      }
+      return false;
+  }
+
+    /**
+     * Reads a sync marker
+     * @return true if sync marker was read, false if EOF reached
+     * @throws IOException thrown if neither EOF nor proper sync was found
+     */
+  private boolean readSyncFullyOrEOF() throws IOException {
+      int b = in.read();
+      if (b == -1) {
+          //EOF reached
+          return false;
+      }
+      if ((byte) b != syncMarker[0]) {
+          throw new IOException("Corrupt data file, expected sync marker at position " + in.getPosition());
+      }
+      int i = 1;
+      while (i < syncMarker.length) {
           b = in.read();
-          if(b != RECORD_2 && b != -1) {
-              continue;
+          if ((byte) b != syncMarker[i]) {
+              throw new IOException("Corrupt data file, expected sync marker at position " + in.getPosition());
           }
-          if(b == -1) return false;
-          b = in.read();
-          if(b != RECORD_3 && b != -1) {
-              continue;
+          ++i;
+      }
+      lastSyncPos = in.getPosition();
+      return true;
+
+  }
+
+  private boolean readDataOrEOF() throws IOException {
+      long preDataPos = in.getPosition();
+      int b = in.read();
+      if(!BinInterSedes.isTupleByte((byte) b) ) {
+          if (b == -1) {
+              //EOF reached
+              return false;
+          } else {
+              throw new IOException("Corrupt data file, expected tuple type byte, but seen " + b);
           }
-          if(b == -1) return false;
-          b = in.read();
-          if(!BinInterSedes.isTupleByte((byte) b) &&
-                  b != -1) {
-              continue;
-          }
-          if(b == -1) return false;
-          break;
       }
       try {
-          // if we got here, we have seen RECORD_1-RECORD_2-RECORD_3-TUPLE_MARKER
-          // sequence - lets now read the contents of the tuple 
           value =  (Tuple)sedes.readDatum(inData, (byte)b);
-          pos=in.getPosition();
+          lastDataPos = in.getPosition();
+          dataBytesSeen += (lastDataPos-preDataPos);
           return true;
       } catch (ExecException ee) {
           throw ee;
       }
+  }
 
+  public boolean nextKeyValue() throws IOException {
+
+      //No marker has been seen, look for next marker
+      if (lastSyncPos == -1) {
+          if (!skipUntilMarkerOrSplitEndOrEOF()) {
+              return false;
+          }
+      }
+
+      //If we've read more or equal amount of data than the sync interval, we expect a sync marker or EOF
+      if (dataBytesSeen >= syncMarkerInterval) {
+          boolean isEOF = !readSyncFullyOrEOF();
+          if (isEOF) {
+              return false;
+          }
+          dataBytesSeen = 0;
+          //If we've just seen a (non-first) sync marker which was completely in the next split then we need to stop
+          if (in.getPosition()-syncMarker.length >= end) {
+              return false;
+          }
+      }
+
+      //Sync marker has been seen, expect data
+      return readDataOrEOF();
   }
 
   @Override
@@ -138,7 +213,7 @@ public class InterRecordReader extends RecordReader<Text, Tuple> {
     if (start == end) {
       return 0.0f;
     } else {
-      return Math.min(1.0f, (pos - start) / (float)(end - start));
+      return Math.min(1.0f, (lastDataPos - start) / (float)(end - start));
     }
   }
   

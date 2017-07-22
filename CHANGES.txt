@@ -38,6 +38,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3655: BinStorage and InterStorage approach to record markers is broken (szita)
+
 PIG-5274: TestEvalPipelineLocal#testSetLocationCalledInFE is failing in spark mode after PIG-5157 (nkollar via szita)
 
 PIG-4767: Partition filter not pushed down when filter clause references variable from another load path (knoguchi)
