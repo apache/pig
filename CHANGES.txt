@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-5157: Upgrade to Spark 2.0 (nkollar via liyunzhang)
+
 PIG-5237: Fix DOT file parsing to enable DOT-based physical plan testing (YaShock via szita)
 
 PIG-5269: MapReduceLauncher and MRJobStats imports org.python.google.common.collect.Lists instead of org.google.common.collect.Lists (nkollar via szita)
