@@ -505,19 +505,9 @@ public class PigConfiguration {
     public static final String PIG_SPARK_USE_NETTY_FILESERVER = "pig.spark.rpc.useNettyFileServer";
 
     /**
-     * @deprecated use {@link #PIG_LOG_TRACE_ID} instead. Will be removed in Pig 0.18
-     */
-    public static final String CALLER_ID = PIG_LOG_TRACE_ID;
-
-    /**
      * Enable ATS for Pig
      */
     public static final String PIG_ATS_ENABLED = "pig.ats.enabled";
-
-    /**
-     * @deprecated use {@link #PIG_ATS_ENABLED} instead. Will be removed in Pig 0.18
-     */
-    public static final String ENABLE_ATS = PIG_ATS_ENABLED;
 
     /**
      * If set, Pig will override tez.am.launch.cmd-opts and tez.am.resource.memory.mb to optimal
@@ -532,67 +522,5 @@ public class PigConfiguration {
     public static final String PIG_STORE_SCHEMA_DISAMBIGUATE_DEFAULT = "true";
 
     public static final String PIG_PRINT_EXEC_PLAN = "pig.print.exec.plan";
-
-    // Deprecated settings of Pig 0.13
-
-    /**
-     * @deprecated use {@link #PIG_OPT_FETCH} instead. Will be removed in Pig 0.16
-     */
-    @Deprecated
-    public static final String OPT_FETCH = PIG_OPT_FETCH;
-
-    /**
-     * @deprecated use {@link #PIG_CACHEDBAG_MEMUSAGE} instead. Will be removed in Pig 0.16
-     */
-    @Deprecated
-    public static final String PROP_CACHEDBAG_MEMUSAGE = PIG_CACHEDBAG_MEMUSAGE;
-
-    /**
-     * @deprecated use {@link #PIG_EXEC_MAP_PARTAGG} instead. Will be removed in Pig 0.16
-     */
-    @Deprecated
-    public static final String PROP_EXEC_MAP_PARTAGG = PIG_EXEC_MAP_PARTAGG;
-
-    /**
-     * @deprecated use {@link #PIG_EXEC_MAP_PARTAGG_MINREDUCTION} instead. Will be removed in Pig 0.16
-     */
-    @Deprecated
-    public static final String PARTAGG_MINREDUCTION = PIG_EXEC_MAP_PARTAGG_MINREDUCTION;
-
-    /**
-     * @deprecated use {@link #PROP_NO_COMBINER1} instead. Will be removed in Pig 0.16
-     */
-    @Deprecated
-    public static final String PROP_NO_COMBINER = PIG_EXEC_NO_COMBINER;
-
-    @Deprecated
-    public static final String SHOULD_USE_SCHEMA_TUPLE = PIG_SCHEMA_TUPLE_ENABLED;
-
-    @Deprecated
-    public static final String SCHEMA_TUPLE_SHOULD_USE_IN_UDF = PIG_SCHEMA_TUPLE_USE_IN_UDF;
-
-    @Deprecated
-    public static final String SCHEMA_TUPLE_SHOULD_USE_IN_FOREACH = PIG_SCHEMA_TUPLE_USE_IN_FOREACH;
-
-    @Deprecated
-    public static final String SCHEMA_TUPLE_SHOULD_USE_IN_FRJOIN = PIG_SCHEMA_TUPLE_USE_IN_FRJOIN;
-
-    @Deprecated
-    public static final String SCHEMA_TUPLE_SHOULD_USE_IN_MERGEJOIN = PIG_SCHEMA_TUPLE_USE_IN_MERGEJOIN;
-
-    @Deprecated
-    public static final String SCHEMA_TUPLE_SHOULD_ALLOW_FORCE = PIG_SCHEMA_TUPLE_ALLOW_FORCE;
-
-    /**
-     * @deprecated use {@link #PIG_SCRIPT_INFO_ENABLED} instead. Will be removed in Pig 0.16
-     */
-    @Deprecated
-    public static final String INSERT_ENABLED = PIG_SCRIPT_INFO_ENABLED;
-
-    /**
-     * @deprecated use {@link #PIG_SCRIPT_MAX_SIZE} instead. Will be removed in Pig 0.16
-     */
-    @Deprecated
-    public static final String MAX_SCRIPT_SIZE = PIG_SCRIPT_MAX_SIZE;
 
 }

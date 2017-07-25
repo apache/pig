@@ -45,11 +45,11 @@ public class TestLargeFile {
 
     File datFile;
 
-    private long defaultBlockSize = (new Configuration()).getLong("dfs.block.size", 0);
+    private long defaultBlockSize = (new Configuration()).getLong("dfs.blocksize", 0);
 
     private long total = defaultBlockSize >> 1;
     private int max_rand = 500;
-    static MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
 
     Integer[] COUNT = new Integer[max_rand];
 

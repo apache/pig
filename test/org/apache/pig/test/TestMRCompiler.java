@@ -134,7 +134,7 @@ import org.junit.runner.RunWith;
     "testStorerLimit",
     "testFetchOptimizerSideEffect"})
 public class TestMRCompiler {
-    static MiniCluster cluster;
+    static MiniGenericCluster cluster;
 
     static PigContext pc;
     static PigContext pcMR;
@@ -157,7 +157,7 @@ public class TestMRCompiler {
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        cluster = MiniCluster.buildCluster();
+        cluster = MiniGenericCluster.buildCluster();
         pc = new PigContext(ExecType.LOCAL, new Properties());
         pcMR = new PigContext(ExecType.MAPREDUCE, cluster.getProperties());
         pc.connect();

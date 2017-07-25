@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-5264: Remove deprecated keys from PigConfiguration (nkollar via rohini)
+
 PIG-5157: Upgrade to Spark 2.0 (nkollar via liyunzhang)
 
 PIG-5237: Fix DOT file parsing to enable DOT-based physical plan testing (YaShock via szita)

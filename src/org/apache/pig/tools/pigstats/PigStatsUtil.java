@@ -24,7 +24,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
-import org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil;
 import org.apache.pig.tools.pigstats.mapreduce.SimplePigStats;
 
 /**
@@ -58,20 +57,6 @@ public class PigStatsUtil {
             = "Output records in ";
     public static final String MULTI_STORE_COUNTER_GROUP
             = "MultiStoreCounters";
-
-    /**
-     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#TASK_COUNTER_GROUP} instead.
-     */
-    @Deprecated
-    public static final String TASK_COUNTER_GROUP
-            = "org.apache.hadoop.mapred.Task$Counter";
-
-    /**
-     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#FS_COUNTER_GROUP} instead.
-     */
-    @Deprecated
-    public static final String FS_COUNTER_GROUP
-            = MRPigStatsUtil.FS_COUNTER_GROUP;
 
     /**
      * Returns an empty PigStats object Use of this method is not advised as it

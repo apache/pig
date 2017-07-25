@@ -30,25 +30,28 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Date;
-import java.util.List;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
-import org.apache.pig.test.MiniCluster;
+import org.apache.pig.test.MiniGenericCluster;
 import org.apache.pig.test.Util;
 import org.hsqldb.Server;
 import org.junit.After;
 import org.junit.Before;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
-public class TestDBStorage extends TestCase {
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertTrue;
+
+public class TestDBStorage {
 
     private PigServer pigServer;
-    private MiniCluster cluster;
+    private MiniGenericCluster cluster;
     private Server dbServer;
     private String driver = "org.hsqldb.jdbcDriver";
     // private String url = "jdbc:hsqldb:mem:.";
@@ -63,7 +66,7 @@ public class TestDBStorage extends TestCase {
 
     public TestDBStorage() throws ExecException, IOException {
         // Initialise Pig server
-        cluster = MiniCluster.buildCluster();
+        cluster = MiniGenericCluster.buildCluster();
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         pigServer.getPigContext().getProperties()
                 .setProperty(MRConfiguration.MAP_MAX_ATTEMPTS, "1");
@@ -155,6 +158,7 @@ public class TestDBStorage extends TestCase {
         }
     }
 
+    @Test
     public void testWriteToDB() throws IOException {
         String insertQuery = "insert into ttt (id, name, ratio, dt) values (?,?,?,?)";
         pigServer.setBatchOn();

@@ -48,15 +48,6 @@ public class MiniCluster extends MiniGenericCluster {
     private Configuration m_dfs_conf = null;
     private Configuration m_mr_conf = null;
 
-    /**
-     * @deprecated use {@link org.apache.pig.test.MiniGenericCluster.buildCluster() instead.
-     */
-    @Deprecated
-    public static MiniCluster buildCluster() {
-        System.setProperty("test.exec.type", "mr");
-        return (MiniCluster)MiniGenericCluster.buildCluster("mr");
-    }
-
     @Override
     public ExecType getExecType() {
         return ExecType.MAPREDUCE;

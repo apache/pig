@@ -25,7 +25,6 @@ import java.io.PrintWriter;
 import org.apache.pig.PigRunner;
 import org.apache.pig.PigServer;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.mapreduce.MRJobStats;
 import org.junit.AfterClass;
@@ -34,7 +33,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * This class tests whether the number of reducers is correctly set for queries
@@ -53,11 +54,11 @@ public class TestNumberOfReducers {
 
     static PigContext pc;
     static PigServer pigServer;
-    private static MiniCluster cluster;
+    private static MiniGenericCluster cluster;
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        cluster = MiniCluster.buildCluster();
+        cluster = MiniGenericCluster.buildCluster();
 
         Util.copyFromLocalToCluster(cluster, LOCAL_INPUT_FILE, HDFS_INPUT_FILE);
     }

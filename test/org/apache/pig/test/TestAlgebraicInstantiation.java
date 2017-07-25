@@ -39,7 +39,7 @@ import org.junit.Test;
 public class TestAlgebraicInstantiation {
 
     Boolean[] nullFlags = new Boolean[]{ false, true};
-    static MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
     private PigServer pig;
     private File tmpFile;
     
