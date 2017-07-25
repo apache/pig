@@ -42,7 +42,7 @@ import org.junit.Test;
 
 public class TestAutoLocalMode {
 
-    static MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
     private PigServer pigServer;
     private File logFile;
 

@@ -17,8 +17,6 @@
  */
 package org.apache.pig.test;
 
-import static org.junit.Assert.*;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
@@ -43,13 +41,18 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 @RunWith(JUnit4.class)
 public class TestSampleOptimizer {
 
     static PigContext pc;
     static PigServer pigServer;
+    static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
     static{
-        pc = new PigContext(ExecType.MAPREDUCE,MiniCluster.buildCluster().getProperties());
+        pc = new PigContext(ExecType.MAPREDUCE, cluster.getProperties());
         try {
             pc.connect();
             pigServer = new PigServer( pc );
@@ -60,7 +63,7 @@ public class TestSampleOptimizer {
 
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
-        MiniCluster.buildCluster().shutDown();
+        cluster.shutDown();
     }
     
     @Test

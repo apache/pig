@@ -28,20 +28,22 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.test.MiniCluster;
+import org.apache.pig.test.MiniGenericCluster;
 import org.apache.pig.test.Util;
+import org.junit.Before;
 import org.junit.Test;
 
-import junit.framework.TestCase;
+import static org.junit.Assert.assertTrue;
 
-public class TestLookupInFiles extends TestCase {
-    MiniCluster cluster = MiniCluster.buildCluster();
+public class TestLookupInFiles {
+    MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
     private PigServer pigServer;
    
-    @Override
+    @Before
     public void setUp() throws Exception{
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
     }
+
     @Test
     public void testLookupInFiles() throws Exception {
         File tmpFile = File.createTempFile("test", ".txt");

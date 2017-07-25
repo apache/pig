@@ -40,7 +40,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
-import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorPlan;
@@ -57,16 +56,17 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+
 @RunWith(JUnit4.class)
 public class TestMultiQueryCompiler {
 
-    private static MiniCluster cluster;
+    private static MiniGenericCluster cluster;
 
     private PigServer myPig;
 
     @BeforeClass
     public static void setUpBeforeClass() throws IOException {
-        cluster = MiniCluster.buildCluster();
+        cluster = MiniGenericCluster.buildCluster();
         Util.copyFromLocalToCluster(cluster,
                 "test/org/apache/pig/test/data/passwd", "passwd");
         Util.copyFromLocalToCluster(cluster,

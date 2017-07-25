@@ -34,7 +34,6 @@ import org.apache.pig.PigServer;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -43,7 +42,7 @@ import org.junit.Test;
 public class TestOrderBy {
     private static final int DATALEN = 1024;
     private String[][] DATA = new String[2][DATALEN];
-    static MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
     
     private PigServer pig;
     private File tmpFile;
