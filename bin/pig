@@ -60,6 +60,7 @@ additionalJars="";
 prevArgExecType=false;
 isSparkMode=false;
 isSparkLocalMode=false;
+sparkversion=2;
 
 #verify the execType is SPARK or SPARK_LOCAL or not
 function processExecType(){
@@ -402,18 +403,34 @@ if [ "$isSparkMode"  == "true" ]; then
        echo "Error: SPARK_HOME is not set!"
        exit 1
     fi
+    # spark-tags*.jar appears in spark2, spark1 does not include this jar, we use this jar to judge current spark is spark1 or spark2.
+    SPARK_TAG_JAR=`find $SPARK_HOME -name 'spark-tags*.jar'|wc -l`
+    if [ "$SPARK_TAG_JAR" -eq 0 ];then 
+          sparkversion="1"
+    fi
+    if [ "$sparkversion" == "1" ]; then
+        # Please specify SPARK_JAR which is the hdfs path of spark-assembly*.jar to allow YARN to cache spark-assembly*.jar on nodes so that it doesn't need to be distributed each time an application runs.
+        if [ -z "$SPARK_JAR" ]; then
+           echo "Error: SPARK_JAR is not set, SPARK_JAR stands for the hdfs location of spark-assembly*.jar. This
+        allows YARN to cache spark-assembly*.jar on nodes so that it doesn't need to be distributed each time an application runs."
+           exit 1
+        fi
 
-    # Please specify SPARK_JAR which is the hdfs path of spark-assembly*.jar to allow YARN to cache spark-assembly*.jar on nodes so that it doesn't need to be distributed each time an application runs.
-    if [ -z "$SPARK_JAR" ]; then
-       echo "Error: SPARK_JAR is not set, SPARK_JAR stands for the hdfs location of spark-assembly*.jar. This allows YARN to cache spark-assembly*.jar on nodes so that it doesn't need to be distributed each time an application runs."
-       exit 1
+        if [ -n "$SPARK_HOME" ]; then
+            echo "Using Spark Home: " ${SPARK_HOME}
+            SPARK_ASSEMBLY_JAR=`ls ${SPARK_HOME}/lib/spark-assembly*`
+            CLASSPATH=${CLASSPATH}:$SPARK_ASSEMBLY_JAR
+        fi
     fi
 
-    if [ -n "$SPARK_HOME" ]; then
-        echo "Using Spark Home: " ${SPARK_HOME}
-        SPARK_ASSEMBLY_JAR=`ls ${SPARK_HOME}/lib/spark-assembly*`
-        CLASSPATH=${CLASSPATH}:$SPARK_ASSEMBLY_JAR
-    fi
+    if [ "$sparkversion" == "2" ]; then
+          if [ -n "$SPARK_HOME" ]; then
+              echo "Using Spark Home: " ${SPARK_HOME}
+              for f in $SPARK_HOME/jars/*.jar; do
+                   CLASSPATH=${CLASSPATH}:$f
+              done
+          fi
+     fi
 fi
 
 #spark-assembly.jar contains jcl-over-slf4j which would create a LogFactory implementation that is incompatible
