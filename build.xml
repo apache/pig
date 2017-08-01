@@ -454,6 +454,10 @@
         <ant dir="${test.e2e.dir}" target="clean"/>
     </target>
 
+    <target name="clean-deps" description="Cleanup dependencies">
+        <delete dir="${lib.dir}" />
+    </target>
+
     <target name="very-clean" unless="offline" depends="ivy-clean-cache,jackson-pig-3039-test-clean,clean"
             description="Clean build artifacts and flush Ivy cache" />
 
@@ -798,14 +802,14 @@
 
     <target name="jar" description="Create pig jar with Spark 1 and 2">
         <echo>Compiling against Spark 2</echo>
-        <antcall target="clean" inheritRefs="true" inheritall="true"/>
+        <antcall target="clean-deps" inheritRefs="true" inheritall="true"/>
         <propertyreset name="sparkversion" value="2"/>
         <propertyreset name="src.exclude.dir" value="**/Spark1*.java" />
         <antcall target="jar-core" inheritRefs="true" inheritall="true"/>
         <move file="${output.jarfile.core}" tofile="${basedir}/_pig-shims.jar"/>
 
         <echo>Compiling against Spark 1</echo>
-        <antcall target="clean" inheritRefs="true" inheritall="true"/>
+        <antcall target="clean-deps" inheritRefs="true" inheritall="true"/>
         <propertyreset name="sparkversion" value="1"/>
         <propertyreset name="src.exclude.dir" value="**/Spark2*.java" />
         <antcall target="jar-simple" inheritRefs="true" inheritall="true"/>
