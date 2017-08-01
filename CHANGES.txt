@@ -40,6 +40,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5276: building "jar" should not call "clean" (nkollar via szita)
+
 PIG-5246: Modify bin/pig about SPARK_HOME, SPARK_ASSEMBLY_JAR after upgrading spark to 2 (liyunzhang)
 
 PIG-3655: BinStorage and InterStorage approach to record markers is broken (szita)
