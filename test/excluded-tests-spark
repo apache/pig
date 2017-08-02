@@ -2,3 +2,5 @@
 **/tez/*.java
 **/TestNativeMapReduce.java
 **/TestCounters.java
+**/TestMultiQueryCompiler.java
+**/TestAutoLocalMode.java

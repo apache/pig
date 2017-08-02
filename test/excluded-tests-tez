@@ -1,2 +1,4 @@
 **/Test*MR.java
 **/spark/*.java
+**/TestMultiQueryCompiler.java
+**/TestAutoLocalMode.java

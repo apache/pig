@@ -33,6 +33,7 @@ import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.SimpleLayout;
+import org.apache.pig.ExecType;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
@@ -40,9 +41,10 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
+// Auto local mode is not implemented for Spark and Tez (PIG-5281, PIG-5280)
 public class TestAutoLocalMode {
 
-    static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
+    static MiniGenericCluster cluster = MiniGenericCluster.buildCluster(MiniGenericCluster.EXECTYPE_MR);
     private PigServer pigServer;
     private File logFile;
 
