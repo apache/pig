@@ -40,6 +40,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5278: Unit test failures because of PIG-5264 (nkollar via rohini)
+
 PIG-5276: building "jar" should not call "clean" (nkollar via szita)
 
 PIG-5246: Modify bin/pig about SPARK_HOME, SPARK_ASSEMBLY_JAR after upgrading spark to 2 (liyunzhang)

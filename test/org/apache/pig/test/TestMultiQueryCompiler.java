@@ -57,6 +57,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+// This test is specific to MR, not intended to pass in spark and tez mode
 @RunWith(JUnit4.class)
 public class TestMultiQueryCompiler {
 
@@ -66,7 +67,7 @@ public class TestMultiQueryCompiler {
 
     @BeforeClass
     public static void setUpBeforeClass() throws IOException {
-        cluster = MiniGenericCluster.buildCluster();
+        cluster = MiniGenericCluster.buildCluster(MiniGenericCluster.EXECTYPE_MR);
         Util.copyFromLocalToCluster(cluster,
                 "test/org/apache/pig/test/data/passwd", "passwd");
         Util.copyFromLocalToCluster(cluster,
