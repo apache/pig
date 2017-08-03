@@ -90,7 +90,7 @@ public class InterRecordReader extends RecordReader<Text, Tuple> {
      * @throws IOException
      */
   private boolean skipUntilMarkerOrSplitEndOrEOF() throws IOException {
-      int b = 0;
+      int b = Integer.MIN_VALUE;
 outer:while (b != -1) {
           if (b != syncMarker[0]) {
 
@@ -110,6 +110,10 @@ outer:while (b != -1) {
               b = in.read();
               if (b == -1) return false;
               if ((byte) b != syncMarker[i]) {
+                  if (in.getPosition() > end) {
+                      //Again we should not read past the split end, only if at least the first byte of marker was seen before it
+                      return false;
+                  }
                   continue outer;
               }
               ++i;
