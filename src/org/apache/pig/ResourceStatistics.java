@@ -198,6 +198,16 @@ public class ResourceStatistics implements Cloneable {
     }
 
     /**
+     * @param mBytes
+     * @deprecated Use {@link ResourceStatistics#setSizeInBytes(Long)} instead
+     */
+    @Deprecated
+    public ResourceStatistics setmBytes(Long mBytes) {
+        this.bytes = mBytes * 1024 * 1024;
+        return this;
+    }
+
+    /**
      * Sets the size in bytes
      * 
      * @param bytes
