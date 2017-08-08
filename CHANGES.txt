@@ -28,6 +28,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5254: Hit Ctrl-D to quit grunt shell fail (wjqian via daijy)
+
 PIG-4548: Records Lost With Specific Combination of Commands and Streaming Function (knoguchi)
 
 Release 0.17.0

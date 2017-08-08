@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.util.Enumeration;
-
 import jline.console.ConsoleReader;
 import jline.console.history.FileHistory;
 
@@ -104,7 +103,11 @@ public class ConsoleReaderInputStream extends SequenceInputStream {
             }
 
             if (buffer == null) {
-                buffer = reader.readLine().getBytes();
+                //buffer = reader.readLine().getBytes();
+            	String buff = reader.readLine();
+            	if (buff == null){
+            		buff = "quit";}
+            	buffer = buff.getBytes();
 
                 //Write current grunt buffer to pig history file
                 ((FileHistory)reader.getHistory()).flush();
