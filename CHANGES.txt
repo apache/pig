@@ -65,6 +65,12 @@ PIG-5262: Fix jdiff related issues: fail build upon error, correct xml character
 PIG-5225: Several unit tests are not annotated with @Test (nkollar via rohini)
 
 
+Release 0.17.1 (unreleased)
+
+BUG FIXES
+
+PIG-5254: Hit Ctrl-D to quit grunt shell fail (wjqian via daijy)
+
 Release 0.17.0
  
 INCOMPATIBLE CHANGES
