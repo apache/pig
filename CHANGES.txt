@@ -40,6 +40,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5283: Configuration is not passed to SparkPigSplits on the backend (szita)
+
 PIG-5284: Fix flakyness introduced by PIG-3655 (szita)
 
 PIG-5278: Unit test failures because of PIG-5264 (nkollar via rohini)
