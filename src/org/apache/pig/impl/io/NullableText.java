@@ -42,7 +42,12 @@ public class NullableText extends PigNullableWritable {
         mValue = new Text(string);
     }
 
+    @Override
     public Object getValueAsPigType() {
         return isNull() ? null : ((Text)mValue).toString();
+    }
+
+    public Text getText() {
+        return isNull() ? null : (Text)mValue;
     }
 }

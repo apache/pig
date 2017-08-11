@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 
+PIG-5288: Improve performance of PigTextRawBytesComparator (rohini)
+
 PIG-5287: bump jython to 2.7.1 (dbist13 via rohini)
 
 PIG-5264: Remove deprecated keys from PigConfiguration (nkollar via rohini)
