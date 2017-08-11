@@ -19,6 +19,7 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.pig.impl.io.NullablePartitionWritable;
+import org.apache.pig.impl.io.NullableText;
 
 public class PigWritableComparators {
 
@@ -134,6 +135,26 @@ public class PigWritableComparators {
         public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2) {
             return WritableComparator.compareBytes(b1, s1, l1, b2, s2, l2);
         }
+
+        @Override
+        public int compare(Object o1, Object o2) {
+            NullableText nt1 = (NullableText)o1;
+            NullableText nt2 = (NullableText)o2;
+            int rc = 0;
+
+            // If either are null, handle differently.
+            if (!nt1.isNull() && !nt2.isNull()) {
+                rc = nt1.getText().compareTo(nt2.getText());
+            } else {
+                // Two nulls are equal if indices are same
+                if (nt1.isNull() && nt2.isNull()) {
+                    rc = nt1.getIndex() - nt2.getIndex();
+                }
+                else if (nt1.isNull()) rc = -1;
+                else rc = 1;
+            }
+            return rc;
+        }
     }
 
     public static class PigBytesRawBytesComparator extends PigBytesRawComparator {
@@ -146,6 +167,7 @@ public class PigWritableComparators {
         public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2) {
             return WritableComparator.compareBytes(b1, s1, l1, b2, s2, l2);
         }
+
     }
 
     public static class PigTupleSortBytesComparator extends PigTupleSortComparator {
