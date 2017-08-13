@@ -20,6 +20,7 @@ package org.apache.pig.backend.hadoop.executionengine.spark.converter;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.data.NonWritableTuple;
 import org.apache.pig.data.Tuple;
 
 abstract class OutputConsumerIterator implements java.util.Iterator<Tuple> {
@@ -59,6 +60,9 @@ abstract class OutputConsumerIterator implements java.util.Iterator<Tuple> {
                         return;
                     }
                     Tuple v1 = input.next();
+                    if (v1 instanceof NonWritableTuple) {
+                        v1 = null;
+                    }
                     attach(v1);
                 }
 

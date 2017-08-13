@@ -44,6 +44,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5277: Spark mode is writing nulls among tuples to the output (workaround) (szita)
+
 PIG-5283: Configuration is not passed to SparkPigSplits on the backend (szita)
 
 PIG-5284: Fix flakyness introduced by PIG-3655 (szita)

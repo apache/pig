@@ -37,6 +37,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.StoreFuncDecorator;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
+import org.apache.pig.data.NonWritableTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.ObjectSerializer;
@@ -141,7 +142,9 @@ public class PigOutputFormat extends OutputFormat<WritableComparable, Tuple> {
         public void write(WritableComparable key, Tuple value)
                 throws IOException, InterruptedException {
             if(mode == Mode.SINGLE_STORE) {
-                storeDecorator.putNext(value);
+                if (!(value instanceof NonWritableTuple)) {
+                    storeDecorator.putNext(value);
+                }
             } else {
                 throw new IOException("Internal Error: Unexpected code path");
             }
