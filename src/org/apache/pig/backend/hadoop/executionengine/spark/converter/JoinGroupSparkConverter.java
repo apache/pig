@@ -34,6 +34,7 @@ import org.apache.pig.backend.hadoop.executionengine.spark.SparkPigContext;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.backend.hadoop.executionengine.spark.operator.POGlobalRearrangeSpark;
 import org.apache.pig.backend.hadoop.executionengine.spark.operator.POJoinGroupSpark;
+import org.apache.pig.data.NonWritableTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
@@ -209,7 +210,7 @@ public class JoinGroupSparkConverter implements RDDConverter<Tuple, Tuple, POJoi
                         out = (Tuple) result.result;
                         break;
                     case POStatus.STATUS_NULL:
-                        out = null;
+                        out = NonWritableTuple.INSTANCE;
                         break;
                     default:
                         throw new RuntimeException(
