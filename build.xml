@@ -456,6 +456,7 @@
 
     <target name="clean-deps" description="Cleanup dependencies">
         <delete dir="${lib.dir}" />
+        <delete dir="${ivy.lib.dir}" />
     </target>
 
     <target name="very-clean" unless="offline" depends="ivy-clean-cache,jackson-pig-3039-test-clean,clean"
@@ -572,7 +573,7 @@
         </copy>
     </target>
 
-    <target name="compile-test" depends="jar, ivy-test">
+    <target name="compile-test" depends="jar-simple, ivy-test">
         <echo>*** Building Test Sources ***</echo>
         <echo>*** To compile with all warnings enabled, supply -Dall.warnings=1 on command line ***</echo>
         <echo>*** Else, you will only be warned about deprecations ***</echo>
@@ -892,32 +893,32 @@
     <!-- ================================================================== -->
     <!-- Run unit tests                                                     -->
     <!-- ================================================================== -->
-    <target name="test-core" depends="setWindowsPath,setLinuxPath,compile-test,jar,debugger.check,jackson-pig-3039-test-download" description="Run full set of unit tests">
+    <target name="test-core" depends="setWindowsPath,setLinuxPath,compile-test,jar-simple,debugger.check,jackson-pig-3039-test-download" description="Run full set of unit tests">
         <macro-test-runner test.file="${test.all.file}" tests.failed="test-core.failed" />
         <fail if="test-core.failed">Tests failed!</fail>
     </target>
 
-    <target name="test-commit" depends="setWindowsPath,setLinuxPath,compile-test,jar,debugger.check" description="Run approximate 10-minute set of unit tests prior to commiting">
+    <target name="test-commit" depends="setWindowsPath,setLinuxPath,compile-test,jar-simple,debugger.check" description="Run approximate 10-minute set of unit tests prior to commiting">
         <macro-test-runner test.file="${test.commit.file}" tests.failed="test-commit.failed"/>
         <fail if="test-commit.failed">Tests failed!</fail>
     </target>
 
-    <target name="test-unit" depends="setWindowsPath,setLinuxPath,compile-test,jar,debugger.check" description="Run all true unit tests">
+    <target name="test-unit" depends="setWindowsPath,setLinuxPath,compile-test,jar-simple,debugger.check" description="Run all true unit tests">
         <macro-test-runner test.file="${test.unit.file}" tests.failed="test-unit.failed"/>
         <fail if="test-unit.failed">Tests failed!</fail>
     </target>
 
-    <target name="test-smoke" depends="setWindowsPath,setLinuxPath,compile-test,jar,debugger.check" description="Run 30 min smoke tests">
+    <target name="test-smoke" depends="setWindowsPath,setLinuxPath,compile-test,jar-simple,debugger.check" description="Run 30 min smoke tests">
         <macro-test-runner test.file="${test.smoke.file}" tests.failed="test-smoke.failed"/>
         <fail if="test-smoke.failed">Tests failed!</fail>
     </target>
 
-    <target name="test-tez" depends="setTezEnv,setWindowsPath,setLinuxPath,compile-test,jar,debugger.check,jackson-pig-3039-test-download" description="Run tez unit tests">
+    <target name="test-tez" depends="setTezEnv,setWindowsPath,setLinuxPath,compile-test,jar-simple,debugger.check,jackson-pig-3039-test-download" description="Run tez unit tests">
         <macro-test-runner test.file="${test.all.file}" tests.failed="test-tez.failed"/>
         <fail if="test-tez.failed">Tests failed!</fail>
     </target>
 
-    <target name="test-spark" depends="setSparkEnv,setWindowsPath,setLinuxPath,compile-test,jar,debugger.check,jackson-pig-3039-test-download" description="Run Spark unit tests in Spark cluster-local mode">
+    <target name="test-spark" depends="setSparkEnv,setWindowsPath,setLinuxPath,compile-test,jar-simple,debugger.check,jackson-pig-3039-test-download" description="Run Spark unit tests in Spark cluster-local mode">
         <macro-test-runner test.file="${test.all.file}" tests.failed="test-spark.failed"/>
         <fail if="test-spark.failed">Tests failed!</fail>
     </target>
@@ -998,7 +999,7 @@
     </target>
 
     <target name="test-core-mrtez" description="run core tests on both mr and tez mode"
-            depends="setWindowsPath,setLinuxPath,compile-test,jar,debugger.check,jackson-pig-3039-test-download">
+            depends="setWindowsPath,setLinuxPath,compile-test,jar-simple,debugger.check,jackson-pig-3039-test-download">
         <fail message="hadoopversion must be set to 2 when invoking test-core-mrtez">
           <condition>
             <not>
