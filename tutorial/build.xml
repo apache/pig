@@ -17,7 +17,7 @@
 
 <project basedir="." default="tar" name="pigudf">
     <!-- javac properties -->
-    <property name="javac.version" value="1.5" />
+    <property name="javac.version" value="1.8" />
 
     <!-- build properties -->
     <property name="build.dir" value="${basedir}/build" />

@@ -21,6 +21,8 @@ Pig Change Log
 Trunk (unreleased changes)
  
 INCOMPATIBLE CHANGES
+
+PIG-5282: Upgade to Java 8 (satishsaley via rohini)
  
 IMPROVEMENTS
 
