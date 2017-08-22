@@ -40,6 +40,8 @@ import org.apache.pig.backend.datastorage.ElementDescriptor;
 
 public class HDataStorage implements DataStorage {
 
+    private static final HPath[] EMPTY_HPATH = new HPath[0];
+
     private FileSystem fs;
     private Configuration configuration;
     private Properties properties;
@@ -58,11 +60,6 @@ public class HDataStorage implements DataStorage {
 
     @Override
     public void init() {
-        // check if name node is set, if not we set local as fail back
-        String nameNode = this.properties.getProperty(FileSystem.FS_DEFAULT_NAME_KEY);
-        if (nameNode == null || nameNode.length() == 0) {
-            nameNode = "local";
-        }
         this.configuration = ConfigurationUtil.toConfiguration(this.properties);
         try {
             if (this.uri != null) {
@@ -88,8 +85,9 @@ public class HDataStorage implements DataStorage {
     @Override
     public void updateConfiguration(Properties newConfiguration)
             throws DataStorageException {
-        // TODO sgroschupf 25Feb2008 this method is never called and
-        // I'm even not sure if hadoop would support that, I doubt it.
+
+        // TODO this method is never called and not sure if hadoop would support
+        // that.
 
         if (newConfiguration == null) {
             return;
@@ -103,7 +101,7 @@ public class HDataStorage implements DataStorage {
 
             value = newConfiguration.getProperty(key);
 
-            fs.getConf().set(key,value);
+            fs.getConf().set(key, value);
         }
     }
 
@@ -112,15 +110,16 @@ public class HDataStorage implements DataStorage {
         Map<String, Object> stats = new HashMap<String, Object>();
 
         long usedBytes = fs.getUsed();
-        stats.put(USED_BYTES_KEY , Long.valueOf(usedBytes).toString());
+        stats.put(USED_BYTES_KEY, Long.valueOf(usedBytes).toString());
 
         if (fs instanceof DistributedFileSystem) {
             DistributedFileSystem dfs = (DistributedFileSystem) fs;
 
-            long rawCapacityBytes = dfs.getRawCapacity();
-            stats.put(RAW_CAPACITY_KEY, Long.valueOf(rawCapacityBytes).toString());
+            long rawCapacityBytes = dfs.getStatus().getCapacity();
+            stats.put(RAW_CAPACITY_KEY, Long.valueOf(rawCapacityBytes)
+                    .toString());
 
-            long rawUsedBytes = dfs.getRawUsed();
+            long rawUsedBytes = dfs.getStatus().getUsed();
             stats.put(RAW_USED_KEY, Long.valueOf(rawUsedBytes).toString());
         }
 
@@ -129,12 +128,8 @@ public class HDataStorage implements DataStorage {
 
     @Override
     public ElementDescriptor asElement(String name) throws DataStorageException {
-        if (this.isContainer(name)) {
-            return new HDirectory(this, name);
-        }
-        else {
-            return new HFile(this, name);
-        }
+        return this.isContainer(name) ? new HDirectory(this, name) : new HFile(
+                this, name);
     }
 
     @Override
@@ -144,23 +139,20 @@ public class HDataStorage implements DataStorage {
     }
 
     @Override
-    public ElementDescriptor asElement(String parent,
-                                                  String child)
+    public ElementDescriptor asElement(String parent, String child)
             throws DataStorageException {
         return asElement((new Path(parent, child)).toString());
     }
 
     @Override
-    public ElementDescriptor asElement(ContainerDescriptor parent,
-                                                  String child)
+    public ElementDescriptor asElement(ContainerDescriptor parent, String child)
             throws DataStorageException {
         return asElement(parent.toString(), child);
     }
 
     @Override
     public ElementDescriptor asElement(ContainerDescriptor parent,
-                                                  ElementDescriptor child)
-            throws DataStorageException {
+            ElementDescriptor child) throws DataStorageException {
         return asElement(parent.toString(), child.toString());
     }
 
@@ -177,23 +169,20 @@ public class HDataStorage implements DataStorage {
     }
 
     @Override
-    public ContainerDescriptor asContainer(String parent,
-                                                      String child)
+    public ContainerDescriptor asContainer(String parent, String child)
             throws DataStorageException {
         return new HDirectory(this, parent, child);
     }
 
     @Override
     public ContainerDescriptor asContainer(ContainerDescriptor parent,
-                                                      String child)
-            throws DataStorageException {
+            String child) throws DataStorageException {
         return new HDirectory(this, parent.toString(), child);
     }
 
     @Override
     public ContainerDescriptor asContainer(ContainerDescriptor parent,
-                                                      ContainerDescriptor child)
-            throws DataStorageException {
+            ContainerDescriptor child) throws DataStorageException {
         return new HDirectory(this, parent.toString(), child.toString());
     }
 
@@ -213,14 +202,14 @@ public class HDataStorage implements DataStorage {
         Path path = new Path(name);
 
         try {
-            if ((this.fs.exists(path)) && (! this.fs.isFile(path))) {
+            if (this.fs.exists(path) && (!this.fs.isFile(path))) {
                 isContainer = true;
             }
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             int errCode = 6007;
             String msg = "Unable to check name " + name;
-            throw new DataStorageException(msg, errCode, PigException.REMOTE_ENVIRONMENT, e);
+            throw new DataStorageException(msg, errCode,
+                    PigException.REMOTE_ENVIRONMENT, e);
         }
 
         return isContainer;
@@ -231,23 +220,25 @@ public class HDataStorage implements DataStorage {
         try {
             FileStatus[] paths = this.fs.globStatus(new Path(pattern));
 
-            if (paths == null)
-                return new HPath[0];
+            if (paths == null) {
+                return EMPTY_HPATH;
+            }
 
             List<HPath> hpaths = new ArrayList<HPath>();
 
             for (int i = 0; i < paths.length; ++i) {
-                HPath hpath = (HPath)this.asElement(paths[i].getPath().toString());
+                HPath hpath = (HPath) this.asElement(paths[i].getPath().toString());
                 if (!hpath.systemElement()) {
                     hpaths.add(hpath);
                 }
             }
 
-            return hpaths.toArray(new HPath[hpaths.size()]);
+            return hpaths.toArray(new HPath[0]);
         } catch (IOException e) {
             int errCode = 6008;
             String msg = "Failed to obtain glob for " + pattern;
-            throw new DataStorageException(msg, errCode, PigException.REMOTE_ENVIRONMENT, e);
+            throw new DataStorageException(msg, errCode,
+                    PigException.REMOTE_ENVIRONMENT, e);
         }
     }
 
