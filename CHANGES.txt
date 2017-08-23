@@ -48,6 +48,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5293: Suspicious code as missing `this' for a member (lifove via daijy)
+
 PIG-5294: Spark unit tests are always run in spark1 mode (szita)
 
 PIG-5277: Spark mode is writing nulls among tuples to the output (workaround) (szita)
