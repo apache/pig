@@ -109,7 +109,7 @@ public class ExampleTuple extends AbstractTuple {
 
     @Override
     public void reference(Tuple t) {
-        t.reference(t);
+        this.t.reference(t);
     }
 
     @Override
