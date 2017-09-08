@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.Random;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -171,6 +172,9 @@ public class JobControlCompiler{
     public static final String PIG_MAP_RANK_NAME = "pig.rank_";
     public static final String PIG_MAP_SEPARATOR = "_";
     public HashMap<String, ArrayList<Pair<String,Long>>> globalCounters = new HashMap<String, ArrayList<Pair<String,Long>>>();
+
+    private static final Random RAND = new Random();
+    private static final String CACHE_TMP_FILE_TEMPLATE = "tmp%d.tmp";
 
     public static final String SMALL_JOB_LOG_MSG = "This job was detected as a small job, will run in-process instead";
     public static final String BIG_JOB_LOG_MSG = "This job cannot be converted run in-process";
@@ -1734,7 +1738,6 @@ public class JobControlCompiler{
             URL url) throws IOException {
         InputStream is1 = null;
         InputStream is2 = null;
-        OutputStream os = null;
 
         try {
             Path stagingDir = getCacheStagingDir(conf);
@@ -1757,10 +1760,22 @@ public class JobControlCompiler{
             is2 = url.openStream();
             short replication = (short)conf.getInt(PigConfiguration.PIG_USER_CACHE_REPLICATION,
                     conf.getInt("mapred.submit.replication", 10));
-            os = fs.create(cacheFile, replication);
-            fs.setPermission(cacheFile, FileLocalizer.OWNER_ONLY_PERMS);
-            IOUtils.copyBytes(is2, os, 4096, true);
+            Path tempCacheFile = new Path(cacheDir,
+                String.format(CACHE_TMP_FILE_TEMPLATE, RAND.nextInt()));
 
+            try {
+                try (OutputStream os = fs.create(tempCacheFile, replication)) {
+                    fs.setPermission(tempCacheFile, FileLocalizer.OWNER_ONLY_PERMS);
+                    IOUtils.copyBytes(is2, os, 4096, true);
+                }
+                fs.rename(tempCacheFile, cacheFile);
+            } catch (IOException ioe) {
+                // Attempt some cleanup to avoid leaving tmp files around
+                if (fs.exists(tempCacheFile)) {
+                    fs.delete(tempCacheFile, false);
+                }
+                throw ioe;
+            }
             return cacheFile;
 
         } catch (IOException ioe) {
@@ -1769,10 +1784,6 @@ public class JobControlCompiler{
         } finally {
             org.apache.commons.io.IOUtils.closeQuietly(is1);
             org.apache.commons.io.IOUtils.closeQuietly(is2);
-            // IOUtils should not close stream to HDFS quietly
-            if (os != null) {
-                os.close();
-            }
         }
     }
 
