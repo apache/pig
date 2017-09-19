@@ -334,7 +334,12 @@ public abstract class FilterExtractor {
 
         for( Operator succ : children ) {
             filteredPlan.disconnect( op, succ );
-            removeFromFilteredPlan( succ );
+            // check if this successor has any other predecessor.
+            // if none, proceed with the removal.
+            List<Operator> predsOfsucc = filteredPlan.getPredecessors( succ );
+            if( predsOfsucc == null || predsOfsucc.size() == 0 ) {
+                removeFromFilteredPlan( succ );
+            }
         }
 
         filteredPlan.remove( op );
