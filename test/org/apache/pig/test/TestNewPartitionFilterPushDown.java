@@ -721,6 +721,13 @@ public class TestNewPartitionFilterPushDown {
         testFull(q, "(srcid != 10)", "(srcid == z.z1)", true);
     }
 
+    @Test
+    public void testNegativeOrAndOr() throws Exception {
+        String q = query + "b = filter a by dstid != 10 OR ((dstid < 3000 and srcid == 1000) OR (dstid >= 3000 and srcid == 2000));" +
+                   "store b into 'out';";
+        test(q, Arrays.asList("srcid"), null, "((dstid != 10) or (((dstidLessThan3000) and (srcid == 1000)) or ((dstidGreaterThanEqual3000) and (srcid == 2000))))", true);
+    }
+
     //// helper methods ///////
     private PartitionFilterExtractor test(String query, List<String> partitionCols,
             String expPartFilterString, String expFilterString)
