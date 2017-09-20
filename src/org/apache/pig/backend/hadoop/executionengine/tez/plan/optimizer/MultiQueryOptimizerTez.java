@@ -54,15 +54,6 @@ public class MultiQueryOptimizerTez extends TezOpPlanVisitor {
         this.unionUnsupportedStoreFuncs = unionUnsupportedStoreFuncs;
     }
 
-    private void addAllPredecessors(TezOperator tezOp, List<TezOperator> predsList) {
-        if (getPlan().getPredecessors(tezOp) != null) {
-            for (TezOperator pred : getPlan().getPredecessors(tezOp)) {
-                predsList.add(pred);
-                addAllPredecessors(pred, predsList);
-            }
-        }
-    }
-
     @Override
     public void visitTezOp(TezOperator tezOp) throws VisitorException {
         try {
@@ -88,7 +79,7 @@ public class MultiQueryOptimizerTez extends TezOpPlanVisitor {
             }
 
             for (TezOperator successor : successors) {
-                List<TezOperator> predecessors = new ArrayList<TezOperator>(getPlan().getPredecessors(successor));
+                HashSet<TezOperator> predecessors = new HashSet<TezOperator>(getPlan().getPredecessors(successor));
                 predecessors.remove(tezOp);
                 if (!predecessors.isEmpty()) {
                     // If has other dependency that conflicts with other splittees, don't merge into split
@@ -103,16 +94,16 @@ public class MultiQueryOptimizerTez extends TezOpPlanVisitor {
                     for (TezOperator predecessor : getPlan().getPredecessors(successor)) {
                         if (predecessor != tezOp) {
                             predecessors.add(predecessor);
-                            addAllPredecessors(predecessor, predecessors);
+                            TezCompilerUtil.addAllPredecessors(getPlan(), predecessor, predecessors);
                         }
                     }
-                    List<TezOperator> toMergeSuccPredecessors = new ArrayList<TezOperator>(successors);
+                    Set<TezOperator> toMergeSuccPredecessors = new HashSet<TezOperator>(successors);
                     toMergeSuccPredecessors.remove(successor);
                     for (TezOperator splittee : splittees) {
                         for (TezOperator spliteePred : getPlan().getPredecessors(splittee)) {
                             if (spliteePred != tezOp) {
                                 toMergeSuccPredecessors.add(spliteePred);
-                                addAllPredecessors(spliteePred, toMergeSuccPredecessors);
+                                TezCompilerUtil.addAllPredecessors(getPlan(), spliteePred, toMergeSuccPredecessors);
                             }
                         }
                     }

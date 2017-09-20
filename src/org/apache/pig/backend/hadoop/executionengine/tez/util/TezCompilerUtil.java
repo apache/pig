@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.pig.PigException;
@@ -298,6 +299,17 @@ public class TezCompilerUtil {
             }
         }
         return false;
+    }
+
+    public static void addAllPredecessors(TezOperPlan tezPlan, TezOperator tezOp, Set<TezOperator> predSet) {
+        if (tezPlan.getPredecessors(tezOp) != null) {
+            for (TezOperator pred : tezPlan.getPredecessors(tezOp)) {
+                if( ! predSet.contains(pred) ) {
+                    predSet.add(pred);
+                    addAllPredecessors(tezPlan, pred, predSet);
+                }
+            }
+        }
     }
 
 }

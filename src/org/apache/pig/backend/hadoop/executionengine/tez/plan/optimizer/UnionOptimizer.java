@@ -224,6 +224,19 @@ public class UnionOptimizer extends TezOpPlanVisitor {
             PhysicalPlan splitPredPlan = splitPredOp.plan;
             if (splitPredPlan.getLeaves().get(0) instanceof POSplit) { //It has to be. But check anyways
 
+                for( TezOperator op : predecessors ) {
+                    if( !op.getOperatorKey().equals(splitPredKey)) {
+                        Set<TezOperator> allNonMemberPredecessorsAncestors = new HashSet<TezOperator>();
+                        TezCompilerUtil.addAllPredecessors(tezPlan, op, allNonMemberPredecessorsAncestors);
+                        // If any of the nonMemberPredecessor's ancestors(recursive predecessor)
+                        // is from the single unionmember, then we stop the merge effort to avoid creating
+                        // an illegal loop.
+                        if( allNonMemberPredecessorsAncestors.contains(splitPredOp) ) {
+                            return;
+                        }
+                    }
+                }
+
                 try {
                     connectUnionNonMemberPredecessorsToSplit(unionOp, splitPredOp, predecessors);
 

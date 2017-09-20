@@ -1358,6 +1358,29 @@ public class TestTezCompiler {
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Rank-2.gld");
     }
 
+    @Test
+    public void testJoinUnionSingleMemberOverlappingPredecessor() throws Exception {
+        String query =
+                "A = load 'file:///tmp/input1.txt' as (a1:int, a2:int);" +
+                "A1 = FILTER A by a1 > 10;" +
+                "A2 = FILTER A by a2 > 10;" +
+                "B = UNION A1, A2;" +
+                "C = join A1 by a1, A2 by a1;" +
+                "D = DISTINCT C;" +
+                "Z = join B by a1, D by A1::a1 using 'replicated'; " +
+                "store Z into 'file:///tmp/pigoutput';";
+        /*
+        [A,A1,A2] -> [C], [B,Z]
+        [C] -> [D]
+        [D] -> [B,Z]
+
+        with bug PIG-5271, UnionOptimizor tries to combine [A,A1,A2] and [B,Z], and creates an incorrect loop.
+        [A,A1,A2,B,Z] -> [C] -> [D] -> [A,A1,A2,B,Z]
+        */
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-22.gld");
+    }
+
     private String getProperty(String property) {
         return pigServer.getPigContext().getProperties().getProperty(property);
     }
