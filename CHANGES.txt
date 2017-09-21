@@ -26,6 +26,8 @@ PIG-5282: Upgade to Java 8 (satishsaley via rohini)
  
 IMPROVEMENTS
 
+PIG-5298: Verify if org.mortbay.jetty is removable (nkollar via szita)
+
 PIG-5268: Review of org.apache.pig.backend.hadoop.datastorage.HDataStorage (belugabehr via daijy)
 
 PIG-5288: Improve performance of PigTextRawBytesComparator (rohini)

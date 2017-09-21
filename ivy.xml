@@ -109,9 +109,7 @@
       conf="hadoop2->master"/>
     <dependency org="aopalliance" name="aopalliance" rev="${aopalliance.version}"
       conf="hadoop2->master"/>
-    <dependency org="org.mortbay.jetty" name="jsp-2.1" rev="${jasper.version}"
-      conf="hadoop2->master"/>
-    <dependency org="org.mortbay.jetty" name="jsp-api-2.1" rev="${jasper.version}"
+    <dependency org="org.glassfish" name="javax.el" rev="${glassfish.el.version}"
       conf="hadoop2->master"/>
     <dependency org="log4j" name="log4j" rev="${log4j.version}"
       conf="compile->master"/>
@@ -168,12 +166,6 @@
       rev="${hadoop-mapreduce.version}" conf="hadoop2->master"/>
     <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-hs" 
       rev="${hadoop-mapreduce.version}" conf="hadoop2->master"/>
-    <dependency org="org.mortbay.jetty" name="jetty" rev="${jetty.version}"
-      conf="compile->master">
-      <artifact name="jetty" ext="jar" />
-    </dependency>
-    <dependency org="org.mortbay.jetty" name="jetty-util" rev="${jetty.version}"
-      conf="compile->master"/>
     <dependency org="commons-logging" name="commons-logging" rev="${commons-logging.version}"
       conf="compile->master;checkstyle->master"/>
     <dependency org="org.slf4j" name="slf4j-log4j12" rev="${slf4j-log4j12.version}"

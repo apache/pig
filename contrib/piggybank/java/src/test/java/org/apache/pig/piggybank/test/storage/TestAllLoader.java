@@ -56,9 +56,11 @@ import org.apache.pig.test.Util;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mortbay.log.Log;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TestAllLoader extends TestCase {
+    private static final Logger LOG = LoggerFactory.getLogger(TestAllLoader.class);
 
     enum TYPE {
         HIVERC(".rc", new HiveRCFileTestWriter()), GZIP_PLAIN(".gz",
@@ -424,7 +426,7 @@ public class TestAllLoader extends TestCase {
             count++;
         }
 
-        Log.info("Validating expected: " + totalRowCount + " against " + count);
+        LOG.info("Validating expected: " + totalRowCount + " against " + count);
         assertEquals(totalRowCount, count);
     }
 
