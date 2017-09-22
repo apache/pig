@@ -1,0 +1,95 @@
+#--------------------------------------------------
+# There are 1 DAGs in the session
+#--------------------------------------------------
+#--------------------------------------------------
+# TEZ DAG plan: pig-0_scope-0
+#--------------------------------------------------
+Tez vertex scope-53	->	Tez vertex scope-65,Tez vertex scope-73,
+Tez vertex scope-73	->	Tez vertex scope-76,
+Tez vertex scope-76	->	Tez vertex scope-65,
+Tez vertex scope-65
+
+Tez vertex scope-53
+# Plan on vertex
+A: Split - scope-82
+|   |
+|   A1: Split - scope-80
+|   |   |
+|   |   POValueOutputTez - scope-67	->	 [scope-65]
+|   |   |
+|   |   C: Local Rearrange[tuple]{int}(false) - scope-36	->	 scope-73
+|   |   |   |
+|   |   |   Project[int][0] - scope-37
+|   |
+|   |---A1: Filter[bag] - scope-11
+|       |   |
+|       |   Greater Than[boolean] - scope-14
+|       |   |
+|       |   |---Project[int][0] - scope-12
+|       |   |
+|       |   |---Constant(10) - scope-13
+|   |
+|   A2: Split - scope-81
+|   |   |
+|   |   POValueOutputTez - scope-68	->	 [scope-65]
+|   |   |
+|   |   C: Local Rearrange[tuple]{int}(false) - scope-38	->	 scope-73
+|   |   |   |
+|   |   |   Project[int][0] - scope-39
+|   |
+|   |---A2: Filter[bag] - scope-20
+|       |   |
+|       |   Greater Than[boolean] - scope-23
+|       |   |
+|       |   |---Project[int][1] - scope-21
+|       |   |
+|       |   |---Constant(10) - scope-22
+|
+|---A: New For Each(false,false)[bag] - scope-7
+    |   |
+    |   Cast[int] - scope-2
+    |   |
+    |   |---Project[bytearray][0] - scope-1
+    |   |
+    |   Cast[int] - scope-5
+    |   |
+    |   |---Project[bytearray][1] - scope-4
+    |
+    |---A: Load(file:///tmp/input1.txt:org.apache.pig.builtin.PigStorage) - scope-0
+Tez vertex scope-73
+# Plan on vertex
+D: Local Rearrange[tuple]{tuple}(true) - scope-75	->	 scope-76
+|   |
+|   Project[tuple][*] - scope-74
+|
+|---C: New For Each(true,true)[tuple] - scope-42
+    |   |
+    |   Project[bag][1] - scope-40
+    |   |
+    |   Project[bag][2] - scope-41
+    |
+    |---C: Package(Packager)[tuple]{int} - scope-35
+Tez vertex scope-76
+# Combine plan on edge <scope-73>
+org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.DistinctCombiner$Combine
+# Plan on vertex
+Local Rearrange[tuple]{int}(false) - scope-49	->	 scope-65
+|   |
+|   Project[int][0] - scope-45
+|
+|---New For Each(true)[bag] - scope-79
+    |   |
+    |   Project[tuple][0] - scope-78
+    |
+    |---Package(Packager)[tuple]{tuple} - scope-77
+Tez vertex scope-65
+# Plan on vertex
+Z: Store(file:///tmp/pigoutput:org.apache.pig.builtin.PigStorage) - scope-52
+|
+|---Z: FRJoin[tuple] - scope-46	<-	 scope-76
+    |   |
+    |   Project[int][0] - scope-44
+    |   |
+    |   Project[int][0] - scope-45
+    |
+    |---POShuffledValueInputTez - scope-66	<-	 [scope-53]
