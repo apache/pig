@@ -104,7 +104,6 @@ public class REGEX_EXTRACT extends EvalFunc<String> {
                 return m.group(mIndex);
             }
         }
-        warn("RegexExtract : Cannot extract group for input "+input.get(0), PigWarning.UDF_WARNING_1);
         return null;
     }
 
