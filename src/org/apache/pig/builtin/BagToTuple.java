@@ -129,12 +129,8 @@ public class BagToTuple extends EvalFunc<Tuple> {
 			}
 
 			// now for output schema
-			Schema tupleOutputSchema = new Schema();
-			for (int i = 0; i < firstFieldSchema.schema.size(); ++i) {
-				tupleOutputSchema.add(firstFieldSchema.schema.getField(i));
-			}
 			return new Schema(new Schema.FieldSchema(getSchemaName(this
-					.getClass().getName().toLowerCase(), inputSchema), tupleOutputSchema,
+					.getClass().getName().toLowerCase(), inputSchema), null,
 					DataType.TUPLE));
 		} catch (FrontendException e) {
 			e.printStackTrace();
