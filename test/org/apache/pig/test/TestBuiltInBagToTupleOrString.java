@@ -171,8 +171,7 @@ public class TestBuiltInBagToTupleOrString {
 
 	@Test
 	public void testOutputSchemaForBagToTupleUDF() throws Exception {
-		Schema expectedSch = Schema.generateNestedSchema(DataType.TUPLE,
-				DataType.INTEGER, DataType.CHARARRAY);
+		Schema expectedSch = new Schema(new FieldSchema(null, DataType.TUPLE));
 
 		FieldSchema tupSch = new FieldSchema(null, DataType.TUPLE);
 		tupSch.schema = new Schema();
@@ -416,7 +415,7 @@ public class TestBuiltInBagToTupleOrString {
 		pigServer.registerQuery("B = FOREACH A GENERATE BagToTuple(myBag) as myBag;");
 	    pigServer.registerQuery("STORE B INTO 'bar' USING mock.Storage();");
 
-	    assertEquals(schema("myBag:(l:chararray)"), data.getSchema("bar"));
+	    assertEquals(schema("myBag:()"), data.getSchema("bar"));
 
 	    List<Tuple> out = data.get("bar");
 	    assertEquals(tuple("a", "b","c"), out.get(0).get(0));
