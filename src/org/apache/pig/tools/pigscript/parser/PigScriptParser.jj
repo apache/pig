@@ -41,13 +41,13 @@ public abstract class PigScriptParser
 {
 	protected boolean mInteractive;
 	protected ConsoleReader mConsoleReader;
-	
+
 	public void setInteractive(boolean interactive)
 	{
 		mInteractive = interactive;
 		token_source.interactive = interactive;
 	}
-	
+
     public int getLineNumber()
     {
         return jj_input_stream.getBeginLine();
@@ -58,23 +58,23 @@ public abstract class PigScriptParser
         mConsoleReader = c;
         token_source.consoleReader = c;
     }
-    
+
 	abstract public void prompt();
-	
+
 	abstract protected void quit();
-	
+
 	abstract protected void printAliases() throws IOException;
 
 	abstract protected void processFsCommand(String[] cmdTokens) throws IOException;
-	
+
 	abstract protected void processDescribe(String alias) throws IOException;
 
 	abstract protected void processExplain(String alias, String script, boolean isVerbose, String format, String target, List<String> params, List<String> files) throws IOException, ParseException;
-	
+
 	abstract protected void processRegister(String jar) throws IOException;
 
 	abstract protected void processSet(String key, String value) throws IOException, ParseException;
-		
+
 	abstract protected void processCat(String path) throws IOException;
 
 	abstract protected void processCD(String path) throws IOException;
@@ -84,7 +84,7 @@ public abstract class PigScriptParser
 	abstract protected void processKill(String jobid) throws IOException;
 
 	abstract protected void processLS(String path) throws IOException;
-	
+
 	abstract protected void processPWD() throws IOException;
 
 	abstract protected void printHelp();
@@ -96,13 +96,13 @@ public abstract class PigScriptParser
 	abstract protected void processCopyToLocal(String src, String dst) throws IOException;
 
 	abstract protected void processCopyFromLocal(String src, String dst) throws IOException;
-	
+
 	abstract protected void processMkdir(String dir) throws IOException;
-	
+
 	abstract protected void processPig(String cmd) throws IOException;
 
 	abstract protected void processRemove(String path, String opt) throws IOException;
-	
+
 	abstract protected void processIllustrate(String alias) throws IOException;
 
 	abstract protected void processScript(String script, boolean batch, List<String> params, List<String> files) throws IOException, ParseException;
@@ -165,7 +165,7 @@ TOKEN: {<BRIEF: "-brief">}
 // internal use commands
 TOKEN: {<SCRIPT_DONE: "scriptDone">}
 
-// Define pig command as 
+// Define pig command as
 // (1) Starting with "split"/"define"/"store" or assignment (A=) followed by
 // (2) Single statement followed by ; and newline or
 // (3) Block of statements enclosed in
@@ -221,7 +221,7 @@ TOKEN_MGR_DECLS : {
 |	<"--"> {prevState = PIG_START;} : SINGLE_LINE_COMMENT
 |	<"/*"> {prevState = PIG_START;} : MULTI_LINE_COMMENT
 |	<("\n" | "\r" | "\r\n")> {secondary_prompt();}
-|       <(~[])> 
+|       <(~[])>
 }
 
 <SINGLE_LINE_COMMENT> MORE :
@@ -255,22 +255,24 @@ TOKEN_MGR_DECLS : {
 
 <GENERATE> MORE :
 {
-    <"{"> 
+    <"{">
     {
-        bagConstantLevel++; 
+        bagConstantLevel++;
         prevState = getState(prevState);
         saveState(prevState);
         prevState = GENERATE;
     } : BAG_CONSTANT
-|	<(" " | "\t")+["A","a"]["S","s"](" " | "\t")+> 
+|	<(" " | "\t")+["A","a"]["S","s"](" " | "\t")+>
     {
         prevState = getState(prevState);
         saveState(prevState);
-        prevState = GENERATE; 
+        prevState = GENERATE;
      } : SCHEMA_DEFINITION
-|	<";"> 
+|	<";">
     {
         prevState = getState(prevState);
+        saveState(prevState);
+        prevState = GENERATE;
         if(prevState == PIG_START) {
             input_stream.backup(1);
             image.deleteCharAt(image.length()-1);
@@ -278,7 +280,7 @@ TOKEN_MGR_DECLS : {
         SwitchTo(prevState);
     }
 |	<("\n" | "\r" | "\r\n")> {secondary_prompt();}
-|	<(~[])> 
+|	<(~[])>
 }
 
 <SCHEMA_DEFINITION> MORE :
@@ -287,7 +289,7 @@ TOKEN_MGR_DECLS : {
 |   <")"> {tupleSchemaLevel--; if ((tupleSchemaLevel == 0) && (bagSchemaLevel == 0)) SwitchTo(prevState); }
 |   <"{"> {bagSchemaLevel++;}
 |   <"}"> {bagSchemaLevel--; if ((tupleSchemaLevel == 0) && (bagSchemaLevel == 0)) SwitchTo(prevState); }
-|	<("," | ";" )> 
+|	<("," | ";" )>
     {
         if ((tupleSchemaLevel == 0) && (bagSchemaLevel == 0)) {
             input_stream.backup(1);
@@ -367,7 +369,7 @@ void parse() throws IOException:
 }
 
 {
-	(	
+	(
 	<EOL>
 	{prompt();}
 	|
@@ -385,13 +387,13 @@ void parse() throws IOException:
 			}
 		}
 		processFsCommand(cmdTokens.toArray(new String[cmdTokens.size()]));
-	}		
+	}
 	)+
 	|
 	<CAT>
 	(
 	t1 = GetPath()
-	{processCat(t1.image);}		
+	{processCat(t1.image);}
 	)+
 	|
 	<CD>
@@ -410,12 +412,12 @@ void parse() throws IOException:
 	<COPYFROMLOCAL>
 	t1 = GetPath()
 	t2 = GetPath()
-	{processCopyFromLocal(t1.image, t2.image);}	
+	{processCopyFromLocal(t1.image, t2.image);}
 	|
 	<COPYTOLOCAL>
 	t1 = GetPath()
 	t2 = GetPath()
-	{processCopyToLocal(t1.image, t2.image);}	
+	{processCopyToLocal(t1.image, t2.image);}
 	|
 	<DUMP>
 	t1 = <IDENTIFIER>
@@ -442,7 +444,7 @@ void parse() throws IOException:
 	{printHelp();}
 	|
 	<KILL>
-	t1 = <IDENTIFIER>	
+	t1 = <IDENTIFIER>
 	{processKill(t1.image);}
 	|
 	<LS>
@@ -526,7 +528,7 @@ void Explain() throws IOException:
 {
 	<EXPLAIN>
 	{
-		params = new ArrayList<String>(); 
+		params = new ArrayList<String>();
 		files = new ArrayList<String>();
 	}
 	(
@@ -576,7 +578,7 @@ void Script() throws IOException:
 		{batch = true;}
 	)
     	{
-		params = new ArrayList<String>(); 
+		params = new ArrayList<String>();
 		files = new ArrayList<String>();
 	}
 	(
@@ -611,7 +613,7 @@ Token GetPath() :
 }
 
 Token GetKey() :
-{	
+{
 	Token t;
 }
 {
@@ -688,8 +690,8 @@ Token GetReserved () :
 }
 
 
-JAVACODE 
-void handle_invalid_command(int kind) 
+JAVACODE
+void handle_invalid_command(int kind)
 {
 	throw generateParseException();  // throw the exception object.
 }
