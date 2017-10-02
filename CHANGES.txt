@@ -52,6 +52,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5307: NPE in TezOperDependencyParallelismEstimator (rohini)
+
 PIG-5272: BagToTuple output schema is incorrect (juen1jp via rohini)
 
 PIG-5271: StackOverflowError when compiling in Tez mode (with union and replicated join) (knoguchi)

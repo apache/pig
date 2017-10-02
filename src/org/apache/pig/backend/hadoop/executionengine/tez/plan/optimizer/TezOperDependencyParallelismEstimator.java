@@ -217,7 +217,7 @@ public class TezOperDependencyParallelismEstimator implements TezParallelismEsti
         public void visitFilter(POFilter fl) throws VisitorException {
             if (fl.getPlan().size()==1 && fl.getPlan().getRoots().get(0) instanceof ConstantExpression) {
                 ConstantExpression cons = (ConstantExpression)fl.getPlan().getRoots().get(0);
-                if (cons.getValue().equals(Boolean.TRUE)) {
+                if (Boolean.TRUE.equals(cons.getValue())) {
                     // skip all true condition
                     return;
                 }
