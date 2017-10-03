@@ -71,8 +71,8 @@ public class DefaultIndexableLoader extends LoadFunc implements IndexableLoadFun
 
     private LoadFunc loader;
     // Index is modeled as FIFO queue and LinkedList implements java Queue interface.
-    private LinkedList<Tuple> index;
-    private FuncSpec rightLoaderFuncSpec;
+    protected LinkedList<Tuple> index;
+    protected FuncSpec rightLoaderFuncSpec;
 
     private String scope;
     private Tuple dummyTuple = null;
@@ -94,6 +94,9 @@ public class DefaultIndexableLoader extends LoadFunc implements IndexableLoadFun
         this.inpLocation = inputLocation;
     }
 
+    public DefaultIndexableLoader() {
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public void seekNear(Tuple keys) throws IOException{
@@ -113,16 +116,8 @@ public class DefaultIndexableLoader extends LoadFunc implements IndexableLoadFun
         // there are multiple Join keys, the tuple itself represents
         // the join key
         Object firstLeftKey = (keys.size() == 1 ? keys.get(0): keys);
-        POLoad ld = new POLoad(genKey(), new FileSpec(indexFile, new FuncSpec(indexFileLoadFuncSpec)));
 
-        Properties props = ConfigurationUtil.getLocalFSProperties();
-        PigContext pc = new PigContext(ExecType.LOCAL, props);
-        ld.setPc(pc);
-        index = new LinkedList<Tuple>();
-        for(Result res=ld.getNextTuple();res.returnStatus!=POStatus.STATUS_EOP;res=ld.getNextTuple())
-            index.offer((Tuple) res.result);
-
-
+        loadIndex();
         Tuple prevIdxEntry = null;
         Tuple matchedEntry;
 
@@ -191,6 +186,22 @@ public class DefaultIndexableLoader extends LoadFunc implements IndexableLoadFun
         }
 
         initRightLoader(splitsAhead);
+    }
+
+    /**
+     * Set indices as LinkedList from index file
+     *
+     * @throws ExecException
+     */
+    protected void loadIndex() throws ExecException {
+        POLoad ld = new POLoad(genKey(), new FileSpec(indexFile, new FuncSpec(indexFileLoadFuncSpec)));
+
+        Properties props = ConfigurationUtil.getLocalFSProperties();
+        PigContext pc = new PigContext(ExecType.LOCAL, props);
+        ld.setPc(pc);
+        index = new LinkedList<Tuple>();
+        for (Result res = ld.getNextTuple(); res.returnStatus != POStatus.STATUS_EOP; res = ld.getNextTuple())
+            index.offer((Tuple) res.result);
     }
 
     private void initRightLoader(int [] splitsToBeRead) throws IOException{

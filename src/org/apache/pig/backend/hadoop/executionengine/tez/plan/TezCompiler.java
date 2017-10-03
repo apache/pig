@@ -72,7 +72,9 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeCogroup;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeCogroupTez;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoinTez;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PONative;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPoissonSample;
@@ -112,9 +114,9 @@ import org.apache.pig.backend.hadoop.executionengine.tez.runtime.WeightedRangePa
 import org.apache.pig.backend.hadoop.executionengine.tez.util.TezCompilerUtil;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.builtin.DefaultIndexableLoader;
 import org.apache.pig.impl.builtin.GetMemNumRows;
 import org.apache.pig.impl.builtin.PartitionSkewedKeys;
+import org.apache.pig.impl.builtin.TezIndexableLoader;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.io.NullableIntWritable;
@@ -925,7 +927,9 @@ public class TezCompiler extends PhyPlanVisitor {
     }
 
     @Override
-    public void visitMergeCoGroup(POMergeCogroup poCoGrp) throws VisitorException {
+    public void visitMergeCoGroup(POMergeCogroup poCoGroup) throws VisitorException {
+
+        POMergeCogroupTez poCoGrp = new POMergeCogroupTez(poCoGroup);
         if(compiledInputs.length < 2){
             int errCode=2251;
             String errMsg = "Merge Cogroup work on two or more relations." +
@@ -998,43 +1002,53 @@ public class TezCompiler extends PhyPlanVisitor {
 
             // Create new map-reduce operator for indexing job and then configure it.
             TezOperator indexerTezOp = getTezOp();
-            FileSpec idxFileSpec = getIndexingJob(indexerTezOp, baseMROp, poCoGrp.getLRInnerPlansOf(0));
-            poCoGrp.setIdxFuncSpec(idxFileSpec.getFuncSpec());
-            poCoGrp.setIndexFileName(idxFileSpec.getFileName());
+            configureIndexerOp(indexerTezOp, baseMROp, poCoGrp);
 
             baseMROp.plan.addAsLeaf(poCoGrp);
+            baseMROp.markMergeCogroup();
             for (FuncSpec funcSpec : funcSpecs)
                 baseMROp.UDFs.add(funcSpec.toString());
 
-            phyToTezOpMap.put(poCoGrp,baseMROp);
+            phyToTezOpMap.put(poCoGrp, baseMROp);
             // Going forward, new operators should be added in baseMRop. To make
             // sure, reset curMROp.
             curTezOp = baseMROp;
         }
-        catch (ExecException e){
-           throw new TezCompilerException(e.getDetailedMessage(),e.getErrorCode(),e.getErrorSource(),e);
+        catch (ExecException e) {
+            throw new TezCompilerException(e.getDetailedMessage(), e.getErrorCode(), e.getErrorSource(), e);
         }
-        catch (TezCompilerException mrce){
-            throw(mrce);
+        catch (TezCompilerException mrce) {
+            throw (mrce);
         }
         catch (CloneNotSupportedException e) {
             throw new TezCompilerException(e);
         }
-        catch(PlanException e){
+        catch (PlanException e) {
             int errCode = 2034;
             String msg = "Error compiling operator " + poCoGrp.getClass().getCanonicalName();
             throw new TezCompilerException(msg, errCode, PigException.BUG, e);
         }
-        catch (IOException e){
+        catch (IOException e) {
             int errCode = 3000;
             String errMsg = "IOException caught while compiling POMergeCoGroup";
-            throw new TezCompilerException(errMsg, errCode,e);
+            throw new TezCompilerException(errMsg, errCode, e);
         }
     }
 
-    // Sets up the indexing job for map-side cogroups.
-    private FileSpec getIndexingJob(TezOperator indexerTezOp,
-            final TezOperator baseTezOp, final List<PhysicalPlan> mapperLRInnerPlans)
+    /**
+     * Sets up the indexing vertex for map-side cogroups.
+     * 
+     * @param indexerTezOp
+     * @param baseTezOp
+     * @param poCoGrp
+     * @throws TezCompilerException
+     * @throws PlanException
+     * @throws ExecException
+     * @throws IOException
+     * @throws CloneNotSupportedException
+     */
+    private void configureIndexerOp(TezOperator indexerTezOp,
+            final TezOperator baseTezOp, final POMergeCogroupTez poCoGrp)
         throws TezCompilerException, PlanException, ExecException, IOException, CloneNotSupportedException {
 
         // First replace loader with  MergeJoinIndexer.
@@ -1054,7 +1068,7 @@ public class TezCompiler extends PhyPlanVisitor {
 
         String[] indexerArgs = new String[6];
         indexerArgs[0] = funcSpec.toString();
-        indexerArgs[1] = ObjectSerializer.serialize((Serializable)mapperLRInnerPlans);
+        indexerArgs[1] = ObjectSerializer.serialize((Serializable) poCoGrp.getLRInnerPlansOf(0));
         indexerArgs[3] = baseLoader.getSignature();
         indexerArgs[4] = baseLoader.getOperatorKey().scope;
         indexerArgs[5] = Boolean.toString(false); // we care for nulls.
@@ -1076,6 +1090,7 @@ public class TezCompiler extends PhyPlanVisitor {
         indexerArgs[2] = ObjectSerializer.serialize(phyPlan);
 
         POLoad idxJobLoader = new POLoad(new OperatorKey(scope,nig.getNextNodeId(scope)));
+        idxJobLoader.copyAliasFrom(baseLoader);
         idxJobLoader.setPc(pigContext);
         idxJobLoader.setIsTmpLoad(true);
         idxJobLoader.setLFile(new FileSpec(origLoaderFileSpec.getFileName(),
@@ -1092,19 +1107,19 @@ public class TezCompiler extends PhyPlanVisitor {
         tezPlan.add(indexAggrOper);
         tezPlan.add(indexerTezOp);
         TezCompilerUtil.simpleConnectTwoVertex(tezPlan, indexerTezOp, indexAggrOper, scope, nig);
-        TezCompilerUtil.connect(tezPlan, indexAggrOper, baseTezOp);
-        indexAggrOper.segmentBelow = true;
-
         indexerTezOp.setRequestedParallelism(1); // we need exactly one reducer for indexing job.
         indexerTezOp.setDontEstimateParallelism(true);
 
-        POStore st = TezCompilerUtil.getStore(scope, nig);
-        FileSpec strFile = getTempFileSpec(pigContext);
-        st.setSFile(strFile);
-        indexAggrOper.plan.addAsLeaf(st);
+        // Convert the index as a broadcast input
+        POValueOutputTez indexAggrOperOutput = new POValueOutputTez(OperatorKey.genOpKey(scope));
+        indexAggrOper.plan.addAsLeaf(indexAggrOperOutput);
+        indexAggrOperOutput.addOutputKey(baseTezOp.getOperatorKey().toString());
+        indexAggrOper.markIndexer();
         indexAggrOper.setClosed(true);
-
-        return strFile;
+        TezEdgeDescriptor edge = new TezEdgeDescriptor();
+        TezCompilerUtil.configureValueOnlyTupleOutput(edge, DataMovementType.BROADCAST);
+        TezCompilerUtil.connect(tezPlan, indexAggrOper, baseTezOp, edge);
+        poCoGrp.setInputKey(indexAggrOper.getOperatorKey().toString());
     }
 
     /** Since merge-join works on two inputs there are exactly two TezOper predecessors identified  as left and right.
@@ -1118,27 +1133,23 @@ public class TezCompiler extends PhyPlanVisitor {
      *                  in physical plan, that is yanked and set as inner plans of joinOp.
      *  2) LeftTezOper:  add the Join operator in it.
      *
-     *  We also need to segment the DAG into two, because POMergeJoin depends on the index file which loads with
-     *  DefaultIndexableLoader. It is possible to convert the index as a broadcast input, but that is costly
-     *  because a lot of logic is built into DefaultIndexableLoader. We can revisit it later.
      */
     @Override
     public void visitMergeJoin(POMergeJoin joinOp) throws VisitorException {
-
         try{
-            if(compiledInputs.length != 2 || joinOp.getInputs().size() != 2){
+            if (compiledInputs.length != 2 || joinOp.getInputs().size() != 2) {
                 int errCode=1101;
                 throw new TezCompilerException("Merge Join must have exactly two inputs. Found : "+compiledInputs.length, errCode);
             }
 
             curTezOp = phyToTezOpMap.get(joinOp.getInputs().get(0));
-
             TezOperator rightTezOpr = null;
             TezOperator rightTezOprAggr = null;
-            if(curTezOp.equals(compiledInputs[0]))
+            if (curTezOp.equals(compiledInputs[0])) {
                 rightTezOpr = compiledInputs[1];
-            else
+            } else {
                 rightTezOpr = compiledInputs[0];
+            }
 
             // We will first operate on right side which is indexer job.
             // First yank plan of the compiled right input and set that as an inner plan of right operator.
@@ -1220,9 +1231,11 @@ public class TezCompiler extends PhyPlanVisitor {
                     }
                 }
             } else {
+                joinOp = new POMergeJoinTez(joinOp);
                 LoadFunc loadFunc = rightLoader.getLoadFunc();
                 //Replacing POLoad with indexer is disabled for 'merge-sparse' joins.  While
-                //this feature would be useful, the current implementation of DefaultIndexableLoader
+                // this feature would be useful, the current implementation of
+                // DefaultIndexableLoader
                 //is not designed to handle multiple calls to seekNear.  Specifically, it rereads the entire index
                 //for each call.  Some refactoring of this class is required - and then the check below could be removed.
                 if (joinOp.getJoinType() == LOJoin.JOINTYPE.MERGESPARSE) {
@@ -1265,32 +1278,37 @@ public class TezCompiler extends PhyPlanVisitor {
                 rightTezOprAggr.setRequestedParallelism(1); // we need exactly one task for indexing job.
                 rightTezOprAggr.setDontEstimateParallelism(true);
 
-                POStore st = TezCompilerUtil.getStore(scope, nig);
-                FileSpec strFile = getTempFileSpec(pigContext);
-                st.setSFile(strFile);
-                rightTezOprAggr.plan.addAsLeaf(st);
-                rightTezOprAggr.setClosed(true);
-                rightTezOprAggr.segmentBelow = true;
+                // Convert the index as a broadcast input
+                POValueOutputTez rightTezOprAggrOutput = new POValueOutputTez(OperatorKey.genOpKey(scope));
+                rightTezOprAggr.plan.addAsLeaf(rightTezOprAggrOutput);
+                rightTezOprAggrOutput.addOutputKey(curTezOp.getOperatorKey().toString());
 
-                // set up the DefaultIndexableLoader for the join operator
-                String[] defaultIndexableLoaderArgs = new String[5];
-                defaultIndexableLoaderArgs[0] = origRightLoaderFileSpec.getFuncSpec().toString();
-                defaultIndexableLoaderArgs[1] = strFile.getFileName();
-                defaultIndexableLoaderArgs[2] = strFile.getFuncSpec().toString();
-                defaultIndexableLoaderArgs[3] = joinOp.getOperatorKey().scope;
-                defaultIndexableLoaderArgs[4] = origRightLoaderFileSpec.getFileName();
-                joinOp.setRightLoaderFuncSpec((new FuncSpec(DefaultIndexableLoader.class.getName(), defaultIndexableLoaderArgs)));
+                TezEdgeDescriptor edge = new TezEdgeDescriptor();
+                TezCompilerUtil.configureValueOnlyTupleOutput(edge, DataMovementType.BROADCAST);
+                TezCompilerUtil.connect(tezPlan, rightTezOprAggr, curTezOp, edge);
+
+                ((POMergeJoinTez) joinOp).setInputKey(rightTezOprAggr.getOperatorKey().toString());
+                // set up the TezIndexableLoader for the join operator
+                String[] tezIndexableLoaderArgs = new String[3];
+                tezIndexableLoaderArgs[0] = origRightLoaderFileSpec.getFuncSpec().toString();
+                tezIndexableLoaderArgs[1] = joinOp.getOperatorKey().scope;
+                tezIndexableLoaderArgs[2] = origRightLoaderFileSpec.getFileName();
+                joinOp.setRightLoaderFuncSpec(
+                        (new FuncSpec(TezIndexableLoader.class.getName(), tezIndexableLoaderArgs)));
                 joinOp.setRightInputFileName(origRightLoaderFileSpec.getFileName());
-
-                joinOp.setIndexFile(strFile.getFileName());
                 udfs.add(origRightLoaderFileSpec.getFuncSpec().toString());
             }
 
+            if(joinOp.getJoinType() == LOJoin.JOINTYPE.MERGESPARSE) {
+                curTezOp.markMergeSparseJoin();
+            } else {
+                curTezOp.markMergeJoin();
+            }
             // We are done with right side. Lets work on left now.
             // Join will be materialized in leftTezOper.
-            if(!curTezOp.isClosed()) // Life is easy
+            if (!curTezOp.isClosed()) {// Life is easy
                 curTezOp.plan.addAsLeaf(joinOp);
-
+            }
             else{
                 int errCode = 2022;
                 String msg = "Input plan has been closed. This is unexpected while compiling.";
@@ -1298,14 +1316,14 @@ public class TezCompiler extends PhyPlanVisitor {
             }
             if(rightTezOprAggr != null) {
                 rightTezOprAggr.markIndexer();
-                // We want to ensure indexing job runs prior to actual join job. So, connect them in order.
-                TezCompilerUtil.connect(tezPlan, rightTezOprAggr, curTezOp);
             }
+
             phyToTezOpMap.put(joinOp, curTezOp);
             // no combination of small splits as there is currently no way to guarantee the sortness
             // of the combined splits.
             curTezOp.noCombineSmallSplits();
             curTezOp.UDFs.addAll(udfs);
+
         }
         catch(PlanException e){
             int errCode = 2034;
@@ -2661,5 +2679,6 @@ public class TezCompiler extends PhyPlanVisitor {
     private TezOperator getTezOp() {
         return new TezOperator(OperatorKey.genOpKey(scope));
     }
+
 }
 

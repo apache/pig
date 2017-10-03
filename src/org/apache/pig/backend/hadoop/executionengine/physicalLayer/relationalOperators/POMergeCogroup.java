@@ -21,6 +21,7 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOp
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.PriorityQueue;
@@ -41,6 +42,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ExpressionOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.data.DataBag;
@@ -53,6 +55,7 @@ import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.Pair;
 
@@ -77,8 +80,6 @@ public class POMergeCogroup extends PhysicalOperator {
     // This is the count of all the relations involved in Cogroup. The Mapped
     // relation is also included in the count.
     private transient int relationCnt;
-
-    private transient TupleFactory mTupleFactory;
 
     private String indexFileName;
 
@@ -113,7 +114,19 @@ public class POMergeCogroup extends PhysicalOperator {
         for(int i=0; i < lrs.length; i++)
             LRs[i].setStripKeyFromValue(false);
     }
-    
+
+    public POMergeCogroup(POMergeCogroup copy) {
+        super(copy);
+        this.sidFuncSpecs = copy.sidFuncSpecs;
+        this.sideFileSpecs = copy.sideFileSpecs;
+        this.LRs = copy.LRs;
+        this.indexFileName = copy.indexFileName;
+        this.idxFuncSpec = copy.idxFuncSpec;
+        this.loaderSignatures = copy.loaderSignatures;
+        this.endOfRecordMark = copy.endOfRecordMark;
+        this.counter = copy.counter;
+    }
+
     // Set to POStatus.STATUS_EOP (default) for MR and POStatus.STATUS_NULL for Tez.
     // This is because:
     // For MR, we send EOP at the end of every record
@@ -413,7 +426,7 @@ public class POMergeCogroup extends PhysicalOperator {
         }
     }
 
-    private List<Pair<Integer,Tuple>> readIndex() throws ExecException{
+    protected List<Pair<Integer, Tuple>> readIndex() throws ExecException {
 
         // Assertions on index we are about to read:
         // We are reading index from a file through POLoad which will return tuples.
@@ -438,18 +451,26 @@ public class POMergeCogroup extends PhysicalOperator {
         List<Pair<Integer,Tuple>> index = new ArrayList<Pair<Integer,Tuple>>();
 
         for(Result res = ld.getNextTuple(); res.returnStatus != POStatus.STATUS_EOP; res = ld.getNextTuple()){
-
-            Tuple  idxTuple = (Tuple)res.result;
-            int colCnt = idxTuple.size()-2;
-            Tuple keyTuple = mTupleFactory.newTuple(colCnt);
-
-            for (int i=0; i< colCnt; i++)
-                keyTuple.set(i, idxTuple.get(i));
-
-            index.add(new Pair<Integer, Tuple>((Integer)idxTuple.get(colCnt+1), keyTuple));
+            addTupleToIndex((Tuple) res.result, index);
         }
 
         return index;
+    }
+
+    /**
+     * Separates out key tuple from given tuple and adds it to index.
+     *
+     * @param tuple
+     * @param index
+     * @throws ExecException
+     */
+    protected void addTupleToIndex(Tuple tuple, List<Pair<Integer, Tuple>> index) throws ExecException {
+        int colCnt = tuple.size() - 2;
+        Tuple keyTuple = mTupleFactory.newTuple(colCnt);
+        for (int i = 0; i < colCnt; i++) {
+            keyTuple.set(i, tuple.get(i));
+        }
+        index.add(new Pair<Integer, Tuple>((Integer) tuple.get(colCnt + 1), keyTuple));
     }
 
     @SuppressWarnings("unchecked")
@@ -548,7 +569,6 @@ public class POMergeCogroup extends PhysicalOperator {
     ClassNotFoundException, ExecException {
 
         is.defaultReadObject();
-        mTupleFactory = TupleFactory.getInstance();
         this.heap = new PriorityQueue<Tuple>(11, new Comparator<Tuple>() {
 
             @SuppressWarnings("unchecked")
@@ -621,5 +641,22 @@ public class POMergeCogroup extends PhysicalOperator {
     @Override
     public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
         return null;
+    }
+
+    @Override
+    public POMergeCogroup clone() throws CloneNotSupportedException {
+        POMergeCogroup clone = (POMergeCogroup) super.clone();
+        clone.sidFuncSpecs = new ArrayList<FuncSpec>();
+        for (FuncSpec f : this.sidFuncSpecs) {
+            clone.sidFuncSpecs.add(f.clone());
+        }
+        clone.sideFileSpecs = new ArrayList<String>(this.sideFileSpecs);
+        clone.LRs = new POLocalRearrange[this.LRs.length];
+        for (int i = 0; i < this.LRs.length; i++) {
+            clone.LRs[i] = this.LRs[i].clone();
+        }
+        clone.idxFuncSpec = this.idxFuncSpec.clone();
+        clone.loaderSignatures = new ArrayList<String>(this.loaderSignatures);
+        return clone;
     }
 }

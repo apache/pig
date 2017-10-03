@@ -49,6 +49,8 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.test.TestMultiQueryBasic.DummyStoreWithOutputFormat;
 import org.apache.pig.test.Util;
+import org.apache.pig.test.TestMapSideCogroup.DummyCollectableLoader;
+import org.apache.pig.test.TestMapSideCogroup.DummyIndexableLoader;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -267,6 +269,30 @@ public class TestTezCompiler {
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Join-1.gld");
     }
+
+    @Test
+    public void testMergeJoin() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
+                "b = load 'file:///tmp/input2' as (x:int, z:int);" +
+                "c = join a by x, b by x using 'merge';" +
+                "d = foreach c generate a::x as x, y, z;" +
+                "store d into 'file:///tmp/pigoutput';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MergeJoin-1.gld");
+    }
+
+    @Test
+    public void testMergeCogroup() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input1' using "+ DummyCollectableLoader.class.getName() +"() as (x:int, y:int);" +
+                "b = load 'file:///tmp/input2' using " + DummyIndexableLoader.class.getName()+"() as (x:int, z:int);" +
+                "c = cogroup a by x, b by x using 'merge';" +
+                "store c into 'file:///tmp/pigoutput';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-MergeCogroup-1.gld");
+    }
+
 
     @Test
     public void testBloomJoin() throws Exception {
@@ -1429,6 +1455,7 @@ public class TestTezCompiler {
 
         String goldenPlanClean = Util.standardizeNewline(goldenPlan).trim();
         String compiledPlanClean = Util.standardizeNewline(compiledPlan).trim();
+
         assertEquals(TestHelper.sortUDFs(Util.removeSignature(goldenPlanClean)),
                 TestHelper.sortUDFs(Util.removeSignature(compiledPlanClean)));
     }
