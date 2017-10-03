@@ -185,7 +185,13 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         // Indicate if this job constructs bloom filter
         BUILDBLOOM,
         // Indicate if this job applies bloom filter
-        FILTERBLOOM;
+        FILTERBLOOM,
+        // Indicate if this job is a merge join job
+        MERGE_JOIN,
+        // Indicate if this job is a merge sparse join job
+        MERGE_SPARSE_JOIN,
+        // Indicate if this job is a merge cogroup job
+        MERGE_COGROUP;
     };
 
     // Features in the job/vertex. Mostly will be only one feature.
@@ -393,6 +399,14 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         feature.set(OPER_FEATURE.COGROUP.ordinal());
     }
 
+    public boolean isMergeCogroup() {
+        return feature.get(OPER_FEATURE.MERGE_COGROUP.ordinal());
+    }
+
+    public void markMergeCogroup() {
+        feature.set(OPER_FEATURE.MERGE_COGROUP.ordinal());
+    }
+
     public boolean isRegularJoin() {
         return feature.get(OPER_FEATURE.HASHJOIN.ordinal());
     }
@@ -471,6 +485,22 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     public void markFilterBloom() {
         feature.set(OPER_FEATURE.FILTERBLOOM.ordinal());
+    }
+
+    public boolean isMergeJoin() {
+        return feature.get(OPER_FEATURE.MERGE_JOIN.ordinal());
+    }
+
+    public void markMergeJoin() {
+        feature.set(OPER_FEATURE.MERGE_JOIN.ordinal());
+    }
+
+    public boolean isMergeSparseJoin() {
+        return feature.get(OPER_FEATURE.MERGE_SPARSE_JOIN.ordinal());
+    }
+
+    public void markMergeSparseJoin() {
+        feature.set(OPER_FEATURE.MERGE_SPARSE_JOIN.ordinal());
     }
 
     public void copyFeatures(TezOperator copyFrom, List<OPER_FEATURE> excludeFeatures) {

@@ -290,6 +290,15 @@ public class TezScriptState extends ScriptState {
                 if (tezOp.isLimit() || tezOp.isLimitAfterSort()) {
                     feature.set(PIG_FEATURE.LIMIT.ordinal());
                 }
+                if (tezOp.isMergeJoin()) {
+                    feature.set(PIG_FEATURE.MERGE_JOIN.ordinal());
+                }
+                if (tezOp.isMergeSparseJoin()) {
+                    feature.set(PIG_FEATURE.MERGE_SPARSE_JOIN.ordinal());
+                }
+                if (tezOp.isMergeCogroup()) {
+                    feature.set(PIG_FEATURE.MERGE_COGROUP.ordinal());
+                }
                 try {
                     new FeatureVisitor(tezOp.plan, feature).visit();
                 } catch (VisitorException e) {

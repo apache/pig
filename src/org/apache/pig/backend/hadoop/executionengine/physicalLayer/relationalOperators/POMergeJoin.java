@@ -43,7 +43,6 @@ import org.apache.pig.data.SchemaTupleBackend;
 import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
 import org.apache.pig.data.SchemaTupleFactory;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.data.TupleMaker;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.DefaultIndexableLoader;
@@ -55,6 +54,7 @@ import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.newplan.logical.relational.LOJoin;
+import org.apache.pig.newplan.logical.relational.LOJoin.JOINTYPE;
 
 /** This operator implements merge join algorithm to do map side joins.
  *  Currently, only two-way joins are supported. One input of join is identified as left
@@ -82,21 +82,21 @@ public class POMergeJoin extends PhysicalOperator {
     //The Local Rearrange operators modeling the join key
     private POLocalRearrange[] LRs;
 
-    private transient LoadFunc rightLoader;
+    protected transient LoadFunc rightLoader;
     private OperatorKey opKey;
 
-    private Object prevLeftKey;
+    private transient Object prevLeftKey;
 
-    private Result prevLeftInp;
+    private transient Result prevLeftInp;
 
-    private Object prevRightKey = null;
+    private transient Object prevRightKey = null;
 
-    private Result prevRightInp;
+    private transient Result prevRightInp;
 
     //boolean denoting whether we are generating joined tuples in this getNext() call or do we need to read in more data.
-    private boolean doingJoin;
+    private transient boolean doingJoin;
 
-    private FuncSpec rightLoaderFuncSpec;
+    protected FuncSpec rightLoaderFuncSpec;
 
     private String rightInputFileName;
 
@@ -113,17 +113,17 @@ public class POMergeJoin extends PhysicalOperator {
 
     private boolean noInnerPlanOnRightSide;
 
-    private Object curJoinKey;
+    private transient Object curJoinKey;
 
-    private Tuple curJoiningRightTup;
+    private transient Tuple curJoiningRightTup;
 
     private int counter; // # of tuples on left side with same key.
 
-    private int leftTupSize = -1;
+    private transient int leftTupSize;
 
-    private int rightTupSize = -1;
+    private transient int rightTupSize;
 
-    private int arrayListSize = 1024;
+    private static int ARRAY_LIST_SIZE = 1024;
 
     private LOJoin.JOINTYPE joinType;
 
@@ -147,10 +147,9 @@ public class POMergeJoin extends PhysicalOperator {
     // Only for spark.
     // it means that current operator reaches at its end and the last left input was
     // added into 'leftTuples', ready for join.
-    private boolean leftInputConsumedInSpark = false;
+    private transient boolean leftInputConsumedInSpark = false;
 
     // This serves as the default TupleFactory
-    private transient TupleFactory mTupleFactory;
 
     /**
      * These TupleFactories are used for more efficient Tuple generation. This should
@@ -185,6 +184,25 @@ public class POMergeJoin extends PhysicalOperator {
         this.mergedInputSchema = mergedInputSchema;
     }
 
+    public POMergeJoin(POMergeJoin copy) {
+        super(copy);
+        this.firstTime = copy.firstTime;
+        this.LRs = copy.LRs;
+        this.rightLoaderFuncSpec = copy.rightLoaderFuncSpec;
+        this.rightInputFileName = copy.rightInputFileName;
+        this.indexFile = copy.indexFile;
+        this.inpPlans = copy.inpPlans;
+        this.rightPipelineLeaf = copy.rightPipelineLeaf;
+        this.rightPipelineRoot = copy.rightPipelineRoot;
+        this.noInnerPlanOnRightSide = copy.noInnerPlanOnRightSide;
+        this.counter = copy.counter;
+        this.joinType = copy.joinType;
+        this.signature = copy.signature;
+        this.endOfRecordMark = copy.endOfRecordMark;
+        this.leftInputSchema = copy.leftInputSchema;
+        this.mergedInputSchema = copy.mergedInputSchema;
+    }
+
     /**
      * Configures the Local Rearrange operators to get keys out of tuple.
      * @throws ExecException
@@ -211,8 +229,6 @@ public class POMergeJoin extends PhysicalOperator {
      * This is a helper method that sets up all of the TupleFactory members.
      */
     private void prepareTupleFactories() {
-        mTupleFactory = TupleFactory.getInstance();
-
         if (leftInputSchema != null) {
             leftTupleMaker = SchemaTupleBackend.newSchemaTupleFactory(leftInputSchema, false, GenContext.MERGE_JOIN);
         }
@@ -241,7 +257,7 @@ public class POMergeJoin extends PhysicalOperator {
      * @return the list object to store Tuples in
      */
     private TuplesToSchemaTupleList newLeftTupleArray() {
-        return new TuplesToSchemaTupleList(arrayListSize, leftTupleMaker);
+        return new TuplesToSchemaTupleList(ARRAY_LIST_SIZE, leftTupleMaker);
     }
 
     /**
@@ -546,14 +562,8 @@ public class POMergeJoin extends PhysicalOperator {
         }
     }
 
-    private void seekInRightStream(Object firstLeftKey) throws IOException{
-        rightLoader = (LoadFunc)PigContext.instantiateFuncFromSpec(rightLoaderFuncSpec);
-
-        // check if hadoop distributed cache is used
-        if (indexFile != null && rightLoader instanceof DefaultIndexableLoader) {
-            DefaultIndexableLoader loader = (DefaultIndexableLoader)rightLoader;
-            loader.setIndexFile(indexFile);
-        }
+    private void seekInRightStream(Object firstLeftKey) throws IOException {
+        rightLoader = getRightLoader();
 
         // Pass signature of the loader to rightLoader
         // make a copy of the conf to use in calls to rightLoader.
@@ -563,6 +573,23 @@ public class POMergeJoin extends PhysicalOperator {
         ((IndexableLoadFunc)rightLoader).initialize(job.getConfiguration());
         ((IndexableLoadFunc)rightLoader).seekNear(
                 firstLeftKey instanceof Tuple ? (Tuple)firstLeftKey : mTupleFactory.newTuple(firstLeftKey));
+    }
+
+    /**
+     * Instantiate right loader
+     *
+     * @return
+     * @throws IOException
+     * @throws ExecException
+     */
+    protected LoadFunc getRightLoader() throws ExecException, IOException {
+        LoadFunc loader = (LoadFunc) PigContext.instantiateFuncFromSpec(rightLoaderFuncSpec);
+        // check if hadoop distributed cache is used
+        if (indexFile != null && loader instanceof DefaultIndexableLoader) {
+            DefaultIndexableLoader defLoader = (DefaultIndexableLoader) loader;
+            defLoader.setIndexFile(indexFile);
+        }
+        return loader;
     }
 
     private Result getNextRightInp(Object leftKey) throws ExecException{
@@ -668,7 +695,6 @@ public class POMergeJoin extends PhysicalOperator {
     private void readObject(ObjectInputStream is) throws IOException, ClassNotFoundException, ExecException{
 
         is.defaultReadObject();
-        mTupleFactory = TupleFactory.getInstance();
     }
 
 
@@ -745,5 +771,27 @@ public class POMergeJoin extends PhysicalOperator {
 
     public POLocalRearrange[] getLRs() {
         return LRs;
+    }
+
+    @Override
+    public POMergeJoin clone() throws CloneNotSupportedException {
+        POMergeJoin clone = (POMergeJoin) super.clone();
+        clone.LRs = new POLocalRearrange[this.LRs.length];
+        for (int i = 0; i < this.LRs.length; i++) {
+            clone.LRs[i] = this.LRs[i].clone();
+        }
+        clone.rightLoaderFuncSpec = this.rightLoaderFuncSpec.clone();
+        clone.inpPlans = new MultiMap<PhysicalOperator, PhysicalPlan>();
+        for (PhysicalOperator op : this.inpPlans.keySet()) {
+            PhysicalOperator cloneOp = op.clone();
+            for (PhysicalPlan phyPlan : this.inpPlans.get(op)) {
+                clone.inpPlans.put(cloneOp, phyPlan.clone());
+            }
+        }
+        clone.rightPipelineLeaf = this.rightPipelineLeaf.clone();
+        clone.rightPipelineRoot = this.rightPipelineRoot.clone();
+        clone.leftInputSchema = this.leftInputSchema.clone();
+        clone.mergedInputSchema = this.mergedInputSchema.clone();
+        return clone;
     }
 }
