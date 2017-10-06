@@ -58,6 +58,7 @@ import dk.brics.automaton.Automaton;
 public class JarManager {
 
     private static Log log = LogFactory.getLog(JarManager.class);
+    private static final String PIGTEST_JAR = "pigtest.jar";
 
     private static enum DefaultPigPackages {
 
@@ -303,6 +304,17 @@ public class JarManager {
                 continue;
             }
             jars.add(new Path(jarName).makeQualified(fsUri, workingDir).toString());
+        }
+    }
+
+    /**
+     * Adds jar file where pig test classes are packed (build/test/classes)
+     * @param jars Set of jars to append pig tests jar into
+     */
+    public static void addPigTestJarIfPresent(Set<String> jars) {
+        File file = new File(PIGTEST_JAR);
+        if (file.exists()) {
+            jars.add(file.getAbsolutePath());
         }
     }
 

@@ -431,6 +431,7 @@ public class SparkLauncher extends Launcher {
         Set<String> allJars = new HashSet<String>();
         LOG.info("Add default jars to Spark Job");
         allJars.addAll(JarManager.getDefaultJars());
+        JarManager.addPigTestJarIfPresent(allJars);
         LOG.info("Add script jars to Spark Job");
         for (String scriptJar : pigContext.scriptJars) {
             allJars.add(scriptJar);
@@ -536,23 +537,35 @@ public class SparkLauncher extends Launcher {
         return sparkPlan;
     }
 
+
+    private static String getMaster(PigContext pc){
+        String master = null;
+        if (pc.getExecType().isLocal()) {
+            master = "local";
+        } else {
+            master = System.getenv("SPARK_MASTER");
+            if (master == null) {
+                LOG.info("SPARK_MASTER not specified, using \"local\"");
+                master = "local";
+            }
+        }
+        return master;
+    }
+
     /**
      * Only one SparkContext may be active per JVM (SPARK-2243). When multiple threads start SparkLaucher,
-     * the static member sparkContext should be initialized only once
+     * the static member sparkContext should be initialized only by either local or cluster mode at a time.
+     *
+     * In case it was already initialized with a different mode than what the new pigContext instance wants, it will
+     * close down the existing SparkContext and re-initalize it with the new mode.
      */
     private static synchronized void startSparkIfNeeded(JobConf jobConf, PigContext pc) throws PigException {
+        String master = getMaster(pc);
+        if (sparkContext != null && !master.equals(sparkContext.master())){
+            sparkContext.close();
+            sparkContext = null;
+        }
         if (sparkContext == null) {
-            String master = null;
-            if (pc.getExecType().isLocal()) {
-                master = "local";
-            } else {
-                master = System.getenv("SPARK_MASTER");
-                if (master == null) {
-                    LOG.info("SPARK_MASTER not specified, using \"local\"");
-                    master = "local";
-                }
-            }
-
             String sparkHome = System.getenv("SPARK_HOME");
             if (!master.startsWith("local") && !master.equals("yarn-client")) {
                 // Check that we have the Mesos native library and Spark home
@@ -590,8 +603,10 @@ public class SparkLauncher extends Launcher {
                 }
             }
 
-            //see PIG-5200 why need to set spark.executor.userClassPathFirst as true
-            sparkConf.set("spark.executor.userClassPathFirst", "true");
+            //see PIG-5200 why need to set spark.executor.userClassPathFirst as true on cluster modes
+            if (! "local".equals(master)) {
+                sparkConf.set("spark.executor.userClassPathFirst", "true");
+            }
             checkAndConfigureDynamicAllocation(master, sparkConf);
 
             sparkContext = new JavaSparkContext(sparkConf);

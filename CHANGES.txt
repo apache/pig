@@ -26,6 +26,8 @@ PIG-5282: Upgade to Java 8 (satishsaley via rohini)
  
 IMPROVEMENTS
 
+PIG-5305: Enable yarn-client mode execution of tests in Spark (1) mode (szita)
+
 PIG-4120: Broadcast the index file in case of POMergeCoGroup and POMergeJoin (satishsaley via rohini)
 
 PIG-5306: REGEX_EXTRACT() logs every line that doesn't match (satishsaley via rohini)
