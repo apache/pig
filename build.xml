@@ -118,6 +118,7 @@
     <property name="smoke.tests.jarfile" value="${build.dir}/${final.name}-smoketests.jar" />
     <property name="test.pigunit.src.dir" value="${test.src.dir}/org/apache/pig/test/pigunit" />
     <property name="test.pigunit.file" value="${test.src.dir}/pigunit-tests"/>
+    <property name="pigtest.jarfile" value="pigtest.jar" />
 
 
     <!-- test configuration, use ${user.home}/build.properties to configure values  -->
@@ -160,7 +161,6 @@
         <propertyreset name="isHadoop2" value="true" />
         <propertyreset name="src.shims.dir" value="${basedir}/shims/src/hadoop${hadoopversion}" />
         <propertyreset name="src.shims.test.dir" value="${basedir}/shims/test/hadoop${hadoopversion}" />
-        <propertyreset name="src.exclude.dir" value="" />
         <propertyreset name="test.exec.type" value="tez" />
     </target>
 
@@ -278,6 +278,7 @@
               value="${mvnrepo}/org/codehaus/jackson/jackson-core-asl/${jackson-pig-3039-test.version}/jackson-core-asl-${jackson-pig-3039-test.version}.jar"/>
     <property name="jackson_mapper_repo_url"
               value="${mvnrepo}/org/codehaus/jackson/jackson-mapper-asl/${jackson-pig-3039-test.version}/jackson-mapper-asl-${jackson-pig-3039-test.version}.jar"/>
+    <property name="test.spark.spark_master" value="yarn-client" />
 
     <!--this is the naming policy for artifacts we want pulled down-->
     <property name="ivy.artifact.retrieve.pattern" value="${ant.project.name}/[artifact]-[revision](-[classifier]).[ext]"/>
@@ -893,32 +894,32 @@
     <!-- ================================================================== -->
     <!-- Run unit tests                                                     -->
     <!-- ================================================================== -->
-    <target name="test-core" depends="setWindowsPath,setLinuxPath,compile-test,jar-simple,debugger.check,jackson-pig-3039-test-download" description="Run full set of unit tests">
+    <target name="test-core" depends="setWindowsPath,setLinuxPath,compile-test,pigtest-jar,debugger.check,jackson-pig-3039-test-download" description="Run full set of unit tests">
         <macro-test-runner test.file="${test.all.file}" tests.failed="test-core.failed" />
         <fail if="test-core.failed">Tests failed!</fail>
     </target>
 
-    <target name="test-commit" depends="setWindowsPath,setLinuxPath,compile-test,jar-simple,debugger.check" description="Run approximate 10-minute set of unit tests prior to commiting">
+    <target name="test-commit" depends="setWindowsPath,setLinuxPath,compile-test,pigtest-jar,debugger.check" description="Run approximate 10-minute set of unit tests prior to commiting">
         <macro-test-runner test.file="${test.commit.file}" tests.failed="test-commit.failed"/>
         <fail if="test-commit.failed">Tests failed!</fail>
     </target>
 
-    <target name="test-unit" depends="setWindowsPath,setLinuxPath,compile-test,jar-simple,debugger.check" description="Run all true unit tests">
+    <target name="test-unit" depends="setWindowsPath,setLinuxPath,compile-test,pigtest-jar,debugger.check" description="Run all true unit tests">
         <macro-test-runner test.file="${test.unit.file}" tests.failed="test-unit.failed"/>
         <fail if="test-unit.failed">Tests failed!</fail>
     </target>
 
-    <target name="test-smoke" depends="setWindowsPath,setLinuxPath,compile-test,jar-simple,debugger.check" description="Run 30 min smoke tests">
+    <target name="test-smoke" depends="setWindowsPath,setLinuxPath,compile-test,pigtest-jar,debugger.check" description="Run 30 min smoke tests">
         <macro-test-runner test.file="${test.smoke.file}" tests.failed="test-smoke.failed"/>
         <fail if="test-smoke.failed">Tests failed!</fail>
     </target>
 
-    <target name="test-tez" depends="setTezEnv,setWindowsPath,setLinuxPath,compile-test,jar-simple,debugger.check,jackson-pig-3039-test-download" description="Run tez unit tests">
+    <target name="test-tez" depends="setTezEnv,setWindowsPath,setLinuxPath,compile-test,debugger.check,jackson-pig-3039-test-download" description="Run tez unit tests">
         <macro-test-runner test.file="${test.all.file}" tests.failed="test-tez.failed"/>
         <fail if="test-tez.failed">Tests failed!</fail>
     </target>
 
-    <target name="test-spark" depends="setSparkEnv,setWindowsPath,setLinuxPath,compile-test,jar-simple,debugger.check,jackson-pig-3039-test-download" description="Run Spark unit tests in Spark cluster-local mode">
+    <target name="test-spark" depends="setSparkEnv,setWindowsPath,setLinuxPath,compile-test,pigtest-jar,debugger.check,jackson-pig-3039-test-download" description="Run Spark unit tests in Spark cluster-local mode">
         <macro-test-runner test.file="${test.all.file}" tests.failed="test-spark.failed"/>
         <fail if="test-spark.failed">Tests failed!</fail>
     </target>
@@ -957,6 +958,7 @@
             <sysproperty key="java.security.krb5.kdc" value="" />
             <sysproperty key="log4j.configuration" value="file:${basedir}/conf/test-log4j.properties"/>
             <env key="MALLOC_ARENA_MAX" value="4"/>
+            <env key="SPARK_MASTER" value="${test.spark.spark_master}"/>
             <env key="PATH" path="${build.path}"/>
             <classpath>
                 <pathelement location="${output.jarfile.core}" />
@@ -999,7 +1001,7 @@
     </target>
 
     <target name="test-core-mrtez" description="run core tests on both mr and tez mode"
-            depends="setWindowsPath,setLinuxPath,compile-test,jar-simple,debugger.check,jackson-pig-3039-test-download">
+            depends="setWindowsPath,setLinuxPath,compile-test,debugger.check,jackson-pig-3039-test-download">
         <fail message="hadoopversion must be set to 2 when invoking test-core-mrtez">
           <condition>
             <not>
@@ -1070,6 +1072,16 @@
 
     <target name="pigmix" depends="jar, piggybank" description="run end-to-end tests">
         <ant dir="${pigmix.dir}" target="test"/>
+    </target>
+
+    <target name="pigtest-jar" depends="compile-test, ivy-test" description="create the pigtest jar file">
+        <echo> *** Creating pigtest.jar ***</echo>
+        <jar destfile="${pigtest.jarfile}">
+            <fileset dir="${test.build.classes}">
+                <include name="**/org/apache/pig/test/**"/>
+            </fileset>
+            <zipfileset src="${ivy.lib.dir}/commons-lang-${commons-lang.version}.jar" />
+        </jar>
     </target>
 
     <!-- ================================================================== -->
