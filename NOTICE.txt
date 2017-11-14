@@ -36,10 +36,6 @@ This product includes/uses HyperSQL (http://hsqldb.org/)
 Copyright (c) 2001-2010, The HSQL Development Group
 All rights reserved.
 
-This product includes/uses xmlenc (http://xmlenc.sourceforge.net/)
-Copyright 2003-2005, Ernst de Haan <wfe.dehaan@gmail.com>
-All rights reserved.
-
 This product includes/uses Joda (http://joda-time.sourceforge.net/)
 Copyright 2001-2006 Stephen Colebourne
 

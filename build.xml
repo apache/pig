@@ -776,7 +776,6 @@
             <fileset dir="${ivy.lib.dir}" includes="commons-codec-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="commons-io-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="commons-logging-*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="httpclient-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="httpcore-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="log4j-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="slf4j-*.jar"/>
