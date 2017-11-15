@@ -10,10 +10,6 @@ Copyright (c) 2003 Sun Microsystems, Inc.
 This product includes/uses Jetty (http://jetty.mortbay.org/),
 Copyright (c) Mort Bay Consulting Pty. Ltd. (Australia) 
 
-This product includes/uses Jsch (http://www.jcraft.com/jsch/),
-Copyright (c) 2002,2003,2004,2005,2006,2007,2008 Atsuhiko Yamanaka,
-JCraft,Inc. All rights reserved.
-
 This product includes/uses Jline (http://jline.sourceforge.net/)
 Copyright (c) 2002-2006, Marc Prud'hommeaux <mwp1@cornell.edu>
 All rights reserved.
@@ -42,9 +38,6 @@ Copyright 2001-2006 Stephen Colebourne
 This product includes/uses Jython (http://www.jython.org/)
 Copyright (c) 2000-2009 Jython Developers.
 All rights reserved.
-
-This product includes/uses JSch (http://www.jcraft.com/jsch/)
-JSch is copyrighted by ymnk, JCraft,Inc.
 
 This product includes/uses JetS3t (http://www.jets3t.org/)
 Copyright 2006-2010 James Murty
