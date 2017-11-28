@@ -115,6 +115,7 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
 
     public static String sampleVertex;
     public static Map<String, Object> sampleMap;
+    private volatile boolean isAborted = false;
 
     public PigProcessor(ProcessorContext context) {
         super(context);
@@ -305,8 +306,11 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
             }
 
             if (!fileOutputs.isEmpty()) {
-                while (!getContext().canCommit()) {
+                while (!getContext().canCommit() && !isAborted) {
                     Thread.sleep(100);
+                }
+                if (isAborted) {
+                    return;
                 }
                 for (MROutput fileOutput : fileOutputs){
                     fileOutput.flush();
@@ -462,6 +466,13 @@ public class PigProcessor extends AbstractLogicalIOProcessor {
         } else {
             LOG.warn("Cannot fetch sample from " + sampleVertex);
         }
+    }
+
+    // TODO add @Override when we upgrade to Tez 0.9 dependency
+    public void abort() {
+        isAborted = true;
+        LOG.warn("Aborting execution");
+        abortOutput();
     }
 
 }
