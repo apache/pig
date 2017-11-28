@@ -42,7 +42,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
@@ -75,6 +74,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.backend.hadoop.executionengine.spark.converter.BroadcastConverter;
 import org.apache.pig.backend.hadoop.executionengine.spark.converter.CollectedGroupConverter;
 import org.apache.pig.backend.hadoop.executionengine.spark.converter.CounterConverter;
@@ -183,7 +183,7 @@ public class SparkLauncher extends Launcher {
         jobGroupID = String.format("%s-%s",sparkContext.getConf().getAppId(),
                 UUID.randomUUID().toString());
         jobConf.set(MRConfiguration.JOB_ID,jobGroupID);
-        jobConf.set(MRConfiguration.TASK_ID, new TaskAttemptID().toString());
+        jobConf.set(MRConfiguration.TASK_ID, HadoopShims.getNewTaskAttemptID().toString());
 
         sparkContext.setJobGroup(jobGroupID, "Pig query to Spark cluster",
                 false);
