@@ -42,6 +42,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
@@ -182,6 +183,7 @@ public class SparkLauncher extends Launcher {
         jobGroupID = String.format("%s-%s",sparkContext.getConf().getAppId(),
                 UUID.randomUUID().toString());
         jobConf.set(MRConfiguration.JOB_ID,jobGroupID);
+        jobConf.set(MRConfiguration.TASK_ID, new TaskAttemptID().toString());
 
         sparkContext.setJobGroup(jobGroupID, "Pig query to Spark cluster",
                 false);
