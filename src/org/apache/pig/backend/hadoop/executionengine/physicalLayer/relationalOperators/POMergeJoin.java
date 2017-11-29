@@ -523,13 +523,12 @@ public class POMergeJoin extends PhysicalOperator {
                 throw new ExecException(errMsg,errCode);
             }
 
-            int cmpval = rightKey.compareTo(prevLeftKey);
-            if(cmpval < 0) {    // still behind the left side, do nothing, fetch next right tuple.
+            if (prevLeftKey != null && rightKey.compareTo(prevLeftKey) < 0) {    // still behind the left side, do nothing, fetch next right tuple.
                 slidingToNextRecord = true;
                 continue;
             }
 
-            else if (cmpval == 0){  // Found matching tuple. Time to do join.
+            else if (prevLeftKey != null && rightKey.compareTo(prevLeftKey) == 0){  // Found matching tuple. Time to do join.
 
                 curJoiningRightTup = (Tuple)rightInp.result;
                 counter = leftTuples.size();
