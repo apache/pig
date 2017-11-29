@@ -60,6 +60,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5310: MergeJoin throwing NullPointer Exception (satishsaley via rohini)
+
 PIG-5314: Abort method is not implemented in PigProcessor (satishsaley via rohini)
 
 PIG-5307: NPE in TezOperDependencyParallelismEstimator (rohini)

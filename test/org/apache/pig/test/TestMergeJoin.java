@@ -714,7 +714,37 @@ public class TestMergeJoin {
         Assert.assertEquals(dbMergeJoin.size(), dbshj.size());
         Assert.assertEquals(true, TestHelper.compareBags(dbMergeJoin, dbshj));        
     }
-    
+
+    @Test
+    public void testMergeJoinLeftInputSmallerThanRight() throws IOException {
+        String rightInput = "right_input.txt";
+        Util.createInputFile(cluster, rightInput, new String[] { "3", "4" });
+        pigServer.registerQuery("A = LOAD '" + INPUT_FILE2 + "' as (key:int);");
+        pigServer.registerQuery("B = LOAD '" + rightInput + "' as (key:int);");
+        DataBag dbMergeJoin = BagFactory.getInstance().newDefaultBag(),
+                dbshj = BagFactory.getInstance().newDefaultBag();
+        {
+            pigServer.registerQuery("C = join A by key, B by key using 'merge';");
+            Iterator<Tuple> iter = pigServer.openIterator("C");
+
+            while (iter.hasNext()) {
+                dbMergeJoin.add(iter.next());
+            }
+        }
+        {
+            pigServer.registerQuery("C = join A by key, B by key;");
+            Iterator<Tuple> iter = pigServer.openIterator("C");
+
+            while (iter.hasNext()) {
+                dbshj.add(iter.next());
+            }
+        }
+        Assert.assertEquals(dbMergeJoin.size(), dbshj.size());
+        Assert.assertEquals(0, dbMergeJoin.size());
+        Assert.assertEquals(true, TestHelper.compareBags(dbMergeJoin, dbshj));
+        Util.deleteFile(cluster, rightInput);
+    }
+
     /**
      * A dummy loader which implements {@link IndexableLoadFunc} to test
      * that expressions are not allowed as merge join keys when the right input's
