@@ -26,6 +26,7 @@ import java.util.BitSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Stack;
 import java.util.UUID;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
@@ -181,6 +182,8 @@ public abstract class ScriptState {
     protected PigContext pigContext;
 
     protected List<PigProgressNotificationListener> listeners = Lists.newArrayList();
+
+    private Stack<ScriptInfo> scripts = new Stack<>();
 
     protected ScriptState(String id) {
         this.id = id;
@@ -439,6 +442,31 @@ public abstract class ScriptState {
         return featureLongToString(scriptFeatures);
     }
 
+    /**
+     * Stores information about the current script and pushes it onto a stack.
+     *
+     * @param scriptFile
+     * @throws IOException
+     */
+    public void beginNestedScript(File scriptFile) throws IOException {
+        ScriptInfo scriptInfo = new ScriptInfo();
+        scriptInfo.fileName = this.fileName;
+        scriptInfo.serializedScript = this.serializedScript;
+        scriptInfo.truncatedScript = this.truncatedScript;
+        scripts.push(scriptInfo);
+        this.setScript(scriptFile);
+        this.setFileName(scriptFile.getName());
+    }
+
+    public void endNestedScript() {
+        if (!scripts.isEmpty()) {
+            ScriptInfo scriptInfo = scripts.pop();
+            // Change the current script information
+            this.fileName = scriptInfo.fileName;
+            this.serializedScript = scriptInfo.serializedScript;
+            this.truncatedScript = scriptInfo.truncatedScript;
+        }
+    }
     static class LogicalPlanFeatureVisitor extends LogicalRelationalNodesVisitor {
 
         private BitSet feature;
@@ -711,5 +739,11 @@ public abstract class ScriptState {
                 aliasLocation.add(originalLocation.toString());
             }
         }
+    }
+
+    private static class ScriptInfo {
+        String serializedScript;
+        String truncatedScript;
+        String fileName;
     }
 }
