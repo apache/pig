@@ -20,6 +20,7 @@ package org.apache.pig.test;
 import static org.apache.pig.builtin.mock.Storage.resetData;
 import static org.apache.pig.builtin.mock.Storage.tuple;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -54,6 +55,7 @@ import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.tools.grunt.GruntParser;
 import org.apache.pig.tools.pigstats.PigStats;
+import org.apache.pig.tools.pigstats.ScriptState;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -167,6 +169,7 @@ public class TestPigServerLocal {
         params.put("input", "test/org/apache/pig/test/data/passwd");
         String script="a = load '$input' using PigStorage(':');";
         pig.registerScript(new ByteArrayInputStream(script.getBytes("UTF-8")),params);
+        assertEquals("ScriptState contains different script", script, ScriptState.get().getScript());
         Iterator<Tuple> iter=pig.openIterator("a");
         int index=0;
         List<Tuple> expectedTuples=Util.readFile2TupleList("test/org/apache/pig/test/data/passwd", ":");

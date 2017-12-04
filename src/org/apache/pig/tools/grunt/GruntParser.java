@@ -73,6 +73,7 @@ import org.apache.pig.tools.pigscript.parser.TokenMgrError;
 import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
+import org.apache.pig.tools.pigstats.ScriptState;
 import org.apache.pig.validator.BlackAndWhitelistFilter;
 import org.apache.pig.validator.PigCommandFilter;
 import org.fusesource.jansi.Ansi;
@@ -494,9 +495,12 @@ public class GruntParser extends PigScriptParser {
                 setBatchOn();
                 mPigServer.setJobName(script);
                 try {
-                    loadScript(script, true, false, mLoadOnly, params, files);
+                    FetchFileRet scriptFile = FileLocalizer.fetchFile(mConf, script);
+                    ScriptState.get().beginNestedScript(scriptFile.file);
+                    loadScript(scriptFile, script, true, false, mLoadOnly, params, files);
                     executeBatch();
                 } finally {
+                    ScriptState.get().endNestedScript();
                     discardBatch();
                 }
             } else {
@@ -508,6 +512,11 @@ public class GruntParser extends PigScriptParser {
     }
 
     private void loadScript(String script, boolean batch, boolean loadOnly, boolean illustrate,
+            List<String> params, List<String> files) throws IOException, ParseException {
+        loadScript(FileLocalizer.fetchFile(mConf, script), script, batch, loadOnly, illustrate, params, files);
+    }
+
+    private void loadScript(FetchFileRet fetchFile, String script, boolean batch, boolean loadOnly, boolean illustrate,
                             List<String> params, List<String> files)
         throws IOException, ParseException {
 
@@ -524,7 +533,6 @@ public class GruntParser extends PigScriptParser {
         pc.setParamFiles(files);
 
         try {
-            FetchFileRet fetchFile = FileLocalizer.fetchFile(mConf, script);
             String cmds = runPreprocessor(fetchFile.file.getAbsolutePath(), params, files);
 
             if (mInteractive && !batch) { // Write prompt and echo commands

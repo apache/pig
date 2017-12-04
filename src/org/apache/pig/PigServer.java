@@ -43,6 +43,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -775,7 +776,10 @@ public class PigServer {
      */
     public void registerScript(InputStream in, Map<String,String> params,List<String> paramsFiles) throws IOException {
         try {
-            String substituted = pigContext.doParamSubstitution(in, paramMapToList(params), paramsFiles);
+            String script = IOUtils.toString(in);
+            ScriptState.get().setScript(script);
+            String substituted = pigContext.doParamSubstitution(new BufferedReader(new StringReader(script)),
+                    paramMapToList(params), paramsFiles);
             GruntParser grunt = new GruntParser(new StringReader(substituted), this);
             grunt.setInteractive(false);
             grunt.parseStopOnError(true);
@@ -855,6 +859,7 @@ public class PigServer {
         FileInputStream fis = null;
         try{
             fis = new FileInputStream(fileName);
+            ScriptState.get().setFileName(fileName);
             registerScript(fis, params, paramsFiles);
         }catch (FileNotFoundException e){
             log.error(e.getLocalizedMessage());
