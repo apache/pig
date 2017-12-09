@@ -535,16 +535,10 @@ public class Util {
      * @param actualResults Result of the executed Pig query
      * @param expectedResults Expected results List to validate against
      */
-     static public void checkQueryOutputs(Iterator<Tuple> actualResults,
+      static public void checkQueryOutputs(Iterator<Tuple> actualResults,
                                      List<Tuple> expectedResults) {
-         int count = 0;
-         for (Tuple expected : expectedResults) {
-             Tuple actual = actualResults.next();
-             count++;
-             Assert.assertEquals(expected.toString(), actual.toString());
-         }
-         Assert.assertEquals(expectedResults.size(), count);
-     }
+          checkQueryOutputs(actualResults, expectedResults.iterator(), null );
+      }
 
      /**
       * Helper function to check if the result of a Pig Query is in line with
@@ -560,7 +554,15 @@ public class Util {
               Tuple expected = expectedResults.next();
               Assert.assertTrue("Actual result has less records than expected results", actualResults.hasNext());
               Tuple actual = actualResults.next();
-              Assert.assertEquals(expected.toString(), actual.toString());
+
+              // If this tuple contains any bags, bags will be sorted before comparisons
+              if( !expected.equals(actual) ) {
+                  // Using string comparisons since error message is more readable
+                  // (only showing the part which differs)
+                  Assert.assertEquals(expected.toString(), actual.toString());
+                  // if above goes through, simply failing with object comparisons
+                  Assert.assertEquals(expected, actual);
+              }
               count++;
           }
           Assert.assertFalse("Actual result has more records than expected results", actualResults.hasNext());
@@ -613,9 +615,7 @@ public class Util {
          Collections.sort(actualResList);
          Collections.sort(expectedResList);
 
-         Assert.assertEquals("Comparing actual and expected results. ",
-                 expectedResList, actualResList);
-
+         checkQueryOutputs(actualResList.iterator(), expectedResList);
     }
 
     /**

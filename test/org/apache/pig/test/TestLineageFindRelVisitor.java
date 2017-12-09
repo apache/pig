@@ -181,7 +181,7 @@ public class TestLineageFindRelVisitor {
         pig.executeBatch();
 
         List<Tuple> actualResults = data.get("output");
-        List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
+        List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStringAsByteArray(
                 new String[] {"('aaa', 'bbb')"});
         Util.checkQueryOutputs(actualResults.iterator(), expectedResults);
     }

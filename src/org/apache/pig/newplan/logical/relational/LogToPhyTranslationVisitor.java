@@ -877,6 +877,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         }
         POForEach poFE = new POForEach(new OperatorKey(scope, nodeGen
                 .getNextNodeId(scope)), foreach.getRequestedParallelism(), innerPlans, flattenList, schema);
+        poFE.setFlattenNumFields(gen.getFlattenNumFields());
         poFE.addOriginalLocation(foreach.getAlias(), foreach.getLocation());
         poFE.setResultType(DataType.BAG);
         logToPhyMap.put(foreach, poFE);

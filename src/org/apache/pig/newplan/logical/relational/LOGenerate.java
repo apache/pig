@@ -33,6 +33,7 @@ import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchem
 public class LOGenerate extends LogicalRelationalOperator {
      private List<LogicalExpressionPlan> outputPlans;
      private boolean[] flattenFlags;
+     private int[] flattenNumFields;
      // mUserDefinedSchema is the original input from the user, we don't suppose
      // to store uid in mUserDefinedSchema
      private List<LogicalSchema> mUserDefinedSchema = null;
@@ -74,7 +75,9 @@ public class LOGenerate extends LogicalRelationalOperator {
         outputPlanSchemas = new ArrayList<LogicalSchema>();
         expSchemas = new ArrayList<LogicalSchema>();
         
+        flattenNumFields = new int[outputPlans.size()];
         for(int i=0; i<outputPlans.size(); i++) {
+            flattenNumFields[i] = 0;
             LogicalExpression exp = (LogicalExpression)outputPlans.get(i).getSources().get(0);
             
             LogicalSchema mUserDefinedSchemaCopy = null;
@@ -111,8 +114,10 @@ public class LOGenerate extends LogicalRelationalOperator {
                             if (fieldSchema.type == DataType.BAG) {
                                 // if it is bag, get the schema of tuples
                                 if (fieldSchema.schema!=null) {
-                                    if (fieldSchema.schema.getField(0).schema!=null)
+                                    if (fieldSchema.schema.getField(0).schema!=null) {
                                         innerFieldSchemas = fieldSchema.schema.getField(0).schema.getFields();
+                                        flattenNumFields[i] = innerFieldSchemas.size();
+                                    }
                                     for (LogicalSchema.LogicalFieldSchema fs : innerFieldSchemas) {
                                         fs.alias = fs.alias == null ? null : fieldSchema.alias + "::" + fs.alias;
                                     }
@@ -120,6 +125,7 @@ public class LOGenerate extends LogicalRelationalOperator {
                             } else if (fieldSchema.type == DataType.MAP) {
                                 //should only contain 1 schemafield for Map's value
                                 innerFieldSchemas = fieldSchema.schema.getFields();
+                                flattenNumFields[i] = 2;  // used for FLATTEN(null-map)
                                 LogicalSchema.LogicalFieldSchema fsForValue = innerFieldSchemas.get(0);
                                 fsForValue.alias = fieldSchema.alias + "::value";
 
@@ -129,6 +135,7 @@ public class LOGenerate extends LogicalRelationalOperator {
                                 expSchema.addField(fsForKey);
                             } else { // DataType.TUPLE
                                 innerFieldSchemas = fieldSchema.schema.getFields();
+                                flattenNumFields[i] = innerFieldSchemas.size();
                                 for (LogicalSchema.LogicalFieldSchema fs : innerFieldSchemas) {
                                     fs.alias = fs.alias == null ? null : fieldSchema.alias + "::" + fs.alias;
                                 }
@@ -212,6 +219,10 @@ public class LOGenerate extends LogicalRelationalOperator {
     
     public boolean[] getFlattenFlags() {
         return flattenFlags;
+    }
+
+    public int [] getFlattenNumFields() {
+        return flattenNumFields;
     }
     
     public void setFlattenFlags(boolean[] flatten) {
