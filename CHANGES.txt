@@ -60,6 +60,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5201: Null handling on FLATTEN (knoguchi)
+
 PIG-5315: pig.script is not set for scripts run via PigServer (satishsaley via rohini)
 
 PIG-5310: MergeJoin throwing NullPointer Exception (satishsaley via rohini)

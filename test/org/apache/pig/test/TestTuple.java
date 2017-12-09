@@ -70,6 +70,9 @@ public class TestTuple {
             assertEquals(
                     "(12,[pig#scalability],,12,1.2,(innerTuple),{(innerTuple)})",
                     TupleFormat.format(tuple));
+
+            //check if TupleFormat can handle null tuple
+            assertEquals("()", TupleFormat.format(null));
         } catch (ExecException e) {
             e.printStackTrace();
             fail();

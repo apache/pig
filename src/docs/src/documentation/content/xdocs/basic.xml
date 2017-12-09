@@ -1225,6 +1225,20 @@ dump X;
 (joe,18,2.5,joe,18,2.5)
 </source>
    </section>
+   <section id="nulls_flatten">
+   <title>Nulls and FLATTEN Operator</title>
+   <p>The FLATTEN operator handles null value differently based on its schema.</p>
+   <p>For null tuples, FLATTEN(null) produces multiples nulls based on the number of elements in the schema for that field.
+   If tuple has no schema, FLATTEN(null) simply returns a single null. </p>
+   <p>For null bags, we would have liked to discard the row just like we do with flatten of an empty bag.
+   However, it was too late by the time we noticed this inconsistency.
+   In order to preserve the backward compatibility, FLATTEN(null) for bag produces multiples nulls
+   based on the number of elements defined for the schema of this bag.
+   If no schema, a single null is returned. </p>
+   <p>For bags containing some null tuples, it follows the same rule as flatten of null tuples described above. </p>
+   <p>For null maps, FLATTEN(null) produces 2 nulls to represent the key and the value.</p>
+   <p>For null with other types, FLATTEN(null) simply returns a single null.</p>
+   </section>
    
    </section>
   
@@ -5453,8 +5467,11 @@ D = foreach C generate A::y, z; -- Cannot simply refer to y as it can refer to A
       we will see (a,k1,1), (a,k2,2) and (a,k3,3) as the result.
    </p>
 
+   <p>For other types, flatten becomes a no-op and simply returns the passed value. </p>
+
    <p>Also note that the flatten of empty bag will result in that row being discarded; no output is generated. 
    (See also <a href="perf.html#nulls">Drop Nulls Before a Join</a>.) </p>
+   <p>As for flatten with null values, see <a href="#nulls_flatten">Nulls and FLATTEN operator</a>.</p>
    
    <source>
 grunt> cat empty.bag

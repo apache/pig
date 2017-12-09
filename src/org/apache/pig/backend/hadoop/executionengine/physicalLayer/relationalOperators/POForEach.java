@@ -74,6 +74,8 @@ public class POForEach extends PhysicalOperator {
     // so we can also save on the Boolean.booleanValue() calls
     protected boolean[] isToBeFlattenedArray;
 
+    private int[] flattenNumFields = null;
+
     protected int noItems;
 
     //Since the plan has a generate, this needs to be maintained
@@ -446,6 +448,8 @@ public class POForEach extends PhysicalOperator {
                 } else if (inputData.result instanceof Map && isToBeFlattenedArray[i]) {
                     its[i] = ((Map)bags[i]).entrySet().iterator();
                 } else {
+                    // This includes FLATTEN(null) for bag and map
+                    // in addition to non-null values from other data types
                     its[i] = null;
                 }
             }
@@ -490,7 +494,6 @@ public class POForEach extends PhysicalOperator {
                 if(getReporter()!=null) {
                     getReporter().progress();
                 }
-                //createTuple(data);
                 res.result = createTuple(data);
                 res.returnStatus = POStatus.STATUS_OK;
                 return res;
@@ -538,17 +541,23 @@ public class POForEach extends PhysicalOperator {
         for(int i = 0; i < data.length; ++i) {
             Object in = data[i];
 
-            if(isToBeFlattenedArray[i] && in instanceof Tuple) {
+            if(!isToBeFlattenedArray[i]) {
+                if (knownSize) {
+                    out.set(idx++, in);
+                } else {
+                    out.append(in);
+                }
+            } else if(in instanceof Tuple) {
                 Tuple t = (Tuple)in;
                 int size = t.size();
                 for(int j = 0; j < size; ++j) {
                     if (knownSize) {
                         out.set(idx++, t.get(j));
                     } else {
-                    out.append(t.get(j));
+                        out.append(t.get(j));
+                    }
                 }
-                }
-            } else if (isToBeFlattenedArray[i] && in instanceof Map.Entry) {
+            } else if (in instanceof Map.Entry) {
                 Map.Entry entry = (Map.Entry)in;
                 if (knownSize) {
                     out.set(idx++, entry.getKey());
@@ -557,13 +566,24 @@ public class POForEach extends PhysicalOperator {
                     out.append(entry.getKey());
                     out.append(entry.getValue());
                 }
+            } else if (in == null &&
+                       flattenNumFields != null && flattenNumFields[i] != 0 ) {
+                // Handling of FLATTEN(null) here.
+                // Expanding to multiple nulls depending on the schema
+                for( int j = 0; j < flattenNumFields[i]; j++ ) {
+                    if (knownSize) {
+                        out.set(idx++, null);
+                    } else {
+                        out.append(null);
+                    }
+                }
             } else {
                 if (knownSize) {
                     out.set(idx++, in);
-            } else {
-                out.append(in);
+                } else {
+                    out.append(in);
+                }
             }
-        }
         }
         if (inpTuple != null) {
             return illustratorMarkup(inpTuple, out, 0);
@@ -706,12 +726,17 @@ public class POForEach extends PhysicalOperator {
         clone.addOriginalLocation(alias, getOriginalLocations());
         clone.endOfAllInputProcessing = endOfAllInputProcessing;
         clone.mapSideOnly = mapSideOnly;
+        clone.flattenNumFields = flattenNumFields;
         return clone;
     }
 
     public boolean inProcessing()
     {
         return processingPlan;
+    }
+
+    public void setFlattenNumFields (int [] flattenNumFields) {
+        this.flattenNumFields = flattenNumFields;
     }
 
     protected void setUpFlattens(List<Boolean> isToBeFlattened) {

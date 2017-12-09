@@ -554,8 +554,8 @@ public class TestProjectRange  {
         List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
-                            "(10,20,30,40,50)",
-                            "(11,21,31,41,51)",
+                            "(10,20L,30,40,50)",
+                            "(11,21L,31,41,51)",
                     });
         Util.checkQueryOutputs(it, expectedRes);
     }
@@ -799,8 +799,8 @@ public class TestProjectRange  {
         List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
-                            "(10,20,30,40,50)",
-                            "(11,21,31,41,51)",
+                            "(10,20L,30,40,50)",
+                            "(11,21L,31,41,51)",
                     });
         Util.checkQueryOutputs(it, expectedRes);
     }
@@ -828,10 +828,10 @@ public class TestProjectRange  {
         Iterator<Tuple> it = pigServer.openIterator("o");
 
         List<Tuple> expectedRes =
-            Util.getTuplesFromConstantTupleStrings(
+            Util.getTuplesFromConstantTupleStringAsByteArray(
                     new String[] {
-                            "(11,21,31,41,51)",
-                            "(10,20,30,40,50)",
+                            "('11','21','31','41','51')",
+                            "('10','20','30','40','50')",
                     });
         Util.checkQueryOutputs(it, expectedRes);
     }
@@ -858,10 +858,10 @@ public class TestProjectRange  {
         Iterator<Tuple> it = pigServer.openIterator("o");
 
         List<Tuple> expectedRes =
-            Util.getTuplesFromConstantTupleStrings(
+            Util.getTuplesFromConstantTupleStringAsByteArray(
                     new String[] {
-                            "(11,21,31,41,51)",
-                            "(10,20,30,40,50)",
+                            "('11','21','31','41','51')",
+                            "('10','20','30','40','50')",
                     });
         Util.checkQueryOutputs(it, expectedRes);
     }

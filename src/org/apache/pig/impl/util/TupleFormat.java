@@ -47,32 +47,34 @@ public class TupleFormat {
     public static String format(Tuple tuple) {
         StringBuilder sb = new StringBuilder();
         sb.append('(');
-        for (int i = 0; i < tuple.size(); ++i) {
-            try {
-                Object d = tuple.get(i);
-                if (d != null) {
-                    if (d instanceof Map) {
-                        sb.append(DataType.mapToString((Map<String, Object>) d));
-                    } else if (d instanceof Tuple) {
-                        Tuple t = (Tuple) d;
-                        sb.append(TupleFormat.format(t));
-                    } else if (d instanceof DataBag){
-                        DataBag bag=(DataBag)d;
-                        sb.append(BagFormat.format(bag));
+        if( tuple != null ) {
+            for (int i = 0; i < tuple.size(); ++i) {
+                try {
+                    Object d = tuple.get(i);
+                    if (d != null) {
+                        if (d instanceof Map) {
+                            sb.append(DataType.mapToString((Map<String, Object>) d));
+                        } else if (d instanceof Tuple) {
+                            Tuple t = (Tuple) d;
+                            sb.append(TupleFormat.format(t));
+                        } else if (d instanceof DataBag){
+                            DataBag bag=(DataBag)d;
+                            sb.append(BagFormat.format(bag));
+                        }
+                        else {
+                            sb.append(d.toString());
+                        }
+                    } else {
+                        sb.append("");
                     }
-                    else {
-                        sb.append(d.toString());
-                    }
-                } else {
-                    sb.append("");
+                    if (i != tuple.size() - 1)
+                        sb.append(",");
+                } catch (ExecException e) {
+                    e.printStackTrace();
+                    mLog.warn("Exception when format tuple", e);
                 }
-                if (i != tuple.size() - 1)
-                    sb.append(",");
-            } catch (ExecException e) {
-                e.printStackTrace();
-                mLog.warn("Exception when format tuple", e);
-            }
 
+            }
         }
         sb.append(')');
         return sb.toString();
