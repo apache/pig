@@ -25,6 +25,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.List;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.Assert;
 
 import org.apache.pig.PigServer;
@@ -118,7 +119,7 @@ public class TestAssert {
       } catch (FrontendException fe) {
           if (pigServer.getPigContext().getExecType().toString().startsWith("TEZ")
                   || pigServer.getPigContext().getExecType().toString().startsWith("SPARK")) {
-              Assert.assertTrue(fe.getCause().getMessage().contains(
+              Assert.assertTrue(ExceptionUtils.getRootCause(fe).getMessage().contains(
                       "Assertion violated: i should be greater than 1"));
           } else {
               Assert.assertTrue(fe.getCause().getMessage().contains(
@@ -150,7 +151,7 @@ public class TestAssert {
       } catch (FrontendException fe) {
           if (pigServer.getPigContext().getExecType().toString().startsWith("TEZ")
                   || pigServer.getPigContext().getExecType().toString().startsWith("SPARK")) {
-              Assert.assertTrue(fe.getCause().getMessage().contains(
+              Assert.assertTrue(ExceptionUtils.getRootCause(fe).getMessage().contains(
                       "Assertion violated: i should be greater than 1"));
           } else {
               Assert.assertTrue(fe.getCause().getMessage().contains(

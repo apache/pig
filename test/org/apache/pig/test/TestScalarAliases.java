@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
 import org.junit.AfterClass;
@@ -108,7 +109,7 @@ public class TestScalarAliases  {
             pigServer.openIterator("C");
             fail("exception expected - scalar input has multiple rows");
         } catch (IOException pe){
-            Util.checkStrContainsSubStr(pe.getCause().getMessage(),
+            Util.checkStrContainsSubStr(ExceptionUtils.getRootCause(pe).getMessage(),
                     "Scalar has more than one row in the output"
             );
         }

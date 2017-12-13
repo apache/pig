@@ -105,6 +105,7 @@ import org.apache.pig.parser.ParserException;
 import org.apache.pig.parser.QueryParserDriver;
 import org.apache.pig.tools.grunt.GruntParser;
 import org.apache.pig.tools.pigstats.ScriptState;
+import org.apache.spark.package$;
 import org.junit.Assert;
 
 import com.google.common.base.Function;
@@ -400,7 +401,7 @@ public class Util {
         }
         FileStatus fileStatus = fs.getFileStatus(path);
         FileStatus[] files;
-        if (fileStatus.isDir()) {
+        if (fileStatus.isDirectory()) {
             files = fs.listStatus(path, new PathFilter() {
                 @Override
                 public boolean accept(Path p) {
@@ -731,7 +732,7 @@ public class Util {
 
         String line = null;
  	   FileStatus fst = fs.getFileStatus(new Path(fileNameOnCluster));
- 	   if(fst.isDir()) {
+ 	   if(fst.isDirectory()) {
  	       throw new IOException("Only files from cluster can be copied locally," +
  	       		" " + fileNameOnCluster + " is a directory");
  	   }
@@ -1250,13 +1251,14 @@ public class Util {
         LogicalSchema resultSchema = org.apache.pig.impl.util.Utils.parseSchema(schemaString);
         checkQueryOutputsAfterSortRecursive(actualResultsIt, expectedResArray, resultSchema);
     }
-          /**
+    
+    /**
      * Helper function to check if the result of a Pig Query is in line with
      * expected results. It sorts actual and expected string results before comparison
      *
      * @param actualResultsIt Result of the executed Pig query
      * @param expectedResArray Expected string results to validate against
-     * @param fs fieldSchema of expecteResArray
+     * @param schema fieldSchema of expecteResArray
      * @throws IOException
      */
     static public void checkQueryOutputsAfterSortRecursive(Iterator<Tuple> actualResultsIt,
@@ -1332,6 +1334,11 @@ public class Util {
         if (version.matches("\\b1\\.*\\..+"))
             return true;
         return false;
+    }
+
+    public static boolean isSpark2_2_plus() throws IOException {
+        String sparkVersion = package$.MODULE$.SPARK_VERSION();
+        return sparkVersion != null && sparkVersion.matches("2\\.([\\d&&[^01]]|[\\d]{2,})\\..*");
     }
 
     public static void sortQueryOutputsIfNeed(List<Tuple> actualResList, boolean toSort){
