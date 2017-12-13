@@ -60,6 +60,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5318: Unit test failures on Pig on Spark with Spark 2.2 (nkollar via szita)
+
 PIG-5201: Null handling on FLATTEN (knoguchi)
 
 PIG-5315: pig.script is not set for scripts run via PigServer (satishsaley via rohini)

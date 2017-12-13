@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -1459,7 +1460,8 @@ public class TestEvalPipeline2 {
                 pigServer.openIterator("b");
                 Assert.fail();
             } catch (Exception e) {
-                Assert.assertTrue(e.getMessage().contains(ArrayList.class.getName()));
+                Assert.assertTrue(ExceptionUtils.getRootCause(e).getMessage().contains(
+                        "Unexpected data type " + ArrayList.class.getName() + " found in stream."));
             }
         }
         finally {
