@@ -198,11 +198,18 @@ public class NonSpillableDataBag implements DataBag {
      */
     @Override
     public boolean equals(Object obj) {
+        if( obj == null) {
+            return false;
+        }
         return compareTo(obj) == 0;
     }
 
     public int hashCode() {
-        return mContents.hashCode();
+        int hash = 0;
+        for( Tuple t : mContents ) {
+            hash += t.hashCode();
+        }
+        return hash;
     }
 
     @SuppressWarnings("unchecked")
