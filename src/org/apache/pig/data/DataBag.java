@@ -126,6 +126,15 @@ public interface DataBag extends Spillable, WritableComparable, Iterable<Tuple>,
     void clear();
 
     /**
+     * Returns the hash code value for the bag.  The hash code of a bag is
+     * defined to be the sum of the hash codes of each tuple.
+     * This ensures that b1.equals(b2) implies b1.hashCode() == b2.hashCode()
+     *
+     * @return the hash code value for this bag
+     */
+    int hashCode();
+
+    /**
      * This is used by FuncEvalSpec.FakeDataBag.
      * @param stale Set stale state.
      */

@@ -17,6 +17,7 @@ package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -42,7 +43,15 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.DefaultDataBag;
+import org.apache.pig.data.DistinctDataBag;
+import org.apache.pig.data.InternalCachedBag;
+import org.apache.pig.data.InternalDistinctBag;
 import org.apache.pig.data.InternalMap;
+import org.apache.pig.data.InternalSortedBag;
+import org.apache.pig.data.NonSpillableDataBag;
+import org.apache.pig.data.SingleTupleBag;
+import org.apache.pig.data.SortedDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.junit.Test;
@@ -584,6 +593,77 @@ public class TestDataModel {
         } catch (ExecException ee) {
             assertEquals(1073, ee.getErrorCode());
             throw ee;
+        }
+    }
+
+    @Test
+    public void testBagHashCodeAndEquals() throws Exception {
+        DataBag [] ascBags = {new SortedDataBag(null), new DefaultDataBag(), new DistinctDataBag(), new InternalCachedBag(), new InternalDistinctBag(), new InternalSortedBag(), new NonSpillableDataBag()};
+        DataBag [] dscBags = {new SortedDataBag(null), new DefaultDataBag(), new DistinctDataBag(), new InternalCachedBag(), new InternalDistinctBag(), new InternalSortedBag(), new NonSpillableDataBag()};
+        Tuple input = giveMeOneOfEach();
+        TupleFactory tf = TupleFactory.getInstance();
+        for (int i = 0; i < ascBags.length; i++ ) {
+            for( int j = 0; j < input.size(); j++ ) {
+                ascBags[i].add(tf.newTuple(input.get(j)));
+                dscBags[i].add(tf.newTuple(input.get(input.size() - 1 - j)));
+            }
+        }
+        // making sure equals(null) does not throw NPE
+        for (DataBag bag : ascBags ) {
+            assertFalse(bag.equals(null));
+        }
+        // Comparing against each other including itself
+        for (DataBag bag1 : ascBags ) {
+            for (DataBag bag2 : ascBags ) {
+                assertEquals("Comparing hashcode for " + bag1.getClass() + " and " + bag2.getClass() + " failed", bag1.hashCode(), bag2.hashCode());
+                assertEquals("Comparing content of Bag for " + bag1.getClass() + " and " + bag2.getClass() + " failed", bag1, bag2);
+            }
+        }
+        // Comparing against each other again but now with different insertion
+        // order.  (including from the same type of Bag class)
+        for (DataBag ascBag : ascBags) {
+            for (DataBag dscBag : dscBags) {
+                assertEquals("Comparing hashcode for " + ascBag.getClass() + " and " + dscBag.getClass() + " failed", ascBag.hashCode(), dscBag.hashCode());
+                assertEquals("Comparing content of Bag for " + ascBag.getClass() + " and " + dscBag.getClass() + " failed", ascBag, dscBag);
+            }
+        }
+    }
+
+    @Test
+    public void testBagHashCodeAndEqualsForSingleTuple() throws Exception {
+        TupleFactory tf = TupleFactory.getInstance();
+
+        // For each datatype, making sure bag hashcode and content match
+        for( Object input: giveMeOneOfEach() ) {
+            DataBag [] singleItemBags = {new SortedDataBag(null), new DefaultDataBag(), new DistinctDataBag(), new InternalCachedBag(), new InternalDistinctBag(), new InternalSortedBag(), new NonSpillableDataBag(), new SingleTupleBag(null)};
+            DataBag [] twoItemBags = {new SortedDataBag(null), new DefaultDataBag(), new DistinctDataBag(), new InternalCachedBag(), new InternalDistinctBag(), new InternalSortedBag(), new NonSpillableDataBag()};
+
+            for( DataBag singleItemBag : singleItemBags ) {
+                singleItemBag.add(tf.newTuple(input));
+            }
+
+            for( DataBag singleItemBag1 : singleItemBags ) {
+                for( DataBag singleItemBag2 : singleItemBags ) {
+                    assertEquals("Comparing hashcode for " + singleItemBag1.getClass()
+                                 + " and " + singleItemBag2.getClass() + " failed",
+                                 singleItemBag1.hashCode(), singleItemBag2.hashCode());
+                    assertEquals("Comparing content of Bag for " + singleItemBag1.getClass()
+                                 + " and " + singleItemBag2.getClass() + " failed",
+                                 singleItemBag1, singleItemBag2);
+                }
+            }
+
+            // making sure no two-items-bag would match with single item bag
+            for( DataBag twoItemBag : twoItemBags ) {
+                twoItemBag.add(tf.newTuple(input));
+                twoItemBag.add(tf.newTuple(new String("Unique string not to overlap with a tuple above")));
+            }
+
+            for( DataBag twoItemBag : twoItemBags ) {
+                for( DataBag singleItemBag : singleItemBags ) {
+                    assertNotEquals(twoItemBag, singleItemBag);
+                }
+            }
         }
     }
 

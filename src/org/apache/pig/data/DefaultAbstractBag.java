@@ -309,6 +309,9 @@ public abstract class DefaultAbstractBag implements DataBag {
 
     @Override
     public boolean equals(Object other) {
+        if( other == null ) {
+            return false;
+        }
         return compareTo(other) == 0;
     }
 
@@ -359,11 +362,10 @@ public abstract class DefaultAbstractBag implements DataBag {
 
     @Override
     public int hashCode() {
-        int hash = 1;
+        int hash = 0;
         Iterator<Tuple> i = iterator();
         while (i.hasNext()) {
-            // Use 37 because we want a prime, and tuple uses 31.
-            hash = 37 * hash + i.next().hashCode();
+            hash += i.next().hashCode();
         }
         return hash;
     }

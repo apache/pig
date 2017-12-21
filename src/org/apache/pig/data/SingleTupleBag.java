@@ -156,22 +156,37 @@ public class SingleTupleBag implements DataBag {
         }    
     }
 
-    /* (non-Javadoc)
-     * @see java.lang.Comparable#compareTo(java.lang.Object)
-     */
     @Override
-    public int compareTo(Object o) {
-        // TODO Auto-generated method stub
-        return 0;
+    public int compareTo(Object other) {
+        if (this == other)
+            return 0;
+        if (other instanceof DataBag) {
+            DataBag bOther = (DataBag) other;
+            if (bOther.size() != 1) {
+                if ( 1 > bOther.size()) return 1;
+                else return -1;
+            }
+            Iterator<Tuple> iter = bOther.iterator();
+            return item.compareTo(iter.next());
+        } else {
+            return DataType.compare(this, other);
+        }
     }
 
-    public boolean equals(Object o){
-        // TODO: match to compareTo if it is updated
-        return true;
+    @Override
+    public boolean equals(Object other) {
+        if( other == null ) {
+            return false;
+        }
+        return compareTo(other) == 0;
     }
 
+    @Override
     public int hashCode() {
-        return 42; 
+        if( item != null ) {
+            return item.hashCode();
+        }
+        return 0;
     }
 
     class TBIterator implements Iterator<Tuple> {
