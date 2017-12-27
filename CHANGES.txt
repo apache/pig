@@ -59,6 +59,9 @@ PIG-5251: Bump joda-time to 2.9.9 (dbist13 via rohini)
 OPTIMIZATIONS
  
 BUG FIXES
+
+PIG-3864: ToDate(userstring, format, timezone) computes DateTime with strange handling of Daylight Saving Time with location based timezones (daijy via rohini)
+
 PIG-5312: Uids not set in inner schemas after UNION ONSCHEMA (tmwoodruff via knoguchi)
 
 PIG-5300: hashCode for Bag needs to be order independent (knoguchi)

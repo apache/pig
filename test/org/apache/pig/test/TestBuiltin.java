@@ -533,8 +533,15 @@ public class TestBuiltin {
         ToMilliSeconds func7 = new ToMilliSeconds();
         Tuple t13 = TupleFactory.getInstance().newTuple(1);
         t13.set(0, new DateTime(1231290421000L));
-        Long ut2 = func7.exec(t11);
+        Long ut2 = func7.exec(t13);
         assertEquals(ut2.longValue(), 1231290421000L);
+
+        Tuple t14 = TupleFactory.getInstance().newTuple(3);
+        t14.set(0, "2014-02-02 18:00:00.000Z");
+        t14.set(1, "yyyy-MM-dd HH:mm:ss.SSSZ");
+        t14.set(2, "Europe/Berlin");
+        DateTime dt8 = func4.exec(t14);
+        assertEquals(dt8.toString(), "2014-02-02T19:00:00.000+01:00");
 
         // Null handling
         t1.set(0, null);
