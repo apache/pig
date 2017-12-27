@@ -26,6 +26,8 @@ PIG-5282: Upgade to Java 8 (satishsaley via rohini)
  
 IMPROVEMENTS
 
+PIG-5322: ConstantCalculator optimizer is not applied for split (rohini)
+
 PIG-5316: Initialize mapred.task.id property for PoS jobs (nkollar via szita)
 
 PIG-5302: Remove HttpClient dependency (nkollar via szita)

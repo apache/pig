@@ -22,6 +22,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -33,13 +34,20 @@ import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.data.SchemaTupleBackend;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
+import org.apache.pig.newplan.logical.expression.ConstantExpression;
+import org.apache.pig.newplan.logical.expression.NegativeExpression;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
+import org.apache.pig.newplan.logical.relational.LOSplitOutput;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.rules.FilterConstantCalculator;
 import org.apache.pig.newplan.logical.rules.ForEachConstantCalculator;
+import org.apache.pig.newplan.logical.rules.SplitConstantCalculator;
 import org.apache.pig.newplan.optimizer.PlanOptimizer;
 import org.apache.pig.newplan.optimizer.Rule;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -54,6 +62,7 @@ public class TestConstantCalculator {
         SchemaTupleBackend.initialize(ConfigurationUtil.toConfiguration(pc.getProperties(), true),
                 pc);
     }
+
     @Test
     public void test() throws Exception {
         // pure simple constant
@@ -105,6 +114,36 @@ public class TestConstantCalculator {
                 "store b into 'empty';");
     }
 
+    @Test
+    public void testSplit() throws Exception {
+        // calculation inside split
+        LogicalPlan plan = getOptimizedLogicalPlan("a = load 'd.txt' as (x:long);" +
+                "split a into b if x == -2L, c otherwise;" +
+                "store b into 'empty';" +
+                "store c into 'empty1';");
+
+        List<ConstantExpression> constantOps = new ArrayList<>();
+        Iterator<Operator> operators = plan.getOperators();
+        while (operators.hasNext()) {
+            Operator splitOp = operators.next();
+            if (splitOp instanceof LOSplitOutput) {
+                Iterator<Operator> splitOperators = ((LOSplitOutput)splitOp).getFilterPlan().getOperators();
+                while (splitOperators.hasNext()) {
+                    Operator op = splitOperators.next();
+                    if (op instanceof ConstantExpression) {
+                        constantOps.add((ConstantExpression)op);
+                    } else if (op instanceof NegativeExpression) {
+                        Assert.fail("Found NegativeExpression which should have been optimized");
+                    }
+                }
+            }
+
+        }
+       Assert.assertEquals(2, constantOps.size());
+       Assert.assertEquals(new Long(-2L), constantOps.get(0).getValue());
+       Assert.assertEquals(new Long(-2L), constantOps.get(1).getValue());
+    }
+
     public static class NoCalc extends EvalFunc<String> {
         @Override
         public String exec(Tuple input) throws IOException {
@@ -124,17 +163,23 @@ public class TestConstantCalculator {
     }
 
     private void assertQuerySame(String origQuery, String optimizedQuery) throws Exception {
+        LogicalPlan newLogicalPlan = getOptimizedLogicalPlan(origQuery);
+
+        LogicalPlan expected = Util.buildLp(pigServer, optimizedQuery);
+
+        assertTrue(expected.isEqual(newLogicalPlan));
+
+    }
+
+    private LogicalPlan getOptimizedLogicalPlan(String origQuery)
+            throws Exception, IOException, FrontendException {
         LogicalPlan newLogicalPlan = Util.buildLp(pigServer, origQuery);
 
         SchemaTupleBackend.initialize(ConfigurationUtil.toConfiguration(pc.getProperties(), true),
                 pc);
         PlanOptimizer optimizer = new MyPlanOptimizer(newLogicalPlan, 10);
         optimizer.optimize();
-
-        LogicalPlan expected = Util.buildLp(pigServer, optimizedQuery);
-
-        assertTrue(expected.isEqual(newLogicalPlan));
-
+        return newLogicalPlan;
     }
 
     public class MyPlanOptimizer extends LogicalPlanOptimizer {
@@ -143,6 +188,7 @@ public class TestConstantCalculator {
             super(p, iterations, null);
         }
 
+        @Override
         protected List<Set<Rule>> buildRuleSets() {
             List<Set<Rule>> ls = new ArrayList<Set<Rule>>();
 
@@ -152,6 +198,9 @@ public class TestConstantCalculator {
             Rule r = new FilterConstantCalculator("FilterConstantCalculator", pc);
             s.add(r);
             r = new ForEachConstantCalculator("ForEachConstantCalculator", pc);
+            s.add(r);
+            ls.add(s);
+            r = new SplitConstantCalculator("SplitConstantCalculator", pc);
             s.add(r);
             ls.add(s);
 
