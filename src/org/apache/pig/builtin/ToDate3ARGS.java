@@ -39,8 +39,7 @@ public class ToDate3ARGS extends EvalFunc<DateTime> {
         }
         DateTimeFormatter dtf = DateTimeFormat.forPattern(DataType
                 .toString(input.get(1)));
-        DateTimeZone dtz = DateTimeZone.forOffsetMillis(DateTimeZone.forID(
-                DataType.toString(input.get(2))).getOffset(null));
+        DateTimeZone dtz = DateTimeZone.forID(DataType.toString(input.get(2)));
         return dtf.withZone(dtz).parseDateTime(DataType.toString(input.get(0)));
     }
 
