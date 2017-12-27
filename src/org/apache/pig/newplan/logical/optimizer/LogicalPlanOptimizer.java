@@ -22,10 +22,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.SetMultimap;
-import com.google.common.collect.TreeMultimap;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.impl.PigContext;
@@ -45,10 +41,15 @@ import org.apache.pig.newplan.logical.rules.PartitionFilterOptimizer;
 import org.apache.pig.newplan.logical.rules.PredicatePushdownOptimizer;
 import org.apache.pig.newplan.logical.rules.PushDownForEachFlatten;
 import org.apache.pig.newplan.logical.rules.PushUpFilter;
+import org.apache.pig.newplan.logical.rules.SplitConstantCalculator;
 import org.apache.pig.newplan.logical.rules.SplitFilter;
 import org.apache.pig.newplan.logical.rules.StreamTypeCastInserter;
 import org.apache.pig.newplan.optimizer.PlanOptimizer;
 import org.apache.pig.newplan.optimizer.Rule;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.SetMultimap;
+import com.google.common.collect.TreeMultimap;
 
 public class LogicalPlanOptimizer extends PlanOptimizer {
     private static final Log LOG = LogFactory.getLog(LogicalPlanOptimizer.class);
@@ -89,10 +90,13 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
         // Logical expression simplifier
         Set <Rule> s = new HashSet<Rule>();
         // add constant calculator rule
-        Rule r = new FilterConstantCalculator("ConstantCalculator", pc);
+        Rule r = new FilterConstantCalculator("FilterConstantCalculator", pc);
         checkAndAddRule(s, r);
         ls.add(s);
-        r = new ForEachConstantCalculator("ConstantCalculator", pc);
+        r = new ForEachConstantCalculator("ForEachConstantCalculator", pc);
+        checkAndAddRule(s, r);
+        ls.add(s);
+        r = new SplitConstantCalculator("SplitConstantCalculator", pc);
         checkAndAddRule(s, r);
         ls.add(s);
 
