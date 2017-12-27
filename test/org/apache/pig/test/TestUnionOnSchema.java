@@ -478,6 +478,43 @@ public class TestUnionOnSchema  {
      * Test UNION ONSCHEMA on 3 inputs 
      */
     @Test
+    public void testUnionOnSchemaInnerSchema() throws Exception {
+        PigServer pig = new PigServer(Util.getLocalTestMode());
+        String query =
+            "  l1 = load '" + INP_FILE_2NUM_1CHAR_1BAG + "' as "
+            + "  (i : long, c : chararray, j : int "
+            +       ", b : bag { t : tuple (c1 : int, c2 : chararray)} ); "
+            + "l2 = load '" + INP_FILE_2NUM_1CHAR_1BAG + "' as "
+            + "  (i : long, c : chararray, j : int "
+            +       ", b : bag { t : tuple (c1 : int, c2 : chararray)} ); "
+            + "u = union onschema l1, l2; "
+            // The addition in the inner foreach will fail if the inner schema's uids
+            // are all set to -1, since the code that finds the inner load's schema will
+            // match the last item in b's schema, which is a chararray
+            + "p = foreach u { x = foreach b GENERATE c1 + 5 as c3; GENERATE i, c, x; }";
+
+        Util.registerMultiLineQuery(pig, query);
+        pig.explain("p", System.out);
+
+        Iterator<Tuple> it = pig.openIterator("p");
+
+        List<Tuple> expectedRes =
+            Util.getTuplesFromConstantTupleStrings(
+                    new String[] {
+                        "(1L,'abc',{(6),(6)})",
+                        "(5L,'def',{(7),(7)})",
+                        "(1L,'abc',{(6),(6)})",
+                        "(5L,'def',{(7),(7)})"
+                    });
+        Util.checkQueryOutputsAfterSort(it, expectedRes);
+    }
+
+    /**
+     * Test UNION ONSCHEMA on 3 inputs
+     * @throws IOException
+     * @throws ParserException
+     */
+    @Test
     public void testUnionOnSchema3Inputs() throws Exception {
         PigServer pig = new PigServer(Util.getLocalTestMode());
         String query =

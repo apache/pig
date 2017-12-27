@@ -108,60 +108,16 @@ public class LOUnion extends LogicalRelationalOperator {
         }
 
         // Bring back cached uid if any; otherwise, cache uid generated
-        for (int i=0;i<mergedSchema.size();i++)
-        {
-            LogicalSchema.LogicalFieldSchema outputFieldSchema = mergedSchema.getField(i);
+        setMergedSchemaUids(mergedSchema, inputSchemas);
 
-            long uid = -1;
-            
-            // Search all the cached uid mappings by input field to see if 
-            // we've cached an output uid for this output field
-            for (LogicalSchema inputSchema : inputSchemas) {
-                LogicalSchema.LogicalFieldSchema inputFieldSchema;
-                if (onSchema) {
-                    inputFieldSchema = inputSchema.getFieldSubNameMatch(outputFieldSchema.alias);
-                } else {
-                    inputFieldSchema = inputSchema.getField(i);
-                }
-                
-                if (inputFieldSchema != null) {
-                    uid = getCachedOuputUid(inputFieldSchema.uid);
-                    if (uid >= 0) break;
-                }
-            }
-            
-            // No cached uid. Allocate one, and locate and cache all inputs.
-            if (uid==-1) {
-                uid = LogicalExpression.getNextUid();
-                for (LogicalSchema inputSchema : inputSchemas) {
-                    long inputUid;
-                    LogicalFieldSchema matchedInputFieldSchema;
-                	if (onSchema) {
-                	    matchedInputFieldSchema = inputSchema.getFieldSubNameMatch(mergedSchema.getField(i).alias);
-                        if (matchedInputFieldSchema!=null) {
-                            inputUid = matchedInputFieldSchema.uid;
-                            uidMapping.add(new Pair<Long, Long>(uid, inputUid));
-                        }
-                    }
-                    else {
-                        matchedInputFieldSchema = mergedSchema.getField(i);
-	                	inputUid = inputSchema.getField(i).uid;
-	                	uidMapping.add(new Pair<Long, Long>(uid, inputUid));
-                    }
-                }
-            }
-
-            outputFieldSchema.uid = uid;
-        }
-        
         return schema = mergedSchema;
     }
 
     /**
      * create schema for union-onschema
      */
-    private LogicalSchema createMergedSchemaOnAlias(List<LogicalSchema> inputSchemas, 
-            List<String> inputAliases) 
+    private LogicalSchema createMergedSchemaOnAlias(List<LogicalSchema> inputSchemas,
+            List<String> inputAliases)
     throws FrontendException {
         ArrayList<LogicalSchema> schemas = new ArrayList<LogicalSchema>();
         for (int i = 0; i < inputSchemas.size(); i++){
@@ -175,20 +131,81 @@ public class LOUnion extends LogicalRelationalOperator {
             }
             schemas.add( sch );
         }
-        
+
         //create the merged schema
         LogicalSchema mergedSchema = null;
         try {
-            mergedSchema = LogicalSchema.mergeSchemasByAlias( schemas );   
+            mergedSchema = LogicalSchema.mergeSchemasByAlias( schemas );
         } catch(FrontendException e)                 {
             String msg = "Error merging schemas for union operator : "
                 + e.getMessage();
             throw new FrontendException(this, msg, 1116, PigException.INPUT, e);
         }
-        
+
         return mergedSchema;
     }
-    
+
+    private void setMergedSchemaUids(LogicalSchema mergedSchema, List<LogicalSchema> inputSchemas)
+    throws FrontendException {
+
+        for (int i=0;i<mergedSchema.size();i++) {
+            LogicalSchema.LogicalFieldSchema outputFieldSchema = mergedSchema.getField(i);
+
+            long uid = -1;
+            List<LogicalSchema> fieldInputSchemas = new ArrayList<>(inputSchemas.size());
+            
+            // Search all the cached uid mappings by input field to see if 
+            // we've cached an output uid for this output field
+            for (LogicalSchema inputSchema : inputSchemas) {
+                LogicalSchema.LogicalFieldSchema inputFieldSchema;
+                if (onSchema) {
+                    inputFieldSchema = inputSchema.getFieldSubNameMatch(outputFieldSchema.alias);
+                } else {
+                    inputFieldSchema = inputSchema.getField(i);
+                }
+                
+                if (inputFieldSchema != null) {
+                    if (inputFieldSchema.schema != null) {
+                        fieldInputSchemas.add(inputFieldSchema.schema);
+                    }
+
+                    if (uid < 0) {
+                        uid = getCachedOuputUid(inputFieldSchema.uid);
+                        if (uid >= 0 && outputFieldSchema.schema == null) break;
+                    }
+                }
+            }
+            
+            // No cached uid. Allocate one, and locate and cache all inputs.
+            if (uid==-1) {
+                uid = LogicalExpression.getNextUid();
+                for (LogicalSchema inputSchema : inputSchemas) {
+                    long inputUid;
+                    LogicalFieldSchema matchedInputFieldSchema;
+                    if (onSchema) {
+                        matchedInputFieldSchema = inputSchema.getFieldSubNameMatch(mergedSchema.getField(i).alias);
+                        if (matchedInputFieldSchema!=null) {
+                            inputUid = matchedInputFieldSchema.uid;
+                            uidMapping.add(new Pair<Long, Long>(uid, inputUid));
+                        }
+                    }
+                    else {
+                        matchedInputFieldSchema = mergedSchema.getField(i);
+                        inputUid = inputSchema.getField(i).uid;
+                        uidMapping.add(new Pair<Long, Long>(uid, inputUid));
+                    }
+                }
+            }
+
+            outputFieldSchema.uid = uid;
+
+            // This field has a schema. Assign uids to it as well
+            if (outputFieldSchema.schema != null) {
+                setMergedSchemaUids(outputFieldSchema.schema, fieldInputSchemas);
+            }
+        }
+    }
+
     private long getCachedOuputUid(long inputUid) {
         long uid = -1;
         
