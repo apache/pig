@@ -224,8 +224,6 @@
     <dependency org="org.fusesource.jansi" name="jansi" rev="${jansi.version}"
       conf="compile->master"/>
     <dependency org="joda-time" name="joda-time" rev="${joda-time.version}" conf="compile->master"/>
-    <dependency org="commons-lang" name="commons-lang" rev="${commons-lang.version}"
-      conf="compile->master"/>
     <dependency org="com.google.guava" name="guava" rev="${guava.version}" conf="compile->master" />
     <dependency org="org.python" name="jython-standalone" rev="${jython.version}" conf="compile->master"/>
     <dependency org="rhino" name="js" rev="${rhino.version}" conf="compile->master"/>
@@ -364,7 +362,7 @@
     </dependency>
 
     <!-- for piggybank -->
-    <dependency org="hsqldb" name="hsqldb" rev="${hsqldb.version}"
+    <dependency org="org.hsqldb" name="hsqldb" rev="${hsqldb.version}"
       conf="test->default" />
     <dependency org="org.apache.hive" name="hive-exec" rev="${hive.version}" conf="compile->master" changing="true">
       <artifact name="hive-exec" m:classifier="core" />

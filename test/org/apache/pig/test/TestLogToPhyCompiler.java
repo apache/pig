@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 
-import org.apache.commons.lang.CharSet;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.SortColInfo;

@@ -19,7 +19,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import org.apache.commons.lang.math.RandomUtils;
+import org.apache.commons.lang3.RandomUtils;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.piggybank.evaluation.xml.XPathAll;
@@ -356,7 +356,7 @@ public class XPathAllTest {
 
         final StringBuilder sb = new StringBuilder();
 
-        final int max = RandomUtils.nextInt(100);
+        final int max = RandomUtils.nextInt(0, 100);
 
         for (int i = 0; i < max; i++) {
             sb.append("<expansion>This is an expansion of the xml to simulate random sized xml" + i + "</expansion>");
