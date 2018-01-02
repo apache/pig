@@ -31,8 +31,8 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
-import org.apache.commons.lang.RandomStringUtils;
-import org.apache.commons.lang.math.RandomUtils;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.RandomUtils;
 import org.apache.hadoop.hive.ql.io.sarg.SearchArgument;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
@@ -143,12 +143,12 @@ public class TestOrcStoragePushdown {
                     .replaceAll("\n", " ").replaceAll("\r", " "))).append("\t"); //string
             int year;
             if (i > 5000 && i <= 8000) { //datetime
-                year = RandomUtils.nextInt(4)+2010;
+                year = RandomUtils.nextInt(0, 4)+2010;
             } else {
-                year = RandomUtils.nextInt(10)+2000;
+                year = RandomUtils.nextInt(0, 10)+2000;
             }
-            sb.append(new DateTime(year, RandomUtils.nextInt(12)+1,
-                    RandomUtils.nextInt(28)+1, RandomUtils.nextInt(24), RandomUtils.nextInt(60),
+            sb.append(new DateTime(year, RandomUtils.nextInt(0, 12)+1,
+                    RandomUtils.nextInt(0, 28)+1, RandomUtils.nextInt(0, 24), RandomUtils.nextInt(0, 60),
                     DateTimeZone.UTC).toString()).append("\t"); // datetime
             String bigString;
             if (i>7500) {

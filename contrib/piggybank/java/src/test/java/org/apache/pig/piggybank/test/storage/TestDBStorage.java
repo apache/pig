@@ -30,10 +30,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Date;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.test.MiniGenericCluster;
@@ -56,15 +58,13 @@ public class TestDBStorage {
     private String driver = "org.hsqldb.jdbcDriver";
     // private String url = "jdbc:hsqldb:mem:.";
     private String TMP_DIR;
-    private String dblocation;
-    private String url;
-    private String dbUrl = "jdbc:hsqldb:hsql://localhost/" + "batchtest";
+    private String dbUrl = "jdbc:hsqldb:hsql://localhost/batchtest";
     private String user = "sa";
     private String password = "";
 
     private static final String INPUT_FILE = "datafile.txt";
 
-    public TestDBStorage() throws ExecException, IOException {
+    public TestDBStorage() throws IOException {
         // Initialise Pig server
         cluster = MiniGenericCluster.buildCluster();
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
@@ -74,15 +74,13 @@ public class TestDBStorage {
                 .setProperty(MRConfiguration.REDUCE_MAX_ATTEMPTS, "1");
         System.out.println("Pig server initialized successfully");
         TMP_DIR = System.getProperty("user.dir") + "/build/test/";
-        dblocation = TMP_DIR + "batchtest";
-        url = "jdbc:hsqldb:file:" + dblocation
-               + ";hsqldb.default_table_type=cached;hsqldb.cache_rows=100";
         // Initialise DBServer
         dbServer = new Server();
         dbServer.setDatabaseName(0, "batchtest");
         // dbServer.setDatabasePath(0, "mem:test;sql.enforce_strict_size=true");
         dbServer.setDatabasePath(0,
-                            "file:" + TMP_DIR + "batchtest;sql.enforce_strict_size=true");
+                            "file:" + TMP_DIR + "batchtest;"+
+                            "hsqldb.default_table_type=cached;hsqldb.cache_rows=100;sql.enforce_strict_size=true");
         dbServer.setLogWriter(null);
         dbServer.setErrWriter(null);
         dbServer.start();
@@ -98,7 +96,6 @@ public class TestDBStorage {
 
     private void createFile() throws IOException {
         PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE));
-        w = new PrintWriter(new FileWriter(INPUT_FILE));
         w.println("100\tapple\t1.0\t2008-01-01");
         w.println("100\torange\t2.0\t2008-02-01");
         w.println("100\tbanana\t1.1\t2008-03-01");
@@ -111,7 +108,7 @@ public class TestDBStorage {
         Connection con = null;
         String sql = "create table ttt (id integer, name varchar(32), ratio double, dt date)";
         try {
-            con = DriverManager.getConnection(url, user, password);
+            con = DriverManager.getConnection(dbUrl, user, password);
         } catch (SQLException sqe) {
             throw new IOException("Unable to obtain a connection to the database",
                     sqe);
@@ -159,11 +156,11 @@ public class TestDBStorage {
     }
 
     @Test
-    public void testWriteToDB() throws IOException {
+    public void testWriteToDB() throws IOException, InterruptedException, ParseException {
         String insertQuery = "insert into ttt (id, name, ratio, dt) values (?,?,?,?)";
         pigServer.setBatchOn();
         String dbStore = "org.apache.pig.piggybank.storage.DBStorage('" + driver
-                + "', '" + Util.encodeEscape(url) + "', '" + insertQuery + "');";
+                + "', '" + Util.encodeEscape(dbUrl) + "', '" + insertQuery + "');";
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE
                 + "' as (id:int, fruit:chararray, ratio:double, dt : datetime);");
         pigServer.registerQuery("STORE A INTO 'dummy' USING " + dbStore);
@@ -179,7 +176,7 @@ public class TestDBStorage {
         Connection con = null;
         String selectQuery = "select id, name, ratio, dt from ttt order by name";
         try {
-            con = DriverManager.getConnection(url, user, password);
+            con = DriverManager.getConnection(dbUrl, user, password);
         } catch (SQLException sqe) {
             throw new IOException(
                     "Unable to obtain database connection for data verification", sqe);
@@ -189,10 +186,14 @@ public class TestDBStorage {
             ResultSet rs = ps.executeQuery();
 
             int expId = 100;
-            String[] expNames = { "apple", "banana", "orange" };
-            double[] expRatios = { 1.0, 1.1, 2.0 };
-                        Date []  expDates = {new Date(2008,01,01),new Date(2008,02,01),new Date(2008,03,01)};
-            for (int i = 0; i < 4 && rs.next(); i++) {
+            String[] expNames = {"apple", "banana", "orange"};
+            double[] expRatios = {1.0, 1.1, 2.0};
+            DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+            Date[] expDates = {new Date(df.parse("2008-01-01").getTime()),
+                new Date(df.parse("2008-03-01").getTime()),
+                new Date(df.parse("2008-02-01").getTime())};
+            for (int i = 0; i < 4; i++) {
+                rs.next();
                 //Need to check for nulls explicitly.
                 if ( i == 0) {
                     //Id

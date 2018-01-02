@@ -772,7 +772,7 @@
             <fileset dir="${ivy.lib.dir}" includes="commons-cli-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="commons-configuration-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="commons-collections-*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="commons-lang-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="commons-lang3-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="commons-codec-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="commons-io-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="commons-logging-*.jar"/>
@@ -1079,7 +1079,7 @@
             <fileset dir="${test.build.classes}">
                 <include name="**/org/apache/pig/test/**"/>
             </fileset>
-            <zipfileset src="${ivy.lib.dir}/commons-lang-${commons-lang.version}.jar" />
+            <zipfileset src="${ivy.lib.dir}/commons-lang3-${commons-lang3.version}.jar" />
         </jar>
     </target>
 
@@ -1094,7 +1094,7 @@
                 <include name="**/org/apache/pig/pigunit/**"/>
                 <include name="**/org/apache/pig/test/Util.**"/>
             </fileset>
-            <zipfileset src="${ivy.lib.dir}/commons-lang-${commons-lang.version}.jar" />
+            <zipfileset src="${ivy.lib.dir}/commons-lang3-${commons-lang3.version}.jar" />
         </jar>
     </target>
 
