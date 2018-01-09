@@ -990,6 +990,33 @@ public class TestSchema {
     }
 
     @Test
+    public void testDisabledDisambiguationContainsNoColonsForNestedSchema() throws IOException {
+        resetDisambiguationTestPropertyOverride();
+
+        String inputFileName = "testPrepend-nested-input.txt";
+        String[] inputData = new String[]{"apple\t1\tred", "orange\t2\torange", "kiwi\t3\tgreen", "orange\t4\torange"};
+        Util.createInputFile(cluster, inputFileName, inputData);
+
+        String script = "A = LOAD '" + inputFileName + "' AS (fruit:chararray, foo:int, color: chararray);" +
+                "B = LOAD '" + inputFileName + "' AS (id:chararray, bar:int);" +
+                "C = JOIN A by fruit, B by id;" +
+                "D = GROUP C by fruit;" +
+                "E = LOAD '" + inputFileName + "' AS (name:chararray, qwe:int);" +
+                "F = JOIN E by name, D by group;";
+
+        Util.registerMultiLineQuery(pigServer, script);
+
+        //Prepending should happen with default settings
+        assertEquals("{E::name: chararray,E::qwe: int,D::group: chararray,D::C: {(A::fruit: chararray,A::foo: int,A::color: chararray,B::id: chararray,B::bar: int)}}", pigServer.dumpSchema("F").toString());
+
+        //Override prepend property setting (check for flatten, join)
+        pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_STORE_SCHEMA_DISAMBIGUATE, "false");
+        assertEquals("{name: chararray,qwe: int,group: chararray,C: {(fruit: chararray,foo: int,color: chararray,id:" +
+                " chararray,bar: int)}}", pigServer.dumpSchema("F").toString());
+        assertTrue(pigServer.openIterator("F").hasNext());
+    }
+
+    @Test
     public void testEnabledDisambiguationPassesForDupeAliases() throws IOException {
         resetDisambiguationTestPropertyOverride();
 
