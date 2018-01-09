@@ -63,16 +63,31 @@ public class LOStore extends LogicalRelationalOperator {
     public LogicalSchema getSchema() throws FrontendException {
         schema = ((LogicalRelationalOperator)plan.getPredecessors(this).get(0)).getSchema();
 
-        if (!disambiguationEnabled && schema != null && schema.getFields() != null) {
+        if (!disambiguationEnabled) {
             //If requested try and remove parent alias substring including colon(s)
+            removeDisambiguation(schema);
+        }
+
+        return schema;
+    }
+
+    /**
+     * Removes schema disambiguation parts (parent alias and :) from field aliases
+     * @param schema
+     * @return
+     */
+    private static LogicalSchema removeDisambiguation(LogicalSchema schema) {
+        if (schema != null && schema.getFields() != null) {
             for (LogicalSchema.LogicalFieldSchema field : schema.getFields()) {
+                if (field.schema != null) {
+                    removeDisambiguation(field.schema);
+                }
                 if (field.alias == null || !field.alias.contains(":")) {
                     continue;
                 }
                 field.alias = field.alias.substring(field.alias.lastIndexOf(":") + 1);
             }
         }
-
         return schema;
     }
 

@@ -64,6 +64,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5325: Schema disambiguation can't be turned off for nested schemas (szita)
+
 PIG-5311: POReservoirSample fails for more than Integer.MAX_VALUE records (rohini)
 
 PIG-3864: ToDate(userstring, format, timezone) computes DateTime with strange handling of Daylight Saving Time with location based timezones (daijy via rohini)
