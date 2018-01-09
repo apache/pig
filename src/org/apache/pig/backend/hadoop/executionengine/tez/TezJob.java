@@ -283,11 +283,11 @@ public class TezJob implements Runnable {
 
     public void killJob() throws IOException {
         try {
-            if (dagClient != null) {
+            if (dagClient != null && (dagStatus == null || !dagStatus.isCompleted())) {
                 dagClient.tryKillDAG();
             }
             if (tezClient != null) {
-                tezClient.stop();
+                TezSessionManager.stopSession(tezClient);
             }
         } catch (TezException e) {
             throw new IOException("Cannot kill DAG - Application Id: " + appId, e);
