@@ -64,6 +64,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5320: TestCubeOperator#testRollupBasic is flaky on Spark 2.2 (nkollar via szita)
+
 PIG-5327: Check for DAG status before trying to kill (rohini)
 
 PIG-5325: Schema disambiguation can't be turned off for nested schemas (szita)
