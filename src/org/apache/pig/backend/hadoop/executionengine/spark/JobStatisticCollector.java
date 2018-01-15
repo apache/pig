@@ -52,15 +52,13 @@ public class JobStatisticCollector {
         }
     }
 
-    public boolean waitForJobToEnd(int jobId) throws InterruptedException {
+    public void waitForJobToEnd(int jobId) throws InterruptedException {
         synchronized (sparkListener) {
-            if (finishedJobIds.contains(jobId)) {
-                finishedJobIds.remove(jobId);
-                return true;
+            while (!finishedJobIds.contains(jobId)) {
+                sparkListener.wait();
             }
 
-            sparkListener.wait();
-            return false;
+            finishedJobIds.remove(jobId);
         }
     }
 
