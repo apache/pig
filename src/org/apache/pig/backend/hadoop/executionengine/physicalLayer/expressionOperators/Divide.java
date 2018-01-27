@@ -110,7 +110,7 @@ public class Divide extends BinaryExpressionOperator {
         case DataType.BIGINTEGER:
             return BigInteger.ZERO.equals((BigInteger) a);
         case DataType.BIGDECIMAL:
-            return BigDecimal.ZERO.equals((BigDecimal) a);
+            return ((BigDecimal) a).signum() == 0;
         default:
             throw new ExecException("Called on unsupported Number class " + DataType.findTypeName(dataType));
         }

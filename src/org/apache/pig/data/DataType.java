@@ -662,7 +662,7 @@ public class DataType {
             case BIGINTEGER:
                 return Boolean.valueOf(!BigInteger.ZERO.equals(((BigInteger) o)));
             case BIGDECIMAL:
-                return Boolean.valueOf(!BigDecimal.ZERO.equals(((BigDecimal) o)));
+                return Boolean.valueOf(((BigDecimal) o).signum() != 0);
             case FLOAT:
                 return Boolean.valueOf(((Float) o).floatValue() != 0.0F);
             case DOUBLE:
