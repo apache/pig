@@ -274,10 +274,13 @@ public class TestDivide {
                 resf = op.getNextBigDecimal();
                 assertEquals(null, (BigDecimal)resf.result);
                 // test divide by 0
-                lt.setValue(inpf1);
-                rt.setValue(new BigDecimal(0.0f,mc));
-                resf = op.getNextBigDecimal();
-                assertEquals(null, (BigDecimal)resf.result);
+				String[] zeroStrings = new String[] { "0", "-0", "0.0", "-0.0", "0.000000", "-0.000000" };
+				for (String zeroString : zeroStrings) {
+					lt.setValue(inpf1);
+					rt.setValue(new BigDecimal(zeroString));
+					resf = op.getNextBigDecimal();
+					assertEquals(null, (BigDecimal)resf.result);
+				}
                 break;
             }
             case DataType.DATETIME:

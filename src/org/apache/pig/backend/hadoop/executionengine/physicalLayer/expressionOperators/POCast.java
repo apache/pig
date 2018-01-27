@@ -468,7 +468,7 @@ public class POCast extends ExpressionOperator {
             BigDecimal bd = null;
             Result res = in.getNextBigDecimal();
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
-                res.result = Boolean.valueOf(!BigDecimal.ZERO.equals((BigDecimal)res.result));
+                res.result = Boolean.valueOf(((BigDecimal)res.result).signum() != 0);
             }
             return res;
         }
@@ -1431,7 +1431,7 @@ public class POCast extends ExpressionOperator {
                 result = Boolean.valueOf(!BigInteger.ZERO.equals((BigInteger)obj));
                 break;
             case DataType.BIGDECIMAL:
-                result = Boolean.valueOf(!BigDecimal.ZERO.equals((BigDecimal)obj));
+                result = Boolean.valueOf(((BigDecimal)obj).signum() != 0);
                 break;
             default:
                 throw new ExecException("Cannot convert "+ obj + " to " + fs, 1120, PigException.INPUT);
