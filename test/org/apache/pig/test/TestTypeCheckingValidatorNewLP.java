@@ -4174,4 +4174,39 @@ public class TestTypeCheckingValidatorNewLP {
                 + "c = foreach b generate (gpa>3? b1 : b2);";
                 createAndProcessLPlan(query);
         }
+        @Test
+        public void testSplitLineageWithInnerFields() throws Throwable {
+            String query = "A = load 'a' as (field1, field2);"
+            + " B = group A by (field1,field2);"
+            + "split B into C if SIZE(A) > 2, Z otherwise;"
+            + "D = FOREACH C { "
+            + "      D1 = FOREACH A generate (chararray) field1;"
+            + "      GENERATE D1;"
+            + "}";
+            LOForEach outerForeach = getForeachFromPlan(query);
+            LogicalPlan innerPlan = outerForeach.getInnerPlan();
+            LOForEach innerForeach = (LOForEach)innerPlan.getPredecessors(innerPlan.getSinks().get(0)).get(0);
+            LogicalExpressionPlan innerForeachPlan = ((LOGenerate)innerForeach.getInnerPlan().getSinks().get(0)).getOutputPlans().get(0);
+            CastExpression cast = getCastFromExpPlan(innerForeachPlan);
+            checkCastLoadFunc(cast, "org.apache.pig.builtin.PigStorage");
+            /*
+              D: (Name: LOForEach Schema: D1#755:bag{#754:tuple(field1#750:chararray)})           =====> [outerForeach]
+              |   |
+              |   (Name: LOGenerate[false] Schema: D1#755:bag{#754:tuple(field1#750:chararray)})    ====> innerPlan.getSinks().get(0)
+              |   |   |
+              |   |   D1:(Name: Project Type: bag Uid: 755 Input: 0 Column: (*))
+              |   |
+              |   |---D1: (Name: LOForEach Schema: field1#750:chararray)                               =====> [innerForeach]
+              |       |   |
+              |       |   (Name: LOGenerate[false] Schema: field1#750:chararray)
+              |       |   |   |
+              |       |   |   (Name: Cast Type: chararray Uid: 750)                      <========CHECKING HERE
+              |       |   |   |
+              |       |   |   |---field1:(Name: Project Type: bytearray Uid: 750 Input: 0 Column: (*))
+              |       |   |
+              |       |   |---(Name: LOInnerLoad[field1] Schema: field1#750:bytearray)
+              |       |
+              |       |---A: (Name: LOInnerLoad[A] Schema: field1#750:bytearray)
+            */
+        }
 }

@@ -139,7 +139,7 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
             ){
                 long inpUid = predSchema.getField(innerLoad.getProjection().getColNum()).uid;
                 if(uid2LoadFuncMap.get(inpUid) != null){
-                    addUidLoadFuncToMap(innerLoad.getSchema().getField(0).uid, uid2LoadFuncMap.get(inpUid));
+                    addUidLoadFuncToMap(innerLoad.getSchema().getField(0), uid2LoadFuncMap.get(inpUid));
                 }
                 return;
             }
@@ -165,8 +165,7 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
             return;
         }
         for(LogicalFieldSchema fs : schema.getFields()){
-            addUidLoadFuncToMap((Long) fs.uid, funcSpec);
-            setLoadFuncForUids(fs.schema, funcSpec);
+            addUidLoadFuncToMap(fs, funcSpec);
         }
         
     }
@@ -291,9 +290,7 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
         //if the group plans are associated with same load function , associate
         //same load fucntion with group column schema
         if (getAssociatedLoadFunc(group)!=null) {
-            addUidLoadFuncToMap(sch.getField(0).uid, rel2InputFuncMap.get(group));
-            if (sch.getField(0).schema!=null)
-                setLoadFuncForUids(sch.getField(0).schema, rel2InputFuncMap.get(group));
+            addUidLoadFuncToMap(sch.getField(0), rel2InputFuncMap.get(group));
         }
         else
             mapMatchLoadFuncToUid(sch.getField(0), groupPlanSchemas);
@@ -311,10 +308,9 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
         
         
         for(int i=1; i < sch.size(); i++){
-            long uid = sch.getField(i).uid;
             LogicalRelationalOperator input = (LogicalRelationalOperator) inputs.get(i-1);
             if(getAssociatedLoadFunc(input) != null){
-                addUidLoadFuncToMap(uid, rel2InputFuncMap.get(input));
+                addUidLoadFuncToMap(sch.getField(i), rel2InputFuncMap.get(input));
             }
         }
         
@@ -370,7 +366,7 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
                 //get its funcspec and associate it with uid of all fields in the schema
                 FuncSpec funcSpec = uid2LoadFuncMap.get(exp.getFieldSchema().uid);
                 for(LogicalFieldSchema fs : sch.getFields()){
-                    addUidLoadFuncToMap(fs.uid, funcSpec);
+                    addUidLoadFuncToMap(fs, funcSpec);
                 }
             }
         }
@@ -461,7 +457,7 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
                   prevLoadFuncSpec  = curLoadFuncSpec;
                 }
                 if( allSameLoader ) {
-                    addUidLoadFuncToMap(logicalFieldSchema.uid,curLoadFuncSpec);
+                    addUidLoadFuncToMap(logicalFieldSchema,curLoadFuncSpec);
                 }
             }
         }
@@ -502,7 +498,7 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
             LogicalFieldSchema inField = inputSch.getField(i);
             LogicalFieldSchema outField = outSchema.getField(i);
             if(uid2LoadFuncMap.get(inField.uid) != null){
-                addUidLoadFuncToMap(outField.uid, uid2LoadFuncMap.get(inField.uid));
+                addUidLoadFuncToMap(outField, uid2LoadFuncMap.get(inField.uid));
             }
         }
         
@@ -515,15 +511,17 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
      * @param loadFuncSpec
      * @throws VisitorException 
      */
-    private void addUidLoadFuncToMap(long uid, FuncSpec loadFuncSpec)
+    private void addUidLoadFuncToMap(LogicalFieldSchema fs, FuncSpec loadFuncSpec)
     throws VisitorException{
         if(loadFuncSpec == null){
             return;
         }
         //ensure that uid always matches to same load func
-        FuncSpec curFuncSpec = uid2LoadFuncMap.get(uid);
+        FuncSpec curFuncSpec = uid2LoadFuncMap.get(fs.uid);
         if(curFuncSpec == null){
-            uid2LoadFuncMap.put(uid, loadFuncSpec);
+            uid2LoadFuncMap.put(fs.uid, loadFuncSpec);
+            // if field is tuple/map/bag, also set the internal fields
+            setLoadFuncForUids(fs.schema, loadFuncSpec);
         }else if(! haveIdenticalCasters(curFuncSpec,loadFuncSpec)){
             String msg = "Bug: uid mapped to two different load functions : " +
             curFuncSpec + " and " + loadFuncSpec;
@@ -574,7 +572,7 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
                 }
             }
             if(allMatch){
-                addUidLoadFuncToMap(outFS.uid, funcSpec1);
+                addUidLoadFuncToMap(outFS, funcSpec1);
             }
         }
         
@@ -624,7 +622,7 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
             if(uid2LoadFuncMap.get(uid) == null && (inputRel.getSchema() == null || inputRel instanceof LOInnerLoad)){
                 FuncSpec funcSpec = rel2InputFuncMap.get(inputRel);
                 if(funcSpec != null){
-                    addUidLoadFuncToMap(uid, funcSpec);
+                    addUidLoadFuncToMap(proj.getFieldSchema(), funcSpec);
                 }
             }
         }
@@ -645,7 +643,7 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
             //find input uid and corresponding load FuncSpec
             long inpUid = inp.getFieldSchema().uid;
             FuncSpec inpLoadFuncSpec = uid2LoadFuncMap.get(inpUid);
-            addUidLoadFuncToMap(exp.getFieldSchema().uid, inpLoadFuncSpec);
+            addUidLoadFuncToMap(exp.getFieldSchema(), inpLoadFuncSpec);
 
         }
 
@@ -689,7 +687,7 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
             Integer inputColNum = (Integer)((ConstantExpression) scalarExp.getArguments().get(0)).getValue();
             String inputFile = (String)((ConstantExpression) scalarExp.getArguments().get(1)).getValue();
             
-            long outputUid = scalarExp.getFieldSchema().uid;
+            LogicalFieldSchema outputFS = scalarExp.getFieldSchema();
             boolean foundInput = false; // a variable to do sanity check on num of input relations
 
             //find the input relation, and use it to get lineage
@@ -711,12 +709,12 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
                     if(sch == null){
                         //see if there is a load function associated with the store
                         FuncSpec funcSpec = rel2InputFuncMap.get(inputStore);
-                        addUidLoadFuncToMap(outputUid, funcSpec);
+                        addUidLoadFuncToMap(outputFS, funcSpec);
                     }else{
                         //find input uid and corresponding load func
                         LogicalFieldSchema fs = sch.getField(inputColNum);
                         FuncSpec funcSpec = uid2LoadFuncMap.get(fs.uid);
-                        addUidLoadFuncToMap(outputUid, funcSpec);
+                        addUidLoadFuncToMap(outputFS, funcSpec);
                     }
                 }
             }
@@ -762,9 +760,7 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
             }
 
             if( funcSpec != null ) {
-                addUidLoadFuncToMap(op.getFieldSchema().uid, funcSpec);
-                // in case schema is nested, set funcSpec for all
-                setLoadFuncForUids(op.getFieldSchema().schema, funcSpec);
+                addUidLoadFuncToMap(op.getFieldSchema(), funcSpec);
             }
         }
 
