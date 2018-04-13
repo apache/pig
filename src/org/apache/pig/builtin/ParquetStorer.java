@@ -31,12 +31,12 @@ public class ParquetStorer extends StoreFuncMetadataWrapper {
 
     public ParquetStorer() throws FrontendException {
         try {
-            init(new parquet.pig.ParquetStorer());
+            init(new org.apache.parquet.pig.ParquetStorer());
         }
         // if compile time dependency not found at runtime
         catch (NoClassDefFoundError e) {
             throw new FrontendException(String.format("Cannot instantiate class %s (%s)",
-                    getClass().getName(), "parquet.pig.ParquetStorer"), 2259, e);
+                    getClass().getName(), "org.apache.parquet.pig.ParquetStorer"), 2259, e);
         }
     }
     
@@ -49,7 +49,7 @@ public class ParquetStorer extends StoreFuncMetadataWrapper {
      */
     @Override
     public void setStoreLocation(String location, Job job) throws IOException {
-        JarManager.addDependencyJars(job, parquet.Version.class);
+        JarManager.addDependencyJars(job, org.apache.parquet.Version.class);
         super.setStoreLocation(location, job);
     }
     
