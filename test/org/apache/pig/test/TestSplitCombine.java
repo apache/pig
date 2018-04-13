@@ -41,8 +41,8 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.junit.Before;
 import org.junit.Test;
 
-import parquet.hadoop.ParquetInputSplit;
-import parquet.hadoop.metadata.BlockMetaData;
+import org.apache.parquet.hadoop.ParquetInputSplit;
+import org.apache.parquet.hadoop.metadata.BlockMetaData;
 
 public class TestSplitCombine {
     private Configuration conf;
@@ -527,7 +527,7 @@ public class TestSplitCombine {
         // first split is parquetinputsplit
         rawSplits.add(new ParquetInputSplit(new Path("path1"), 0, 100,
                 new String[] { "l1", "l2", "l3" },
-                new ArrayList<BlockMetaData>(), "", "",
+                new ArrayList<BlockMetaData>(), "message dummy {}", "",
                 new HashMap<String, String>(), new HashMap<String, String>()));
         // second split is file split
         rawSplits.add(new FileSplit(new Path("path2"), 0, 400, new String[] {
@@ -559,7 +559,7 @@ public class TestSplitCombine {
             Assert.assertEquals(500, anotherSplit.getLength());
 
             Assert.assertEquals(2, anotherSplit.getNumPaths());
-            Assert.assertEquals("parquet.hadoop.ParquetInputSplit",
+            Assert.assertEquals("org.apache.parquet.hadoop.ParquetInputSplit",
                     (anotherSplit.getWrappedSplit(0).getClass().getName()));
             Assert.assertEquals(
                     "org.apache.hadoop.mapreduce.lib.input.FileSplit",

@@ -20,8 +20,10 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.pig.Expression;
 import org.apache.pig.LoadFuncMetadataWrapper;
 import org.apache.pig.LoadMetadata;
+import org.apache.pig.LoadPredicatePushdown;
 import org.apache.pig.LoadPushDown;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.JarManager;
@@ -29,7 +31,7 @@ import org.apache.pig.impl.util.JarManager;
 /**
  * Wrapper class which will delegate calls to parquet.pig.ParquetLoader
  */
-public class ParquetLoader extends LoadFuncMetadataWrapper implements LoadPushDown {
+public class ParquetLoader extends LoadFuncMetadataWrapper implements LoadPushDown, LoadPredicatePushdown {
 
     public ParquetLoader() throws FrontendException {
         this(null);
@@ -37,12 +39,12 @@ public class ParquetLoader extends LoadFuncMetadataWrapper implements LoadPushDo
     
     public ParquetLoader(String requestedSchemaStr) throws FrontendException {
         try {
-            init(new parquet.pig.ParquetLoader(requestedSchemaStr));
+            init(new org.apache.parquet.pig.ParquetLoader(requestedSchemaStr));
         }
         // if compile time dependency not found at runtime
         catch (NoClassDefFoundError e) {
             throw new FrontendException(String.format("Cannot instantiate class %s (%s)",
-                    getClass().getName(), "parquet.pig.ParquetLoader"), 2259, e);
+                    getClass().getName(), "org.apache.parquet.ParquetLoader"), 2259, e);
         }
     }
     
@@ -52,7 +54,7 @@ public class ParquetLoader extends LoadFuncMetadataWrapper implements LoadPushDo
     
     @Override
     public void setLocation(String location, Job job) throws IOException {
-        JarManager.addDependencyJars(job, parquet.Version.class);
+        JarManager.addDependencyJars(job, org.apache.parquet.Version.class);
         super.setLocation(location, job);
     }
 
@@ -66,5 +68,19 @@ public class ParquetLoader extends LoadFuncMetadataWrapper implements LoadPushDo
             throws FrontendException {
         return ((LoadPushDown)super.loadFunc()).pushProjection(requiredFieldList);
     }
-    
+
+    @Override
+    public List<String> getPredicateFields(String location, Job job) throws IOException {
+        return ((LoadPredicatePushdown)super.loadFunc()).getPredicateFields(location, job);
+    }
+
+    @Override
+    public List<Expression.OpType> getSupportedExpressionTypes() {
+        return ((LoadPredicatePushdown)super.loadFunc()).getSupportedExpressionTypes();
+    }
+
+    @Override
+    public void setPushdownPredicate(Expression predicate) throws IOException {
+        ((LoadPredicatePushdown)super.loadFunc()).setPushdownPredicate(predicate);
+    }
 }
