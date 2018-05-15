@@ -372,9 +372,20 @@ public class ProjectExpression extends ColumnExpression {
                         }
                     }
                 }
-                if (index==-1) {
-                    if (alias!=null) {
-                        index = schema.getFieldPosition(alias);
+                if (index==-1 && alias != null) {
+                    index = schema.getFieldPosition(alias);
+                    if( index == -1 ) {
+                        // Return a place holder for this invalid field reference.
+                        // If this relation is used, error will be caught in the
+                        // LogicalPlan.validate phase.
+                        // New uid is assigned to this fake field so that invalid script
+                        // like the one on
+                        // TestColumnAliasConversion.testInvalidNestedProjection
+                        // would not fail at LogicalPlanBuilder phase
+                        // but fail at LogicalPlan.validate phase.
+                        // (PIG-5335 for more details)
+                        return new LogicalSchema.LogicalFieldSchema(alias, null, DataType.BYTEARRAY,
+                                                                   LogicalExpression.getNextUid());
                     }
                 }
                 if (index==-1)

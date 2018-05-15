@@ -19,6 +19,7 @@
 package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,6 +34,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
+import org.apache.pig.impl.plan.PlanValidationException;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.relational.LOCogroup;
@@ -370,6 +372,37 @@ public class TestProjectRange  {
             ;
         Util.checkExceptionMessage(query, "f",
                 "Invalid field projection. Projected field [a] does not exist.");
+    }
+
+    /**
+     * -ve test cases
+     * @throws IOException
+     * @throws ParserException
+     */
+    @Test
+    public void testNegativeForeachFollowedByRange() throws IOException, ParserException {
+        String query =
+            "A = load '" + INP_FILE_5FIELDS + "'  as (a0,a1,a2,a3,a4);"
+            + "B = FOREACH A GENERATE a0, b1, a2, a3, a4;"
+            + "C = FOREACH B GENERATE a0..a2;";
+
+        // In PIG-5335, above query was failing at parsing time
+        // and error message didn't even mention "b1".
+        // (below generateLogicalPlan was throwing ParserException)
+        LogicalPlan lp = generateLogicalPlan(query);
+
+        // After PIG-5335, we moved the error to be caught
+        // at validation phase AND have proper error message
+        // pointing to an invalid fieldname, b1.
+        boolean exceptionCaught = false;
+        try {
+            lp.validate(pigServer.getPigContext(), "test", false);
+        } catch (PlanValidationException ex) {
+            Util.checkMessageInException(ex,
+             "Projected field [b1] does not exist in schema: a0:bytearray,a1:bytearray,a2:bytearray,a3:bytearray,a4:bytearray");
+            exceptionCaught = true;
+        }
+        assertTrue("No exception was thrown from an invalid script", exceptionCaught);
     }
 
     /**
