@@ -28,6 +28,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5341 PigStorage with -tagFile/-tagPath produces incorrect results with column pruning (knoguchi)
+
 PIG-5299: PartitionFilterOptimizer failing at compile time (knoguchi)
 
 PIG-5254: Hit Ctrl-D to quit grunt shell fail (wjqian via daijy)
