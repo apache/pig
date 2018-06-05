@@ -252,10 +252,10 @@ LoadPushDown, LoadMetadata, StoreMetadata, OverwritableStoreFunc {
             }
             mRequiredColumnsInitialized = true;
         }
-        //Prepend input source path if source tagging is enabled
-        if(tagFile) {
+        // Prepend input source path if source tagging is enabled
+        if (tagFile && (mRequiredColumns == null || mRequiredColumns[0])) {
             mProtoTuple.add(new DataByteArray(sourcePath.getName()));
-        } else if (tagPath) {
+        } else if (tagPath && (mRequiredColumns == null || mRequiredColumns[0])) {
             mProtoTuple.add(new DataByteArray(sourcePath.toString()));
         }
 
@@ -268,7 +268,9 @@ LoadPushDown, LoadMetadata, StoreMetadata, OverwritableStoreFunc {
             byte[] buf = value.getBytes();
             int len = value.getLength();
             int start = 0;
-            int fieldID = 0;
+            // If tagging is enabled, mRequiredColumns is created based on the
+            // schema that includes tagfile/path as first index(0)
+            int fieldID = tagFile || tagPath ? 1 : 0;
             for (int i = 0; i < len; i++) {
                 if (buf[i] == fieldDel) {
                     if (mRequiredColumns==null || (mRequiredColumns.length>fieldID && mRequiredColumns[fieldID]))
