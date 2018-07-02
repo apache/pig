@@ -26,6 +26,8 @@ PIG-5282: Upgade to Java 8 (satishsaley via rohini)
  
 IMPROVEMENTS
 
+PIG-5344: Update Apache HTTPD LogParser to latest version (nielsbasjes via szita)
+
 PIG-4092: Predicate pushdown for Parquet (nkollar via rohini)
 
 PIG-5317: Upgrade old dependencies: commons-lang, hsqldb, commons-logging (nkollar via rohini)
