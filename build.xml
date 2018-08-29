@@ -1713,7 +1713,7 @@
        <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings" log="${loglevel}"
                  pattern="${build.ivy.lib.dir}/${ivy.artifact.retrieve.pattern}" conf="compile"/>
        <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings" log="${loglevel}"
-                 pattern="${ivy.lib.dir.spark}/[artifact]-[revision](-[classifier]).[ext]" conf="spark${sparkversion}"/>
+                 pattern="${ivy.lib.dir.spark}/[artifact]-[revision](-[classifier]).[ext]" conf="spark${sparkversion},hbase${hbaseversion}"/>
        <ivy:cachepath pathid="compile.classpath" conf="compile"/>
      </target>
 

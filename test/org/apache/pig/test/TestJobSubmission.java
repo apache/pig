@@ -26,6 +26,7 @@ import java.net.URI;
 import java.util.Iterator;
 import java.util.Random;
 
+import org.apache.hadoop.hbase.TableName;
 import org.junit.Assert;
 
 import org.apache.hadoop.conf.Configuration;
@@ -192,6 +193,9 @@ abstract public class TestJobSubmission {
                 Util.isMapredExecType(cluster.getExecType()));
         // use the estimation
         Configuration conf = HBaseConfiguration.create(new Configuration());
+        // Setting this property is required due to a bug in HBase 2.0
+        // will be fixed in 2.0.1, see HBASE-20544. It doesn't have any effect on HBase 1.x
+        conf.set("hbase.localcluster.assign.random.ports", "true");
         HBaseTestingUtility util = new HBaseTestingUtility(conf);
         int clientPort = util.startMiniZKCluster().getClientPort();
         util.startMiniHBaseCluster(1, 1);
@@ -233,7 +237,7 @@ abstract public class TestJobSubmission {
         Util.assertParallelValues(-1, 2, -1, 2, job.getJobConf());
 
         final byte[] COLUMNFAMILY = Bytes.toBytes("pig");
-        util.createTable(Bytes.toBytesBinary("test_table"), COLUMNFAMILY);
+        util.createTable(TableName.valueOf("test_table"), COLUMNFAMILY);
 
         // the estimation won't take effect when it apply to non-dfs or the files doesn't exist, such as hbase
         query = "a = load 'hbase://test_table' using org.apache.pig.backend.hadoop.hbase.HBaseStorage('c:f1 c:f2');" +
@@ -253,7 +257,7 @@ abstract public class TestJobSubmission {
 
         Util.assertParallelValues(-1, -1, 1, 1, job.getJobConf());
 
-        util.deleteTable(Bytes.toBytesBinary("test_table"));
+        util.deleteTable(TableName.valueOf("test_table"));
         // In HBase 0.90.1 and above we can use util.shutdownMiniHBaseCluster()
         // here instead.
         MiniHBaseCluster hbc = util.getHBaseCluster();

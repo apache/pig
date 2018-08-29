@@ -101,7 +101,7 @@ public class HBaseTableInputFormat extends TableInputFormat {
         return splits;
     }
 
-    private boolean skipRegion(CompareOp op, byte[] key, byte[] option ) {
+    private boolean skipRegion(CompareOp op, byte[] key, byte[] option ) throws IOException {
 
         if (key.length == 0 || option == null) 
             return false;
