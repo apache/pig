@@ -3,7 +3,7 @@
 ## Requirements:
 
 * Unix System
-* JDK 1.7+
+* JDK 1.8+
 * Ant 1.8.1+
 * Findbugs 3.x+
 * Forrest 0.9 (for building the documentation)
