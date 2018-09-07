@@ -17,7 +17,7 @@
 # Dockerfile for installing the necessary dependencies for building Apache Pig.
 # See BUILDING.md.
 
-FROM ubuntu:trusty
+FROM ubuntu:bionic
 
 # Define working directory.
 WORKDIR /root
@@ -29,16 +29,17 @@ RUN sed -i 's/# \(.*multiverse$\)/\1/g' /etc/apt/sources.list && \
     apt-get install -y build-essential && \
     apt-get install -y software-properties-common && \
     apt-get install --no-install-recommends -y \
+            sudo \
             git subversion \
             byobu htop man unzip vim \
             cabal-install \
             curl wget \
-            openjdk-7-jdk \
+            openjdk-8-jdk \
             ant ant-contrib ant-optional make maven \
             cmake gcc g++ protobuf-compiler \
             build-essential libtool \
             zlib1g-dev pkg-config libssl-dev \
-            snappy libsnappy-dev \
+            ubuntu-snappy ubuntu-snappy-cli libsnappy-dev \
             bzip2 libbz2-dev \
             libjansson-dev \
             fuse libfuse-dev \
@@ -47,11 +48,7 @@ RUN sed -i 's/# \(.*multiverse$\)/\1/g' /etc/apt/sources.list && \
     rm -rf /var/lib/apt/lists/*
 
 # Define commonly used JAVA_HOME variable
-ENV JAVA_HOME /usr/lib/jvm/java-7-openjdk-amd64
-
-# Fixing the Apache commons / Maven dependency problem under Ubuntu:
-# See http://wiki.apache.org/commons/VfsProblems
-RUN cd /usr/share/maven/lib && ln -s ../../java/commons-lang.jar .
+ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64
 
 # Avoid out of memory errors in builds
 ENV MAVEN_OPTS -Xms256m -Xmx512m
@@ -64,12 +61,9 @@ RUN mkdir -p /opt/findbugs && \
 ENV FINDBUGS_HOME /opt/findbugs
 
 # Install Forrest in /usr/local/apache-forrest
-# Screenscrape the download page for a local mirror URL
-RUN cd /usr/local/ && \
-    curl https://forrest.apache.org/mirrors.cgi | \
-    fgrep href | fgrep apache-forrest-0.9 | \
-    sed 's@^.*"\(http[^"]*apache-forrest-[^"]*.tar.gz\)".*@\1@' | \
-    xargs -n1 -r wget
+# Download
+RUN cd /usr/local/ && wget "http://www.apache.org/dyn/closer.lua?action=download&filename=/forrest/apache-forrest-0.9-sources.tar.gz"      -O "apache-forrest-0.9-sources.tar.gz"
+RUN cd /usr/local/ && wget "http://www.apache.org/dyn/closer.lua?action=download&filename=/forrest/apache-forrest-0.9-dependencies.tar.gz" -O "apache-forrest-0.9-dependencies.tar.gz"
 
 # Unpack Apache Forrest
 RUN cd /usr/local/ && \
