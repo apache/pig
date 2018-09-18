@@ -731,7 +731,7 @@
             <fileset dir="${ivy.lib.dir}" includes="htrace-core*incubating.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="metrics-core-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="hbase-*.jar" excludes="hbase-*tests.jar,hbase-*hadoop2*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="hive-*.jar" excludes="hive-shims-0.*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="hive-*.jar" excludes="hive-shims-0.*.jar, hive-contrib*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="protobuf-java-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="zookeeper-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="accumulo-*.jar" excludes="accumulo-minicluster*.jar"/>

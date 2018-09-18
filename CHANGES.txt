@@ -26,6 +26,8 @@ PIG-5282: Upgade to Java 8 (satishsaley via rohini)
  
 IMPROVEMENTS
 
+PIG-5358: Remove hive-contrib jar from lib directory (szita)
+
 PIG-5343: Upgrade developer build environment (nielsbasjes via szita)
 
 PIG-5191: Pig HBase 2.0.0 support (nkollar via szita, reviewed by rohini)
