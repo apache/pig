@@ -19,11 +19,12 @@ package org.apache.pig;
 
 import java.io.IOException;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
-
+import org.apache.hadoop.security.Credentials;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.data.Tuple;
@@ -152,4 +153,17 @@ public interface StoreFuncInterface {
      * any runtime job information. 
      */
     void cleanupOnSuccess(String location, Job job) throws IOException;
+
+    /**
+     * Allows adding secrets or custom credentials that can be used to
+     * talk to external systems. For eg: keys to decrypt encrypted data,
+     * database passwords, hcatalog/hbase delegation tokens, etc.
+     * This will be called once on the front end before the job is submitted.
+     * The added credentials can be accessed in the backend
+     * via {@link org.apache.hadoop.security.UserGroupInformation#getCredentials()}.
+     * @param credentials Credentials object to which delegation tokens and secrets can be added
+     * @param conf
+     */
+    default void addCredentials(Credentials credentials, Configuration conf) {
+    }
 }

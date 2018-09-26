@@ -20,6 +20,8 @@ package org.apache.pig;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.Credentials;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigLogger;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigProgressable;
 import org.apache.pig.builtin.OutputSchema;
@@ -382,4 +384,16 @@ public abstract class EvalFunc<T>  {
         return null;
     }
 
+    /**
+     * Allows adding secrets or custom credentials that can be used to
+     * talk to external systems. For eg: keys to decrypt encrypted data,
+     * database passwords, hcatalog/hbase delegation tokens, etc.
+     * This will be called once on the front end before the job is submitted.
+     * The added credentials can be accessed in the backend
+     * via {@link org.apache.hadoop.security.UserGroupInformation#getCredentials()}.
+     * @param credentials Credentials object to which delegation tokens and secrets can be added
+     * @param conf
+     */
+    public void addCredentials(Credentials credentials, Configuration conf){
+    }
 }

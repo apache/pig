@@ -82,6 +82,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.UdfCacheShipFilesVisitor;
@@ -551,11 +552,18 @@ public class JobControlCompiler{
                 for (POLoad ld : lds) {
                     LoadFunc lf = ld.getLoadFunc();
                     lf.setLocation(ld.getLFile().getFileName(), nwJob);
-
+                    lf.addCredentials(nwJob.getCredentials(), conf);
                     ld.setParentPlan(null);
                     //Store the inp filespecs
                     inp.add(ld);
                 }
+            }
+
+            //Process the POUserFunc
+            List<POUserFunc> userFuncs = PlanHelper.getPhysicalOperators(mro.mapPlan, POUserFunc.class);
+            userFuncs.addAll(PlanHelper.getPhysicalOperators(mro.reducePlan, POUserFunc.class));
+            for (POUserFunc userFunc : userFuncs) {
+                userFunc.getFunc().addCredentials(nwJob.getCredentials(), conf);
             }
 
             if(!mro.reducePlan.isEmpty()){
@@ -774,6 +782,7 @@ public class JobControlCompiler{
                         osf.cleanupOutput(st, nwJob);
                     }
                 }
+                sFunc.addCredentials(nwJob.getCredentials(), conf);
             }
 
             for (POStore st : reduceStores) {
@@ -786,6 +795,7 @@ public class JobControlCompiler{
                         osf.cleanupOutput(st, nwJob);
                     }
                 }
+                sFunc.addCredentials(nwJob.getCredentials(), conf);
             }
 
             setOutputFormat(nwJob);
