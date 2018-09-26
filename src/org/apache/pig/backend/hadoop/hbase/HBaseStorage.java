@@ -17,7 +17,6 @@
 package org.apache.pig.backend.hadoop.hbase;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -78,6 +77,7 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.pig.CollectableLoadFunc;
 import org.apache.pig.LoadCaster;
@@ -766,11 +766,6 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         job.getConfiguration().setBoolean("pig.noSplitCombination", true);
 
         m_conf = initializeLocalJobConfig(job);
-        String delegationTokenSet = udfProps.getProperty(HBASE_TOKEN_SET);
-        if (delegationTokenSet == null) {
-            addHBaseDelegationToken(m_conf, job);
-            udfProps.setProperty(HBASE_TOKEN_SET, "true");
-        }
 
         String tablename = location;
         if (location.startsWith("hbase://")) {
@@ -830,6 +825,35 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         return FuncUtils.getShipFiles(classList);
     }
 
+
+    @Override
+    public void addCredentials(Credentials credentials, Configuration conf) {
+        JobConf jobConf = initializeLocalJobConfig(conf);
+        if ("kerberos".equalsIgnoreCase(jobConf.get(HBASE_SECURITY_CONF_KEY))) {
+            LOG.info("hbase is configured to use Kerberos, attempting to fetch delegation token.");
+            try {
+                User currentUser = User.getCurrent();
+                UserGroupInformation currentUserGroupInformation = currentUser.getUGI();
+                if (currentUserGroupInformation.hasKerberosCredentials()) {
+                    try (Connection connection = ConnectionFactory.createConnection(jobConf, currentUser)) {
+                        TokenUtil.obtainTokenForJob(connection, jobConf, currentUser);
+                        LOG.info("Token retrieval succeeded for user " + currentUser.getName());
+                        credentials.addAll(jobConf.getCredentials());
+                    }
+                } else {
+                    LOG.info("Not fetching hbase delegation token as no Kerberos TGT is available for user " + currentUser.getName());
+                }
+            } catch (RuntimeException re) {
+                throw re;
+            } catch (Exception e) {
+                throw new UndeclaredThrowableException(e,
+                        "Unexpected error calling TokenUtil.obtainTokenForJob()");
+            }
+        } else {
+            LOG.info("hbase is not configured to use kerberos, skipping delegation token");
+        }
+    }
+
     private void addClassToList(String className, List<Class> classList) {
         try {
             Class klass = Class.forName(className);
@@ -839,9 +863,8 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         }
     }
 
-    private JobConf initializeLocalJobConfig(Job job) {
+    private JobConf initializeLocalJobConfig(Configuration jobConf) {
         Properties udfProps = getUDFProperties();
-        Configuration jobConf = job.getConfiguration();
         JobConf localConf = new JobConf(jobConf);
         if (udfProps.containsKey(HBASE_CONFIG_SET)) {
             for (Entry<Object, Object> entry : udfProps.entrySet()) {
@@ -864,40 +887,8 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         return localConf;
     }
 
-    /**
-     * Get delegation token from hbase and add it to the Job
-     *
-     */
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    private void addHBaseDelegationToken(Configuration hbaseConf, Job job) {
-
-        if (!UDFContext.getUDFContext().isFrontend()) {
-            LOG.debug("skipping authentication checks because we're currently in a frontend UDF context");
-            return;
-        }
-
-        if ("kerberos".equalsIgnoreCase(hbaseConf.get(HBASE_SECURITY_CONF_KEY))) {
-            LOG.info("hbase is configured to use Kerberos, attempting to fetch delegation token.");
-            try {
-                User currentUser = User.getCurrent();
-                UserGroupInformation currentUserGroupInformation = currentUser.getUGI();
-                if (currentUserGroupInformation.hasKerberosCredentials()) {
-                    try (Connection connection = ConnectionFactory.createConnection(hbaseConf, currentUser)) {
-                        TokenUtil.obtainTokenForJob(connection, currentUser, job);
-                        LOG.info("Token retrieval succeeded for user " + currentUser.getName());
-                    }
-                } else {
-                    LOG.info("Not fetching hbase delegation token as no Kerberos TGT is available for user " + currentUser.getName());
-                }
-            } catch (RuntimeException re) {
-                throw re;
-            } catch (Exception e) {
-                throw new UndeclaredThrowableException(e,
-                        "Unexpected error calling TokenUtil.obtainTokenForJob()");
-            }
-        } else {
-            LOG.info("hbase is not configured to use kerberos, skipping delegation token");
-        }
+    private JobConf initializeLocalJobConfig(Job job) {
+        return initializeLocalJobConfig(job.getConfiguration());
     }
 
     @Override
@@ -1129,11 +1120,6 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         }
 
         m_conf = initializeLocalJobConfig(job);
-        // Not setting a udf property and getting the hbase delegation token
-        // only once like in setLocation as setStoreLocation gets different Job
-        // objects for each call and the last Job passed is the one that is
-        // launched. So we end up getting multiple hbase delegation tokens.
-        addHBaseDelegationToken(m_conf, job);
     }
 
     @Override

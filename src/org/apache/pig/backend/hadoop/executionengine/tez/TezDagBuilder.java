@@ -84,6 +84,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigWritableC
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.SecondaryKeyPartitioner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.EndOfAllInputSetter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
@@ -360,7 +361,6 @@ public class TezDagBuilder extends TezOpPlanVisitor {
     public void visitTezOp(TezOperator tezOp) throws VisitorException {
         TezOperPlan tezPlan = getPlan();
         List<TezOperator> predecessors = tezPlan.getPredecessors(tezOp);
-
         // Construct vertex for the current Tez operator
         Vertex to = null;
         try {
@@ -611,6 +611,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
     private Vertex newVertex(TezOperator tezOp) throws IOException,
             ClassNotFoundException, InterruptedException {
+
         ProcessorDescriptor procDesc = ProcessorDescriptor.create(
                 tezOp.getProcessorName());
 
@@ -641,6 +642,9 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         // Process stores
         LinkedList<POStore> stores = processStores(tezOp, payloadConf, job);
+
+        // Process UserFuncs
+        processUserFuncs(tezOp, job);
 
         Configuration inputPayLoad = null;
         Configuration outputPayLoad = null;
@@ -1044,6 +1048,19 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         return vertex;
     }
 
+    /**
+     * Process POUserFunc to add credentials
+     * @param tezOp
+     * @param job
+     * @throws VisitorException
+     */
+    private void processUserFuncs(TezOperator tezOp, Job job) throws VisitorException {
+        List<POUserFunc> userFuncs = PlanHelper.getPhysicalOperators(tezOp.plan, POUserFunc.class);
+        for (POUserFunc userFunc : userFuncs) {
+            userFunc.getFunc().addCredentials(job.getCredentials(), job.getConfiguration());
+        }
+    }
+
     private LinkedList<POStore> processStores(TezOperator tezOp,
             Configuration payloadConf, Job job) throws VisitorException,
             IOException {
@@ -1057,6 +1074,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 storeLocations.add(st);
                 StoreFuncInterface sFunc = st.getStoreFunc();
                 sFunc.setStoreLocation(st.getSFile().getFileName(), job);
+                sFunc.addCredentials(job.getCredentials(), job.getConfiguration());
             }
 
             Path tmpLocation = null;

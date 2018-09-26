@@ -34,6 +34,7 @@ import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.hadoop.security.Credentials;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.LoadPushDown.RequiredFieldList;
@@ -362,4 +363,16 @@ public abstract class LoadFunc {
         return null;
     }
 
+    /**
+     * Allows adding secrets or custom credentials that can be used to
+     * talk to external systems. For eg: keys to decrypt encrypted data,
+     * database passwords, hcatalog/hbase delegation tokens, etc.
+     * This will be called once on the front end before the job is submitted.
+     * The added credentials can be accessed in the backend
+     * via {@link org.apache.hadoop.security.UserGroupInformation#getCredentials()}.
+     * @param credentials Credentials object to which delegation tokens and secrets can be added
+     * @param conf
+     */
+    public void addCredentials(Credentials credentials, Configuration conf) {
+    }
 }

@@ -32,6 +32,7 @@ import java.util.Properties;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.Credentials;
 import org.apache.pig.Accumulator;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
@@ -68,6 +69,7 @@ public class POUserFunc extends ExpressionOperator {
     private transient EvalFunc func;
     private transient List<String> cacheFiles = null;
     private transient List<String> shipFiles = null;
+    private transient Credentials creds = null;
 
     FuncSpec funcSpec;
     FuncSpec origFSpec;
@@ -642,4 +644,13 @@ public class POUserFunc extends ExpressionOperator {
     public boolean needEndOfAllInputProcessing() {
         return getFunc().needEndOfAllInputProcessing();
     }
+
+    public Credentials getCredentials() {
+        return this.creds;
+    }
+
+    public void setCredentials(Credentials creds) {
+        this.creds = creds;
+   }
+
 }

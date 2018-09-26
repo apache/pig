@@ -100,7 +100,7 @@ public class LoaderProcessor extends TezOpPlanVisitor {
                 for (POLoad ld : lds) {
                     LoadFunc lf = ld.getLoadFunc();
                     lf.setLocation(ld.getLFile().getFileName(), job);
-
+                    lf.addCredentials(this.jobConf.getCredentials(), conf);
                     // Store the inp filespecs
                     inp.add(ld.getLFile());
                 }
