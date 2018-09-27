@@ -118,7 +118,7 @@ public class HBaseTableInputFormat extends TableInputFormat {
         private byte[] startRow_;
         private byte[] endRow_;
         private transient byte[] currRow_;
-
+        private int maxRowLength;
         private BigInteger bigStart_;
         private BigInteger bigEnd_;
         private BigDecimal bigRange_;
@@ -151,6 +151,7 @@ public class HBaseTableInputFormat extends TableInputFormat {
             bigStart_ = new BigInteger(Bytes.add(prependHeader, startPadded));
             bigEnd_ = new BigInteger(Bytes.add(prependHeader, endPadded));
             bigRange_ = new BigDecimal(bigEnd_.subtract(bigStart_));
+            maxRowLength = endRow_.length > startRow_.length ? endRow_.length : startRow_.length;
             LOG.info("setScan with ranges: " + bigStart_ + " - " + bigEnd_ + " ( " + bigRange_ + ")");
         }
 
@@ -173,11 +174,8 @@ public class HBaseTableInputFormat extends TableInputFormat {
                 return 0;
             }
             byte[] lastPadded = currRow_;
-            if (currRow_.length < endRow_.length) {
-                lastPadded = Bytes.padTail(currRow_, endRow_.length - currRow_.length);
-            }
-            if (currRow_.length < startRow_.length) {
-                lastPadded = Bytes.padTail(currRow_, startRow_.length - currRow_.length);
+            if(maxRowLength > currRow_.length) {
+                lastPadded = Bytes.padTail(currRow_, maxRowLength - currRow_.length);
             }
             byte [] prependHeader = {1, 0};
             BigInteger bigLastRow = new BigInteger(Bytes.add(prependHeader, lastPadded));
