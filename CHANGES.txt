@@ -26,6 +26,8 @@ PIG-5282: Upgade to Java 8 (satishsaley via rohini)
  
 IMPROVEMENTS
 
+PIG-5349: Log stderr output when shell command fail (knoguchi)
+
 PIG-3038: Support for Credentials for UDF,Loader and Storer (satishsaley via rohini)
 
 PIG-5358: Remove hive-contrib jar from lib directory (szita)
