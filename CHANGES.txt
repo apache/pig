@@ -28,6 +28,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5355: Negative progress report by HBaseTableRecordReader (satishsaley via knoguchi)
+
 PIG-5341 PigStorage with -tagFile/-tagPath produces incorrect results with column pruning (knoguchi)
 
 PIG-5299: PartitionFilterOptimizer failing at compile time (knoguchi)

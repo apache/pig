@@ -157,7 +157,7 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
             // idx is always one past the current subsplit's true index.
             subprogress = (long)(curReader.getProgress() * pigSplit.getLength(idx - 1));
         }
-        return Math.min(1.0f,  (progress + subprogress)/(float)(pigSplit.getLength()));
+        return Math.max(0.0f, Math.min(1.0f,  (progress + subprogress)/(float)(pigSplit.getLength())));
     }
 
     @Override
