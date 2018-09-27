@@ -78,6 +78,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5355: Negative progress report by HBaseTableRecordReader (satishsaley via knoguchi)
+
 PIG-5341: PigStorage with -tagFile/-tagPath produces incorrect results with column pruning (knoguchi)
 
 PIG-5335: Error message from range projection completely misleading (knoguchi)
