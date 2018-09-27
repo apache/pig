@@ -274,6 +274,7 @@ public class PreprocessorContext {
         } catch (InterruptedException e) {
             throw new RuntimeException("InterruptedException while executing shell command : " + e.getMessage() , e);
         } catch (ExecutionException e) {
+            log.warn("Stderr output from command: \"" + cmd + "\" was - " + streamError);
             throw new RuntimeException("ExecutionException while executing shell command : " + e.getMessage(), e);
         } finally {
             executorService.shutdownNow();
@@ -288,6 +289,7 @@ public class PreprocessorContext {
         }
 
         if (exitVal != 0) {
+            log.warn("Stderr output from command: \"" + cmd + "\" was - " + streamError);
             RuntimeException rte = new RuntimeException("Error executing shell command: " + cmd + ". Command exit with exit code of " + exitVal );
             throw rte;
         }
