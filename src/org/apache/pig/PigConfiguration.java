@@ -204,6 +204,10 @@ public class PigConfiguration {
     public static final String PIG_BLOOMJOIN_HASH_FUNCTIONS = "pig.bloomjoin.hash.functions";
 
     /**
+     * To turn off combiner when most of the keys are unique.
+     */
+    public static final String PIG_BLOOMJOIN_NOCOMBINER = "pig.bloomjoin.nocombiner";
+    /**
      * This key used to control the maximum size loaded into
      * the distributed cache when doing fragment-replicated join
      */

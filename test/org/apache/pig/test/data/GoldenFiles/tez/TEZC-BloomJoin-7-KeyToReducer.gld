@@ -12,7 +12,7 @@ Tez vertex scope-51
 
 Tez vertex scope-43
 # Plan on vertex
-a: Split - scope-58
+a: Split - scope-55
 |   |
 |   e: BuildBloom Rearrange[tuple]{int}(false) - scope-36	->	[ scope-51, scope-52]
 |   |   |
@@ -41,15 +41,11 @@ a: Split - scope-58
     |---a: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-0
 Tez vertex scope-52
 # Combine plan on edge <scope-43>
-Local Rearrange[tuple]{int}(false) - scope-57	->	 scope-52
-|   |
-|   Project[int][0] - scope-56
-|
-|---Package(BloomPackager)[tuple]{int} - scope-55
+org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.DistinctCombiner$Combine
 # Plan on vertex
 POValueOutputTez - scope-54	->	 [scope-45, scope-47]
 |
-|---Package(BloomPackager)[tuple]{int} - scope-53
+|---Package(BloomPackager)[tuple]{bytearray} - scope-53
 Tez vertex scope-45
 # Plan on vertex
 e: BloomFilter Rearrange[tuple]{int}(false) - scope-32	<-	 scope-52	->	 scope-51

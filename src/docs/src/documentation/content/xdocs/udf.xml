@@ -186,7 +186,7 @@ public class COUNT extends EvalFunc&lt;Long&gt; implements Algebraic{
         public Tuple exec(Tuple input) throws IOException {return TupleFactory.getInstance().newTuple(sum(input));}
     }
     static public class Final extends EvalFunc&lt;Long&gt; {
-        public Tuple exec(Tuple input) throws IOException {return sum(input);}
+        public Long exec(Tuple input) throws IOException {return sum(input);}
     }
     static protected Long count(Tuple input) throws ExecException {
         Object values = input.get(0);

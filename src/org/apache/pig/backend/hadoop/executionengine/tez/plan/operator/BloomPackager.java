@@ -20,7 +20,6 @@ package org.apache.pig.backend.hadoop.executionengine.tez.plan.operator;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.Iterator;
 
 import org.apache.hadoop.util.bloom.BloomFilter;
@@ -38,32 +37,27 @@ import org.apache.pig.data.Tuple;
 public class BloomPackager extends Packager {
 
     private static final long serialVersionUID = 1L;
+    private static final Result RESULT_EMPTY = new Result(POStatus.STATUS_NULL, null);
+    private static final Result RESULT_EOP = new Result(POStatus.STATUS_EOP, null);
 
     private boolean bloomCreatedInMap;
     private int vectorSizeBytes;
+    private int numBloomFilters;
     private int numHash;
     private int hashType;
-    private byte bloomKeyType;
-    private boolean isCombiner;
 
     private transient ByteArrayOutputStream baos;
-    private transient Iterator<Object> distinctKeyIter;
+    private transient BloomFilter[] bloomFilters;
+    private transient int nextFilterIdx;
 
-    public BloomPackager(boolean bloomCreatedInMap, int vectorSizeBytes,
+    public BloomPackager(boolean bloomCreatedInMap, int numBloomFilters, int vectorSizeBytes,
             int numHash, int hashType) {
         super();
         this.bloomCreatedInMap = bloomCreatedInMap;
         this.vectorSizeBytes = vectorSizeBytes;
         this.numHash = numHash;
         this.hashType = hashType;
-    }
-
-    public void setBloomKeyType(byte keyType) {
-        bloomKeyType = keyType;
-    }
-
-    public void setCombiner(boolean isCombiner) {
-        this.isCombiner = isCombiner;
+        this.numBloomFilters = numBloomFilters;
     }
 
     @Override
@@ -78,21 +72,26 @@ public class BloomPackager extends Packager {
     @Override
     public Result getNext() throws ExecException {
         try {
+            if (bags == null) {
+                return new Result(POStatus.STATUS_EOP, null);
+            }
             if (bloomCreatedInMap) {
-                if (bags == null) {
-                    return new Result(POStatus.STATUS_EOP, null);
-                }
-                // Same function for combiner and reducer
                 return combineBloomFilters();
             } else {
-                if (isCombiner) {
-                    return getDistinctBloomKeys();
-                } else {
-                    if (bags == null) {
-                        return new Result(POStatus.STATUS_EOP, null);
-                    }
-                    return createBloomFilter();
+                if (parent.isEndOfAllInput()) {
+                    return retrieveBloomFilter();
                 }
+                if (!bags[0].iterator().hasNext()) {
+                    return new Result(POStatus.STATUS_EOP, null);
+                }
+                if (bloomFilters == null) { // init
+                    bloomFilters = new BloomFilter[numBloomFilters];
+                }
+                // Create the bloom filters from the keys
+                Tuple tup = bags[0].iterator().next();
+                addKeyToBloomFilter(key, (int) tup.get(0));
+                detachInput();
+                return RESULT_EMPTY;
             }
         } catch (IOException e) {
             throw new ExecException("Error while constructing final bloom filter", e);
@@ -116,28 +115,6 @@ public class BloomPackager extends Packager {
         return getSerializedBloomFilter(partition, bloomFilter, bloomBytes.get().length);
     }
 
-    private Result createBloomFilter() throws IOException {
-        // We get a bag of keys. Create a bloom filter from them
-        // First do distinct of the keys. Not using DistinctBag as memory should not be a problem.
-        HashSet<Object> bloomKeys = new HashSet<>();
-        Iterator<Tuple> iter = bags[0].iterator();
-        while (iter.hasNext()) {
-            bloomKeys.add(iter.next().get(0));
-        }
-
-        Object partition = key;
-        detachInput(); // Free up the key and bags reference
-
-        BloomFilter bloomFilter = new BloomFilter(vectorSizeBytes * 8, numHash, hashType);
-        for (Object bloomKey: bloomKeys) {
-            Key k = new Key(DataType.toBytes(bloomKey, bloomKeyType));
-            bloomFilter.add(k);
-        }
-        bloomKeys = null;
-        return getSerializedBloomFilter(partition, bloomFilter, vectorSizeBytes + 64);
-
-    }
-
     private Result getSerializedBloomFilter(Object partition,
             BloomFilter bloomFilter, int serializedSize) throws ExecException,
             IOException {
@@ -159,26 +136,28 @@ public class BloomPackager extends Packager {
         return r;
     }
 
-    private Result getDistinctBloomKeys() throws ExecException {
-        if (distinctKeyIter == null) {
-            HashSet<Object> bloomKeys = new HashSet<>();
-            Iterator<Tuple> iter = bags[0].iterator();
-            while (iter.hasNext()) {
-                bloomKeys.add(iter.next().get(0));
-            }
-            distinctKeyIter = bloomKeys.iterator();
+    private void addKeyToBloomFilter(Object key, int partition) throws ExecException {
+        Key k = new Key(((DataByteArray)key).get());
+        BloomFilter filter = bloomFilters[partition];
+        if (filter == null) {
+            filter = new BloomFilter(vectorSizeBytes * 8, numHash, hashType);
+            bloomFilters[partition] = filter;
         }
-        while (distinctKeyIter.hasNext()) {
-            Tuple res = mTupleFactory.newTuple(2);
-            res.set(0, key);
-            res.set(1, distinctKeyIter.next());
+        filter.add(k);
+    }
 
-            Result r = new Result();
-            r.result = res;
-            r.returnStatus = POStatus.STATUS_OK;
-            return r;
+    private Result retrieveBloomFilter() throws IOException  {
+        while (nextFilterIdx < numBloomFilters) {
+            if (bloomFilters[nextFilterIdx] != null) {
+                return getSerializedBloomFilter(nextFilterIdx, bloomFilters[nextFilterIdx++], vectorSizeBytes + 64);
+            } else {
+                nextFilterIdx++;
+            }
         }
-        distinctKeyIter = null;
-        return new Result(POStatus.STATUS_EOP, null);
+        return RESULT_EOP;
+    }
+
+    public boolean isBloomCreatedInMap() {
+        return bloomCreatedInMap;
     }
 }

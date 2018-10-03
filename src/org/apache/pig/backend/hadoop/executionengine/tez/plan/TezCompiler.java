@@ -49,6 +49,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigTupleWritableComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MergeJoinIndexer;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSecondaryKeyComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigWritableComparators;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.ScalarPhyFinder;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.UDFFinder;
@@ -109,6 +110,7 @@ import org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.FindQuantilesT
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.IsFirstReduceOfKeyTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.PartitionSkewedKeysTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.udf.ReadScalarsTez;
+import org.apache.pig.backend.hadoop.executionengine.tez.runtime.BloomFilterPartitioner;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.SkewedPartitionerTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.WeightedRangePartitionerTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.TezCompilerUtil;
@@ -119,6 +121,7 @@ import org.apache.pig.impl.builtin.PartitionSkewedKeys;
 import org.apache.pig.impl.builtin.TezIndexableLoader;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.io.NullableBytesWritable;
 import org.apache.pig.impl.io.NullableIntWritable;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -134,6 +137,7 @@ import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.input.OrderedGroupedKVInput;
 import org.apache.tez.runtime.library.input.UnorderedKVInput;
 import org.apache.tez.runtime.library.output.UnorderedKVOutput;
@@ -1452,46 +1456,45 @@ public class TezCompiler extends PhyPlanVisitor {
 
         POPackage pkg = new POPackage(OperatorKey.genOpKey(scope));
         pkg.setNumInps(1);
-        BloomPackager pkgr = new BloomPackager(createBloomInMap, vectorSizeBytes, numHash, hashType);;
-        pkgr.setKeyType(DataType.INTEGER);
+        BloomPackager pkgr = new BloomPackager(createBloomInMap, numBloomFilters, vectorSizeBytes, numHash, hashType);
         pkg.setPkgr(pkgr);
         POValueOutputTez combineBloomOutput = new POValueOutputTez(OperatorKey.genOpKey(scope));
         combineBloomOp.plan.addAsLeaf(pkg);
         combineBloomOp.plan.addAsLeaf(combineBloomOutput);
 
-        edge.setIntermediateOutputKeyClass(NullableIntWritable.class.getName());
-        edge.setIntermediateOutputKeyComparatorClass(PigWritableComparators.PigIntRawBytesComparator.class.getName());
-
-        // Add combiner as well.
-        POPackage pkg_c = new POPackage(OperatorKey.genOpKey(scope));
-        BloomPackager combinerPkgr = new BloomPackager(createBloomInMap, vectorSizeBytes, numHash, hashType);
-        combinerPkgr.setCombiner(true);
-        combinerPkgr.setKeyType(DataType.INTEGER);
-        pkg_c.setPkgr(combinerPkgr);
-        pkg_c.setNumInps(1);
-        edge.combinePlan.addAsLeaf(pkg_c);
-        POProject prjKey = new POProject(OperatorKey.genOpKey(scope));
-        prjKey.setResultType(DataType.INTEGER);
-        List<PhysicalPlan> clrInps = new ArrayList<PhysicalPlan>();
-        PhysicalPlan pp = new PhysicalPlan();
-        pp.add(prjKey);
-        clrInps.add(pp);
-        POLocalRearrangeTez clr = localRearrangeFactory.create(0, LocalRearrangeType.WITHPLAN, clrInps, DataType.INTEGER);
-        clr.setOutputKey(combineBloomOpKey);
-        edge.combinePlan.addAsLeaf(clr);
-
         if (createBloomInMap) {
+            pkgr.setKeyType(DataType.INTEGER);
+            edge.setIntermediateOutputKeyClass(NullableIntWritable.class.getName());
+            edge.setIntermediateOutputKeyComparatorClass(
+            PigWritableComparators.PigIntRawBytesComparator.class.getName());
+            // Add combiner as well. Each of the bloom filter is 1 MB by default. When there are
+            // 100s of mappers producing bloom filter, it is better to have combiner
+            // on the reduce side.
+            POPackage pkg_c = new POPackage(OperatorKey.genOpKey(scope));
+            pkg_c.setPkgr(new BloomPackager(createBloomInMap, numBloomFilters, vectorSizeBytes, numHash, hashType));
+            pkg_c.getPkgr().setKeyType(DataType.INTEGER);
+            pkg_c.setNumInps(1);
+            edge.combinePlan.addAsLeaf(pkg_c);
+            POProject prjKey = new POProject(OperatorKey.genOpKey(scope));
+            prjKey.setResultType(DataType.INTEGER);
+            List<PhysicalPlan> clrInps = new ArrayList<PhysicalPlan>();
+            PhysicalPlan pp = new PhysicalPlan();
+            pp.add(prjKey);
+            clrInps.add(pp);
+            POLocalRearrangeTez clr = localRearrangeFactory.create(0, LocalRearrangeType.WITHPLAN, clrInps, DataType.INTEGER);
+            clr.setOutputKey(combineBloomOpKey);
+            edge.combinePlan.addAsLeaf(clr);
             // No combiner needed on map as there will be only one bloom filter per map for each partition
             // In the reducer, the bloom filters will be combined with same logic of reduce in BloomPackager
             edge.setCombinerInMap(false);
             edge.setCombinerInReducer(true);
         } else {
-            pkgr.setBloomKeyType(op.getPkgr().getKeyType());
+            pkgr.setKeyType(DataType.BYTEARRAY);
+            edge.setIntermediateOutputKeyClass(NullableBytesWritable.class.getName());
+            edge.setIntermediateOutputKeyComparatorClass(PigWritableComparators.PigBytesRawBytesComparator.class.getName());
+            edge.partitionerClass = BloomFilterPartitioner.class;
             // Do distinct of the keys on the map side to reduce data sent to reducers.
-            // In case of reduce, not adding a combiner and doing the distinct during reduce itself.
-            // If needed one can be added later
-            edge.setCombinerInMap(true);
-            edge.setCombinerInReducer(false);
+            edge.setNeedsDistinctCombiner(!conf.getBoolean(PigConfiguration.PIG_BLOOMJOIN_NOCOMBINER, false));
         }
 
         // Broadcast the final bloom filter to other inputs
