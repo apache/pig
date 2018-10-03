@@ -188,7 +188,7 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
                 if (Boolean.valueOf(conf.get(JobControlCompiler.END_OF_INP_IN_MAP, "false"))) {
                     this.parentPlan.endOfAllInput = true;
                 }
-                return RESULT_EOP;
+                return pkgr.getNext();
             }
 
             key = pkgr.getKey(min);

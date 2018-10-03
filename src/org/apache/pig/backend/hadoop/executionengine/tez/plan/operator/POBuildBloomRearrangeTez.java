@@ -37,6 +37,7 @@ import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.io.NullableBytesWritable;
 import org.apache.pig.impl.io.NullableIntWritable;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
@@ -75,8 +76,7 @@ public class POBuildBloomRearrangeTez extends POLocalRearrangeTez {
     private transient BloomFilter[] bloomFilters;
     private transient KeyValueWriter bloomWriter;
     private transient PigNullableWritable nullKey;
-    private transient Tuple bloomValue;
-    private transient NullableTuple bloomNullableTuple;
+    private transient NullableTuple[] bloomPartitions;
 
     public POBuildBloomRearrangeTez(POLocalRearrangeTez lr,
             boolean createBloomInMap, int numBloomFilters, int vectorSizeBytes,
@@ -142,8 +142,7 @@ public class POBuildBloomRearrangeTez extends POLocalRearrangeTez {
             throw new ExecException(e);
         }
         bloomFilters = new BloomFilter[numBloomFilters];
-        bloomValue = mTupleFactory.newTuple(1);
-        bloomNullableTuple = new NullableTuple(bloomValue);
+        bloomPartitions = new NullableTuple[numBloomFilters];
     }
 
     @Override
@@ -167,7 +166,7 @@ public class POBuildBloomRearrangeTez extends POLocalRearrangeTez {
                             if (createBloomInMap) {
                                 addKeyToBloomFilter(keyObj);
                             } else {
-                                writeJoinKeyForBloom(keyObj);
+                                writeJoinKeyForBloom(keyObj, key);
                             }
                         } else if (skipNullKeys) {
                             // Inner join. So don't bother writing null key
@@ -225,21 +224,27 @@ public class POBuildBloomRearrangeTez extends POLocalRearrangeTez {
         }
     }
 
-    private void writeJoinKeyForBloom(Object key) throws IOException {
-        int partition = (key.hashCode() & Integer.MAX_VALUE) % numBloomFilters;
-        bloomValue.set(0, key);
-        bloomWriter.write(new NullableIntWritable(partition), bloomNullableTuple);
+    private void writeJoinKeyForBloom(Object keyObj, PigNullableWritable key) throws IOException {
+        int partition = (keyObj.hashCode() & Integer.MAX_VALUE) % numBloomFilters;
+        if (bloomPartitions[partition] == null) {
+            Tuple tuple = mTupleFactory.newTuple(1);
+            tuple.set(0, partition);
+            bloomPartitions[partition] = new NullableTuple(tuple);
+        }
+        bloomWriter.write(new NullableBytesWritable(new DataByteArray(DataType.toBytes(keyObj, keyType))), bloomPartitions[partition]);
     }
 
     private void writeBloomFilters() throws IOException {
+        Tuple tuple = mTupleFactory.newTuple(1);
+        NullableTuple nTuple = new NullableTuple(tuple);
         ByteArrayOutputStream baos = new ByteArrayOutputStream(vectorSizeBytes + 64);
         for (int i = 0; i < bloomFilters.length; i++) {
             if (bloomFilters[i] != null) {
                 DataOutputStream dos = new DataOutputStream(baos);
                 bloomFilters[i].write(dos);
                 dos.flush();
-                bloomValue.set(0, new DataByteArray(baos.toByteArray()));
-                bloomWriter.write(new NullableIntWritable(i), bloomNullableTuple);
+                tuple.set(0, new DataByteArray(baos.toByteArray()));
+                bloomWriter.write(new NullableIntWritable(i), nTuple);
                 baos.reset();
             }
         }

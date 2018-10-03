@@ -4,19 +4,19 @@
 #--------------------------------------------------
 # TEZ DAG plan: pig-0_scope-0
 #--------------------------------------------------
-Tez vertex scope-45	->	Tez vertex group scope-58,Tez vertex group scope-59,
-Tez vertex scope-46	->	Tez vertex group scope-58,Tez vertex group scope-59,
-Tez vertex group scope-59	->	Tez vertex scope-52,
+Tez vertex scope-45	->	Tez vertex group scope-55,Tez vertex group scope-56,
+Tez vertex scope-46	->	Tez vertex group scope-55,Tez vertex group scope-56,
+Tez vertex group scope-56	->	Tez vertex scope-52,
 Tez vertex scope-52	->	Tez vertex scope-44,
 Tez vertex scope-44	->	Tez vertex scope-51,
-Tez vertex group scope-58	->	Tez vertex scope-51,
+Tez vertex group scope-55	->	Tez vertex scope-51,
 Tez vertex scope-51
 
 Tez vertex scope-45
 # Plan on vertex
-d: BuildBloom Rearrange[tuple]{int}(false) - scope-60	->	[ scope-51, scope-52]
+d: BuildBloom Rearrange[tuple]{int}(false) - scope-57	->	[ scope-51, scope-52]
 |   |
-|   Project[int][0] - scope-61
+|   Project[int][0] - scope-58
 |
 |---b: New For Each(false,false)[bag] - scope-15
     |   |
@@ -31,9 +31,9 @@ d: BuildBloom Rearrange[tuple]{int}(false) - scope-60	->	[ scope-51, scope-52]
     |---b: Load(file:///tmp/input2:org.apache.pig.builtin.PigStorage) - scope-8
 Tez vertex scope-46
 # Plan on vertex
-d: BuildBloom Rearrange[tuple]{int}(false) - scope-62	->	[ scope-51, scope-52]
+d: BuildBloom Rearrange[tuple]{int}(false) - scope-59	->	[ scope-51, scope-52]
 |   |
-|   Project[int][0] - scope-63
+|   Project[int][0] - scope-60
 |
 |---c: New For Each(false,false)[bag] - scope-23
     |   |
@@ -46,25 +46,17 @@ d: BuildBloom Rearrange[tuple]{int}(false) - scope-62	->	[ scope-51, scope-52]
     |   |---Project[bytearray][1] - scope-20
     |
     |---c: Load(file:///tmp/input3:org.apache.pig.builtin.PigStorage) - scope-16
-Tez vertex group scope-59	<-	 [scope-45, scope-46]	->	 scope-52
+Tez vertex group scope-56	<-	 [scope-45, scope-46]	->	 scope-52
 # No plan on vertex group
 Tez vertex scope-52
 # Combine plan on edge <scope-45>
-Local Rearrange[tuple]{int}(false) - scope-57	->	 scope-52
-|   |
-|   Project[int][0] - scope-56
-|
-|---Package(BloomPackager)[tuple]{int} - scope-55
+org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.DistinctCombiner$Combine
 # Combine plan on edge <scope-46>
-Local Rearrange[tuple]{int}(false) - scope-57	->	 scope-52
-|   |
-|   Project[int][0] - scope-56
-|
-|---Package(BloomPackager)[tuple]{int} - scope-55
+org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.DistinctCombiner$Combine
 # Plan on vertex
 POValueOutputTez - scope-54	->	 [scope-44]
 |
-|---Package(BloomPackager)[tuple]{int} - scope-53
+|---Package(BloomPackager)[tuple]{bytearray} - scope-53
 Tez vertex scope-44
 # Plan on vertex
 d: BloomFilter Rearrange[tuple]{int}(false) - scope-29	<-	 scope-52	->	 scope-51
@@ -82,7 +74,7 @@ d: BloomFilter Rearrange[tuple]{int}(false) - scope-29	<-	 scope-52	->	 scope-51
     |   |---Project[bytearray][1] - scope-4
     |
     |---a: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-0
-Tez vertex group scope-58	<-	 [scope-45, scope-46]	->	 scope-51
+Tez vertex group scope-55	<-	 [scope-45, scope-46]	->	 scope-51
 # No plan on vertex group
 Tez vertex scope-51
 # Plan on vertex

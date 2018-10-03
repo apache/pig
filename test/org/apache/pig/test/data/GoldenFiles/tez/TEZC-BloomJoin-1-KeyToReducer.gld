@@ -27,15 +27,11 @@ d: BuildBloom Rearrange[tuple]{bytearray}(false) - scope-30	->	[ scope-49, scope
     |---c: Load(file:///tmp/input2:org.apache.pig.builtin.PigStorage) - scope-14
 Tez vertex scope-50
 # Combine plan on edge <scope-48>
-Local Rearrange[tuple]{int}(false) - scope-55	->	 scope-50
-|   |
-|   Project[int][0] - scope-54
-|
-|---Package(BloomPackager)[tuple]{int} - scope-53
+org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.DistinctCombiner$Combine
 # Plan on vertex
 POValueOutputTez - scope-52	->	 [scope-46, scope-47]
 |
-|---Package(BloomPackager)[tuple]{int} - scope-51
+|---Package(BloomPackager)[tuple]{bytearray} - scope-51
 Tez vertex scope-46
 # Plan on vertex
 d: BloomFilter Rearrange[tuple]{bytearray}(false) - scope-26	<-	 scope-50	->	 scope-49
