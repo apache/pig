@@ -26,6 +26,8 @@ PIG-5282: Upgade to Java 8 (satishsaley via rohini)
  
 IMPROVEMENTS
 
+PIG-5354: Show fieldname and a line number for casting errors (knoguchi)
+
 PIG-5342: Add setting to turn off bloom join combiner (satishsaley via rohini)
 
 PIG-5349: Log stderr output when shell command fail (knoguchi)

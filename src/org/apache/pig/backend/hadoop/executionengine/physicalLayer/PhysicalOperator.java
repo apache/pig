@@ -360,9 +360,28 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
             default:
                 throw new ExecException("Unsupported type for getNext: " + DataType.findTypeName(dataType));
             }
+        } catch (ExecException e) {
+            throw new ExecException("Exception while executing for " + originalLocationsToDescriptiveString()
+                                    + ": " + e.toString(), e.getErrorCode(), e);
         } catch (RuntimeException e) {
             throw new ExecException("Exception while executing " + this.toString() + ": " + e.toString(), e);
         }
+    }
+
+    private String originalLocationsToDescriptiveString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append('[');
+        boolean isFirstItem = true;
+        for( OriginalLocation ol : getOriginalLocations() ) {
+            if( isFirstItem ) {
+                isFirstItem = false;
+            } else {
+                sb.append(",");
+            }
+            sb.append(ol.getAlias()).append("[line=").append(ol.getLine())
+              .append(",offset=").append(ol.getOffset()).append("]");
+        }
+        return sb.append(']').toString();
     }
 
     public Result getNextInteger() throws ExecException {
