@@ -23,6 +23,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
@@ -125,6 +126,21 @@ public abstract class BagFactory {
      * @return distinct data bag
      */
     public abstract DataBag newDistinctBag();
+
+    /**
+     * Get a distinct data bag.  Distinct bags guarantee that when an
+     * iterator is opened on the bag, no two tuples returned from the
+     * iterator will be equal.
+     * @param tuples distinct set of tuples
+     * @return distinct data bag
+     */
+    public DataBag newDistinctBag(Set<Tuple> tuples) {
+        DataBag bag = newDistinctBag();
+        for (Tuple t : tuples) {
+            bag.add(t);
+        }
+        return bag;
+    }
 
     /**
      * Construct a new BagFactory

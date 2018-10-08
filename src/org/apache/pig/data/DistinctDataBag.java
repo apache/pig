@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.ListIterator;
+import java.util.Set;
 import java.util.TreeSet;
 
 import org.apache.commons.logging.Log;
@@ -61,6 +62,13 @@ public class DistinctDataBag extends DefaultAbstractBag {
 
     public DistinctDataBag() {
         mContents = new HashSet<Tuple>();
+    }
+
+    public DistinctDataBag(Set<Tuple> tuples) {
+        mContents = tuples;
+
+        mSize = mContents.size();
+        markSpillableIfNecessary();
     }
 
     @Override
@@ -227,7 +235,7 @@ public class DistinctDataBag extends DefaultAbstractBag {
         DistinctDataBagIterator() {
             // If this is the first read, we need to sort the data.
             synchronized (mContents) {
-                if (mContents instanceof HashSet) {
+                if (mContents instanceof Set) {
                     preMerge();
                     // We're the first reader, we need to sort the data.
                     // This is in case it gets dumped under us.

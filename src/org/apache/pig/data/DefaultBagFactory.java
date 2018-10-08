@@ -19,6 +19,7 @@ package org.apache.pig.data;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Default implementation of BagFactory.
@@ -73,6 +74,21 @@ public class DefaultBagFactory extends BagFactory {
     @Override
     public DataBag newDistinctBag() {
         DataBag b = new DistinctDataBag();
+        return b;
+    }
+
+    /**
+     * Get a distinct data bag.
+     * @param tuples Distinct set of tuples used to initialize the bag.
+     * If null, an empty bag is returned.
+     */
+    @Override
+    public DataBag newDistinctBag(Set<Tuple> tuples) {
+        if (tuples == null) {
+            return newDistinctBag();
+        }
+
+        DataBag b = new DistinctDataBag(tuples);
         return b;
     }
 
