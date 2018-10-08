@@ -26,6 +26,8 @@ PIG-5282: Upgade to Java 8 (satishsaley via rohini)
  
 IMPROVEMENTS
 
+PIG-5357: BagFactory interface should support creating a distinct bag from a set (jtolar via rohini)
+
 PIG-5354: Show fieldname and a line number for casting errors (knoguchi)
 
 PIG-5342: Add setting to turn off bloom join combiner (satishsaley via rohini)
