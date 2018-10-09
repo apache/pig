@@ -39,7 +39,6 @@ import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.mapreduce.split.JobSplitWriter;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
@@ -55,6 +54,7 @@ import org.apache.tez.mapreduce.hadoop.DeprecatedKeys;
 import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
 import org.apache.tez.mapreduce.hadoop.InputSplitInfoDisk;
 import org.apache.tez.mapreduce.hadoop.InputSplitInfoMem;
+import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitsProto;
 
 @InterfaceAudience.Private
 public class MRToTezHelper {
@@ -62,7 +62,6 @@ public class MRToTezHelper {
     private static final Log LOG = LogFactory.getLog(MRToTezHelper.class);
     private static final String JOB_SPLIT_RESOURCE_NAME = MRJobConfig.JOB_SPLIT;
     private static final String JOB_SPLIT_METAINFO_RESOURCE_NAME = MRJobConfig.JOB_SPLIT_METAINFO;
-
     private static Map<String, String> mrAMParamToTezAMParamMap = new HashMap<String, String>();
     private static Map<String, String> mrMapParamToTezVertexParamMap = new HashMap<String, String>();
     private static Map<String, String> mrReduceParamToTezVertexParamMap = new HashMap<String, String>();
@@ -297,14 +296,23 @@ public class MRToTezHelper {
     }
 
     /**
-     * Write input splits (job.split and job.splitmetainfo) to disk
+     * Write input splits (job.split and job.splitmetainfo) to disk. It uses already
+     * serialized splits from given MRSplitsProto
+     * @param infoMem
+     * @param inputSplitsDir
+     * @param jobConf
+     * @param fs
+     * @param splitsProto MRSplitsProto containing already serialized splits
+     * @return
+     * @throws IOException
+     * @throws InterruptedException
      */
     public static InputSplitInfoDisk writeInputSplitInfoToDisk(
             InputSplitInfoMem infoMem, Path inputSplitsDir, JobConf jobConf,
-            FileSystem fs) throws IOException, InterruptedException {
+            FileSystem fs, MRSplitsProto splitsProto) throws IOException, InterruptedException {
 
         InputSplit[] splits = infoMem.getNewFormatSplits();
-        JobSplitWriter.createSplitFiles(inputSplitsDir, jobConf, fs, splits);
+        TezJobSplitWriter.createSplitFiles(inputSplitsDir, jobConf, fs, splits, splitsProto);
 
         return new InputSplitInfoDisk(
                 JobSubmissionFiles.getJobSplitFile(inputSplitsDir),
