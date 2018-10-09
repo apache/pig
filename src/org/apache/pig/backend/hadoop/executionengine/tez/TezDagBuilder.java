@@ -108,6 +108,7 @@ import org.apache.pig.backend.hadoop.executionengine.tez.runtime.PigProcessor;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.MRToTezHelper;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.SecurityHelper;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.TezCompilerUtil;
+import org.apache.pig.backend.hadoop.executionengine.tez.util.TezInputHelper;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.TezUDFContextSeparator;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
@@ -119,6 +120,7 @@ import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.util.UDFContextSeparator.UDFType;
 import org.apache.pig.tools.pigstats.tez.TezScriptState;
@@ -947,30 +949,33 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
             // Currently inputSplitInfo is always InputSplitInfoMem at this point
             if (inputSplitInfo instanceof InputSplitInfoMem) {
-                MRSplitsProto splitsProto = inputSplitInfo.getSplitsProto();
-                int splitsSerializedSize = splitsProto.getSerializedSize();
-                if(splitsSerializedSize > spillThreshold) {
+                MRSplitsProto.Builder splitsBuilder = MRSplitsProto.newBuilder();
+                Pair<Long, Boolean> serializationInfo = TezInputHelper.createSplitsProto(inputSplitInfo, pigContextConf, splitsBuilder,
+                        spillThreshold);
+                MRSplitsProto splitsProto = splitsBuilder.build();
+                if(!serializationInfo.second) {
+                    //write to disk
                     inputPayLoad.setBoolean(
                             org.apache.tez.mapreduce.hadoop.MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS,
                             false);
-                    // Write splits to disk
-                    Path inputSplitsDir = FileLocalizer.getTemporaryPath(pc);
-                    log.info("Writing input splits to " + inputSplitsDir
+                      // Write splits to disk
+                      Path inputSplitsDir = FileLocalizer.getTemporaryPath(pc);
+                      log.info("Writing input splits to " + inputSplitsDir
                             + " for vertex " + vertex.getName()
-                            + " as the serialized size in memory is "
-                            + splitsSerializedSize + ". Configured "
+                            + " as the partially serialized size in memory is "
+                            + serializationInfo.first + ". Configured "
                             + PigConfiguration.PIG_TEZ_INPUT_SPLITS_MEM_THRESHOLD
                             + " is " + spillThreshold);
-                    inputSplitInfo = MRToTezHelper.writeInputSplitInfoToDisk(
-                            (InputSplitInfoMem)inputSplitInfo, inputSplitsDir, payloadConf, fs);
-                    additionalLocalResources = new HashMap<String, LocalResource>();
-                    MRToTezHelper.updateLocalResourcesForInputSplits(
+                      inputSplitInfo = MRToTezHelper.writeInputSplitInfoToDisk(
+                            (InputSplitInfoMem)inputSplitInfo, inputSplitsDir, payloadConf, fs, splitsProto);
+                      additionalLocalResources = new HashMap<String, LocalResource>();
+                      MRToTezHelper.updateLocalResourcesForInputSplits(
                             fs, inputSplitInfo,
                             additionalLocalResources);
-                    inputSplitInDiskVertices.add(vertex.getName());
+                      inputSplitInDiskVertices.add(vertex.getName());
                 } else {
-                    // Send splits via RPC to AM
-                    userPayLoadBuilder.setSplits(splitsProto);
+                      // Send splits via RPC to AM
+                      userPayLoadBuilder.setSplits(splitsProto);
                 }
                 //Free up memory
                 tezOp.getLoaderInfo().setInputSplitInfo(null);

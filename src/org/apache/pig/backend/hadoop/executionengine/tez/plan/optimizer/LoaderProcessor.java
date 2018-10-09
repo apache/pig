@@ -39,6 +39,7 @@ import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.TezOperator;
 import org.apache.pig.backend.hadoop.executionengine.tez.plan.operator.POSimpleTezLoad;
+import org.apache.pig.backend.hadoop.executionengine.tez.util.TezInputHelper;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
@@ -169,7 +170,7 @@ public class LoaderProcessor extends TezOpPlanVisitor {
             tezOp.getLoaderInfo().setInpLimits(inpLimits);
             // Not using MRInputAMSplitGenerator because delegation tokens are
             // fetched in FileInputFormat
-            tezOp.getLoaderInfo().setInputSplitInfo(MRInputHelpers.generateInputSplitsToMem(conf, false, 0));
+            tezOp.getLoaderInfo().setInputSplitInfo(TezInputHelper.generateInputSplitsToMem(conf));
             // TODO: Can be set to -1 if TEZ-601 gets fixed and getting input
             // splits can be moved to if(loads) block below
             int parallelism = tezOp.getLoaderInfo().getInputSplitInfo().getNumTasks();
