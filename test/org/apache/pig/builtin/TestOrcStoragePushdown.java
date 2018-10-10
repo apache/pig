@@ -313,27 +313,27 @@ public class TestOrcStoragePushdown {
 
     @Test
     public void testPredicatePushdownBoolean() throws Exception {
-        testPredicatePushdown(INPUT, "f1 == true", 2500, 1200000);
+        testPredicatePushdown(INPUT, "f1 == true", 2500, 940000);
     }
 
     @Test
     public void testPredicatePushdownByteShort() throws Exception {
-        testPredicatePushdown(INPUT, "f2 != 5 or f3 == 100", 3500, 1200000);
+        testPredicatePushdown(INPUT, "f2 != 5 or f3 == 100", 3500, 940000);
     }
 
     @Test
     public void testPredicatePushdownIntLongString() throws Exception {
-        testPredicatePushdown(INPUT, "f4 >= 980 and f4 < 1010 and (f5 == 100 or f9 is not null)", 20, 1200000);
+        testPredicatePushdown(INPUT, "f4 >= 980 and f4 < 1010 and (f5 == 100 or f9 is not null)", 20, 940000);
     }
 
     @Test
     public void testPredicatePushdownFloatDouble() throws Exception {
-        testPredicatePushdown(INPUT, "f6 == 100.0 and f7 > 2000.00000001", 167, 1600000);
+        testPredicatePushdown(INPUT, "f6 == 100.0 and f7 > 2000.00000001", 167, 940000);
     }
 
     @Test
     public void testPredicatePushdownBigDecimal() throws Exception {
-        testPredicatePushdown(INPUT, "f11 < (bigdecimal)'1000000000';", 2500, 1600000);
+        testPredicatePushdown(INPUT, "f11 < (bigdecimal)'1000000000';", 2500, 940000);
     }
 
     @Test
