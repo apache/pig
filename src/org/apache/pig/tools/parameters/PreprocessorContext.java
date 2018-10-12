@@ -352,9 +352,7 @@ public class PreprocessorContext {
                     throw new ParameterSubstitutionException(message);
                 }
                 val = paramval_get(key);
-                if (val.contains("$")) {
-                    val = val.replaceAll("(?<!\\\\)\\$", "\\\\\\$");
-                }
+                val = Matcher.quoteReplacement(val);
                 replaced_line = replaced_line.replaceFirst("\\$\\{"+key+"\\}", val);
             }
         }
@@ -379,9 +377,7 @@ public class PreprocessorContext {
                     throw new ParameterSubstitutionException(message);
                 }
                 val = paramval_get(key);
-                if (val.contains("$")) {
-                    val = val.replaceAll("(?<!\\\\)\\$", "\\\\\\$");
-                }
+                val = Matcher.quoteReplacement(val);
                 replaced_line = replaced_line.replaceFirst("\\$"+key, val);
             }
         }

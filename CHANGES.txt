@@ -88,6 +88,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5362: Parameter substitution of shell cmd results doesn't handle backslash (wlauer via rohini)
+
 PIG-5355: Negative progress report by HBaseTableRecordReader (satishsaley via knoguchi)
 
 PIG-5341: PigStorage with -tagFile/-tagPath produces incorrect results with column pruning (knoguchi)
