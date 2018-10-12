@@ -130,7 +130,7 @@ public class TestJobControlCompiler {
     // verifying the jar gets on distributed cache
     Path[] fileClassPaths = DistributedCache.getFileClassPaths(jobConf);
     // guava jar is not shipped with Hadoop 2.x
-    Assert.assertEquals("size for "+Arrays.toString(fileClassPaths), 5, fileClassPaths.length);
+    Assert.assertEquals("size for "+Arrays.toString(fileClassPaths), 6, fileClassPaths.length);
     Path distributedCachePath = fileClassPaths[0];
     Assert.assertEquals("ends with jar name: "+distributedCachePath, distributedCachePath.getName(), tmpFile.getName());
     // hadoop bug requires path to not contain hdfs://hotname in front
@@ -234,11 +234,11 @@ public class TestJobControlCompiler {
           // 4. another.jar and 5. udf1.jar, and not duplicate udf.jar
           System.out.println("cache.files= " + Arrays.toString(cacheURIs));
           System.out.println("classpath.files= " + Arrays.toString(fileClassPaths));
-          // Default jars - 5 (pig, antlr, joda-time, automaton)
+          // Default jars - 5 (pig, antlr, joda-time, automaton, roaring-bitmap-shaded)
           // Other jars - 10 (udf.jar#udf.jar, udf1.jar#diffname.jar, udf2.jar, udf1.jar, another.jar
-          Assert.assertEquals("size 9 for " + Arrays.toString(cacheURIs), 9,
+          Assert.assertEquals("size 10 for " + Arrays.toString(cacheURIs), 10,
                   Arrays.asList(StringUtils.join(cacheURIs, ",").split(",")).size());
-          Assert.assertEquals("size 9 for " + Arrays.toString(fileClassPaths), 9,
+          Assert.assertEquals("size 10 for " + Arrays.toString(fileClassPaths), 10,
                   Arrays.asList(StringUtils.join(fileClassPaths, ",").split(",")).size());
           // Count occurrences of the resources
           Map<String, Integer> occurrences = new HashMap<String, Integer>();
@@ -248,7 +248,7 @@ public class TestJobControlCompiler {
               val = (val == null) ? 1 : ++val;
               occurrences.put(cacheURI.toString(), val);
           }
-          Assert.assertEquals(9, occurrences.size());
+          Assert.assertEquals(10, occurrences.size());
 
           for (String file : occurrences.keySet()) {
               // check that only single occurrence even though we added once to dist cache (simulating via Oozie)

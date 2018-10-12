@@ -22,17 +22,16 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Iterator;
 
-import org.apache.hadoop.util.bloom.BloomFilter;
 import org.apache.hadoop.util.bloom.Key;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.Packager;
-import org.apache.pig.builtin.BuildBloomBase;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.bloom.BloomFilter;
 
 public class BloomPackager extends Packager {
 
@@ -103,10 +102,10 @@ public class BloomPackager extends Packager {
         Iterator<Tuple> iter = bags[0].iterator();
         Tuple tup = iter.next();
         DataByteArray bloomBytes = (DataByteArray) tup.get(0);
-        BloomFilter bloomFilter = BuildBloomBase.bloomIn(bloomBytes);
+        BloomFilter bloomFilter = BloomFilter.bloomIn(bloomBytes);
         while (iter.hasNext()) {
             tup = iter.next();
-            bloomFilter.or(BuildBloomBase.bloomIn((DataByteArray) tup.get(0)));
+            bloomFilter.or(BloomFilter.bloomIn((DataByteArray) tup.get(0)));
         }
 
         Object partition = key;

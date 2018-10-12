@@ -399,6 +399,7 @@
             <include name="joda-time-${joda-time.version}.jar"/>
             <include name="automaton-${automaton.version}.jar"/>
             <include name="jansi-${jansi.version}.jar"/>
+            <include name="RoaringBitmap-shaded-${roaring-bitmap-shaded.version}.jar"/>
         </patternset>
     </fileset>
 
@@ -741,6 +742,7 @@
             <fileset dir="${ivy.lib.dir}" includes="parser-core-${basjes-httpdlog-pigloader.version}.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="ivy-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="commons-logging-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="RoaringBitmap-shaded-${roaring-bitmap-shaded.version}.jar"/>
         </copy>
     </target>
 
@@ -1716,6 +1718,10 @@
        <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings" log="${loglevel}"
                  pattern="${ivy.lib.dir.spark}/[artifact]-[revision](-[classifier]).[ext]" conf="spark${sparkversion},hbase${hbaseversion}"/>
        <ivy:cachepath pathid="compile.classpath" conf="compile"/>
+       <exec dir="${basedir}/shade/roaringbitmap" executable="mvn">
+          <arg line="clean package -Droaring.bitmap.version=${roaring-bitmap-shaded.version}"/>
+        </exec>
+       <copy file="${basedir}/shade/roaringbitmap/target/RoaringBitmap-shaded-${roaring-bitmap-shaded.version}.jar" todir="${ivy.lib.dir}"/>
      </target>
 
      <target name="ivy-test" depends="ivy-resolve" description="Retrieve Ivy-managed artifacts for test configuration">

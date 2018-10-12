@@ -235,6 +235,9 @@
     <dependency org="org.jruby" name="jruby-complete" rev="${jruby.version}" conf="compile->master"/>
     <dependency org="asm" name="asm" rev="${asm.version}" conf="compile->default"/>
 
+    <!-- Dependencies for bloom join -->
+    <dependency org="org.roaringbitmap" name="RoaringBitmap" rev="${roaring-bitmap-shaded.version}" conf="compile->master"/>
+
     <!-- HBase dependency in format for releases higher or equal to 0.95 -->
     <dependency org="org.apache.hbase" name="hbase-client" rev="${hbase1.version}" conf="hbase1->master">
       <artifact name="hbase-client" type="jar"/>

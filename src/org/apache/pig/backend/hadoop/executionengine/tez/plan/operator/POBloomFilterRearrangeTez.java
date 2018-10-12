@@ -24,7 +24,6 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.util.bloom.BloomFilter;
 import org.apache.hadoop.util.bloom.Key;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
@@ -32,12 +31,12 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.ObjectCache;
 import org.apache.pig.backend.hadoop.executionengine.tez.runtime.TezInput;
-import org.apache.pig.builtin.BuildBloomBase;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.bloom.BloomFilter;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.tez.runtime.api.LogicalInput;
@@ -106,7 +105,7 @@ public class POBloomFilterRearrangeTez extends POLocalRearrangeTez implements Te
                 }
                 Tuple val = (Tuple) reader.getCurrentValue();
                 int index = (int) val.get(0);
-                bloomFilters[index] = BuildBloomBase.bloomIn((DataByteArray) val.get(1));
+                bloomFilters[index] = BloomFilter.bloomIn((DataByteArray) val.get(1));
             }
             ObjectCache.getInstance().cache(cacheKey, bloomFilters);
         } catch (Exception e) {

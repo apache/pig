@@ -48,6 +48,7 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.org.roaringbitmap.RoaringBitmap;
 import org.apache.tools.bzip2r.BZip2Constants;
 import org.joda.time.DateTime;
 
@@ -66,7 +67,8 @@ public class JarManager {
         BZIP2R(BZip2Constants.class),
         AUTOMATON(Automaton.class),
         ANTLR(CommonTokenStream.class),
-        JODATIME(DateTime.class);
+        JODATIME(DateTime.class),
+        SHADED_ROARING_BITMAP(RoaringBitmap.class);
 
         private final Class pkgClass;
 
