@@ -66,4 +66,15 @@ public class TestPreprocessorContext {
             );
         }
     }
+    
+    @Test
+    public void testEscaping() throws ParameterSubstitutionException, FrontendException {
+        PreprocessorContext ctx = new PreprocessorContext(0);
+        // quote argument to echo so that the shell doesn't treat the backslash as an escape and consume it
+        String cmd = "echo '$\\stuff'";
+        ctx.processShellCmd("some_value", "`" + cmd + "`");
+
+        String subVal = ctx.substitute("$some_value");
+        assertEquals("$\\stuff", subVal);
+    }
 }
