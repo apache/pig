@@ -26,6 +26,8 @@ PIG-5282: Upgade to Java 8 (satishsaley via rohini)
  
 IMPROVEMENTS
 
+PIG-5255: Improvements to bloom join (satishsaley via rohini)
+
 PIG-5359: Reduce time spent in split serialization (satishsaley via rohini)
 
 PIG-5357: BagFactory interface should support creating a distinct bag from a set (jtolar via rohini)
