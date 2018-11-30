@@ -34,9 +34,11 @@ import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchem
 
 public class LOUnion extends LogicalRelationalOperator {
     private boolean onSchema;
+
+    private static String UID_SEPARATOR = "_";
     
     // uid mapping from output uid to input uid
-    private List<Pair<Long, Long>> uidMapping = new ArrayList<Pair<Long, Long>>();
+    private List<Pair<Long, String>> uidMapping = new ArrayList<Pair<Long, String>>();
     
     public LOUnion(OperatorPlan plan) {
         super("LOUnion", plan);
@@ -108,7 +110,7 @@ public class LOUnion extends LogicalRelationalOperator {
         }
 
         // Bring back cached uid if any; otherwise, cache uid generated
-        setMergedSchemaUids(mergedSchema, inputSchemas);
+        setMergedSchemaUids(mergedSchema, inputSchemas, "");
 
         return schema = mergedSchema;
     }
@@ -145,7 +147,7 @@ public class LOUnion extends LogicalRelationalOperator {
         return mergedSchema;
     }
 
-    private void setMergedSchemaUids(LogicalSchema mergedSchema, List<LogicalSchema> inputSchemas)
+    private void setMergedSchemaUids(LogicalSchema mergedSchema, List<LogicalSchema> inputSchemas, String nested_uids)
     throws FrontendException {
 
         for (int i=0;i<mergedSchema.size();i++) {
@@ -170,7 +172,7 @@ public class LOUnion extends LogicalRelationalOperator {
                     }
 
                     if (uid < 0) {
-                        uid = getCachedOuputUid(inputFieldSchema.uid);
+                        uid = getCachedOuputUid(createNestedUids(nested_uids,inputFieldSchema.uid));
                         if (uid >= 0 && outputFieldSchema.schema == null) break;
                     }
                 }
@@ -186,13 +188,13 @@ public class LOUnion extends LogicalRelationalOperator {
                         matchedInputFieldSchema = inputSchema.getFieldSubNameMatch(mergedSchema.getField(i).alias);
                         if (matchedInputFieldSchema!=null) {
                             inputUid = matchedInputFieldSchema.uid;
-                            uidMapping.add(new Pair<Long, Long>(uid, inputUid));
+                            uidMapping.add(new Pair<Long, String>(uid, createNestedUids(nested_uids,inputUid)));
                         }
                     }
                     else {
                         matchedInputFieldSchema = mergedSchema.getField(i);
                         inputUid = inputSchema.getField(i).uid;
-                        uidMapping.add(new Pair<Long, Long>(uid, inputUid));
+                        uidMapping.add(new Pair<Long, String>(uid, createNestedUids(nested_uids,inputUid)));
                     }
                 }
             }
@@ -201,16 +203,28 @@ public class LOUnion extends LogicalRelationalOperator {
 
             // This field has a schema. Assign uids to it as well
             if (outputFieldSchema.schema != null) {
-                setMergedSchemaUids(outputFieldSchema.schema, fieldInputSchemas);
+                setMergedSchemaUids(outputFieldSchema.schema, fieldInputSchemas, createNestedUids(nested_uids,outputFieldSchema.uid));
             }
         }
     }
 
-    private long getCachedOuputUid(long inputUid) {
+    private String createNestedUids(String nested_uids, long new_uid) {
+        StringBuilder sb = new StringBuilder(nested_uids);
+        sb.append(UID_SEPARATOR);
+        sb.append(new_uid);
+        return sb.toString();
+    }
+
+    private long getLeafUid(String nested_uids) {
+        String [] uid_root_to_leaf = nested_uids.split(UID_SEPARATOR);
+        return Long.valueOf(uid_root_to_leaf[uid_root_to_leaf.length-1]);
+    }
+
+    private long getCachedOuputUid(String nested_input_uids) {
         long uid = -1;
         
-        for (Pair<Long, Long> pair : uidMapping) {
-            if (pair.second==inputUid) {
+        for (Pair<Long, String> pair : uidMapping) {
+            if (pair.second.equals(nested_input_uids)) {
                 uid = pair.first;
                 break;
             }
@@ -237,18 +251,18 @@ public class LOUnion extends LogicalRelationalOperator {
     }
 
     // Get input uids mapping to the output uid
-    public Set<Long> getInputUids(long uid) {
+    public Set<Long> getInputUids(long outputuid) {
         Set<Long> result = new HashSet<Long>();
-        for (Pair<Long, Long> pair : uidMapping) {
-            if (pair.first==uid)
-                result.add(pair.second);
+        for (Pair<Long, String> pair : uidMapping) {
+            if (pair.first==outputuid)
+                result.add(getLeafUid(pair.second));
         }
         return result;
     }
     
     @Override
     public void resetUid() {
-        uidMapping = new ArrayList<Pair<Long, Long>>();
+        uidMapping = new ArrayList<Pair<Long, String>>();
     }
     
     public List<Operator> getInputs() {
