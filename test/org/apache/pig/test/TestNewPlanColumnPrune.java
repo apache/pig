@@ -482,6 +482,35 @@ public class TestNewPlanColumnPrune {
         }
     }
 
+    @Test
+    public void testUnionOnschemaWithInnerBag() throws Exception  {
+        // After handing inner-bag in Union-onschema,
+        // ColumnPrune broke due to overlapping uid inside the relation and
+        // ones inside the inner-bag  (PIG-5370)
+        String query = "A0 = load 'd.txt' as (a0:int, a1:int, a2:int, a3:int);" +
+        "A = FOREACH A0 GENERATE a0, a1, a2;" +
+        "B = FOREACH (GROUP A by (a0,a1)) {" +
+        "    A_FOREACH = FOREACH A GENERATE a1,a2;" +
+        "    GENERATE A, FLATTEN(A_FOREACH) as (a1,a2);" +
+        "}" +
+        "C = load 'd2.txt' as (A:bag{tuple:(a0:int, a1:int, a2:int)}, a1:int,a2:int);" +
+        "Z = UNION ONSCHEMA B, C;"  +
+        "store Z into 'empty';";
+
+        LogicalPlan newLogicalPlan = buildPlan(query);
+
+        PlanOptimizer optimizer = new MyPlanOptimizer(newLogicalPlan, 3);
+        optimizer.optimize();
+        System.err.println(newLogicalPlan);
+        Iterator<Operator> iter = newLogicalPlan.getOperators();
+        while (iter.hasNext()) {
+            Operator o = iter.next();
+            LogicalRelationalOperator lro = (LogicalRelationalOperator)o;
+            if (lro == null || lro.getAlias() == null) continue;
+            assertNotNull(lro.getSchema());
+        }
+    }
+
     public class MyPlanOptimizer extends LogicalPlanOptimizer {
 
         protected MyPlanOptimizer(OperatorPlan p,  int iterations) {
@@ -505,4 +534,3 @@ public class TestNewPlanColumnPrune {
         }
     }
 }
-
