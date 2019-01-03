@@ -20,6 +20,7 @@ package org.apache.pig.impl.io;
 import java.io.DataInputStream;
 import java.io.IOException;
 
+import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -89,35 +90,34 @@ public class InterRecordReader extends RecordReader<Text, Tuple> {
      * @return true if marker was observed, false if EOF or EndOfSplit was reached
      * @throws IOException
      */
-  private boolean skipUntilMarkerOrSplitEndOrEOF() throws IOException {
+  public boolean skipUntilMarkerOrSplitEndOrEOF() throws IOException {
       int b = Integer.MIN_VALUE;
-outer:while (b != -1) {
-          if (b != syncMarker[0]) {
-
-              //There may be a case where we read through a whole split without a marker, then we shouldn't proceed
-              // because the records are from the next split which another reader would pick up too
-              if (in.getPosition() >= end) {
-                  return false;
-              }
-              b = in.read();
-              if ((byte) b != syncMarker[0] && b != -1) {
-                  continue;
-              }
-              if (b == -1) return false;
+      CircularFifoQueue<Integer> queue = new CircularFifoQueue(syncMarker.length);
+      outer:while (b != -1) {
+          //There may be a case where we read through a whole split without a marker, then we shouldn't proceed
+          // because the records are from the next split which another reader would pick up too
+          //One exception of reading past split end is if at least the first byte of the marker was seen before split
+          // end.
+          if (in.getPosition() >= (end+syncMarker.length-1)) {
+              return false;
           }
-          int i = 1;
-          while (i < syncMarker.length) {
-              b = in.read();
-              if (b == -1) return false;
-              if ((byte) b != syncMarker[i]) {
-                  if (in.getPosition() > end) {
-                      //Again we should not read past the split end, only if at least the first byte of marker was seen before it
-                      return false;
-                  }
+          b = in.read();
+
+          //EOF reached
+          if (b == -1) return false;
+
+          queue.add(b);
+          if (queue.size() != queue.maxSize()) {
+              //Not enough bytes read yet
+              continue outer;
+          }
+          int i = 0;
+          for (Integer seenByte : queue){
+              if (syncMarker[i++] != seenByte.byteValue()) {
                   continue outer;
               }
-              ++i;
           }
+          //Found marker: queue content equals sync marker
           lastSyncPos = in.getPosition();
           return true;
       }
