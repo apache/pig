@@ -18,6 +18,7 @@
 package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -26,6 +27,7 @@ import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -42,8 +44,11 @@ import org.apache.pig.data.InterSedes;
 import org.apache.pig.data.InterSedesFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.impl.io.InterRecordReader;
 import org.apache.pig.impl.util.TupleFormat;
 import org.junit.Test;
+import org.mockito.internal.util.reflection.Whitebox;
 
 public class TestBinInterSedes {
     private static final TupleFactory mTupleFactory = TupleFactory.getInstance();
@@ -435,6 +440,45 @@ public class TestBinInterSedes {
         Util.checkQueryOutputsAfterSortRecursive(it, expected2,
                 org.apache.pig.newplan.logical.Util.translateSchema(pigServer.dumpSchema("B")));
 
+    }
+
+    /**
+     * Tests all combination where:
+     * sync marker is {x, y, 4}
+     * data is {127, -2, 2, z, x, y, 4, 1, 2, 3}
+     * x,y,z in [-128,127]
+     * This means that a sync marker has to be found in all iterations (total=16,777,216)
+     * @throws Exception
+     */
+    @Test
+    public void testPrefixSyncMarkers() throws Exception {
+        long defaultInterval = PigConfiguration.PIG_INTERSTORAGE_SYNCMARKER_INTERVAL_DEFAULT;
+
+        for (int b0 = -128; b0 <= 127; b0++) {
+            for (int b1 = -128; b1 <= 127; b1++) {
+                for (int b2 = -128; b2 <= 127; b2++) {
+                    byte[] syncMarker = new byte[]{(byte) b0, (byte) b1, (byte)4};
+                    byte[] data = new byte[]{127, -1, 2, (byte) b2, (byte) b0, (byte) b1, 4, 1, 2, 3};
+
+                    ByteArrayInputStream bi = new ByteArrayInputStream(data);
+                    BufferedPositionedInputStream bpi = new BufferedPositionedInputStream(bi);
+
+                    InterRecordReader reader = new InterRecordReader(syncMarker.length, defaultInterval);
+                    Whitebox.setInternalState(reader, "syncMarker", syncMarker);
+                    Whitebox.setInternalState(reader, "end", data.length);
+                    Whitebox.setInternalState(reader, "in", bpi);
+
+                    try {
+                        boolean ret = reader.skipUntilMarkerOrSplitEndOrEOF();
+                        assertTrue("Marker should have been found: " + "marker: " +
+                                Arrays.toString(syncMarker) + " , data: " + Arrays.toString(data),ret);
+                    } finally {
+                        bpi.close();
+                    }
+
+                }
+            }
+        }
     }
 
     private void testSerTuple(Tuple t, byte[] expected) throws Exception {

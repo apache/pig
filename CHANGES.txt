@@ -88,6 +88,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5373: InterRecordReader might skip records if certain sync markers are used (szita)
+
 PIG-5370: Union onschema + columnprune dropping used fields (knoguchi)
 
 PIG-5362: Parameter substitution of shell cmd results doesn't handle backslash (wlauer via rohini)
