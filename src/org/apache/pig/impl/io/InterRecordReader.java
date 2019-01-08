@@ -20,7 +20,7 @@ package org.apache.pig.impl.io;
 import java.io.DataInputStream;
 import java.io.IOException;
 
-import org.apache.commons.collections4.queue.CircularFifoQueue;
+import org.apache.commons.collections.buffer.CircularFifoBuffer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -92,7 +92,7 @@ public class InterRecordReader extends RecordReader<Text, Tuple> {
      */
   public boolean skipUntilMarkerOrSplitEndOrEOF() throws IOException {
       int b = Integer.MIN_VALUE;
-      CircularFifoQueue<Integer> queue = new CircularFifoQueue(syncMarker.length);
+      CircularFifoBuffer queue = new CircularFifoBuffer(syncMarker.length);
       outer:while (b != -1) {
           //There may be a case where we read through a whole split without a marker, then we shouldn't proceed
           // because the records are from the next split which another reader would pick up too
@@ -107,13 +107,13 @@ public class InterRecordReader extends RecordReader<Text, Tuple> {
           if (b == -1) return false;
 
           queue.add(b);
-          if (queue.size() != queue.maxSize()) {
+          if (!queue.isFull()) {
               //Not enough bytes read yet
               continue outer;
           }
           int i = 0;
-          for (Integer seenByte : queue){
-              if (syncMarker[i++] != seenByte.byteValue()) {
+          for (Object seenByte : queue){
+              if (syncMarker[i++] != ((Integer)seenByte).byteValue()) {
                   continue outer;
               }
           }
