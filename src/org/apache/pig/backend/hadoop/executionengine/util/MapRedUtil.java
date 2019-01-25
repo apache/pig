@@ -93,10 +93,10 @@ public class MapRedUtil {
             conf.set("yarn.resourcemanager.principal", mapConf.get("yarn.resourcemanager.principal"));
         }
 
-        if (PigMapReduce.sJobConfInternal.get().get("fs.file.impl")!=null)
-            conf.set("fs.file.impl", PigMapReduce.sJobConfInternal.get().get("fs.file.impl"));
-        if (PigMapReduce.sJobConfInternal.get().get("fs.hdfs.impl")!=null)
-            conf.set("fs.hdfs.impl", PigMapReduce.sJobConfInternal.get().get("fs.hdfs.impl"));
+        if (mapConf.get("fs.file.impl")!=null)
+            conf.set("fs.file.impl", mapConf.get("fs.file.impl"));
+        if (mapConf.get("fs.hdfs.impl")!=null)
+            conf.set("fs.hdfs.impl", mapConf.get("fs.hdfs.impl"));
 
         copyTmpFileConfigurationValues(PigMapReduce.sJobConfInternal.get(), conf);
 

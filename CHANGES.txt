@@ -130,6 +130,7 @@ PIG-2768: Fix org.apache.hadoop.conf.Configuration deprecation warnings for Hado
 OPTIMIZATIONS
  
 BUG FIXES
+PIG-5372: SAMPLE/RANDOM(udf) before skewed join failing with NPE (knoguchi)
 
 PIG-5262: Fix jdiff related issues: fail build upon error, correct xml character escaping (szita)
 
