@@ -87,6 +87,7 @@ PIG-5251: Bump joda-time to 2.9.9 (dbist13 via rohini)
 OPTIMIZATIONS
  
 BUG FIXES
+PIG-5372: SAMPLE/RANDOM(udf) before skewed join failing with NPE (knoguchi)
 
 PIG-5374: Use CircularFifoBuffer in InterRecordReader (szita)
 
