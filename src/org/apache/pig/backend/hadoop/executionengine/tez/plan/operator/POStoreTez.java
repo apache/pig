@@ -142,10 +142,10 @@ public class POStoreTez extends POStore implements TezOutput, TezTaskConfigurabl
             default:
                 break;
             }
-        } catch (IOException ioe) {
+        } catch (Exception ex) {
             int errCode = 2135;
-            String msg = "Received error from store function." + ioe.getMessage();
-            throw new ExecException(msg, errCode, ioe);
+            String msg = "Received error from store function " + name() + ". " + ex.getMessage();
+            throw new ExecException(msg, errCode, ex);
         }
         return res;
     }
