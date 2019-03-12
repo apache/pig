@@ -658,9 +658,13 @@ public class HiveUtils {
 
         @Override
         public BytesWritable getPrimitiveWritableObject(Object o) {
-            return o == null ? null : (o instanceof DataByteArray
+            try {
+                return o == null ? null : (o instanceof DataByteArray
                             ? new BytesWritable(((DataByteArray) o).get())
-                            : new BytesWritable((byte[]) o));
+                            : new BytesWritable((byte[]) DataType.toBytes(o)));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
 
         @Override

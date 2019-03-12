@@ -20,6 +20,8 @@ package org.apache.pig.builtin;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.apache.pig.builtin.mock.Storage.resetData;
+import static org.apache.pig.builtin.mock.Storage.tuple;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -57,6 +59,7 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.BinSedesTuple;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
@@ -281,6 +284,28 @@ public class TestOrcStorage {
                 ",hi,({(1,bye),(2,sigh)}),{(3,good),(4,bad)},[],"));
         assertTrue(t.get(12).toString().matches("2000-03-12T15:00:00.000.*"));
         assertTrue(t.toString().endsWith(",12345678.6547456)"));
+    }
+
+    @Test
+    // See PIG-5383
+    public void testByteArrayStore() throws Exception {
+        Data data = resetData(pigServer);
+        data.set("foo", "intButTypeByteArray:bytearray",
+            tuple(1),
+            tuple(2),
+            tuple(3)
+        );
+
+        // Emunlating the case when "bytearray" represents an unknown type
+
+        pigServer.registerQuery("A = LOAD 'foo' USING mock.Storage();");
+        pigServer.registerQuery("store A into '" + OUTPUT1 + "' using OrcStorage();");
+        pigServer.registerQuery("B = load '" + OUTPUT1 + "' using OrcStorage();");
+        Iterator <Tuple> iter = pigServer.openIterator("B");
+        assertEquals(Integer.valueOf(1), DataType.toInteger(iter.next().get(0), DataType.BYTEARRAY));
+        assertEquals(Integer.valueOf(2), DataType.toInteger(iter.next().get(0), DataType.BYTEARRAY));
+        assertEquals(Integer.valueOf(3), DataType.toInteger(iter.next().get(0), DataType.BYTEARRAY));
+        assertFalse(iter.hasNext());
     }
 
     private void verifyData(Path orcFile, Iterator<Tuple> iter, FileSystem fs, int expectedTotalRows) throws Exception {
