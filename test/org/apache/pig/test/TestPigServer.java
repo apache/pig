@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -141,11 +142,26 @@ public class TestPigServer {
     // dynamically add more resources to the system class loader
     private static void registerNewResource(String file) throws Exception {
         URL urlToAdd = new File(file).toURI().toURL();
-        URLClassLoader sysLoader = (URLClassLoader) ClassLoader.getSystemClassLoader();
-        Method addMethod = URLClassLoader.class.
-                getDeclaredMethod("addURL", new Class[]{URL.class});
-        addMethod.setAccessible(true);
-        addMethod.invoke(sysLoader, new Object[]{urlToAdd});
+        ClassLoader sysLoader = ClassLoader.getSystemClassLoader();
+        // Find the class loader below bootstrap class loader
+        // It is either the system class loader (first invocation), or the new URLClassLoader added below
+        while (sysLoader.getParent().getParent() != null) {
+            sysLoader = sysLoader.getParent();
+        }
+        // Check if this class loader is instance of URLClassLoader
+        // On Java 8 and before it is, add resources via addURL method
+        // On Java 11 and after it isn't, add a new URLClassLoader with the new resources above it
+        if (sysLoader instanceof URLClassLoader) {
+            Method addMethod = URLClassLoader.class.
+              getDeclaredMethod("addURL", new Class[]{URL.class});
+            addMethod.setAccessible(true);
+            addMethod.invoke(sysLoader, new Object[]{urlToAdd});
+        } else {
+            Field parent = ClassLoader.class.getDeclaredField("parent");
+            parent.setAccessible(true);
+            ClassLoader urlClassLoader = new URLClassLoader(new URL[]{urlToAdd}, ClassLoader.getSystemClassLoader().getParent());
+            parent.set(ClassLoader.getSystemClassLoader(), urlClassLoader);
+        }
     }
 
     /**

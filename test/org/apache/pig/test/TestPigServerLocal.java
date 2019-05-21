@@ -29,6 +29,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -68,17 +69,6 @@ public class TestPigServerLocal {
     public void setUp() throws Exception{
         tempDir = Files.createTempDir();
         tempDir.deleteOnExit();
-        registerNewResource(tempDir.getAbsolutePath());
-    }
-
-    // dynamically add more resources to the system class loader
-    private static void registerNewResource(String file) throws Exception {
-        URL urlToAdd = new File(file).toURI().toURL();
-        URLClassLoader sysLoader = (URLClassLoader) ClassLoader.getSystemClassLoader();
-        Method addMethod = URLClassLoader.class.
-                getDeclaredMethod("addURL", new Class[]{URL.class});
-        addMethod.setAccessible(true);
-        addMethod.invoke(sysLoader, new Object[]{urlToAdd});
     }
 
     @Test
