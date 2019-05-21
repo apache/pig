@@ -18,12 +18,9 @@
 
 package org.apache.pig.impl.plan;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
-import java.lang.StringBuilder;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.pig.impl.plan.OperatorKey;
 
 /**
  * Base class for all types of operators.
@@ -152,7 +149,11 @@ abstract public class Operator<V extends PlanVisitor> implements Serializable, C
         return getProjectionMap();
     }
 
-    
+    // Added because on Java 11 while serializing the logical plan we hit JDK-8201131
+    private void readObject(ObjectInputStream in) throws ClassNotFoundException, IOException {
+        in.defaultReadObject();
+    }
+
     /**
      * Make any necessary changes to a node based on a change of position in the
      * plan. This allows operators to rewire their projections, etc. when they
