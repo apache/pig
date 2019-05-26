@@ -21,21 +21,21 @@
     <title>Getting Started</title>
   </header>
   <body>
-  
-<!-- ========================================================== -->  
+
+<!-- ========================================================== -->
 
 <!-- SET UP PIG -->
  <section>
         <title>Pig Setup</title>
-    
+
 <!-- ++++++++++++++++++++++++++++++++++ -->
  <section id="req">
  <title>Requirements</title>
  <p><strong>Mandatory</strong></p>
       <p>Unix and Windows users need the following:</p>
         <ul>
-          <li> <strong>Hadoop 2.X</strong> - <a href="http://hadoop.apache.org/common/releases.html">http://hadoop.apache.org/common/releases.html</a> (You can run Pig with different versions of Hadoop by setting HADOOP_HOME to point to the directory where you have installed Hadoop. If you do not set HADOOP_HOME, by default Pig will run with the embedded version, currently Hadoop 2.7.3.)</li>
-          <li> <strong>Java 1.7</strong> - <a href="http://java.sun.com/javase/downloads/index.jsp">http://java.sun.com/javase/downloads/index.jsp</a> (set JAVA_HOME to the root of your Java installation)</li>    
+          <li> <strong>Hadoop 2.X</strong> - <a href="https://hadoop.apache.org/releases.html">https://hadoop.apache.org/releases.html</a> (You can run Pig with different versions of Hadoop by setting HADOOP_HOME to point to the directory where you have installed Hadoop. If you do not set HADOOP_HOME, by default Pig will run with the embedded version, currently Hadoop 2.7.3.)</li>
+          <li> <strong>Java 1.7</strong> - <a href="http://java.sun.com/javase/downloads/index.jsp">http://java.sun.com/javase/downloads/index.jsp</a> (set JAVA_HOME to the root of your Java installation)</li>
         </ul>
         <p></p>
  <p><strong>Optional</strong></p>
@@ -43,25 +43,25 @@
           <li> <strong>Python 2.7</strong> - <a href="http://jython.org/downloads.html">https://www.python.org</a> (when using Streaming Python UDFs) </li>
           <li> <strong>Ant 1.8</strong> - <a href="http://ant.apache.org/">http://ant.apache.org/</a> (for builds) </li>
         </ul>
- 
-  </section>         
-   
-<!-- ++++++++++++++++++++++++++++++++++ -->        
+
+  </section>
+
+<!-- ++++++++++++++++++++++++++++++++++ -->
  <section id="download">
  <title>Download Pig</title>
     <p>To get a Pig distribution, do the following:</p>
-    
+
     <ol>
-    <li>Download a recent stable release from one of the Apache Download Mirrors 
+    <li>Download a recent stable release from one of the Apache Download Mirrors
     (see <a href="http://hadoop.apache.org/pig/releases.html"> Pig Releases</a>).</li>
-    
+
     <li>Unpack the downloaded Pig distribution, and then note the following:
         <ul>
-        <li>The Pig script file, pig, is located in the bin directory (/pig-n.n.n/bin/pig). 
+        <li>The Pig script file, pig, is located in the bin directory (/pig-n.n.n/bin/pig).
         The Pig environment variables are described in the Pig script file.</li>
-        <li>The Pig properties file, pig.properties, is located in the conf directory (/pig-n.n.n/conf/pig.properties). 
+        <li>The Pig properties file, pig.properties, is located in the conf directory (/pig-n.n.n/conf/pig.properties).
         You can specify an alternate location using the PIG_CONF_DIR environment variable.</li>
-    </ul>    
+    </ul>
     </li>
     <li>Add /pig-n.n.n/bin to your path. Use export (bash,sh,ksh) or setenv (tcsh,csh). For example: <br></br>
     <code>$ export PATH=/&lt;my-path-to-pig&gt;/pig-n.n.n/bin:$PATH</code>
@@ -71,7 +71,7 @@ Test the Pig installation with this simple command: <code>$ pig -help</code>
 </li>
 </ol>
 
-</section>  
+</section>
 
 <!-- ++++++++++++++++++++++++++++++++++ -->
 <section id="build">
@@ -80,14 +80,14 @@ Test the Pig installation with this simple command: <code>$ pig -help</code>
      <ol>
       <li> Check out the Pig code from SVN: <code>svn co http://svn.apache.org/repos/asf/pig/trunk</code> </li>
       <li> Build the code from the top directory: <code>ant</code> <br></br>
-      If the build is successful, you should see the pig.jar file created in that directory. </li>    
+      If the build is successful, you should see the pig.jar file created in that directory. </li>
       <li> Validate the pig.jar  by running a unit test: <code>ant test</code></li>
      </ol>
  </section>
 </section>
 
   <!-- ==================================================================== -->
-    
+
    <!-- RUNNING PIG  -->
    <section id="run">
     <title>Running Pig </title>
@@ -151,10 +151,10 @@ Test the Pig installation with this simple command: <code>$ pig -help</code>
 <source>
 /* local mode */
 $ pig -x local ...
- 
+
 /* Tez local mode */
 $ pig -x tez_local ...
- 
+
 /* Spark local mode */
 $ pig -x spark_local ...
 
@@ -183,9 +183,9 @@ $ pig -x spark ...
 <title>Example</title>
 <p>These Pig Latin statements extract all user IDs from the /etc/passwd file. First, copy the /etc/passwd file to your local working directory. Next, invoke the Grunt shell by typing the "pig" command (in local or hadoop mode). Then, enter the Pig Latin statements interactively at the grunt prompt (be sure to include the semicolon after each statement). The DUMP operator will display the results to your terminal screen.</p>
 <source>
-grunt&gt; A = load 'passwd' using PigStorage(':'); 
-grunt&gt; B = foreach A generate $0 as id; 
-grunt&gt; dump B; 
+grunt&gt; A = load 'passwd' using PigStorage(':');
+grunt&gt; B = foreach A generate $0 as id;
+grunt&gt; dump B;
 </source>
 
 <p><strong>Local Mode</strong></p>
@@ -199,34 +199,34 @@ grunt>
 <source>
 $ pig -x tez_local
 ... - Connecting to ...
-grunt> 
+grunt>
 </source>
 
 <p><strong>Spark Local Mode</strong></p>
 <source>
 $ pig -x spark_local
 ... - Connecting to ...
-grunt> 
+grunt>
 </source>
 
 <p><strong>Mapreduce Mode</strong> </p>
 <source>
 $ pig -x mapreduce
 ... - Connecting to ...
-grunt> 
+grunt>
 
 or
 
-$ pig 
+$ pig
 ... - Connecting to ...
-grunt> 
+grunt>
 </source>
 
 <p><strong>Tez Mode</strong> </p>
 <source>
 $ pig -x tez
 ... - Connecting to ...
-grunt> 
+grunt>
 </source>
 
 <p><strong>Spark Mode</strong> </p>
@@ -252,8 +252,8 @@ grunt>
 <source>
 /* id.pig */
 
-A = load 'passwd' using PigStorage(':');  -- load the passwd file 
-B = foreach A generate $0 as id;  -- extract the user IDs 
+A = load 'passwd' using PigStorage(':');  -- load the passwd file
+B = foreach A generate $0 as id;  -- extract the user IDs
 store B into 'id.out';  -- write the results to a file name id.out
 </source>
 
@@ -298,9 +298,9 @@ $ pig -x spark id.pig
 
 <p>Pig scripts allow you to pass values to parameters using <a href="cont.html#Parameter-Sub">parameter substitution</a>. </p>
 
-<!-- +++++++++++++++++++++++++++++++++++++++++++ -->    
+<!-- +++++++++++++++++++++++++++++++++++++++++++ -->
    <p id="comments"><strong>Comments in Scripts</strong></p>
-   
+
    <p>You can include comments in Pig scripts:</p>
    <ul>
       <li>
@@ -319,17 +319,17 @@ It includes three Pig Latin statements.
 A = LOAD 'student' USING PigStorage() AS (name:chararray, age:int, gpa:float); -- loading data
 B = FOREACH A GENERATE name;  -- transforming data
 DUMP B;  -- retrieving results
-</source>   
-    
-<!-- +++++++++++++++++++++++++++++++++++++++++++ -->        
+</source>
+
+<!-- +++++++++++++++++++++++++++++++++++++++++++ -->
 
 <p id="dfs"><strong>Scripts and Distributed File Systems</strong></p>
 
 <p>Pig supports running scripts (and Jar files) that are stored in HDFS, Amazon S3, and other distributed file systems. The script's full location URI is required (see <a href="basic.html#register">REGISTER</a> for information about Jar files). For example, to run a Pig script on HDFS, do the following:</p>
 <source>
 $ pig hdfs://nn.mydomain.com:9020/myscripts/script.pig
-</source> 
-</section>    
+</source>
+</section>
 </section>
 </section>
 
@@ -388,18 +388,18 @@ hadoop.security.krb5.keytab=/home/niels/.krb/niels.keytab</source>
   </section>
 
   <!-- ==================================================================== -->
-    
+
    <!-- PIG LATIN STATEMENTS -->
    <section id="pl-statements">
-    <title>Pig Latin Statements</title>    
-   <p>Pig Latin statements are the basic constructs you use to process data using Pig. 
-   A Pig Latin statement is an operator that takes a <a href="basic.html#relations">relation</a> as input and produces another relation as output. 
-   (This definition applies to all Pig Latin operators except LOAD and STORE which read data from and write data to the file system.) 
-   Pig Latin statements may include <a href="basic.html#expressions">expressions</a> and <a href="basic.html#schemas">schemas</a>. 
-   Pig Latin statements can span multiple lines and must end with a semi-colon ( ; ).  
-   By default, Pig Latin statements are processed using <a href="perf.html#multi-query-execution">multi-query execution</a>.  
+    <title>Pig Latin Statements</title>
+   <p>Pig Latin statements are the basic constructs you use to process data using Pig.
+   A Pig Latin statement is an operator that takes a <a href="basic.html#relations">relation</a> as input and produces another relation as output.
+   (This definition applies to all Pig Latin operators except LOAD and STORE which read data from and write data to the file system.)
+   Pig Latin statements may include <a href="basic.html#expressions">expressions</a> and <a href="basic.html#schemas">schemas</a>.
+   Pig Latin statements can span multiple lines and must end with a semi-colon ( ; ).
+   By default, Pig Latin statements are processed using <a href="perf.html#multi-query-execution">multi-query execution</a>.
  </p>
-   
+
    <p>Pig Latin statements are generally organized as follows:</p>
    <ul>
       <li>
@@ -420,7 +420,7 @@ hadoop.security.krb5.keytab=/home/niels/.krb/niels.keytab</source>
 <source>
 A = LOAD 'student' USING PigStorage() AS (name:chararray, age:int, gpa:float);
 B = FOREACH A GENERATE name;
-</source> 
+</source>
 </li>
 <li>
 <p>In this example, Pig will validate and then execute the LOAD, FOREACH, and DUMP statements.</p>
@@ -435,55 +435,55 @@ DUMP B;
 </source>
 </li>
 </ul>
-  
-   <!-- ++++++++++++++++++++++++++++++++++ -->   
+
+   <!-- ++++++++++++++++++++++++++++++++++ -->
    <section id="data-load">
    <title>Loading Data</title>
    <p>Use the  <a href="basic.html#load">LOAD</a> operator and the <a href="udf.html#load-store-functions">load/store functions</a> to read data into Pig (PigStorage is the default load function).</p>
    </section>
-  
-   <!-- ++++++++++++++++++++++++++++++++++ -->   
+
+   <!-- ++++++++++++++++++++++++++++++++++ -->
    <section id="data-work-with">
    <title>Working with Data</title>
    <p>Pig allows you to transform data in many ways. As a starting point, become familiar with these operators:</p>
    <ul>
       <li>
-         <p>Use the <a href="basic.html#filter">FILTER</a> operator to work with tuples or rows of data. 
+         <p>Use the <a href="basic.html#filter">FILTER</a> operator to work with tuples or rows of data.
          Use the <a href="basic.html#foreach">FOREACH</a> operator to work with columns of data.</p>
       </li>
       <li>
-         <p>Use the <a href="basic.html#group ">GROUP</a> operator to group data in a single relation. 
+         <p>Use the <a href="basic.html#group ">GROUP</a> operator to group data in a single relation.
          Use the <a href="basic.html#cogroup ">COGROUP</a>,
          <a href="basic.html#join-inner">inner JOIN</a>, and
          <a href="basic.html#join-outer">outer JOIN</a>
          operators  to group or join data in two or more relations.</p>
       </li>
       <li>
-         <p>Use the <a href="basic.html#union">UNION</a> operator to merge the contents of two or more relations. 
+         <p>Use the <a href="basic.html#union">UNION</a> operator to merge the contents of two or more relations.
          Use the <a href="basic.html#split">SPLIT</a> operator to partition the contents of a relation into multiple relations.</p>
       </li>
    </ul>
    </section>
-   
-<!-- ++++++++++++++++++++++++++++++++++ --> 
+
+<!-- ++++++++++++++++++++++++++++++++++ -->
       <section id="data-store">
    <title>Storing Intermediate Results</title>
 
-      <p>Pig stores the intermediate data generated between MapReduce jobs in a temporary location on HDFS. 
-   This location must already exist on HDFS prior to use. 
-   This location can be configured using the pig.temp.dir property. The property's default value is "/tmp" which is the same 
+      <p>Pig stores the intermediate data generated between MapReduce jobs in a temporary location on HDFS.
+   This location must already exist on HDFS prior to use.
+   This location can be configured using the pig.temp.dir property. The property's default value is "/tmp" which is the same
    as the hardcoded location in Pig 0.7.0 and earlier versions. </p>
       </section>
-   
+
     <section id="data-results">
    <title>Storing Final Results</title>
-   <p>Use the  <a href="basic.html#store">STORE</a> operator and the <a href="udf.html#load-store-functions">load/store functions</a> 
+   <p>Use the  <a href="basic.html#store">STORE</a> operator and the <a href="udf.html#load-store-functions">load/store functions</a>
    to write results to the file system (PigStorage is the default store function). </p>
-<p><strong>Note:</strong> During the testing/debugging phase of your implementation, you can use DUMP to display results to your terminal screen. 
-However, in a production environment you always want to use the STORE operator to save your results (see <a href="perf.html#store-dump">Store vs. Dump</a>).</p>   
-   </section> 
+<p><strong>Note:</strong> During the testing/debugging phase of your implementation, you can use DUMP to display results to your terminal screen.
+However, in a production environment you always want to use the STORE operator to save your results (see <a href="perf.html#store-dump">Store vs. Dump</a>).</p>
+   </section>
 
- <!-- ++++++++++++++++++++++++++++++++++ -->     
+ <!-- ++++++++++++++++++++++++++++++++++ -->
    <section id="debug">
    <title>Debugging Pig Latin</title>
    <p>Pig Latin provides operators that can help you debug your Pig Latin statements:</p>
@@ -520,8 +520,8 @@ However, in a production environment you always want to use the STORE operator t
         <p> \q - To quit grunt shell </p>
     </li>
    </ul>
-</section> 
-</section>  
+</section>
+</section>
 
 
 <!-- ================================================================== -->
@@ -551,7 +551,7 @@ However, in a production environment you always want to use the STORE operator t
 <p>The same precedence holds: Hadoop configuration files &lt; -D Hadoop property &lt; -P properties_file &lt; set command.</p>
 <p>Hadoop properties are not interpreted by Pig but are passed directly to Hadoop. Any Hadoop property can be passed this way. </p>
 <p>All properties that Pig collects, including Hadoop properties, are available to any UDF via the UDFContext object. To get access to the properties, you can call the getJobConf method.</p>
-</section>  
+</section>
 
 
   <!-- ==================================================================== -->
@@ -565,14 +565,14 @@ However, in a production environment you always want to use the STORE operator t
 
 <ol>
 <li>Make sure the JAVA_HOME environment variable is set the root of your Java installation.</li>
-<li>Make sure your PATH includes bin/pig (this enables you to run the tutorials using the "pig" command). 
+<li>Make sure your PATH includes bin/pig (this enables you to run the tutorials using the "pig" command).
 <source>
-$ export PATH=/&lt;my-path-to-pig&gt;/pig-0.16.0/bin:$PATH 
+$ export PATH=/&lt;my-path-to-pig&gt;/pig-0.16.0/bin:$PATH
 </source>
 </li>
 <li>Set the PIG_HOME environment variable:
 <source>
-$ export PIG_HOME=/&lt;my-path-to-pig&gt;/pig-0.16.0 
+$ export PIG_HOME=/&lt;my-path-to-pig&gt;/pig-0.16.0
 </source></li>
 <li>Create the pigtutorial.tar.gz file:
 <ul>
@@ -595,14 +595,14 @@ $ tar -xzf pigtutorial.tar.gz
 
 
 
- <!-- ++++++++++++++++++++++++++++++++++ --> 
+ <!-- ++++++++++++++++++++++++++++++++++ -->
 <section>
 <title> Running the Pig Scripts in Local Mode</title>
 
 <p>To run the Pig scripts in local mode, do the following: </p>
 <ol>
 <li>Move to the pigtmp directory.</li>
-<li>Execute the following command (using either script1-local.pig or script2-local.pig). 
+<li>Execute the following command (using either script1-local.pig or script2-local.pig).
 <source>
 $ pig -x local script1-local.pig
 </source>
@@ -618,14 +618,14 @@ $ pig -x spark_local script1-local.pig
 <li>Review the result files, located in the script1-local-results.txt directory.
 <p>The output may contain a few Hadoop warnings which can be ignored:</p>
 <source>
-2010-04-08 12:55:33,642 [main] INFO  org.apache.hadoop.metrics.jvm.JvmMetrics 
+2010-04-08 12:55:33,642 [main] INFO  org.apache.hadoop.metrics.jvm.JvmMetrics
 - Cannot initialize JVM Metrics with processName=JobTracker, sessionId= - already initialized
 </source>
 </li>
 </ol>
 </section>
 
- <!-- ++++++++++++++++++++++++++++++++++ --> 
+ <!-- ++++++++++++++++++++++++++++++++++ -->
 <section>
 <title> Running the Pig Scripts in Mapreduce Mode, Tez Mode or Spark Mode</title>
 
@@ -677,7 +677,7 @@ $ hadoop fs -cat 'script1-hadoop-results/*' | less
 </ol>
 </section>
 
- <!-- ++++++++++++++++++++++++++++++++++ -->   
+ <!-- ++++++++++++++++++++++++++++++++++ -->
 <section id="pig-tutorial-files">
 <title> Pig Tutorial Files</title>
 
@@ -822,7 +822,7 @@ $ hadoop fs -cat 'script1-hadoop-results/*' | less
 
 </section>
 
- <!-- ++++++++++++++++++++++++++++++++++ -->   
+ <!-- ++++++++++++++++++++++++++++++++++ -->
 <section id="pig-script-1">
 <title> Pig Script 1: Query Phrase Popularity</title>
 
@@ -834,7 +834,7 @@ $ hadoop fs -cat 'script1-hadoop-results/*' | less
 </ul>
 
 <source>
-REGISTER ./tutorial.jar; 
+REGISTER ./tutorial.jar;
 </source>
 <ul>
 <li><p> Use the PigStorage function to load the excite log file (excite.log or excite-small.log) into the “raw” bag as an array of records with the fields <strong>user</strong>, <strong>time</strong>, and <strong>query</strong>.  </p>
@@ -945,11 +945,11 @@ ordered_uniq_frequency = ORDER filtered_uniq_frequency BY hour, score;
 </li>
 </ul>
 <source>
-STORE ordered_uniq_frequency INTO '/tmp/tutorial-results' USING PigStorage(); 
+STORE ordered_uniq_frequency INTO '/tmp/tutorial-results' USING PigStorage();
 </source>
 </section>
 
- <!-- ++++++++++++++++++++++++++++++++++ -->   
+ <!-- ++++++++++++++++++++++++++++++++++ -->
 <section id="pig-script-2">
 <title>Pig Script 2: Temporal Query Phrase Popularity</title>
 
