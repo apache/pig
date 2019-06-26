@@ -775,7 +775,7 @@
             <fileset dir="${ivy.lib.dir}" includes="commons-cli-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="commons-configuration-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="commons-collections-*.jar"/>
-            <fileset dir="${ivy.lib.dir}" includes="commons-lang3-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="commons-lang*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="commons-codec-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="commons-io-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="commons-logging-*.jar"/>
