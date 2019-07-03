@@ -58,6 +58,10 @@ public class REPLACE extends EvalFunc<String>
         String source = (String)input.get(0);
         String target = (String)input.get(1);
 
+        if (source == null) {
+            return null;
+        }
+
         if (target == null) {
             warn("Replace : Regular expression is null", PigWarning.UDF_WARNING_1);
             return null;
