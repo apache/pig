@@ -289,18 +289,16 @@ public class UnionOptimizer extends TezOpPlanVisitor {
                 if (storeVertexGroupOps[i] != null) {
                     continue;
                 }
-            }
-            if (existingVertexGroup != null) {
-                storeVertexGroupOps[i] = existingVertexGroup;
-                existingVertexGroup.getVertexGroupMembers().remove(unionOp.getOperatorKey());
-                existingVertexGroup.getVertexGroupMembers().addAll(unionOp.getUnionMembers());
-                existingVertexGroup.getVertexGroupInfo().removeInput(unionOp.getOperatorKey());
-            } else {
                 storeVertexGroupOps[i] = new TezOperator(OperatorKey.genOpKey(scope));
                 storeVertexGroupOps[i].setVertexGroupInfo(new VertexGroupInfo(unionStoreOutputs.get(i)));
                 storeVertexGroupOps[i].getVertexGroupInfo().setSFile(unionStoreOutputs.get(i).getSFile());
                 storeVertexGroupOps[i].setVertexGroupMembers(new ArrayList<OperatorKey>(unionOp.getUnionMembers()));
                 tezPlan.add(storeVertexGroupOps[i]);
+            } else {
+                storeVertexGroupOps[i] = existingVertexGroup;
+                existingVertexGroup.getVertexGroupMembers().remove(unionOp.getOperatorKey());
+                existingVertexGroup.getVertexGroupMembers().addAll(unionOp.getUnionMembers());
+                existingVertexGroup.getVertexGroupInfo().removeInput(unionOp.getOperatorKey());
             }
         }
 
@@ -320,19 +318,36 @@ public class UnionOptimizer extends TezOpPlanVisitor {
         TezOperator[] outputVertexGroupOps = new TezOperator[unionOutputKeys.size()];
         String[] newOutputKeys = new String[unionOutputKeys.size()];
         for (int i=0; i < outputVertexGroupOps.length; i++) {
-            for (int j = 0; j < i; j++) {
-                if (unionOutputKeys.get(i).equals(unionOutputKeys.get(j))) {
-                    outputVertexGroupOps[i] = outputVertexGroupOps[j];
-                    break;
+            TezOperator existingVertexGroup = null;
+            if (successors != null) {
+                for (TezOperator succ : successors) {
+                    if (succ.isVertexGroup()
+                        && unionOutputKeys.get(i).equals(succ.getVertexGroupInfo().getOutput()) ) {
+                        existingVertexGroup = succ;
+                        break;
+                    }
                 }
             }
-            if (outputVertexGroupOps[i] != null) {
-                continue;
+            if (existingVertexGroup == null) {
+                for (int j = 0; j < i; j++) {
+                    if (unionOutputKeys.get(i).equals(unionOutputKeys.get(j))) {
+                        outputVertexGroupOps[i] = outputVertexGroupOps[j];
+                        break;
+                    }
+                }
+                if (outputVertexGroupOps[i] != null) {
+                    continue;
+                }
+                outputVertexGroupOps[i] = new TezOperator(OperatorKey.genOpKey(scope));
+                outputVertexGroupOps[i].setVertexGroupInfo(new VertexGroupInfo());
+                outputVertexGroupOps[i].getVertexGroupInfo().setOutput(unionOutputKeys.get(i));
+                outputVertexGroupOps[i].setVertexGroupMembers(new ArrayList<OperatorKey>(unionOp.getUnionMembers()));
+            } else {
+                outputVertexGroupOps[i] = existingVertexGroup;
+                existingVertexGroup.getVertexGroupMembers().remove(unionOp.getOperatorKey());
+                existingVertexGroup.getVertexGroupMembers().addAll(unionOp.getUnionMembers());
+                existingVertexGroup.getVertexGroupInfo().removeInput(unionOp.getOperatorKey());
             }
-            outputVertexGroupOps[i] = new TezOperator(OperatorKey.genOpKey(scope));
-            outputVertexGroupOps[i].setVertexGroupInfo(new VertexGroupInfo());
-            outputVertexGroupOps[i].getVertexGroupInfo().setOutput(unionOutputKeys.get(i));
-            outputVertexGroupOps[i].setVertexGroupMembers(new ArrayList<OperatorKey>(unionOp.getUnionMembers()));
             newOutputKeys[i] = outputVertexGroupOps[i].getOperatorKey().toString();
             tezPlan.add(outputVertexGroupOps[i]);
         }
@@ -619,18 +634,6 @@ public class UnionOptimizer extends TezOpPlanVisitor {
         // Connect to outputVertexGroupOps
         for (Entry<OperatorKey, TezEdgeDescriptor> entry : unionOp.outEdges.entrySet()) {
             TezOperator succOp = tezPlan.getOperator(entry.getKey());
-            // Case of union followed by union.
-            // unionOp.outEdges will not point to vertex group, but to its output.
-            // So find the vertex group if there is one.
-            TezOperator succOpVertexGroup = null;
-            for (TezOperator succ : successors) {
-                if (succ.isVertexGroup()
-                        && succOp.getOperatorKey().toString()
-                                .equals(succ.getVertexGroupInfo().getOutput())) {
-                    succOpVertexGroup = succ;
-                    break;
-                }
-            }
             TezEdgeDescriptor edge = entry.getValue();
             // Edge cannot be one to one as it will get input from two or
             // more union predecessors. Change it to SCATTER_GATHER
@@ -641,26 +644,14 @@ public class UnionOptimizer extends TezOpPlanVisitor {
                 edge.inputClassName = UnorderedKVInput.class.getName();
             }
             TezOperator vertexGroupOp = outputVertexGroupOps[unionOutputKeys.indexOf(entry.getKey().toString())];
-            for (OperatorKey predKey : vertexGroupOp.getVertexGroupMembers()) {
+            for (OperatorKey predKey : unionOp.getUnionMembers()) {
                 TezOperator pred = tezPlan.getOperator(predKey);
                 // Keep the output edge directly to successor
                 // Don't need to keep output edge for vertexgroup
                 pred.outEdges.put(entry.getKey(), edge);
                 succOp.inEdges.put(predKey, edge);
-                if (succOpVertexGroup != null) {
-                    succOpVertexGroup.getVertexGroupMembers().add(predKey);
-                    succOpVertexGroup.getVertexGroupInfo().addInput(predKey);
-                    // Connect directly to the successor vertex group
-                    tezPlan.disconnect(pred, vertexGroupOp);
-                    tezPlan.connect(pred, succOpVertexGroup);
-                }
             }
-            if (succOpVertexGroup != null) {
-                succOpVertexGroup.getVertexGroupMembers().remove(unionOp.getOperatorKey());
-                succOpVertexGroup.getVertexGroupInfo().removeInput(unionOp.getOperatorKey());
-                //Discard the new vertex group created
-                tezPlan.remove(vertexGroupOp);
-            } else {
+            if(!tezPlan.pathExists(vertexGroupOp, succOp)) {
                 tezPlan.connect(vertexGroupOp, succOp);
             }
         }

@@ -34,13 +34,13 @@ e: Split - scope-61
     |---d: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-17
 Tez vertex scope-37
 # Plan on vertex
-e: Split - scope-66
+e: Split - scope-65
 |   |
-|   e: Store(file:///tmp/pigoutput1:org.apache.pig.builtin.PigStorage) - scope-67	->	 scope-29
+|   e: Store(file:///tmp/pigoutput1:org.apache.pig.builtin.PigStorage) - scope-66	->	 scope-29
 |   |
-|   f: Local Rearrange[tuple]{int}(false) - scope-68	->	 scope-53
+|   f: Local Rearrange[tuple]{int}(false) - scope-67	->	 scope-53
 |   |   |
-|   |   Project[int][0] - scope-69
+|   |   Project[int][0] - scope-68
 |
 |---a: New For Each(false,false)[bag] - scope-7
     |   |
@@ -55,13 +55,13 @@ e: Split - scope-66
     |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
 Tez vertex scope-38
 # Plan on vertex
-e: Split - scope-70
+e: Split - scope-69
 |   |
-|   e: Store(file:///tmp/pigoutput1:org.apache.pig.builtin.PigStorage) - scope-71	->	 scope-29
+|   e: Store(file:///tmp/pigoutput1:org.apache.pig.builtin.PigStorage) - scope-70	->	 scope-29
 |   |
-|   f: Local Rearrange[tuple]{int}(false) - scope-72	->	 scope-53
+|   f: Local Rearrange[tuple]{int}(false) - scope-71	->	 scope-53
 |   |   |
-|   |   Project[int][0] - scope-73
+|   |   Project[int][0] - scope-72
 |
 |---c: New For Each(false,false)[bag] - scope-15
     |   |
