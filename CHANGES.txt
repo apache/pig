@@ -26,6 +26,8 @@ PIG-5282: Upgade to Java 8 (satishsaley via rohini)
  
 IMPROVEMENTS
 
+PIG-5385: Skip calling extra gc() before spilling large bag when unnecessary (knoguchi)
+
 PIG-5389: Passing null to REPLACE udf preventing JIT optimization (knoguchi)
 
 PIG-5382: Log the name when POStore fails on write (knoguchi)

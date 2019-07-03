@@ -293,7 +293,8 @@ public class SpillableMemoryManager implements NotificationListener {
                     // Do not invoke extraGC for GroupingSpillable. Its size will always exceed
                     // extraGCSpillSizeThreshold and the data is always strong referenced.
                     if( !extraGCCalled && extraGCSpillSizeThreshold != 0
-                        && toBeFreed > extraGCSpillSizeThreshold  && !isGroupingSpillable) {
+                        && toBeFreed > extraGCSpillSizeThreshold  && !isGroupingSpillable
+                        && n.getType().equals(MemoryNotificationInfo.MEMORY_THRESHOLD_EXCEEDED)) {
                         log.debug("Single spillable has size " + toBeFreed + "bytes. Calling extra gc()");
                         // this extra assignment to null is needed so that gc can free the
                         // spillable if nothing else is pointing at it
