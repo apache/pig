@@ -92,9 +92,11 @@ OPTIMIZATIONS
  
 BUG FIXES
 
-PIG-5386: Pig local mode with bundled Hadoop broken
+PIG-5375: NullPointerException for multi-level self unions with Tez UnionOptimizer (knoguchi)
 
-PIG-5387: Test failures on JRE 11
+PIG-5386: Pig local mode with bundled Hadoop broken (nkollar)
+
+PIG-5387: Test failures on JRE 11 (nkollar)
 
 PIG-5383: OrcStorage fails when "bytearray" represents unknown type (knoguchi)
 
