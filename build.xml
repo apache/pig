@@ -268,6 +268,7 @@
     <property name="ivy.lib.dir.spark" location="${ivy.lib.dir}/spark" />
     <property name="build.ivy.report.dir" location="${build.ivy.dir}/report" />
     <property name="build.ivy.maven.dir" location="${build.ivy.dir}/maven" />
+    <property name="build.ivy.owasp.dir" location="${build.ivy.dir}/owasp" />
     <property name="pom.xml" location="${build.ivy.maven.dir}/pom.xml"/>
     <property name="build.ivy.maven.pom" location="${build.ivy.maven.dir}/pig-${version}.pom" />
     <property name="build.ivy.maven.jar" location="${build.ivy.maven.dir}/pig-${version}-core.jar" />
@@ -1461,6 +1462,21 @@
     <!-- Perform audit activities for the release                           -->
     <!-- ================================================================== -->
 
+    <target name="owasp" depends="ivy-owasp,ivy-compile" description="OWASP dependency check">
+        <typedef format="properties" resource="dependency-check-taskdefs.properties" uri="antlib:org.owasp.dependencycheck.anttasks" classpathref="owasp-classpath"/>
+        <owasp:dependency-check xmlns:owasp="antlib:org.owasp.dependencycheck.anttasks"
+                          projectname="Pig"
+                          reportoutputdirectory="${build.dir}/owasp"
+                          reportformat="ALL"
+                          failBuildOnCVSS="0">
+
+            <fileset dir="${ivy.lib.dir}">
+                <include name="**/*.jar"/>
+            </fileset>
+
+        </owasp:dependency-check>
+    </target>
+
     <target name="releaseaudit" depends="ivy-releaseaudit" description="generate a release audit report">
         <get src="${mvnrepo}/org/apache/rat/apache-rat/${apacherat.version}/apache-rat-${apacherat.version}.jar"
              dest="${basedir}/build/apache-rat-${apacherat.version}.jar"
@@ -1758,6 +1774,12 @@
                  pattern="${build.ivy.lib.dir}/${ivy.artifact.retrieve.pattern}" conf="jdiff"/>
        <ivy:cachepath pathid="jdiff.classpath" conf="jdiff"/>
      </target>
+
+     <target name="ivy-owasp" depends="ivy-resolve" description="Retrieve Ivy-managed artifacts for owasp configuration">
+        <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings" log="${loglevel}"
+                      pattern="${build.ivy.owasp.dir}/${ivy.artifact.retrieve.pattern}" conf="owasp"/>
+        <ivy:cachepath pathid="owasp-classpath" conf="owasp"/>
+    </target>
 
      <target name="ivy-clean-cache" depends="ivy-init-antlib"
              description="Clean the Ivy cache">

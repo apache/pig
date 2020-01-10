@@ -43,6 +43,7 @@
     <conf name="hbase2" visibility="private"/>
     <conf name="spark1" visibility="private" />
     <conf name="spark2" visibility="private" />
+    <conf name="owasp" visibility="private" description="Artifacts required for owasp target"/>
   </configurations>
   <publications>
     <artifact name="pig" conf="master"/>
@@ -614,6 +615,9 @@
       conf="hadoop2->master"/>
     <dependency org="org.apache.curator" name="curator-client" rev="${curator.version}"
       conf="hadoop2->master"/>
+    <!-- For dependency check -->
+    <dependency org="org.owasp" name="dependency-check-ant"
+                rev="${dependency-check-ant.version}" conf="owasp->default"/>
   </dependencies>
 </ivy-module>
 
