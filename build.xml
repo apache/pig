@@ -251,7 +251,7 @@
 
     <property name="asfrepo" value="https://repository.apache.org"/>
     <property name="asfsnapshotrepo" value="${asfrepo}/content/repositories/snapshots"/>
-    <property name="mvnrepo" value="http://repo2.maven.org/maven2"/>
+    <property name="mvnrepo" value="https://repo1.maven.org/maven2"/>
     <property name="asfstagingrepo" value="${asfrepo}/service/local/staging/deploy/maven2"/>
     <property name="staging_repo_id" value="apache.staging.https"/>
     <property name="snapshots_repo_id" value="apache.snapshots.https"/>

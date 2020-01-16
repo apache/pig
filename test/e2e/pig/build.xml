@@ -30,7 +30,7 @@
   <property name="hadoopversion" value="2" />
   <property name="hive.hadoop.shims.version" value="0.23" />
 
-  <property name="mvnrepo" value="http://repo2.maven.org/maven2"/>
+  <property name="mvnrepo" value="https://repo1.maven.org/maven2"/>
 
   <!-- Separate property name for udfs' build.xml -->
   <property name="udf.dir" value="${basedir}/udfs"/>

@@ -96,6 +96,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5395: Pig build is failing due to maven repo access point change (szita)
+
 PIG-5375: NullPointerException for multi-level self unions with Tez UnionOptimizer (knoguchi)
 
 PIG-5386: Pig local mode with bundled Hadoop broken (nkollar)
