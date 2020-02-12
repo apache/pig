@@ -49,6 +49,7 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.hive.HiveShims;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.util.Utils;
@@ -181,9 +182,7 @@ abstract class HiveUDFBase extends EvalFunc<Object> {
 
     @Override
     public List<String> getShipFiles() {
-        List<String> files = FuncUtils.getShipFiles(new Class[] {GenericUDF.class,
-                PrimitiveObjectInspector.class, HiveConf.class, Serializer.class, ShimLoader.class,
-                Hadoop23Shims.class, HadoopShimsSecure.class, Collector.class});
+        List<String> files = FuncUtils.getShipFiles(HiveShims.getHiveUDFDependentClasses(Hadoop23Shims.class));
         return files;
     }
 

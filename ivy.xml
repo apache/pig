@@ -31,7 +31,7 @@
     <conf name="default" extends="master,runtime"/>
     <conf name="runtime" extends="compile,test" description="runtime but not the artifact" />
     <!--Private configurations. -->
-    <conf name="compile" extends="hadoop${hadoopversion},hbase${hbaseversion}" visibility="private" description="compile artifacts"/>
+    <conf name="compile" extends="hadoop${hadoopversion},hbase${hbaseversion},hive${hiveversion}" visibility="private" description="compile artifacts"/>
     <conf name="test" extends="compile" visibility="private"/>
     <conf name="javadoc" visibility="private" extends="compile,test"/>
     <conf name="releaseaudit" visibility="private"/>
@@ -43,6 +43,8 @@
     <conf name="hbase2" visibility="private"/>
     <conf name="spark1" visibility="private" />
     <conf name="spark2" visibility="private" />
+    <conf name="hive1" visibility="private"/>
+    <conf name="hive3" visibility="private"/>
     <conf name="owasp" visibility="private" description="Artifacts required for owasp target"/>
   </configurations>
   <publications>
@@ -525,23 +527,48 @@
     <!-- for piggybank -->
     <dependency org="org.hsqldb" name="hsqldb" rev="${hsqldb.version}"
       conf="test->default" />
-    <dependency org="org.apache.hive" name="hive-exec" rev="${hive.version}" conf="compile->master" changing="true">
+
+    <!-- Hive 1 -->
+    <dependency org="org.apache.hive" name="hive-exec" rev="${hive1.version}" conf="hive1->master" changing="true">
+      <artifact name="hive-exec" m:classifier="core" />
+    </dependency>
+    <dependency org="org.apache.hive" name="hive-serde" rev="${hive1.version}" changing="true"
+      conf="hive1->master" />
+    <dependency org="org.apache.hive" name="hive-common" rev="${hive1.version}" changing="true"
+      conf="hive1->master" />
+    <dependency org="org.apache.hive.shims" name="hive-shims-common" rev="${hive1.version}" changing="true"
+      conf="hive1->master" />
+    <dependency org="org.apache.hive" name="hive-contrib" rev="${hive1.version}" changing="true"
+                conf="test->master" />
+    <dependency org="org.apache.hive.shims" name="hive-shims-0.23" rev="${hive1.version}" changing="true"
+      conf="hive1->master" />
+
+    <!-- Hive 3 -->
+    <dependency org="org.apache.hive" name="hive-exec" rev="${hive.version}" conf="hive3->master" changing="true">
       <artifact name="hive-exec" m:classifier="core" />
     </dependency>
     <dependency org="org.apache.hive" name="hive-serde" rev="${hive.version}" changing="true"
-      conf="compile->master" />
+                conf="hive3->master" />
     <dependency org="org.apache.hive" name="hive-common" rev="${hive.version}" changing="true"
-      conf="compile->master" />
+                conf="hive3->master" />
     <dependency org="org.apache.hive.shims" name="hive-shims-common" rev="${hive.version}" changing="true"
-      conf="compile->master" />
+                conf="hive3->master" />
     <dependency org="org.apache.hive" name="hive-contrib" rev="${hive.version}" changing="true"
                 conf="test->master" />
+    <dependency org="org.apache.hive" name="hive-llap-common" rev="${hive.version}" changing="true"
+                conf="hive3->master" />
     <dependency org="org.apache.hive.shims" name="hive-shims-0.23" rev="${hive.version}" changing="true"
-      conf="hadoop2->master" />
+                conf="hive3->master" />
+
+
+    <dependency org="org.apache.orc" name="orc-core" rev="${orc.version}" changing="true" conf="hive3->default" />
+    <dependency org="org.apache.hive" name="hive-storage-api" rev="${hive-storage-api.version}" changing="true" conf="hive3->master" />
     <dependency org="org.iq80.snappy" name="snappy" rev="${snappy.version}"
       conf="test->master" />
-    <dependency org="com.esotericsoftware.kryo" name="kryo" rev="${kryo.version}"
-      conf="compile->master" />
+    <dependency org="com.esotericsoftware" name="kryo-shaded" rev="${kryo.version}"
+      conf="hive3->default" />
+    <dependency org="com.esotericsoftware.kryo" name="kryo" rev="2.22"
+      conf="hive1->default" />
     <dependency org="org.apache.commons" name="commons-lang3" rev="${commons-lang3.version}"
       conf="compile->master" />
 

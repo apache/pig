@@ -17,28 +17,19 @@
  */
 package org.apache.pig.builtin;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.apache.pig.builtin.mock.Storage.resetData;
-import static org.apache.pig.builtin.mock.Storage.tuple;
-
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.TimeZone;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.hive.ql.io.orc.CompressionKind;
 import org.apache.hadoop.hive.ql.io.orc.OrcFile;
 import org.apache.hadoop.hive.ql.io.orc.OrcStruct;
@@ -48,7 +39,6 @@ import org.apache.hadoop.hive.serde2.io.ByteWritable;
 import org.apache.hadoop.hive.serde2.io.DoubleWritable;
 import org.apache.hadoop.hive.serde2.io.HiveDecimalWritable;
 import org.apache.hadoop.hive.serde2.io.ShortWritable;
-import org.apache.hadoop.hive.serde2.io.TimestampWritable;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.io.BooleanWritable;
@@ -65,14 +55,22 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultDataBag;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.hive.HiveShims;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.test.Util;
+
 import org.joda.time.DateTime;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import static org.apache.pig.builtin.mock.Storage.resetData;
+import static org.apache.pig.builtin.mock.Storage.tuple;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class TestOrcStorage {
     final protected static Log LOG = LogFactory.getLog(TestOrcStorage.class);
@@ -88,6 +86,11 @@ public class TestOrcStorage {
 
     private static PigServer pigServer = null;
     private static FileSystem fs;
+
+    static {
+        System.setProperty("user.timezone", "UTC");
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+    }
 
     @BeforeClass
     public static void oneTimeSetup(){
@@ -282,7 +285,7 @@ public class TestOrcStorage {
         Tuple t = iter.next();
         assertTrue(t.toString().startsWith("(false,1,1024,65536,9223372036854775807,1.0,-15.0," +
                 ",hi,({(1,bye),(2,sigh)}),{(3,good),(4,bad)},[],"));
-        assertTrue(t.get(12).toString().matches("2000-03-12T15:00:00.000.*"));
+        assertTrue(t.get(12).toString().matches("2000-03-12T15:00:00\\.000Z.*"));
         assertTrue(t.toString().endsWith(",12345678.6547456)"));
     }
 
@@ -406,9 +409,9 @@ public class TestOrcStorage {
         } else if (expected instanceof BooleanWritable) {
             assertEquals(Boolean.class, actual.getClass());
             assertEquals(((BooleanWritable) expected).get(), actual);
-        } else if (expected instanceof TimestampWritable) {
+        } else if (HiveShims.TimestampWritableShim.isAssignableFrom(expected)) {
             assertEquals(DateTime.class, actual.getClass());
-            assertEquals(((TimestampWritable) expected).getTimestamp().getTime(),
+            assertEquals(HiveShims.TimestampWritableShim.millisFromTimestampWritable(expected),
                     ((DateTime) actual).getMillis());
         } else if (expected instanceof BytesWritable) {
             assertEquals(DataByteArray.class, actual.getClass());

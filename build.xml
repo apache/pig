@@ -154,7 +154,7 @@
     <condition property="isWindows">
       <os family="windows"/>
     </condition>
-	
+
     <target name="setTezEnv">
         <propertyreset name="test.timeout" value="900000" />
         <propertyreset name="hadoopversion" value="2" />
@@ -241,6 +241,7 @@
     </if>
     <property name="hbaseversion" value="1" />
     <property name="sparkversion" value="1" />
+    <property name="hiveversion" value="1" />
 
     <condition property="src.exclude.dir" value="**/Spark2*.java" else="**/Spark1*.java">
         <equals arg1="${sparkversion}" arg2="1"/>
@@ -248,6 +249,7 @@
 
     <property name="src.shims.dir" value="${basedir}/shims/src/hadoop${hadoopversion}" />
     <property name="src.shims.test.dir" value="${basedir}/shims/test/hadoop${hadoopversion}" />
+    <property name="src.hive.shims.dir" value="${basedir}/shims/src/hive${hiveversion}" />
 
     <property name="asfrepo" value="https://repository.apache.org"/>
     <property name="asfsnapshotrepo" value="${asfrepo}/content/repositories/snapshots"/>
@@ -353,6 +355,7 @@
                 <source path="${test.e2e.dir}/udfs/java"/>
                 <source path="${src.shims.dir}"/>
                 <source path="${src.shims.test.dir}"/>
+                <source path="${src.hive.shims.dir}"/>
                 <source path="tutorial/src"/>
                 <source path="${test.src.dir}" excluding="e2e/pig/udfs/java/|resources/|perf/"/>
                 <output path="${build.dir.eclipse-main-classes}" />
@@ -568,8 +571,8 @@
         <echo>*** Building Main Sources ***</echo>
         <echo>*** To compile with all warnings enabled, supply -Dall.warnings=1 on command line ***</echo>
         <echo>*** Else, you will only be warned about deprecations ***</echo>
-        <echo>*** Hadoop version used: ${hadoopversion} ; HBase version used: ${hbaseversion} ; Spark version used: ${sparkversion} ***</echo>
-        <compileSources sources="${src.dir};${src.gen.dir};${src.lib.dir}/bzip2;${src.shims.dir}"
+        <echo>*** Hadoop version used: ${hadoopversion} ; HBase version used: ${hbaseversion} ; Spark version used: ${sparkversion} ; Hive version used: ${hiveversion} ***</echo>
+        <compileSources sources="${src.dir};${src.gen.dir};${src.lib.dir}/bzip2;${src.shims.dir};${src.hive.shims.dir}"
             excludes="${src.exclude.dir}" dist="${build.classes}" cp="classpath" warnings="${javac.args.warnings}" />
         <copy todir="${build.classes}/META-INF">
             <fileset dir="${src.dir}/META-INF" includes="**"/>
@@ -734,6 +737,7 @@
             <fileset dir="${ivy.lib.dir}" includes="metrics-core-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="hbase-*.jar" excludes="hbase-*tests.jar,hbase-*hadoop2*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="hive-*.jar" excludes="hive-shims-0.*.jar, hive-contrib*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="minlog-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="protobuf-java-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="zookeeper-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="accumulo-*.jar" excludes="accumulo-minicluster*.jar"/>
@@ -1161,6 +1165,10 @@
             <fileset dir="${basedir}/shims" />
         </copy>
 
+        <copy todir="${tar.dist.dir}/hive-shims" includeEmptyDirs="true">
+            <fileset dir="${basedir}/hive-shims" />
+        </copy>
+
         <copy todir="${tar.dist.dir}/lib-src" includeEmptyDirs="true">
             <fileset dir="${src.lib.dir}" />
         </copy>
@@ -1236,6 +1244,7 @@
                 <include name="lib-src/**"/>
                 <include name="license/**"/>
                 <include name="shims/**"/>
+                <include name="hive-shims/**"/>
                 <include name="src/**"/>
                 <include name="test/**"/>
                 <exclude name="test/**/*.jar"/>
@@ -1723,7 +1732,7 @@
 
      <target name="ivy-resolve" depends="ivy-init" unless="ivy.resolved" description="Resolve Ivy dependencies">
        <property name="ivy.resolved" value="true"/>
-       <echo>*** Ivy resolve with Hadoop ${hadoopversion}, Spark ${sparkversion} and HBase ${hbaseversion} ***</echo>
+       <echo>*** Ivy resolve with Hadoop ${hadoopversion}, Spark ${sparkversion}, HBase ${hbaseversion}, Hive ${hiveversion} ***</echo>
        <ivy:resolve log="${loglevel}" settingsRef="${ant.project.name}.ivy.settings" conf="compile"/>
        <ivy:report toDir="build/ivy/report"/>
      </target>

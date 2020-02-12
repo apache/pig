@@ -79,11 +79,17 @@ public abstract class Expression {
 
     protected OpType opType;
 
+    protected byte dataType;
+
     /**
      * @return the opType
      */
     public OpType getOpType() {
         return opType;
+    }
+
+    public byte getDataType() {
+        return dataType;
     }
 
     //TODO: Apply a optimizer to Expression from PredicatePushdownOptimizer and
@@ -221,9 +227,10 @@ public abstract class Expression {
         /**
          * @param name
          */
-        public Column(String name) {
+        public Column(String name, byte dataType) {
             this.opType = OpType.TERM_COL;
             this.name = name;
+            this.dataType = dataType;
         }
 
         @Override

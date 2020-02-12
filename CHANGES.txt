@@ -26,6 +26,8 @@ PIG-5282: Upgade to Java 8 (satishsaley via rohini)
  
 IMPROVEMENTS
 
+PIG-4764: Make Pig work with Hive 3.1 (szita)
+
 PIG-5352: Please add OWASP Dependency Check to the build ivy.xml (knoguchi)
 
 PIG-5385: Skip calling extra gc() before spilling large bag when unnecessary (knoguchi)

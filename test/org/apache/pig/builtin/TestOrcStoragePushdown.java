@@ -17,9 +17,6 @@
  */
 package org.apache.pig.builtin;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -60,6 +57,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import static org.junit.Assert.*;
+
 
 public class TestOrcStoragePushdown {
 
@@ -221,8 +221,8 @@ public class TestOrcStoragePushdown {
         String q = query + "b = filter a by srcid == 10;" + "store b into 'out';";
         Expression expr = getExpressionForTest(q, Arrays.asList("srcid"));
         SearchArgument sarg = orcStorage.getSearchArgument(expr);
-        assertEquals("leaf-0 = (EQUALS srcid 10)\n" +
-                "expr = leaf-0", sarg.toString());
+        assertEqualsSarg(sarg, "leaf-0 = (EQUALS srcid 10)",
+                "expr = leaf-0");
     }
 
     @Test
@@ -230,11 +230,11 @@ public class TestOrcStoragePushdown {
         String q = query + "b = filter a by (srcid > 10 or dstid <= 5) and name == 'foo' and mrkt is null;" + "store b into 'out';";
         Expression expr = getExpressionForTest(q, Arrays.asList("srcid", "dstid", "name", "mrkt"));
         SearchArgument sarg = orcStorage.getSearchArgument(expr);
-        assertEquals("leaf-0 = (LESS_THAN_EQUALS srcid 10)\n" +
-                "leaf-1 = (LESS_THAN_EQUALS dstid 5)\n" +
-                "leaf-2 = (EQUALS name foo)\n" +
-                "leaf-3 = (IS_NULL mrkt)\n" +
-                "expr = (and (or (not leaf-0) leaf-1) leaf-2 leaf-3)", sarg.toString());
+        assertEqualsSarg(sarg, "leaf-0 = (LESS_THAN_EQUALS srcid 10)",
+                "leaf-1 = (LESS_THAN_EQUALS dstid 5)",
+                "leaf-2 = (EQUALS name foo)",
+                "leaf-3 = (IS_NULL mrkt)",
+                "expr = (and (or (not leaf-0) leaf-1) leaf-2 leaf-3)");
     }
 
     @Test
@@ -242,9 +242,9 @@ public class TestOrcStoragePushdown {
         String q = query + "b = filter a by srcid != 10 and mrkt is not null;" + "store b into 'out';";
         Expression expr = getExpressionForTest(q, Arrays.asList("srcid", "dstid", "name", "mrkt"));
         SearchArgument sarg = orcStorage.getSearchArgument(expr);
-        assertEquals("leaf-0 = (EQUALS srcid 10)\n" +
-                "leaf-1 = (IS_NULL mrkt)\n" +
-                "expr = (and (not leaf-0) (not leaf-1))", sarg.toString());
+        assertEqualsSarg(sarg,"leaf-0 = (EQUALS srcid 10)",
+                "leaf-1 = (IS_NULL mrkt)",
+                "expr = (and (not leaf-0) (not leaf-1))");
     }
 
     @Test
@@ -253,9 +253,9 @@ public class TestOrcStoragePushdown {
         String q = query + "b = filter a by srcid > 10 or srcid < 20;" + "store b into 'out';";
         Expression expr = getExpressionForTest(q, Arrays.asList("srcid"));
         SearchArgument sarg = orcStorage.getSearchArgument(expr);
-        assertEquals("leaf-0 = (LESS_THAN_EQUALS srcid 10)\n" +
-                "leaf-1 = (LESS_THAN srcid 20)\n" +
-                "expr = (or (not leaf-0) leaf-1)", sarg.toString());
+        assertEqualsSarg(sarg, "leaf-0 = (LESS_THAN_EQUALS srcid 10)",
+                "leaf-1 = (LESS_THAN srcid 20)",
+                "expr = (or (not leaf-0) leaf-1)");
     }
 
     @Test
@@ -264,9 +264,9 @@ public class TestOrcStoragePushdown {
         String q = query + "b = filter a by srcid == 10 or srcid == 11;" + "store b into 'out';";
         Expression expr = getExpressionForTest(q, Arrays.asList("srcid"));
         SearchArgument sarg = orcStorage.getSearchArgument(expr);
-        assertEquals("leaf-0 = (EQUALS srcid 10)\n" +
-                "leaf-1 = (EQUALS srcid 11)\n" +
-                "expr = (or leaf-0 leaf-1)", sarg.toString());
+        assertEqualsSarg(sarg, "leaf-0 = (EQUALS srcid 10)",
+                "leaf-1 = (EQUALS srcid 11)",
+                "expr = (or leaf-0 leaf-1)");
     }
 
     @Test
@@ -282,14 +282,14 @@ public class TestOrcStoragePushdown {
         q = query + "b = filter a by name matches 'foo*' and srcid == 10;" + "store b into 'out';";
         expr = getExpressionForTest(q, Arrays.asList("srcid", "name"));
         sarg = orcStorage.getSearchArgument(expr);
-        assertEquals("leaf-0 = (EQUALS srcid 10)\n" +
-                "expr = leaf-0", sarg.toString());
+        assertEqualsSarg(sarg, "leaf-0 = (EQUALS srcid 10)",
+                "expr = leaf-0");
 
         q = query + "b = filter a by srcid == 10 and name matches 'foo*';" + "store b into 'out';";
         expr = getExpressionForTest(q, Arrays.asList("srcid", "name"));
         sarg = orcStorage.getSearchArgument(expr);
-        assertEquals("leaf-0 = (EQUALS srcid 10)\n" +
-                "expr = leaf-0", sarg.toString());
+        assertEqualsSarg(sarg, "leaf-0 = (EQUALS srcid 10)",
+                "expr = leaf-0");
 
         // OR - Nothing should be pushed
         q = query + "b = filter a by name matches 'foo*' or srcid == 10;" + "store b into 'out';";
@@ -307,8 +307,8 @@ public class TestOrcStoragePushdown {
                 "store b into 'out';";
         Expression expr = getExpressionForTest(q, Arrays.asList("srcid"));
         SearchArgument sarg = orcStorage.getSearchArgument(expr);
-        assertEquals("leaf-0 = (EQUALS srcid 10)\n" +
-                "expr = leaf-0", sarg.toString());
+        assertEqualsSarg(sarg, "leaf-0 = (EQUALS srcid 10)",
+                "expr = leaf-0");
     }
 
     @Test
@@ -418,5 +418,18 @@ public class TestOrcStoragePushdown {
     @Test
     public void testPredicatePushdownVarchar() throws Exception {
         testPredicatePushdown(basedir + "charvarchar.orc", "$1 == 'alice allen         '", 19, 18000);
+    }
+
+    private static void assertEqualsSarg(SearchArgument actual, String... expected) {
+        String hive1Expected = String.join("\n", expected);
+        String hive3Expected = String.join(", ", expected);
+
+        if (hive1Expected.equals(actual.toString())) {
+            return;
+        }
+        if (hive3Expected.equals(actual.toString())) {
+            return;
+        }
+        fail(actual.toString() + "\n does not match expected SARG:\n" + hive3Expected);
     }
 }

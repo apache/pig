@@ -42,6 +42,7 @@ import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.hive.HiveShims;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.util.hive.HiveUtils;
@@ -105,8 +106,7 @@ public class HiveUDAF extends HiveUDFBase implements Algebraic {
                 
                 if (udaf instanceof GenericUDAFResolver2) {
                     GenericUDAFParameterInfo paramInfo =
-                            new SimpleGenericUDAFParameterInfo(
-                                    arguments, false, false);
+                            HiveShims.newSimpleGenericUDAFParameterInfo(arguments, false, false);
                     evaluator = ((GenericUDAFResolver2)udaf).getEvaluator(paramInfo);
                 } else {
                     TypeInfo[] params = ((StructTypeInfo)inputTypeInfo)

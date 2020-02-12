@@ -30,6 +30,7 @@ import java.util.Map;
 import org.apache.hadoop.hive.common.type.HiveChar;
 import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.common.type.HiveVarchar;
+import org.apache.hadoop.hive.ql.io.sarg.PredicateLeaf;
 import org.apache.hadoop.hive.serde2.io.HiveDecimalWritable;
 import org.apache.hadoop.hive.serde2.io.TimestampWritable;
 import org.apache.hadoop.hive.serde2.objectinspector.ConstantObjectInspector;
@@ -69,6 +70,7 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.hive.HiveShims;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
 import org.joda.time.DateTime;
 
@@ -179,8 +181,7 @@ public class HiveUtils {
             result = new DataByteArray(b, 0, b.length);
             break;
         case TIMESTAMP:
-            java.sql.Timestamp origTimeStamp = (java.sql.Timestamp)poi.getPrimitiveJavaObject(obj);
-            result = new DateTime(origTimeStamp.getTime());
+            result = new DateTime(HiveShims.TimestampShim.millisFromTimestamp(poi.getPrimitiveJavaObject(obj)));
             break;
         case DATE:
             java.sql.Date origDate = (java.sql.Date)poi.getPrimitiveJavaObject(obj);
@@ -674,24 +675,6 @@ public class HiveUtils {
 
     }
 
-    static class PigJodaTimeStampObjectInspector extends
-            AbstractPrimitiveJavaObjectInspector implements TimestampObjectInspector {
-
-        protected PigJodaTimeStampObjectInspector() {
-            super(TypeInfoFactory.timestampTypeInfo);
-        }
-
-        @Override
-        public TimestampWritable getPrimitiveWritableObject(Object o) {
-            return o == null ? null : new TimestampWritable(new Timestamp(((DateTime)o).getMillis()));
-        }
-
-        @Override
-        public Timestamp getPrimitiveJavaObject(Object o) {
-            return o == null ? null : new Timestamp(((DateTime)o).getMillis());
-        }
-    }
-
     static class PigDecimalObjectInspector extends
             AbstractPrimitiveJavaObjectInspector implements HiveDecimalObjectInspector {
 
@@ -735,7 +718,7 @@ public class HiveUtils {
             case STRING:
               return PrimitiveObjectInspectorFactory.javaStringObjectInspector;
             case TIMESTAMP:
-              return new PigJodaTimeStampObjectInspector();
+              return new HiveShims.PigJodaTimeStampObjectInspector();
             case DECIMAL:
               return new PigDecimalObjectInspector();
             case BINARY:
@@ -779,6 +762,30 @@ public class HiveUtils {
             return new JavaConstantStringObjectInspector((String)obj);
         default:
             throw new IllegalArgumentException("Not implemented " + obj.getClass().getName());
+        }
+    }
+
+    public static PredicateLeaf.Type getDataTypeForSearchArgs(byte dataType) {
+        switch (dataType) {
+            case DataType.INTEGER:
+                return PredicateLeaf.Type.LONG;
+            case DataType.LONG:
+                return PredicateLeaf.Type.LONG;
+            case DataType.DOUBLE:
+                return PredicateLeaf.Type.FLOAT;
+            case DataType.FLOAT:
+                return PredicateLeaf.Type.FLOAT;
+            case DataType.CHARARRAY:
+                return PredicateLeaf.Type.STRING;
+            case DataType.DATETIME:
+                return PredicateLeaf.Type.DATE;
+            case DataType.BIGINTEGER:
+            case DataType.BIGDECIMAL:
+                return PredicateLeaf.Type.DECIMAL;
+            case DataType.BOOLEAN:
+                return PredicateLeaf.Type.BOOLEAN;
+            default:
+                throw new RuntimeException("Unsupported data type:" + DataType.findTypeName(dataType));
         }
     }
 }

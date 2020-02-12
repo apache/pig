@@ -356,7 +356,7 @@ public abstract class FilterExtractor {
         } else if (op instanceof ProjectExpression) {
             ProjectExpression projExpr = (ProjectExpression)op;
             String fieldName = projExpr.getFieldSchema().alias;
-            return new Expression.Column(fieldName);
+            return new Expression.Column(fieldName, projExpr.getType());
         } else if(op instanceof BinaryExpression) {
             BinaryExpression binOp = (BinaryExpression)op;
             if(binOp instanceof AddExpression) {
