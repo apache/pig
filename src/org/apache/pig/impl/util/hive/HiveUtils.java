@@ -227,10 +227,12 @@ public class HiveUtils {
                 innerFs[0] = itemSchema;
             } else {
                 // If item is not tuple, wrap it into tuple
+                // Hive allows arrays(Bag) of primitive types but Pig does not.
                 ResourceFieldSchema tupleFieldSchema = new ResourceFieldSchema();
                 tupleFieldSchema.setType(DataType.TUPLE);
                 ResourceSchema tupleSchema = new ResourceSchema();
                 tupleSchema.setFields(new ResourceFieldSchema[] {itemSchema});
+                tupleFieldSchema.setSchema(tupleSchema);
                 innerFs[0] = tupleFieldSchema;
             }
 
@@ -302,6 +304,10 @@ public class HiveUtils {
     }
 
     public static TypeInfo getTypeInfo(ResourceFieldSchema fs) throws IOException {
+      return getTypeInfo(fs, false);
+    }
+
+    public static TypeInfo getTypeInfo(ResourceFieldSchema fs, boolean keepSingleFieldTuple) throws IOException {
         TypeInfo ti;
         switch (fs.getType()) {
         case DataType.TUPLE:
@@ -309,7 +315,7 @@ public class HiveUtils {
             ArrayList<String> names = new ArrayList<String>();
             ArrayList<TypeInfo> typeInfos = new ArrayList<TypeInfo>();
             for (ResourceFieldSchema subFs : fs.getSchema().getFields()) {
-                TypeInfo info = getTypeInfo(subFs);
+                TypeInfo info = getTypeInfo(subFs, keepSingleFieldTuple);
                 names.add(subFs.getName());
                 typeInfos.add(info);
             }
@@ -324,10 +330,10 @@ public class HiveUtils {
             ResourceFieldSchema tupleSchema = fs.getSchema().getFields()[0];
             ResourceFieldSchema itemSchema = tupleSchema;
             // If single item tuple, remove the tuple, put the inner item into list directly
-            if (tupleSchema.getSchema().getFields().length == 1) {
+            if (!keepSingleFieldTuple && tupleSchema.getSchema().getFields().length == 1) {
                 itemSchema = tupleSchema.getSchema().getFields()[0];
             }
-            TypeInfo elementField = getTypeInfo(itemSchema);
+            TypeInfo elementField = getTypeInfo(itemSchema, keepSingleFieldTuple);
             ((ListTypeInfo)ti).setListElementTypeInfo(elementField);
             break;
         case DataType.MAP:
@@ -336,7 +342,7 @@ public class HiveUtils {
             if (fs.getSchema() == null || fs.getSchema().getFields().length != 1) {
                 valueField = TypeInfoFactory.binaryTypeInfo;
             } else {
-                valueField = getTypeInfo(fs.getSchema().getFields()[0]);
+                valueField = getTypeInfo(fs.getSchema().getFields()[0], keepSingleFieldTuple);
             }
             ((MapTypeInfo)ti).setMapKeyTypeInfo(TypeInfoFactory.stringTypeInfo);
             ((MapTypeInfo)ti).setMapValueTypeInfo(valueField);
@@ -414,12 +420,16 @@ public class HiveUtils {
         private List<StructField> fields;
 
         PigStructInspector(StructTypeInfo info) {
+          this(info, false);
+        }
+
+        PigStructInspector(StructTypeInfo info, boolean keepSingleFieldTuple) {
             ArrayList<String> fieldNames = info.getAllStructFieldNames();
             ArrayList<TypeInfo> fieldTypes = info.getAllStructFieldTypeInfos();
             fields = new ArrayList<StructField>(fieldNames.size());
             for (int i = 0; i < fieldNames.size(); ++i) {
                 fields.add(new Field(fieldNames.get(i),
-                        createObjectInspector(fieldTypes.get(i)), i));
+                        createObjectInspector(fieldTypes.get(i), keepSingleFieldTuple), i));
             }
         }
 
@@ -510,8 +520,12 @@ public class HiveUtils {
         private ObjectInspector value;
 
         PigMapObjectInspector(MapTypeInfo info) {
+          this(info, false);
+        }
+
+        PigMapObjectInspector(MapTypeInfo info, boolean keepSingleFieldTuple) {
             key = PrimitiveObjectInspectorFactory.javaStringObjectInspector;
-            value = createObjectInspector(info.getMapValueTypeInfo());
+            value = createObjectInspector(info.getMapValueTypeInfo(), keepSingleFieldTuple);
         }
 
         @Override
@@ -567,9 +581,15 @@ public class HiveUtils {
         private Object cachedObject;
         private int index;
         private Iterator<Tuple> iter;
+        private boolean keepSingleFieldTuple;
 
         PigListObjectInspector(ListTypeInfo info) {
-            child = createObjectInspector(info.getListElementTypeInfo());
+            this(info, false);
+        }
+
+        PigListObjectInspector(ListTypeInfo info, boolean keepSingleFieldTuple) {
+            this.keepSingleFieldTuple = keepSingleFieldTuple;
+            child = createObjectInspector(info.getListElementTypeInfo(), keepSingleFieldTuple);
         }
 
         @Override
@@ -590,7 +610,7 @@ public class HiveUtils {
                 try {
                     Tuple t = iter.next();
                     // If single item tuple, take the item directly from list
-                    if (t.size() == 1) {
+                    if (!keepSingleFieldTuple && t.size() == 1) {
                         return t.get(0);
                     } else {
                         return t;
@@ -702,6 +722,10 @@ public class HiveUtils {
     }
 
     public static ObjectInspector createObjectInspector(TypeInfo info) {
+      return createObjectInspector(info, false);
+    }
+
+    public static ObjectInspector createObjectInspector(TypeInfo info, boolean keepSingleFieldTuple) {
         switch (info.getCategory()) {
         case PRIMITIVE:
           switch (((PrimitiveTypeInfo) info).getPrimitiveCategory()) {
@@ -735,11 +759,11 @@ public class HiveUtils {
                         ((PrimitiveTypeInfo) info).getPrimitiveCategory());
           }
         case STRUCT:
-          return new PigStructInspector((StructTypeInfo) info);
+          return new PigStructInspector((StructTypeInfo) info, keepSingleFieldTuple);
         case MAP:
-          return new PigMapObjectInspector((MapTypeInfo) info);
+          return new PigMapObjectInspector((MapTypeInfo) info, keepSingleFieldTuple);
         case LIST:
-          return new PigListObjectInspector((ListTypeInfo) info);
+          return new PigListObjectInspector((ListTypeInfo) info, keepSingleFieldTuple);
         default:
           throw new IllegalArgumentException("Unknown type " +
             info.getCategory());

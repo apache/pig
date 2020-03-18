@@ -68,6 +68,7 @@ import org.junit.Test;
 
 import static org.apache.pig.builtin.mock.Storage.resetData;
 import static org.apache.pig.builtin.mock.Storage.tuple;
+import static org.apache.pig.builtin.mock.Storage.bag;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -309,6 +310,60 @@ public class TestOrcStorage {
         assertEquals(Integer.valueOf(2), DataType.toInteger(iter.next().get(0), DataType.BYTEARRAY));
         assertEquals(Integer.valueOf(3), DataType.toInteger(iter.next().get(0), DataType.BYTEARRAY));
         assertFalse(iter.hasNext());
+    }
+
+    @Test
+    // See PIG-____
+    public void testSingleItemTuple() throws Exception {
+        Data data = resetData(pigServer);
+        data.set("foo", "a:bag{t:tuple(number:int)}",
+            tuple(bag(tuple(1), tuple(2), tuple(3))),
+            tuple(bag(tuple(4), tuple(5), tuple(6))),
+            tuple(bag(tuple(7), tuple(8), tuple(9)))
+        );
+
+        // Testing writes
+
+        //A: (a:bag{t:tuple(number:int)})
+        pigServer.registerQuery("A = LOAD 'foo' USING mock.Storage();");
+        pigServer.registerQuery("store A into '" + OUTPUT1 + "' using OrcStorage();");
+        pigServer.registerQuery("store A into '" + OUTPUT2 + "' using OrcStorage('-k');");
+
+        Reader reader1 = OrcFile.createReader(fs, Util.getFirstPartFile(new Path(OUTPUT1)));
+        //Note, "number" alias is dropped but this is an issue on Hive/OrcFile side
+        assertEquals("struct<a:array<int>>", reader1.getObjectInspector().getTypeName());
+
+        Reader reader2 = OrcFile.createReader(fs, Util.getFirstPartFile(new Path(OUTPUT2)));
+        assertEquals("struct<a:array<struct<number:int>>>", reader2.getObjectInspector().getTypeName());
+
+        assertEquals(reader1.getNumberOfRows(), 3);
+        assertEquals(reader2.getNumberOfRows(), 3);
+
+        // For read, option '-k' is ignored.  It all maps back to single tuple
+        // since Pig doesn't support Bag with primitive types.
+        pigServer.registerQuery("B = load '" + OUTPUT1 + "' using OrcStorage();");
+        pigServer.registerQuery("C = load '" + OUTPUT2 + "' using OrcStorage();");
+
+        Schema schema1 = pigServer.dumpSchema("B"); // struct<a:array<int>> --> a:{(int)}
+        Schema schema2 = pigServer.dumpSchema("C"); // struct<a:array<struct<number:int>>> --> a:{(number:int)}
+
+        // Currently Hive's OrcFile doesn't seem to store the name of the fields
+        // except for Tuples. Thus, only checking the types but not aliases.
+        // equals(schema, other, relaxInner=false, relaxAlias=true)
+        assertTrue(Schema.equals(schema1, schema2, false, true));
+
+        System.err.println(schema1);
+        System.err.println(schema2);
+        Iterator<Tuple> iter1 = pigServer.openIterator("B");
+        Iterator<Tuple> iter2 = pigServer.openIterator("C");
+        int count=0;
+        while (iter1.hasNext()) {
+          Tuple t1 = iter1.next();
+          Tuple t2 = iter2.next();
+          assertEquals(t1, t2);
+          count++;
+        }
+        assertEquals(3, count);
     }
 
     private void verifyData(Path orcFile, Iterator<Tuple> iter, FileSystem fs, int expectedTotalRows) throws Exception {

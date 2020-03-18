@@ -114,6 +114,8 @@ import org.joda.time.DateTime;
  * from straddling blocks
  * <li><code>-c, --compress</code> Sets the generic compression that is used to compress the data.
  * Valid codecs are: NONE, ZLIB, SNAPPY, LZO
+ * <li><code>-k, --keepSingleFieldTuple</code> Sets whether to keep a Tuple(struct) schema
+ * inside a Bag(array) even if the tuple only contains a single field
  * <li><code>-v, --version</code> Sets the version of the file that will be written
  * </ul>
  **/
@@ -133,6 +135,7 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
     private Integer rowIndexStride;
     private Integer bufferSize;
     private Boolean blockPadding;
+    private Boolean keepSingleFieldTuple = false;
     private CompressionKind compress;
     private String versionName;
 
@@ -158,6 +161,9 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
                 "are padded to prevent stripes from straddling blocks");
         validOptions.addOption("c", "compress", true,
                 "Sets the generic compression that is used to compress the data");
+        validOptions.addOption("k", "keepSingleFieldTuple", false,
+                "Sets whether to keep Tuple(struct) schema inside a Bag(array) even if " +
+                "the tuple only contains a single field");
         validOptions.addOption("v", "version", true,
                 "Sets the version of the file that will be written");
     }
@@ -185,6 +191,7 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
             if (configuredOptions.hasOption('v')) {
                 versionName = HiveShims.normalizeOrcVersionName(configuredOptions.getOptionValue('v'));
             }
+            keepSingleFieldTuple = configuredOptions.hasOption('k');
         } catch (ParseException e) {
             log.error("Exception in OrcStorage", e);
             log.error("OrcStorage called with arguments " + options);
@@ -217,7 +224,7 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
             typeInfo = (TypeInfo)ObjectSerializer.deserialize(p.getProperty(signature + SchemaSignatureSuffix));
         }
         if (oi==null) {
-            oi = HiveUtils.createObjectInspector(typeInfo);
+            oi = HiveUtils.createObjectInspector(typeInfo, keepSingleFieldTuple);
         }
     }
 
@@ -226,7 +233,7 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
         ResourceFieldSchema fs = new ResourceFieldSchema();
         fs.setType(DataType.TUPLE);
         fs.setSchema(rs);
-        typeInfo = HiveUtils.getTypeInfo(fs);
+        typeInfo = HiveUtils.getTypeInfo(fs, keepSingleFieldTuple);
         Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass());
         p.setProperty(signature + SchemaSignatureSuffix, ObjectSerializer.serialize(typeInfo));
     }
