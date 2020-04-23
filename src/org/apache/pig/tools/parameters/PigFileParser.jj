@@ -223,25 +223,22 @@ TOKEN_MGR_DECLS : {
     }: DEFAULT
 }
 
-TOKEN : 
+< DEFAULT, IN_DECLARE > TOKEN : 
 {
-    <NEWLINE: "\n" | "\r">
+    <NEWLINE: "\n" | "\r"> : DEFAULT
     |    
     <SPACE: " " | "\t">
     |
     <WS: "\n" | "\r" | " " | "\t">
-}
-
-// comments(single line and multi-line)
-TOKEN : 
-{
-   <COMMENT: "--"(~["\r","\n"])*
+    |   
+    // comments(single line and multi-line)
+    <COMMENT: "--"(~["\r","\n"])*
           |  "#!" (~["\r","\n"])*
           | "/*" (~["*"])* "*" ("*" | (~["*","/"] (~["*"])* "*"))* "/"
-   >   
+    >   
 }
 
-TOKEN:
+< DEFAULT, IN_DECLARE >TOKEN:
 {
     <#LETTER : ["a"-"z", "A"-"Z"] >
     |
@@ -254,22 +251,31 @@ TOKEN:
 
 TOKEN :
 {
-    <DECLARE: "%declare" >
+    <DECLARE: "%declare" > : IN_DECLARE
     |
-    <PIGDEFAULT: "%default" > 
-}
-
-
-TOKEN : 
-{
+    <PIGDEFAULT: "%default" > : IN_DECLARE
+    |
     <REGISTER: "register"> : IN_REGISTER
     |
+    <LITERAL: ("\"" ((~["\""])*("\\\"")?)* "\"")|("'" ((~["'"])*("\\\'")?)* "'") >
+}
+
+< DEFAULT, IN_DECLARE > TOKEN:
+{
     <IDENTIFIER: (<SPECIALCHAR>)*<LETTER>(<DIGIT> | <LETTER> | <SPECIALCHAR>)*>
     |
-    <LITERAL: ("\"" ((~["\""])*("\\\"")?)* "\"")|("'" ((~["'"])*("\\\'")?)* "'") >
+    <SHELLCMD: "`" (~["`"])* "`" > : DEFAULT
+}
+
+< IN_DECLARE > MORE :
+{
+    <DOUBLE_QUOTE_START: ("\"") > : DOUBLE_QUOTE
     |
-    <SHELLCMD: "`" (~["`"])* "`" >
-    |
+    <SINGLE_QUOTE_START: ("'") > : SINGLE_QUOTE
+}
+
+< DEFAULT, IN_DECLARE > TOKEN:
+{
     // see others() rule for use of OTHER and NOT_OTHER_CHAR
     // others() is supposed to match 'everything else'. To ensure that others()
     // don't swallow other(all the ones above) tokens, it uses two tokens OTHER and NOT_OTHER_CHAR
@@ -279,6 +285,39 @@ TOKEN :
     <OTHER: (~["\"" , "'" , "`" , "a"-"z" , "A"-"Z" , "_" , "#" , "=" , " " , "\n" , "\t" , "\r", "%", "/", "-", "$"])+ >
     |
     <NOT_OTHER_CHAR: ["\"" , "'" , "`" , "a"-"z" , "A"-"Z" , "_" , "#" , "=" , " " , "\n" , "\t" , "\r", "%", "/", "-", "$"] >
+}
+
+< DOUBLE_QUOTE > TOKEN :
+{
+    <DOUBLE_QUOTE_LITERAL: ("\"") > {
+        image.deleteCharAt(image.length()-1);
+        image.deleteCharAt(0);
+        matchedToken.image = image.toString();
+    } : DEFAULT
+} 
+
+< SINGLE_QUOTE > TOKEN :
+{
+    <SINGLE_QUOTE_LITERAL: ("'") > {
+        image.deleteCharAt(image.length()-1);
+        image.deleteCharAt(0);
+        matchedToken.image = image.toString();
+    } : DEFAULT 
+}
+
+< DOUBLE_QUOTE > MORE :
+{
+    <ESCAPED_DOUBLE_QUOTE: ("\\\"")> { image.replace(image.length()-2, image.length(), "\""); }
+}
+
+< SINGLE_QUOTE > MORE :
+{
+    <ESCAPED_SINGLE_QUOTE: ("\\'")> { image.replace(image.length()-2, image.length(), "'"); }
+}
+
+< DOUBLE_QUOTE, SINGLE_QUOTE > MORE:
+{
+    < (~[]) >
 }
 
 <IN_REGISTER> MORE : { " " |  "\t" | "\r" | "\n"}
@@ -373,8 +412,9 @@ void param_value(boolean overwrite) throws IOException:
             |
             val=<SHELLCMD>  { pc.processShellCmd(id.image , val.image, overwrite); }
             |
-            val=<LITERAL> { s = unquote(val.image); pc.processOrdLine(id.image, s, overwrite); }
-
+            val=<SINGLE_QUOTE_LITERAL> { pc.processOrdLine(id.image, val.image, overwrite); }
+            |
+            val = <DOUBLE_QUOTE_LITERAL> { pc.processOrdLine(id.image, val.image, overwrite); }
         )
 }
 
