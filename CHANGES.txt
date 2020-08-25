@@ -100,6 +100,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5403: streaming job stuck with script failure when combined with ORDER BY (knoguchi)
+
 PIG-5362: Parameter substitution of shell cmd results doesn't handle backslash addendum (szita)
 
 PIG-5395: Pig build is failing due to maven repo access point change (szita)

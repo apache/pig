@@ -103,7 +103,9 @@ public class POReservoirSample extends PhysicalOperator {
         Result res = null;
         while (rowProcessed < numSamples) {
             res = processInput();
-            if (res.returnStatus == POStatus.STATUS_OK) {
+            if (res.returnStatus == POStatus.STATUS_ERR) {
+              return res;
+            } else if (res.returnStatus == POStatus.STATUS_OK) {
                 samples[(int)rowProcessed] = res;
                 rowProcessed++;
             } else if (res.returnStatus == POStatus.STATUS_NULL) {
@@ -125,7 +127,9 @@ public class POReservoirSample extends PhysicalOperator {
             while (true) {
                 // pick this as sample
                 res = processInput();
-                if (res.returnStatus == POStatus.STATUS_NULL) {
+                if (res.returnStatus == POStatus.STATUS_ERR) {
+                  return res;
+                } else if (res.returnStatus == POStatus.STATUS_NULL) {
                     continue;
                 } else if (res.returnStatus != POStatus.STATUS_OK) {
                     break;
