@@ -200,12 +200,15 @@ public class ForEachUserSchemaVisitor extends LogicalRelationalNodesVisitor {
         gen.setFlattenFlags(new boolean[index]);
         if (needCast) {
             // Insert the casterForEach into the plan and patch up the plan.
+            plan.add(casterForEach);
             List <Operator> successorOps = plan.getSuccessors(foreach);
             if (successorOps != null && successorOps.size() > 0){
-                Operator next = plan.getSuccessors(foreach).get(0);
-                plan.insertBetween(foreach, casterForEach, next);
-            }else{
-                plan.add(casterForEach);
+                // since successorOps will be updated as part of the inserts,
+                // creating a shallow-copy first before traversing the list
+                for (Operator next : successorOps.toArray(new Operator [successorOps.size()])) {
+                    plan.insertBetween(foreach, casterForEach, next);
+                }
+            } else {
                 plan.connect(foreach,casterForEach);
             }
 

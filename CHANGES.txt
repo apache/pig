@@ -100,6 +100,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5404: FLATTEN infers wrong datatype (knoguchi)
+
 PIG-5243: describe with typecast on as-clause shows the types before the typecasting (knoguchi)
 
 PIG-5403: streaming job stuck with script failure when combined with ORDER BY (knoguchi)

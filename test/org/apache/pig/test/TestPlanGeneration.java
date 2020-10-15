@@ -464,6 +464,27 @@ public class TestPlanGeneration {
     }
 
     @Test
+    public void testForEachWithCast8() throws Exception {
+        //ForEachWithCast + Split (PIG-5404)
+        String query = "A = load 'foo' as (a:int, b:int);\n" +
+                "B = foreach A generate a as a0:chararray, b as b:int;\n" +
+                "store B into 'output1';\n" +
+                "store B into 'output2';\n" ;
+
+        LogicalPlan lp = Util.parse(query, pc);
+        Util.optimizeNewLP(lp);
+
+        assertEquals("Two LOStores should be created", 2, lp.getSinks().size());
+        for(Operator leave : lp.getSinks() ) {
+            LOStore loStore = (LOStore) leave;
+            assertEquals("a0",loStore.getSchema().getField(0).alias);
+            assertEquals(DataType.CHARARRAY, loStore.getSchema().getField(0).type);
+            assertEquals("b", loStore.getSchema().getField(1).alias);
+            assertEquals(DataType.INTEGER, loStore.getSchema().getField(1).type);
+        }
+    }
+
+    @Test
     // See PIG-2315
     public void testAsType1() throws Exception {
         Data data = Storage.resetData(ps);
