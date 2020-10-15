@@ -209,6 +209,8 @@ public class ForEachUserSchemaVisitor extends LogicalRelationalNodesVisitor {
                 plan.connect(foreach,casterForEach);
             }
 
+            foreach.setCasterForAsClause(casterForEach);
+
             // Since the explict cast is now inserted after the original foreach,
             // throwing away the user defined "types" but keeping the user
             // defined names from the original foreach.

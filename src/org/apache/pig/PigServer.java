@@ -1511,7 +1511,11 @@ public class PigServer {
             String msg = "No plan for " + alias + " to describe";
             throw new FrontendException(msg, errCode, PigException.INPUT, false, null);
         }
-        return op;
+        if( op instanceof LOForEach && ((LOForEach)op).getCasterForAsClause() != null) {
+            return ((LOForEach)op).getCasterForAsClause();
+        } else {
+            return op;
+        }
     }
 
     /**

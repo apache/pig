@@ -532,6 +532,17 @@ public class TestPigServer {
         assertEquals(expectedSchema, dumpedSchema);
     }
 
+    // PIG-5243
+    @Test
+    public void testDescribeAsClause() throws Throwable {
+        PigServer pig = new PigServer(cluster.getExecType(), properties);
+        pig.registerQuery("a = load 'a' as (field1: int);");
+        pig.registerQuery("b = FOREACH a generate field1 as (new_field:chararray);") ;
+        Schema dumpedSchema = pig.dumpSchema("b") ;
+        Schema expectedSchema = Utils.getSchemaFromString("new_field: chararray");
+        assertEquals(expectedSchema, dumpedSchema);
+    }
+
     private void registerScalarScript(boolean useScalar, String expectedSchemaStr) throws IOException {
         PigServer pig = new PigServer(cluster.getExecType(), properties);
         pig.registerQuery("A = load 'adata' AS (a: int, b: int);");

@@ -36,9 +36,19 @@ public class LOForEach extends LogicalRelationalOperator {
     private static final long serialVersionUID = 2L;
 
     private LogicalPlan innerPlan;
+
+    private LOForEach casterForAsClause = null;
       
     public LOForEach(OperatorPlan plan) {
         super("LOForEach", plan);		
+    }
+
+    public LOForEach getCasterForAsClause() {
+        return casterForAsClause;
+    }
+
+    public void setCasterForAsClause(LOForEach casterForAsClause) {
+        this.casterForAsClause = casterForAsClause;
     }
 
     public LogicalPlan getInnerPlan() {
