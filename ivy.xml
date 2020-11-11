@@ -181,12 +181,12 @@
     <dependency org="org.apache.avro" name="trevni-core" rev="${avro.version}"
       conf="compile->default;checkstyle->master">
       <artifact name="trevni-core" ext="jar" />
-      <artifact name="trevni-core" type="test-jar" ext="jar" m:classifier="tests"/>
+<!--      <artifact name="trevni-core" type="test-jar" ext="jar" m:classifier="tests"/>-->
     </dependency>
     <dependency org="org.apache.avro" name="trevni-avro" rev="${avro.version}"
       conf="compile->default;checkstyle->master">
       <artifact name="trevni-avro" ext="jar" />
-      <artifact name="trevni-avro" type="test-jar" ext="jar" m:classifier="tests"/>
+<!--      <artifact name="trevni-avro" type="test-jar" ext="jar" m:classifier="tests"/>-->
       <exclude org="org.apache.hadoop" module="hadoop-core"/>
     </dependency>
     <dependency org="org.apache.avro" name="avro-tools" rev="${avro.version}"
