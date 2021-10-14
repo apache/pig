@@ -36,4 +36,3 @@ before_script:
 
 script:
   - ant clean test-unit
-
