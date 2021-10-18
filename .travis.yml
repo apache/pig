@@ -28,7 +28,7 @@ addons:
     packages:
       - openjdk-8-jdk
       - ant
-      - ant-contrib
+      - ant-optional
 
 before_script:
   - lscpu
