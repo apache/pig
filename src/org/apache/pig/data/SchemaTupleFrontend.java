@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -94,7 +95,9 @@ public class SchemaTupleFrontend {
         private Configuration conf;
 
         public SchemaTupleFrontendGenHelper(PigContext pigContext, Configuration conf) {
-            codeDir = Files.createTempDir();
+            File tempDirBase = new File(System.getProperty("java.io.tmpdir"));
+            codeDir = Files.createTempDirectory(
+                          tempDirBase.toPath(), System.currentTimeMillis() + "-").toFile();
             codeDir.deleteOnExit();
             LOG.debug("Temporary directory for generated code created: "
                     + codeDir.getAbsolutePath());
