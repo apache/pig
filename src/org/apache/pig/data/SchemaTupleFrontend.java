@@ -47,7 +47,6 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.google.common.io.Files;
 
 /**
  * This class is to be used at job creation time. It provides the API that lets code
