@@ -26,6 +26,8 @@ PIG-5282: Upgade to Java 8 (satishsaley via rohini)
  
 IMPROVEMENTS
 
+PIG-5397: Update spark2.version to 2.4.8 (knoguchi)
+
 PIG-5400: OrcStorage dropping struct(tuple) when it only holds a single field inside a Bag(array) (knoguchI)
 
 PIG-4764: Make Pig work with Hive 3.1 (szita)
