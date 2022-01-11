@@ -165,6 +165,9 @@ public class SparkLauncher extends Launcher {
     private SparkEngineConf sparkEngineConf = new SparkEngineConf();
     private static final String PIG_WARNING_FQCN = PigWarning.class.getCanonicalName();
 
+    // this set is unnecessary once PIG-5241 is fixed
+    private static Set<String> allCachedFiles = null;
+
     @Override
     public PigStats launchPig(PhysicalPlan physicalPlan, String grpName,
                               PigContext pigContext) throws Exception {
@@ -418,8 +421,11 @@ public class SparkLauncher extends Launcher {
                         fs.copyToLocalFile(src, tmpFilePath);
                         tmpFile.deleteOnExit();
                         LOG.info(String.format("CacheFile:%s", fileName));
-                        addResourceToSparkJobWorkingDirectory(tmpFile, fileName,
-                                ResourceType.FILE);
+                        if(!allCachedFiles.contains(file.trim())) {
+                            allCachedFiles.add(file.trim());
+                            addResourceToSparkJobWorkingDirectory(tmpFile, fileName,
+                                     ResourceType.FILE);
+                        }
                     }
                 }
             }
@@ -641,6 +647,7 @@ public class SparkLauncher extends Launcher {
             sparkContext = new JavaSparkContext(sparkConf);
             SparkShims.getInstance().addSparkListener(sparkContext.sc(), jobStatisticCollector.getSparkListener());
             SparkShims.getInstance().addSparkListener(sparkContext.sc(), new StatsReportListener());
+            allCachedFiles = new HashSet<String>();
         }
         jobConf.set(SPARK_VERSION, sparkContext.version());
     }
