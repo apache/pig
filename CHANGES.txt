@@ -26,6 +26,8 @@ PIG-5282: Upgade to Java 8 (satishsaley via rohini)
  
 IMPROVEMENTS
 
+PIG-5398: SparkLauncher does not read SPARK_CONF_DIR/spark-defaults.conf (knoguchi)
+
 PIG-5397: Update spark2.version to 2.4.8 (knoguchi)
 
 PIG-5400: OrcStorage dropping struct(tuple) when it only holds a single field inside a Bag(array) (knoguchI)
