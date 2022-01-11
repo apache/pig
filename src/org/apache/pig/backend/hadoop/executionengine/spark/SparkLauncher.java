@@ -612,10 +612,10 @@ public class SparkLauncher extends Launcher {
             checkAndConfigureDynamicAllocation(master, sparkConf);
 
             sparkContext = new JavaSparkContext(sparkConf);
-            jobConf.set(SPARK_VERSION, sparkContext.version());
             SparkShims.getInstance().addSparkListener(sparkContext.sc(), jobStatisticCollector.getSparkListener());
             SparkShims.getInstance().addSparkListener(sparkContext.sc(), new StatsReportListener());
         }
+        jobConf.set(SPARK_VERSION, sparkContext.version());
     }
 
     private static void checkAndConfigureDynamicAllocation(String master, SparkConf sparkConf) {

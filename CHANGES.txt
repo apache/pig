@@ -102,6 +102,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5412: testSkewedJoinOuter spark unit-test failing with ClassNotFoundException (knoguchi)
+
 PIG-5404: FLATTEN infers wrong datatype (knoguchi)
 
 PIG-5243: describe with typecast on as-clause shows the types before the typecasting (knoguchi)
