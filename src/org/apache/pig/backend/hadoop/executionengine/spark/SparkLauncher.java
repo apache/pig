@@ -572,7 +572,7 @@ public class SparkLauncher extends Launcher {
         }
         if (sparkContext == null) {
             String sparkHome = System.getenv("SPARK_HOME");
-            if (!master.startsWith("local") && !master.equals("yarn-client")) {
+            if (!master.startsWith("local") && !master.equals("yarn")) {
                 // Check that we have the Mesos native library and Spark home
                 // are set
                 if (sparkHome == null) {

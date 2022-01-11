@@ -104,6 +104,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5415: [spark] TestScriptLanguage conflict between multiple SparkContext (after spark2.4 upgrade) (knoguchi)
+
 PIG-5412: testSkewedJoinOuter spark unit-test failing with ClassNotFoundException (knoguchi)
 
 PIG-5404: FLATTEN infers wrong datatype (knoguchi)
