@@ -26,6 +26,10 @@ PIG-5282: Upgade to Java 8 (satishsaley via rohini)
  
 IMPROVEMENTS
 
+PIG-5398: SparkLauncher does not read SPARK_CONF_DIR/spark-defaults.conf (knoguchi)
+
+PIG-5397: Update spark2.version to 2.4.8 (knoguchi)
+
 PIG-5400: OrcStorage dropping struct(tuple) when it only holds a single field inside a Bag(array) (knoguchI)
 
 PIG-4764: Make Pig work with Hive 3.1 (szita)
@@ -99,6 +103,12 @@ PIG-5251: Bump joda-time to 2.9.9 (dbist13 via rohini)
 OPTIMIZATIONS
  
 BUG FIXES
+
+PIG-5413: [spark] TestStreaming.testInputCacheSpecs failing with "File script1.pl was already registered" (knoguchi)
+
+PIG-5415: [spark] TestScriptLanguage conflict between multiple SparkContext (after spark2.4 upgrade) (knoguchi)
+
+PIG-5412: testSkewedJoinOuter spark unit-test failing with ClassNotFoundException (knoguchi)
 
 PIG-5404: FLATTEN infers wrong datatype (knoguchi)
 

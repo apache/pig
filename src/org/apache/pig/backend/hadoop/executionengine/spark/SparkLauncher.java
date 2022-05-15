@@ -18,9 +18,12 @@
 package org.apache.pig.backend.hadoop.executionengine.spark;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -161,6 +164,9 @@ public class SparkLauncher extends Launcher {
     private String currentDirectoryPath = null;
     private SparkEngineConf sparkEngineConf = new SparkEngineConf();
     private static final String PIG_WARNING_FQCN = PigWarning.class.getCanonicalName();
+
+    // this set is unnecessary once PIG-5241 is fixed
+    private static Set<String> allCachedFiles = null;
 
     @Override
     public PigStats launchPig(PhysicalPlan physicalPlan, String grpName,
@@ -415,8 +421,11 @@ public class SparkLauncher extends Launcher {
                         fs.copyToLocalFile(src, tmpFilePath);
                         tmpFile.deleteOnExit();
                         LOG.info(String.format("CacheFile:%s", fileName));
-                        addResourceToSparkJobWorkingDirectory(tmpFile, fileName,
-                                ResourceType.FILE);
+                        if(!allCachedFiles.contains(file.trim())) {
+                            allCachedFiles.add(file.trim());
+                            addResourceToSparkJobWorkingDirectory(tmpFile, fileName,
+                                     ResourceType.FILE);
+                        }
                     }
                 }
             }
@@ -569,7 +578,7 @@ public class SparkLauncher extends Launcher {
         }
         if (sparkContext == null) {
             String sparkHome = System.getenv("SPARK_HOME");
-            if (!master.startsWith("local") && !master.equals("yarn-client")) {
+            if (!master.startsWith("local") && !master.equals("yarn")) {
                 // Check that we have the Mesos native library and Spark home
                 // are set
                 if (sparkHome == null) {
@@ -596,6 +605,30 @@ public class SparkLauncher extends Launcher {
                 LOG.warn("SPARK_HOME is not set");
             }
 
+            String sparkConfEnv = System.getenv("SPARK_CONF_DIR");
+            if( sparkConfEnv == null && sparkHome != null) {
+                sparkConfEnv = sparkHome + "/conf";
+            }
+            if( sparkConfEnv != null ) {
+                try {
+                    Properties props = new Properties();
+                    File propsFile = new File (sparkConfEnv,"spark-defaults.conf");
+                    if (propsFile.isFile()) {
+                        try (InputStreamReader isr = new InputStreamReader( 
+                            new FileInputStream(propsFile), StandardCharsets.UTF_8)) {
+                            props.load(isr);
+                            for (Map.Entry<Object, Object> e : props.entrySet()) {
+                                pigCtxtProperties.setProperty(e.getKey().toString(), 
+                                                     e.getValue().toString().trim());
+                            }
+                        }
+                    }
+                } catch (IOException ex) {
+                  LOG.warn("Reading $SPARK_CONF_DIR/spark-defaults.conf failed");
+                }
+            }
+
+
             //Copy all spark.* properties to SparkConf
             for (String key : pigCtxtProperties.stringPropertyNames()) {
                 if (key.startsWith("spark.")) {
@@ -612,10 +645,11 @@ public class SparkLauncher extends Launcher {
             checkAndConfigureDynamicAllocation(master, sparkConf);
 
             sparkContext = new JavaSparkContext(sparkConf);
-            jobConf.set(SPARK_VERSION, sparkContext.version());
             SparkShims.getInstance().addSparkListener(sparkContext.sc(), jobStatisticCollector.getSparkListener());
             SparkShims.getInstance().addSparkListener(sparkContext.sc(), new StatsReportListener());
+            allCachedFiles = new HashSet<String>();
         }
+        jobConf.set(SPARK_VERSION, sparkContext.version());
     }
 
     private static void checkAndConfigureDynamicAllocation(String master, SparkConf sparkConf) {
