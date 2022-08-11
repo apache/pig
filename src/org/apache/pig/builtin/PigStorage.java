@@ -619,4 +619,9 @@ LoadPushDown, LoadMetadata, StoreMetadata, OverwritableStoreFunc {
             mLog.warn("Could not delete output " + output);
         }
     }
+
+    @Override
+    public Boolean supportsParallelWriteToStoreLocation() {
+        return true;
+    }
 }

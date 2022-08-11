@@ -717,4 +717,9 @@ public class AvroStorage extends LoadFunc
       Class[] classList = new Class[] {Schema.class, AvroInputFormat.class};
       return FuncUtils.getShipFiles(classList);
   }
+
+  @Override
+  public Boolean supportsParallelWriteToStoreLocation() {
+    return true;
+  }
 }

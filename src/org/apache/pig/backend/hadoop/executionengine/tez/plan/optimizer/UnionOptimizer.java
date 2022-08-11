@@ -83,20 +83,8 @@ public class UnionOptimizer extends TezOpPlanVisitor {
 
     private static final Log LOG = LogFactory.getLog(UnionOptimizer.class);
     private TezOperPlan tezPlan;
-    private static Set<String> builtinSupportedStoreFuncs = new HashSet<String>();
     private List<String> supportedStoreFuncs;
     private List<String> unsupportedStoreFuncs;
-
-    static {
-        builtinSupportedStoreFuncs.add(PigStorage.class.getName());
-        builtinSupportedStoreFuncs.add(JsonStorage.class.getName());
-        builtinSupportedStoreFuncs.add(OrcStorage.class.getName());
-        builtinSupportedStoreFuncs.add(HBaseStorage.class.getName());
-        builtinSupportedStoreFuncs.add(AvroStorage.class.getName());
-        builtinSupportedStoreFuncs.add("org.apache.pig.piggybank.storage.avro.AvroStorage");
-        builtinSupportedStoreFuncs.add("org.apache.pig.piggybank.storage.avro.CSVExcelStorage");
-        builtinSupportedStoreFuncs.add(Storage.class.getName());
-    }
 
     public UnionOptimizer(TezOperPlan plan, List<String> supportedStoreFuncs, List<String> unsupportedStoreFuncs) {
         super(plan, new ReverseDependencyOrderWalker<TezOperator, TezOperPlan>(plan));
@@ -129,42 +117,51 @@ public class UnionOptimizer extends TezOpPlanVisitor {
             throws VisitorException {
         List<POStoreTez> stores = PlanHelper.getPhysicalOperators(tezOp.plan, POStoreTez.class);
 
+        // If any store function does not support parallel writes, then we cannot use this optimization
         for (POStoreTez store : stores) {
             String name = store.getStoreFunc().getClass().getName();
-            if (store.getStoreFunc() instanceof StoreFunc) {
-                StoreFunc func = (StoreFunc) store.getStoreFunc();
-                if (func.supportsParallelWriteToStoreLocation() != null) {
-                    if (func.supportsParallelWriteToStoreLocation()) {
-                        continue;
-                    } else {
-                        LOG.warn(name + " does not support union optimization."
-                                + " Disabling it. There will be some performance degradation.");
-                        return false;
-                    }
-                }
+            Boolean supportsParallelWriteToStoreLocation = store.getStoreFunc().supportsParallelWriteToStoreLocation();
+
+            // We process exclusions first, then inclusions. This way, a user can explicitly disable parallel stores
+            // for a UDF that claims to support it, but cannot enable parallel stores for a UDF that claims not to.
+            //
+            // Logical flow:
+            // 1) If the store function is explicitly listed as unsupported, then return false
+            // 2) If the store function specifies itself as unsupported, then return false
+            // 3) If the store function specifies itself as supported, then continue (true case)
+            // 4) If the store function is explicitly listed as support, then continue (true case)
+            // 5) Otherwise, return false
+
+            if (unsupportedStoreFuncs != null && unsupportedStoreFuncs.contains(name)) {
+                LOG.warn(name + " does not support union optimization."
+                         + " Disabling it. There will be some performance degradation.");
+                return false;
             }
-            // If StoreFunc does not explicitly state support, then check supported and
-            // unsupported config settings.
-            if (supportedStoreFuncs != null || unsupportedStoreFuncs != null) {
-                if (unsupportedStoreFuncs != null
-                        && unsupportedStoreFuncs.contains(name)) {
+
+            if (supportsParallelWriteToStoreLocation != null) {
+                if (supportsParallelWriteToStoreLocation) {
+                    continue;
+                } else {
+                    LOG.warn(name + " does not support union optimization."
+                             + " Disabling it. There will be some performance degradation.");
                     return false;
                 }
-                if (supportedStoreFuncs != null
-                        && !supportedStoreFuncs.contains(name)) {
-                    if (!builtinSupportedStoreFuncs.contains(name)) {
-                        LOG.warn(PigConfiguration.PIG_TEZ_OPT_UNION_SUPPORTED_STOREFUNCS
-                                + " does not contain " + name
-                                + " and so disabling union optimization. There will be some performance degradation. "
-                                + "If your storefunc does not hardcode part file names and can work with multiple vertices writing to the output location,"
-                                + " run pig with -D"
-                                + PigConfiguration.PIG_TEZ_OPT_UNION_SUPPORTED_STOREFUNCS
-                                + "=<Comma separated list of fully qualified StoreFunc class names> to enable the optimization. Refer PIG-4691");
-                        return false;
-                    }
-                }
             }
+
+            if (supportedStoreFuncs != null && supportedStoreFuncs.contains(name)) {
+                continue;
+            }
+
+            LOG.warn(PigConfiguration.PIG_TEZ_OPT_UNION_SUPPORTED_STOREFUNCS
+                     + " does not contain " + name
+                     + " and so disabling union optimization. There will be some performance degradation. "
+                     + "If your storefunc does not hardcode part file names and can work with multiple vertices writing to the output location,"
+                     + " run pig with -D"
+                     + PigConfiguration.PIG_TEZ_OPT_UNION_SUPPORTED_STOREFUNCS
+                     + "=<Comma separated list of fully qualified StoreFunc class names> to enable the optimization. Refer PIG-4691");
+            return false;
         }
+
         return true;
     }
 

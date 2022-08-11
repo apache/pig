@@ -319,4 +319,9 @@ public class JsonStorage extends StoreFunc implements StoreMetadata, StoreResour
     public List<String> getCacheFiles() {
         return null;
     }
+
+    @Override
+    public Boolean supportsParallelWriteToStoreLocation() {
+        return true;
+    }
 }

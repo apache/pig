@@ -1337,4 +1337,9 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         }
         return incremented;
     }
+
+    @Override
+    public Boolean supportsParallelWriteToStoreLocation() {
+        return true;
+    }
 }

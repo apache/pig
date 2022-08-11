@@ -197,47 +197,6 @@ public abstract class StoreFunc implements StoreFuncInterface {
         }
     }
 
-    // TODO When dropping support for JDK 7 move this as a default method to StoreFuncInterface
-    /**
-     * DAG execution engines like Tez support optimizing union by writing to
-     * output location in parallel from tasks of different vertices. Commit is
-     * called once all the vertices in the union are complete. This eliminates
-     * need to have a separate phase to read data output from previous phases,
-     * union them and write out again.
-     *
-     * Enabling the union optimization requires the OutputFormat to
-     *
-     *      1) Support creation of different part file names for tasks of different
-     * vertices. Conflicting filenames can create data corruption and loss.
-     * For eg: If task 0 of vertex1 and vertex2 both create filename as
-     * part-r-00000, then one of the files will be overwritten when promoting
-     * from temporary to final location leading to data loss.
-     *      FileOutputFormat has mapreduce.output.basename config which enables
-     *  naming files differently in different vertices. Classes extending
-     *  FileOutputFormat and those prefixing file names with mapreduce.output.basename
-     *  value will not encounter conflict. Cases like HBaseStorage which write to key
-     *  value store and do not produce files also should not face any conflict.
-     *
-     *      2) Support calling of commit once at the end takes care of promoting
-     * temporary files of the different vertices into the final location.
-     * For eg: FileOutputFormat commit algorithm handles promoting of files produced
-     * by tasks of different vertices into final output location without issues
-     * if there is no file name conflict. In cases like HBaseStorage, the
-     * TableOutputCommitter does nothing on commit.
-     *
-     * If custom OutputFormat used by the StoreFunc does not support the above
-     * two criteria, then false should be returned. Union optimization will be
-     * disabled for the StoreFunc.
-     *
-     * Default implementation returns null and in that case planner falls back
-     * to {@link PigConfiguration.PIG_TEZ_OPT_UNION_SUPPORTED_STOREFUNCS} and
-     * {@link PigConfiguration.PIG_TEZ_OPT_UNION_UNSUPPORTED_STOREFUNCS}
-     * settings to determine if the StoreFunc supports it.
-     */
-    public Boolean supportsParallelWriteToStoreLocation() {
-        return null;
-    }
-
     /**
      * Issue a warning.  Warning messages are aggregated and reported to
      * the user.

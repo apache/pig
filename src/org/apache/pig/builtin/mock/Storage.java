@@ -693,4 +693,8 @@ private MockRecordWriter mockRecordWriter;
 
   }
 
+  @Override
+  public Boolean supportsParallelWriteToStoreLocation() {
+    return true;
+  }
 }

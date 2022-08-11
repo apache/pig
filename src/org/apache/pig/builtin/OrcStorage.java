@@ -713,4 +713,9 @@ public class OrcStorage extends LoadFunc implements StoreFuncInterface, LoadMeta
         }
         return values;
     }
+
+    @Override
+    public Boolean supportsParallelWriteToStoreLocation() {
+        return true;
+    }
 }

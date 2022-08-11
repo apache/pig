@@ -47,7 +47,6 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.plan.NodeIdGenerator;
-import org.apache.pig.test.TestMultiQueryBasic.DummyStoreWithOutputFormat;
 import org.apache.pig.test.Util;
 import org.apache.pig.test.TestMapSideCogroup.DummyCollectableLoader;
 import org.apache.pig.test.TestMapSideCogroup.DummyIndexableLoader;
@@ -942,10 +941,11 @@ public class TestTezCompiler {
                 "store c into 'file:///tmp/pigoutput';";
         // Union optimization should be turned off if PARALLEL clause is specified
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-1-OPTOFF.gld");
+
     }
 
     @Test
-    public void testUnionUnSupportedStore() throws Exception {
+    public void testUnionIncludeExcludeStoreFunc() throws Exception {
         String query =
                 "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
                 "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
@@ -966,7 +966,7 @@ public class TestTezCompiler {
                 "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
                 "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
                 "c = union onschema a, b;" +
-                "store c into 'file:///tmp/pigoutput' using " + DummyStoreWithOutputFormat.class.getName() + "();";
+                "store c into 'file:///tmp/pigoutput' using " + TestDummyStoreFunc.class.getName() + "();";
         // Plan should not have union optimization applied as only ORC is supported
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-1-DummyStore-OPTOFF.gld");
 
@@ -976,9 +976,22 @@ public class TestTezCompiler {
                 "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
                 "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
                 "c = union onschema a, b;" +
-                "store c into 'file:///tmp/pigoutput' using " + TestDummyStoreFunc.class.getName() + "();";
+                "store c into 'file:///tmp/pigoutput' using " +
+                TestDummyStoreFuncParallelWriteDisabled.class.getName() + "();";
         // Plan should not have union optimization applied as supportsParallelWriteToStoreLocation returns false
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-1-DummyStore2-OPTOFF.gld");
+
+        resetScope();
+        setProperty(PigConfiguration.PIG_TEZ_OPT_UNION_SUPPORTED_STOREFUNCS, null);
+        query =
+            "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
+            "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
+            "c = union onschema a, b;" +
+            "store c into 'file:///tmp/pigoutput' using " +
+            TestDummyStoreFuncParallelWriteEnabled.class.getName() + "();";
+
+        // Plan should have union optimization applied as supportsParallelWriteToStoreLocation returns true
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-1-DummyStore3.gld");
 
         resetScope();
         setProperty(PigConfiguration.PIG_TEZ_OPT_UNION_UNSUPPORTED_STOREFUNCS, PigStorage.class.getName());
@@ -1461,7 +1474,6 @@ public class TestTezCompiler {
     }
 
     public static class TestDummyStoreFunc extends StoreFunc {
-
         @Override
         public OutputFormat getOutputFormat() throws IOException {
             return null;
@@ -1479,12 +1491,22 @@ public class TestTezCompiler {
         @Override
         public void putNext(Tuple t) throws IOException {
         }
+    }
 
+    public static class TestDummyStoreFuncParallelWriteEnabled extends TestDummyStoreFunc {
+        @Override
+        public Boolean supportsParallelWriteToStoreLocation() {
+            return true;
+        }
+    }
+
+
+    public static class TestDummyStoreFuncParallelWriteDisabled extends TestDummyStoreFunc {
         @Override
         public Boolean supportsParallelWriteToStoreLocation() {
             return false;
         }
-
     }
+
 }
 

@@ -822,4 +822,9 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
         classList.add(JSONParser.class);
         return FuncUtils.getShipFiles(classList);
     }
+
+    @Override
+    public Boolean supportsParallelWriteToStoreLocation() {
+        return true;
+    }
 }
