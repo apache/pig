@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -15,30 +15,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.pig.test;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.pig.ExecType;
 import org.apache.pig.backend.hadoop.executionengine.Launcher;
-import org.apache.pig.backend.hadoop.executionengine.spark.SparkExecType;
-import org.apache.pig.backend.hadoop.executionengine.spark.SparkLauncher;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRConfiguration;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 
-public class SparkMiniCluster extends YarnMiniCluster {
+public class MapReduceMiniCluster extends YarnMiniCluster {
 
-    private static final Log LOG = LogFactory.getLog(SparkMiniCluster.class);
-    private ExecType spark = new SparkExecType();
-
-    public SparkMiniCluster(int dataNodeCount, int nodeManagerCount) {
-        super(dataNodeCount, nodeManagerCount);
-    }
+  public MapReduceMiniCluster(int dataNodeCount, int nodeManagerCount) {
+      super(dataNodeCount, nodeManagerCount);
+  }
 
     @Override
-    public ExecType getExecType() {
-        return spark;
-    }
+  public ExecType getExecType() {
+    return ExecType.MAPREDUCE;
+  }
 
-    static public Launcher getLauncher() {
-        return new SparkLauncher();
-    }
+  static public Launcher getLauncher() {
+    return new MapReduceLauncher();
+  }
+
+  @Override
+  protected void setConfigOverrides() {
+    m_mr_conf.setInt(MRConfiguration.SUMIT_REPLICATION, 2);
+    m_mr_conf.setInt(MRConfiguration.MAP_MAX_ATTEMPTS, 2);
+    m_mr_conf.setInt(MRConfiguration.REDUCE_MAX_ATTEMPTS, 2);
+    m_mr_conf.setInt("pig.jobcontrol.sleep", 100);
+  }
 }

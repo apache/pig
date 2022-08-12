@@ -50,34 +50,41 @@ abstract public class MiniGenericCluster {
     public static String EXECTYPE_TEZ = "tez";
     public static String EXECTYPE_SPARK = "spark";
 
+    private static final int DEFAULT_DATANODE_COUNT = 2;
+    private static final int DEFAULT_NODEMANAGER_COUNT = 2;
+
     /**
      * Returns the single instance of class MiniGenericCluster that represents
      * the resources for a mini dfs cluster and a mini mr (or tez) cluster. The
      * system property "test.exec.type" is used to decide whether a mr or tez mini
      * cluster will be returned.
      */
-    public static MiniGenericCluster buildCluster() {
+    public static MiniGenericCluster buildCluster(int dataNodeCount, int nodeManagerCount) {
         if (INSTANCE == null) {
             String execType = System.getProperty("test.exec.type");
             if (execType == null) {
                 // Default to MR
                 System.setProperty("test.exec.type", EXECTYPE_MR);
-                return buildCluster(EXECTYPE_MR);
+                return buildCluster(EXECTYPE_MR, dataNodeCount, nodeManagerCount);
             }
 
-            return buildCluster(execType);
+            return buildCluster(execType, dataNodeCount, nodeManagerCount);
         }
         return INSTANCE;
     }
 
-    public static MiniGenericCluster buildCluster(String execType) {
+    public static MiniGenericCluster buildCluster() {
+        return buildCluster(DEFAULT_DATANODE_COUNT, DEFAULT_NODEMANAGER_COUNT);
+    }
+
+    public static MiniGenericCluster buildCluster(String execType, int dataNodeCount, int nodeManagerCount) {
         if (INSTANCE == null) {
             if (execType.equalsIgnoreCase(EXECTYPE_MR)) {
-                INSTANCE = new MiniCluster();
+                INSTANCE = new MapReduceMiniCluster(dataNodeCount, nodeManagerCount);
             } else if (execType.equalsIgnoreCase(EXECTYPE_TEZ)) {
-                INSTANCE = new TezMiniCluster();
+                INSTANCE = new TezMiniCluster(dataNodeCount, nodeManagerCount);
             } else if (execType.equalsIgnoreCase(EXECTYPE_SPARK)) {
-                INSTANCE = new SparkMiniCluster();
+                INSTANCE = new SparkMiniCluster(dataNodeCount, nodeManagerCount);
             } else {
                 throw new RuntimeException("Unknown test.exec.type: " + execType);
             }
@@ -87,6 +94,10 @@ abstract public class MiniGenericCluster {
             isSetup = true;
         }
         return INSTANCE;
+    }
+
+    public static MiniGenericCluster buildCluster(String execType) {
+        return buildCluster(execType, DEFAULT_DATANODE_COUNT, DEFAULT_NODEMANAGER_COUNT);
     }
 
     abstract public ExecType getExecType();
@@ -157,7 +168,7 @@ abstract public class MiniGenericCluster {
             System.setProperty("test.exec.type", EXECTYPE_MR);
         }
         if (execType.equalsIgnoreCase(EXECTYPE_MR)) {
-            return MiniCluster.getLauncher();
+            return MapReduceMiniCluster.getLauncher();
         } else if (execType.equalsIgnoreCase(EXECTYPE_TEZ)) {
             return TezMiniCluster.getLauncher();
         } else if(execType.equalsIgnoreCase(EXECTYPE_SPARK)){

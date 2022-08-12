@@ -37,11 +37,17 @@ public abstract class YarnMiniCluster extends MiniGenericCluster {
     protected static final File MAPRED_CONF_FILE = new File(CONF_DIR, "mapred-site.xml");
     protected static final File YARN_CONF_FILE = new File(CONF_DIR, "yarn-site.xml");
 
-
     protected Configuration m_dfs_conf = null;
     protected MiniMRYarnCluster m_mr = null;
     protected Configuration m_mr_conf = null;
 
+    protected final int dataNodeCount;
+    protected final int nodeManagerCount;
+
+    public YarnMiniCluster(int dataNodeCount, int nodeManagerCount) {
+        this.dataNodeCount = dataNodeCount;
+        this.nodeManagerCount = nodeManagerCount;
+    }
 
     @Override
     protected void setupMiniDfsAndMrClusters() {
@@ -52,7 +58,7 @@ public abstract class YarnMiniCluster extends MiniGenericCluster {
             // Build mini DFS cluster
             Configuration hdfsConf = new Configuration();
             m_dfs = new MiniDFSCluster.Builder(hdfsConf)
-                    .numDataNodes(2)
+                    .numDataNodes(dataNodeCount)
                     .format(true)
                     .racks(null)
                     .build();
@@ -68,7 +74,7 @@ public abstract class YarnMiniCluster extends MiniGenericCluster {
 
             Configuration hdfs_site = new Configuration(false);
             for (Map.Entry<String, String> conf : m_dfs_conf) {
-                if (ArrayUtils.contains(m_dfs_conf.getPropertySources(conf.getKey()), "programatically")) {
+                if (isProgrammaticallySet(m_dfs_conf, conf)) {
                     hdfs_site.set(conf.getKey(), m_dfs_conf.getRaw(conf.getKey()));
                 }
             }
@@ -78,7 +84,7 @@ public abstract class YarnMiniCluster extends MiniGenericCluster {
             m_dfs_conf.set("yarn.scheduler.capacity.root.default.capacity", "100");
             m_dfs_conf.set("yarn.scheduler.capacity.maximum-am-resource-percent", "0.1");
             // Build mini YARN cluster
-            m_mr = new MiniMRYarnCluster("PigMiniCluster", 2);
+            m_mr = new MiniMRYarnCluster("PigMiniCluster", nodeManagerCount);
             m_mr.init(m_dfs_conf);
             m_mr.start();
             m_mr_conf = m_mr.getConfig();
@@ -104,8 +110,11 @@ public abstract class YarnMiniCluster extends MiniGenericCluster {
 
             Configuration mapred_site = new Configuration(false);
             Configuration yarn_site = new Configuration(false);
+
+            setConfigOverrides();
+
             for (Map.Entry<String, String> conf : m_mr_conf) {
-                if (ArrayUtils.contains(m_mr_conf.getPropertySources(conf.getKey()), "programatically")) {
+                if (isProgrammaticallySet(m_mr_conf, conf)) {
                     if (conf.getKey().contains("yarn")) {
                         yarn_site.set(conf.getKey(), m_mr_conf.getRaw(conf.getKey()));
                     } else if (!conf.getKey().startsWith("dfs")) {
@@ -124,6 +133,15 @@ public abstract class YarnMiniCluster extends MiniGenericCluster {
             throw new RuntimeException(e);
 
         }
+    }
+
+    protected void setConfigOverrides() {
+    }
+
+    private boolean isProgrammaticallySet(Configuration configuration, Map.Entry<String, String> conf) {
+        // In Hadoop 3 a typo was fixed: programatically -> programmatically
+        return ArrayUtils.contains(configuration.getPropertySources(conf.getKey()), "programmatically")
+          || ArrayUtils.contains(configuration.getPropertySources(conf.getKey()), "programatically");
     }
 
     protected void deleteConfFiles() {

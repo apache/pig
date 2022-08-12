@@ -60,13 +60,13 @@ public class TestQueryParserUtils {
         assertEquals(null, props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
 
         // Same host different scheme
-        QueryParserUtils.setHdfsServers("hftp://nn1/tmp", pc);
-        assertEquals("hftp://nn1", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
-        QueryParserUtils.setHdfsServers("hftp://nn1:50070/tmp", pc);
-        assertEquals("hftp://nn1,hftp://nn1:50070", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
+        QueryParserUtils.setHdfsServers("swebhdfs://nn1/tmp", pc);
+        assertEquals("swebhdfs://nn1", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
+        QueryParserUtils.setHdfsServers("swebhdfs://nn1:50070/tmp", pc);
+        assertEquals("swebhdfs://nn1,swebhdfs://nn1:50070", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
         // There should be no duplicates
-        QueryParserUtils.setHdfsServers("hftp://nn1:50070/tmp", pc);
-        assertEquals("hftp://nn1,hftp://nn1:50070", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
+        QueryParserUtils.setHdfsServers("swebhdfs://nn1:50070/tmp", pc);
+        assertEquals("swebhdfs://nn1,swebhdfs://nn1:50070", props.getProperty(MRConfiguration.JOB_HDFS_SERVERS));
 
         // har
         props.remove(MRConfiguration.JOB_HDFS_SERVERS);

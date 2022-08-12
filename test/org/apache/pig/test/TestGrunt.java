@@ -72,7 +72,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestGrunt {
-    static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
+    static MiniGenericCluster cluster = MiniGenericCluster.buildCluster(2, 4);
     private String basedir = "test/org/apache/pig/test/data";
 
     @BeforeClass

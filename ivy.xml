@@ -39,6 +39,7 @@
     <conf name="checkstyle" visibility="private"/>
     <conf name="buildJar" extends="compile,test" visibility="private"/>
     <conf name="hadoop2" visibility="private"/>
+    <conf name="hadoop3" visibility="private"/>
     <conf name="hbase1" visibility="private"/>
     <conf name="hbase2" visibility="private"/>
     <conf name="spark1" visibility="private" />
@@ -62,13 +63,13 @@
     <dependency org="commons-beanutils" name="commons-beanutils-core" rev="${commons-beanutils.version}"
       conf="checkstyle->master"/>
     <dependency org="com.sun.jersey" name="jersey-bundle" rev="${jersey.version}"
-      conf="hadoop2->master"/>
+      conf="hadoop2->master;hadoop3->master"/>
     <dependency org="com.sun.jersey" name="jersey-server" rev="${jersey.version}"
-      conf="hadoop2->master"/>
+      conf="hadoop2->master;hadoop3->master"/>
     <dependency org="com.sun.jersey.contribs" name="jersey-guice" rev="${jersey.version}"
-      conf="hadoop2->master"/>
+      conf="hadoop2->master;hadoop3->master"/>
     <dependency org="commons-codec" name="commons-codec" rev="${commons-codec.version}"
-      conf="hadoop2->master"/>
+      conf="hadoop2->master;hadoop3->master"/>
     <dependency org="commons-el" name="commons-el" rev="${commons-el.version}"
       conf="compile->master"/>
     <dependency org="commons-io" name="commons-io" rev="${commons-io.version}"
@@ -82,84 +83,102 @@
       <artifact name="httpdlog-pigloader" m:classifier="udf"/>
     </dependency>
     <dependency org="commons-configuration" name="commons-configuration" rev="${commons-configuration.version}"
-      conf="hadoop2->master"/>
+      conf="hadoop2->master;hadoop3->master"/>
     <dependency org="commons-collections" name="commons-collections" rev="${commons-collections.version}"
-      conf="hadoop2->master"/>
+      conf="hadoop2->master;hadoop3->master"/>
     <dependency org="javax.servlet" name="servlet-api" rev="${servlet-api.version}"
-      conf="hadoop2->master"/>
+      conf="hadoop2->master;hadoop3->master"/>
     <dependency org="javax.ws.rs" name="jsr311-api" rev="${jsr311-api.version}"
-      conf="hadoop2->master"/>
+      conf="hadoop2->master;hadoop3->master"/>
     <dependency org="com.google.protobuf" name="protobuf-java" rev="${protobuf-java.version}"
-      conf="hadoop2->master"/>
+      conf="hadoop2->master;hadoop3->master"/>
     <dependency org="javax.inject" name="javax.inject" rev="${javax-inject.version}"
-      conf="hadoop2->master"/>
+      conf="hadoop2->master;hadoop3->master"/>
     <dependency org="javax.xml.bind" name="jaxb-api" rev="${jaxb-api.version}"
-      conf="hadoop2->master"/>
+      conf="hadoop2->master;hadoop3->master"/>
     <dependency org="com.sun.xml.bind" name="jaxb-impl" rev="${jaxb-impl.version}"
-      conf="hadoop2->master"/>
+      conf="hadoop2->master;hadoop3->master"/>
     <dependency org="com.google.inject" name="guice" rev="${guice.version}"
-      conf="hadoop2->master"/>
+      conf="hadoop2->master;hadoop3->master"/>
     <dependency org="com.google.inject.extensions" name="guice-servlet" rev="${guice-servlet.version}"
-      conf="hadoop2->master"/>
+      conf="hadoop2->master;hadoop3->master"/>
     <dependency org="aopalliance" name="aopalliance" rev="${aopalliance.version}"
-      conf="hadoop2->master"/>
+      conf="hadoop2->master;hadoop3->master"/>
     <dependency org="org.glassfish" name="javax.el" rev="${glassfish.el.version}"
-      conf="hadoop2->master"/>
+      conf="hadoop2->master;hadoop3->master"/>
     <dependency org="log4j" name="log4j" rev="${log4j.version}"
       conf="compile->master"/>
+    <dependency org="com.google.re2j" name="re2j" rev="${re2j.version}"
+      conf="hadoop3->master" />
+    <dependency org="com.codahale.metrics" name="metrics-core" rev="${codahale.metrics-core.version}"
+      conf="hadoop3->master"/>
+
+    <!-- Hadoop 2/3 dependencies -->
     <dependency org="org.apache.hadoop" name="hadoop-annotations"
-      rev="${hadoop-common.version}" conf="hadoop2->master"/>
-    <dependency org="org.apache.hadoop" name="hadoop-auth" 
-      rev="${hadoop-common.version}" conf="hadoop2->master"/>
-    <dependency org="org.apache.hadoop" name="hadoop-common" 
-      rev="${hadoop-common.version}" conf="hadoop2->master">
+      rev="${hadoop-common.version}" conf="hadoop2->master;hadoop3->master"/>
+    <dependency org="org.apache.hadoop" name="hadoop-auth"
+      rev="${hadoop-common.version}" conf="hadoop2->master;hadoop3->master"/>
+    <dependency org="org.apache.hadoop" name="hadoop-common"
+      rev="${hadoop-common.version}" conf="hadoop2->master;hadoop3->default">
       <artifact name="hadoop-common" ext="jar" />
       <artifact name="hadoop-common" type="tests" ext="jar" m:classifier="tests" />
     </dependency>
     <dependency org="org.apache.hadoop" name="hadoop-hdfs"
-      rev="${hadoop-hdfs.version}" conf="hadoop2->master">
+      rev="${hadoop-hdfs.version}" conf="hadoop2->master;hadoop3->default">
       <artifact name="hadoop-hdfs" ext="jar" />
       <artifact name="hadoop-hdfs" type="tests" ext="jar" m:classifier="tests" />
     </dependency>
     <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-core" rev="${hadoop-mapreduce.version}"
-      conf="hadoop2->master"/>
+      conf="hadoop2->master;hadoop3->master"/>
     <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-jobclient" rev="${hadoop-mapreduce.version}"
-      conf="hadoop2->master">
-        <artifact name="hadoop-mapreduce-client-jobclient" ext="jar" />
-        <artifact name="hadoop-mapreduce-client-jobclient" type="tests" ext="jar" m:classifier="tests"/>
-        <exclude org="commons-daemon" module="commons-daemon"/><!--bad POM-->
-        <exclude org="org.apache.commons" module="commons-daemon"/><!--bad POM-->
+      conf="hadoop2->master;hadoop3->master">
+      <artifact name="hadoop-mapreduce-client-jobclient" ext="jar" />
+      <artifact name="hadoop-mapreduce-client-jobclient" type="tests" ext="jar" m:classifier="tests"/>
+      <exclude org="commons-daemon" module="commons-daemon"/><!--bad POM-->
+      <exclude org="org.apache.commons" module="commons-daemon"/><!--bad POM-->
     </dependency>
     <dependency org="org.apache.hadoop" name="hadoop-yarn-server-tests" rev="${hadoop-mapreduce.version}"
-      conf="hadoop2->master">
+      conf="hadoop2->master;hadoop3->master">
       <artifact name="hadoop-yarn-server-tests" type="jar" m:classifier="tests"/>
     </dependency>
     <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-app" rev="${hadoop-mapreduce.version}"
-      conf="hadoop2->master" />
+      conf="hadoop2->master;hadoop3->master"/>
     <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-shuffle" rev="${hadoop-mapreduce.version}"
-      conf="hadoop2->master" />
-    <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-common" 
-      rev="${hadoop-mapreduce.version}" conf="hadoop2->master"/>
-    <dependency org="org.apache.hadoop" name="hadoop-yarn-api" 
-      rev="${hadoop-mapreduce.version}" conf="hadoop2->master"/>
-    <dependency org="org.apache.hadoop" name="hadoop-yarn-common" 
-      rev="${hadoop-mapreduce.version}" conf="hadoop2->master"/>
-    <dependency org="org.apache.hadoop" name="hadoop-yarn-server" 
-      rev="${hadoop-mapreduce.version}" conf="hadoop2->master"/>
-    <dependency org="org.apache.hadoop" name="hadoop-yarn-server-web-proxy" 
-      rev="${hadoop-mapreduce.version}" conf="hadoop2->master"/>
-    <dependency org="org.apache.hadoop" name="hadoop-yarn-server-common" 
-      rev="${hadoop-mapreduce.version}" conf="hadoop2->master"/>
-    <dependency org="org.apache.hadoop" name="hadoop-yarn-server-nodemanager" 
-      rev="${hadoop-mapreduce.version}" conf="hadoop2->master"/>
+      conf="hadoop2->master;hadoop3->master"/>
+    <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-common"
+      rev="${hadoop-mapreduce.version}" conf="hadoop2->master;hadoop3->master"/>
+    <dependency org="org.apache.hadoop" name="hadoop-yarn-api"
+      rev="${hadoop-mapreduce.version}" conf="hadoop2->master;hadoop3->master"/>
+    <dependency org="org.apache.hadoop" name="hadoop-yarn-common"
+      rev="${hadoop-mapreduce.version}" conf="hadoop2->master;hadoop3->master"/>
+    <dependency org="org.apache.hadoop" name="hadoop-yarn-server"
+      rev="${hadoop-mapreduce.version}" conf="hadoop2->master;hadoop3->master"/>
+    <dependency org="org.apache.hadoop" name="hadoop-yarn-server-web-proxy"
+      rev="${hadoop-mapreduce.version}" conf="hadoop2->master;hadoop3->master"/>
+    <dependency org="org.apache.hadoop" name="hadoop-yarn-server-common"
+      rev="${hadoop-mapreduce.version}" conf="hadoop2->master;hadoop3->master"/>
+    <dependency org="org.apache.hadoop" name="hadoop-yarn-server-nodemanager"
+      rev="${hadoop-mapreduce.version}" conf="hadoop2->master;hadoop3->default">
+    </dependency>
     <dependency org="org.apache.hadoop" name="hadoop-yarn-server-resourcemanager" 
-      rev="${hadoop-mapreduce.version}" conf="hadoop2->master"/>
-    <dependency org="org.apache.hadoop" name="hadoop-yarn-client" 
-      rev="${hadoop-mapreduce.version}" conf="hadoop2->master"/>
-    <dependency org="org.apache.hadoop" name="hadoop-yarn-server-applicationhistoryservice" 
-      rev="${hadoop-mapreduce.version}" conf="hadoop2->master"/>
-    <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-hs" 
-      rev="${hadoop-mapreduce.version}" conf="hadoop2->master"/>
+      rev="${hadoop-mapreduce.version}" conf="hadoop2->master;hadoop3->master"/>
+    <dependency org="org.apache.hadoop" name="hadoop-yarn-client"
+      rev="${hadoop-mapreduce.version}" conf="hadoop2->master;hadoop3->master"/>
+    <dependency org="org.apache.hadoop" name="hadoop-yarn-server-applicationhistoryservice"
+      rev="${hadoop-mapreduce.version}" conf="hadoop2->master;hadoop3->master"/>
+    <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-hs"
+      rev="${hadoop-mapreduce.version}" conf="hadoop2->master;hadoop3->master"/>
+
+    <!--Hadoop 3 dependencies-->
+    <dependency org="org.apache.hadoop" name="hadoop-hdfs-client"
+      rev="${hadoop-hdfs.version}" conf="hadoop3->master">
+      <artifact name="hadoop-hdfs-client" ext="jar" />
+      <artifact name="hadoop-hdfs-client" type="tests" ext="jar" m:classifier="tests" />
+    </dependency>
+
+    <dependency org="org.apache.hadoop" name="hadoop-yarn-server-timelineservice"
+      rev="${hadoop-mapreduce.version}" conf="hadoop3->master"/>
+
     <dependency org="commons-logging" name="commons-logging" rev="${commons-logging.version}"
       conf="compile->master;checkstyle->master"/>
     <dependency org="org.slf4j" name="slf4j-log4j12" rev="${slf4j-log4j12.version}"
@@ -172,7 +191,7 @@
       <exclude org="org.codehaus.jackson" module="jackson-mapper-asl"/>
     </dependency>
     <dependency org="org.apache.avro" name="avro-mapred" rev="${avro.version}"
-      conf="hadoop2->default;checkstyle->master">
+      conf="hadoop2->default;checkstyle->master;hadoop3->master">
       <artifact name="avro-mapred" type="jar" m:classifier="hadoop2"/>
       <exclude org="org.codehaus.jackson" module="jackson-core-asl"/>
       <exclude org="org.codehaus.jackson" module="jackson-mapper-asl"/>
@@ -477,13 +496,11 @@
     <dependency org="com.lmax" name="disruptor" rev="3.3.6" conf="hbase2->master"/>
     <!-- End of HBase dependencies -->
 
-    <dependency org="org.htrace" name="htrace-core" rev="3.0.4" conf="hadoop2->master"/>
-    <dependency org="org.apache.htrace" name="htrace-core" rev="${htrace.version}" conf="hadoop2->master"/>
+    <dependency org="org.htrace" name="htrace-core" rev="3.0.4" conf="hadoop2->master;hadoop3->master"/>
+    <dependency org="org.apache.htrace" name="htrace-core" rev="${htrace.version}"
+        conf="hadoop2->master;hadoop3->master;hbase1->master"/>
     <dependency org="org.fusesource.leveldbjni" name="leveldbjni-all" rev="${leveldbjni.version}"
-      conf="hadoop2->master"/>
-    <dependency org="org.cloudera.htrace" name="htrace-core" rev="2.00" conf="hbase1->master">
-      <artifact name="htrace-core" type="jar"/>
-    </dependency>
+      conf="hadoop2->master;hadoop3->master"/>
 
     <!-- for TestHBaseStorage -->
     <dependency org="org.apache.hbase" name="hbase-procedure" rev="${hbase1.version}" conf="test->master"/>
@@ -491,7 +508,7 @@
        conf="test->default"/>
 
     <!-- Dependency for Accumulo{Input,Output}Format -->
-    <dependency org="org.apache.accumulo" name="accumulo-core" rev="${accumulo15.version}" conf="compile->default">
+    <dependency org="org.apache.accumulo" name="accumulo-core" rev="${accumulo.version}" conf="compile->default">
       <exclude org="com.google.guava" module="guava"/>
       <exclude org="commons-codec" module="commons-codec"/>
       <exclude org="commons-collections" module="commons-collections"/>
@@ -508,7 +525,7 @@
     </dependency>
 
     <!-- Used for 'functional' Accumulo tests -->
-    <dependency org="org.apache.accumulo" name="accumulo-minicluster" rev="${accumulo15.version}" conf="compile->default">
+    <dependency org="org.apache.accumulo" name="accumulo-minicluster" rev="${accumulo.version}" conf="hadoop2->default">
       <exclude org="com.google.guava" module="guava"/>
       <exclude org="commons-codec" module="commons-codec"/>
       <exclude org="commons-collections" module="commons-collections"/>
@@ -523,6 +540,12 @@
       <exclude org="org.slf4j" module="slf4j-api"/>
       <exclude org="org.slf4j" module="slf4j-log4j12"/>
     </dependency>
+
+    <dependency org="org.apache.accumulo" name="accumulo-minicluster" rev="${accumulo.version}" conf="hadoop3->master"/>
+    <dependency org="org.apache.accumulo" name="accumulo-server-base" rev="${accumulo.version}" conf="hadoop3->master"/>
+    <dependency org="org.apache.accumulo" name="accumulo-tserver" rev="${accumulo.version}" conf="hadoop3->master"/>
+    <dependency org="org.apache.accumulo" name="accumulo-master" rev="${accumulo.version}" conf="hadoop3->master"/>
+    <dependency org="org.apache.accumulo" name="accumulo-gc" rev="${accumulo.version}" conf="hadoop3->master"/>
 
     <!-- for piggybank -->
     <dependency org="org.hsqldb" name="hsqldb" rev="${hsqldb.version}"
@@ -559,7 +582,6 @@
                 conf="hive3->master" />
     <dependency org="org.apache.hive.shims" name="hive-shims-0.23" rev="${hive.version}" changing="true"
                 conf="hive3->master" />
-
 
     <dependency org="org.apache.orc" name="orc-core" rev="${orc.version}" changing="true" conf="hive3->default" />
     <dependency org="org.apache.hive" name="hive-storage-api" rev="${hive-storage-api.version}" changing="true" conf="hive3->master" />
@@ -617,31 +639,33 @@
 
     <!-- for Tez integration -->
     <dependency org="org.apache.tez" name="tez" rev="${tez.version}"
-       conf="hadoop2->master"/>
+       conf="hadoop2->master;hadoop3->master"/>
     <dependency org="org.apache.tez" name="tez-common" rev="${tez.version}"
-       conf="hadoop2->master"/>
+       conf="hadoop2->master;hadoop3->master"/>
     <dependency org="org.apache.tez" name="tez-api" rev="${tez.version}"
-       conf="hadoop2->master"/>
+       conf="hadoop2->master;hadoop3->master"/>
     <dependency org="org.apache.tez" name="tez-dag" rev="${tez.version}"
-       conf="hadoop2->master"/>
+       conf="hadoop2->master;hadoop3->master"/>
     <dependency org="org.apache.tez" name="tez-runtime-internals" rev="${tez.version}"
-       conf="hadoop2->master"/>
+       conf="hadoop2->master;hadoop3->master"/>
     <dependency org="org.apache.tez" name="tez-runtime-library" rev="${tez.version}"
-       conf="hadoop2->master"/>
+       conf="hadoop2->master;hadoop3->master"/>
     <dependency org="org.apache.tez" name="tez-mapreduce" rev="${tez.version}"
-       conf="hadoop2->master"/>
+       conf="hadoop2->master;hadoop3->master"/>
     <dependency org="org.apache.tez" name="tez-yarn-timeline-history-with-acls" rev="${tez.version}"
-       conf="hadoop2->master"/>
+       conf="hadoop2->master;hadoop3->master"/>
     <dependency org="org.apache.commons" name="commons-collections4" rev="${commons-collections4.version}"
-      conf="hadoop2->master"/>
+      conf="hadoop2->master;hadoop3->master"/>
     <dependency org="org.codehaus.jettison" name="jettison" rev="${jettison.version}"
-      conf="hadoop2->master"/>
+      conf="hadoop2->master;hadoop3->master"/>
     <dependency org="org.apache.commons" name="commons-math3" rev="${commons-math3.version}"
-      conf="hadoop2->master"/>
+      conf="hadoop2->master;hadoop3->master"/>
     <dependency org="org.apache.curator" name="curator-framework" rev="${curator.version}"
-      conf="hadoop2->master"/>
+      conf="hadoop2->master;hadoop3->master"/>
     <dependency org="org.apache.curator" name="curator-client" rev="${curator.version}"
-      conf="hadoop2->master"/>
+      conf="hadoop2->master;hadoop3->master"/>
+    <dependency org="org.apache.curator" name="curator-recipes" rev="${curator.version}"
+      conf="hadoop2->master;hadoop3->master"/>
     <!-- For dependency check -->
     <dependency org="org.owasp" name="dependency-check-ant"
                 rev="${dependency-check-ant.version}" conf="owasp->default"/>

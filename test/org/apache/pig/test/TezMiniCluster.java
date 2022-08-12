@@ -41,6 +41,10 @@ public class TezMiniCluster extends YarnMiniCluster {
 
     private static final ExecType TEZ = new TezExecType();
 
+    public TezMiniCluster(int dataNodeCount, int nodeManagerCount) {
+        super(dataNodeCount, nodeManagerCount);
+    }
+
     @Override
     public ExecType getExecType() {
         return TEZ;

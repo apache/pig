@@ -38,10 +38,12 @@
 #                      when using HBaseStorage
 
 
+from distutils.spawn import find_executable
 import sys
 import os
 import glob
 import subprocess
+import re
 
 debug = False
 restArgs = []
@@ -123,9 +125,6 @@ except:
 
 if 'JAVA_HOME' not in os.environ:
   sys.exit('Error: JAVA_HOME is not set')
-
-if 'HADOOP_HOME' not in os.environ:
-  os.environ['HADOOP_HOME'] = os.path.sep + 'usr'
 
 java = os.path.join(os.environ['JAVA_HOME'], 'bin', 'java')
 javaHeapMax = "-Xmx1000m"
@@ -306,7 +305,8 @@ pigOpts += " -Dpig.home.dir=" + os.environ['PIG_HOME']
 pigJar = ""
 hadoopBin = ""
 
-print "HADOOP_HOME: %s" % os.path.expandvars(os.environ['HADOOP_HOME'])
+hadoopHomePath = None
+hadoopPrefixPath = None
 
 if (os.environ.get('HADOOP_PREFIX') is not None):
   print "Found a hadoop prefix"
@@ -334,15 +334,17 @@ if (hadoopHomePath is None and hadoopPrefixPath is not None):
 if (os.environ.get('HADOOP_HOME') is None and hadoopBin != ""):
   hadoopHomePath = os.path.join(hadoopBin, "..")
 
-hadoopCoreJars = glob.glob(os.path.join(hadoopHomePath, "hadoop-core*.jar"))
-if len(hadoopCoreJars) == 0:
-  hadoopVersion = 2
-else:
-  sys.exit("Cannot locate Hadoop 2 binaries, please install Hadoop 2.x and try again.")
+if hadoopBin == "":
+  hadoopBin = find_executable('hadoop')
+
 
 if hadoopBin != "":
   if debug == True:
     print "Find hadoop at %s" % hadoopBin
+
+  hadoopVersionQueryResult = subprocess.check_output([hadoopBin, "version"])
+  hadoopVersionLong = re.search('Hadoop (.*)',hadoopVersionQueryResult).group(1)
+  hadoopVersion = hadoopVersionLong[0]
 
   if os.path.exists(os.path.join(os.environ['PIG_HOME'], "pig-core-h$hadoopVersion.jar")):
     pigJar = os.path.join(os.environ['PIG_HOME'], "pig-core-h$hadoopVersion.jar")
@@ -361,7 +363,10 @@ if hadoopBin != "":
       if len(pigJars) == 1:
         pigJar = pigJars[0]
       else:
-        sys.exit("Cannot locate pig-core-h2.jar do 'ant jar', and try again")
+        if (hadoopVersion == "3"):
+          sys.exit("Cannot locate pig-core-h" + str(hadoopVersion) + ".jar (found Hadoop " + str(hadoopVersionLong) + ") do 'ant clean jar -Dhadoopversion=3', and try again")
+        if (hadoopVersion == "2"):
+          sys.exit("Cannot locate pig-core-h" + str(hadoopVersion) + ".jar (found Hadoop " + str(hadoopVersionLong) + ") do 'ant clean jar', and try again")
 
   pigLibJars = glob.glob(os.path.join(os.environ['PIG_HOME']+"/lib", "h" + str(hadoopVersion), "*.jar"))
   for jar in pigLibJars:
@@ -390,29 +395,28 @@ if hadoopBin != "":
 else:
   # fall back to use fat pig.jar
   if debug == True:
-    print "Cannot find local hadoop installation, using bundled hadoop 2"
+    print "Cannot find local hadoop installation, using bundled hadoop"
 
-  if os.path.exists(os.path.join(os.environ['PIG_HOME'], "pig-core-h2.jar")):
-    pigJar = os.path.join(os.environ['PIG_HOME'], "pig-core-h2.jar")
 
+  pigJars = glob.glob(os.path.join(os.environ['PIG_HOME'], "pig-*-core-h*.jar"))
+
+  if len(pigJars) == 1:
+    pigJar = pigJars[0]
+
+  elif len(pigJars) > 1:
+    print "Ambiguity with pig jars found the following jars"
+    print pigJars
+    sys.exit("Please remove irrelavant jars from %s" % os.path.join(os.environ['PIG_HOME']))
   else:
-    pigJars = glob.glob(os.path.join(os.environ['PIG_HOME'], "pig-*-core-h2.jar"))
+    sys.exit("Cannot locate pig-core-h2.jar. do 'ant jar' and try again")
 
-    if len(pigJars) == 1:
-      pigJar = pigJars[0]
+  hadoopVersion = re.search("pig.*core-h(.)\.jar",pigJar).group(1)
 
-    elif len(pigJars) > 1:
-      print "Ambiguity with pig jars found the following jars"
-      print pigJars
-      sys.exit("Please remove irrelavant jars from %s" % os.path.join(os.environ['PIG_HOME'], "pig-core-h2.jar"))
-    else:
-      sys.exit("Cannot locate pig-core-h2.jar. do 'ant jar' and try again")
-
-  pigLibJars = glob.glob(os.path.join(os.environ['PIG_HOME']+"/lib", "h2", "*.jar"))
+  pigLibJars = glob.glob(os.path.join(os.environ['PIG_HOME']+"/lib", "h"+hadoopVersion, "*.jar"))
   for jar in pigLibJars:
     classpath += os.pathsep + jar
 
-  pigLibJars = glob.glob(os.path.join(os.environ['PIG_HOME']+"/lib", "hadoop2-runtime", "*.jar"))
+  pigLibJars = glob.glob(os.path.join(os.environ['PIG_HOME']+"/lib", "hadoop"+hadoopVersion+"-runtime", "*.jar"))
   for jar in pigLibJars:
     classpath += os.pathsep + jar
 

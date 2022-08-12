@@ -26,6 +26,8 @@ PIG-5282: Upgade to Java 8 (satishsaley via rohini)
  
 IMPROVEMENTS
 
+PIG-5253: Pig Hadoop 3 support (nkollar,szita via rohini)
+
 PIG-5377: Move supportsParallelWriteToStoreLocation from StoreFunc to StoreFuncInterfce (kpriceyahoo via rohini)
 
 PIG-5398: SparkLauncher does not read SPARK_CONF_DIR/spark-defaults.conf (knoguchi)

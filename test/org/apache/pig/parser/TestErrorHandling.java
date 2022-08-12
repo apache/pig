@@ -134,9 +134,10 @@ public class TestErrorHandling {
         try {
             pig.registerQuery( query );
         } catch(FrontendException ex) {
-            System.out.println( ex.getCause().getMessage() );
-            Assert.assertTrue( ex.getCause().getMessage().contains( "line 2, column 0" ) );
-            Assert.assertTrue( ex.getCause().getMessage().contains( "No FileSystem for scheme: fs2you" ) );
+            String message = ex.getCause().getMessage();
+            Assert.assertTrue( message.contains( "line 2, column 0" ) );
+            Assert.assertTrue( message.contains( "No FileSystem for scheme: fs2you" ) 
+                    || message.contains( "No FileSystem for scheme \"fs2you\"" ));
             return;
         }
         Assert.fail( "Testcase should fail" );
