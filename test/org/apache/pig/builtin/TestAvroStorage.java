@@ -1022,7 +1022,7 @@ public class TestAvroStorage {
                 avroData.add(obj);
             }
         } finally {
-            Closeables.closeQuietly(in);
+            in.close();
         }
         return avroData;
     }
