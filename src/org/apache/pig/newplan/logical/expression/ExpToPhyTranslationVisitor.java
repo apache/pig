@@ -507,6 +507,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
                     .getNextNodeId(DEFAULT_SCOPE)), -1,
                     null, op.getFuncSpec(), (EvalFunc) f);
             ((POUserFunc)p).setSignature(op.getSignature());
+            ((EvalFunc)f).setUDFContextSignature(op.getSignature());  // See PIG-5425
             //reinitialize input schema from signature
             if (((POUserFunc)p).getFunc().getInputSchema() == null) {
                 ((POUserFunc)p).setFuncInputSchema(op.getSignature());

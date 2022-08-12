@@ -108,6 +108,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5425: Pig 0.15 and later don't set context signature correctly (jtolar via rohini)
+
 PIG-5413: [spark] TestStreaming.testInputCacheSpecs failing with "File script1.pl was already registered" (knoguchi)
 
 PIG-5415: [spark] TestScriptLanguage conflict between multiple SparkContext (after spark2.4 upgrade) (knoguchi)
