@@ -41,7 +41,8 @@ import org.apache.pig.newplan.logical.relational.LOJoin.JOINTYPE;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.junit.Before;
 import org.junit.Test;
-import org.python.google.common.collect.Sets;
+
+import com.google.common.collect.Sets;
 
 public class TestJoinLocal extends TestJoinBase {
 
