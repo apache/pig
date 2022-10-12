@@ -20,7 +20,7 @@ package org.apache.pig.impl.util.avro;
 
 import static org.apache.avro.file.DataFileConstants.DEFAULT_SYNC_INTERVAL;
 import static org.apache.avro.file.DataFileConstants.DEFLATE_CODEC;
-import static org.apache.avro.mapred.AvroOutputFormat.DEFAULT_DEFLATE_LEVEL;
+import static org.apache.avro.file.CodecFactory.DEFAULT_DEFLATE_LEVEL;
 import static org.apache.avro.mapred.AvroOutputFormat.DEFLATE_LEVEL_KEY;
 import static org.apache.avro.mapred.AvroOutputFormat.SYNC_INTERVAL_KEY;
 

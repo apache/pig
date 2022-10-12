@@ -26,6 +26,8 @@ PIG-5282: Upgade to Java 8 (satishsaley via rohini)
  
 IMPROVEMENTS
 
+PIG-5428: Update hadoop2,3 and tez to recent versions (knoguchi)
+
 PIG-5422: Upgrade guava/groovy dependency (knoguchi via rohini)
 
 PIG-5421: Upgrade commons dependencies (knoguchi via rohini)

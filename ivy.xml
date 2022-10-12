@@ -86,8 +86,8 @@
       conf="hadoop2->master;hadoop3->master"/>
     <dependency org="commons-collections" name="commons-collections" rev="${commons-collections.version}"
       conf="hadoop2->master;hadoop3->master"/>
-    <dependency org="javax.servlet" name="servlet-api" rev="${servlet-api.version}"
-      conf="hadoop2->master;hadoop3->master"/>
+    <dependency org="javax.servlet" name="servlet-api" rev="${servlet-api.version}" conf="hadoop2->master"/>
+    <dependency org="javax.servlet" name="javax.servlet-api" rev="${servlet-api.version}" conf="hadoop3->master"/>
     <dependency org="javax.ws.rs" name="jsr311-api" rev="${jsr311-api.version}"
       conf="hadoop2->master;hadoop3->master"/>
     <dependency org="com.google.protobuf" name="protobuf-java" rev="${protobuf-java.version}"
@@ -112,6 +112,11 @@
       conf="hadoop3->master" />
     <dependency org="com.codahale.metrics" name="metrics-core" rev="${codahale.metrics-core.version}"
       conf="hadoop3->master"/>
+
+    <!-- Hadoop 2 dependencies -->
+    <dependency org="com.fasterxml.woodstox" name="woodstox-core" rev="${woodstox.version}" conf="hadoop2->master"/>
+    <dependency org="org.codehaus.woodstox" name="stax2-api" rev="${stax2-api.version}" conf="hadoop2->master"/>
+    <dependency org="org.mortbay.jetty" name="jetty-sslengine" rev="6.1.26" conf="hadoop2->master"/>
 
     <!-- Hadoop 2/3 dependencies -->
     <dependency org="org.apache.hadoop" name="hadoop-annotations"
@@ -168,16 +173,13 @@
       rev="${hadoop-mapreduce.version}" conf="hadoop2->master;hadoop3->master"/>
     <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-hs"
       rev="${hadoop-mapreduce.version}" conf="hadoop2->master;hadoop3->master"/>
-
-    <!--Hadoop 3 dependencies-->
     <dependency org="org.apache.hadoop" name="hadoop-hdfs-client"
-      rev="${hadoop-hdfs.version}" conf="hadoop3->master">
+      rev="${hadoop-hdfs.version}" conf="hadoop2->master;hadoop3->master">
       <artifact name="hadoop-hdfs-client" ext="jar" />
       <artifact name="hadoop-hdfs-client" type="tests" ext="jar" m:classifier="tests" />
     </dependency>
-
     <dependency org="org.apache.hadoop" name="hadoop-yarn-server-timelineservice"
-      rev="${hadoop-mapreduce.version}" conf="hadoop3->master"/>
+      rev="${hadoop-mapreduce.version}" conf="hadoop2->master;hadoop3->master"/>
 
     <dependency org="commons-logging" name="commons-logging" rev="${commons-logging.version}"
       conf="compile->master;checkstyle->master"/>
@@ -484,15 +486,15 @@
 
     <dependency org="org.apache.hbase.thirdparty" name="hbase-shaded-protobuf" rev="2.1.0" conf="hbase2->master" />
 
-    <dependency org="org.eclipse.jetty" name="jetty-http" rev="9.3.20.v20170531" conf="hbase2->master"/>
-    <dependency org="org.eclipse.jetty" name="jetty-io" rev="9.3.20.v20170531" conf="hbase2->master"/>
-    <dependency org="org.eclipse.jetty" name="jetty-security" rev="9.3.20.v20170531" conf="hbase2->master"/>
-    <dependency org="org.eclipse.jetty" name="jetty-server" rev="9.3.20.v20170531" conf="hbase2->master"/>
-    <dependency org="org.eclipse.jetty" name="jetty-servlet" rev="9.3.20.v20170531" conf="hbase2->master"/>
-    <dependency org="org.eclipse.jetty" name="jetty-util" rev="9.3.20.v20170531" conf="hbase2->master"/>
-    <dependency org="org.eclipse.jetty" name="jetty-util-ajax" rev="9.3.20.v20170531" conf="hbase2->master"/>
-    <dependency org="org.eclipse.jetty" name="jetty-webapp" rev="9.3.20.v20170531" conf="hbase2->master"/>
-    <dependency org="org.eclipse.jetty" name="jetty-xml" rev="9.3.20.v20170531" conf="hbase2->master"/>
+    <dependency org="org.eclipse.jetty" name="jetty-http" rev="9.4.40.v20210413" conf="hbase2->master"/>
+    <dependency org="org.eclipse.jetty" name="jetty-io" rev="9.4.40.v20210413" conf="hbase2->master"/>
+    <dependency org="org.eclipse.jetty" name="jetty-security" rev="9.4.40.v20210413" conf="hbase2->master"/>
+    <dependency org="org.eclipse.jetty" name="jetty-server" rev="9.4.40.v20210413" conf="hbase2->master"/>
+    <dependency org="org.eclipse.jetty" name="jetty-servlet" rev="9.4.40.v20210413" conf="hbase2->master"/>
+    <dependency org="org.eclipse.jetty" name="jetty-util" rev="9.4.40.v20210413" conf="hbase2->master"/>
+    <dependency org="org.eclipse.jetty" name="jetty-util-ajax" rev="9.4.40.v20210413" conf="hbase2->master"/>
+    <dependency org="org.eclipse.jetty" name="jetty-webapp" rev="9.4.40.v20210413" conf="hbase2->master"/>
+    <dependency org="org.eclipse.jetty" name="jetty-xml" rev="9.4.40.v20210413" conf="hbase2->master"/>
     <dependency org="com.lmax" name="disruptor" rev="3.3.6" conf="hbase2->master"/>
     <!-- End of HBase dependencies -->
 
@@ -627,6 +629,8 @@
       <exclude org="com.esotericsoftware.kryo" />
       <exclude org="jline" module="jline"/>
       <exclude org="com.google.guava" />
+      <exclude org="io.netty" module="netty"/>
+      <exclude org="io.netty" name="netty-all"/>
     </dependency>
     <dependency org="org.apache.spark" name="spark-yarn_2.11" rev="${spark2.version}" conf="spark2->default">
       <exclude org="org.apache.hadoop" />
@@ -653,6 +657,8 @@
     <dependency org="org.apache.tez" name="tez-mapreduce" rev="${tez.version}"
        conf="hadoop2->master;hadoop3->master"/>
     <dependency org="org.apache.tez" name="tez-yarn-timeline-history-with-acls" rev="${tez.version}"
+       conf="hadoop2->master;hadoop3->master"/>
+    <dependency org="org.apache.tez" name="hadoop-shim" rev="${tez.version}"
        conf="hadoop2->master;hadoop3->master"/>
     <dependency org="org.apache.commons" name="commons-collections4" rev="${commons-collections4.version}"
       conf="hadoop2->master;hadoop3->master"/>
