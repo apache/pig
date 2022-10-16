@@ -116,6 +116,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5430: TestTezGraceParallelism failing due to tez log change (knoguchi)
+
 PIG-5406: TestJoinLocal imports org.python.google.common.collect.Lists instead of org.google.common.collect.Lists (rohini)
 
 PIG-5425: Pig 0.15 and later don't set context signature correctly (jtolar via rohini)
