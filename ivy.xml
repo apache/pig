@@ -252,6 +252,7 @@
     <dependency org="org.antlr" name="antlr-runtime" rev="${antlr.version}" conf="compile->default"/>
     <dependency org="org.antlr" name="ST4" rev="${stringtemplate.version}" conf="compile->default"/>
     <dependency org="org.apache.zookeeper" name="zookeeper" rev="${zookeeper.version}" conf="compile->master"/>
+    <dependency org="org.apache.zookeeper" name="zookeeper-jute" rev="${zookeeper.version}" conf="compile->master"/>
     <dependency org="io.netty" name="netty" rev="${netty.version}" conf="test->master"/>
     <dependency org="io.netty" name="netty-all" rev="${netty-all.version}" conf="test->master" />
     <dependency org="dk.brics.automaton" name="automaton" rev="1.11-8" conf="compile->default"/>
@@ -424,6 +425,14 @@
       <artifact name="hbase-procedure" type="test-jar" ext="jar" m:classifier="tests"/>
     </dependency>
 
+    <dependency org="org.apache.hbase" name="hbase-shaded-mapreduce" rev="${hbase2.version}" conf="hbase2->master">
+      <artifact name="hbase-shaded-mapreduce" type="jar"/>
+    </dependency>
+
+    <dependency org="org.apache.hbase" name="hbase-logging" rev="${hbase2.version}" conf="hbase2->master">
+      <artifact name="hbase-logging" type="jar"/>
+    </dependency>
+
     <dependency org="org.apache.hbase" name="hbase-metrics-api" rev="${hbase2.version}" conf="hbase2->master">
       <artifact name="hbase-metrics-api" type="jar"/>
       <artifact name="hbase-metrics-api" type="test-jar" ext="jar" m:classifier="tests"/>
@@ -480,11 +489,11 @@
       <artifact name="hbase-http" type="test-jar" ext="jar" m:classifier="tests"/>
     </dependency>
 
-    <dependency org="org.apache.hbase.thirdparty" name="hbase-shaded-miscellaneous" rev="2.1.0" conf="hbase2->master" />
+    <dependency org="org.apache.hbase.thirdparty" name="hbase-shaded-miscellaneous" rev="4.1.2" conf="hbase2->master" />
 
-    <dependency org="org.apache.hbase.thirdparty" name="hbase-shaded-netty" rev="2.1.0" conf="hbase2->master" />
+    <dependency org="org.apache.hbase.thirdparty" name="hbase-shaded-jetty" rev="4.1.2" conf="hbase2->master" />
 
-    <dependency org="org.apache.hbase.thirdparty" name="hbase-shaded-protobuf" rev="2.1.0" conf="hbase2->master" />
+    <dependency org="org.apache.hbase.thirdparty" name="hbase-shaded-protobuf" rev="4.1.2" conf="hbase2->master" />
 
     <dependency org="org.eclipse.jetty" name="jetty-http" rev="9.4.40.v20210413" conf="hbase2->master"/>
     <dependency org="org.eclipse.jetty" name="jetty-io" rev="9.4.40.v20210413" conf="hbase2->master"/>
