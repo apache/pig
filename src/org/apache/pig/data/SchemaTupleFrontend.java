@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -46,7 +47,6 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.google.common.io.Files;
 
 /**
  * This class is to be used at job creation time. It provides the API that lets code
@@ -94,7 +94,9 @@ public class SchemaTupleFrontend {
         private Configuration conf;
 
         public SchemaTupleFrontendGenHelper(PigContext pigContext, Configuration conf) {
-            codeDir = Files.createTempDir();
+            File tempDirBase = new File(System.getProperty("java.io.tmpdir"));
+            codeDir = Files.createTempDirectory(
+                          tempDirBase.toPath(), System.currentTimeMillis() + "-").toFile();
             codeDir.deleteOnExit();
             LOG.debug("Temporary directory for generated code created: "
                     + codeDir.getAbsolutePath());

@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Files;
 import java.util.Map;
 import java.util.Set;
 
@@ -43,7 +44,6 @@ import org.apache.pig.impl.util.Utils;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.google.common.io.Files;
 
 public class SchemaTupleBackend {
     private static final Log LOG = LogFactory.getLog(SchemaTupleBackend.class);
@@ -81,7 +81,9 @@ public class SchemaTupleBackend {
             }
             codeDir = new File(jConf.get(PigConstants.LOCAL_CODE_DIR));
         } else {
-            codeDir = Files.createTempDir();
+            File tempDirBase = new File(System.getProperty("java.io.tmpdir"));
+            codeDir = Files.createTempDirectory(
+                          tempDirBase.toPath(), System.currentTimeMillis() + "-").toFile();
             codeDir.deleteOnExit();
         }
 
