@@ -20,6 +20,7 @@ package org.apache.pig.hive;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
+import org.apache.hadoop.hive.common.type.Date;
 import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.common.type.Timestamp;
 import org.apache.hadoop.hive.conf.HiveConf;
@@ -163,6 +164,17 @@ public class HiveShims {
     public static GenericUDAFParameterInfo newSimpleGenericUDAFParameterInfo(ObjectInspector[] arguments,
             boolean distinct, boolean allColumns) {
         return new SimpleGenericUDAFParameterInfo(arguments, false, distinct, allColumns);
+    }
+
+    public static class DateShim {
+
+        public static Date cast(Object ts) {
+            return (Date) ts;
+        }
+
+        public static long millisFromDate(Object ts) {
+            return cast(ts).toEpochMilli();
+        }
     }
 
     public static class TimestampShim {

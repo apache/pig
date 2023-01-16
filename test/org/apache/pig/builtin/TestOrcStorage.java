@@ -183,6 +183,20 @@ public class TestOrcStorage {
         }
         assertEquals(count, 10000);
     }
+    
+    @Test
+    public void testDate() throws Exception {
+        pigServer.registerQuery("A = load '" + basedir + "datetype.orc'" + " using OrcStorage();" );
+        Schema schema = pigServer.dumpSchema("A");
+        assertEquals(schema.size(), 1);
+        assertEquals(schema.getField(0).type, DataType.DATETIME);
+        Iterator<Tuple> iter = pigServer.openIterator("A");
+        Tuple t = iter.next();
+        assertTrue(t.get(0) instanceof DateTime);
+        assertEquals(t.toString(), "(2022-07-07T00:00:00.000Z)");
+        assertEquals(iter.next().toString(), "(2022-09-09T00:00:00.000Z)");
+        assertFalse(iter.hasNext());
+    }
 
     @Test
     // See PIG-4218

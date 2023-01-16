@@ -184,8 +184,7 @@ public class HiveUtils {
             result = new DateTime(HiveShims.TimestampShim.millisFromTimestamp(poi.getPrimitiveJavaObject(obj)));
             break;
         case DATE:
-            java.sql.Date origDate = (java.sql.Date)poi.getPrimitiveJavaObject(obj);
-            result = new DateTime(origDate.getTime());
+            result = new DateTime(HiveShims.DateShim.millisFromDate(poi.getPrimitiveJavaObject(obj)));
             break;
         case DECIMAL:
             org.apache.hadoop.hive.common.type.HiveDecimal origDecimal =
