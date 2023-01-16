@@ -103,6 +103,7 @@ public class TestHBaseStorage {
         conf.set("hbase.localcluster.assign.random.ports", "true");
 
         util = new HBaseTestingUtility(conf);
+        System.setProperty("zookeeper.4lw.commands.whitelist", "stat");
         util.startMiniZKCluster();
         util.startMiniHBaseCluster(1, 1);
         connection = ConnectionFactory.createConnection(conf);
@@ -119,6 +120,7 @@ public class TestHBaseStorage {
             hbc.join();
         }
         util.shutdownMiniZKCluster();
+        System.clearProperty("zookeeper.4lw.commands.whitelist");
     }
 
 

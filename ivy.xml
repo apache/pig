@@ -475,7 +475,7 @@
       <exclude org="asm" module="asm"/>
     </dependency>
 
-    <dependency org="org.apache.htrace" name="htrace-core4" rev="${htrace4.version}" conf="hbase2->master">
+    <dependency org="org.apache.htrace" name="htrace-core4" rev="${htrace4.version}" conf="hadoop2->master;hadoop3->master;hbase2->master">
       <artifact name="htrace-core4" type="jar"/>
     </dependency>
 
@@ -507,7 +507,6 @@
     <dependency org="com.lmax" name="disruptor" rev="3.3.6" conf="hbase2->master"/>
     <!-- End of HBase dependencies -->
 
-    <dependency org="org.htrace" name="htrace-core" rev="3.0.4" conf="hadoop2->master;hadoop3->master"/>
     <dependency org="org.apache.htrace" name="htrace-core" rev="${htrace.version}"
         conf="hadoop2->master;hadoop3->master;hbase1->master"/>
     <dependency org="org.fusesource.leveldbjni" name="leveldbjni-all" rev="${leveldbjni.version}"
