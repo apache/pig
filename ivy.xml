@@ -106,8 +106,6 @@
       conf="hadoop2->master;hadoop3->master"/>
     <dependency org="org.glassfish" name="javax.el" rev="${glassfish.el.version}"
       conf="hadoop2->master;hadoop3->master"/>
-    <dependency org="log4j" name="log4j" rev="${log4j.version}"
-      conf="compile->master"/>
     <dependency org="com.google.re2j" name="re2j" rev="${re2j.version}"
       conf="hadoop3->master" />
     <dependency org="com.codahale.metrics" name="metrics-core" rev="${codahale.metrics-core.version}"
@@ -183,7 +181,9 @@
 
     <dependency org="commons-logging" name="commons-logging" rev="${commons-logging.version}"
       conf="compile->master;checkstyle->master"/>
-    <dependency org="org.slf4j" name="slf4j-log4j12" rev="${slf4j-log4j12.version}"
+    <dependency org="org.slf4j" name="slf4j-reload4j" rev="${slf4j-reload4j.version}"
+      conf="compile->master;test->master"/>
+    <dependency org="ch.qos.reload4j" name="reload4j" rev="${reload4j.version}"
       conf="compile->master;test->master"/>
     <dependency org="commons-cli" name="commons-cli" rev="${commons-cli.version}"
       conf="compile->master;checkstyle->master"/>
