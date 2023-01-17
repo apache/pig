@@ -26,6 +26,8 @@ PIG-5282: Upgade to Java 8 (satishsaley via rohini)
  
 IMPROVEMENTS
 
+PIG-5436: update owasp version (knoguchi via rohini)
+
 PIG-5434: Migrate from log4j to reload4j (rohini)
 
 PIG-5417: Replace guava's Files.createTempDir() (xiaoheipangzi via rohini)
