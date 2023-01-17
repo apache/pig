@@ -84,7 +84,8 @@ public class FindQuantilesTez extends FindQuantiles {
 
             long estimatedInputSize = (long)((double)sampleSize/mySamples.size() * totalInputRows);
             estimatedNumReducers = (int)Math.ceil((double)estimatedInputSize/bytesPerTask);
-            estimatedNumReducers = Math.min(estimatedNumReducers, InputSizeReducerEstimator.DEFAULT_MAX_REDUCER_COUNT_PARAM);
+            int maxReducers = PigMapReduce.sJobConfInternal.get().getInt(InputSizeReducerEstimator.MAX_REDUCER_COUNT_PARAM, InputSizeReducerEstimator.DEFAULT_MAX_REDUCER_COUNT_PARAM);
+            estimatedNumReducers = Math.min(estimatedNumReducers, maxReducers);
             if (estimatedNumReducers==0) {
                 estimatedNumReducers = 1;
             }

@@ -120,6 +120,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5439: pig.exec.reducers.max does not take effect for skewed join (vnarayanan7 via rohini)
+
 PIG-5431: Date datatype is different between Hive 1.x and Hive 3.x (rohini)
 
 PIG-5433: Fix test failures with TestHBaseStorage and htrace dependency (rohini)

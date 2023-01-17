@@ -70,7 +70,8 @@ public class PartitionSkewedKeysTez extends PartitionSkewedKeys {
                     InputSizeReducerEstimator.DEFAULT_BYTES_PER_REDUCER);
 
             estimatedNumReducers = (int)Math.ceil((double)estimatedInputSize/bytesPerTask);
-            estimatedNumReducers = Math.min(estimatedNumReducers, InputSizeReducerEstimator.DEFAULT_MAX_REDUCER_COUNT_PARAM);
+            int maxReducers = PigMapReduce.sJobConfInternal.get().getInt(InputSizeReducerEstimator.MAX_REDUCER_COUNT_PARAM, InputSizeReducerEstimator.DEFAULT_MAX_REDUCER_COUNT_PARAM);
+            estimatedNumReducers = Math.min(estimatedNumReducers, maxReducers);
 
             LOG.info("Estimating parallelism: estimatedInputSize is " + estimatedInputSize + ". bytesPerTask is " + bytesPerTask + ". estimatedNumReducers is " + estimatedNumReducers + ".");
 
