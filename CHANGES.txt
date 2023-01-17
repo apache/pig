@@ -26,6 +26,8 @@ PIG-5282: Upgade to Java 8 (satishsaley via rohini)
  
 IMPROVEMENTS
 
+PIG-5417: Replace guava's Files.createTempDir() (xiaoheipangzi via rohini)
+
 PIG-5429: Update hbase version from 2.0.0 to 2.4.14 (knoguchi)
 
 PIG-5428: Update hadoop2,3 and tez to recent versions (knoguchi)
