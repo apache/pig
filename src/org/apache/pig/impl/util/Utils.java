@@ -655,9 +655,14 @@ public class Utils {
                   continue;
               }
             } else {
-              return depthFirstSearchForFile(
+              Path result = depthFirstSearchForFile(
                   fileSystem.listStatus(f.getPath(), VISIBLE_FILES),
                   fileSystem, filter);
+
+              // return the first found result, else continue searching through statusArray
+              if (result != null) {
+                  return result;
+              }
             }
       }
 
