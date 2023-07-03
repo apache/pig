@@ -1077,9 +1077,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             ArrayList<POStore> storeLocations = new ArrayList<POStore>();
             for (POStore st : stores) {
                 storeLocations.add(st);
-                StoreFuncInterface sFunc = st.getStoreFunc();
-                sFunc.setStoreLocation(st.getSFile().getFileName(), job);
-                sFunc.addCredentials(job.getCredentials(), job.getConfiguration());
+                addCredentials(job, st);
             }
 
             Path tmpLocation = null;
@@ -1133,6 +1131,19 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         }
         return stores;
+    }
+
+    private static void addCredentials(Job job, POStore st) throws IOException {
+        StoreFuncInterface sFunc = st.getStoreFunc();
+        sFunc.addCredentials(job.getCredentials(), job.getConfiguration());
+
+        // Backward compatibility - before addCredentials API was introduced, credentials were set in setStoreLocation method
+        Job storeJob = new Job(job.getConfiguration());
+        sFunc.setStoreLocation(st.getSFile().getFileName(), storeJob);
+        // Should always be the same object - Just future proofing
+        if (job.getCredentials() != storeJob.getCredentials()) {
+            job.getCredentials().mergeAll(storeJob.getCredentials());
+        }
     }
 
     @SuppressWarnings("rawtypes")
