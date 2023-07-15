@@ -807,6 +807,8 @@
             <fileset dir="${ivy.lib.dir}" includes="hbase-hadoop2*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="tez-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="commons-collections4-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="orc-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="aircompressor-*.jar"/>
         </copy>
         <copy file="${output.jarfile.core}" tofile="${output.jarfile.backcompat-core-h3}"/>
         <mkdir dir="${legacy.dir}" />

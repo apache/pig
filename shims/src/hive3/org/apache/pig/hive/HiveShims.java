@@ -24,6 +24,7 @@ import org.apache.hadoop.hive.common.type.Date;
 import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.common.type.Timestamp;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.llap.security.LlapSigner;
 import org.apache.hadoop.hive.ql.io.orc.CompressionKind;
 import org.apache.hadoop.hive.ql.io.orc.OrcFile;
 import org.apache.hadoop.hive.ql.io.sarg.PredicateLeaf;
@@ -46,9 +47,11 @@ import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.orc.OrcConf;
 import org.apache.orc.OrcFile.Version;
+import org.apache.orc.impl.HadoopShims;
 
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
+import io.airlift.compress.Decompressor;
 
 import org.joda.time.DateTime;
 
@@ -87,13 +90,15 @@ public class HiveShims {
         return new Class[]{OrcFile.class, HiveConf.class, AbstractSerDe.class,
                 org.apache.hadoop.hive.shims.HadoopShims.class, HadoopShimsSecure.class, DateWritable.class,
                 hadoopVersionShimsClass, Input.class, org.apache.orc.OrcFile.class,
-                com.esotericsoftware.minlog.Log.class};
+                com.esotericsoftware.minlog.Log.class, org.apache.orc.impl.HadoopShims.class,
+                io.airlift.compress.Decompressor.class};
     }
 
     public static Class[] getHiveUDFDependentClasses(Class hadoopVersionShimsClass) {
         return new Class[]{GenericUDF.class,
                 PrimitiveObjectInspector.class, HiveConf.class, Serializer.class, ShimLoader.class,
-                hadoopVersionShimsClass, HadoopShimsSecure.class, Collector.class, HiveDecimalWritable.class};
+                hadoopVersionShimsClass, HadoopShimsSecure.class, Collector.class, HiveDecimalWritable.class,
+                LlapSigner.class};
     }
 
     public static Object getSearchArgObjValue(Object value) {

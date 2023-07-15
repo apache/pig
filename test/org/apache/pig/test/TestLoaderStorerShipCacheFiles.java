@@ -50,15 +50,16 @@ public abstract class TestLoaderStorerShipCacheFiles {
         if (hiveVersion.equals("3")) {
             String[] expectedJars = new String[] {"hive-common", "hive-exec", "hive-serde",
                     "hive-shims-0.23", "hive-shims-common", "orc-core",
-                    "hive-storage-api", "kryo", "minlog"
+                    "hive-storage-api", "kryo", "minlog",
+                    "orc-shims","aircompressor"
             };
 
-            checkPlan(pp, expectedJars, 9, pigServer.getPigContext());
+            checkPlan(pp, expectedJars, expectedJars.length, pigServer.getPigContext());
         } else {
             String[] expectedJars = new String[] {"hive-common", "hive-exec", "hive-serde",
                     "hive-shims-0.23", "hive-shims-common", "kryo"};
 
-            checkPlan(pp, expectedJars, 6, pigServer.getPigContext());
+            checkPlan(pp, expectedJars, expectedJars.length, pigServer.getPigContext());
         }
     }
 
@@ -72,16 +73,17 @@ public abstract class TestLoaderStorerShipCacheFiles {
         if (hiveVersion.equals("3")) {
             String[] expectedJars = new String[] {"hive-common", "hive-exec", "hive-serde",
                     "hive-shims-0.23", "hive-shims-common", "orc-core",
-                    "hive-storage-api", "kryo", "minlog"
+                    "hive-storage-api", "kryo", "minlog",
+                    "orc-shims", "aircompressor"
             };
 
-            checkPlan(pp, expectedJars, 9, pigServer.getPigContext());
+            checkPlan(pp, expectedJars, expectedJars.length, pigServer.getPigContext());
         } else {
             String[] expectedJars = new String[] {"hive-common", "hive-exec", "hive-serde",
                     "hive-shims-0.23", "hive-shims-common", "kryo"};
 
 
-            checkPlan(pp, expectedJars, 6, pigServer.getPigContext());
+            checkPlan(pp, expectedJars, expectedJars.length, pigServer.getPigContext());
         }
     }
 
