@@ -165,7 +165,8 @@ public class PigGraceShuffleVertexManager extends ShuffleVertexManager {
             Map<String, EdgeProperty> edgeManagers = new HashMap<String, EdgeProperty>();
             for(Map.Entry<String,EdgeProperty> entry : getContext().getInputVertexEdgeProperties().entrySet()) {
                 EdgeProperty edge = entry.getValue();
-                edge = EdgeProperty.create(DataMovementType.SCATTER_GATHER, edge.getDataSourceType(), edge.getSchedulingType(),
+                DataMovementType movementType = edge.getDataMovementType() == DataMovementType.BROADCAST? DataMovementType.BROADCAST: DataMovementType.SCATTER_GATHER;
+                edge = EdgeProperty.create(movementType, edge.getDataSourceType(), edge.getSchedulingType(),
                         edge.getEdgeSource(), edge.getEdgeDestination());
                 edgeManagers.put(entry.getKey(), edge);
             }
