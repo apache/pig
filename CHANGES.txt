@@ -133,6 +133,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5441: Pig skew join tez grace reducer fails to find shuffle data (yigress via rohini)
+
 PIG-5432: OrcStorage fails to detect schema in some cases (jtolar via rohini)
 
 PIG-5439: pig.exec.reducers.max does not take effect for skewed join (vnarayanan7 via rohini)
