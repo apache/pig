@@ -592,8 +592,11 @@
                 conf="hive3->master" />
     <dependency org="org.apache.hive.shims" name="hive-shims-0.23" rev="${hive.version}" changing="true"
                 conf="hive3->master" />
+    <dependency org="org.apache.hive" name="hive-classification" rev="${hive.version}" changing="true"
+                conf="hive3->master" />
 
     <dependency org="org.apache.orc" name="orc-core" rev="${orc.version}" changing="true" conf="hive3->default" />
+    <dependency org="org.apache.orc" name="orc-shims" rev="${orc.version}" changing="true" conf="hive3->default" />
     <dependency org="org.apache.hive" name="hive-storage-api" rev="${hive-storage-api.version}" changing="true" conf="hive3->master" />
     <dependency org="org.iq80.snappy" name="snappy" rev="${snappy.version}"
       conf="test->master" />
