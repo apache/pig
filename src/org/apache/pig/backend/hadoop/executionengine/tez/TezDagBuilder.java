@@ -1078,7 +1078,15 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             for (POStore st : stores) {
                 storeLocations.add(st);
                 StoreFuncInterface sFunc = st.getStoreFunc();
-                sFunc.setStoreLocation(st.getSFile().getFileName(), job);
+
+                // Backward compatibility - before addCredentials API was introduced, credentials were set in setStoreLocation method
+                Job copyOfJob = new Job(job.getConfiguration());
+                sFunc.setStoreLocation(st.getSFile().getFileName(), copyOfJob);
+                // Credentials object in the copy should always refer to the original job's. Just future proofing.
+                if (job.getCredentials() != copyOfJob.getCredentials()) {
+                    job.getCredentials().mergeAll(copyOfJob.getCredentials());
+                }
+
                 sFunc.addCredentials(job.getCredentials(), job.getConfiguration());
             }
 
