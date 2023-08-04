@@ -35,10 +35,10 @@ This requires a recent version of docker ( 1.4.1 and higher are known to work ).
 
 ## How it works
 By using the mounted volumes feature of Docker this image will wrap itself around the directory from which it is started.
-So the files within the docker environment are actually the same as outsite.
+So the files within the docker environment are the same as those outside.
 
-A very valid way of working is by having your favourite IDE that has the project 
-open and a commandline into the docker that has the exact right tools to do the full build.
+A very valid way of working is by having your favorite IDE that has the project
+open and a command line into the docker that has the exact right tools to do the full build.
 
 ## Using it on Linux:
 Install Docker and run this command:
@@ -57,11 +57,11 @@ First make sure Homebrew has been installed ( http://brew.sh/ )
 The prompt which is then presented is located at a mounted version of the source tree
 and all required tools for testing and building have been installed and configured.
 
-Note that from within this docker environment you ONLY have access to the source
+Note that from within this docker environment, you ONLY have access to the source
 tree from where you started. 
 
 ## Known issues:
-On Mac with Boot2Docker the performance on the mounted directory is currently extremely slow.
+On Mac with Boot2Docker, the performance on the mounted directory is currently extremely slow.
 This is a known problem related to boot2docker on the Mac.
 https://github.com/boot2docker/boot2docker/issues/593
     This issue has been resolved as a duplicate, and they point to a new feature for utilizing NFS mounts as the proposed solution:
