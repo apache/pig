@@ -591,6 +591,13 @@ public class SparkLauncher extends Launcher {
 
             sparkConf.setMaster(master);
             sparkConf.setAppName(pigCtxtProperties.getProperty(PigContext.JOB_NAME,"pig"));
+
+            // For non-hdfs inputs, PigSplit may show up as empty but still
+            // contain inputs when accessed.  These splits should not be
+            // skipped.
+            sparkConf.set("spark.hadoopRDD.ignoreEmptySplits", "false");
+
+
             // On Spark 1.6, Netty file server doesn't allow adding the same file with the same name twice
             // This is a problem for streaming using a script + explicit ship the same script combination (PIG-5134)
             // HTTP file server doesn't have this restriction, it overwrites the file if added twice
