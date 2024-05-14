@@ -72,4 +72,12 @@ public class TezTaskContext extends TaskContext<ProcessorContext> {
         counter.increment(delta);
         return true;
     }
+
+    @Override
+    public void progress() {
+        if (context == null) {
+            return;
+        }
+        context.notifyProgress();
+    }
 }

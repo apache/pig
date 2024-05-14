@@ -36,6 +36,8 @@ PIG-5447: Pig-on-Spark TestSkewedJoin.testSkewedJoinOuter failing with NoSuchEle
 
 PIG-5448: All TestHBaseStorage tests failing on pig-on-spark3 (knoguchi)
 
+PIG-5446: Tez TestPigProgressReporting.testProgressReportingWithStatusMessage failing (knoguchi)
+
 Release 0.18.0 - Unreleased
  
 INCOMPATIBLE CHANGES
