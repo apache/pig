@@ -24,6 +24,7 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 PIG-5438: Update SparkCounter.Accumulator to AccumulatorV2 (knoguchi)
+PIG-5439: Support Spark 3 and drop SparkShim (knoguchi)
  
 OPTIMIZATIONS
  

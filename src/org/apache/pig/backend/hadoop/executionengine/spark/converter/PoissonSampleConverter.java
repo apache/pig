@@ -20,7 +20,6 @@ package org.apache.pig.backend.hadoop.executionengine.spark.converter;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.spark.FlatMapFunctionAdapter;
-import org.apache.pig.backend.hadoop.executionengine.spark.SparkShims;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.backend.hadoop.executionengine.spark.operator.POPoissonSampleSpark;
 import org.apache.pig.data.Tuple;
@@ -38,7 +37,7 @@ public class PoissonSampleConverter implements RDDConverter<Tuple, Tuple, POPois
         SparkUtil.assertPredecessorSize(predecessors, po, 1);
         RDD<Tuple> rdd = predecessors.get(0);
         PoissionSampleFunction poissionSampleFunction = new PoissionSampleFunction(po);
-        return rdd.toJavaRDD().mapPartitions(SparkShims.getInstance().flatMapFunction(poissionSampleFunction), false).rdd();
+        return rdd.toJavaRDD().mapPartitions(SparkUtil.flatMapFunction(poissionSampleFunction), false).rdd();
     }
 
     private static class PoissionSampleFunction implements FlatMapFunctionAdapter<Iterator<Tuple>, Tuple> {

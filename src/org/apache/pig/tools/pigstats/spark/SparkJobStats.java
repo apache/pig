@@ -35,11 +35,13 @@ import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStatsUtil;
+import org.apache.spark.executor.ShuffleReadMetrics;
+import org.apache.spark.executor.ShuffleWriteMetrics;
 import org.apache.spark.executor.TaskMetrics;
 
 import com.google.common.collect.Maps;
 
-public abstract class SparkJobStats extends JobStats {
+public class SparkJobStats extends JobStats {
 
     private int jobId;
     private Map<String, Long> stats = Maps.newLinkedHashMap();
@@ -110,8 +112,82 @@ public abstract class SparkJobStats extends JobStats {
         }
     }
 
-    protected abstract Map<String, Long> combineTaskMetrics(Map<String, List<TaskMetrics>> jobMetric);
+    protected Map<String, Long> combineTaskMetrics(
+                    Map<String, List<TaskMetrics>> jobMetric) {
+        Map<String, Long> results = Maps.newLinkedHashMap();
 
+        long executorDeserializeTime = 0;
+        long executorRunTime = 0;
+        long resultSize = 0;
+        long jvmGCTime = 0;
+        long resultSerializationTime = 0;
+        long memoryBytesSpilled = 0;
+        long diskBytesSpilled = 0;
+        long bytesRead = 0;
+        long bytesWritten = 0;
+        long remoteBlocksFetched = 0;
+        long localBlocksFetched = 0;
+        long fetchWaitTime = 0;
+        long remoteBytesRead = 0;
+        long shuffleBytesWritten = 0;
+        long shuffleWriteTime = 0;
+
+        for (List<TaskMetrics> stageMetric : jobMetric.values()) {
+            if (stageMetric != null) {
+                for (TaskMetrics taskMetrics : stageMetric) {
+                    if (taskMetrics != null) {
+                        executorDeserializeTime += taskMetrics.executorDeserializeTime();
+                        executorRunTime += taskMetrics.executorRunTime();
+                        resultSize += taskMetrics.resultSize();
+                        jvmGCTime += taskMetrics.jvmGCTime();
+                        resultSerializationTime += taskMetrics.resultSerializationTime();
+                        memoryBytesSpilled += taskMetrics.memoryBytesSpilled();
+                        diskBytesSpilled += taskMetrics.diskBytesSpilled();
+                        bytesRead += taskMetrics.inputMetrics().bytesRead();
+
+                        bytesWritten += taskMetrics.outputMetrics().bytesWritten();
+
+                        ShuffleReadMetrics shuffleReadMetricsOption = taskMetrics.shuffleReadMetrics();
+                        remoteBlocksFetched += shuffleReadMetricsOption.remoteBlocksFetched();
+                        localBlocksFetched += shuffleReadMetricsOption.localBlocksFetched();
+                        fetchWaitTime += shuffleReadMetricsOption.fetchWaitTime();
+                        remoteBytesRead += shuffleReadMetricsOption.remoteBytesRead();
+
+                        ShuffleWriteMetrics shuffleWriteMetricsOption = taskMetrics.shuffleWriteMetrics();
+                        shuffleBytesWritten += shuffleWriteMetricsOption.bytesWritten();
+                        shuffleWriteTime += shuffleWriteMetricsOption.writeTime();
+                    }
+                }
+            }
+        }
+
+        results.put("ExcutorDeserializeTime", executorDeserializeTime);
+        results.put("ExecutorRunTime", executorRunTime);
+        results.put("ResultSize", resultSize);
+        results.put("JvmGCTime", jvmGCTime);
+        results.put("ResultSerializationTime", resultSerializationTime);
+        results.put("MemoryBytesSpilled", memoryBytesSpilled);
+        results.put("DiskBytesSpilled", diskBytesSpilled);
+
+        results.put("BytesRead", bytesRead);
+        hdfsBytesRead = bytesRead;
+        counters.incrCounter(FS_COUNTER_GROUP, PigStatsUtil.HDFS_BYTES_READ, hdfsBytesRead);
+
+        results.put("BytesWritten", bytesWritten);
+        hdfsBytesWritten = bytesWritten;
+        counters.incrCounter(FS_COUNTER_GROUP, PigStatsUtil.HDFS_BYTES_WRITTEN, hdfsBytesWritten);
+
+        results.put("RemoteBlocksFetched", remoteBlocksFetched);
+        results.put("LocalBlocksFetched", localBlocksFetched);
+        results.put("TotalBlocksFetched", localBlocksFetched + remoteBlocksFetched);
+        results.put("FetchWaitTime", fetchWaitTime);
+        results.put("RemoteBytesRead", remoteBytesRead);
+
+        results.put("ShuffleBytesWritten", shuffleBytesWritten);
+        results.put("ShuffleWriteTime", shuffleWriteTime);
+
+        return results;
+    }
     public Map<String, Long> getStats() {
         return stats;
     }

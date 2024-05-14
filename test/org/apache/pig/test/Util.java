@@ -1336,11 +1336,6 @@ public class Util {
         return false;
     }
 
-    public static boolean isSpark2_2_plus() throws IOException {
-        String sparkVersion = package$.MODULE$.SPARK_VERSION();
-        return sparkVersion != null && sparkVersion.matches("2\\.([\\d&&[^01]]|[\\d]{2,})\\..*");
-    }
-
     public static void sortQueryOutputsIfNeed(List<Tuple> actualResList, boolean toSort){
         if( toSort == true) {
             for (Tuple t : actualResList) {

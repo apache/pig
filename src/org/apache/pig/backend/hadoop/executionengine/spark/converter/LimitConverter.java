@@ -25,10 +25,12 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLimit;
 import org.apache.pig.backend.hadoop.executionengine.spark.FlatMapFunctionAdapter;
-import org.apache.pig.backend.hadoop.executionengine.spark.SparkShims;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.data.Tuple;
+import org.apache.spark.rdd.PartitionCoalescer;
 import org.apache.spark.rdd.RDD;
+
+import scala.Option;
 
 @SuppressWarnings({ "serial" })
 public class LimitConverter implements RDDConverter<Tuple, Tuple, POLimit> {
@@ -39,8 +41,8 @@ public class LimitConverter implements RDDConverter<Tuple, Tuple, POLimit> {
         SparkUtil.assertPredecessorSize(predecessors, poLimit, 1);
         RDD<Tuple> rdd = predecessors.get(0);
         LimitFunction limitFunction = new LimitFunction(poLimit);
-        RDD<Tuple> rdd2 = SparkShims.getInstance().coalesce(rdd, 1, false);
-        return rdd2.toJavaRDD().mapPartitions(SparkShims.getInstance().flatMapFunction(limitFunction), false).rdd();
+        RDD<Tuple> rdd2 = rdd.coalesce(1, false, Option.<PartitionCoalescer>empty(), null);
+        return rdd2.toJavaRDD().mapPartitions(SparkUtil.flatMapFunction(limitFunction), false).rdd();
     }
 
     private static class LimitFunction implements FlatMapFunctionAdapter<Iterator<Tuple>, Tuple> {

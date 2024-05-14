@@ -23,7 +23,6 @@ import java.util.Iterator;
 import java.util.Objects;
 
 import org.apache.pig.backend.hadoop.executionengine.spark.FlatMapFunctionAdapter;
-import org.apache.pig.backend.hadoop.executionengine.spark.SparkShims;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import scala.Tuple2;
 
@@ -57,7 +56,7 @@ public class SecondaryKeySortUtil {
         JavaPairRDD<IndexedKey, Tuple> sorted = pairRDD.repartitionAndSortWithinPartitions(
                 new IndexedKeyPartitioner(partitionNums));
         //Package tuples with same indexedkey as the result: (key,(val1,val2,val3,...))
-        return sorted.mapPartitions(SparkShims.getInstance().flatMapFunction(new AccumulateByKey(pkgOp)), true).rdd();
+        return sorted.mapPartitions(SparkUtil.flatMapFunction(new AccumulateByKey(pkgOp)), true).rdd();
     }
 
     //Package tuples with same indexedkey as the result: (key,(val1,val2,val3,...))

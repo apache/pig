@@ -34,7 +34,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin;
 import org.apache.pig.backend.hadoop.executionengine.spark.FlatMapFunctionAdapter;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkPigContext;
-import org.apache.pig.backend.hadoop.executionengine.spark.SparkShims;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.data.Tuple;
 import org.apache.spark.rdd.RDD;
@@ -54,7 +53,7 @@ public class FRJoinConverter implements
         attachReplicatedInputs((POFRJoinSpark) poFRJoin);
 
         FRJoinFunction frJoinFunction = new FRJoinFunction(poFRJoin);
-        return rdd.toJavaRDD().mapPartitions(SparkShims.getInstance().flatMapFunction(frJoinFunction), true).rdd();
+        return rdd.toJavaRDD().mapPartitions(SparkUtil.flatMapFunction(frJoinFunction), true).rdd();
     }
 
     private void attachReplicatedInputs(POFRJoinSpark poFRJoin) {

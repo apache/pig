@@ -144,8 +144,6 @@ import org.apache.spark.scheduler.StatsReportListener;
 
 import com.google.common.base.Joiner;
 
-import static org.apache.pig.backend.hadoop.executionengine.spark.SparkShims.SPARK_VERSION;
-
 /**
  * Main class that launches pig for Spark
  */
@@ -598,6 +596,12 @@ public class SparkLauncher extends Launcher {
             // HTTP file server doesn't have this restriction, it overwrites the file if added twice
             String useNettyFileServer = pigCtxtProperties.getProperty(PigConfiguration.PIG_SPARK_USE_NETTY_FILESERVER, "false");
             sparkConf.set("spark.rpc.useNettyFileServer", useNettyFileServer);
+            // Somehow ApplicationMaster stopped picking up __spark_hadoop_conf__.xml 
+            // for unit tests in Spark3.  Passing through spark_conf
+            sparkConf.set("spark.hadoop.yarn.resourcemanager.scheduler.address",
+                  jobConf.get("yarn.resourcemanager.scheduler.address"));
+            sparkConf.set("spark.hadoop.yarn.resourcemanager.address",
+                  jobConf.get("yarn.resourcemanager.address"));
 
             if (sparkHome != null && !sparkHome.isEmpty()) {
                 sparkConf.setSparkHome(sparkHome);
@@ -645,11 +649,11 @@ public class SparkLauncher extends Launcher {
             checkAndConfigureDynamicAllocation(master, sparkConf);
 
             sparkContext = new JavaSparkContext(sparkConf);
-            SparkShims.getInstance().addSparkListener(sparkContext.sc(), jobStatisticCollector.getSparkListener());
-            SparkShims.getInstance().addSparkListener(sparkContext.sc(), new StatsReportListener());
+            sparkContext.sc().addSparkListener(jobStatisticCollector.getSparkListener());
+            sparkContext.sc().addSparkListener(new StatsReportListener());
             allCachedFiles = new HashSet<String>();
         }
-        jobConf.set(SPARK_VERSION, sparkContext.version());
+        jobConf.set("pig.spark.version", sparkContext.version());
     }
 
     private static void checkAndConfigureDynamicAllocation(String master, SparkConf sparkConf) {

@@ -19,6 +19,7 @@ package org.apache.pig.backend.hadoop.executionengine.spark;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
@@ -54,6 +55,8 @@ import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.spark.HashPartitioner;
 import org.apache.spark.Partitioner;
+import org.apache.spark.api.java.function.FlatMapFunction;
+import org.apache.spark.api.java.function.PairFlatMapFunction;
 import org.apache.spark.broadcast.Broadcast;
 import org.apache.spark.rdd.RDD;
 
@@ -155,6 +158,22 @@ public class SparkUtil {
         baseSparkOp.physicalPlan.addAsLeaf(sort);
     }
 
+    public static <T, R> FlatMapFunction flatMapFunction(final FlatMapFunctionAdapter<T, R> function) {
+        return new FlatMapFunction<T, R>() {
+            @Override
+            public Iterator<R> call(T t) throws Exception {
+                return function.call(t);
+            }
+        };
+    }
 
+    public static <T, K, V> PairFlatMapFunction<T, K, V> pairFlatMapFunction(final PairFlatMapFunctionAdapter<T, K, V> function) {
+        return new PairFlatMapFunction<T, K, V>() {
+            @Override
+            public Iterator<Tuple2<K, V>> call(T t) throws Exception {
+                return function.call(t);
+            }
+        };
+    }
 
 }

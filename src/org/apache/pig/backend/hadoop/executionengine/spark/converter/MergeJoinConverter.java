@@ -26,7 +26,6 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
 import org.apache.pig.backend.hadoop.executionengine.spark.FlatMapFunctionAdapter;
-import org.apache.pig.backend.hadoop.executionengine.spark.SparkShims;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.data.Tuple;
 import org.apache.spark.rdd.RDD;
@@ -44,7 +43,7 @@ public class MergeJoinConverter implements
         RDD<Tuple> rdd = predecessors.get(0);
         MergeJoinFunction mergeJoinFunction = new MergeJoinFunction(poMergeJoin);
 
-        return rdd.toJavaRDD().mapPartitions(SparkShims.getInstance().flatMapFunction(mergeJoinFunction), true).rdd();
+        return rdd.toJavaRDD().mapPartitions(SparkUtil.flatMapFunction(mergeJoinFunction), true).rdd();
     }
 
     private static class MergeJoinFunction implements
