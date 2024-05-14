@@ -27,6 +27,7 @@ IMPROVEMENTS
 OPTIMIZATIONS
  
 BUG FIXES
+PIG-5416: Spark unit tests failing randomly with "java.lang.RuntimeException: Unexpected job execution status RUNNING" (knoguchi)
 
 
 Release 0.18.0 - Unreleased
