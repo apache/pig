@@ -24,6 +24,7 @@ INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
 PIG-5438: Update SparkCounter.Accumulator to AccumulatorV2 (knoguchi)
+
 PIG-5439: Support Spark 3 and drop SparkShim (knoguchi)
  
 OPTIMIZATIONS
@@ -31,6 +32,7 @@ OPTIMIZATIONS
 BUG FIXES
 PIG-5416: Spark unit tests failing randomly with "java.lang.RuntimeException: Unexpected job execution status RUNNING" (knoguchi)
 
+PIG-5447: Pig-on-Spark TestSkewedJoin.testSkewedJoinOuter failing with NoSuchElementException (knoguchi)
 
 Release 0.18.0 - Unreleased
  

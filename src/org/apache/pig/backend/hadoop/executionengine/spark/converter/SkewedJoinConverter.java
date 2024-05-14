@@ -172,7 +172,7 @@ public class SkewedJoinConverter implements
             }
 
             public Iterator<Tuple> iterator() {
-                return new IteratorTransform<Tuple2<PartitionIndexedKey, Tuple2<L, R>>, Tuple>(
+                return new CachedIteratorTransform<Tuple2<PartitionIndexedKey, Tuple2<L, R>>, Tuple>(
                         in) {
                     @Override
                     protected Tuple transform(
