@@ -38,6 +38,8 @@ PIG-5448: All TestHBaseStorage tests failing on pig-on-spark3 (knoguchi)
 
 PIG-5446: Tez TestPigProgressReporting.testProgressReportingWithStatusMessage failing (knoguchi)
 
+PIG-5450: Pig-on-Spark3 E2E ORC test failing with java.lang.VerifyError: Bad return type (knoguchi)
+
 Release 0.18.0 - Unreleased
  
 INCOMPATIBLE CHANGES
