@@ -386,4 +386,43 @@ public class TestFlatten {
 
         Util.checkQueryOutputs(actualResults.iterator(), expectedResults);
     }
+
+    @Test
+    public void testFlattenWithInconsistentNumberOfFields() throws Exception {
+        Storage.Data data = Storage.resetData(pig);
+        data.set("input",
+            Storage.tuple(
+                1,
+                Storage.tuple("a","b","c")
+            ),
+            Storage.tuple(
+                2,
+                Storage.tuple("a","b","c")
+            ),
+            Storage.tuple(
+                3,
+                Storage.tuple("a","b")
+            ),
+            Storage.tuple(
+                4,
+                Storage.tuple("a","b","c","d")
+            ),
+        );
+        pig.setBatchOn();
+        pig.registerQuery("A = load 'input' using mock.Storage() as (a0:int, a1:tuple());");
+        pig.registerQuery("B = foreach A GENERATE a0, " + 
+                              "FLATTEN(a1) as b1:chararray, b2:chararray, b3:chararray, a0 as a4");
+        pig.registerQuery("store B into 'output' using mock.Storage();");
+        List<ExecJob> execJobs = pig.executeBatch();
+        for( ExecJob execJob : execJobs ) {
+          assertTrue(execJob.getStatus() == ExecJob.JOB_STATUS.COMPLETED );
+        }
+        List<Tuple> actualResults = data.get("output");
+        List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
+                new String[] {
+                "(1, 'a', 'b', 'c', 1)", "(2, 'a', 'b', 'c', 2)", 
+                "(3, 'a', 'b', null, 3)", "(4, 'a', 'b', 'c', 4)" });
+
+        Util.checkQueryOutputs(actualResults.iterator(), expectedResults);
+    }
 }

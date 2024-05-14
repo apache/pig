@@ -549,12 +549,21 @@ public class POForEach extends PhysicalOperator {
                 }
             } else if(in instanceof Tuple) {
                 Tuple t = (Tuple)in;
-                int size = t.size();
+                int size = flattenNumFields == null || flattenNumFields[i] == 0 ?
+                           t.size() : Math.min(flattenNumFields[i], t.size());
                 for(int j = 0; j < size; ++j) {
                     if (knownSize) {
                         out.set(idx++, t.get(j));
                     } else {
                         out.append(t.get(j));
+                    }
+                }
+                // if size >= flattenNumFields[i], then fill the rest with null
+                for(int j = size; j < flattenNumFields[i]; ++j) {
+                    if (knownSize) {
+                        out.set(idx++, null);
+                    } else {
+                        out.append(null);
                     }
                 }
             } else if (in instanceof Map.Entry) {
@@ -726,7 +735,12 @@ public class POForEach extends PhysicalOperator {
         clone.addOriginalLocation(alias, getOriginalLocations());
         clone.endOfAllInputProcessing = endOfAllInputProcessing;
         clone.mapSideOnly = mapSideOnly;
-        clone.flattenNumFields = flattenNumFields;
+        if( flattenNumFields != null )  {
+            clone.flattenNumFields = new int[flattenNumFields.length];
+            for(int i=0; i < flattenNumFields.length; i++) {
+                clone.flattenNumFields[i] = flattenNumFields[i];
+            }
+        }
         return clone;
     }
 
