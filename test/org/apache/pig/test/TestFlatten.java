@@ -406,7 +406,7 @@ public class TestFlatten {
             Storage.tuple(
                 4,
                 Storage.tuple("a","b","c","d")
-            ),
+            )
         );
         pig.setBatchOn();
         pig.registerQuery("A = load 'input' using mock.Storage() as (a0:int, a1:tuple());");
