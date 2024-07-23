@@ -725,6 +725,7 @@
             <fileset dir="${ivy.lib.dir}" includes="jline-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="jackson-mapper-asl-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="jackson-core-asl-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="jackson-xc-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="joda-time-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="guava-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="automaton-*.jar"/>

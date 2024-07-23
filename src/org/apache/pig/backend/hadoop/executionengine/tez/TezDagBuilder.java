@@ -229,6 +229,9 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         this.pigContextConf = ConfigurationUtil.toConfiguration(pc.getProperties(), false);
         MRToTezHelper.processMRSettings(pigContextConf, globalConf);
 
+        // Need to disable this feature until TEZ-4570 is fixed
+        pigContextConf.setBoolean("tez.runtime.transfer.data-via-events.enabled", false);
+
         shuffleVertexManagerBaseConf = new Configuration(false);
         // Only copy tez.shuffle-vertex-manager config to keep payload size small
         Iterator<Entry<String, String>> iter = pigContextConf.iterator();

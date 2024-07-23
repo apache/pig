@@ -246,6 +246,9 @@
       conf="compile->master">
       <exclude org="com.thoughtworks.paranamer" module="paranamer"/>
     </dependency>
+    <dependency org="org.codehaus.jackson" name="jackson-xc" rev="${jackson.version}" conf="hadoop3->master">
+      <exclude org="com.thoughtworks.paranamer" module="paranamer"/>
+    </dependency>
     <dependency org="com.thoughtworks.paranamer" name="paranamer" rev="${paranamer.version}" conf="compile->master"/>
     <dependency org="org.fusesource.jansi" name="jansi" rev="${jansi.version}"
       conf="compile->master"/>
@@ -616,7 +619,11 @@
       conf="compile->master">
     </dependency>
 
-    <dependency org="org.mockito" name="mockito-all" rev="${mockito.version}" conf="test->default"/>
+    <dependency org="org.mockito" name="mockito-core" rev="${mockito.version}" conf="test->default"/>
+    <dependency org="org.hamcrest" name="hamcrest-all" rev="${hamcrest.version}" conf="test->default"/>
+    <dependency org="org.bouncycastle" name="bcpkix-jdk18on" rev="${bouncycastle.version}" conf="test->default"/>
+    <dependency org="org.bouncycastle" name="bcprov-jdk18on" rev="${bouncycastle.version}" conf="test->default"/>
+    <dependency org="org.bouncycastle" name="bcutil-jdk18on" rev="${bouncycastle.version}" conf="test->default"/>
 
     <dependency org="org.apache.parquet" name="parquet-pig-bundle" rev="${parquet-pig-bundle.version}" conf="compile->master"/>
 
@@ -664,9 +671,11 @@
       <exclude org="com.google.guava" />
       <exclude org="io.netty" module="netty"/>
       <exclude org="io.netty" name="netty-all"/>
+      <exclude org="com.google.protobuf" name="protobuf-java" />
     </dependency>
     <dependency org="org.apache.spark" name="spark-yarn_${spark3-scala.version}" rev="${spark3.version}" conf="spark3->default">
       <exclude org="org.apache.hadoop" />
+      <exclude org="com.google.protobuf" name="protobuf-java" />
     </dependency>
     <dependency org="javax.servlet" name="javax.servlet-api" rev="3.0.1" conf="spark3->default;spark3->default"/>
     <dependency org="javax.servlet" name="javax.servlet-api" rev="3.1.0" conf="test->master"/>

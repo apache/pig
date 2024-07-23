@@ -116,7 +116,6 @@ public class TezLauncher extends Launcher {
         if (pc.getExecType().isLocal()) {
             pc.getProperties().setProperty(TezConfiguration.TEZ_LOCAL_MODE, "true");
             pc.getProperties().setProperty(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, "true");
-            pc.getProperties().setProperty("tez.runtime.transfer.data-via-events.enabled","false");
             pc.getProperties().setProperty(TezConfiguration.TEZ_IGNORE_LIB_URIS, "true");
             pc.getProperties().setProperty(TezConfiguration.TEZ_AM_DAG_SCHEDULER_CLASS, DAGSchedulerNaturalOrderControlled.class.getName());
         }
