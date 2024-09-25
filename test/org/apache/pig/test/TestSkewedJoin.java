@@ -42,7 +42,7 @@ import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.log4j.SimpleLayout;
+import org.apache.log4j.PatternLayout;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -573,7 +573,7 @@ public class TestSkewedJoin {
         String logFile = Util.createTempFileDelOnExit("tmp", ".log").getAbsolutePath();
         Logger logger = Logger.getLogger("org.apache.pig");
         logger.setLevel(Level.INFO);
-        SimpleLayout layout = new SimpleLayout();
+        PatternLayout layout = new PatternLayout();
         FileAppender appender = new FileAppender(layout, logFile.toString(), false, false, 0);
         logger.addAppender(appender);
 

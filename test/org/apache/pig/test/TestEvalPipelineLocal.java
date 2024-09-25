@@ -40,7 +40,7 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.log4j.Appender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.apache.log4j.SimpleLayout;
+import org.apache.log4j.PatternLayout;
 import org.apache.log4j.WriterAppender;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.EvalFunc;
@@ -1274,7 +1274,7 @@ public class TestEvalPipelineLocal {
         Logger logger = Logger.getRootLogger();
 
         logger.setLevel(Level.INFO);
-        SimpleLayout layout = new SimpleLayout();
+        PatternLayout layout = new PatternLayout();
         Appender appender = new WriterAppender(layout, new PrintStream(bos));
         logger.addAppender(appender);
 

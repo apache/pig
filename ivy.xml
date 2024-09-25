@@ -672,7 +672,16 @@
       <exclude org="io.netty" module="netty"/>
       <exclude org="io.netty" name="netty-all"/>
       <exclude org="com.google.protobuf" name="protobuf-java" />
+      <exclude org="org.apache.logging.log4j" name="log4j-core" />
+      <exclude org="org.apache.logging.log4j" name="log4j-slf4j2-impl" />
+      <exclude org="org.apache.logging.log4j" name="log4j-api" />
+      <exclude org="org.apache.logging.log4j" name="log4j-1.2-api" />
     </dependency>
+    <dependency org="org.apache.logging.log4j" name="log4j-core"        rev="2.23.1" conf="spark3->default"/>
+    <dependency org="org.apache.logging.log4j" name="log4j-slf4j2-impl" rev="2.23.1" conf="spark3->default"/>
+    <dependency org="org.apache.logging.log4j" name="log4j-api"         rev="2.23.1" conf="spark3->default"/>
+    <dependency org="org.apache.logging.log4j" name="log4j-1.2-api"     rev="2.23.1" conf="spark3->default"/>
+
     <dependency org="org.apache.spark" name="spark-yarn_${spark3-scala.version}" rev="${spark3.version}" conf="spark3->default">
       <exclude org="org.apache.hadoop" />
       <exclude org="com.google.protobuf" name="protobuf-java" />

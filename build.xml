@@ -314,6 +314,20 @@
     <property name="build.dir.eclipse-test-classes" value="${test.build.classes}"/>
     <!--property name="build.dir.eclipse-test-generated-classes" value="${build.dir.eclipse}/classes-test-generated"/-->
 
+    <condition property="isSpark">
+        <equals arg1="${test.exec.type}" arg2="spark"/>
+    </condition>
+
+    <condition property="isSpark3">
+        <and>
+            <equals arg1="${test.exec.type}" arg2="spark"/>
+						 <resourcecount when="greater" count="0"> 
+                <fileset dir="${ivy.lib.dir.spark}" includes="spark*-3*.jar"/>
+            </resourcecount>
+        </and>
+    </condition>
+
+
     <condition property="ant-eclipse.jar.exists">
         <available file="${build.dir}/lib/ant-eclipse-1.0-jvm1.2.jar"/>
     </condition>
@@ -373,10 +387,20 @@
     <!-- Stuff needed by all targets                            -->
     <!-- ====================================================== -->
     <!-- setup the classpath -->
-    <path id="classpath">
+    <path id="compileclasspath">
         <fileset file="${ivy.lib.dir}/${zookeeper.jarfile}"/>
         <fileset dir="${ivy.lib.dir}" includes="*.jar"/>
         <fileset dir="${ivy.lib.dir.spark}" includes="*.jar"/>
+    </path>
+    <path id="runtimeclasspath">
+        <fileset file="${ivy.lib.dir}/${zookeeper.jarfile}"/>
+        <fileset dir="${ivy.lib.dir}">
+            <include name="*.jar"/>
+            <exclude name="reload4j*.jar" if="isSpark3"/>
+        </fileset>
+        <fileset dir="${ivy.lib.dir.spark}">
+            <include name="*.jar" if="isSpark"/>
+        </fileset>
     </path>
 
     <!-- javadoc-classpath -->
@@ -384,13 +408,22 @@
         <path refid="javadoc.classpath"/>
     </path>
 
-    <path id="test.classpath">
+    <path id="test.compileclasspath">
         <!-- need to put this first, otherwise junit-3 testcases can break -->
         <pathelement location="${ivy.lib.dir}/junit-3.8.1.jar"/>
         <pathelement location="${build.classes}"/>
         <pathelement location="${test.src.dir}"/>
         <pathelement location="${piggybank.jarfile}"/>
-        <path refid="classpath"/>
+        <path refid="compileclasspath"/>
+    </path>
+
+    <path id="test.runtimeclasspath">
+        <!-- need to put this first, otherwise junit-3 testcases can break -->
+        <pathelement location="${ivy.lib.dir}/junit-3.8.1.jar"/>
+        <pathelement location="${build.classes}"/>
+        <pathelement location="${test.src.dir}"/>
+        <pathelement location="${piggybank.jarfile}"/>
+        <path refid="runtimeclasspath"/>
     </path>
 
     <fileset dir="${ivy.lib.dir}" id="core.dependencies.jar">
@@ -530,7 +563,7 @@
        unless="lexerGrammarProcessed"
        description="generates lexer class from an ANTLR grammar">
        <java classname="org.antlr.Tool"
-         classpathref="classpath" fork="true" failonerror="true">
+         classpathref="compileclasspath" fork="true" failonerror="true">
          <arg line="-o ${src.gen.dir}/${grammar.package.dir} ${src.dir}/${grammar.package.dir}/${grammar.name}Lexer.g"/>
        </java>
     </target>
@@ -539,7 +572,7 @@
        unless="parserGrammarProcessed"
        description="generates token parser class from an ANTLR grammar">
        <java classname="org.antlr.Tool"
-         classpathref="classpath" fork="true" failonerror="true">
+         classpathref="compileclasspath" fork="true" failonerror="true">
          <arg line="-o ${src.gen.dir}/${grammar.package.dir} ${src.dir}/${grammar.package.dir}/${grammar.name}Parser.g"/>
        </java>
     </target>
@@ -548,7 +581,7 @@
        unless="treeGrammarProcessed"
        description="generates tree parser class from an ANTLR grammar">
        <java classname="org.antlr.Tool"
-         classpathref="classpath" fork="true" failonerror="true">
+         classpathref="compileclasspath" fork="true" failonerror="true">
          <arg line="-o ${src.gen.dir}/${grammar.package.dir} ${src.dir}/${grammar.package.dir}/AstPrinter.g ${src.dir}/${grammar.package.dir}/AliasMasker.g ${src.dir}/${grammar.package.dir}/AstValidator.g ${src.dir}/${grammar.package.dir}/LogicalPlanGenerator.g"/>
        </java>
     </target>
@@ -576,7 +609,7 @@
         <echo>*** Else, you will only be warned about deprecations ***</echo>
         <echo>*** Hadoop version used: ${hadoopversion} ; HBase version used: ${hbaseversion} ; Spark version used: ${sparkversion} ; Hive version used: ${hiveversion} ***</echo>
         <compileSources sources="${src.dir};${src.gen.dir};${src.lib.dir}/bzip2;${src.shims.dir};${src.hive.shims.dir}"
-            excludes="${src.exclude.dir}" dist="${build.classes}" cp="classpath" warnings="${javac.args.warnings}" />
+            excludes="${src.exclude.dir}" dist="${build.classes}" cp="compileclasspath" warnings="${javac.args.warnings}" />
         <copy todir="${build.classes}/META-INF">
             <fileset dir="${src.dir}/META-INF" includes="**"/>
         </copy>
@@ -588,7 +621,7 @@
         <echo>*** Else, you will only be warned about deprecations ***</echo>
         <compileSources sources="${test.src.dir};${src.shims.test.dir}"
             excludes="**/PigTestLoader.java **/resources/** perf/** ${src.exclude.dir}"
-            dist="${test.build.classes}" cp="test.classpath" warnings="${javac.args.warnings}" />
+            dist="${test.build.classes}" cp="test.compileclasspath" warnings="${javac.args.warnings}" />
         <copy file="${basedir}/test/hbase-site.xml" tofile="${test.build.classes}/hbase-site.xml"/>
         <ivy:cachepath pathid="mr-apps-test-ivy.classpath" conf="test" />
         <path id="mr-apps-test.classpath">
@@ -994,7 +1027,7 @@
                 <pathelement location="${test.build.classes}" />
                 <pathelement location="." />
                 <pathelement path="${clover.jar}"/>
-                <path refid="test.classpath"/>
+                <path refid="test.runtimeclasspath"/>
             </classpath>
             <formatter type="${test.junit.output.format}" />
 

@@ -34,7 +34,7 @@ import org.apache.hadoop.hive.ql.io.sarg.SearchArgument;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.apache.log4j.SimpleLayout;
+import org.apache.log4j.PatternLayout;
 import org.apache.pig.Expression;
 import org.apache.pig.Expression.OpType;
 import org.apache.pig.PigServer;
@@ -112,7 +112,7 @@ public class TestOrcStoragePushdown {
         Logger logger = Logger.getLogger(ColumnPruneVisitor.class);
         logger.removeAllAppenders();
         logger.setLevel(Level.INFO);
-        SimpleLayout layout = new SimpleLayout();
+        PatternLayout layout = new PatternLayout();
         logFile = File.createTempFile("log", "");
         FileAppender appender = new FileAppender(layout, logFile.toString(), false, false, 0);
         logger.addAppender(appender);

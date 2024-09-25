@@ -28,6 +28,8 @@ PIG-5438: Update SparkCounter.Accumulator to AccumulatorV2 (knoguchi)
 PIG-5439: Support Spark 3 and drop SparkShim (knoguchi)
 
 PIG-5455: Upgrade Hadoop to 3.3.6 and Tez to 0.10.3 (knoguchi)
+
+PIG-5456: Upgrade Spark to 3.4.3 (knoguchi)
  
 OPTIMIZATIONS
  

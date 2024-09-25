@@ -59,7 +59,6 @@ import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
-import org.apache.log4j.SimpleLayout;
 import org.apache.log4j.WriterAppender;
 import org.apache.pig.ExecType;
 import org.apache.pig.ExecTypeProvider;
@@ -1111,7 +1110,7 @@ public class Util {
         Logger logger = Logger.getLogger(clazz);
         logger.removeAllAppenders();
         logger.setLevel(Level.DEBUG);
-        SimpleLayout layout = new SimpleLayout();
+        PatternLayout layout = new PatternLayout();
         File newLogFile = File.createTempFile("log", "");
         FileAppender appender = new FileAppender(layout, newLogFile.toString(),
                         false, false, 0);
