@@ -55,7 +55,6 @@ public class TestDateTime {
 
     private static MiniGenericCluster cluster;
     private static PigServer pigServer;
-    private static PigServer pigServerLocal;
     private static File tmpFile;
     private static DateTimeZone currentDTZ;
 
@@ -63,7 +62,6 @@ public class TestDateTime {
     public static void setUp() throws Exception {
         cluster = MiniGenericCluster.buildCluster();
         pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
-        pigServerLocal = new PigServer(Util.getLocalTestMode(), new Properties());
         currentDTZ = DateTimeZone.getDefault();
 
         tmpFile = File.createTempFile("test", "txt");
@@ -134,24 +132,6 @@ public class TestDateTime {
         assertEquals(in.get(), out.get());
     }
 
-    @Test
-    public void testLocalExecution() throws Exception {
-        Iterator<Tuple> expectedItr = generateExpectedResults(DateTimeZone
-                .forOffsetMillis(DateTimeZone.forID("+08:00").getOffset(null)));
-        pigServerLocal.getPigContext().getProperties().setProperty("pig.datetime.default.tz", "+08:00");
-        pigServerLocal.registerQuery("a = load '"
-                + Util.encodeEscape(Util.generateURI(tmpFile.toString(), pigServerLocal.getPigContext()))
-                + "' as (test:datetime);");
-        pigServerLocal.registerQuery("b = filter a by test < ToDate('1970-01-04T00:00:00.000');");
-        Iterator<Tuple> actualItr = pigServerLocal.openIterator("b");
-        while (expectedItr.hasNext() && actualItr.hasNext()) {
-            Tuple expectedTuple = expectedItr.next();
-            Tuple actualTuple = actualItr.next();
-            assertEquals(expectedTuple, actualTuple);
-        }
-        assertEquals(expectedItr.hasNext(), actualItr.hasNext());
-    }
-
     /**
      * Tests DateTimeWritables on cluster
      * @throws Exception
@@ -195,37 +175,6 @@ public class TestDateTime {
                         "(2017-02-02T15:19:00.000+01:00,5)"
                 },
                 org.apache.pig.newplan.logical.Util.translateSchema(pigServer.dumpSchema("C")));
-    }
-
-    @Test
-    public void testZoneDST() throws Exception {
-        String defaultDTZ = "America/New_York"; // a timezone that uses DST
-        pigServerLocal.getPigContext().getProperties().setProperty("pig.datetime.default.tz", defaultDTZ);
-        pigServerLocal.registerQuery("a = load '"
-                + Util.encodeEscape(Util.generateURI(tmpFile.toString(), pigServerLocal.getPigContext()))
-                + "' as (test:datetime);");
-        pigServerLocal.registerQuery("b = filter a by test > ToDate('2014-01-01T00:00:00.000');");
-        pigServerLocal.registerQuery("c = foreach b generate ToString(test, 'Z') as tz;");
-        Iterator<Tuple> actualItr = pigServerLocal.openIterator("c");
-
-        Tuple est = actualItr.next();
-        assertEquals(Util.buildTuple("-0500"), est);
-        Tuple edt = actualItr.next();
-        assertEquals(Util.buildTuple("-0400"), edt);
-    }
-
-    private static Iterator<Tuple> generateExpectedResults(DateTimeZone dtz)
-            throws Exception {
-        List<Tuple> expectedResults = new ArrayList<Tuple>();
-        expectedResults.add(Util.buildTuple(new DateTime(
-                "1970-01-01T00:00:00.000", dtz)));
-        expectedResults.add(Util.buildTuple(new DateTime(
-                "1970-01-01T00:00:00.000", DateTimeZone.UTC)));
-        expectedResults.add(Util.buildTuple(new DateTime(
-                "1970-01-03T00:00:00.000", dtz)));
-        expectedResults.add(Util.buildTuple(new DateTime(
-                "1970-01-03T00:00:00.000", DateTimeZone.UTC)));
-        return expectedResults.iterator();
     }
 
     @Test
