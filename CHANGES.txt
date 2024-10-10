@@ -23,6 +23,8 @@ Trunk (unreleased changes)
 INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
+PIG-5462: Always update Owasp version to latest (knoguchi)
+
 PIG-5461: E2E environment variables ignored (knoguchi)
 
 PIG-5460: Allow Tez to be launched from mapreduce job (knoguchi)
