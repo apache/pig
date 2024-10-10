@@ -1531,7 +1531,8 @@
                           projectname="Pig"
                           reportoutputdirectory="${build.dir}/owasp"
                           reportformat="ALL"
-                          failBuildOnCVSS="0">
+                          failBuildOnCVSS="0"
+                          suppressionFile="conf/owasp-dependency-check-suppressions.xml">
 
             <fileset dir="${ivy.lib.dir}">
                 <include name="**/*.jar"/>

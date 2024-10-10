@@ -1,0 +1,29 @@
+<?xml version="1.0" ?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+<suppress>
+   <notes><![CDATA[
+   file name: hadoop-shim-0.10.3.jar.
+   This is NOT Hadoop version 0.10.3 but thin shim layer for Tez.
+   ]]></notes>
+   <packageUrl regex="true">^pkg:maven/org\.apache\.tez/hadoop-shim@.*$</packageUrl>
+   <cpe>cpe:/a:apache:hadoop</cpe>
+</suppress>
+<suppress>
+   <notes><![CDATA[
+   file name: hbase-hadoop2-compat-2.5.10.jar
+   This is NOT Hadoop 2.5.10.  It's a thin shim layer for hbase.
+   ]]></notes>
+   <packageUrl regex="true">^pkg:maven/org\.apache\.hbase/hbase-hadoop2-compat@.*$</packageUrl>
+   <cpe>cpe:/a:apache:hadoop</cpe>
+</suppress>
+<suppress>
+   <notes><![CDATA[
+   file name: hbase-protocol-shaded-2.4.18.jar (shaded: com.fasterxml.jackson.core:jackson-databind:2.4.0)
+   We are not pulling jackson-databind-2.4.0 with this shaded jar.
+   ]]></notes>
+   <packageUrl regex="true">^pkg:maven/com\.fasterxml\.jackson\.core/jackson-databind@.*$</packageUrl>
+   <cpe>cpe:/a:fasterxml:jackson-databind:2.4.0</cpe>
+   <cpe>cpe:/a:fasterxml:jackson-modules-java8:2.4.0</cpe>
+   <vulnerabilityName regex="true"></vulnerabilityName>
+</suppress>
+</suppressions>
