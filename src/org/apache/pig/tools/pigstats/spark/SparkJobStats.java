@@ -21,6 +21,8 @@ package org.apache.pig.tools.pigstats.spark;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.Counters;
 import org.apache.pig.PigWarning;
@@ -42,6 +44,7 @@ import org.apache.spark.executor.TaskMetrics;
 import com.google.common.collect.Maps;
 
 public class SparkJobStats extends JobStats {
+    private static final Log LOG = LogFactory.getLog(SparkJobStats.class);
 
     private int jobId;
     private Map<String, Long> stats = Maps.newLinkedHashMap();
@@ -106,9 +109,10 @@ public class SparkJobStats extends JobStats {
         if (jobStatisticCollector != null) {
             Map<String, List<TaskMetrics>> taskMetrics = jobStatisticCollector.getJobMetric(jobId);
             if (taskMetrics == null) {
-                throw new RuntimeException("No task metrics available for jobId " + jobId);
+                LOG.warn("No task metrics available for jobId " + jobId);
+            } else {
+                stats = combineTaskMetrics(taskMetrics);
             }
-            stats = combineTaskMetrics(taskMetrics);
         }
     }
 

@@ -36,6 +36,8 @@ PIG-5457: Upgrade Zookeeper to 3.7.2 (from 3.5.7)  (knoguchi)
 OPTIMIZATIONS
  
 BUG FIXES
+PIG-5449: TestEmptyInputDir failing on pig-on-spark3 (knoguchi)
+
 PIG-5459: Jython_Checkin_3 e2e failing with NoClassDefFoundError (hadoop3) (knoguchi)
 
 PIG-5416: Spark unit tests failing randomly with "java.lang.RuntimeException: Unexpected job execution status RUNNING" (knoguchi)
