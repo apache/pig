@@ -52,6 +52,7 @@ import org.apache.orc.impl.HadoopShims;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import io.airlift.compress.Decompressor;
+import org.threeten.extra.chrono.AccountingDate;
 
 import org.joda.time.DateTime;
 
@@ -91,7 +92,7 @@ public class HiveShims {
                 org.apache.hadoop.hive.shims.HadoopShims.class, HadoopShimsSecure.class, DateWritable.class,
                 hadoopVersionShimsClass, Input.class, org.apache.orc.OrcFile.class,
                 com.esotericsoftware.minlog.Log.class, org.apache.orc.impl.HadoopShims.class,
-                io.airlift.compress.Decompressor.class};
+                io.airlift.compress.Decompressor.class, org.threeten.extra.chrono.AccountingDate.class};
     }
 
     public static Class[] getHiveUDFDependentClasses(Class hadoopVersionShimsClass) {

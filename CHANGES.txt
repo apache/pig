@@ -46,6 +46,8 @@ PIG-5457: Upgrade Zookeeper to 3.7.2 (from 3.5.7)  (knoguchi)
 OPTIMIZATIONS
  
 BUG FIXES
+PIG-5451: Pig-on-Spark3 E2E Orc_Pushdown_5 failing (knoguchi)
+
 PIG-5463: Pig on Tez TestDateTime.testLocalExecution failing on hadoop3/tez-0.10 (knoguchi)
 
 PIG-5449: TestEmptyInputDir failing on pig-on-spark3 (knoguchi)

@@ -51,7 +51,7 @@ public abstract class TestLoaderStorerShipCacheFiles {
             String[] expectedJars = new String[] {"hive-common", "hive-exec", "hive-serde",
                     "hive-shims-0.23", "hive-shims-common", "orc-core",
                     "hive-storage-api", "kryo", "minlog",
-                    "orc-shims","aircompressor"
+                    "orc-shims","aircompressor","threeten-extra"
             };
 
             checkPlan(pp, expectedJars, expectedJars.length, pigServer.getPigContext());
@@ -74,7 +74,7 @@ public abstract class TestLoaderStorerShipCacheFiles {
             String[] expectedJars = new String[] {"hive-common", "hive-exec", "hive-serde",
                     "hive-shims-0.23", "hive-shims-common", "orc-core",
                     "hive-storage-api", "kryo", "minlog",
-                    "orc-shims", "aircompressor"
+                    "orc-shims","aircompressor","threeten-extra"
             };
 
             checkPlan(pp, expectedJars, expectedJars.length, pigServer.getPigContext());

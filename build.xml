@@ -397,6 +397,9 @@
         <fileset dir="${ivy.lib.dir}">
             <include name="*.jar"/>
             <exclude name="reload4j*.jar" if="isSpark3"/>
+            <exclude name="orc-core*.jar" if="isSpark3"/>
+            <exclude name="orc-shim*.jar" if="isSpark3"/>
+            <exclude name="threeten*.jar" if="isSpark3"/>
         </fileset>
         <fileset dir="${ivy.lib.dir.spark}">
             <include name="*.jar" if="isSpark"/>
@@ -839,6 +842,7 @@
             <fileset dir="${ivy.lib.dir}" includes="tez-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="commons-collections4-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="orc-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="threeten-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="aircompressor-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="junit-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="hamcrest-*.jar"/>

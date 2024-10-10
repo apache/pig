@@ -684,6 +684,15 @@
     <dependency org="org.apache.logging.log4j" name="log4j-api"         rev="2.23.1" conf="spark3->default"/>
     <dependency org="org.apache.logging.log4j" name="log4j-1.2-api"     rev="2.23.1" conf="spark3->default"/>
 
+    <dependency org="org.apache.orc" name="orc-core" rev="1.8.7" conf="spark3->default">
+        <artifact name="orc-core" m:classifier="shaded-protobuf"/>
+    </dependency>
+    <dependency org="org.apache.orc" name="orc-mapreduce" rev="1.8.7" conf="spark3->default">
+        <artifact name="orc-mapreduce" m:classifier="shaded-protobuf"/>
+    </dependency>
+
+
+
     <dependency org="org.apache.spark" name="spark-yarn_${spark3-scala.version}" rev="${spark3.version}" conf="spark3->default">
       <exclude org="org.apache.hadoop" />
       <exclude org="com.google.protobuf" name="protobuf-java" />

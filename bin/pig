@@ -157,7 +157,7 @@ if [ "$isSparkMode"  == "true" ]; then
         sparkversion="2"
     else
         sparkversion="3"
-        EXPANDJAR="!(reload4j*).*.jar"
+        EXPANDJAR="!(reload4j*|orc-core*|orc-shim*|threeten-extra*).*.jar"
     fi
 fi
 
