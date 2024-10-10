@@ -108,7 +108,9 @@
       conf="hadoop2->master;hadoop3->master"/>
     <dependency org="com.google.re2j" name="re2j" rev="${re2j.version}"
       conf="hadoop3->master" />
-    <dependency org="com.codahale.metrics" name="metrics-core" rev="${codahale.metrics-core.version}"
+    <dependency org="com.codahale.metrics" name="metrics-core" rev="${metrics-core.version}"
+      conf="hadoop2->master"/>
+    <dependency org="io.dropwizard.metrics" name="metrics-core" rev="${metrics-core.version}"
       conf="hadoop3->master"/>
 
     <!-- Hadoop 2 dependencies -->
@@ -522,8 +524,6 @@
 
     <!-- for TestHBaseStorage -->
     <dependency org="org.apache.hbase" name="hbase-procedure" rev="${hbase1.version}" conf="test->master"/>
-    <dependency org="com.yammer.metrics" name="metrics-core" rev="${metrics-core.version}"
-       conf="test->default"/>
 
     <!-- Dependency for Accumulo{Input,Output}Format -->
     <dependency org="org.apache.accumulo" name="accumulo-core" rev="${accumulo.version}" conf="compile->default">
