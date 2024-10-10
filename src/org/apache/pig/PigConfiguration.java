@@ -527,4 +527,13 @@ public class PigConfiguration {
 
     public static final String PIG_PRINT_EXEC_PLAN = "pig.print.exec.plan";
 
+    /**
+     * If GC is not explicitly set, default to parallelGC
+     */
+    public static final String PIG_GC_PARAMS = "pig.gc.default.params";
+
+    public static final String PIG_GC_PARAMS_DEFAULT = "-XX:+UseParallelGC";
+
+    public static final String PIG_GC_PATTERN = "-XX:\\+Use[a-zA-Z0-9_]+GC";
+
 }

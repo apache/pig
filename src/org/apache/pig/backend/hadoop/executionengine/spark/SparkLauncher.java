@@ -177,6 +177,10 @@ public class SparkLauncher extends Launcher {
         if (LOG.isDebugEnabled()) {
             LOG.debug(sparkplan);
         }
+
+        addGCParams(pigContext.getProperties(),
+                    org.apache.spark.launcher.SparkLauncher.EXECUTOR_EXTRA_JAVA_OPTIONS, false);
+
         SparkPigStats sparkStats = (SparkPigStats) pigContext
                 .getExecutionEngine().instantiatePigStats();
         sparkStats.initialize(pigContext, sparkplan, jobConf);
