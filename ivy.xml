@@ -564,6 +564,7 @@
     <dependency org="org.apache.accumulo" name="accumulo-tserver" rev="${accumulo.version}" conf="hadoop3->master"/>
     <dependency org="org.apache.accumulo" name="accumulo-master" rev="${accumulo.version}" conf="hadoop3->master"/>
     <dependency org="org.apache.accumulo" name="accumulo-gc" rev="${accumulo.version}" conf="hadoop3->master"/>
+    <dependency org="org.apache.accumulo" name="accumulo-trace" rev="${accumulo.version}" conf="hadoop3->master"/>
 
     <!-- for piggybank -->
     <dependency org="org.hsqldb" name="hsqldb" rev="${hsqldb.version}"
