@@ -242,6 +242,12 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             }
         }
 
+        String tokenFile = System.getenv("HADOOP_TOKEN_FILE_LOCATION");
+        if(tokenFile != null && globalConf.get(MRConfiguration.JOB_CREDENTIALS_BINARY) == null) {
+            globalConf.set(MRConfiguration.JOB_CREDENTIALS_BINARY, tokenFile);
+            globalConf.set("tez.credentials.path", tokenFile);
+        }
+
         // Add credentials from binary token file and get tokens for namenodes
         // specified in mapreduce.job.hdfs-servers
         SecurityHelper.populateTokenCache(globalConf, dag.getCredentials());

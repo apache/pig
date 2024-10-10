@@ -23,6 +23,8 @@ Trunk (unreleased changes)
 INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
+PIG-5460: Allow Tez to be launched from mapreduce job (knoguchi)
+
 PIG-5454: Make ParallelGC the default Garbage Collection (knoguchi)
 
 PIG-5438: Update SparkCounter.Accumulator to AccumulatorV2 (knoguchi)
