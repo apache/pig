@@ -405,7 +405,7 @@
 
     <dependency org="org.mockito" name="mockito-all" rev="${mockito.version}" conf="test->default"/>
 
-    <dependency org="com.twitter" name="parquet-pig-bundle" rev="${parquet-pig-bundle.version}" conf="compile->master"/>
+    <dependency org="org.apache.parquet" name="parquet-pig-bundle" rev="${parquet-pig-bundle.version}" conf="compile->master"/>
 
     <!-- for Spark integration -->
     <dependency org="org.apache.spark" name="spark-core_2.11" rev="${spark.version}" conf="spark->default">

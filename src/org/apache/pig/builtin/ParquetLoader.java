@@ -27,7 +27,7 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.JarManager;
 
 /**
- * Wrapper class which will delegate calls to parquet.pig.ParquetLoader
+ * Wrapper class which will delegate calls to org.apache.parquet.pig.ParquetLoader
  */
 public class ParquetLoader extends LoadFuncMetadataWrapper implements LoadPushDown {
 
@@ -37,12 +37,12 @@ public class ParquetLoader extends LoadFuncMetadataWrapper implements LoadPushDo
     
     public ParquetLoader(String requestedSchemaStr) throws FrontendException {
         try {
-            init(new parquet.pig.ParquetLoader(requestedSchemaStr));
+            init(new org.apache.parquet.pig.ParquetLoader(requestedSchemaStr));
         }
         // if compile time dependency not found at runtime
         catch (NoClassDefFoundError e) {
             throw new FrontendException(String.format("Cannot instantiate class %s (%s)",
-                    getClass().getName(), "parquet.pig.ParquetLoader"), 2259, e);
+                    getClass().getName(), "org.apache.parquet.pig.ParquetLoader"), 2259, e);
         }
     }
     
@@ -52,7 +52,7 @@ public class ParquetLoader extends LoadFuncMetadataWrapper implements LoadPushDo
     
     @Override
     public void setLocation(String location, Job job) throws IOException {
-        JarManager.addDependencyJars(job, parquet.Version.class);
+        JarManager.addDependencyJars(job, org.apache.parquet.Version.class);
         super.setLocation(location, job);
     }
 

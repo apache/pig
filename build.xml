@@ -69,7 +69,7 @@
     <property name="javac.debug" value="on" />
     <property name="javac.optimize" value="on" />
     <property name="javac.deprecation" value="off" />
-    <property name="javac.version" value="1.7" />
+    <property name="javac.version" value="1.8" />
     <property name="javac.args" value="" />
     <condition property="javac.args.warnings" value="-Xmaxwarns 1000000 -Xlint -Xlint:-deprecation" else="-Xmaxwarns 1000000">
         <isset property="all.warnings" />
@@ -247,7 +247,7 @@
 
     <property name="asfrepo" value="https://repository.apache.org"/>
     <property name="asfsnapshotrepo" value="${asfrepo}/content/repositories/snapshots"/>
-    <property name="mvnrepo" value="http://repo2.maven.org/maven2"/>
+    <property name="mvnrepo" value="https://repo1.maven.org/maven2"/>
     <property name="asfstagingrepo" value="${asfrepo}/service/local/staging/deploy/maven2"/>
     <property name="staging_repo_id" value="apache.staging.https"/>
     <property name="snapshots_repo_id" value="apache.snapshots.https"/>
