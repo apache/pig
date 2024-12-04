@@ -38,9 +38,9 @@
     <property name="pigsmoke.pom" value="${basedir}/ivy/pigsmoke.pom" />
     <property name="pigunit.pom" value="${basedir}/ivy/pigunit.pom" />
     <property name="piggybank.pom" value="${basedir}/ivy/piggybank.pom" />
-    <property name="pig.version" value="0.17.0" />
-    <property name="pig.version.suffix" value="-SNAPSHOT" />
-    <property name="version" value="${pig.version}${pig.version.suffix}" />
+    <property name="pig.version" value="0.17" />
+    <property name="pig.version.patch" value="1" />
+    <property name="version" value="${pig.version}.${pig.version.patch}" />
     <property name="final.name" value="${name}-${version}" />
     <property name="year" value="2007-2017" />
 
@@ -84,13 +84,12 @@
 
     <!-- jar names. TODO we might want to use the svn reversion name in the name in case it is a dev version -->
     <property name="output.jarfile.withouthadoop" value="${build.dir}/${final.name}-withouthadoop.jar" />
-    <property name="output.jarfile.withouthadoop-h2" value="${legacy.dir}/${final.name}-withouthadoop-h2.jar" />
     <property name="output.jarfile.core" value="${build.dir}/${artifact.pig.jar}" />
     <property name="output.jarfile.core-h2" value="${build.dir}/${artifact.pig-h2.jar}" />
     <property name="output.jarfile.sources" value="${build.dir}/${artifact.pig-sources.jar}" />
     <property name="output.jarfile.javadoc" value="${build.dir}/${artifact.pig-javadoc.jar}" />
     <!-- Maintain old pig.jar in top level directory. -->
-    <property name="output.jarfile.backcompat-core-h2" value="${basedir}/${final.name}-core-h2.jar" />
+    <property name="output.jarfile.backcompat-core-h2" value="${basedir}/${final.name}.jar" />
 
     <!-- test properties -->
     <condition property="test.exec.type" value="${exectype}" else="mr">
