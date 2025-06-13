@@ -23,6 +23,22 @@ Trunk (unreleased changes)
 INCOMPATIBLE CHANGES
  
 IMPROVEMENTS
+ 
+OPTIMIZATIONS
+ 
+BUG FIXES
+
+
+Release 0.18.0 - Unreleased
+ 
+INCOMPATIBLE CHANGES
+
+PIG-5282: Upgrade to Java 8 (satishsaley via rohini)
+ 
+IMPROVEMENTS
+
+PIG-5419: Upgrade Joda time version (vnarayanan7 via rohini)
+
 PIG-5465: Owasp filter out false positives (knoguchi)
 
 PIG-5420: Update accumulo dependency to 1.10.4 (knoguchi)
@@ -43,40 +59,7 @@ PIG-5455: Upgrade Hadoop to 3.3.6 and Tez to 0.10.3 (knoguchi)
 
 PIG-5456: Upgrade Spark to 3.4.3 (knoguchi)
 
-PIG-5457: Upgrade Zookeeper to 3.7.2 (from 3.5.7)  (knoguchi)
- 
-OPTIMIZATIONS
- 
-BUG FIXES
-PIG-5458: Update metrics-core.version (knoguchi)
-
-PIG-5451: Pig-on-Spark3 E2E Orc_Pushdown_5 failing (knoguchi)
-
-PIG-5463: Pig on Tez TestDateTime.testLocalExecution failing on hadoop3/tez-0.10 (knoguchi)
-
-PIG-5449: TestEmptyInputDir failing on pig-on-spark3 (knoguchi)
-
-PIG-5459: Jython_Checkin_3 e2e failing with NoClassDefFoundError (hadoop3) (knoguchi)
-
-PIG-5416: Spark unit tests failing randomly with "java.lang.RuntimeException: Unexpected job execution status RUNNING" (knoguchi)
-
-PIG-5447: Pig-on-Spark TestSkewedJoin.testSkewedJoinOuter failing with NoSuchElementException (knoguchi)
-
-PIG-5448: All TestHBaseStorage tests failing on pig-on-spark3 (knoguchi)
-
-PIG-5446: Tez TestPigProgressReporting.testProgressReportingWithStatusMessage failing (knoguchi)
-
-PIG-5450: Pig-on-Spark3 E2E ORC test failing with java.lang.VerifyError: Bad return type (knoguchi)
-
-PIG-5452: Null handling of FLATTEN with user defined schema (as clause) (knoguchi)
-
-Release 0.18.0 - Unreleased
- 
-INCOMPATIBLE CHANGES
-
-PIG-5282: Upgade to Java 8 (satishsaley via rohini)
- 
-IMPROVEMENTS
+PIG-5457: Upgrade Zookeeper to 3.7.2 (from 3.5.7) (knoguchi)
 
 PIG-5437: Add lib and idea folder to .gitignore (maswin via rohini)
 
@@ -175,6 +158,28 @@ PIG-5251: Bump joda-time to 2.9.9 (dbist13 via rohini)
 OPTIMIZATIONS
  
 BUG FIXES
+
+PIG-5458: Update metrics-core.version (knoguchi)
+
+PIG-5451: Pig-on-Spark3 E2E Orc_Pushdown_5 failing (knoguchi)
+
+PIG-5463: Pig on Tez TestDateTime.testLocalExecution failing on hadoop3/tez-0.10 (knoguchi)
+
+PIG-5449: TestEmptyInputDir failing on pig-on-spark3 (knoguchi)
+
+PIG-5459: Jython_Checkin_3 e2e failing with NoClassDefFoundError (hadoop3) (knoguchi)
+
+PIG-5416: Spark unit tests failing randomly with "java.lang.RuntimeException: Unexpected job execution status RUNNING" (knoguchi)
+
+PIG-5447: Pig-on-Spark TestSkewedJoin.testSkewedJoinOuter failing with NoSuchElementException (knoguchi)
+
+PIG-5448: All TestHBaseStorage tests failing on pig-on-spark3 (knoguchi)
+
+PIG-5446: Tez TestPigProgressReporting.testProgressReportingWithStatusMessage failing (knoguchi)
+
+PIG-5450: Pig-on-Spark3 E2E ORC test failing with java.lang.VerifyError: Bad return type (knoguchi)
+
+PIG-5452: Null handling of FLATTEN with user defined schema (as clause) (knoguchi)
 
 PIG-5440: Extra jars needed for hive3 (knoguchi via rohini)
 
