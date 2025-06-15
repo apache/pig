@@ -273,7 +273,6 @@
     <property name="ivy.lib.dir.spark" location="${ivy.lib.dir}/spark" />
     <property name="build.ivy.report.dir" location="${build.ivy.dir}/report" />
     <property name="build.ivy.maven.dir" location="${build.ivy.dir}/maven" />
-    <property name="build.ivy.owasp.dir" location="${build.ivy.dir}/owasp" />
     <property name="pom.xml" location="${build.ivy.maven.dir}/pom.xml"/>
     <property name="build.ivy.maven.pom" location="${build.ivy.maven.dir}/pig-${version}.pom" />
     <property name="build.ivy.maven.jar" location="${build.ivy.maven.dir}/pig-${version}-core.jar" />
@@ -291,6 +290,11 @@
 
     <!--this is how artifacts that get built are named-->
     <property name="ivy.publish.pattern" value="[artifact]-[revision].[ext]"/>
+
+    <!-- owasp properties -->
+    <property name="build.ivy.owasp.dir" location="${build.ivy.dir}/owasp" />
+    <property name="owasp.data.directory" location=""/>
+    <property name="owasp.auto.update" value="true" />
 
     <!-- jdiff properties -->
     <property name="jdiff.jar" value="${ivy.lib.dir}/jdiff-${jdiff.version}.jar"/>
@@ -1219,10 +1223,6 @@
             <fileset dir="${basedir}/shims" />
         </copy>
 
-        <copy todir="${tar.dist.dir}/hive-shims" includeEmptyDirs="true">
-            <fileset dir="${basedir}/hive-shims" />
-        </copy>
-
         <copy todir="${tar.dist.dir}/lib-src" includeEmptyDirs="true">
             <fileset dir="${src.lib.dir}" />
         </copy>
@@ -1532,6 +1532,8 @@
                           reportoutputdirectory="${build.dir}/owasp"
                           reportformat="ALL"
                           failBuildOnCVSS="0"
+                          autoUpdate="${owasp.auto.update}"
+                          dataDirectory="${owasp.data.directory}"
                           suppressionFile="conf/owasp-dependency-check-suppressions.xml">
 
             <fileset dir="${ivy.lib.dir}">
