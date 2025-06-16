@@ -18,18 +18,8 @@
 
 Pig Change Log
 
-Trunk (unreleased changes)
- 
-INCOMPATIBLE CHANGES
- 
-IMPROVEMENTS
- 
-OPTIMIZATIONS
- 
-BUG FIXES
 
-
-Release 0.18.0 - Unreleased
+Release 0.18.0
  
 INCOMPATIBLE CHANGES
 
