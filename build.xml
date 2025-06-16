@@ -1298,7 +1298,7 @@
                 <include name="lib-src/**"/>
                 <include name="license/**"/>
                 <include name="shims/**"/>
-                <include name="hive-shims/**"/>
+                <include name="shade/**"/>
                 <include name="src/**"/>
                 <include name="test/**"/>
                 <exclude name="test/**/*.jar"/>
