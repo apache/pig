@@ -27,6 +27,7 @@ import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -44,11 +45,11 @@ import org.apache.pig.data.InterSedes;
 import org.apache.pig.data.InterSedesFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.io.InterRecordReader;
 import org.apache.pig.impl.util.TupleFormat;
 import org.junit.Test;
-import org.mockito.internal.util.reflection.Whitebox;
 
 public class TestBinInterSedes {
     private static final TupleFactory mTupleFactory = TupleFactory.getInstance();
@@ -453,7 +454,17 @@ public class TestBinInterSedes {
     @Test
     public void testPrefixSyncMarkers() throws Exception {
         long defaultInterval = PigConfiguration.PIG_INTERSTORAGE_SYNCMARKER_INTERVAL_DEFAULT;
-
+        ClassLoader classloader = PigContext.getClassLoader();
+        Class <?> klazz;
+        try {
+            klazz = PigContext.resolveClassName("org.mockito.internal.util.reflection.Whitebox");
+        } catch (Exception ex) {
+            klazz = PigContext.resolveClassName("org.apache.hadoop.test.Whitebox");
+        }
+        if( klazz == null ) {
+            throw new Exception("No Whitebox class found.");
+        }
+        Method method = klazz.getMethod("setInternalState", Object.class, String.class, Object.class);
         for (int b0 = -128; b0 <= 127; b0++) {
             for (int b1 = -128; b1 <= 127; b1++) {
                 for (int b2 = -128; b2 <= 127; b2++) {
@@ -464,9 +475,9 @@ public class TestBinInterSedes {
                     BufferedPositionedInputStream bpi = new BufferedPositionedInputStream(bi);
 
                     InterRecordReader reader = new InterRecordReader(syncMarker.length, defaultInterval);
-                    Whitebox.setInternalState(reader, "syncMarker", syncMarker);
-                    Whitebox.setInternalState(reader, "end", data.length);
-                    Whitebox.setInternalState(reader, "in", bpi);
+                    method.invoke(null, reader, "syncMarker", syncMarker);
+                    method.invoke(null, reader, "end", data.length);
+                    method.invoke(null, reader, "in", bpi);
 
                     try {
                         boolean ret = reader.skipUntilMarkerOrSplitEndOrEOF();

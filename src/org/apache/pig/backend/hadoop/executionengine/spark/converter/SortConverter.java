@@ -24,7 +24,6 @@ import java.util.List;
 
 import org.apache.pig.backend.hadoop.executionengine.spark.FlatMapFunctionAdapter;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkPigContext;
-import org.apache.pig.backend.hadoop.executionengine.spark.SparkShims;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import scala.Tuple2;
 import scala.runtime.AbstractFunction1;
@@ -58,7 +57,7 @@ public class SortConverter implements RDDConverter<Tuple, Tuple, POSort> {
 
         JavaPairRDD<Tuple, Object> sorted = r.sortByKey(
                 sortOperator.getMComparator(), true, parallelism);
-        JavaRDD<Tuple> mapped = sorted.mapPartitions(SparkShims.getInstance().flatMapFunction(TO_VALUE_FUNCTION));
+        JavaRDD<Tuple> mapped = sorted.mapPartitions(SparkUtil.flatMapFunction(TO_VALUE_FUNCTION));
 
         return mapped.rdd();
     }

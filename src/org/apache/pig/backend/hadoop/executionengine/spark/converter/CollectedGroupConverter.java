@@ -25,7 +25,6 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCollectedGroup;
 import org.apache.pig.backend.hadoop.executionengine.spark.FlatMapFunctionAdapter;
-import org.apache.pig.backend.hadoop.executionengine.spark.SparkShims;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.data.Tuple;
 import org.apache.spark.rdd.RDD;
@@ -40,8 +39,8 @@ public class CollectedGroupConverter implements RDDConverter<Tuple, Tuple, POCol
         RDD<Tuple> rdd = predecessors.get(0);
         CollectedGroupFunction collectedGroupFunction
                 = new CollectedGroupFunction(physicalOperator);
-        return rdd.toJavaRDD().mapPartitions(SparkShims.getInstance().flatMapFunction(collectedGroupFunction), true)
-                .rdd();
+        return rdd.toJavaRDD().mapPartitions(
+              SparkUtil.flatMapFunction(collectedGroupFunction), true).rdd();
     }
 
     private static class CollectedGroupFunction

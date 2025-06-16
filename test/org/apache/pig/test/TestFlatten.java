@@ -142,7 +142,7 @@ public class TestFlatten {
         );
 
         pig.setBatchOn();
-        pig.registerQuery("A = load 'input' using mock.Storage() as (bag1:bag {(a1_1:int, a1_2:chararray)}, bag2:bag{(a2_1:chararray, a2_2:chararray)});");
+        pig.registerQuery("A = load 'input' using mock.Storage() as (bag1:bag {(a1_1:chararray, a1_2:chararray)}, bag2:bag{(a2_1:chararray, a2_2:chararray)});");
         pig.registerQuery("B = foreach A GENERATE FLATTEN(bag1), FLATTEN(bag2);");
         pig.registerQuery("store B into 'output' using mock.Storage();");
         List<ExecJob> execJobs = pig.executeBatch();
@@ -161,7 +161,18 @@ public class TestFlatten {
                 //flatten(null-tuple-from-bag) on schema {(a1_1:int, a1_2:chararray)} also expands to (null, null)
                 "(null, null, '5', '6')", "(null, null, '7', '8')", "('e', 'f', '5', '6')", "('e', 'f', '7', '8')",
                 "('g', 'h', '9', '10')", "('g', 'h', null, null)", "('i', 'j', '9', '10')", "('i', 'j', null, null)" });
+        Util.checkQueryOutputs(actualResults.iterator(), expectedResults);
 
+        //instead of passing the bag with a correct inner schema to flatten, passing one
+        //with empty inner schema but later specifying the inner schema by 'as' clause.
+        pig.registerQuery("A = load 'input' using mock.Storage() as (bag1:bag {}, bag2:bag{});");
+        pig.registerQuery("B = foreach A GENERATE FLATTEN(bag1) as (a1_1:chararray, a1_2:chararray), FLATTEN(bag2) as (a2_1:chararray, a2_2:chararray);");
+        pig.registerQuery("store B into 'output2' using mock.Storage();");
+        execJobs = pig.executeBatch();
+        for( ExecJob execJob : execJobs ) {
+            assertTrue(execJob.getStatus() == ExecJob.JOB_STATUS.COMPLETED );
+        }
+        actualResults = data.get("output2");
         Util.checkQueryOutputs(actualResults.iterator(), expectedResults);
     }
 
@@ -238,6 +249,18 @@ public class TestFlatten {
         List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
                 new String[] {
                 "('a', 'b', '1', '2')", "(null, null, '3', '4')", "('c', 'd', null, null)", "('e', null, null, '5')" });
+        Util.checkQueryOutputs(actualResults.iterator(), expectedResults);
+
+        //instead of passing the tuple with correct inner schema to flatten, passing one
+        //with empty inner schema but later specifying the inner schema by 'as' clause.
+        pig.registerQuery("A = load 'input' using mock.Storage() as (tuple1:tuple(), tuple2:tuple());");
+        pig.registerQuery("B = foreach A GENERATE FLATTEN(tuple1) as (a1:chararray, a2:chararray), FLATTEN(tuple2) as (a3:chararray, a4:chararray);");
+        pig.registerQuery("store B into 'output2' using mock.Storage();");
+        execJobs = pig.executeBatch();
+        for( ExecJob execJob : execJobs ) {
+            assertTrue(execJob.getStatus() == ExecJob.JOB_STATUS.COMPLETED );
+        }
+        actualResults = data.get("output2");
 
         Util.checkQueryOutputs(actualResults.iterator(), expectedResults);
     }

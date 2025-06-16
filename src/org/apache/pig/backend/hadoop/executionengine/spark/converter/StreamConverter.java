@@ -38,7 +38,7 @@ public class StreamConverter implements
         SparkUtil.assertPredecessorSize(predecessors, poStream, 1);
         RDD<Tuple> rdd = predecessors.get(0);
         StreamFunction streamFunction = new StreamFunction(poStream);
-        return rdd.toJavaRDD().mapPartitions(SparkShims.getInstance().flatMapFunction(streamFunction), true).rdd();
+        return rdd.toJavaRDD().mapPartitions(SparkUtil.flatMapFunction(streamFunction), true).rdd();
     }
 
     private static class StreamFunction implements

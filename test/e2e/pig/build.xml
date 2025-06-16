@@ -16,6 +16,7 @@
 -->
 
 <project name="TestHarnessPigTests" default="test">
+  <property environment="env"/>
 
   <property name="pig.dir" value="${basedir}/../../.."/>
   <property name="pig.base.dir" value="${basedir}/../../.."/>
@@ -313,14 +314,15 @@
       <env key="PH_HDFS_BASE" value="${harness.user.home}" />
       <env key="HARNESS_CONF" value="${harness.conf.file}"/>
       <env key="HADOOP_HOME" value="${harness.hadoop.home}"/>
-      <env key="HADOOP_PREFIX" value="${HADOOP_PREFIX}"/>
-      <env key="HADOOP_COMMON_HOME" value="${HADOOP_COMMON_HOME}"/>
-      <env key="HADOOP_HDFS_HOME" value="${HADOOP_HDFS_HOME}"/>
-      <env key="HADOOP_MAPRED_HOME" value="${HADOOP_MAPRED_HOME}"/>
-      <env key="YARN_CONF_DIR" value="${YARN_CONF_DIR}"/>
-      <env key="YARN_HOME" value="${YARN_HOME}"/>
-      <env key="OLD_HADOOP_HOME" value="${OLD_HADOOP_HOME}"/>
-      <env key="PH_OLD_CLUSTER_CONF" value="${PH_OLD_CLUSTER_CONF}"/>
+      <env key="HADOOP_PREFIX" value="${env.HADOOP_PREFIX}"/>
+      <env key="HADOOP_COMMON_HOME" value="${env.HADOOP_COMMON_HOME}"/>
+      <env key="HADOOP_HDFS_HOME" value="${env.HADOOP_HDFS_HOME}"/>
+      <env key="HADOOP_MAPRED_HOME" value="${env.HADOOP_MAPRED_HOME}"/>
+      <env key="HADOOP_QUEUE" value="${env.HADOOP_QUEUE}"/>
+      <env key="YARN_CONF_DIR" value="${env.YARN_CONF_DIR}"/>
+      <env key="YARN_HOME" value="${env.YARN_HOME}"/>
+      <env key="OLD_HADOOP_HOME" value="${env.OLD_HADOOP_HOME}"/>
+      <env key="PH_OLD_CLUSTER_CONF" value="${env.PH_OLD_CLUSTER_CONF}"/>
       <env key="PH_BENCHMARK_CACHE_PATH" value="${PH_BENCHMARK_CACHE_PATH}"/>
       <env key="HCAT_BIN" value="${hcat.bin}"/>
       <env key="PERL5LIB" value="${harness.PERL5LIB}"/>

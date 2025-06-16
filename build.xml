@@ -38,7 +38,7 @@
     <property name="pigsmoke.pom" value="${basedir}/ivy/pigsmoke.pom" />
     <property name="pigunit.pom" value="${basedir}/ivy/pigunit.pom" />
     <property name="piggybank.pom" value="${basedir}/ivy/piggybank.pom" />
-    <property name="pig.version" value="0.18.0" />
+    <property name="pig.version" value="0.19.0" />
     <property name="pig.version.suffix" value="-SNAPSHOT" />
     <property name="version" value="${pig.version}${pig.version.suffix}" />
     <property name="final.name" value="${name}-${version}" />
@@ -222,7 +222,7 @@
             <property name="hadoopversion" value="2" />
         </then>
     </if>
-    <property name="hadoopversion" value="2" />
+    <property name="hadoopversion" value="3" />
 
     <condition property="isHadoop2">
         <equals arg1="${hadoopversion}" arg2="2"/>
@@ -244,13 +244,9 @@
             <property name="hbaseversion" value="1" />
         </then>
     </if>
-    <property name="hbaseversion" value="1" />
-    <property name="sparkversion" value="1" />
-    <property name="hiveversion" value="1" />
-
-    <condition property="src.exclude.dir" value="**/Spark2*.java" else="**/Spark1*.java">
-        <equals arg1="${sparkversion}" arg2="1"/>
-    </condition>
+    <property name="hbaseversion" value="2" />
+    <property name="sparkversion" value="3" />
+    <property name="hiveversion" value="3" />
 
     <loadproperties srcfile="${ivy.dir}/libraries.properties"/>
 
@@ -277,7 +273,6 @@
     <property name="ivy.lib.dir.spark" location="${ivy.lib.dir}/spark" />
     <property name="build.ivy.report.dir" location="${build.ivy.dir}/report" />
     <property name="build.ivy.maven.dir" location="${build.ivy.dir}/maven" />
-    <property name="build.ivy.owasp.dir" location="${build.ivy.dir}/owasp" />
     <property name="pom.xml" location="${build.ivy.maven.dir}/pom.xml"/>
     <property name="build.ivy.maven.pom" location="${build.ivy.maven.dir}/pig-${version}.pom" />
     <property name="build.ivy.maven.jar" location="${build.ivy.maven.dir}/pig-${version}-core.jar" />
@@ -295,6 +290,11 @@
 
     <!--this is how artifacts that get built are named-->
     <property name="ivy.publish.pattern" value="[artifact]-[revision].[ext]"/>
+
+    <!-- owasp properties -->
+    <property name="build.ivy.owasp.dir" location="${build.ivy.dir}/owasp" />
+    <property name="owasp.data.directory" location=""/>
+    <property name="owasp.auto.update" value="true" />
 
     <!-- jdiff properties -->
     <property name="jdiff.jar" value="${ivy.lib.dir}/jdiff-${jdiff.version}.jar"/>
@@ -317,6 +317,20 @@
     <property name="build.dir.eclipse-main-classes" value="${build.classes}"/>
     <property name="build.dir.eclipse-test-classes" value="${test.build.classes}"/>
     <!--property name="build.dir.eclipse-test-generated-classes" value="${build.dir.eclipse}/classes-test-generated"/-->
+
+    <condition property="isSpark">
+        <equals arg1="${test.exec.type}" arg2="spark"/>
+    </condition>
+
+    <condition property="isSpark3">
+        <and>
+            <equals arg1="${test.exec.type}" arg2="spark"/>
+						 <resourcecount when="greater" count="0"> 
+                <fileset dir="${ivy.lib.dir.spark}" includes="spark*-3*.jar"/>
+            </resourcecount>
+        </and>
+    </condition>
+
 
     <condition property="ant-eclipse.jar.exists">
         <available file="${build.dir}/lib/ant-eclipse-1.0-jvm1.2.jar"/>
@@ -377,10 +391,23 @@
     <!-- Stuff needed by all targets                            -->
     <!-- ====================================================== -->
     <!-- setup the classpath -->
-    <path id="classpath">
+    <path id="compileclasspath">
         <fileset file="${ivy.lib.dir}/${zookeeper.jarfile}"/>
         <fileset dir="${ivy.lib.dir}" includes="*.jar"/>
         <fileset dir="${ivy.lib.dir.spark}" includes="*.jar"/>
+    </path>
+    <path id="runtimeclasspath">
+        <fileset file="${ivy.lib.dir}/${zookeeper.jarfile}"/>
+        <fileset dir="${ivy.lib.dir}">
+            <include name="*.jar"/>
+            <exclude name="reload4j*.jar" if="isSpark3"/>
+            <exclude name="orc-core*.jar" if="isSpark3"/>
+            <exclude name="orc-shim*.jar" if="isSpark3"/>
+            <exclude name="threeten*.jar" if="isSpark3"/>
+        </fileset>
+        <fileset dir="${ivy.lib.dir.spark}">
+            <include name="*.jar" if="isSpark"/>
+        </fileset>
     </path>
 
     <!-- javadoc-classpath -->
@@ -388,13 +415,22 @@
         <path refid="javadoc.classpath"/>
     </path>
 
-    <path id="test.classpath">
+    <path id="test.compileclasspath">
         <!-- need to put this first, otherwise junit-3 testcases can break -->
         <pathelement location="${ivy.lib.dir}/junit-3.8.1.jar"/>
         <pathelement location="${build.classes}"/>
         <pathelement location="${test.src.dir}"/>
         <pathelement location="${piggybank.jarfile}"/>
-        <path refid="classpath"/>
+        <path refid="compileclasspath"/>
+    </path>
+
+    <path id="test.runtimeclasspath">
+        <!-- need to put this first, otherwise junit-3 testcases can break -->
+        <pathelement location="${ivy.lib.dir}/junit-3.8.1.jar"/>
+        <pathelement location="${build.classes}"/>
+        <pathelement location="${test.src.dir}"/>
+        <pathelement location="${piggybank.jarfile}"/>
+        <path refid="runtimeclasspath"/>
     </path>
 
     <fileset dir="${ivy.lib.dir}" id="core.dependencies.jar">
@@ -534,7 +570,7 @@
        unless="lexerGrammarProcessed"
        description="generates lexer class from an ANTLR grammar">
        <java classname="org.antlr.Tool"
-         classpathref="classpath" fork="true" failonerror="true">
+         classpathref="compileclasspath" fork="true" failonerror="true">
          <arg line="-o ${src.gen.dir}/${grammar.package.dir} ${src.dir}/${grammar.package.dir}/${grammar.name}Lexer.g"/>
        </java>
     </target>
@@ -543,7 +579,7 @@
        unless="parserGrammarProcessed"
        description="generates token parser class from an ANTLR grammar">
        <java classname="org.antlr.Tool"
-         classpathref="classpath" fork="true" failonerror="true">
+         classpathref="compileclasspath" fork="true" failonerror="true">
          <arg line="-o ${src.gen.dir}/${grammar.package.dir} ${src.dir}/${grammar.package.dir}/${grammar.name}Parser.g"/>
        </java>
     </target>
@@ -552,7 +588,7 @@
        unless="treeGrammarProcessed"
        description="generates tree parser class from an ANTLR grammar">
        <java classname="org.antlr.Tool"
-         classpathref="classpath" fork="true" failonerror="true">
+         classpathref="compileclasspath" fork="true" failonerror="true">
          <arg line="-o ${src.gen.dir}/${grammar.package.dir} ${src.dir}/${grammar.package.dir}/AstPrinter.g ${src.dir}/${grammar.package.dir}/AliasMasker.g ${src.dir}/${grammar.package.dir}/AstValidator.g ${src.dir}/${grammar.package.dir}/LogicalPlanGenerator.g"/>
        </java>
     </target>
@@ -580,19 +616,19 @@
         <echo>*** Else, you will only be warned about deprecations ***</echo>
         <echo>*** Hadoop version used: ${hadoopversion} ; HBase version used: ${hbaseversion} ; Spark version used: ${sparkversion} ; Hive version used: ${hiveversion} ***</echo>
         <compileSources sources="${src.dir};${src.gen.dir};${src.lib.dir}/bzip2;${src.shims.dir};${src.hive.shims.dir}"
-            excludes="${src.exclude.dir}" dist="${build.classes}" cp="classpath" warnings="${javac.args.warnings}" />
+            excludes="${src.exclude.dir}" dist="${build.classes}" cp="compileclasspath" warnings="${javac.args.warnings}" />
         <copy todir="${build.classes}/META-INF">
             <fileset dir="${src.dir}/META-INF" includes="**"/>
         </copy>
     </target>
 
-    <target name="compile-test" depends="jar-simple, ivy-test">
+    <target name="compile-test" depends="jar, ivy-test">
         <echo>*** Building Test Sources ***</echo>
         <echo>*** To compile with all warnings enabled, supply -Dall.warnings=1 on command line ***</echo>
         <echo>*** Else, you will only be warned about deprecations ***</echo>
         <compileSources sources="${test.src.dir};${src.shims.test.dir}"
             excludes="**/PigTestLoader.java **/resources/** perf/** ${src.exclude.dir}"
-            dist="${test.build.classes}" cp="test.classpath" warnings="${javac.args.warnings}" />
+            dist="${test.build.classes}" cp="test.compileclasspath" warnings="${javac.args.warnings}" />
         <copy file="${basedir}/test/hbase-site.xml" tofile="${test.build.classes}/hbase-site.xml"/>
         <ivy:cachepath pathid="mr-apps-test-ivy.classpath" conf="test" />
         <path id="mr-apps-test.classpath">
@@ -710,7 +746,7 @@
     <!-- ================================================================== -->
     <!-- Make pig.jar                                                       -->
     <!-- ================================================================== -->
-    <target name="jar-simple" depends="compile,ivy-buildJar" description="Create pig core jar">
+    <target name="jar" depends="compile,ivy-buildJar" description="Create pig core jar">
         <buildJar svnString="${svn.revision}" outputFile="${output.jarfile.core}" includedJars="core.dependencies.jar"/>
         <buildJar svnString="${svn.revision}" outputFile="${output.jarfile.withouthadoop}" includedJars="runtime.dependencies-withouthadoop.jar"/>
         <antcall target="copyCommonDependencies"/>
@@ -729,6 +765,7 @@
             <fileset dir="${ivy.lib.dir}" includes="jline-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="jackson-mapper-asl-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="jackson-core-asl-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="jackson-xc-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="joda-time-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="guava-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="automaton-*.jar"/>
@@ -764,6 +801,7 @@
         <mkdir dir="${spark.lib.dir}" />
         <copy todir="${spark.lib.dir}">
             <fileset dir="${ivy.lib.dir.spark}" includes="*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="jackson-*.jar"/>
         </copy>
     </target>
 
@@ -808,7 +846,10 @@
             <fileset dir="${ivy.lib.dir}" includes="tez-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="commons-collections4-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="orc-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="threeten-*.jar"/>
             <fileset dir="${ivy.lib.dir}" includes="aircompressor-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="junit-*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="hamcrest-*.jar"/>
         </copy>
         <copy file="${output.jarfile.core}" tofile="${output.jarfile.backcompat-core-h3}"/>
         <mkdir dir="${legacy.dir}" />
@@ -856,44 +897,6 @@
 
     <target name="jar-core" depends="compile,ivy-buildJar" description="Create only pig core jar">
         <buildJar svnString="${svn.revision}" outputFile="${output.jarfile.core}" includedJars="core.dependencies.jar"/>
-    </target>
-
-    <target name="jar" description="Create pig jar with Spark 1 and 2">
-        <echo>Compiling against Spark 2</echo>
-        <antcall target="clean-deps" inheritRefs="true" inheritall="true"/>
-        <propertyreset name="sparkversion" value="2"/>
-        <propertyreset name="src.exclude.dir" value="**/Spark1*.java" />
-        <antcall target="jar-core" inheritRefs="true" inheritall="true"/>
-        <move file="${output.jarfile.core}" tofile="${basedir}/_pig-shims.jar"/>
-
-        <echo>Compiling against Spark 1</echo>
-        <antcall target="clean-deps" inheritRefs="true" inheritall="true"/>
-        <propertyreset name="sparkversion" value="1"/>
-        <propertyreset name="src.exclude.dir" value="**/Spark2*.java" />
-        <antcall target="jar-simple" inheritRefs="true" inheritall="true"/>
-        <jar update="yes" jarfile="${output.jarfile.core}">
-            <zipfileset src="${basedir}/_pig-shims.jar" includes="**/Spark2*.class"/>
-        </jar>
-        <if>
-            <equals arg1="${isHadoop2}" arg2="true" />
-            <then>
-                <jar update="yes" jarfile="${output.jarfile.backcompat-core-h2}">
-                    <zipfileset src="${basedir}/_pig-shims.jar" includes="**/Spark2*.class"/>
-                </jar>
-                <jar update="yes" jarfile="${output.jarfile.withouthadoop-h2}">
-                    <zipfileset src="${basedir}/_pig-shims.jar" includes="**/Spark2*.class"/>
-                </jar>
-            </then>
-            <else>
-                <jar update="yes" jarfile="${output.jarfile.backcompat-core-h3}">
-                    <zipfileset src="${basedir}/_pig-shims.jar" includes="**/Spark2*.class"/>
-                </jar>
-                <jar update="yes" jarfile="${output.jarfile.withouthadoop-h3}">
-                    <zipfileset src="${basedir}/_pig-shims.jar" includes="**/Spark2*.class"/>
-                </jar>
-            </else>
-        </if>
-        <delete file="${basedir}/_pig-shims.jar"/>
     </target>
 
     <!-- ================================================================== -->
@@ -1034,7 +1037,7 @@
                 <pathelement location="${test.build.classes}" />
                 <pathelement location="." />
                 <pathelement path="${clover.jar}"/>
-                <path refid="test.classpath"/>
+                <path refid="test.runtimeclasspath"/>
             </classpath>
             <formatter type="${test.junit.output.format}" />
 
@@ -1218,10 +1221,6 @@
 
         <copy todir="${tar.dist.dir}/shims" includeEmptyDirs="true">
             <fileset dir="${basedir}/shims" />
-        </copy>
-
-        <copy todir="${tar.dist.dir}/hive-shims" includeEmptyDirs="true">
-            <fileset dir="${basedir}/hive-shims" />
         </copy>
 
         <copy todir="${tar.dist.dir}/lib-src" includeEmptyDirs="true">
@@ -1532,7 +1531,10 @@
                           projectname="Pig"
                           reportoutputdirectory="${build.dir}/owasp"
                           reportformat="ALL"
-                          failBuildOnCVSS="0">
+                          failBuildOnCVSS="0"
+                          autoUpdate="${owasp.auto.update}"
+                          dataDirectory="${owasp.data.directory}"
+                          suppressionFile="conf/owasp-dependency-check-suppressions.xml">
 
             <fileset dir="${ivy.lib.dir}">
                 <include name="**/*.jar"/>

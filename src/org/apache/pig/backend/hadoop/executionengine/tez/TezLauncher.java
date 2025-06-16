@@ -35,6 +35,7 @@ import java.util.concurrent.ThreadFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.counters.Limits;
 import org.apache.hadoop.util.StringUtils;
@@ -116,10 +117,15 @@ public class TezLauncher extends Launcher {
         if (pc.getExecType().isLocal()) {
             pc.getProperties().setProperty(TezConfiguration.TEZ_LOCAL_MODE, "true");
             pc.getProperties().setProperty(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, "true");
-            pc.getProperties().setProperty("tez.runtime.transfer.data-via-events.enabled","false");
             pc.getProperties().setProperty(TezConfiguration.TEZ_IGNORE_LIB_URIS, "true");
             pc.getProperties().setProperty(TezConfiguration.TEZ_AM_DAG_SCHEDULER_CLASS, DAGSchedulerNaturalOrderControlled.class.getName());
         }
+
+        addGCParams(pc.getProperties(), JobConf.MAPRED_TASK_JAVA_OPTS, false);
+        addGCParams(pc.getProperties(), JobConf.MAPRED_MAP_TASK_JAVA_OPTS, true);
+        addGCParams(pc.getProperties(), JobConf.MAPRED_REDUCE_TASK_JAVA_OPTS, true);
+        addGCParams(pc.getProperties(), TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS, true);
+
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties(), true);
         // Make sure MR counter does not exceed limit
         if (conf.get(TezConfiguration.TEZ_COUNTERS_MAX) != null) {

@@ -46,7 +46,7 @@ def complexTypes(m, t, b):
     if m == None:
         outm = None
     else:
-        for k, v in m.iteritems():
+        for k, v in iter(m.items()):
             outm[k] = len(v)
 
     outb = []
@@ -93,6 +93,6 @@ def isretired(age):
     else:
         return False
 
-outputSchema("words:{(word:chararray)}")
+@outputSchema("words:{(word:chararray)}")
 def tokenize(sentence):
     return stringutil.tokenize(sentence)

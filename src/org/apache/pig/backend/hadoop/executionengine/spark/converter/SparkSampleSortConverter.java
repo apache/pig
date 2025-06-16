@@ -23,7 +23,6 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.pig.backend.hadoop.executionengine.spark.PairFlatMapFunctionAdapter;
-import org.apache.pig.backend.hadoop.executionengine.spark.SparkShims;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.spark.api.java.function.Function2;
 import scala.Tuple2;
@@ -65,7 +64,7 @@ public class SparkSampleSortConverter implements RDDConverter<Tuple, Tuple, POSa
          //sort sample data
         JavaPairRDD<Tuple, Object> sorted = r.sortByKey(true);
          //convert every element in sample data from element to (all, element) format
-        JavaPairRDD<String, Tuple> mapped = sorted.mapPartitionsToPair(SparkShims.getInstance().pairFlatMapFunction(new AggregateFunction()));
+        JavaPairRDD<String, Tuple> mapped = sorted.mapPartitionsToPair(SparkUtil.pairFlatMapFunction(new AggregateFunction()));
         //use groupByKey to aggregate all values( the format will be ((all),{(sampleEle1),(sampleEle2),...} )
         JavaRDD<Tuple> groupByKey= mapped.groupByKey().map(new ToValueFunction());
         return  groupByKey.rdd();

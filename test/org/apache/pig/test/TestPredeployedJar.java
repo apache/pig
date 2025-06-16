@@ -26,7 +26,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.apache.log4j.SimpleLayout;
+import org.apache.log4j.PatternLayout;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
@@ -48,7 +48,7 @@ public class TestPredeployedJar {
         Logger logger = Logger.getLogger(JobControlCompiler.class);
         logger.removeAllAppenders();
         logger.setLevel(Level.INFO);
-        SimpleLayout layout = new SimpleLayout();
+        PatternLayout layout = new PatternLayout();
         File logFile = File.createTempFile("log", "");
         FileAppender appender = new FileAppender(layout, logFile.toString(), false, false, 0);
         logger.addAppender(appender);

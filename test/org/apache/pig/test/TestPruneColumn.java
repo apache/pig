@@ -45,7 +45,7 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.apache.log4j.SimpleLayout;
+import org.apache.log4j.PatternLayout;
 import org.apache.pig.FilterFunc;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.LoadPushDown;
@@ -105,7 +105,7 @@ public class TestPruneColumn {
         Logger logger = Logger.getLogger(ColumnPruneVisitor.class);
         logger.removeAllAppenders();
         logger.setLevel(Level.INFO);
-        SimpleLayout layout = new SimpleLayout();
+        PatternLayout layout = new PatternLayout();
         logFile = File.createTempFile("log", "");
         FileAppender appender = new FileAppender(layout, logFile.toString(), false, false, 0);
         logger.addAppender(appender);

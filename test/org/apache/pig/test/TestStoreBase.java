@@ -143,8 +143,6 @@ public abstract class TestStoreBase {
         String outputFileName1 = TESTDIR + "/TestStore-output-" + new Random().nextLong() + ".txt";
         String outputFileName2 = TESTDIR + "/TestStore-output-" + new Random().nextLong() + ".txt";
 
-        boolean isSpark2_2_plus = Util.isSpark2_2_plus();
-        
         Map<String, Boolean> filesToVerify = new HashMap<String, Boolean>();
         if (mode.toString().startsWith("SPARK")) {
             filesToVerify.put(outputFileName1 + "_cleanupOnFailure_succeeded1", Boolean.TRUE);
@@ -176,21 +174,12 @@ public abstract class TestStoreBase {
             filesToVerify.put(DummyOutputCommitter.FILE_SETUPTASK_CALLED + "2", Boolean.FALSE);
             filesToVerify.put(DummyOutputCommitter.FILE_COMMITTASK_CALLED + "1", Boolean.FALSE);
             filesToVerify.put(DummyOutputCommitter.FILE_COMMITTASK_CALLED + "2", Boolean.FALSE);
-            if (isSpark2_2_plus) {
-                filesToVerify.put(DummyOutputCommitter.FILE_ABORTTASK_CALLED + "1", Boolean.TRUE);
-            } else {
-                // OutputCommitter.abortTask will not be invoked in spark mode before spark 2.2.x. Detail see SPARK-7953
-                filesToVerify.put(DummyOutputCommitter.FILE_ABORTTASK_CALLED + "1", Boolean.FALSE);
-            }
+            filesToVerify.put(DummyOutputCommitter.FILE_ABORTTASK_CALLED + "1", Boolean.TRUE);
             filesToVerify.put(DummyOutputCommitter.FILE_ABORTTASK_CALLED + "2", Boolean.FALSE);
             filesToVerify.put(DummyOutputCommitter.FILE_COMMITJOB_CALLED + "1", Boolean.FALSE);
             filesToVerify.put(DummyOutputCommitter.FILE_COMMITJOB_CALLED + "2", Boolean.FALSE);
-            if (isSpark2_2_plus) {
-                filesToVerify.put(DummyOutputCommitter.FILE_ABORTJOB_CALLED + "1", Boolean.TRUE);
-            } else {
-                // OutputCommitter.abortJob will not be invoked in spark mode before spark 2.2.x. Detail see SPARK-7953
-                filesToVerify.put(DummyOutputCommitter.FILE_ABORTJOB_CALLED + "1", Boolean.FALSE);
-            }
+            filesToVerify.put(DummyOutputCommitter.FILE_ABORTJOB_CALLED + "1", Boolean.TRUE);
+
             filesToVerify.put(DummyOutputCommitter.FILE_ABORTJOB_CALLED + "2", Boolean.FALSE);
             filesToVerify.put(DummyOutputCommitter.FILE_CLEANUPJOB_CALLED + "1", Boolean.FALSE);
             filesToVerify.put(DummyOutputCommitter.FILE_CLEANUPJOB_CALLED + "2", Boolean.FALSE);
@@ -229,7 +218,7 @@ public abstract class TestStoreBase {
         if(mode.isLocal()) {
             // MR LocalJobRunner does not call abortTask
             if (!Util.isTezExecType(mode)) {
-                if (Util.isSparkExecType(mode) && isSpark2_2_plus) {
+                if (Util.isSparkExecType(mode)) {
                     filesToVerify.put(DummyOutputCommitter.FILE_ABORTTASK_CALLED + "1", Boolean.TRUE);
                 } else {
                     filesToVerify.put(DummyOutputCommitter.FILE_ABORTTASK_CALLED + "1", Boolean.FALSE);

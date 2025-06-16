@@ -229,6 +229,9 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         this.pigContextConf = ConfigurationUtil.toConfiguration(pc.getProperties(), false);
         MRToTezHelper.processMRSettings(pigContextConf, globalConf);
 
+        // Need to disable this feature until TEZ-4570 is fixed
+        pigContextConf.setBoolean("tez.runtime.transfer.data-via-events.enabled", false);
+
         shuffleVertexManagerBaseConf = new Configuration(false);
         // Only copy tez.shuffle-vertex-manager config to keep payload size small
         Iterator<Entry<String, String>> iter = pigContextConf.iterator();
@@ -237,6 +240,12 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             if (entry.getKey().startsWith("tez.shuffle-vertex-manager")) {
                 shuffleVertexManagerBaseConf.set(entry.getKey(), entry.getValue());
             }
+        }
+
+        String tokenFile = System.getenv("HADOOP_TOKEN_FILE_LOCATION");
+        if(tokenFile != null && globalConf.get(MRConfiguration.JOB_CREDENTIALS_BINARY) == null) {
+            globalConf.set(MRConfiguration.JOB_CREDENTIALS_BINARY, tokenFile);
+            globalConf.set("tez.credentials.path", tokenFile);
         }
 
         // Add credentials from binary token file and get tokens for namenodes

@@ -15,33 +15,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.backend.hadoop.executionengine.spark.converter;
+package org.apache.pig.test.udf.evalfunc;
 
-import java.util.Iterator;
+import java.io.IOException;
+import java.util.List;
 
-abstract class IteratorTransform<IN, OUT> implements Iterator<OUT> {
-    protected Iterator<IN> delegate;
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
 
-    public IteratorTransform(Iterator<IN> delegate) {
-        super();
-        this.delegate = delegate;
-    }
+import org.apache.pig.EvalFunc;
+import org.apache.pig.data.Tuple;
 
-    @Override
-    public boolean hasNext() {
-        return delegate.hasNext();
-    }
+public class DumpJVMArgsUDF extends EvalFunc<String> {
 
-    @Override
-    public OUT next() {
-        return transform(delegate.next());
-    }
 
-    abstract protected OUT transform(IN next);
-
-    @Override
-    public void remove() {
-        delegate.remove();
-    }
-
+  @Override
+  public String exec(Tuple input) throws IOException {
+      // After java9, we can instead use ProcessHandle to achive this
+      RuntimeMXBean bean = ManagementFactory.getRuntimeMXBean();
+      List<String> jvmArgs = bean.getInputArguments();
+      StringBuffer sb = new StringBuffer();
+      for( String arg : jvmArgs ) {
+          System.err.println(arg);
+          sb.append(arg);
+          sb.append(" ");
+      }
+      return sb.toString();
+  }
 }

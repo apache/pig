@@ -75,9 +75,7 @@ public class LOGenerate extends LogicalRelationalOperator {
         outputPlanSchemas = new ArrayList<LogicalSchema>();
         expSchemas = new ArrayList<LogicalSchema>();
         
-        flattenNumFields = new int[outputPlans.size()];
         for(int i=0; i<outputPlans.size(); i++) {
-            flattenNumFields[i] = 0;
             LogicalExpression exp = (LogicalExpression)outputPlans.get(i).getSources().get(0);
             
             LogicalSchema mUserDefinedSchemaCopy = null;
@@ -116,7 +114,6 @@ public class LOGenerate extends LogicalRelationalOperator {
                                 if (fieldSchema.schema!=null) {
                                     if (fieldSchema.schema.getField(0).schema!=null) {
                                         innerFieldSchemas = fieldSchema.schema.getField(0).schema.getFields();
-                                        flattenNumFields[i] = innerFieldSchemas.size();
                                     }
                                     for (LogicalSchema.LogicalFieldSchema fs : innerFieldSchemas) {
                                         fs.alias = fs.alias == null ? null : fieldSchema.alias + "::" + fs.alias;
@@ -125,7 +122,6 @@ public class LOGenerate extends LogicalRelationalOperator {
                             } else if (fieldSchema.type == DataType.MAP) {
                                 //should only contain 1 schemafield for Map's value
                                 innerFieldSchemas = fieldSchema.schema.getFields();
-                                flattenNumFields[i] = 2;  // used for FLATTEN(null-map)
                                 LogicalSchema.LogicalFieldSchema fsForValue = innerFieldSchemas.get(0);
                                 fsForValue.alias = fieldSchema.alias + "::value";
 
@@ -135,7 +131,6 @@ public class LOGenerate extends LogicalRelationalOperator {
                                 expSchema.addField(fsForKey);
                             } else { // DataType.TUPLE
                                 innerFieldSchemas = fieldSchema.schema.getFields();
-                                flattenNumFields[i] = innerFieldSchemas.size();
                                 for (LogicalSchema.LogicalFieldSchema fs : innerFieldSchemas) {
                                     fs.alias = fs.alias == null ? null : fieldSchema.alias + "::" + fs.alias;
                                 }
@@ -205,10 +200,19 @@ public class LOGenerate extends LogicalRelationalOperator {
             }
             outputPlanSchemas.add(planSchema);
         }
+
+        flattenNumFields = new int[outputPlans.size()];
         if (schema==null || schema.size()==0) {
             schema = null;
             outputPlanSchemas = null;
+        } else {
+            for(int i=0; i<outputPlans.size(); i++) {
+                if (flattenFlags[i]) {
+                    flattenNumFields[i] = outputPlanSchemas.get(i).size();
+                }
+            }
         }
+
         
         return schema;
     }

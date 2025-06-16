@@ -33,7 +33,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.spark.JobStatisticCollector;
-import org.apache.pig.backend.hadoop.executionengine.spark.SparkShims;
 import org.apache.pig.backend.hadoop.executionengine.spark.operator.NativeSparkOperator;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.spark.plan.SparkOperator;
@@ -73,7 +72,7 @@ public class SparkPigStats extends PigStats {
                             JobStatisticCollector jobStatisticCollector,
                             JavaSparkContext sparkContext) {
         boolean isSuccess = SparkStatsUtil.isJobSuccess(jobId, sparkContext);
-        SparkJobStats jobStats = SparkShims.getInstance().sparkJobStats(jobId, jobPlan, conf);
+        SparkJobStats jobStats = new SparkJobStats(jobId, jobPlan, conf);
         jobStats.setSuccessful(isSuccess);
         jobStats.collectStats(jobStatisticCollector);
         jobStats.addOutputInfo(poStore, isSuccess, jobStatisticCollector);
@@ -90,7 +89,7 @@ public class SparkPigStats extends PigStats {
                                 JavaSparkContext sparkContext,
                                 Exception e) {
         boolean isSuccess = false;
-        SparkJobStats jobStats = SparkShims.getInstance().sparkJobStats(jobId, jobPlan, conf);
+        SparkJobStats jobStats = new SparkJobStats(jobId, jobPlan, conf);
         jobStats.setSuccessful(isSuccess);
         jobStats.collectStats(jobStatisticCollector);
         jobStats.addOutputInfo(poStore, isSuccess, jobStatisticCollector);
@@ -101,7 +100,7 @@ public class SparkPigStats extends PigStats {
     }
 
     public void addNativeJobStats(NativeSparkOperator sparkOperator, String jobId, boolean isSuccess, Exception e) {
-        SparkJobStats jobStats = SparkShims.getInstance().sparkJobStats(jobId, jobPlan, conf);
+        SparkJobStats jobStats = new SparkJobStats(jobId, jobPlan, conf);
         jobStats.setSuccessful(isSuccess);
         jobSparkOperatorMap.put(jobStats, sparkOperator);
         jobPlan.add(jobStats);

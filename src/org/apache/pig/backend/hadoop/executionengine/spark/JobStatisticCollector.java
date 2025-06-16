@@ -21,6 +21,8 @@ package org.apache.pig.backend.hadoop.executionengine.spark;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import org.apache.pig.backend.hadoop.executionengine.spark.JobMetricsListener;
+
 import org.apache.spark.executor.TaskMetrics;
 import org.apache.spark.scheduler.SparkListener;
 
@@ -40,8 +42,8 @@ public class JobStatisticCollector {
 
     public SparkListener getSparkListener() {
         if (sparkListener == null) {
-            sparkListener = SparkShims.getInstance()
-                    .getJobMetricsListener(jobIdToStageId, stageIdToJobId, allJobStatistics, finishedJobIds);
+            sparkListener = new JobMetricsListener(jobIdToStageId,
+                                      stageIdToJobId, allJobStatistics, finishedJobIds);
         }
         return sparkListener;
     }

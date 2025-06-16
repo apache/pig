@@ -56,6 +56,20 @@ public class SparkStatsUtil {
         // this driver thread calling SparkStatusTracker.
         // To workaround this, we will wait for this job to "finish".
         jobStatisticCollector.waitForJobToEnd(jobID);
+
+        // Horrible hack.  After spark 3.2, somehow even after calling waitForJobToEnd
+        // job is still being reported as RUNNING.  Here, adding a poll to wait till the
+        // job gets out of the RUNNING state.
+        // Not sure if this issue is limited to local unit testings or not
+        for( int i=0; i < 10; i++) {
+            if( getJobInfo(jobID, sparkContext).status() != JobExecutionStatus.RUNNING ) {
+                break;
+            }
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {}
+        }
+
         sparkPigStats.addJobStats(poStore, sparkOperator, jobID, jobStatisticCollector,
                 sparkContext);
         jobStatisticCollector.cleanup(jobID);

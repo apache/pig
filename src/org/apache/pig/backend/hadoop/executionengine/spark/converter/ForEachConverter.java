@@ -31,7 +31,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
 import org.apache.pig.backend.hadoop.executionengine.spark.FlatMapFunctionAdapter;
 import org.apache.pig.backend.hadoop.executionengine.spark.KryoSerializer;
-import org.apache.pig.backend.hadoop.executionengine.spark.SparkShims;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.data.SchemaTupleBackend;
 import org.apache.pig.data.Tuple;
@@ -61,7 +60,7 @@ public class ForEachConverter implements RDDConverter<Tuple, Tuple, POForEach> {
         RDD<Tuple> rdd = predecessors.get(0);
         ForEachFunction forEachFunction = new ForEachFunction(physicalOperator, confBytes);
 
-        return rdd.toJavaRDD().mapPartitions(SparkShims.getInstance().flatMapFunction(forEachFunction), true).rdd();
+        return rdd.toJavaRDD().mapPartitions(SparkUtil.flatMapFunction(forEachFunction), true).rdd();
     }
 
     private static class ForEachFunction implements

@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -37,6 +38,7 @@ import org.apache.hadoop.mapreduce.TaskReport;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.BackendException;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -661,4 +663,20 @@ public abstract class Launcher {
 
     public void destroy() {
     }
+
+    protected void addGCParams(Properties properties, String key, boolean skipIfEmpty) {
+        String value = properties.getProperty(key);
+        if( value == null ) {
+            if( skipIfEmpty ) {
+                return;
+            }
+            value = properties.getProperty(PigConfiguration.PIG_GC_PARAMS, PigConfiguration.PIG_GC_PARAMS_DEFAULT);
+            properties.setProperty(key, value);
+        } else if (!value.matches(PigConfiguration.PIG_GC_PATTERN)) {
+            value += " " +
+                  properties.getProperty(PigConfiguration.PIG_GC_PARAMS, PigConfiguration.PIG_GC_PARAMS_DEFAULT);
+            properties.setProperty(key, value);
+        }
+    }
+
 }

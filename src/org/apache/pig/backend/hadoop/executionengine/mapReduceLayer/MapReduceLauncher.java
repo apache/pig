@@ -172,6 +172,10 @@ public class MapReduceLauncher extends Launcher {
         aggregateWarning = Boolean.valueOf(pc.getProperties().getProperty("aggregate.warning"));
         MROperPlan mrp = compile(php, pc);
 
+        addGCParams(pc.getProperties(), JobConf.MAPRED_TASK_JAVA_OPTS, false);
+        addGCParams(pc.getProperties(), JobConf.MAPRED_MAP_TASK_JAVA_OPTS, true);
+        addGCParams(pc.getProperties(), JobConf.MAPRED_REDUCE_TASK_JAVA_OPTS, true);
+
         ConfigurationValidator.validatePigProperties(pc.getProperties());
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
 

@@ -42,8 +42,8 @@
     <conf name="hadoop3" visibility="private"/>
     <conf name="hbase1" visibility="private"/>
     <conf name="hbase2" visibility="private"/>
-    <conf name="spark1" visibility="private" />
     <conf name="spark2" visibility="private" />
+    <conf name="spark3" visibility="private" />
     <conf name="hive1" visibility="private"/>
     <conf name="hive3" visibility="private"/>
     <conf name="owasp" visibility="private" description="Artifacts required for owasp target"/>
@@ -108,7 +108,9 @@
       conf="hadoop2->master;hadoop3->master"/>
     <dependency org="com.google.re2j" name="re2j" rev="${re2j.version}"
       conf="hadoop3->master" />
-    <dependency org="com.codahale.metrics" name="metrics-core" rev="${codahale.metrics-core.version}"
+    <dependency org="com.codahale.metrics" name="metrics-core" rev="${metrics-core.version}"
+      conf="hadoop2->master"/>
+    <dependency org="io.dropwizard.metrics" name="metrics-core" rev="${metrics-core.version}"
       conf="hadoop3->master"/>
 
     <!-- Hadoop 2 dependencies -->
@@ -239,9 +241,17 @@
     <dependency org="org.apache.ivy" name="ivy" rev="${ivy.version}"
       conf="compile->master"/>
     <dependency org="org.codehaus.jackson" name="jackson-mapper-asl" rev="${jackson.version}"
-      conf="compile->master"/>
+      conf="compile->master">
+      <exclude org="com.thoughtworks.paranamer" module="paranamer"/>
+    </dependency>
     <dependency org="org.codehaus.jackson" name="jackson-core-asl" rev="${jackson.version}"
-      conf="compile->master"/>
+      conf="compile->master">
+      <exclude org="com.thoughtworks.paranamer" module="paranamer"/>
+    </dependency>
+    <dependency org="org.codehaus.jackson" name="jackson-xc" rev="${jackson.version}" conf="hadoop3->master">
+      <exclude org="com.thoughtworks.paranamer" module="paranamer"/>
+    </dependency>
+    <dependency org="com.thoughtworks.paranamer" name="paranamer" rev="${paranamer.version}" conf="compile->master"/>
     <dependency org="org.fusesource.jansi" name="jansi" rev="${jansi.version}"
       conf="compile->master"/>
     <dependency org="joda-time" name="joda-time" rev="${joda-time.version}" conf="compile->master"/>
@@ -514,8 +524,6 @@
 
     <!-- for TestHBaseStorage -->
     <dependency org="org.apache.hbase" name="hbase-procedure" rev="${hbase1.version}" conf="test->master"/>
-    <dependency org="com.yammer.metrics" name="metrics-core" rev="${metrics-core.version}"
-       conf="test->default"/>
 
     <!-- Dependency for Accumulo{Input,Output}Format -->
     <dependency org="org.apache.accumulo" name="accumulo-core" rev="${accumulo.version}" conf="compile->default">
@@ -556,6 +564,7 @@
     <dependency org="org.apache.accumulo" name="accumulo-tserver" rev="${accumulo.version}" conf="hadoop3->master"/>
     <dependency org="org.apache.accumulo" name="accumulo-master" rev="${accumulo.version}" conf="hadoop3->master"/>
     <dependency org="org.apache.accumulo" name="accumulo-gc" rev="${accumulo.version}" conf="hadoop3->master"/>
+    <dependency org="org.apache.accumulo" name="accumulo-trace" rev="${accumulo.version}" conf="hadoop3->master"/>
 
     <!-- for piggybank -->
     <dependency org="org.hsqldb" name="hsqldb" rev="${hsqldb.version}"
@@ -611,30 +620,23 @@
       conf="compile->master">
     </dependency>
 
-    <dependency org="org.mockito" name="mockito-all" rev="${mockito.version}" conf="test->default"/>
+    <dependency org="org.mockito" name="mockito-core" rev="${mockito.version}" conf="test->default"/>
+    <dependency org="org.hamcrest" name="hamcrest-all" rev="${hamcrest.version}" conf="test->default"/>
+    <dependency org="org.bouncycastle" name="bcpkix-jdk18on" rev="${bouncycastle.version}" conf="test->default"/>
+    <dependency org="org.bouncycastle" name="bcprov-jdk18on" rev="${bouncycastle.version}" conf="test->default"/>
+    <dependency org="org.bouncycastle" name="bcutil-jdk18on" rev="${bouncycastle.version}" conf="test->default"/>
 
     <dependency org="org.apache.parquet" name="parquet-pig-bundle" rev="${parquet-pig-bundle.version}" conf="compile->master"/>
 
-    <!-- for Spark 1.x integration -->
-    <dependency org="org.apache.spark" name="spark-core_2.11" rev="${spark1.version}" conf="spark1->default">
-        <exclude org="org.eclipse.jetty.orbit" module="javax.servlet"/>
-        <exclude org="org.eclipse.jetty.orbit" module="javax.transaction"/>
-        <exclude org="org.eclipse.jetty.orbit" module="javax.mail.glassfish"/>
-        <exclude org="org.eclipse.jetty.orbit" module="javax.activation"/>
-        <exclude org="org.apache.hadoop" />
-        <exclude org="com.esotericsoftware.kryo" />
-        <exclude org="jline" module="jline"/>
-        <exclude org="com.google.guava" />
-    </dependency>
-    <dependency org="org.apache.spark" name="spark-yarn_2.11" rev="${spark1.version}" conf="spark1->default">
-        <exclude org="org.apache.hadoop" />
-    </dependency>
-
     <!-- for Spark 2.x integration -->
-    <dependency org="org.apache.spark" name="spark-core_2.11" rev="${spark2.version}" conf="spark2->default">
+    <dependency org="org.apache.spark" name="spark-core_${spark2-scala.version}" rev="${spark2.version}" conf="spark2->default">
       <exclude org="org.eclipse.jetty.orbit" module="javax.servlet"/>
       <exclude org="org.eclipse.jetty.orbit" module="javax.transaction"/>
       <exclude org="org.eclipse.jetty.orbit" module="javax.mail.glassfish"/>
+      <exclude org="com.fasterxml.jackson.core" module="jackson-annotations"/>
+      <exclude org="com.fasterxml.jackson.core" module="jackson-core"/>
+      <exclude org="com.fasterxml.jackson.core" module="jackson-databind"/>
+      <exclude org="com.fasterxml.jackson.module" module="jackson-module-scala_${spark-scala.version}"/>
       <exclude org="org.eclipse.jetty.orbit" module="javax.activation"/>
       <exclude org="org.apache.hadoop" />
       <exclude org="com.esotericsoftware.kryo" />
@@ -643,14 +645,67 @@
       <exclude org="io.netty" module="netty"/>
       <exclude org="io.netty" name="netty-all"/>
     </dependency>
-    <dependency org="org.apache.spark" name="spark-yarn_2.11" rev="${spark2.version}" conf="spark2->default">
+    <dependency org="org.apache.spark" name="spark-yarn_${spark2-scala.version}" rev="${spark2.version}" conf="spark2->default">
       <exclude org="org.apache.hadoop" />
     </dependency>
+    <dependency org="javax.servlet" name="javax.servlet-api" rev="3.0.1" conf="spark2->default;spark3->default"/>
+    <dependency org="javax.servlet" name="javax.servlet-api" rev="3.1.0" conf="test->master"/>
+    <dependency org="org.scala-lang.modules" name="scala-xml_${spark2-scala.version}" rev="${scala-xml.version}" conf="spark2->default"/>
+    <dependency org="com.fasterxml.jackson.module" name="jackson-module-scala_${spark2-scala.version}" 
+      rev="${jackson-module-scala_spark2.version}" conf="spark2->default"/>
+    <dependency org="com.fasterxml.jackson.module" name="jackson-module-paranamer" 
+      rev="${jackson-module-scala_spark2.version}" conf="spark2->default"/>
+
+    <!-- for Spark 2.x integration -->
+    <dependency org="org.apache.spark" name="spark-core_${spark3-scala.version}" rev="${spark3.version}" conf="spark3->default">
+      <exclude org="org.eclipse.jetty.orbit" module="javax.servlet"/>
+      <exclude org="org.eclipse.jetty.orbit" module="javax.transaction"/>
+      <exclude org="org.eclipse.jetty.orbit" module="javax.mail.glassfish"/>
+      <exclude org="com.fasterxml.jackson.core" module="jackson-annotations"/>
+      <exclude org="com.fasterxml.jackson.core" module="jackson-core"/>
+      <exclude org="com.fasterxml.jackson.core" module="jackson-databind"/>
+      <exclude org="com.fasterxml.jackson.module" module="jackson-module-scala_${spark-scala.version}"/>
+      <exclude org="org.eclipse.jetty.orbit" module="javax.activation"/>
+      <exclude org="org.apache.hadoop" />
+      <exclude org="com.esotericsoftware.kryo" />
+      <exclude org="jline" module="jline"/>
+      <exclude org="com.google.guava" />
+      <exclude org="io.netty" module="netty"/>
+      <exclude org="io.netty" name="netty-all"/>
+      <exclude org="com.google.protobuf" name="protobuf-java" />
+      <exclude org="org.apache.logging.log4j" name="log4j-core" />
+      <exclude org="org.apache.logging.log4j" name="log4j-slf4j2-impl" />
+      <exclude org="org.apache.logging.log4j" name="log4j-api" />
+      <exclude org="org.apache.logging.log4j" name="log4j-1.2-api" />
+      <exclude org="org.apache.zookeeper" />
+    </dependency>
+    <dependency org="org.apache.logging.log4j" name="log4j-core"        rev="2.23.1" conf="spark3->default"/>
+    <dependency org="org.apache.logging.log4j" name="log4j-slf4j2-impl" rev="2.23.1" conf="spark3->default"/>
+    <dependency org="org.apache.logging.log4j" name="log4j-api"         rev="2.23.1" conf="spark3->default"/>
+    <dependency org="org.apache.logging.log4j" name="log4j-1.2-api"     rev="2.23.1" conf="spark3->default"/>
+
+    <dependency org="org.apache.orc" name="orc-core" rev="1.8.7" conf="spark3->default">
+        <artifact name="orc-core" m:classifier="shaded-protobuf"/>
+    </dependency>
+    <dependency org="org.apache.orc" name="orc-mapreduce" rev="1.8.7" conf="spark3->default">
+        <artifact name="orc-mapreduce" m:classifier="shaded-protobuf"/>
+    </dependency>
+
+
+
+    <dependency org="org.apache.spark" name="spark-yarn_${spark3-scala.version}" rev="${spark3.version}" conf="spark3->default">
+      <exclude org="org.apache.hadoop" />
+      <exclude org="com.google.protobuf" name="protobuf-java" />
+    </dependency>
+    <dependency org="javax.servlet" name="javax.servlet-api" rev="3.0.1" conf="spark3->default;spark3->default"/>
+    <dependency org="javax.servlet" name="javax.servlet-api" rev="3.1.0" conf="test->master"/>
+    <dependency org="org.scala-lang.modules" name="scala-xml_${spark3-scala.version}" rev="${scala-xml.version}" conf="spark3->default"/>
+    <dependency org="com.fasterxml.jackson.module" name="jackson-module-scala_${spark3-scala.version}" 
+      rev="${jackson-module-scala_spark3.version}" conf="spark3->default"/>
+    <dependency org="com.fasterxml.jackson.module" name="jackson-module-paranamer" 
+      rev="${jackson-module-scala_spark3.version}" conf="spark3->default"/>
 
     <dependency org="asm" name="asm" rev="${asm.version}" conf="compile->master"/>
-    <dependency org="javax.servlet" name="javax.servlet-api" rev="3.0.1" conf="spark1->default;spark2->default"/>
-    <dependency org="javax.servlet" name="javax.servlet-api" rev="3.1.0" conf="test->master"/>
-    <dependency org="org.scala-lang.modules" name="scala-xml_2.11" rev="${scala-xml.version}" conf="spark1->default;spark2->default"/>
 
     <!-- for Tez integration -->
     <dependency org="org.apache.tez" name="tez" rev="${tez.version}"

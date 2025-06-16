@@ -25,7 +25,6 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeCogroup;
 import org.apache.pig.backend.hadoop.executionengine.spark.FlatMapFunctionAdapter;
-import org.apache.pig.backend.hadoop.executionengine.spark.SparkShims;
 import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.data.Tuple;
 import org.apache.spark.rdd.RDD;
@@ -38,7 +37,7 @@ public class MergeCogroupConverter implements RDDConverter<Tuple, Tuple, POMerge
         SparkUtil.assertPredecessorSize(predecessors, physicalOperator, 1);
         RDD<Tuple> rdd = predecessors.get(0);
         MergeCogroupFunction mergeCogroupFunction = new MergeCogroupFunction(physicalOperator);
-        return rdd.toJavaRDD().mapPartitions(SparkShims.getInstance().flatMapFunction(mergeCogroupFunction), true).rdd();
+        return rdd.toJavaRDD().mapPartitions(SparkUtil.flatMapFunction(mergeCogroupFunction), true).rdd();
     }
 
     private static class MergeCogroupFunction implements

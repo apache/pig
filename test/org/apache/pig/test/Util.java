@@ -59,7 +59,6 @@ import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
-import org.apache.log4j.SimpleLayout;
 import org.apache.log4j.WriterAppender;
 import org.apache.pig.ExecType;
 import org.apache.pig.ExecTypeProvider;
@@ -1111,7 +1110,7 @@ public class Util {
         Logger logger = Logger.getLogger(clazz);
         logger.removeAllAppenders();
         logger.setLevel(Level.DEBUG);
-        SimpleLayout layout = new SimpleLayout();
+        PatternLayout layout = new PatternLayout();
         File newLogFile = File.createTempFile("log", "");
         FileAppender appender = new FileAppender(layout, newLogFile.toString(),
                         false, false, 0);
@@ -1334,11 +1333,6 @@ public class Util {
         if (version.matches("\\b1\\.*\\..+"))
             return true;
         return false;
-    }
-
-    public static boolean isSpark2_2_plus() throws IOException {
-        String sparkVersion = package$.MODULE$.SPARK_VERSION();
-        return sparkVersion != null && sparkVersion.matches("2\\.([\\d&&[^01]]|[\\d]{2,})\\..*");
     }
 
     public static void sortQueryOutputsIfNeed(List<Tuple> actualResList, boolean toSort){
