@@ -46,7 +46,7 @@ def complexTypes(m, t, b):
     if m == None:
         outm = None
     else:
-        for k, v in m.iteritems():
+        for k, v in iter(m.items()):
             outm[k] = len(v)
 
     outb = []

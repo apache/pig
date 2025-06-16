@@ -37,6 +37,8 @@ PIG-5282: Upgrade to Java 8 (satishsaley via rohini)
  
 IMPROVEMENTS
 
+PIG-5410: Support Python 3 for streaming_python (vnarayanan7 via rohini)
+
 PIG-5470: Make owasp data dependency location configurable (rohini)
 
 PIG-5419: Upgrade Joda time version (vnarayanan7 via rohini)

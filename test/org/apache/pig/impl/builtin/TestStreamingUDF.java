@@ -25,7 +25,10 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.DataBag;
@@ -56,6 +59,7 @@ import org.junit.runner.RunWith;
     "testPythonUDF_withNewline"
 })
 public class TestStreamingUDF {
+    private static final Log LOG = LogFactory.getLog(TestStreamingUDF.class);
     private static PigServer pigServerLocal = null;
     private static PigServer pigServerMapReduce = null;
 
@@ -83,7 +87,7 @@ public class TestStreamingUDF {
 
         String[] pythonScript = {
                 "from pig_util import outputSchema",
-                "@outputSchema(\'c:chararray\')",
+                "@outputSchema('c:chararray')",
                 "def py_func(one,two):",
                 "   return one + two"
         };
@@ -118,7 +122,6 @@ public class TestStreamingUDF {
     public void testPythonUDF_withBytearrayAndBytes_onCluster() throws Exception {
         pigServerMapReduce = new PigServer(cluster.getExecType(), cluster.getProperties());
 
-        
         String[] pythonScript = {
             "from pig_util import outputSchema",
             "import os",
@@ -310,17 +313,18 @@ public class TestStreamingUDF {
 
         String[] pythonScript = {
             "# -*- coding: utf-8 -*-",
+            "from __future__ import print_function",
             "from pig_util import outputSchema",
             "import sys",
             "",
             "@outputSchema('tuple_output:tuple(nully:chararray, inty:int, longy:long, floaty:float, doubly:double, chararrayy:chararray, utf_chararray_basic_string:chararray, utf_chararray_unicode:chararray, bytearrayy:bytearray)')",
             "def get_tuple_output():",
-            "    result = (None, 32, 1000000099990000L, 32.0, 3200.1234678509, 'Some String', 'Hello\\u2026Hello', u'Hello\\u2026Hello', b'Some Byte Array')",
+            "    result = (None, 32, 1000000099990000, 32.0, 3200.1234678509, 'Some String', b'Hello\\u2026Hello', u'Hello\\u2026Hello', b'Some Byte Array')",
             "    return result",
             "",
             "@outputSchema('tuple_output:tuple(nully:chararray, inty:int, longy:long, floaty:float, doubly:double, chararrayy:chararray, utf_chararray_basic_string:chararray, utf_chararray_unicode:chararray, bytearrayy:bytearray)')",
             "def crazy_tuple_identity(ct):",
-            "    print ct",
+            "    print(ct)",
             "    return ct",
             "",
             "@outputSchema('mappy:map[]')",
@@ -332,7 +336,7 @@ public class TestStreamingUDF {
             "",
             "@outputSchema('silly:chararray')",
             "def silly(silly_word):",
-            "    print silly_word.encode('utf-8')",
+            "    print(silly_word.encode('utf-8'))",
             "    return silly_word",
             "",
             "",
@@ -380,8 +384,13 @@ public class TestStreamingUDF {
         //Get First Bag Tuple
         Tuple innerTuple = bag.iterator().next();
         assertEquals(5, innerTuple.size());
-        
-        //Check one field in innermost tuple
+
+        LOG.info("tuple: " + innerTuple);
+        //Check fields in innermost tuple
         assertEquals("Hello\\u2026Hello", ((Tuple) innerTuple.get(2)).get(6));
+        assertEquals("Hello\u2026Hello", ((Tuple) innerTuple.get(2)).get(7));
+        assertTrue(((Map<String, Object>)innerTuple.get(3)).containsKey("Weird\u2026Name"));
+        assertEquals("Weird \u2026 Value", ((Map<String, Object>)innerTuple.get(3)).get("Weird\u2026Name"));
+        assertEquals("\u2026", innerTuple.get(4));
     }
 }
