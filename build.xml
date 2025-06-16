@@ -222,7 +222,7 @@
             <property name="hadoopversion" value="2" />
         </then>
     </if>
-    <property name="hadoopversion" value="2" />
+    <property name="hadoopversion" value="3" />
 
     <condition property="isHadoop2">
         <equals arg1="${hadoopversion}" arg2="2"/>
@@ -244,9 +244,9 @@
             <property name="hbaseversion" value="1" />
         </then>
     </if>
-    <property name="hbaseversion" value="1" />
-    <property name="sparkversion" value="2" />
-    <property name="hiveversion" value="1" />
+    <property name="hbaseversion" value="2" />
+    <property name="sparkversion" value="3" />
+    <property name="hiveversion" value="3" />
 
     <loadproperties srcfile="${ivy.dir}/libraries.properties"/>
 
