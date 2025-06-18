@@ -27,6 +27,8 @@ PIG-5282: Upgrade to Java 8 (satishsaley via rohini)
  
 IMPROVEMENTS
 
+PIG-5472: Update mvn-deploy to publish both hadoop 3 and hadoop 2 jars (rohini)
+
 PIG-5471: Make Hadoop/Hive/Spark 3 as the default version in build.xml (rohini)
 
 PIG-5410: Support Python 3 for streaming_python (vnarayanan7 via rohini)

@@ -40,7 +40,6 @@
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/hsqldb-1.8.0.10.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/jasper-compiler-5.5.12.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/jasper-runtime-5.5.12.jar"/>
-	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/jets3t-0.7.1.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/jetty-6.1.26.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/jetty-util-6.1.26.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/jsp-2.1-6.1.14.jar"/>
