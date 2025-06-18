@@ -1,5 +1,5 @@
 Apache Pig
-Copyright 2008-2014 The Apache Software Foundation
+Copyright 2008-2025 The Apache Software Foundation
 
 This product includes software developed by The Apache Software
 Foundation (http://www.apache.org/).
@@ -38,9 +38,6 @@ Copyright 2001-2006 Stephen Colebourne
 This product includes/uses Jython (http://www.jython.org/)
 Copyright (c) 2000-2009 Jython Developers.
 All rights reserved.
-
-This product includes/uses JetS3t (http://www.jets3t.org/)
-Copyright 2006-2010 James Murty
 
 This product includes/uses Netty (http://www.jboss.org/netty)
 Copyright 2009 Red Hat, Inc.

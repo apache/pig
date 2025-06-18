@@ -42,7 +42,7 @@
     <property name="pig.version.suffix" value="-SNAPSHOT" />
     <property name="version" value="${pig.version}${pig.version.suffix}" />
     <property name="final.name" value="${name}-${version}" />
-    <property name="year" value="2007-2016" />
+    <property name="year" value="2007-2025" />
 
     <!-- source properties -->
     <property name="lib.dir" value="${basedir}/lib" />
@@ -224,10 +224,6 @@
     </if>
     <property name="hadoopversion" value="3" />
 
-    <condition property="isHadoop2">
-        <equals arg1="${hadoopversion}" arg2="2"/>
-    </condition>
-
     <condition property="isHadoop3">
         <equals arg1="${hadoopversion}" arg2="3"/>
     </condition>
@@ -301,7 +297,7 @@
     <property name="xerces.jar" value="${ivy.lib.dir}/xercesImpl-${xerces.version}.jar"/>
     <property name="jdiff.build.dir" value="${build.docs}/jdiff"/>
     <property name="jdiff.xml.dir" value="${docs.dir}/jdiff"/>
-    <property name="jdiff.stable" value="0.17.0"/>
+    <property name="jdiff.stable" value="0.19.0"/>
     <property name="jdiff.stable.javadoc" value="http://hadoop.apache.org/${name}/docs/r${jdiff.stable}/api/"/>
 
     <!-- Packaging properties -->
@@ -1358,10 +1354,11 @@
     <target name="mvn-install" depends="mvn-taskdef, mvn-build, set-version"
          description="To install pig to local filesystem's m2 cache">
          <artifact:pom file="${pig.pom}" id="pig"/>
-          <artifact:install file="${output.jarfile.core-h2}">
+          <artifact:install file="${output.jarfile.core}">
                <pom refid="pig"/>
            <attach file="${output.jarfile.sources}" classifier="sources" />
            <attach file="${output.jarfile.javadoc}" classifier="javadoc" />
+           <attach file="${output.jarfile.core-h2}" classifier="h2" />
           </artifact:install>
          <artifact:pom file="${pigunit.pom}" id="pigunit"/>
           <artifact:install file="${pigunit.jarfile}">
@@ -1377,10 +1374,36 @@
          </artifact:install>
     </target>
 
-    <target name="mvn-build" depends="jar, source-jar,
+    <target name="mvn-build" depends="mvn-jar-hadoop2-hadoop3, source-jar,
                                       javadoc-jar, smoketests-jar, pigunit-jar, piggybank"
          description="To build the pig jar artifacts to be deployed to apache maven repository">
-        <move file="${output.jarfile.backcompat-core-h2}" tofile="${output.jarfile.core-h2}"/>
+    </target>
+
+    <!-- ================================================================== -->
+    <!-- Facade to build pig.jar for both Hadoop 2 and Hadoop 3. Use only for mvn-build -->
+    <!-- ================================================================== -->
+    <target name="mvn-jar-hadoop2-hadoop3" description="Create pig jar for both Hadoop 2 and Hadoop 3">
+        <propertyreset name="hadoopversion" value="2" />
+        <propertyreset name="sparkversion" value="2" />
+        <propertyreset name="hiveversion" value="1" />
+        <propertyreset name="hbaseversion" value="1" />
+        <var name="isHadoop3" unset="true"/>
+        <propertyreset name="src.hive.shims.dir" value="${basedir}/shims/src/hive${hiveversion}" />
+        <antcall target="clean" inheritRefs="true" inheritall="true"/>
+        <antcall target="jar" inheritRefs="true" inheritall="true"/>
+        <!-- Prefix mvn to avoid hadoop 2 jar from being deleted by clean command -->
+        <move file="${basedir}/${final.name}-core-h2.jar" tofile="${basedir}/mvn-${final.name}-core-h2.jar"/>
+        <propertyreset name="hadoopversion" value="3" />
+        <propertyreset name="sparkversion" value="3" />
+        <propertyreset name="hiveversion" value="3" />
+        <propertyreset name="hbaseversion" value="2" />
+        <propertyreset name="isHadoop3" value="true" />
+        <propertyreset name="src.hive.shims.dir" value="${basedir}/shims/src/hive${hiveversion}" />
+        <propertyreset name="src.exclude.dir" value="" />
+        <antcall target="clean" inheritRefs="true" inheritall="true"/>
+        <antcall target="jar" inheritRefs="true" inheritall="true"/>
+        <!-- Move hadoop 2 jar file back -->
+        <move file="${basedir}/mvn-${final.name}-core-h2.jar" tofile="${output.jarfile.core-h2}"/>
     </target>
 
     <!-- Expects that mvn-build has already been run but does not run it. In some cases building
@@ -1400,6 +1423,7 @@
            <remoteRepository id="${staging_repo_id}" url="${asfstagingrepo}"/>
            <pom refid="pig"/>
            <attach file="${output.jarfile.core}.asc" type="jar.asc"/>
+           <attach file="${output.jarfile.core-h2}.asc" type="jar.asc"/>
            <attach file="${pig.pom}.asc" type="pom.asc"/>
            <attach file="${output.jarfile.sources}.asc" type="jar.asc" classifier="sources"/>
            <attach file="${output.jarfile.sources}" classifier="sources" />
@@ -1437,6 +1461,7 @@
               <pom refid="pig"/>
               <attach file="${output.jarfile.sources}" classifier="sources" />
               <attach file="${output.jarfile.javadoc}" classifier="javadoc" />
+              <attach file="${output.jarfile.core-h2}" classifier="h2" />
       </artifact:deploy>
       <artifact:pom file="${pigunit.pom}" id="pigunit"/>
       <artifact:deploy file="${pigunit.jarfile}">
@@ -1478,6 +1503,8 @@
        </macrodef>
        <sign-artifact input.file="${output.jarfile.core}"
         output.file="${output.jarfile.core}.asc" gpg.passphrase="${gpg.passphrase}"/>
+       <sign-artifact input.file="${output.jarfile.core-h2}"
+        output.file="${output.jarfile.core-h2}.asc" gpg.passphrase="${gpg.passphrase}"/>
        <sign-artifact input.file="${output.jarfile.sources}"
         output.file="${output.jarfile.sources}.asc" gpg.passphrase="${gpg.passphrase}"/>
        <sign-artifact input.file="${output.jarfile.javadoc}"
