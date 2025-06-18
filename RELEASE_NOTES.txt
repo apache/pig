@@ -1,35 +1,36 @@
-These notes are for Pig 0.3.0 release.
+These notes are for Pig 0.18.0 release.
 
 Highlights
 ==========
 
-The main focus of this release is multiquery support that allows to optimize
-multiple queries within the same script that share a computation.
+The main focus of this release is 
+  - Support for Hadoop 3, Tez 0.10, Spark 3, Hive 3 and HBase 2 and making them the default
+  - Support for Python 3 in streaming
 
 System Requirements
 ===================
 
-1. Java 1.6.x or newer, preferably from Sun. Set JAVA_HOME to the root of your
+1. Java 1.8.x. Set JAVA_HOME to the root of your
 Java installation
 2. Ant build tool:  http://ant.apache.org - to build source only
-3. Cygwin: http://www.cygwin.com/ - to run under Windows 
-4. This release is compatible with Hadoop 0.18.x releases
+3. This release is compatible with Hadoop 2.10.x and 3.x releases
 
 Trying the Release
 ==================
 
-1. Download pig-0.3.0.tar.gz
-2. Unpack the file: tar -xzvf pig-0.3.0.tar.gz
-3. Move into the installation directory: cd pig-0.3.0
+1. Download pig-0.18.0.tar.gz
+2. Unpack the file: tar -xzvf pig-0.18.0.tar.gz
+3. Move into the installation directory: cd pig-0.18.0
 4. To run pig without Hadoop cluster, execute the command below. This will
 take you into an interactive shell called grunt that allows you to navigate
 the local file system and execute Pig commands against the local files
     bin/pig -x local
-5. To run on your Hadoop cluster, you need to set PIG_CLASSPATH environment
-variable to point to the directory with your hadoop-site.xml file and then run
-pig. The commands below will take you into an interactive shell called grunt
-that allows you to navigate Hadoop DFS and execute Pig commands against it
-export PIG_CLASSPATH=/hadoop/conf
+5. To run on your Hadoop cluster, you need to have HADOOP_HOME/HADOOP_PREFIX and HADOOP_CONF_DIR
+environment variables to point to your hadoop installation and then run pig.
+To run with Tez or Spark as execution engine instead of MapReduce, install them in your Hadoop cluster. 
+The commands below will take you into an interactive shell called grunt
+that allows you to navigate Hadoop DFS and execute Pig commands against it.
+To execute in Tez or Spark mode, run with -x tez or -x spark option.
     bin/pig
 6. To build your own version of pig.jar run
     ant
