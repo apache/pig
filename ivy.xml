@@ -644,6 +644,7 @@
       <exclude org="com.google.guava" />
       <exclude org="io.netty" module="netty"/>
       <exclude org="io.netty" name="netty-all"/>
+      <exclude org="log4j" />
     </dependency>
     <dependency org="org.apache.spark" name="spark-yarn_${spark2-scala.version}" rev="${spark2.version}" conf="spark2->default">
       <exclude org="org.apache.hadoop" />
