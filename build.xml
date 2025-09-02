@@ -490,6 +490,7 @@
         <delete dir="${docs.dir}/build" />
         <delete file="${jdiff.xml.dir}\${name}_${version}.xml" />
         <delete dir="${build.dir}" />
+        <delete dir="target" />
         <delete dir="${src.gen.dot.parser.dir}" />
         <delete>
             <fileset dir="${basedir}" includes="pig*.jar" />
@@ -497,6 +498,9 @@
         <delete dir="${lib.dir}" />
         <delete dir="${legacy.dir}" />
         <ant dir="${test.e2e.dir}" target="clean"/>
+        <exec dir="${basedir}/shade/roaringbitmap" executable="mvn">
+            <arg line="clean"/>
+        </exec>
     </target>
 
     <target name="clean-deps" description="Cleanup dependencies">
@@ -1280,7 +1284,7 @@
     <!-- ================================================================== -->
     <!-- Make release tarball                                               -->
     <!-- ================================================================== -->
-    <target name="src-release" depends="clean, clean-piggybank, clean-test-e2e, clean-tutorial" description="Source distribution">
+    <target name="src-release" depends="clean, clean-piggybank, jackson-pig-3039-test-clean, clean-test-e2e, clean-tutorial" description="Source distribution">
         <mkdir dir="${build.dir}"/>
         <tar compression="gzip" longfile="gnu"
              destfile="${build.dir}/${final.name}-src.tar.gz">
@@ -1423,6 +1427,7 @@
            <remoteRepository id="${staging_repo_id}" url="${asfstagingrepo}"/>
            <pom refid="pig"/>
            <attach file="${output.jarfile.core}.asc" type="jar.asc"/>
+           <attach file="${output.jarfile.core-h2}" classifier="h2"/>
            <attach file="${output.jarfile.core-h2}.asc" type="jar.asc"/>
            <attach file="${pig.pom}.asc" type="pom.asc"/>
            <attach file="${output.jarfile.sources}.asc" type="jar.asc" classifier="sources"/>
@@ -1916,6 +1921,7 @@
      <target name="copy-jar-to-maven" depends="ready-to-publish">
         <copy file="${output.jarfile.core}" tofile="${build.ivy.maven.jar}"/>
         <checksum file="${build.ivy.maven.jar}" algorithm="md5"/>
+        <checksum file="${build.ivy.maven.jar}" algorithm="sha-256"/>
      </target>
 
      <target name="copypom" depends="set-version, ivy-init-dirs">
@@ -1928,6 +1934,7 @@
         </presetdef>
         <expandingcopy file="ivy/pig.pom" tofile="${build.ivy.maven.pom}"/>
         <checksum file="${build.ivy.maven.pom}" algorithm="md5"/>
+        <checksum file="${build.ivy.maven.pom}" algorithm="sha-256"/>
      </target>
 
      <target name="maven-artifacts" depends="copy-jar-to-maven, copypom" />
