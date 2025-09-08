@@ -19,6 +19,7 @@ package org.apache.pig.newplan.logical.visitor;
 
 import java.util.Map;
 
+import org.apache.pig.DefaultCaster;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigWarning;
 import org.apache.pig.data.DataType;
@@ -104,14 +105,14 @@ public class CastLineageSetter extends AllExpressionVisitor{
             if(containsByteArrayOrEmtpyInSchema(cast.getExpression().getFieldSchema())){
                 long inUid = cast.getExpression().getFieldSchema().uid;
                 FuncSpec inLoadFunc = uid2LoadFuncMap.get(inUid);
-                if(inLoadFunc == null){
+                if(inLoadFunc == null && !cast.isUseDefaultCaster()){
                     String msg = "Cannot resolve load function to use for casting from " + 
                                 DataType.findTypeName(inType) + " to " +
                                 DataType.findTypeName(outType) + " at " + cast.getLocation() ;
                     msgCollector.collect(msg, MessageType.Warning,
                            PigWarning.NO_LOAD_FUNCTION_FOR_CASTING_BYTEARRAY);
-                }else {
-                    cast.setFuncSpec(inLoadFunc);
+                } else {
+                    cast.setFuncSpec(inLoadFunc == null ? new FuncSpec(DefaultCaster.class.getName()) : inLoadFunc);
                 }
             }
         }

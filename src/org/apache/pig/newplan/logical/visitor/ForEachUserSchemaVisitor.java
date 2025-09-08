@@ -254,7 +254,7 @@ public class ForEachUserSchemaVisitor extends LogicalRelationalNodesVisitor {
         exp.add(prj);
 
         if (needCaster) {
-            CastExpression cast = new CastExpression(exp, prj, new LogicalSchema.LogicalFieldSchema(fs));
+            CastExpression cast = new CastExpression(exp, prj, new LogicalSchema.LogicalFieldSchema(fs), true);
             exp.add(cast);
         }
         exps.add(exp);

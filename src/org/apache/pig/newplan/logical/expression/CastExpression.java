@@ -29,11 +29,17 @@ import org.apache.pig.parser.SourceLocation;
 public class CastExpression extends UnaryExpression {
     private FuncSpec castFunc;
     private LogicalSchema.LogicalFieldSchema castSchema;
+    private boolean useDefaultCaster;
 
     public CastExpression(OperatorPlan plan, LogicalExpression exp, LogicalSchema.LogicalFieldSchema fs) {
+        this(plan, exp, fs, false);
+    }
+
+    public CastExpression(OperatorPlan plan, LogicalExpression exp, LogicalSchema.LogicalFieldSchema fs, boolean useDefaultCaster) {
         super("Cast", plan, exp);
         castSchema = fs.deepCopy();
         castSchema.resetUid();
+        this.useDefaultCaster = useDefaultCaster;
     }
 
     @Override
@@ -42,6 +48,10 @@ public class CastExpression extends UnaryExpression {
             throw new FrontendException("Expected LogicalExpressionVisitor", 2222);
         }
         ((LogicalExpressionVisitor)v).visit(this);
+    }
+
+    public boolean isUseDefaultCaster() {
+        return useDefaultCaster;
     }
 
     /**

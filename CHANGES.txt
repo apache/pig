@@ -157,6 +157,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5474: Casting error or empty output when as clause is used on a bag with schema not defined (rohini)
+
 PIG-5473: Fix issues found in release candidate (rohini)
 
 PIG-5458: Update metrics-core.version (knoguchi)
