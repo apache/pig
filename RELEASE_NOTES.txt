@@ -3,17 +3,19 @@ These notes are for Pig 0.18.0 release.
 Highlights
 ==========
 
-The main focus of this release is 
+The highlights of this release are
   - Support for Hadoop 3, Tez 0.10, Spark 3, Hive 3 and HBase 2 and making them the default
   - Support for Python 3 in streaming
 
 System Requirements
 ===================
 
-1. Java 1.8.x. Set JAVA_HOME to the root of your
+1. Java 1.8.x or newer. Set JAVA_HOME to the root of your
 Java installation
 2. Ant build tool:  http://ant.apache.org - to build source only
-3. This release is compatible with Hadoop 2.10.x and 3.x releases
+3. This release provides binaries compatible with Hadoop 2.10.x and 3.x releases. 
+   - pig-0.18.0.tar.gz binary release is compatible with Hadoop 3, Spark 3, Hive 3 and HBase 2. 
+   - pig-0.18.0-hadoop2.tar.gz binary release is compatible with Hadoop 2, Spark 2, Hive 1 and HBase 1.
 
 Trying the Release
 ==================
@@ -37,7 +39,6 @@ To execute in Tez or Spark mode, run with -x tez or -x spark option.
 7. To run unit tests run
     ant test 
 8. To build jar file with available user defined functions run commands below.
-This currently only works with Java 1.6.x.
     cd contrib/piggybank/java
     ant
 9. To build the tutorial:
@@ -48,9 +49,6 @@ This currently only works with Java 1.6.x.
 Relevant Documentation
 ======================
 
-Pig Language Manual(including Grunt commands):
-http://wiki.apache.org/pig-data/attachments/FrontPage/attachments/plrm.htm 
-UDF Manual: http://wiki.apache.org/pig/UDFManual
-Piggy Bank: http://wiki.apache.org/pig/PiggyBank
-Pig Tutorial: http://wiki.apache.org/pig/PigTutorial
-Pig Eclipse Plugin (PigPen):  http://wiki.apache.org/pig/PigPen
+Pig Documentation: http://pig.apache.org/docs/r0.17.0/
+Pig Wiki: https://cwiki.apache.org/confluence/display/PIG/Index
+Pig Tutorial: https://cwiki.apache.org/confluence/display/PIG/PigTutorial

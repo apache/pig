@@ -21,14 +21,15 @@ For the latest information about Pig, please visit our website at:
 
 and our wiki, at:
 
-   http://wiki.apache.org/pig/
+   https://cwiki.apache.org/confluence/display/PIG/Index
 
 Getting Started
 ===============
-1. To learn about Pig, try http://wiki.apache.org/pig/PigTutorial
+1. To learn about Pig, try https://cwiki.apache.org/confluence/display/PIG/PigTutorial
 2. To build and run Pig, try http://wiki.apache.org/pig/BuildPig and
 http://wiki.apache.org/pig/RunPig
-3. To check out the function library, try http://wiki.apache.org/pig/PiggyBank
+3. To check out the function library, try
+https://cwiki.apache.org/confluence/display/PIG/PiggyBank
 
 
 Contributing to the Project
