@@ -58,3 +58,4 @@
 **/TestTupleFormat.java
 **/TestStringUDFs.java
 **/TestLOLoadDeterminedSchema.java
+**/TestInterRecordReader.java

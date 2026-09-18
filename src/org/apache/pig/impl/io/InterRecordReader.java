@@ -20,7 +20,6 @@ package org.apache.pig.impl.io;
 import java.io.DataInputStream;
 import java.io.IOException;
 
-import org.apache.commons.collections.buffer.CircularFifoBuffer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -92,7 +91,12 @@ public class InterRecordReader extends RecordReader<Text, Tuple> {
      */
   public boolean skipUntilMarkerOrSplitEndOrEOF() throws IOException {
       int b = Integer.MIN_VALUE;
-      CircularFifoBuffer queue = new CircularFifoBuffer(syncMarker.length);
+      // Sliding window of the last syncMarker.length bytes. Kept in-line so this
+      // class does not depend on commons-collections 3 CircularFifoBuffer, which
+      // is no longer on the Hadoop 3.4.2 classpath (PIG-5475 / HADOOP-15760).
+      byte[] window = new byte[syncMarker.length];
+      int count = 0;
+      int head = 0;
       outer:while (b != -1) {
           //There may be a case where we read through a whole split without a marker, then we shouldn't proceed
           // because the records are from the next split which another reader would pick up too
@@ -106,18 +110,21 @@ public class InterRecordReader extends RecordReader<Text, Tuple> {
           //EOF reached
           if (b == -1) return false;
 
-          queue.add(b);
-          if (!queue.isFull()) {
-              //Not enough bytes read yet
-              continue outer;
-          }
-          int i = 0;
-          for (Object seenByte : queue){
-              if (syncMarker[i++] != ((Integer)seenByte).byteValue()) {
+          window[head] = (byte) b;
+          head = (head + 1) % window.length;
+          if (count < window.length) {
+              count++;
+              if (count < window.length) {
+                  //Not enough bytes read yet
                   continue outer;
               }
           }
-          //Found marker: queue content equals sync marker
+          for (int i = 0; i < window.length; i++) {
+              if (syncMarker[i] != window[(head + i) % window.length]) {
+                  continue outer;
+              }
+          }
+          //Found marker: window content equals sync marker
           lastSyncPos = in.getPosition();
           return true;
       }

@@ -28,6 +28,7 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-5475: InterRecordReader fails on Hadoop 3.4.2 due to missing CircularFifoBuffer (Sankalp Thakur)
 
 Release 0.18.0
  
